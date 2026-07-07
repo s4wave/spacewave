@@ -3,18 +3,22 @@ package sobject_world_engine
 import (
 	"context"
 	"errors"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/bstore"
 	"github.com/s4wave/spacewave/core/sobject"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/kvtx"
+	world "github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
+	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 	alpha_testbed "github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
@@ -236,6 +240,383 @@ func TestExecuteGCSweepMaintenanceQueuesThresholdJournal(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("maintenance routine did not exit after cancel")
+	}
+}
+
+func TestTwoPeerRemoteDeleteQueuesMaintenanceGCSweep(t *testing.T) {
+	ctx := t.Context()
+
+	c, so, headState := newProcessTestWorld(t, ctx)
+	c.conf.GcSweepIdleWindowDur = 1
+	keys, baselineEntries := seedGCSweepTestObjects(t, ctx, c, so, headState, gcSweepJournalThreshold)
+
+	sharedObjectID := "two-peer-gc-sweep"
+	remotePriv, remoteID := newGCSweepTestPeer(t)
+	maintenancePriv, maintenanceID := newGCSweepTestPeer(t)
+	state, maintenanceSnap, xfrm := newTwoPeerGCSweepTestState(
+		t,
+		ctx,
+		c,
+		sharedObjectID,
+		headState,
+		remoteID,
+		maintenancePriv,
+		maintenanceID,
+	)
+
+	for i, key := range keys {
+		tx, err := world_block_tx.NewTxDeleteObject(key)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		queueGCSweepTestTx(t, ctx, sharedObjectID, state, xfrm, remotePriv, uint64(i+1), sobject.NewSOOperationLocalID(), tx)
+	}
+
+	deleteHead := processGCSweepTestStateOps(t, ctx, c, so, state, maintenanceSnap, sharedObjectID, maintenanceID)
+	pending := getGCSweepTestJournalEntries(t, ctx, c, so, deleteHead)
+	if pending <= baselineEntries {
+		t.Fatalf("remote deletes left %d pending gc journal entries, want more than baseline %d", pending, baselineEntries)
+	}
+
+	queueSO := &testGCSweepSharedObject{
+		snapshot:   maintenanceSnap,
+		blockStore: so.blockStore,
+	}
+	queued, err := c.queueGCSweepTx(ctx, queueSO)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !queued {
+		t.Fatal("authorized maintenance peer did not queue gc sweep")
+	}
+	if len(queueSO.queueOps) != 1 {
+		t.Fatalf("expected 1 queued maintenance op, got %d", len(queueSO.queueOps))
+	}
+	queuedOp := &SOWorldOp{}
+	if err := queuedOp.UnmarshalVT(queueSO.queueOps[0]); err != nil {
+		t.Fatal(err.Error())
+	}
+	body, ok := queuedOp.GetBody().(*SOWorldOp_ApplyTxOp)
+	if !ok {
+		t.Fatal("expected maintenance peer to queue ApplyTxOp")
+	}
+	if body.ApplyTxOp.GetTx().GetTxType() != world_block_tx.TxType_TxType_GC_SWEEP {
+		t.Fatalf("expected queued GC_SWEEP tx, got %s", body.ApplyTxOp.GetTx().GetTxType().String())
+	}
+
+	queueGCSweepTestRawOp(t, ctx, sharedObjectID, state, xfrm, maintenancePriv, 1, sobject.NewSOOperationLocalID(), queueSO.queueOps[0])
+	sweepHead := processGCSweepTestStateOps(t, ctx, c, so, state, maintenanceSnap, sharedObjectID, maintenanceID)
+	if entries := getGCSweepTestJournalEntries(t, ctx, c, so, sweepHead); entries != baselineEntries {
+		t.Fatalf("gc sweep left %d pending journal entries, want baseline %d", entries, baselineEntries)
+	}
+}
+
+func newGCSweepTestPeer(t *testing.T) (crypto.PrivKey, peer.ID) {
+	t.Helper()
+	priv, _, err := crypto.GenerateEd25519Key(nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	pid, err := peer.IDFromPrivateKey(priv)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return priv, pid
+}
+
+func seedGCSweepTestObjects(
+	t *testing.T,
+	ctx context.Context,
+	c *Controller,
+	so *testSharedObject,
+	headState *InnerState,
+	count uint64,
+) ([]string, uint64) {
+	t.Helper()
+	ws, err := c.buildBlkEngine(ctx, c.le, so, headState.GetHeadRef().CloneVT(), headState.GetHeadRef().GetTransformConf())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ws.Release()
+
+	worldState := world.NewEngineWorldState(ws.bengine, true)
+	keys := make([]string, 0, count)
+	for i := range count {
+		key := "gc-sweep-remote-delete-" + strconv.FormatUint(i, 10)
+		if _, err := world_block.BuildMockObject(ctx, worldState, key); err != nil {
+			t.Fatal(err.Error())
+		}
+		keys = append(keys, key)
+	}
+
+	if _, err := ws.bengine.Sync(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	baselineEntries := ws.bengine.GetGCJournalEntries()
+
+	headState.HeadRef = ws.bengine.GetRootRef()
+	headState.HeadRef.BucketId = ""
+	return keys, baselineEntries
+}
+
+func newTwoPeerGCSweepTestState(
+	t *testing.T,
+	ctx context.Context,
+	c *Controller,
+	sharedObjectID string,
+	headState *InnerState,
+	remoteID peer.ID,
+	maintenancePriv crypto.PrivKey,
+	maintenanceID peer.ID,
+) (*sobject.SOState, sobject.SharedObjectStateSnapshot, *block_transform.Transformer) {
+	t.Helper()
+	transformConf := headState.GetHeadRef().GetTransformConf()
+	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: c.le}, c.sfs, transformConf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	stateData, err := headState.MarshalVT()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	rootInnerData, err := (&sobject.SORootInner{
+		Seqno:     1,
+		StateData: stateData,
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	encodedStateData, err := xfrm.EncodeBlock(rootInnerData)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	remoteGrant := newGCSweepTestGrant(t, sharedObjectID, maintenancePriv, remoteID, transformConf)
+	maintenanceGrant := newGCSweepTestGrant(t, sharedObjectID, maintenancePriv, maintenanceID, transformConf)
+	state := &sobject.SOState{
+		Config: &sobject.SharedObjectConfig{
+			Participants: []*sobject.SOParticipantConfig{
+				{
+					PeerId: remoteID.String(),
+					Role:   sobject.SOParticipantRole_SOParticipantRole_WRITER,
+				},
+				{
+					PeerId: maintenanceID.String(),
+					Role:   sobject.SOParticipantRole_SOParticipantRole_OWNER,
+				},
+			},
+		},
+		Root: &sobject.SORoot{
+			Inner:      encodedStateData,
+			InnerSeqno: 1,
+		},
+		RootGrants: []*sobject.SOGrant{remoteGrant, maintenanceGrant},
+	}
+
+	snap := sobject.NewSOStateParticipantHandle(
+		c.le,
+		c.sfs,
+		sharedObjectID,
+		state,
+		maintenancePriv,
+		maintenanceID,
+	)
+	if _, err := snap.GetRootInner(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	return state, snap, xfrm
+}
+
+func newGCSweepTestGrant(
+	t *testing.T,
+	sharedObjectID string,
+	signerPriv crypto.PrivKey,
+	recipientID peer.ID,
+	transformConf *block_transform.Config,
+) *sobject.SOGrant {
+	t.Helper()
+	recipientPub, err := recipientID.ExtractPublicKey()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	grant, err := sobject.EncryptSOGrant(
+		signerPriv,
+		recipientPub,
+		sharedObjectID,
+		&sobject.SOGrantInner{TransformConf: transformConf},
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return grant
+}
+
+func queueGCSweepTestTx(
+	t *testing.T,
+	ctx context.Context,
+	sharedObjectID string,
+	state *sobject.SOState,
+	xfrm *block_transform.Transformer,
+	priv crypto.PrivKey,
+	nonce uint64,
+	localID string,
+	tx *world_block_tx.Tx,
+) {
+	t.Helper()
+	queueGCSweepTestRawOp(t, ctx, sharedObjectID, state, xfrm, priv, nonce, localID, marshalApplyTxOpForProcessTest(t, tx))
+}
+
+func queueGCSweepTestRawOp(
+	t *testing.T,
+	ctx context.Context,
+	sharedObjectID string,
+	state *sobject.SOState,
+	xfrm *block_transform.Transformer,
+	priv crypto.PrivKey,
+	nonce uint64,
+	localID string,
+	opData []byte,
+) {
+	t.Helper()
+	encodedOpData, err := xfrm.EncodeBlock(opData)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	op, err := sobject.BuildSOOperation(sharedObjectID, priv, encodedOpData, nonce, localID)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := state.QueueOperation(sharedObjectID, op); err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+func processGCSweepTestStateOps(
+	t *testing.T,
+	ctx context.Context,
+	c *Controller,
+	so *testSharedObject,
+	state *sobject.SOState,
+	snap sobject.SharedObjectStateSnapshot,
+	sharedObjectID string,
+	validatorID peer.ID,
+) *InnerState {
+	t.Helper()
+	queuedOps := append([]*sobject.SOOperation(nil), state.GetOps()...)
+	if len(queuedOps) == 0 {
+		t.Fatal("expected queued operations")
+	}
+
+	nextRoot, rejectedOps, acceptedOps, err := snap.ProcessOperations(
+		ctx,
+		queuedOps,
+		func(ctx context.Context, currentStateData []byte, ops []*sobject.SOOperationInner) (*[]byte, []*sobject.SOOperationResult, error) {
+			currentHead := &InnerState{}
+			if err := currentHead.UnmarshalVT(currentStateData); err != nil {
+				return nil, nil, err
+			}
+			results := make([]*sobject.SOOperationResult, 0, len(ops))
+			for i, op := range ops {
+				opPeerID, err := peer.IDB58Decode(op.GetPeerId())
+				if err != nil {
+					return nil, nil, err
+				}
+				nextHead, res, err := c.processOp(
+					ctx,
+					c.le,
+					so,
+					op.GetOpData(),
+					op.GetLocalId(),
+					opPeerID,
+					op.GetNonce(),
+					i,
+					currentHead,
+				)
+				if err != nil {
+					return nil, nil, err
+				}
+				if res == nil || !res.GetSuccess() {
+					t.Fatalf("operation %s rejected: %#v", op.GetLocalId(), res)
+				}
+				if nextHead != nil {
+					currentHead = nextHead
+				}
+				results = append(results, res)
+			}
+			nextStateData, err := currentHead.MarshalVT()
+			if err != nil {
+				return nil, nil, err
+			}
+			return &nextStateData, results, nil
+		},
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(rejectedOps) != 0 {
+		t.Fatalf("expected no rejected operations, got %d", len(rejectedOps))
+	}
+	if len(acceptedOps) != len(queuedOps) {
+		t.Fatalf("expected %d accepted operations, got %d", len(queuedOps), len(acceptedOps))
+	}
+	if err := state.UpdateRootState(sharedObjectID, nextRoot, validatorID.String(), rejectedOps, acceptedOps); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	rootInner, err := snap.GetRootInner(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	head := &InnerState{}
+	if err := head.UnmarshalVT(rootInner.GetStateData()); err != nil {
+		t.Fatal(err.Error())
+	}
+	return head
+}
+
+func getGCSweepTestJournalEntries(
+	t *testing.T,
+	ctx context.Context,
+	c *Controller,
+	so *testSharedObject,
+	headState *InnerState,
+) uint64 {
+	t.Helper()
+	ws, err := c.buildBlkEngine(ctx, c.le, so, headState.GetHeadRef().CloneVT(), headState.GetHeadRef().GetTransformConf())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ws.Release()
+	return ws.bengine.GetGCJournalEntries()
+}
+
+func applyGCSweepTestTx(
+	t *testing.T,
+	ctx context.Context,
+	ws *blkEngine,
+	sender peer.ID,
+	tx *world_block_tx.Tx,
+) {
+	t.Helper()
+	ttx, err := tx.LocateTx()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	btx, err := ws.bengine.NewBlockEngineTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer btx.Discard()
+	sysErr, err := ttx.ExecuteTx(ctx, sender, world_mock.LookupMockOp, btx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if sysErr {
+		t.Fatal("gc sweep tx returned system error")
+	}
+	if _, err := btx.CommitBlockTransaction(ctx); err != nil {
+		t.Fatal(err.Error())
 	}
 }
 
