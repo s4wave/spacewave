@@ -6,8 +6,13 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/coord"
+	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 func TestAccessObjectReturnsStorageOpArgs(t *testing.T) {
@@ -77,6 +82,54 @@ func TestLookupObjectBodyReleasesObjectState(t *testing.T) {
 	}
 }
 
+func TestEngineWorldStateRetriesStaleGenerationWriteOperation(t *testing.T) {
+	cases := []struct {
+		name      string
+		configure func(*staleRetryEngine)
+	}{
+		{
+			name: "transaction creation",
+			configure: func(eng *staleRetryEngine) {
+				eng.staleNewTx = 1
+			},
+		},
+		{
+			name: "operation body",
+			configure: func(eng *staleRetryEngine) {
+				eng.staleCreate = 1
+			},
+		},
+		{
+			name: "commit",
+			configure: func(eng *staleRetryEngine) {
+				eng.staleCommit = 1
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			eng := &staleRetryEngine{objects: make(map[string]*bucket.ObjectRef)}
+			tc.configure(eng)
+			ws := world.NewEngineWorldState(eng, true)
+			key := "retry-object"
+
+			_, err := ws.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "bucket"})
+			if err != nil {
+				t.Fatalf("CreateObject returned error after transient stale generation: %v", err)
+			}
+			found, err := ws.HasObject(ctx, key)
+			if err != nil {
+				t.Fatalf("HasObject after retried create returned error: %v", err)
+			}
+			if !found {
+				t.Fatal("object created after transient stale generation was not committed")
+			}
+		})
+	}
+}
+
 type releaseCountingWorldState struct {
 	world.WorldState
 	releases int
@@ -103,4 +156,199 @@ type releaseCountingObjectState struct {
 
 func (obj *releaseCountingObjectState) Release() {
 	*obj.releases += 1
+}
+
+type staleRetryEngine struct {
+	staleNewTx  int
+	staleCreate int
+	staleCommit int
+	objects     map[string]*bucket.ObjectRef
+}
+
+func (e *staleRetryEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	if e.staleNewTx > 0 {
+		e.staleNewTx--
+		return nil, coord.ErrStaleGeneration
+	}
+	return &staleRetryTx{engine: e, write: write}, nil
+}
+
+func (e *staleRetryEngine) Sync(ctx context.Context) (bool, error) {
+	return false, nil
+}
+
+func (e *staleRetryEngine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	panic("unexpected BuildStorageCursor call")
+}
+
+func (e *staleRetryEngine) AccessWorldState(
+	ctx context.Context,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	panic("unexpected AccessWorldState call")
+}
+
+func (e *staleRetryEngine) GetSeqno(ctx context.Context) (uint64, error) {
+	return 0, nil
+}
+
+func (e *staleRetryEngine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
+	return value, nil
+}
+
+type staleRetryTx struct {
+	engine  *staleRetryEngine
+	write   bool
+	pending map[string]*bucket.ObjectRef
+}
+
+func (txs *staleRetryTx) GetReadOnly() bool {
+	return !txs.write
+}
+
+func (txs *staleRetryTx) Sync(ctx context.Context) (bool, error) {
+	return false, nil
+}
+
+func (txs *staleRetryTx) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	panic("unexpected BuildStorageCursor call")
+}
+
+func (txs *staleRetryTx) AccessWorldState(
+	ctx context.Context,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	panic("unexpected AccessWorldState call")
+}
+
+func (txs *staleRetryTx) ApplyWorldOp(ctx context.Context, op world.Operation, opSender peer.ID) (uint64, bool, error) {
+	panic("unexpected ApplyWorldOp call")
+}
+
+func (txs *staleRetryTx) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
+	ref, found := txs.engine.objects[key]
+	if !found {
+		return nil, false, nil
+	}
+	return &staleRetryObject{key: key, rootRef: ref}, true, nil
+}
+
+func (txs *staleRetryTx) IterateObjects(ctx context.Context, prefix string, reversed bool) world.ObjectIterator {
+	panic("unexpected IterateObjects call")
+}
+
+func (txs *staleRetryTx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+	if !txs.write {
+		return nil, tx.ErrNotWrite
+	}
+	if txs.engine.staleCreate > 0 {
+		txs.engine.staleCreate--
+		return nil, coord.ErrStaleGeneration
+	}
+	if txs.pending == nil {
+		txs.pending = make(map[string]*bucket.ObjectRef)
+	}
+	txs.pending[key] = rootRef
+	return &staleRetryObject{key: key, rootRef: rootRef}, nil
+}
+
+func (txs *staleRetryTx) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (world.ObjectState, error) {
+	panic("unexpected RenameObject call")
+}
+
+func (txs *staleRetryTx) DeleteObject(ctx context.Context, key string) (bool, error) {
+	panic("unexpected DeleteObject call")
+}
+
+func (txs *staleRetryTx) HasObject(ctx context.Context, key string) (bool, error) {
+	_, found := txs.engine.objects[key]
+	return found, nil
+}
+
+func (txs *staleRetryTx) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
+	panic("unexpected AccessCayleyGraph call")
+}
+
+func (txs *staleRetryTx) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
+	panic("unexpected LookupGraphQuads call")
+}
+
+func (txs *staleRetryTx) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	panic("unexpected LookupGraphQuadsBatch call")
+}
+
+func (txs *staleRetryTx) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
+	panic("unexpected QueryGraphPath call")
+}
+
+func (txs *staleRetryTx) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
+	panic("unexpected SetGraphQuad call")
+}
+
+func (txs *staleRetryTx) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error {
+	panic("unexpected DeleteGraphQuad call")
+}
+
+func (txs *staleRetryTx) DeleteGraphObject(ctx context.Context, value string) error {
+	panic("unexpected DeleteGraphObject call")
+}
+
+func (txs *staleRetryTx) GetSeqno(ctx context.Context) (uint64, error) {
+	return 0, nil
+}
+
+func (txs *staleRetryTx) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
+	return value, nil
+}
+
+func (txs *staleRetryTx) Commit(ctx context.Context) error {
+	if txs.engine.staleCommit > 0 {
+		txs.engine.staleCommit--
+		return coord.ErrStaleGeneration
+	}
+	for key, ref := range txs.pending {
+		txs.engine.objects[key] = ref
+	}
+	return nil
+}
+
+func (txs *staleRetryTx) Discard() {}
+
+type staleRetryObject struct {
+	key     string
+	rootRef *bucket.ObjectRef
+}
+
+func (obj *staleRetryObject) GetKey() string {
+	return obj.key
+}
+
+func (obj *staleRetryObject) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error) {
+	return obj.rootRef, 1, nil
+}
+
+func (obj *staleRetryObject) AccessWorldState(
+	ctx context.Context,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	panic("unexpected object AccessWorldState call")
+}
+
+func (obj *staleRetryObject) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (uint64, error) {
+	panic("unexpected SetRootRef call")
+}
+
+func (obj *staleRetryObject) ApplyObjectOp(ctx context.Context, op world.Operation, opSender peer.ID) (uint64, bool, error) {
+	panic("unexpected ApplyObjectOp call")
+}
+
+func (obj *staleRetryObject) IncrementRev(ctx context.Context) (uint64, error) {
+	panic("unexpected IncrementRev call")
+}
+
+func (obj *staleRetryObject) WaitRev(ctx context.Context, rev uint64, ignoreNotFound bool) (uint64, error) {
+	panic("unexpected WaitRev call")
 }

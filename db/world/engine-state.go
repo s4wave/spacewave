@@ -3,11 +3,15 @@ package world
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/net/peer"
 )
+
+const maxEngineWorldStateTries = 10
 
 // engineWorldState implements a WorldState on top of an Engine.
 // Short-lived transactions are created for each operation.
@@ -233,27 +237,40 @@ func (e *engineWorldState) HasObject(ctx context.Context, key string) (bool, err
 	return found, err
 }
 
-// performOp performs an operation.
+// performOp performs an operation in a short-lived transaction, retrying stale
+// coordinated snapshots before callers observe a recoverable transaction race.
 func (e *engineWorldState) performOp(ctx context.Context, write bool, cb func(tx Tx) error) error {
 	if !e.write && write {
 		return tx.ErrNotWrite
 	}
 
-	if err := ctx.Err(); err != nil {
-		return ctx.Err()
+	var err error
+	for tries := 0; tries <= maxEngineWorldStateTries; tries++ {
+		if err = ctx.Err(); err != nil {
+			return err
+		}
+		err = e.performOpOnce(ctx, write, cb)
+		if !errors.Is(err, coord.ErrStaleGeneration) {
+			return err
+		}
 	}
+	return err
+}
 
-	tx, err := e.e.NewTransaction(ctx, write)
+func (e *engineWorldState) performOpOnce(ctx context.Context, write bool, cb func(tx Tx) error) error {
+	opTx, err := e.e.NewTransaction(ctx, write)
 	if err != nil {
 		return err
 	}
-	defer tx.Discard() // catches panic cases
+	defer opTx.Discard()
 
-	err = cb(tx)
-	if err == nil && write {
-		err = tx.Commit(ctx)
+	if err := cb(opTx); err != nil {
+		return err
 	}
-	return err
+	if write {
+		return opTx.Commit(ctx)
+	}
+	return nil
 }
 
 // _ is a type assertion
