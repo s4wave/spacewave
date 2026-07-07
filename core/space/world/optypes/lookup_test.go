@@ -15,6 +15,7 @@ import (
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
 	forge_execution_tx "github.com/s4wave/spacewave/forge/execution/tx"
 	forge_pass_tx "github.com/s4wave/spacewave/forge/pass/tx"
+	forge_task_tx "github.com/s4wave/spacewave/forge/task/tx"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
@@ -150,6 +151,7 @@ func TestBuildSpaceLookupOpAndLookupWorldOpResolveForgeQuickstartOps(t *testing.
 	requireLookupWorldAndBuildSpaceOp[*forge_worker.WorkerCreateOp](t, forge_worker.WorkerCreateOpId)
 	requireLookupWorldAndBuildSpaceOp[*forge_execution_tx.Tx](t, forge_execution_tx.ObjectOperationTypeID)
 	requireLookupWorldAndBuildSpaceOp[*forge_pass_tx.Tx](t, forge_pass_tx.WorldOperationTypeID)
+	requireLookupWorldAndBuildSpaceOp[*forge_task_tx.Tx](t, forge_task_tx.WorldOperationTypeID)
 }
 
 func TestBuildSpaceLookupOpReturnsNilForUnknownWithoutBus(t *testing.T) {

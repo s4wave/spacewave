@@ -5,6 +5,7 @@ import (
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
 	forge_execution_tx "github.com/s4wave/spacewave/forge/execution/tx"
 	forge_pass_tx "github.com/s4wave/spacewave/forge/pass/tx"
+	forge_task_tx "github.com/s4wave/spacewave/forge/task/tx"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 )
 
@@ -12,6 +13,7 @@ import (
 var LookupWorldOp world.LookupOp = world.NewLookupOpFromSlice([]world.LookupOp{
 	forge_execution_tx.LookupWorldOp,
 	forge_pass_tx.LookupWorldOp,
+	forge_task_tx.LookupWorldOp,
 	forge_worker.LookupWorkerOp,
 	forge_cluster.LookupClusterOp,
 })

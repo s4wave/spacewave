@@ -12,6 +12,7 @@ import (
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
 	forge_execution_tx "github.com/s4wave/spacewave/forge/execution/tx"
 	forge_pass_tx "github.com/s4wave/spacewave/forge/pass/tx"
+	forge_task_tx "github.com/s4wave/spacewave/forge/task/tx"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 )
@@ -46,4 +47,5 @@ func TestGoScriptLookupWorldOpResolvesForgeQuickstartOps(t *testing.T) {
 	requireLookupWorldOp[*forge_worker.WorkerCreateOp](t, forge_worker.WorkerCreateOpId)
 	requireLookupWorldOp[*forge_execution_tx.Tx](t, forge_execution_tx.ObjectOperationTypeID)
 	requireLookupWorldOp[*forge_pass_tx.Tx](t, forge_pass_tx.WorldOperationTypeID)
+	requireLookupWorldOp[*forge_task_tx.Tx](t, forge_task_tx.WorldOperationTypeID)
 }
