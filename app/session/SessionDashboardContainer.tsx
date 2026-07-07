@@ -32,6 +32,7 @@ import {
 } from '@s4wave/web/contexts/contexts.js'
 import { LuTriangleAlert } from 'react-icons/lu'
 
+import { startDriveSpaceOpenTrace } from '@s4wave/app/trace/drive-space-open-trace.js'
 import { LogoutConfirmDialog } from './LogoutConfirmDialog.js'
 
 // CDN_SPACE_DISPLAY_NAME is the label shown for the process-scoped CDN Space
@@ -175,13 +176,20 @@ export function SessionDashboardContainer() {
 
   const handleSpaceClick = useCallback(
     (space: DashboardSpace) => {
+      startDriveSpaceOpenTrace({
+        sessionIndex: sessionIdx,
+        sharedObjectId: space.id,
+        spaceName: space.name,
+        orgId: space.orgId,
+        source: space.source,
+      })
       navigateSession({
         path: space.orgId
           ? `org/${space.orgId}/so/${space.id}`
           : `so/${space.id}`,
       })
     },
-    [navigateSession],
+    [navigateSession, sessionIdx],
   )
 
   const handleQuickstartClick = useCallback(

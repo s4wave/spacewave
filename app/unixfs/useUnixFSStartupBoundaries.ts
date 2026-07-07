@@ -3,6 +3,11 @@ import { useEffect, useRef } from 'react'
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
 import { markAppStartupBoundary } from '@s4wave/app/quickstart/startup-boundary.js'
+import {
+  beginDriveSpaceOpenRegion,
+  endDriveSpaceOpenRegion,
+  endDriveSpaceOpenTrace,
+} from '@s4wave/app/trace/drive-space-open-trace.js'
 
 interface UnixFSStartupBoundariesOptions {
   displayPath: string
@@ -10,6 +15,7 @@ interface UnixFSStartupBoundariesOptions {
   isDir: boolean | null
   isLoading: boolean
   rootHandle: FSHandle | null | undefined
+  sharedObjectId?: string | null
 }
 
 export function useUnixFSStartupBoundaries({
@@ -18,6 +24,7 @@ export function useUnixFSStartupBoundaries({
   isDir,
   isLoading,
   rootHandle,
+  sharedObjectId,
 }: UnixFSStartupBoundariesOptions) {
   const visibleEntryNames = displayEntries.map((entry) => entry.name).join('\n')
   const boundaryMarks = useRef({
@@ -41,6 +48,23 @@ export function useUnixFSStartupBoundaries({
         entryCount: displayEntries.length,
         firstEntryName: displayEntries[0]?.name ?? null,
       })
+      if (sharedObjectId) {
+        beginDriveSpaceOpenRegion(sharedObjectId, 'first-listing-render', {
+          path: displayPath,
+          entryCount: displayEntries.length,
+          firstEntryName: displayEntries[0]?.name ?? null,
+        })
+        endDriveSpaceOpenRegion(sharedObjectId, 'first-listing-render', {
+          path: displayPath,
+          entryCount: displayEntries.length,
+          firstEntryName: displayEntries[0]?.name ?? null,
+        })
+        endDriveSpaceOpenTrace(sharedObjectId, {
+          path: displayPath,
+          entryCount: displayEntries.length,
+          firstEntryName: displayEntries[0]?.name ?? null,
+        })
+      }
     }
     if (!boundaryMarks.current.seededFile && visibleEntryNames) {
       boundaryMarks.current.seededFile = true
@@ -55,6 +79,7 @@ export function useUnixFSStartupBoundaries({
     isDir,
     isLoading,
     rootHandle,
+    sharedObjectId,
     visibleEntryNames,
   ])
 }

@@ -18,6 +18,7 @@ const mockUseRootResource = vi.hoisted(() => vi.fn())
 const mockUseSessionIndex = vi.hoisted(() => vi.fn<() => number>())
 const mockUseSessionNavigate = vi.hoisted(() => vi.fn())
 const mockUseVisibleQuickstartOptions = vi.hoisted(() => vi.fn())
+const mockStartDriveSpaceOpenTrace = vi.hoisted(() => vi.fn())
 const renderedDashboard = vi.hoisted(
   () =>
     vi.fn() as unknown as ReturnType<
@@ -74,6 +75,10 @@ vi.mock('@s4wave/app/quickstart/useQuickstartOptions.js', () => ({
   useVisibleQuickstartOptions: mockUseVisibleQuickstartOptions,
 }))
 
+vi.mock('@s4wave/app/trace/drive-space-open-trace.js', () => ({
+  startDriveSpaceOpenTrace: mockStartDriveSpaceOpenTrace,
+}))
+
 vi.mock('./SessionFrame.js', () => ({
   SessionFrame: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="session-frame">{children}</div>
@@ -81,7 +86,15 @@ vi.mock('./SessionFrame.js', () => ({
 }))
 
 vi.mock('./dashboard/SessionDashboard.js', () => ({
-  SessionDashboard: (props: { onQuickstartClick?: (id: string) => void }) => {
+  SessionDashboard: (props: {
+    onQuickstartClick?: (id: string) => void
+    onSpaceClick?: (space: {
+      id: string
+      name: string
+      orgId?: string
+      source?: string
+    }) => void
+  }) => {
     renderedDashboard(props)
     return (
       <>
@@ -96,6 +109,18 @@ vi.mock('./dashboard/SessionDashboard.js', () => ({
           onClick={() => props.onQuickstartClick?.('glados-workspace')}
         >
           Glados
+        </button>
+        <button
+          data-testid="space-drive"
+          onClick={() =>
+            props.onSpaceClick?.({
+              id: 'space-1',
+              name: 'Drive',
+              source: 'local',
+            })
+          }
+        >
+          Open Drive
         </button>
       </>
     )
@@ -127,6 +152,7 @@ describe('SessionDashboardContainer', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
     mockToastError.mockReset()
+    mockStartDriveSpaceOpenTrace.mockReset()
     renderedDashboard.mockReset()
 
     mockUseWatchStateRpc.mockReturnValue({ spacesList: [] })
@@ -223,6 +249,37 @@ describe('SessionDashboardContainer', () => {
     )
     expect(mockNavigate).not.toHaveBeenCalled()
     expect(mockUseSessionNavigate).not.toHaveBeenCalled()
+  })
+
+  it('starts the dashboard Drive-space-open trace before opening a space', () => {
+    mockUseWatchStateRpc.mockReturnValue({
+      spacesList: [
+        {
+          entry: {
+            ref: {
+              providerResourceRef: {
+                id: 'space-1',
+              },
+            },
+            source: 'local',
+          },
+          spaceMeta: {
+            name: 'Drive',
+          },
+        },
+      ],
+    })
+    render(<SessionDashboardContainer />)
+    fireEvent.click(screen.getByTestId('space-drive'))
+
+    expect(mockStartDriveSpaceOpenTrace).toHaveBeenCalledWith({
+      sessionIndex: 1,
+      sharedObjectId: 'space-1',
+      spaceName: 'Drive',
+      orgId: undefined,
+      source: 'local',
+    })
+    expect(mockUseSessionNavigate).toHaveBeenCalledWith({ path: 'so/space-1' })
   })
 
   it('injects the CDN space under the owning org group', () => {

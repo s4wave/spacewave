@@ -91,6 +91,11 @@ import {
   releaseQuickstartSharedObjectHandoff,
 } from '@s4wave/app/quickstart/session-handoff.js'
 import { markQuickstartStartupBoundary } from '@s4wave/app/quickstart/startup-boundary.js'
+import {
+  abortDriveSpaceOpenTrace,
+  beginDriveSpaceOpenRegion,
+  endDriveSpaceOpenRegion,
+} from '@s4wave/app/trace/drive-space-open-trace.js'
 
 const quickstartRouteStartupLabels: Record<string, string> = {
   'quickstart route using shared object handoff':
@@ -710,49 +715,72 @@ export function SessionSharedObjectContainer() {
         return null
       }
 
-      const handoff = consumeQuickstartSharedObjectHandoff(
+      beginDriveSpaceOpenRegion(sharedObjectId, 'so-fetch', {
         sessionIndex,
-        sharedObjectId,
-      )
-      if (handoff) {
+      })
+      try {
+        const handoff = consumeQuickstartSharedObjectHandoff(
+          sessionIndex,
+          sharedObjectId,
+        )
+        if (handoff) {
+          logQuickstartRouteDiagnostic(
+            'quickstart route using shared object handoff',
+            {
+              sessionIndex,
+              sharedObjectId,
+              released: handoff.released,
+            },
+          )
+          endDriveSpaceOpenRegion(sharedObjectId, 'so-fetch', {
+            result: 'handoff',
+            released: handoff.released,
+          })
+          return cleanup(handoff)
+        }
+
+        const req: MountSharedObjectRequest = { sharedObjectId }
         logQuickstartRouteDiagnostic(
-          'quickstart route using shared object handoff',
+          'quickstart route mount shared object start',
           {
             sessionIndex,
             sharedObjectId,
-            released: handoff.released,
           },
         )
-        return cleanup(handoff)
-      }
-
-      const req: MountSharedObjectRequest = { sharedObjectId }
-      logQuickstartRouteDiagnostic(
-        'quickstart route mount shared object start',
-        {
-          sessionIndex,
-          sharedObjectId,
-        },
-      )
-      const result = await session.mountSharedObject(req, signal)
-      logQuickstartRouteDiagnostic(
-        'quickstart route mount shared object finish',
-        {
-          sessionIndex,
-          sharedObjectId,
-          found: !!result,
-        },
-      )
-      if (!result) {
-        console.warn(
-          'mount shared object returned not found, redirecting to session',
-          req,
+        const result = await session.mountSharedObject(req, signal)
+        logQuickstartRouteDiagnostic(
+          'quickstart route mount shared object finish',
+          {
+            sessionIndex,
+            sharedObjectId,
+            found: !!result,
+          },
         )
-        queueMicrotask(() => navigateSession({ path: '', replace: true }))
-        return null
-      }
+        endDriveSpaceOpenRegion(sharedObjectId, 'so-fetch', {
+          result: result ? 'mounted' : 'not-found',
+        })
+        if (!result) {
+          console.warn(
+            'mount shared object returned not found, redirecting to session',
+            req,
+          )
+          abortDriveSpaceOpenTrace(sharedObjectId, {
+            reason: 'shared-object-not-found',
+          })
+          queueMicrotask(() => navigateSession({ path: '', replace: true }))
+          return null
+        }
 
-      return cleanup(result)
+        return cleanup(result)
+      } catch (err) {
+        endDriveSpaceOpenRegion(sharedObjectId, 'so-fetch', {
+          error: err instanceof Error ? err.message : String(err),
+        })
+        abortDriveSpaceOpenTrace(sharedObjectId, {
+          reason: 'shared-object-fetch-error',
+        })
+        throw err
+      }
     },
     // The mounted shared object is keyed by session + sharedObjectId.
     // Including navigation callbacks here causes path-only route changes to
@@ -794,7 +822,22 @@ export function SessionSharedObjectContainer() {
   )
 
   useEffect(() => {
+    if (!sharedObjectResource.value || !sharedObjectBodyResource.value) return
+    endDriveSpaceOpenRegion(sharedObjectId, 'mount', {
+      sharedObjectResourceId: sharedObjectResource.value.id,
+      bodyResourceId: sharedObjectBodyResource.value.id,
+    })
+  }, [
+    sharedObjectBodyResource.value,
+    sharedObjectId,
+    sharedObjectResource.value,
+  ])
+
+  useEffect(() => {
     return () => {
+      abortDriveSpaceOpenTrace(sharedObjectId, {
+        reason: 'shared-object-route-unmounted',
+      })
       clearQuickstartSharedObjectHandoffAwaitingResourcesList(
         sessionIndex,
         sharedObjectId,

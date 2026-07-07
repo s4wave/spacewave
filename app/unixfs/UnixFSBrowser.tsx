@@ -669,6 +669,7 @@ function useUnixFSBrowserElement({
     isDir,
     isLoading,
     rootHandle: rootHandle.value,
+    sharedObjectId: spaceId,
   })
 
   const handleNewFolderNameChange = useCallback((name: string) => {

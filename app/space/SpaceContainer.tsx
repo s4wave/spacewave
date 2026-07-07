@@ -83,6 +83,11 @@ import {
   releaseQuickstartSharedObjectHandoff,
 } from '@s4wave/app/quickstart/session-handoff.js'
 import { markQuickstartStartupBoundary } from '@s4wave/app/quickstart/startup-boundary.js'
+import {
+  abortDriveSpaceOpenTrace,
+  beginDriveSpaceOpenRegion,
+  endDriveSpaceOpenRegion,
+} from '@s4wave/app/trace/drive-space-open-trace.js'
 
 const quickstartSpaceStartupLabels: Record<string, string> = {
   'quickstart route using space handoff': 'quickstart.space-handoff-used',
@@ -186,29 +191,49 @@ export function SpaceContainer() {
       if (!space) {
         return null
       }
-      const handoff = consumeQuickstartSpaceWorldHandoff(
-        sessionIndex,
-        sharedObjectId,
-      )
-      if (handoff) {
-        logQuickstartSpaceDiagnostic(
-          'quickstart route using space world handoff',
-          {
-            sharedObjectId,
-          },
+      beginDriveSpaceOpenRegion(sharedObjectId, 'world-open', {
+        spaceResourceId: space.id,
+      })
+      try {
+        const handoff = consumeQuickstartSpaceWorldHandoff(
+          sessionIndex,
+          sharedObjectId,
         )
-        return cleanup(handoff)
+        if (handoff) {
+          logQuickstartSpaceDiagnostic(
+            'quickstart route using space world handoff',
+            {
+              sharedObjectId,
+            },
+          )
+          endDriveSpaceOpenRegion(sharedObjectId, 'world-open', {
+            result: 'handoff',
+          })
+          return cleanup(handoff)
+        }
+        logQuickstartSpaceDiagnostic('quickstart access world start', {
+          sharedObjectId,
+          spaceResourceId: space.id,
+        })
+        const state = await space.accessWorldState(true, signal)
+        logQuickstartSpaceDiagnostic('quickstart access world finish', {
+          sharedObjectId,
+          spaceResourceId: space.id,
+        })
+        endDriveSpaceOpenRegion(sharedObjectId, 'world-open', {
+          result: 'ready',
+          spaceResourceId: space.id,
+        })
+        return cleanup(state)
+      } catch (err) {
+        endDriveSpaceOpenRegion(sharedObjectId, 'world-open', {
+          error: err instanceof Error ? err.message : String(err),
+        })
+        abortDriveSpaceOpenTrace(sharedObjectId, {
+          reason: 'world-open-error',
+        })
+        throw err
       }
-      logQuickstartSpaceDiagnostic('quickstart access world start', {
-        sharedObjectId,
-        spaceResourceId: space.id,
-      })
-      const state = await space.accessWorldState(true, signal)
-      logQuickstartSpaceDiagnostic('quickstart access world finish', {
-        sharedObjectId,
-        spaceResourceId: space.id,
-      })
-      return cleanup(state)
     },
     [sessionIndex, sharedObjectId],
   )
