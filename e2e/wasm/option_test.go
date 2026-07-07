@@ -91,7 +91,7 @@ func TestResolveE2EWasmCompiler(t *testing.T) {
 		env  string
 		want E2EWasmCompiler
 	}{
-		{name: "default", want: E2EWasmCompilerGo},
+		{name: "default", want: E2EWasmCompilerGoScript},
 		{name: "go", env: "go", want: E2EWasmCompilerGo},
 		{name: "tinygo", env: "tinygo", want: E2EWasmCompilerTinyGo},
 		{name: "goscript", env: "goscript", want: E2EWasmCompilerGoScript},
@@ -549,7 +549,7 @@ func TestStartupBuildCacheDefaultsToTinyGo(t *testing.T) {
 	t.Setenv(E2EWasmLegacyTinyGoEnv, "")
 	t.Setenv(E2EWasmCompilerEnv, "")
 	if E2EWasmStartupBuildCacheEnabled() {
-		t.Fatal("startup build cache should default off with the Go compiler")
+		t.Fatal("startup build cache should default off with GoScript")
 	}
 	t.Setenv(E2EWasmCompilerEnv, "tinygo")
 	if !E2EWasmStartupBuildCacheEnabled() {

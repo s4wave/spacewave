@@ -159,8 +159,8 @@ func WithSessionHarness() Option {
 	return WithConfigMutator(e2e_wasm_session.InjectSessionHarnessConfig)
 }
 
-// ResolveE2EWasmCompiler resolves the browser Go compiler for local
-// harness runs.
+// ResolveE2EWasmCompiler resolves the browser Go compiler for local harness
+// runs. The unset default matches Bldr web builds: GoScript in browser plugins.
 func ResolveE2EWasmCompiler() (E2EWasmCompiler, error) {
 	legacyTinyGo := strings.TrimSpace(os.Getenv(E2EWasmLegacyTinyGoEnv))
 	if legacyTinyGo != "" {
@@ -169,7 +169,9 @@ func ResolveE2EWasmCompiler() (E2EWasmCompiler, error) {
 
 	raw := strings.ToLower(strings.TrimSpace(os.Getenv(E2EWasmCompilerEnv)))
 	switch raw {
-	case "", string(E2EWasmCompilerGo):
+	case "":
+		return E2EWasmCompilerGoScript, nil
+	case string(E2EWasmCompilerGo):
 		return E2EWasmCompilerGo, nil
 	case string(E2EWasmCompilerTinyGo):
 		return E2EWasmCompilerTinyGo, nil

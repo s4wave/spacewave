@@ -139,6 +139,14 @@ describe('User Story: Create Drive and View File', () => {
               })
               return false
             }
+            const next = buttons.find((button) => button.textContent === 'Next')
+            if (next instanceof HTMLButtonElement && !next.disabled) {
+              next.click()
+              await new Promise<void>((resolve) => {
+                requestAnimationFrame(() => resolve())
+              })
+              return false
+            }
 
             const browser = document.querySelector(
               '[data-testid="unixfs-browser"]',

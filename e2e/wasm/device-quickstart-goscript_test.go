@@ -3,10 +3,10 @@
 package wasm
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 
+	"github.com/aperturerobotics/fastjson"
 	playwright "github.com/mxschmitt/playwright-go"
 )
 
@@ -303,11 +303,61 @@ func waitForDeviceQuickstartSurface(t testing.TB, page playwright.Page) deviceQu
 	if !ok {
 		t.Fatalf("unexpected Device quickstart surface probe result %T: %#v", raw, raw)
 	}
-	var proof deviceQuickstartSurfaceProof
-	if err := json.Unmarshal([]byte(text), &proof); err != nil {
+	proof, err := parseDeviceQuickstartSurfaceProof(text)
+	if err != nil {
 		t.Fatalf("decode Device quickstart surface proof: %v\nraw: %s", err, text)
 	}
 	return proof
+}
+
+func parseDeviceQuickstartSurfaceProof(text string) (deviceQuickstartSurfaceProof, error) {
+	var parser fastjson.Parser
+	v, err := parser.Parse(text)
+	if err != nil {
+		return deviceQuickstartSurfaceProof{}, err
+	}
+	return deviceQuickstartSurfaceProof{
+		Timeout:             v.GetBool("timeout"),
+		Hash:                string(v.GetStringBytes("hash")),
+		RouteObjectKey:      string(v.GetStringBytes("routeObjectKey")),
+		TimingState:         string(v.GetStringBytes("timingState")),
+		TimingError:         string(v.GetStringBytes("timingError")),
+		HasDashboardSurface: v.GetBool("hasDashboardSurface"),
+		HasWizardSurface:    v.GetBool("hasWizardSurface"),
+		AppText:             string(v.GetStringBytes("appText")),
+		Buttons:             parseDeviceQuickstartButtons(v.GetArray("buttons")),
+		RouteProbe: deviceQuickstartRouteProbe{
+			Skipped:      v.GetBool("routeProbe", "skipped"),
+			HasDebugRoot: v.GetBool("routeProbe", "hasDebugRoot"),
+			Step:         string(v.GetStringBytes("routeProbe", "step")),
+			Error:        string(v.GetStringBytes("routeProbe", "error")),
+			SpaceState: deviceQuickstartSpaceState{
+				Ready:               v.GetBool("routeProbe", "spaceState", "ready"),
+				IndexPath:           string(v.GetStringBytes("routeProbe", "spaceState", "indexPath")),
+				ObjectKeys:          deviceQuickstartJSONStringSlice(v.GetArray("routeProbe", "spaceState", "objectKeys")),
+				ComputersObjectType: string(v.GetStringBytes("routeProbe", "spaceState", "computersObjectType")),
+			},
+		},
+	}, nil
+}
+
+func parseDeviceQuickstartButtons(values []*fastjson.Value) []deviceQuickstartButton {
+	out := make([]deviceQuickstartButton, 0, len(values))
+	for _, value := range values {
+		out = append(out, deviceQuickstartButton{
+			Title: string(value.GetStringBytes("title")),
+			Text:  string(value.GetStringBytes("text")),
+		})
+	}
+	return out
+}
+
+func deviceQuickstartJSONStringSlice(values []*fastjson.Value) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		out = append(out, string(value.GetStringBytes()))
+	}
+	return out
 }
 
 func seedDeviceQuickstartDevice(t testing.TB, h *Harness, page playwright.Page) map[string]any {
