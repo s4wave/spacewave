@@ -1,7 +1,9 @@
 package resource_session
 
 import (
+	"cmp"
 	"context"
+	"slices"
 	"sync"
 	"time"
 
@@ -13,6 +15,8 @@ import (
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	spacewave_launcher_controller "github.com/s4wave/spacewave/core/provider/spacewave/launcher/controller"
 	"github.com/s4wave/spacewave/core/session"
+	spacewave_transport "github.com/s4wave/spacewave/core/transport"
+	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 	s4wave_status "github.com/s4wave/spacewave/sdk/status"
 )
 
@@ -68,7 +72,8 @@ func newRendererRecoveryCtr() *ccontainer.CContainer[*s4wave_status.ReportRecove
 
 // StatusResource implements the SystemStatusService for a session.
 type StatusResource struct {
-	b bus.Bus
+	b    bus.Bus
+	sess session.Session
 	// rendererRecoveryCtr stores renderer-published, session-local recovery
 	// facts. It is diagnostic status only and is not persisted.
 	rendererRecoveryCtr *ccontainer.CContainer[*s4wave_status.ReportRecoveryStatusRequest]
@@ -79,11 +84,21 @@ func NewStatusResource(
 	b bus.Bus,
 	rendererRecoveryCtr *ccontainer.CContainer[*s4wave_status.ReportRecoveryStatusRequest],
 ) *StatusResource {
+	return NewStatusResourceWithSession(b, nil, rendererRecoveryCtr)
+}
+
+// NewStatusResourceWithSession creates a new StatusResource for sess.
+func NewStatusResourceWithSession(
+	b bus.Bus,
+	sess session.Session,
+	rendererRecoveryCtr *ccontainer.CContainer[*s4wave_status.ReportRecoveryStatusRequest],
+) *StatusResource {
 	if rendererRecoveryCtr == nil {
 		rendererRecoveryCtr = newRendererRecoveryCtr()
 	}
 	return &StatusResource{
 		b:                   b,
+		sess:                sess,
 		rendererRecoveryCtr: rendererRecoveryCtr,
 	}
 }
@@ -175,6 +190,27 @@ func (r *StatusResource) WatchPlugins(
 			if ctx.Err() != nil {
 				return err
 			}
+		}
+	}
+}
+
+// WatchNetworkStats streams the session transport's live bifrost link snapshot.
+func (r *StatusResource) WatchNetworkStats(
+	_ *s4wave_status.WatchNetworkStatsRequest,
+	strm s4wave_status.SRPCSystemStatusService_WatchNetworkStatsStream,
+) error {
+	ctx := strm.Context()
+	var prev *s4wave_status.WatchNetworkStatsResponse
+	for {
+		resp, waitChs := r.buildNetworkStatsResponse()
+		if prev == nil || !resp.EqualVT(prev) {
+			if err := strm.Send(resp); err != nil {
+				return err
+			}
+			prev = resp.CloneVT()
+		}
+		if err := waitNetworkStats(ctx, waitChs); err != nil {
+			return err
 		}
 	}
 }
@@ -389,6 +425,89 @@ func buildPluginsResponse(snapshot *plugin_host_scheduler.PluginStatusSnapshot) 
 		Plugins:     infos,
 		PluginCount: uint32(len(infos)),
 	}
+}
+
+type networkStatusProvider interface {
+	GetSessionTransport() *spacewave_transport.SessionTransport
+	GetTransportSnapshotWithWait() (bool, <-chan struct{})
+}
+
+func (r *StatusResource) buildNetworkStatsResponse() (*s4wave_status.WatchNetworkStatsResponse, []<-chan struct{}) {
+	resp := &s4wave_status.WatchNetworkStatsResponse{}
+	if r.sess == nil || r.sess.GetProviderAccount() == nil {
+		return resp, nil
+	}
+	provider, ok := r.sess.GetProviderAccount().(networkStatusProvider)
+	if !ok {
+		return resp, nil
+	}
+	transportRunning, transportWaitCh := provider.GetTransportSnapshotWithWait()
+	resp.TransportRunning = transportRunning
+	waitChs := appendNetworkStatsWaitCh(nil, transportWaitCh)
+	st := provider.GetSessionTransport()
+	if st == nil {
+		return resp, waitChs
+	}
+	resp.LocalPeerId = st.GetPeerID().String()
+	links, linkWaitCh := st.GetLinkSnapshotsWithWait()
+	waitChs = appendNetworkStatsWaitCh(waitChs, linkWaitCh)
+	slices.SortFunc(links, compareNetworkLinkSnapshots)
+	return buildNetworkStatsResponse(resp, links), waitChs
+}
+
+func compareNetworkLinkSnapshots(a, b transport_controller.LinkSnapshot) int {
+	if n := cmp.Compare(a.RemotePeerID.String(), b.RemotePeerID.String()); n != 0 {
+		return n
+	}
+	return cmp.Compare(a.LinkID, b.LinkID)
+}
+
+func buildNetworkStatsResponse(
+	resp *s4wave_status.WatchNetworkStatsResponse,
+	links []transport_controller.LinkSnapshot,
+) *s4wave_status.WatchNetworkStatsResponse {
+	peersByID := make(map[string]*s4wave_status.NetworkPeerInfo)
+	for _, link := range links {
+		peerID := link.RemotePeerID.String()
+		peerInfo := peersByID[peerID]
+		if peerInfo == nil {
+			peerInfo = &s4wave_status.NetworkPeerInfo{PeerId: peerID}
+			peersByID[peerID] = peerInfo
+		}
+		peerInfo.Links = append(peerInfo.Links, &s4wave_status.NetworkLinkInfo{
+			LocalPeerId:       link.LocalPeerID.String(),
+			RemotePeerId:      peerID,
+			LinkId:            link.LinkID,
+			TransportId:       link.TransportID,
+			RemoteTransportId: link.RemoteTransportID,
+		})
+	}
+	resp.Peers = make([]*s4wave_status.NetworkPeerInfo, 0, len(peersByID))
+	for _, peerInfo := range peersByID {
+		peerInfo.LinkCount = uint32(len(peerInfo.Links))
+		resp.Peers = append(resp.Peers, peerInfo)
+	}
+	slices.SortFunc(resp.Peers, func(a, b *s4wave_status.NetworkPeerInfo) int {
+		return cmp.Compare(a.GetPeerId(), b.GetPeerId())
+	})
+	resp.PeerCount = uint32(len(resp.Peers))
+	resp.LinkCount = uint32(len(links))
+	return resp
+}
+
+func appendNetworkStatsWaitCh(waitChs []<-chan struct{}, waitCh <-chan struct{}) []<-chan struct{} {
+	if waitCh == nil {
+		return waitChs
+	}
+	return append(waitChs, waitCh)
+}
+
+func waitNetworkStats(ctx context.Context, waitChs []<-chan struct{}) error {
+	if len(waitChs) == 0 {
+		<-ctx.Done()
+		return ctx.Err()
+	}
+	return broadcast.WaitAny(ctx, waitChs...)
 }
 
 func (r *StatusResource) buildRecoveryStatus() *s4wave_status.RecoveryStatus {

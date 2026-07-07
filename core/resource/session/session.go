@@ -127,8 +127,9 @@ func NewSessionResourceWithHostPluginIDAndRecoveryStatus(
 		ctxCancel:    ctxCancel,
 	}
 
-	statusRes := NewStatusResource(
+	statusRes := NewStatusResourceWithSession(
 		b,
+		sess,
 		recoveryStatusRegistry.GetSessionRecoveryStatusCtr(sess),
 	)
 	registrations := []func(srpc.Mux) error{

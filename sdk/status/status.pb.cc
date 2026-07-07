@@ -65,6 +65,24 @@ struct WatchPluginsRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchPluginsRequestDefaultTypeInternal _WatchPluginsRequest_default_instance_;
 template <typename>
+PROTOBUF_CONSTEXPR WatchNetworkStatsRequest::WatchNetworkStatsRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(WatchNetworkStatsRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct WatchNetworkStatsRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR WatchNetworkStatsRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~WatchNetworkStatsRequestDefaultTypeInternal() {}
+  union {
+    WatchNetworkStatsRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchNetworkStatsRequestDefaultTypeInternal _WatchNetworkStatsRequest_default_instance_;
+template <typename>
 PROTOBUF_CONSTEXPR WatchDirectivesRequest::WatchDirectivesRequest(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::internal::ZeroFieldsBase(WatchDirectivesRequest_class_data_.base()){}
@@ -249,6 +267,39 @@ struct PluginInfoDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PluginInfoDefaultTypeInternal _PluginInfo_default_instance_;
+
+inline constexpr NetworkLinkInfo::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        local_peer_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        remote_peer_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        link_id_{::uint64_t{0u}},
+        transport_id_{::uint64_t{0u}},
+        remote_transport_id_{::uint64_t{0u}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR NetworkLinkInfo::NetworkLinkInfo(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(NetworkLinkInfo_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct NetworkLinkInfoDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR NetworkLinkInfoDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~NetworkLinkInfoDefaultTypeInternal() {}
+  union {
+    NetworkLinkInfo _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 NetworkLinkInfoDefaultTypeInternal _NetworkLinkInfo_default_instance_;
 
 inline constexpr NativePackageRecoveryStatus::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -583,6 +634,35 @@ struct RecoveryStatusDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RecoveryStatusDefaultTypeInternal _RecoveryStatus_default_instance_;
 
+inline constexpr NetworkPeerInfo::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        links_{},
+        peer_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        link_count_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR NetworkPeerInfo::NetworkPeerInfo(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(NetworkPeerInfo_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct NetworkPeerInfoDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR NetworkPeerInfoDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~NetworkPeerInfoDefaultTypeInternal() {}
+  union {
+    NetworkPeerInfo _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 NetworkPeerInfoDefaultTypeInternal _NetworkPeerInfo_default_instance_;
+
 inline constexpr WatchRecoveryStatusResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -607,6 +687,37 @@ struct WatchRecoveryStatusResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchRecoveryStatusResponseDefaultTypeInternal _WatchRecoveryStatusResponse_default_instance_;
+
+inline constexpr WatchNetworkStatsResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        peers_{},
+        local_peer_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        transport_running_{false},
+        peer_count_{0u},
+        link_count_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR WatchNetworkStatsResponse::WatchNetworkStatsResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(WatchNetworkStatsResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct WatchNetworkStatsResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR WatchNetworkStatsResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~WatchNetworkStatsResponseDefaultTypeInternal() {}
+  union {
+    WatchNetworkStatsResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchNetworkStatsResponseDefaultTypeInternal _WatchNetworkStatsResponse_default_instance_;
 }  // namespace status
 }  // namespace s4wave
 static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
@@ -641,6 +752,28 @@ const ::uint32_t
         0,
         1,
         2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::NetworkLinkInfo, _impl_._has_bits_),
+        8, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::NetworkLinkInfo, _impl_.local_peer_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::NetworkLinkInfo, _impl_.remote_peer_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::NetworkLinkInfo, _impl_.link_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::NetworkLinkInfo, _impl_.transport_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::NetworkLinkInfo, _impl_.remote_transport_id_),
+        0,
+        1,
+        2,
+        3,
+        4,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::NetworkPeerInfo, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::NetworkPeerInfo, _impl_.peer_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::NetworkPeerInfo, _impl_.link_count_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::NetworkPeerInfo, _impl_.links_),
+        1,
+        2,
+        0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::status::LauncherRecoveryStatus, _impl_._has_bits_),
         18, // hasbit index offset
@@ -785,6 +918,20 @@ const ::uint32_t
         1,
         0x000, // bitmap
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::WatchNetworkStatsResponse, _impl_._has_bits_),
+        8, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::WatchNetworkStatsResponse, _impl_.transport_running_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::WatchNetworkStatsResponse, _impl_.local_peer_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::WatchNetworkStatsResponse, _impl_.peers_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::WatchNetworkStatsResponse, _impl_.peer_count_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::status::WatchNetworkStatsResponse, _impl_.link_count_),
+        2,
+        1,
+        0,
+        3,
+        4,
+        0x000, // bitmap
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::status::ReportRecoveryStatusRequest, _impl_._has_bits_),
         5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::status::ReportRecoveryStatusRequest, _impl_.boot_),
@@ -804,27 +951,33 @@ static const ::_pbi::MigrationSchema
         {0, sizeof(::s4wave::status::ControllerInfo)},
         {9, sizeof(::s4wave::status::DirectiveInfo)},
         {16, sizeof(::s4wave::status::PluginInfo)},
-        {25, sizeof(::s4wave::status::LauncherRecoveryStatus)},
-        {58, sizeof(::s4wave::status::PluginManifestRecoveryStatus)},
-        {81, sizeof(::s4wave::status::NativePackageRecoveryStatus)},
-        {98, sizeof(::s4wave::status::BrowserBootRecoveryStatus)},
-        {107, sizeof(::s4wave::status::RuntimeAssetRecoveryStatus)},
-        {130, sizeof(::s4wave::status::RecoveryStatus)},
-        {143, sizeof(::s4wave::status::WatchControllersRequest)},
-        {144, sizeof(::s4wave::status::WatchControllersResponse)},
-        {151, sizeof(::s4wave::status::WatchDirectivesRequest)},
-        {152, sizeof(::s4wave::status::WatchDirectivesResponse)},
-        {159, sizeof(::s4wave::status::WatchPluginsRequest)},
-        {160, sizeof(::s4wave::status::WatchPluginsResponse)},
-        {167, sizeof(::s4wave::status::WatchRecoveryStatusRequest)},
-        {168, sizeof(::s4wave::status::ReportRecoveryStatusRequest)},
-        {175, sizeof(::s4wave::status::ReportRecoveryStatusResponse)},
-        {176, sizeof(::s4wave::status::WatchRecoveryStatusResponse)},
+        {25, sizeof(::s4wave::status::NetworkLinkInfo)},
+        {38, sizeof(::s4wave::status::NetworkPeerInfo)},
+        {47, sizeof(::s4wave::status::LauncherRecoveryStatus)},
+        {80, sizeof(::s4wave::status::PluginManifestRecoveryStatus)},
+        {103, sizeof(::s4wave::status::NativePackageRecoveryStatus)},
+        {120, sizeof(::s4wave::status::BrowserBootRecoveryStatus)},
+        {129, sizeof(::s4wave::status::RuntimeAssetRecoveryStatus)},
+        {152, sizeof(::s4wave::status::RecoveryStatus)},
+        {165, sizeof(::s4wave::status::WatchControllersRequest)},
+        {166, sizeof(::s4wave::status::WatchControllersResponse)},
+        {173, sizeof(::s4wave::status::WatchDirectivesRequest)},
+        {174, sizeof(::s4wave::status::WatchDirectivesResponse)},
+        {181, sizeof(::s4wave::status::WatchPluginsRequest)},
+        {182, sizeof(::s4wave::status::WatchPluginsResponse)},
+        {189, sizeof(::s4wave::status::WatchNetworkStatsRequest)},
+        {190, sizeof(::s4wave::status::WatchNetworkStatsResponse)},
+        {203, sizeof(::s4wave::status::WatchRecoveryStatusRequest)},
+        {204, sizeof(::s4wave::status::ReportRecoveryStatusRequest)},
+        {211, sizeof(::s4wave::status::ReportRecoveryStatusResponse)},
+        {212, sizeof(::s4wave::status::WatchRecoveryStatusResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::status::_ControllerInfo_default_instance_._instance,
     &::s4wave::status::_DirectiveInfo_default_instance_._instance,
     &::s4wave::status::_PluginInfo_default_instance_._instance,
+    &::s4wave::status::_NetworkLinkInfo_default_instance_._instance,
+    &::s4wave::status::_NetworkPeerInfo_default_instance_._instance,
     &::s4wave::status::_LauncherRecoveryStatus_default_instance_._instance,
     &::s4wave::status::_PluginManifestRecoveryStatus_default_instance_._instance,
     &::s4wave::status::_NativePackageRecoveryStatus_default_instance_._instance,
@@ -837,6 +990,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::status::_WatchDirectivesResponse_default_instance_._instance,
     &::s4wave::status::_WatchPluginsRequest_default_instance_._instance,
     &::s4wave::status::_WatchPluginsResponse_default_instance_._instance,
+    &::s4wave::status::_WatchNetworkStatsRequest_default_instance_._instance,
+    &::s4wave::status::_WatchNetworkStatsResponse_default_instance_._instance,
     &::s4wave::status::_WatchRecoveryStatusRequest_default_instance_._instance,
     &::s4wave::status::_ReportRecoveryStatusRequest_default_instance_._instance,
     &::s4wave::status::_ReportRecoveryStatusResponse_default_instance_._instance,
@@ -850,93 +1005,106 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fs
     "escription\030\003 \001(\t\",\n\rDirectiveInfo\022\014\n\004nam"
     "e\030\001 \001(\t\022\r\n\005ident\030\002 \001(\t\"=\n\nPluginInfo\022\n\n\002"
     "id\030\001 \001(\t\022\024\n\014instance_key\030\002 \001(\t\022\r\n\005state\030"
-    "\003 \001(\t\"\357\003\n\026LauncherRecoveryStatus\022\033\n\023sele"
-    "cted_config_rev\030\001 \001(\004\022\036\n\026selected_config"
-    "_source\030\002 \001(\t\022\032\n\022fetched_config_rev\030\003 \001("
-    "\004\022\035\n\025fetched_config_source\030\004 \001(\t\022 \n\030rele"
-    "ase_metadata_outcome\030\005 \001(\t\022\036\n\026release_wo"
-    "rld_head_ref\030\006 \001(\t\022\034\n\024selected_channel_k"
-    "ey\030\007 \001(\t\022\'\n\037selected_entrypoint_manifest"
-    "_id\030\010 \001(\t\022\'\n\037selected_entrypoint_platfor"
-    "m_id\030\t \001(\t\022(\n selected_entrypoint_manife"
-    "st_rev\030\n \001(\004\022(\n selected_entrypoint_mani"
-    "fest_ref\030\013 \001(\t\022\024\n\014update_phase\030\014 \001(\t\022\026\n\016"
-    "update_version\030\r \001(\t\022\023\n\013staged_path\030\016 \001("
-    "\t\022\024\n\014update_error\030\017 \001(\t\"\330\002\n\034PluginManife"
-    "stRecoveryStatus\022\021\n\tplugin_id\030\001 \001(\t\022\024\n\014i"
-    "nstance_key\030\002 \001(\t\022\034\n\024execute_manifest_re"
-    "f\030\003 \001(\t\022\035\n\025download_manifest_ref\030\004 \001(\t\022\037"
-    "\n\027skipped_candidate_count\030\005 \001(\r\022!\n\031skipp"
-    "ed_candidate_summary\030\006 \001(\t\022\037\n\027ignored_ca"
-    "ndidate_count\030\007 \001(\r\022!\n\031ignored_candidate"
-    "_summary\030\010 \001(\t\022#\n\033quarantined_candidate_"
-    "count\030\t \001(\r\022%\n\035quarantined_candidate_sum"
-    "mary\030\n \001(\t\"\252\001\n\033NativePackageRecoveryStat"
-    "us\022\021\n\tplugin_id\030\001 \001(\t\022\020\n\010dist_dir\030\002 \001(\t\022"
-    "\024\n\014materialized\030\003 \001(\010\022\023\n\013invalidated\030\004 \001"
-    "(\010\022\023\n\013last_action\030\005 \001(\t\022\022\n\nlast_error\030\006 "
-    "\001(\t\022\022\n\nupdated_at\030\007 \001(\t\"g\n\031BrowserBootRe"
-    "coveryStatus\022\035\n\025compatibility_version\030\001 "
-    "\001(\t\022\033\n\023last_reset_decision\030\002 \001(\t\022\016\n\006stat"
-    "us\030\003 \001(\t\"\357\001\n\032RuntimeAssetRecoveryStatus\022"
-    "\023\n\013script_path\030\001 \001(\t\022\023\n\013status_code\030\002 \001("
-    "\r\022\n\n\002ok\030\003 \001(\010\022\026\n\016classification\030\004 \001(\t\022\024\n"
-    "\014fetch_source\030\005 \001(\t\022\025\n\rruntime_error\030\006 \001"
-    "(\t\022\033\n\023plugin_asset_result\030\007 \001(\t\022\024\n\014conte"
-    "nt_type\030\010 \001(\t\022\023\n\013body_prefix\030\t \001(\t\022\016\n\006st"
-    "atus\030\n \001(\t\"\306\002\n\016RecoveryStatus\0227\n\010launche"
-    "r\030\001 \001(\0132%.s4wave.status.LauncherRecovery"
-    "Status\022<\n\007plugins\030\002 \003(\0132+.s4wave.status."
-    "PluginManifestRecoveryStatus\022C\n\017native_p"
-    "ackages\030\003 \003(\0132*.s4wave.status.NativePack"
-    "ageRecoveryStatus\0226\n\004boot\030\004 \001(\0132(.s4wave"
-    ".status.BrowserBootRecoveryStatus\022@\n\rrun"
-    "time_asset\030\005 \001(\0132).s4wave.status.Runtime"
-    "AssetRecoveryStatus\"\031\n\027WatchControllersR"
-    "equest\"h\n\030WatchControllersResponse\0222\n\013co"
-    "ntrollers\030\001 \003(\0132\035.s4wave.status.Controll"
-    "erInfo\022\030\n\020controller_count\030\002 \001(\r\"\030\n\026Watc"
-    "hDirectivesRequest\"d\n\027WatchDirectivesRes"
-    "ponse\0220\n\ndirectives\030\001 \003(\0132\034.s4wave.statu"
-    "s.DirectiveInfo\022\027\n\017directive_count\030\002 \001(\r"
-    "\"\025\n\023WatchPluginsRequest\"X\n\024WatchPluginsR"
-    "esponse\022*\n\007plugins\030\001 \003(\0132\031.s4wave.status"
-    ".PluginInfo\022\024\n\014plugin_count\030\002 \001(\r\"\034\n\032Wat"
-    "chRecoveryStatusRequest\"\227\001\n\033ReportRecove"
-    "ryStatusRequest\0226\n\004boot\030\001 \001(\0132(.s4wave.s"
+    "\003 \001(\t\"\204\001\n\017NetworkLinkInfo\022\025\n\rlocal_peer_"
+    "id\030\001 \001(\t\022\026\n\016remote_peer_id\030\002 \001(\t\022\017\n\007link"
+    "_id\030\003 \001(\004\022\024\n\014transport_id\030\004 \001(\004\022\033\n\023remot"
+    "e_transport_id\030\005 \001(\004\"e\n\017NetworkPeerInfo\022"
+    "\017\n\007peer_id\030\001 \001(\t\022\022\n\nlink_count\030\002 \001(\r\022-\n\005"
+    "links\030\003 \003(\0132\036.s4wave.status.NetworkLinkI"
+    "nfo\"\357\003\n\026LauncherRecoveryStatus\022\033\n\023select"
+    "ed_config_rev\030\001 \001(\004\022\036\n\026selected_config_s"
+    "ource\030\002 \001(\t\022\032\n\022fetched_config_rev\030\003 \001(\004\022"
+    "\035\n\025fetched_config_source\030\004 \001(\t\022 \n\030releas"
+    "e_metadata_outcome\030\005 \001(\t\022\036\n\026release_worl"
+    "d_head_ref\030\006 \001(\t\022\034\n\024selected_channel_key"
+    "\030\007 \001(\t\022\'\n\037selected_entrypoint_manifest_i"
+    "d\030\010 \001(\t\022\'\n\037selected_entrypoint_platform_"
+    "id\030\t \001(\t\022(\n selected_entrypoint_manifest"
+    "_rev\030\n \001(\004\022(\n selected_entrypoint_manife"
+    "st_ref\030\013 \001(\t\022\024\n\014update_phase\030\014 \001(\t\022\026\n\016up"
+    "date_version\030\r \001(\t\022\023\n\013staged_path\030\016 \001(\t\022"
+    "\024\n\014update_error\030\017 \001(\t\"\330\002\n\034PluginManifest"
+    "RecoveryStatus\022\021\n\tplugin_id\030\001 \001(\t\022\024\n\014ins"
+    "tance_key\030\002 \001(\t\022\034\n\024execute_manifest_ref\030"
+    "\003 \001(\t\022\035\n\025download_manifest_ref\030\004 \001(\t\022\037\n\027"
+    "skipped_candidate_count\030\005 \001(\r\022!\n\031skipped"
+    "_candidate_summary\030\006 \001(\t\022\037\n\027ignored_cand"
+    "idate_count\030\007 \001(\r\022!\n\031ignored_candidate_s"
+    "ummary\030\010 \001(\t\022#\n\033quarantined_candidate_co"
+    "unt\030\t \001(\r\022%\n\035quarantined_candidate_summa"
+    "ry\030\n \001(\t\"\252\001\n\033NativePackageRecoveryStatus"
+    "\022\021\n\tplugin_id\030\001 \001(\t\022\020\n\010dist_dir\030\002 \001(\t\022\024\n"
+    "\014materialized\030\003 \001(\010\022\023\n\013invalidated\030\004 \001(\010"
+    "\022\023\n\013last_action\030\005 \001(\t\022\022\n\nlast_error\030\006 \001("
+    "\t\022\022\n\nupdated_at\030\007 \001(\t\"g\n\031BrowserBootReco"
+    "veryStatus\022\035\n\025compatibility_version\030\001 \001("
+    "\t\022\033\n\023last_reset_decision\030\002 \001(\t\022\016\n\006status"
+    "\030\003 \001(\t\"\357\001\n\032RuntimeAssetRecoveryStatus\022\023\n"
+    "\013script_path\030\001 \001(\t\022\023\n\013status_code\030\002 \001(\r\022"
+    "\n\n\002ok\030\003 \001(\010\022\026\n\016classification\030\004 \001(\t\022\024\n\014f"
+    "etch_source\030\005 \001(\t\022\025\n\rruntime_error\030\006 \001(\t"
+    "\022\033\n\023plugin_asset_result\030\007 \001(\t\022\024\n\014content"
+    "_type\030\010 \001(\t\022\023\n\013body_prefix\030\t \001(\t\022\016\n\006stat"
+    "us\030\n \001(\t\"\306\002\n\016RecoveryStatus\0227\n\010launcher\030"
+    "\001 \001(\0132%.s4wave.status.LauncherRecoverySt"
+    "atus\022<\n\007plugins\030\002 \003(\0132+.s4wave.status.Pl"
+    "uginManifestRecoveryStatus\022C\n\017native_pac"
+    "kages\030\003 \003(\0132*.s4wave.status.NativePackag"
+    "eRecoveryStatus\0226\n\004boot\030\004 \001(\0132(.s4wave.s"
     "tatus.BrowserBootRecoveryStatus\022@\n\rrunti"
-    "me_asset\030\002 \001(\0132).s4wave.status.RuntimeAs"
-    "setRecoveryStatus\"\036\n\034ReportRecoveryStatu"
-    "sResponse\"L\n\033WatchRecoveryStatusResponse"
-    "\022-\n\006status\030\001 \001(\0132\035.s4wave.status.Recover"
-    "yStatus2\234\004\n\023SystemStatusService\022e\n\020Watch"
-    "Controllers\022&.s4wave.status.WatchControl"
-    "lersRequest\032\'.s4wave.status.WatchControl"
-    "lersResponse0\001\022b\n\017WatchDirectives\022%.s4wa"
-    "ve.status.WatchDirectivesRequest\032&.s4wav"
-    "e.status.WatchDirectivesResponse0\001\022Y\n\014Wa"
-    "tchPlugins\022\".s4wave.status.WatchPluginsR"
-    "equest\032#.s4wave.status.WatchPluginsRespo"
-    "nse0\001\022o\n\024ReportRecoveryStatus\022*.s4wave.s"
-    "tatus.ReportRecoveryStatusRequest\032+.s4wa"
-    "ve.status.ReportRecoveryStatusResponse\022n"
-    "\n\023WatchRecoveryStatus\022).s4wave.status.Wa"
-    "tchRecoveryStatusRequest\032*.s4wave.status"
-    ".WatchRecoveryStatusResponse0\001B6Z4github"
-    ".com/s4wave/spacewave/sdk/status;s4wave_"
-    "statusb\006proto3"
+    "me_asset\030\005 \001(\0132).s4wave.status.RuntimeAs"
+    "setRecoveryStatus\"\031\n\027WatchControllersReq"
+    "uest\"h\n\030WatchControllersResponse\0222\n\013cont"
+    "rollers\030\001 \003(\0132\035.s4wave.status.Controller"
+    "Info\022\030\n\020controller_count\030\002 \001(\r\"\030\n\026WatchD"
+    "irectivesRequest\"d\n\027WatchDirectivesRespo"
+    "nse\0220\n\ndirectives\030\001 \003(\0132\034.s4wave.status."
+    "DirectiveInfo\022\027\n\017directive_count\030\002 \001(\r\"\025"
+    "\n\023WatchPluginsRequest\"X\n\024WatchPluginsRes"
+    "ponse\022*\n\007plugins\030\001 \003(\0132\031.s4wave.status.P"
+    "luginInfo\022\024\n\014plugin_count\030\002 \001(\r\"\032\n\030Watch"
+    "NetworkStatsRequest\"\244\001\n\031WatchNetworkStat"
+    "sResponse\022\031\n\021transport_running\030\001 \001(\010\022\025\n\r"
+    "local_peer_id\030\002 \001(\t\022-\n\005peers\030\003 \003(\0132\036.s4w"
+    "ave.status.NetworkPeerInfo\022\022\n\npeer_count"
+    "\030\004 \001(\r\022\022\n\nlink_count\030\005 \001(\r\"\034\n\032WatchRecov"
+    "eryStatusRequest\"\227\001\n\033ReportRecoveryStatu"
+    "sRequest\0226\n\004boot\030\001 \001(\0132(.s4wave.status.B"
+    "rowserBootRecoveryStatus\022@\n\rruntime_asse"
+    "t\030\002 \001(\0132).s4wave.status.RuntimeAssetReco"
+    "veryStatus\"\036\n\034ReportRecoveryStatusRespon"
+    "se\"L\n\033WatchRecoveryStatusResponse\022-\n\006sta"
+    "tus\030\001 \001(\0132\035.s4wave.status.RecoveryStatus"
+    "2\206\005\n\023SystemStatusService\022e\n\020WatchControl"
+    "lers\022&.s4wave.status.WatchControllersReq"
+    "uest\032\'.s4wave.status.WatchControllersRes"
+    "ponse0\001\022b\n\017WatchDirectives\022%.s4wave.stat"
+    "us.WatchDirectivesRequest\032&.s4wave.statu"
+    "s.WatchDirectivesResponse0\001\022Y\n\014WatchPlug"
+    "ins\022\".s4wave.status.WatchPluginsRequest\032"
+    "#.s4wave.status.WatchPluginsResponse0\001\022h"
+    "\n\021WatchNetworkStats\022\'.s4wave.status.Watc"
+    "hNetworkStatsRequest\032(.s4wave.status.Wat"
+    "chNetworkStatsResponse0\001\022o\n\024ReportRecove"
+    "ryStatus\022*.s4wave.status.ReportRecoveryS"
+    "tatusRequest\032+.s4wave.status.ReportRecov"
+    "eryStatusResponse\022n\n\023WatchRecoveryStatus"
+    "\022).s4wave.status.WatchRecoveryStatusRequ"
+    "est\032*.s4wave.status.WatchRecoveryStatusR"
+    "esponse0\001B6Z4github.com/s4wave/spacewave"
+    "/sdk/status;s4wave_statusb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto = {
     false,
     false,
-    3214,
+    3753,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto,
     "github.com/s4wave/spacewave/sdk/status/status.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto_once,
     nullptr,
     0,
-    19,
+    23,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto::offsets,
@@ -1985,6 +2153,798 @@ void PluginInfo::InternalSwap(PluginInfo* PROTOBUF_RESTRICT PROTOBUF_NONNULL oth
 }
 
 ::google::protobuf::Metadata PluginInfo::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class NetworkLinkInfo::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<NetworkLinkInfo>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(NetworkLinkInfo, _impl_._has_bits_);
+};
+
+NetworkLinkInfo::NetworkLinkInfo(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, NetworkLinkInfo_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.status.NetworkLinkInfo)
+}
+PROTOBUF_NDEBUG_INLINE NetworkLinkInfo::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::status::NetworkLinkInfo& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        local_peer_id_(arena, from.local_peer_id_),
+        remote_peer_id_(arena, from.remote_peer_id_) {}
+
+NetworkLinkInfo::NetworkLinkInfo(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const NetworkLinkInfo& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, NetworkLinkInfo_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  NetworkLinkInfo* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, link_id_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, link_id_),
+           offsetof(Impl_, remote_transport_id_) -
+               offsetof(Impl_, link_id_) +
+               sizeof(Impl_::remote_transport_id_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.status.NetworkLinkInfo)
+}
+PROTOBUF_NDEBUG_INLINE NetworkLinkInfo::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        local_peer_id_(arena),
+        remote_peer_id_(arena) {}
+
+inline void NetworkLinkInfo::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, link_id_),
+           0,
+           offsetof(Impl_, remote_transport_id_) -
+               offsetof(Impl_, link_id_) +
+               sizeof(Impl_::remote_transport_id_));
+}
+NetworkLinkInfo::~NetworkLinkInfo() {
+  // @@protoc_insertion_point(destructor:s4wave.status.NetworkLinkInfo)
+  SharedDtor(*this);
+}
+inline void NetworkLinkInfo::SharedDtor(MessageLite& self) {
+  NetworkLinkInfo& this_ = static_cast<NetworkLinkInfo&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.local_peer_id_.Destroy();
+  this_._impl_.remote_peer_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL NetworkLinkInfo::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) NetworkLinkInfo(arena);
+}
+constexpr auto NetworkLinkInfo::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(NetworkLinkInfo),
+                                            alignof(NetworkLinkInfo));
+}
+constexpr auto NetworkLinkInfo::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_NetworkLinkInfo_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &NetworkLinkInfo::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<NetworkLinkInfo>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &NetworkLinkInfo::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<NetworkLinkInfo>(), &NetworkLinkInfo::ByteSizeLong,
+              &NetworkLinkInfo::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(NetworkLinkInfo, _impl_._cached_size_),
+          false,
+      },
+      &NetworkLinkInfo::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull NetworkLinkInfo_class_data_ =
+        NetworkLinkInfo::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+NetworkLinkInfo::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&NetworkLinkInfo_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(NetworkLinkInfo_class_data_.tc_table);
+  return NetworkLinkInfo_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 5, 0, 65, 2>
+NetworkLinkInfo::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(NetworkLinkInfo, _impl_._has_bits_),
+    0, // no _extensions_
+    5, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967264,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    5,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    NetworkLinkInfo_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::status::NetworkLinkInfo>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string local_peer_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(NetworkLinkInfo, _impl_.local_peer_id_)}},
+    // string remote_peer_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(NetworkLinkInfo, _impl_.remote_peer_id_)}},
+    // uint64 link_id = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(NetworkLinkInfo, _impl_.link_id_), 2>(),
+     {24, 2, 0,
+      PROTOBUF_FIELD_OFFSET(NetworkLinkInfo, _impl_.link_id_)}},
+    // uint64 transport_id = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(NetworkLinkInfo, _impl_.transport_id_), 3>(),
+     {32, 3, 0,
+      PROTOBUF_FIELD_OFFSET(NetworkLinkInfo, _impl_.transport_id_)}},
+    // uint64 remote_transport_id = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(NetworkLinkInfo, _impl_.remote_transport_id_), 4>(),
+     {40, 4, 0,
+      PROTOBUF_FIELD_OFFSET(NetworkLinkInfo, _impl_.remote_transport_id_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string local_peer_id = 1;
+    {PROTOBUF_FIELD_OFFSET(NetworkLinkInfo, _impl_.local_peer_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string remote_peer_id = 2;
+    {PROTOBUF_FIELD_OFFSET(NetworkLinkInfo, _impl_.remote_peer_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint64 link_id = 3;
+    {PROTOBUF_FIELD_OFFSET(NetworkLinkInfo, _impl_.link_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // uint64 transport_id = 4;
+    {PROTOBUF_FIELD_OFFSET(NetworkLinkInfo, _impl_.transport_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // uint64 remote_transport_id = 5;
+    {PROTOBUF_FIELD_OFFSET(NetworkLinkInfo, _impl_.remote_transport_id_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+  }},
+  // no aux_entries
+  {{
+    "\35\15\16\0\0\0\0\0"
+    "s4wave.status.NetworkLinkInfo"
+    "local_peer_id"
+    "remote_peer_id"
+  }},
+};
+PROTOBUF_NOINLINE void NetworkLinkInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.status.NetworkLinkInfo)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.local_peer_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.remote_peer_id_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001cU)) {
+    ::memset(&_impl_.link_id_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.remote_transport_id_) -
+        reinterpret_cast<char*>(&_impl_.link_id_)) + sizeof(_impl_.remote_transport_id_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL NetworkLinkInfo::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const NetworkLinkInfo& this_ = static_cast<const NetworkLinkInfo&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL NetworkLinkInfo::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const NetworkLinkInfo& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.status.NetworkLinkInfo)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string local_peer_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_local_peer_id().empty()) {
+      const ::std::string& _s = this_._internal_local_peer_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.NetworkLinkInfo.local_peer_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string remote_peer_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_remote_peer_id().empty()) {
+      const ::std::string& _s = this_._internal_remote_peer_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.NetworkLinkInfo.remote_peer_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // uint64 link_id = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_link_id() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          3, this_._internal_link_id(), target);
+    }
+  }
+
+  // uint64 transport_id = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_transport_id() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          4, this_._internal_transport_id(), target);
+    }
+  }
+
+  // uint64 remote_transport_id = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_remote_transport_id() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          5, this_._internal_remote_transport_id(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.status.NetworkLinkInfo)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t NetworkLinkInfo::ByteSizeLong(const MessageLite& base) {
+  const NetworkLinkInfo& this_ = static_cast<const NetworkLinkInfo&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t NetworkLinkInfo::ByteSizeLong() const {
+  const NetworkLinkInfo& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.status.NetworkLinkInfo)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    // string local_peer_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_local_peer_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_local_peer_id());
+      }
+    }
+    // string remote_peer_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_remote_peer_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_remote_peer_id());
+      }
+    }
+    // uint64 link_id = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_link_id() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_link_id());
+      }
+    }
+    // uint64 transport_id = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_transport_id() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_transport_id());
+      }
+    }
+    // uint64 remote_transport_id = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_remote_transport_id() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_remote_transport_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void NetworkLinkInfo::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<NetworkLinkInfo*>(&to_msg);
+  auto& from = static_cast<const NetworkLinkInfo&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.status.NetworkLinkInfo)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_local_peer_id().empty()) {
+        _this->_internal_set_local_peer_id(from._internal_local_peer_id());
+      } else {
+        if (_this->_impl_.local_peer_id_.IsDefault()) {
+          _this->_internal_set_local_peer_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_remote_peer_id().empty()) {
+        _this->_internal_set_remote_peer_id(from._internal_remote_peer_id());
+      } else {
+        if (_this->_impl_.remote_peer_id_.IsDefault()) {
+          _this->_internal_set_remote_peer_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_link_id() != 0) {
+        _this->_impl_.link_id_ = from._impl_.link_id_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_transport_id() != 0) {
+        _this->_impl_.transport_id_ = from._impl_.transport_id_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_remote_transport_id() != 0) {
+        _this->_impl_.remote_transport_id_ = from._impl_.remote_transport_id_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void NetworkLinkInfo::CopyFrom(const NetworkLinkInfo& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.status.NetworkLinkInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void NetworkLinkInfo::InternalSwap(NetworkLinkInfo* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.local_peer_id_, &other->_impl_.local_peer_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.remote_peer_id_, &other->_impl_.remote_peer_id_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(NetworkLinkInfo, _impl_.remote_transport_id_)
+      + sizeof(NetworkLinkInfo::_impl_.remote_transport_id_)
+      - PROTOBUF_FIELD_OFFSET(NetworkLinkInfo, _impl_.link_id_)>(
+          reinterpret_cast<char*>(&_impl_.link_id_),
+          reinterpret_cast<char*>(&other->_impl_.link_id_));
+}
+
+::google::protobuf::Metadata NetworkLinkInfo::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class NetworkPeerInfo::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<NetworkPeerInfo>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(NetworkPeerInfo, _impl_._has_bits_);
+};
+
+NetworkPeerInfo::NetworkPeerInfo(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, NetworkPeerInfo_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.status.NetworkPeerInfo)
+}
+PROTOBUF_NDEBUG_INLINE NetworkPeerInfo::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::status::NetworkPeerInfo& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        links_{visibility, arena, from.links_},
+        peer_id_(arena, from.peer_id_) {}
+
+NetworkPeerInfo::NetworkPeerInfo(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const NetworkPeerInfo& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, NetworkPeerInfo_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  NetworkPeerInfo* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.link_count_ = from._impl_.link_count_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.status.NetworkPeerInfo)
+}
+PROTOBUF_NDEBUG_INLINE NetworkPeerInfo::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        links_{visibility, arena},
+        peer_id_(arena) {}
+
+inline void NetworkPeerInfo::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.link_count_ = {};
+}
+NetworkPeerInfo::~NetworkPeerInfo() {
+  // @@protoc_insertion_point(destructor:s4wave.status.NetworkPeerInfo)
+  SharedDtor(*this);
+}
+inline void NetworkPeerInfo::SharedDtor(MessageLite& self) {
+  NetworkPeerInfo& this_ = static_cast<NetworkPeerInfo&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.peer_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL NetworkPeerInfo::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) NetworkPeerInfo(arena);
+}
+constexpr auto NetworkPeerInfo::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(NetworkPeerInfo, _impl_.links_) +
+          decltype(NetworkPeerInfo::_impl_.links_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(NetworkPeerInfo), alignof(NetworkPeerInfo), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&NetworkPeerInfo::PlacementNew_,
+                                 sizeof(NetworkPeerInfo),
+                                 alignof(NetworkPeerInfo));
+  }
+}
+constexpr auto NetworkPeerInfo::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_NetworkPeerInfo_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &NetworkPeerInfo::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<NetworkPeerInfo>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &NetworkPeerInfo::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<NetworkPeerInfo>(), &NetworkPeerInfo::ByteSizeLong,
+              &NetworkPeerInfo::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(NetworkPeerInfo, _impl_._cached_size_),
+          false,
+      },
+      &NetworkPeerInfo::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull NetworkPeerInfo_class_data_ =
+        NetworkPeerInfo::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+NetworkPeerInfo::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&NetworkPeerInfo_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(NetworkPeerInfo_class_data_.tc_table);
+  return NetworkPeerInfo_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 1, 45, 2>
+NetworkPeerInfo::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(NetworkPeerInfo, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    NetworkPeerInfo_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::status::NetworkPeerInfo>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string peer_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 1, 0,
+      PROTOBUF_FIELD_OFFSET(NetworkPeerInfo, _impl_.peer_id_)}},
+    // uint32 link_count = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(NetworkPeerInfo, _impl_.link_count_), 2>(),
+     {16, 2, 0,
+      PROTOBUF_FIELD_OFFSET(NetworkPeerInfo, _impl_.link_count_)}},
+    // repeated .s4wave.status.NetworkLinkInfo links = 3;
+    {::_pbi::TcParser::FastMtR1,
+     {26, 0, 0,
+      PROTOBUF_FIELD_OFFSET(NetworkPeerInfo, _impl_.links_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string peer_id = 1;
+    {PROTOBUF_FIELD_OFFSET(NetworkPeerInfo, _impl_.peer_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint32 link_count = 2;
+    {PROTOBUF_FIELD_OFFSET(NetworkPeerInfo, _impl_.link_count_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // repeated .s4wave.status.NetworkLinkInfo links = 3;
+    {PROTOBUF_FIELD_OFFSET(NetworkPeerInfo, _impl_.links_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::status::NetworkLinkInfo>()},
+  }},
+  {{
+    "\35\7\0\0\0\0\0\0"
+    "s4wave.status.NetworkPeerInfo"
+    "peer_id"
+  }},
+};
+PROTOBUF_NOINLINE void NetworkPeerInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.status.NetworkPeerInfo)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.links_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.peer_id_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.link_count_ = 0u;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL NetworkPeerInfo::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const NetworkPeerInfo& this_ = static_cast<const NetworkPeerInfo&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL NetworkPeerInfo::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const NetworkPeerInfo& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.status.NetworkPeerInfo)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string peer_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_peer_id().empty()) {
+      const ::std::string& _s = this_._internal_peer_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.NetworkPeerInfo.peer_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // uint32 link_count = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_link_count() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          2, this_._internal_link_count(), target);
+    }
+  }
+
+  // repeated .s4wave.status.NetworkLinkInfo links = 3;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_links_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_links().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              3, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.status.NetworkPeerInfo)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t NetworkPeerInfo::ByteSizeLong(const MessageLite& base) {
+  const NetworkPeerInfo& this_ = static_cast<const NetworkPeerInfo&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t NetworkPeerInfo::ByteSizeLong() const {
+  const NetworkPeerInfo& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.status.NetworkPeerInfo)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // repeated .s4wave.status.NetworkLinkInfo links = 3;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_links_size();
+      for (const auto& msg : this_._internal_links()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // string peer_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_peer_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_peer_id());
+      }
+    }
+    // uint32 link_count = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_link_count() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_link_count());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void NetworkPeerInfo::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<NetworkPeerInfo*>(&to_msg);
+  auto& from = static_cast<const NetworkPeerInfo&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.status.NetworkPeerInfo)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_links()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_links());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_peer_id().empty()) {
+        _this->_internal_set_peer_id(from._internal_peer_id());
+      } else {
+        if (_this->_impl_.peer_id_.IsDefault()) {
+          _this->_internal_set_peer_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_link_count() != 0) {
+        _this->_impl_.link_count_ = from._impl_.link_count_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void NetworkPeerInfo::CopyFrom(const NetworkPeerInfo& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.status.NetworkPeerInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void NetworkPeerInfo::InternalSwap(NetworkPeerInfo* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.links_.InternalSwap(&other->_impl_.links_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.peer_id_, &other->_impl_.peer_id_, arena);
+  swap(_impl_.link_count_, other->_impl_.link_count_);
+}
+
+::google::protobuf::Metadata NetworkPeerInfo::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
@@ -6705,6 +7665,554 @@ void WatchPluginsResponse::InternalSwap(WatchPluginsResponse* PROTOBUF_RESTRICT 
 }
 
 ::google::protobuf::Metadata WatchPluginsResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class WatchNetworkStatsRequest::_Internal {
+ public:
+};
+
+WatchNetworkStatsRequest::WatchNetworkStatsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchNetworkStatsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.status.WatchNetworkStatsRequest)
+}
+WatchNetworkStatsRequest::WatchNetworkStatsRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const WatchNetworkStatsRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchNetworkStatsRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  WatchNetworkStatsRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.status.WatchNetworkStatsRequest)
+}
+
+inline void* PROTOBUF_NONNULL WatchNetworkStatsRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) WatchNetworkStatsRequest(arena);
+}
+constexpr auto WatchNetworkStatsRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(WatchNetworkStatsRequest),
+                                            alignof(WatchNetworkStatsRequest));
+}
+constexpr auto WatchNetworkStatsRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_WatchNetworkStatsRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &WatchNetworkStatsRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<WatchNetworkStatsRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &WatchNetworkStatsRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<WatchNetworkStatsRequest>(), &WatchNetworkStatsRequest::ByteSizeLong,
+              &WatchNetworkStatsRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(WatchNetworkStatsRequest, _impl_._cached_size_),
+          false,
+      },
+      &WatchNetworkStatsRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull WatchNetworkStatsRequest_class_data_ =
+        WatchNetworkStatsRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+WatchNetworkStatsRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&WatchNetworkStatsRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(WatchNetworkStatsRequest_class_data_.tc_table);
+  return WatchNetworkStatsRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+WatchNetworkStatsRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    WatchNetworkStatsRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::status::WatchNetworkStatsRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata WatchNetworkStatsRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class WatchNetworkStatsResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<WatchNetworkStatsResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_._has_bits_);
+};
+
+WatchNetworkStatsResponse::WatchNetworkStatsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchNetworkStatsResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.status.WatchNetworkStatsResponse)
+}
+PROTOBUF_NDEBUG_INLINE WatchNetworkStatsResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::status::WatchNetworkStatsResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        peers_{visibility, arena, from.peers_},
+        local_peer_id_(arena, from.local_peer_id_) {}
+
+WatchNetworkStatsResponse::WatchNetworkStatsResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const WatchNetworkStatsResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, WatchNetworkStatsResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  WatchNetworkStatsResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, transport_running_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, transport_running_),
+           offsetof(Impl_, link_count_) -
+               offsetof(Impl_, transport_running_) +
+               sizeof(Impl_::link_count_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.status.WatchNetworkStatsResponse)
+}
+PROTOBUF_NDEBUG_INLINE WatchNetworkStatsResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        peers_{visibility, arena},
+        local_peer_id_(arena) {}
+
+inline void WatchNetworkStatsResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, transport_running_),
+           0,
+           offsetof(Impl_, link_count_) -
+               offsetof(Impl_, transport_running_) +
+               sizeof(Impl_::link_count_));
+}
+WatchNetworkStatsResponse::~WatchNetworkStatsResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.status.WatchNetworkStatsResponse)
+  SharedDtor(*this);
+}
+inline void WatchNetworkStatsResponse::SharedDtor(MessageLite& self) {
+  WatchNetworkStatsResponse& this_ = static_cast<WatchNetworkStatsResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.local_peer_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL WatchNetworkStatsResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) WatchNetworkStatsResponse(arena);
+}
+constexpr auto WatchNetworkStatsResponse::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_.peers_) +
+          decltype(WatchNetworkStatsResponse::_impl_.peers_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(WatchNetworkStatsResponse), alignof(WatchNetworkStatsResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&WatchNetworkStatsResponse::PlacementNew_,
+                                 sizeof(WatchNetworkStatsResponse),
+                                 alignof(WatchNetworkStatsResponse));
+  }
+}
+constexpr auto WatchNetworkStatsResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_WatchNetworkStatsResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &WatchNetworkStatsResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<WatchNetworkStatsResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &WatchNetworkStatsResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<WatchNetworkStatsResponse>(), &WatchNetworkStatsResponse::ByteSizeLong,
+              &WatchNetworkStatsResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_._cached_size_),
+          false,
+      },
+      &WatchNetworkStatsResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull WatchNetworkStatsResponse_class_data_ =
+        WatchNetworkStatsResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+WatchNetworkStatsResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&WatchNetworkStatsResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(WatchNetworkStatsResponse_class_data_.tc_table);
+  return WatchNetworkStatsResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 5, 1, 61, 2>
+WatchNetworkStatsResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    5, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967264,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    5,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    WatchNetworkStatsResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::status::WatchNetworkStatsResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // bool transport_running = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(WatchNetworkStatsResponse, _impl_.transport_running_), 2>(),
+     {8, 2, 0,
+      PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_.transport_running_)}},
+    // string local_peer_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_.local_peer_id_)}},
+    // repeated .s4wave.status.NetworkPeerInfo peers = 3;
+    {::_pbi::TcParser::FastMtR1,
+     {26, 0, 0,
+      PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_.peers_)}},
+    // uint32 peer_count = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(WatchNetworkStatsResponse, _impl_.peer_count_), 3>(),
+     {32, 3, 0,
+      PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_.peer_count_)}},
+    // uint32 link_count = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(WatchNetworkStatsResponse, _impl_.link_count_), 4>(),
+     {40, 4, 0,
+      PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_.link_count_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bool transport_running = 1;
+    {PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_.transport_running_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // string local_peer_id = 2;
+    {PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_.local_peer_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // repeated .s4wave.status.NetworkPeerInfo peers = 3;
+    {PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_.peers_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint32 peer_count = 4;
+    {PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_.peer_count_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint32 link_count = 5;
+    {PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_.link_count_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::status::NetworkPeerInfo>()},
+  }},
+  {{
+    "\47\0\15\0\0\0\0\0"
+    "s4wave.status.WatchNetworkStatsResponse"
+    "local_peer_id"
+  }},
+};
+PROTOBUF_NOINLINE void WatchNetworkStatsResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.status.WatchNetworkStatsResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.peers_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.local_peer_id_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001cU)) {
+    ::memset(&_impl_.transport_running_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.link_count_) -
+        reinterpret_cast<char*>(&_impl_.transport_running_)) + sizeof(_impl_.link_count_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL WatchNetworkStatsResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const WatchNetworkStatsResponse& this_ = static_cast<const WatchNetworkStatsResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL WatchNetworkStatsResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const WatchNetworkStatsResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.status.WatchNetworkStatsResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bool transport_running = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_transport_running() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          1, this_._internal_transport_running(), target);
+    }
+  }
+
+  // string local_peer_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_local_peer_id().empty()) {
+      const ::std::string& _s = this_._internal_local_peer_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.status.WatchNetworkStatsResponse.local_peer_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // repeated .s4wave.status.NetworkPeerInfo peers = 3;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_peers_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_peers().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              3, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // uint32 peer_count = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_peer_count() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          4, this_._internal_peer_count(), target);
+    }
+  }
+
+  // uint32 link_count = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_link_count() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          5, this_._internal_link_count(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.status.WatchNetworkStatsResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t WatchNetworkStatsResponse::ByteSizeLong(const MessageLite& base) {
+  const WatchNetworkStatsResponse& this_ = static_cast<const WatchNetworkStatsResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t WatchNetworkStatsResponse::ByteSizeLong() const {
+  const WatchNetworkStatsResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.status.WatchNetworkStatsResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    // repeated .s4wave.status.NetworkPeerInfo peers = 3;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_peers_size();
+      for (const auto& msg : this_._internal_peers()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // string local_peer_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_local_peer_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_local_peer_id());
+      }
+    }
+    // bool transport_running = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_transport_running() != 0) {
+        total_size += 2;
+      }
+    }
+    // uint32 peer_count = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_peer_count() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_peer_count());
+      }
+    }
+    // uint32 link_count = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_link_count() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_link_count());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void WatchNetworkStatsResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<WatchNetworkStatsResponse*>(&to_msg);
+  auto& from = static_cast<const WatchNetworkStatsResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.status.WatchNetworkStatsResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_peers()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_peers());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_local_peer_id().empty()) {
+        _this->_internal_set_local_peer_id(from._internal_local_peer_id());
+      } else {
+        if (_this->_impl_.local_peer_id_.IsDefault()) {
+          _this->_internal_set_local_peer_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_transport_running() != 0) {
+        _this->_impl_.transport_running_ = from._impl_.transport_running_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_peer_count() != 0) {
+        _this->_impl_.peer_count_ = from._impl_.peer_count_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_link_count() != 0) {
+        _this->_impl_.link_count_ = from._impl_.link_count_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void WatchNetworkStatsResponse::CopyFrom(const WatchNetworkStatsResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.status.WatchNetworkStatsResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void WatchNetworkStatsResponse::InternalSwap(WatchNetworkStatsResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.peers_.InternalSwap(&other->_impl_.peers_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.local_peer_id_, &other->_impl_.local_peer_id_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_.link_count_)
+      + sizeof(WatchNetworkStatsResponse::_impl_.link_count_)
+      - PROTOBUF_FIELD_OFFSET(WatchNetworkStatsResponse, _impl_.transport_running_)>(
+          reinterpret_cast<char*>(&_impl_.transport_running_),
+          reinterpret_cast<char*>(&other->_impl_.transport_running_));
+}
+
+::google::protobuf::Metadata WatchNetworkStatsResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

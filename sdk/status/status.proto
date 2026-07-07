@@ -10,6 +10,8 @@ service SystemStatusService {
 
   rpc WatchPlugins(WatchPluginsRequest) returns (stream WatchPluginsResponse);
 
+  rpc WatchNetworkStats(WatchNetworkStatsRequest) returns (stream WatchNetworkStatsResponse);
+
   rpc ReportRecoveryStatus(ReportRecoveryStatusRequest) returns (ReportRecoveryStatusResponse);
 
   rpc WatchRecoveryStatus(WatchRecoveryStatusRequest) returns (stream WatchRecoveryStatusResponse);
@@ -41,6 +43,30 @@ message PluginInfo {
   string instance_key = 2;
   // State is the plugin runtime state.
   string state = 3;
+}
+
+// NetworkLinkInfo describes a live bifrost link.
+message NetworkLinkInfo {
+  // LocalPeerId is the local peer ID for the link.
+  string local_peer_id = 1;
+  // RemotePeerId is the remote peer ID for the link.
+  string remote_peer_id = 2;
+  // LinkId is the host-unique link ID.
+  uint64 link_id = 3;
+  // TransportId is the local transport UUID for the link.
+  uint64 transport_id = 4;
+  // RemoteTransportId is the remote transport UUID reported by the link.
+  uint64 remote_transport_id = 5;
+}
+
+// NetworkPeerInfo describes a peer with active bifrost links.
+message NetworkPeerInfo {
+  // PeerId is the peer ID.
+  string peer_id = 1;
+  // LinkCount is the number of active links to the peer.
+  uint32 link_count = 2;
+  // Links is the active link list for the peer.
+  repeated NetworkLinkInfo links = 3;
 }
 
 // LauncherRecoveryStatus reports launcher-owned release/config recovery facts.
@@ -150,6 +176,23 @@ message WatchPluginsResponse {
   repeated PluginInfo plugins = 1;
   // PluginCount is the total number of plugin load requests.
   uint32 plugin_count = 2;
+}
+
+// WatchNetworkStatsRequest is the request type for WatchNetworkStats.
+message WatchNetworkStatsRequest {}
+
+// WatchNetworkStatsResponse is the response type for WatchNetworkStats.
+message WatchNetworkStatsResponse {
+  // TransportRunning reports whether the session transport owner is active.
+  bool transport_running = 1;
+  // LocalPeerId is the local bifrost peer ID when the transport is active.
+  string local_peer_id = 2;
+  // Peers is the list of peers with at least one active link.
+  repeated NetworkPeerInfo peers = 3;
+  // PeerCount is the total number of linked peers.
+  uint32 peer_count = 4;
+  // LinkCount is the total number of active links.
+  uint32 link_count = 5;
 }
 
 // WatchRecoveryStatusRequest is the request type for WatchRecoveryStatus.

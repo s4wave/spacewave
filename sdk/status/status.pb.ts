@@ -117,6 +117,105 @@ export const PluginInfo: MessageType<PluginInfo> =
   })
 
 /**
+ * NetworkLinkInfo describes a live bifrost link.
+ *
+ * @generated from message s4wave.status.NetworkLinkInfo
+ */
+export interface NetworkLinkInfo {
+  /**
+   * LocalPeerId is the local peer ID for the link.
+   *
+   * @generated from field: string local_peer_id = 1;
+   */
+  localPeerId?: string
+  /**
+   * RemotePeerId is the remote peer ID for the link.
+   *
+   * @generated from field: string remote_peer_id = 2;
+   */
+  remotePeerId?: string
+  /**
+   * LinkId is the host-unique link ID.
+   *
+   * @generated from field: uint64 link_id = 3;
+   */
+  linkId?: bigint
+  /**
+   * TransportId is the local transport UUID for the link.
+   *
+   * @generated from field: uint64 transport_id = 4;
+   */
+  transportId?: bigint
+  /**
+   * RemoteTransportId is the remote transport UUID reported by the link.
+   *
+   * @generated from field: uint64 remote_transport_id = 5;
+   */
+  remoteTransportId?: bigint
+}
+
+export const NetworkLinkInfo: MessageType<NetworkLinkInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.status.NetworkLinkInfo',
+    fields: [
+      { no: 1, name: 'local_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'remote_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'link_id', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'transport_id', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 5,
+        name: 'remote_transport_id',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * NetworkPeerInfo describes a peer with active bifrost links.
+ *
+ * @generated from message s4wave.status.NetworkPeerInfo
+ */
+export interface NetworkPeerInfo {
+  /**
+   * PeerId is the peer ID.
+   *
+   * @generated from field: string peer_id = 1;
+   */
+  peerId?: string
+  /**
+   * LinkCount is the number of active links to the peer.
+   *
+   * @generated from field: uint32 link_count = 2;
+   */
+  linkCount?: number
+  /**
+   * Links is the active link list for the peer.
+   *
+   * @generated from field: repeated s4wave.status.NetworkLinkInfo links = 3;
+   */
+  links?: NetworkLinkInfo[]
+}
+
+export const NetworkPeerInfo: MessageType<NetworkPeerInfo> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.status.NetworkPeerInfo',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'link_count', kind: 'scalar', T: ScalarType.UINT32 },
+      {
+        no: 3,
+        name: 'links',
+        kind: 'message',
+        T: () => NetworkLinkInfo,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * LauncherRecoveryStatus reports launcher-owned release/config recovery facts.
  *
  * @generated from message s4wave.status.LauncherRecoveryStatus
@@ -744,6 +843,76 @@ export const WatchPluginsResponse: MessageType<WatchPluginsResponse> =
         repeated: true,
       },
       { no: 2, name: 'plugin_count', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WatchNetworkStatsRequest is the request type for WatchNetworkStats.
+ *
+ * @generated from message s4wave.status.WatchNetworkStatsRequest
+ */
+export interface WatchNetworkStatsRequest {}
+
+export const WatchNetworkStatsRequest: MessageType<WatchNetworkStatsRequest> =
+  /* @__PURE__ */ createEmptyMessageType<WatchNetworkStatsRequest>(
+    's4wave.status.WatchNetworkStatsRequest',
+    true,
+  )
+
+/**
+ * WatchNetworkStatsResponse is the response type for WatchNetworkStats.
+ *
+ * @generated from message s4wave.status.WatchNetworkStatsResponse
+ */
+export interface WatchNetworkStatsResponse {
+  /**
+   * TransportRunning reports whether the session transport owner is active.
+   *
+   * @generated from field: bool transport_running = 1;
+   */
+  transportRunning?: boolean
+  /**
+   * LocalPeerId is the local bifrost peer ID when the transport is active.
+   *
+   * @generated from field: string local_peer_id = 2;
+   */
+  localPeerId?: string
+  /**
+   * Peers is the list of peers with at least one active link.
+   *
+   * @generated from field: repeated s4wave.status.NetworkPeerInfo peers = 3;
+   */
+  peers?: NetworkPeerInfo[]
+  /**
+   * PeerCount is the total number of linked peers.
+   *
+   * @generated from field: uint32 peer_count = 4;
+   */
+  peerCount?: number
+  /**
+   * LinkCount is the total number of active links.
+   *
+   * @generated from field: uint32 link_count = 5;
+   */
+  linkCount?: number
+}
+
+export const WatchNetworkStatsResponse: MessageType<WatchNetworkStatsResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.status.WatchNetworkStatsResponse',
+    fields: [
+      { no: 1, name: 'transport_running', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'local_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'peers',
+        kind: 'message',
+        T: () => NetworkPeerInfo,
+        repeated: true,
+      },
+      { no: 4, name: 'peer_count', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 5, name: 'link_count', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

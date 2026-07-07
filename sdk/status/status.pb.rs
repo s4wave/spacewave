@@ -36,6 +36,38 @@ pub struct PluginInfo {
     #[prost(string, tag="3")]
     pub state: ::prost::alloc::string::String,
 }
+/// NetworkLinkInfo describes a live bifrost link.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct NetworkLinkInfo {
+    /// LocalPeerId is the local peer ID for the link.
+    #[prost(string, tag="1")]
+    pub local_peer_id: ::prost::alloc::string::String,
+    /// RemotePeerId is the remote peer ID for the link.
+    #[prost(string, tag="2")]
+    pub remote_peer_id: ::prost::alloc::string::String,
+    /// LinkId is the host-unique link ID.
+    #[prost(uint64, tag="3")]
+    pub link_id: u64,
+    /// TransportId is the local transport UUID for the link.
+    #[prost(uint64, tag="4")]
+    pub transport_id: u64,
+    /// RemoteTransportId is the remote transport UUID reported by the link.
+    #[prost(uint64, tag="5")]
+    pub remote_transport_id: u64,
+}
+/// NetworkPeerInfo describes a peer with active bifrost links.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NetworkPeerInfo {
+    /// PeerId is the peer ID.
+    #[prost(string, tag="1")]
+    pub peer_id: ::prost::alloc::string::String,
+    /// LinkCount is the number of active links to the peer.
+    #[prost(uint32, tag="2")]
+    pub link_count: u32,
+    /// Links is the active link list for the peer.
+    #[prost(message, repeated, tag="3")]
+    pub links: ::prost::alloc::vec::Vec<NetworkLinkInfo>,
+}
 /// LauncherRecoveryStatus reports launcher-owned release/config recovery facts.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LauncherRecoveryStatus {
@@ -203,6 +235,29 @@ pub struct WatchPluginsResponse {
     /// PluginCount is the total number of plugin load requests.
     #[prost(uint32, tag="2")]
     pub plugin_count: u32,
+}
+/// WatchNetworkStatsRequest is the request type for WatchNetworkStats.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WatchNetworkStatsRequest {
+}
+/// WatchNetworkStatsResponse is the response type for WatchNetworkStats.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WatchNetworkStatsResponse {
+    /// TransportRunning reports whether the session transport owner is active.
+    #[prost(bool, tag="1")]
+    pub transport_running: bool,
+    /// LocalPeerId is the local bifrost peer ID when the transport is active.
+    #[prost(string, tag="2")]
+    pub local_peer_id: ::prost::alloc::string::String,
+    /// Peers is the list of peers with at least one active link.
+    #[prost(message, repeated, tag="3")]
+    pub peers: ::prost::alloc::vec::Vec<NetworkPeerInfo>,
+    /// PeerCount is the total number of linked peers.
+    #[prost(uint32, tag="4")]
+    pub peer_count: u32,
+    /// LinkCount is the total number of active links.
+    #[prost(uint32, tag="5")]
+    pub link_count: u32,
 }
 /// WatchRecoveryStatusRequest is the request type for WatchRecoveryStatus.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]

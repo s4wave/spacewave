@@ -15,6 +15,27 @@ const mockStatus = vi.hoisted(() => ({
   ],
   directives: [{ name: 'directive/a', ident: 'ident-a' }],
   plugins: [{ id: 'spacewave-app', instanceKey: '', state: 'requested' }],
+  network: {
+    transportRunning: true,
+    localPeerId: 'local-peer-1',
+    peerCount: 1,
+    linkCount: 1,
+    peers: [
+      {
+        peerId: 'remote-peer-1',
+        linkCount: 1,
+        links: [
+          {
+            linkId: 4101,
+            transportId: 7001,
+            remoteTransportId: 7002,
+            localPeerId: 'local-peer-1',
+            remotePeerId: 'remote-peer-1',
+          },
+        ],
+      },
+    ],
+  },
   spaces: [
     {
       entry: {
@@ -112,6 +133,7 @@ vi.mock('./useSystemStatus.js', () => ({
     pluginCount: mockStatus.plugins.length,
     plugins: mockStatus.plugins,
   }),
+  useWatchNetworkStats: () => mockStatus.network,
   useWatchSpacesList: () => mockStatus.spaces,
 }))
 
@@ -141,6 +163,27 @@ describe('SystemStatusDashboard', () => {
     mockStatus.plugins = [
       { id: 'spacewave-app', instanceKey: '', state: 'requested' },
     ]
+    mockStatus.network = {
+      transportRunning: true,
+      localPeerId: 'local-peer-1',
+      peerCount: 1,
+      linkCount: 1,
+      peers: [
+        {
+          peerId: 'remote-peer-1',
+          linkCount: 1,
+          links: [
+            {
+              linkId: 4101,
+              transportId: 7001,
+              remoteTransportId: 7002,
+              localPeerId: 'local-peer-1',
+              remotePeerId: 'remote-peer-1',
+            },
+          ],
+        },
+      ],
+    }
     mockStatus.spaces = [
       {
         entry: {
@@ -174,6 +217,22 @@ describe('SystemStatusDashboard', () => {
   it('shows the spaces count in the stats ribbon', () => {
     renderDashboard()
     expect(screen.getByText('2 spaces')).toBeDefined()
+  })
+
+  it('opens the network link panel from live network stats', () => {
+    renderDashboard()
+
+    expect(screen.getByText('1 peer')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('treeitem', { name: /Network links/ }))
+
+    expect(screen.getAllByText('Network').length).toBeGreaterThan(0)
+    expect(screen.getByText('running')).toBeDefined()
+    expect(screen.getAllByText('local-peer-1').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('remote-peer-1').length).toBeGreaterThan(0)
+    expect(screen.getByText('link 4101')).toBeDefined()
+    expect(screen.getByText('7001')).toBeDefined()
+    expect(screen.getByText('7002')).toBeDefined()
   })
 
   it('keeps the placeholder logs drawer hidden until log streaming lands', () => {

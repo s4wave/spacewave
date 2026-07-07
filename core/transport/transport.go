@@ -95,6 +95,18 @@ func (t *SessionTransport) GetLinkedPeerIDsSnapshotWithWait(peerIDs []peer.ID) (
 	return linkController.GetLinkedPeerIDsSnapshotWithWait(peerIDs)
 }
 
+// GetLinkSnapshotsWithWait returns live link snapshots and a wait channel that
+// closes when the transport link set changes.
+func (t *SessionTransport) GetLinkSnapshotsWithWait() ([]transport_controller.LinkSnapshot, <-chan struct{}) {
+	t.mtx.RLock()
+	linkController := t.linkController
+	t.mtx.RUnlock()
+	if linkController == nil {
+		return nil, nil
+	}
+	return linkController.GetLinkSnapshotsWithWait()
+}
+
 // Ready returns a channel that is closed when the child bus and base
 // controllers are started.
 func (t *SessionTransport) Ready() <-chan struct{} {

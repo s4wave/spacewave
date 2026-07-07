@@ -9,6 +9,8 @@ import {
   WatchControllersResponse,
   WatchDirectivesRequest,
   WatchDirectivesResponse,
+  WatchNetworkStatsRequest,
+  WatchNetworkStatsResponse,
   WatchPluginsRequest,
   WatchPluginsResponse,
   WatchRecoveryStatusRequest,
@@ -48,6 +50,15 @@ export const SystemStatusServiceDefinition = {
       name: 'WatchPlugins',
       I: WatchPluginsRequest,
       O: WatchPluginsResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * @generated from rpc s4wave.status.SystemStatusService.WatchNetworkStats
+     */
+    WatchNetworkStats: {
+      name: 'WatchNetworkStats',
+      I: WatchNetworkStatsRequest,
+      O: WatchNetworkStatsResponse,
       kind: MethodKind.ServerStreaming,
     },
     /**
@@ -100,6 +111,14 @@ export interface SystemStatusService {
   ): MessageStream<WatchPluginsResponse>
 
   /**
+   * @generated from rpc s4wave.status.SystemStatusService.WatchNetworkStats
+   */
+  WatchNetworkStats(
+    request: WatchNetworkStatsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchNetworkStatsResponse>
+
+  /**
    * @generated from rpc s4wave.status.SystemStatusService.ReportRecoveryStatus
    */
   ReportRecoveryStatus(
@@ -128,6 +147,7 @@ export class SystemStatusServiceClient implements SystemStatusService {
     this.WatchControllers = this.WatchControllers.bind(this)
     this.WatchDirectives = this.WatchDirectives.bind(this)
     this.WatchPlugins = this.WatchPlugins.bind(this)
+    this.WatchNetworkStats = this.WatchNetworkStats.bind(this)
     this.ReportRecoveryStatus = this.ReportRecoveryStatus.bind(this)
     this.WatchRecoveryStatus = this.WatchRecoveryStatus.bind(this)
   }
@@ -180,6 +200,23 @@ export class SystemStatusServiceClient implements SystemStatusService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchPluginsResponse)(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.status.SystemStatusService.WatchNetworkStats
+   */
+  WatchNetworkStats(
+    request: WatchNetworkStatsRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<WatchNetworkStatsResponse> {
+    const requestMsg = WatchNetworkStatsRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SystemStatusServiceDefinition.methods.WatchNetworkStats.name,
+      WatchNetworkStatsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(WatchNetworkStatsResponse)(result)
   }
 
   /**

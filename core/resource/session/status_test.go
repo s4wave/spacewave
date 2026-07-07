@@ -2,6 +2,7 @@ package resource_session
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
@@ -9,6 +10,8 @@ import (
 	"github.com/s4wave/spacewave/core/provider"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/session"
+	"github.com/s4wave/spacewave/net/peer"
+	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 	s4wave_status "github.com/s4wave/spacewave/sdk/status"
 	"github.com/sirupsen/logrus"
 )
@@ -213,5 +216,116 @@ func TestRecoveryStatusKeepsEntrypointAndPluginFactsSeparate(t *testing.T) {
 	}
 	if status.GetLauncher().GetSelectedEntrypointManifestRef() == status.GetPlugins()[0].GetExecuteManifestRef() {
 		t.Fatalf("entrypoint and plugin refs were conflated: %#v", status)
+	}
+}
+
+func TestBuildNetworkStatsResponseGroupsAndSortsLinksByRemotePeer(t *testing.T) {
+	localPeerID := peer.ID("local-peer")
+	remotePeerA := peer.ID("remote-peer-a")
+	remotePeerB := peer.ID("remote-peer-b")
+	links := []transport_controller.LinkSnapshot{
+		{
+			LinkID:            7,
+			TransportID:       700,
+			RemoteTransportID: 1700,
+			LocalPeerID:       localPeerID,
+			RemotePeerID:      remotePeerB,
+		},
+		{
+			LinkID:            11,
+			TransportID:       1100,
+			RemoteTransportID: 2100,
+			LocalPeerID:       localPeerID,
+			RemotePeerID:      remotePeerA,
+		},
+		{
+			LinkID:            3,
+			TransportID:       300,
+			RemoteTransportID: 1300,
+			LocalPeerID:       localPeerID,
+			RemotePeerID:      remotePeerA,
+		},
+	}
+	slices.SortFunc(links, compareNetworkLinkSnapshots)
+
+	resp := buildNetworkStatsResponse(&s4wave_status.WatchNetworkStatsResponse{}, links)
+
+	if resp.GetPeerCount() != 2 {
+		t.Fatalf("peer count = %d, want 2", resp.GetPeerCount())
+	}
+	if resp.GetLinkCount() != 3 {
+		t.Fatalf("link count = %d, want 3", resp.GetLinkCount())
+	}
+	peerAInfo := requireNetworkPeerInfo(t, resp.GetPeers(), 0, remotePeerA.String(), 2)
+	requireNetworkLinkInfo(t, peerAInfo.GetLinks(), 0, 3, 300, 1300, localPeerID.String(), remotePeerA.String())
+	requireNetworkLinkInfo(t, peerAInfo.GetLinks(), 1, 11, 1100, 2100, localPeerID.String(), remotePeerA.String())
+	peerBInfo := requireNetworkPeerInfo(t, resp.GetPeers(), 1, remotePeerB.String(), 1)
+	requireNetworkLinkInfo(t, peerBInfo.GetLinks(), 0, 7, 700, 1700, localPeerID.String(), remotePeerB.String())
+}
+
+func TestBuildNetworkStatsResponseHandlesEmptySnapshot(t *testing.T) {
+	resp := buildNetworkStatsResponse(&s4wave_status.WatchNetworkStatsResponse{}, nil)
+
+	if resp.GetPeerCount() != 0 {
+		t.Fatalf("peer count = %d, want 0", resp.GetPeerCount())
+	}
+	if resp.GetLinkCount() != 0 {
+		t.Fatalf("link count = %d, want 0", resp.GetLinkCount())
+	}
+	if len(resp.GetPeers()) != 0 {
+		t.Fatalf("peers = %#v, want empty", resp.GetPeers())
+	}
+}
+
+func requireNetworkPeerInfo(
+	t *testing.T,
+	peers []*s4wave_status.NetworkPeerInfo,
+	index int,
+	peerID string,
+	linkCount uint32,
+) *s4wave_status.NetworkPeerInfo {
+	t.Helper()
+	if len(peers) <= index {
+		t.Fatalf("missing peer at index %d: %#v", index, peers)
+	}
+	peerInfo := peers[index]
+	if peerInfo.GetPeerId() != peerID {
+		t.Fatalf("peer[%d].peer_id = %q, want %q", index, peerInfo.GetPeerId(), peerID)
+	}
+	if peerInfo.GetLinkCount() != linkCount {
+		t.Fatalf("peer[%d].link_count = %d, want %d", index, peerInfo.GetLinkCount(), linkCount)
+	}
+	return peerInfo
+}
+
+func requireNetworkLinkInfo(
+	t *testing.T,
+	links []*s4wave_status.NetworkLinkInfo,
+	index int,
+	linkID uint64,
+	transportID uint64,
+	remoteTransportID uint64,
+	localPeerID string,
+	remotePeerID string,
+) {
+	t.Helper()
+	if len(links) <= index {
+		t.Fatalf("missing link at index %d: %#v", index, links)
+	}
+	linkInfo := links[index]
+	if linkInfo.GetLinkId() != linkID {
+		t.Fatalf("link[%d].link_id = %d, want %d", index, linkInfo.GetLinkId(), linkID)
+	}
+	if linkInfo.GetTransportId() != transportID {
+		t.Fatalf("link[%d].transport_id = %d, want %d", index, linkInfo.GetTransportId(), transportID)
+	}
+	if linkInfo.GetRemoteTransportId() != remoteTransportID {
+		t.Fatalf("link[%d].remote_transport_id = %d, want %d", index, linkInfo.GetRemoteTransportId(), remoteTransportID)
+	}
+	if linkInfo.GetLocalPeerId() != localPeerID {
+		t.Fatalf("link[%d].local_peer_id = %q, want %q", index, linkInfo.GetLocalPeerId(), localPeerID)
+	}
+	if linkInfo.GetRemotePeerId() != remotePeerID {
+		t.Fatalf("link[%d].remote_peer_id = %q, want %q", index, linkInfo.GetRemotePeerId(), remotePeerID)
 	}
 }

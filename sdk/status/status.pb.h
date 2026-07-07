@@ -77,6 +77,14 @@ class NativePackageRecoveryStatus;
 struct NativePackageRecoveryStatusDefaultTypeInternal;
 extern NativePackageRecoveryStatusDefaultTypeInternal _NativePackageRecoveryStatus_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull NativePackageRecoveryStatus_class_data_;
+class NetworkLinkInfo;
+struct NetworkLinkInfoDefaultTypeInternal;
+extern NetworkLinkInfoDefaultTypeInternal _NetworkLinkInfo_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull NetworkLinkInfo_class_data_;
+class NetworkPeerInfo;
+struct NetworkPeerInfoDefaultTypeInternal;
+extern NetworkPeerInfoDefaultTypeInternal _NetworkPeerInfo_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull NetworkPeerInfo_class_data_;
 class PluginInfo;
 struct PluginInfoDefaultTypeInternal;
 extern PluginInfoDefaultTypeInternal _PluginInfo_default_instance_;
@@ -117,6 +125,14 @@ class WatchDirectivesResponse;
 struct WatchDirectivesResponseDefaultTypeInternal;
 extern WatchDirectivesResponseDefaultTypeInternal _WatchDirectivesResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull WatchDirectivesResponse_class_data_;
+class WatchNetworkStatsRequest;
+struct WatchNetworkStatsRequestDefaultTypeInternal;
+extern WatchNetworkStatsRequestDefaultTypeInternal _WatchNetworkStatsRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchNetworkStatsRequest_class_data_;
+class WatchNetworkStatsResponse;
+struct WatchNetworkStatsResponseDefaultTypeInternal;
+extern WatchNetworkStatsResponseDefaultTypeInternal _WatchNetworkStatsResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull WatchNetworkStatsResponse_class_data_;
 class WatchPluginsRequest;
 struct WatchPluginsRequestDefaultTypeInternal;
 extern WatchPluginsRequestDefaultTypeInternal _WatchPluginsRequest_default_instance_;
@@ -202,7 +218,7 @@ class WatchRecoveryStatusRequest final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const WatchRecoveryStatusRequest*>(
         &_WatchRecoveryStatusRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 15;
+  static constexpr int kIndexInFileMessages = 19;
   friend void swap(WatchRecoveryStatusRequest& a, WatchRecoveryStatusRequest& b) { a.Swap(&b); }
   inline void Swap(WatchRecoveryStatusRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -336,7 +352,7 @@ class WatchPluginsRequest final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const WatchPluginsRequest*>(
         &_WatchPluginsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 13;
+  static constexpr int kIndexInFileMessages = 15;
   friend void swap(WatchPluginsRequest& a, WatchPluginsRequest& b) { a.Swap(&b); }
   inline void Swap(WatchPluginsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -416,6 +432,140 @@ class WatchPluginsRequest final : public ::google::protobuf::internal::ZeroField
 extern const ::google::protobuf::internal::ClassDataFull WatchPluginsRequest_class_data_;
 // -------------------------------------------------------------------
 
+class WatchNetworkStatsRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.status.WatchNetworkStatsRequest) */ {
+ public:
+  inline WatchNetworkStatsRequest() : WatchNetworkStatsRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchNetworkStatsRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchNetworkStatsRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchNetworkStatsRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchNetworkStatsRequest(const WatchNetworkStatsRequest& from) : WatchNetworkStatsRequest(nullptr, from) {}
+  inline WatchNetworkStatsRequest(WatchNetworkStatsRequest&& from) noexcept
+      : WatchNetworkStatsRequest(nullptr, ::std::move(from)) {}
+  inline WatchNetworkStatsRequest& operator=(const WatchNetworkStatsRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchNetworkStatsRequest& operator=(WatchNetworkStatsRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchNetworkStatsRequest& default_instance() {
+    return *reinterpret_cast<const WatchNetworkStatsRequest*>(
+        &_WatchNetworkStatsRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 17;
+  friend void swap(WatchNetworkStatsRequest& a, WatchNetworkStatsRequest& b) { a.Swap(&b); }
+  inline void Swap(WatchNetworkStatsRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchNetworkStatsRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchNetworkStatsRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<WatchNetworkStatsRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const WatchNetworkStatsRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const WatchNetworkStatsRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.status.WatchNetworkStatsRequest"; }
+
+  explicit WatchNetworkStatsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchNetworkStatsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchNetworkStatsRequest& from);
+  WatchNetworkStatsRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchNetworkStatsRequest&& from) noexcept
+      : WatchNetworkStatsRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.status.WatchNetworkStatsRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchNetworkStatsRequest_class_data_;
+// -------------------------------------------------------------------
+
 class WatchDirectivesRequest final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:s4wave.status.WatchDirectivesRequest) */ {
  public:
@@ -470,7 +620,7 @@ class WatchDirectivesRequest final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const WatchDirectivesRequest*>(
         &_WatchDirectivesRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 13;
   friend void swap(WatchDirectivesRequest& a, WatchDirectivesRequest& b) { a.Swap(&b); }
   inline void Swap(WatchDirectivesRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -604,7 +754,7 @@ class WatchControllersRequest final : public ::google::protobuf::internal::ZeroF
     return *reinterpret_cast<const WatchControllersRequest*>(
         &_WatchControllersRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(WatchControllersRequest& a, WatchControllersRequest& b) { a.Swap(&b); }
   inline void Swap(WatchControllersRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -739,7 +889,7 @@ class RuntimeAssetRecoveryStatus final : public ::google::protobuf::Message
     return *reinterpret_cast<const RuntimeAssetRecoveryStatus*>(
         &_RuntimeAssetRecoveryStatus_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(RuntimeAssetRecoveryStatus& a, RuntimeAssetRecoveryStatus& b) { a.Swap(&b); }
   inline void Swap(RuntimeAssetRecoveryStatus* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1076,7 +1226,7 @@ class ReportRecoveryStatusResponse final : public ::google::protobuf::internal::
     return *reinterpret_cast<const ReportRecoveryStatusResponse*>(
         &_ReportRecoveryStatusResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 17;
+  static constexpr int kIndexInFileMessages = 21;
   friend void swap(ReportRecoveryStatusResponse& a, ReportRecoveryStatusResponse& b) { a.Swap(&b); }
   inline void Swap(ReportRecoveryStatusResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1211,7 +1361,7 @@ class PluginManifestRecoveryStatus final : public ::google::protobuf::Message
     return *reinterpret_cast<const PluginManifestRecoveryStatus*>(
         &_PluginManifestRecoveryStatus_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(PluginManifestRecoveryStatus& a, PluginManifestRecoveryStatus& b) { a.Swap(&b); }
   inline void Swap(PluginManifestRecoveryStatus* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1718,6 +1868,254 @@ class PluginInfo final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull PluginInfo_class_data_;
 // -------------------------------------------------------------------
 
+class NetworkLinkInfo final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.status.NetworkLinkInfo) */ {
+ public:
+  inline NetworkLinkInfo() : NetworkLinkInfo(nullptr) {}
+  ~NetworkLinkInfo() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(NetworkLinkInfo* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(NetworkLinkInfo));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR NetworkLinkInfo(::google::protobuf::internal::ConstantInitialized);
+
+  inline NetworkLinkInfo(const NetworkLinkInfo& from) : NetworkLinkInfo(nullptr, from) {}
+  inline NetworkLinkInfo(NetworkLinkInfo&& from) noexcept
+      : NetworkLinkInfo(nullptr, ::std::move(from)) {}
+  inline NetworkLinkInfo& operator=(const NetworkLinkInfo& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline NetworkLinkInfo& operator=(NetworkLinkInfo&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const NetworkLinkInfo& default_instance() {
+    return *reinterpret_cast<const NetworkLinkInfo*>(
+        &_NetworkLinkInfo_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 3;
+  friend void swap(NetworkLinkInfo& a, NetworkLinkInfo& b) { a.Swap(&b); }
+  inline void Swap(NetworkLinkInfo* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(NetworkLinkInfo* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  NetworkLinkInfo* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<NetworkLinkInfo>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const NetworkLinkInfo& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const NetworkLinkInfo& from) { NetworkLinkInfo::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(NetworkLinkInfo* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.status.NetworkLinkInfo"; }
+
+  explicit NetworkLinkInfo(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  NetworkLinkInfo(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const NetworkLinkInfo& from);
+  NetworkLinkInfo(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, NetworkLinkInfo&& from) noexcept
+      : NetworkLinkInfo(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kLocalPeerIdFieldNumber = 1,
+    kRemotePeerIdFieldNumber = 2,
+    kLinkIdFieldNumber = 3,
+    kTransportIdFieldNumber = 4,
+    kRemoteTransportIdFieldNumber = 5,
+  };
+  // string local_peer_id = 1;
+  void clear_local_peer_id() ;
+  const ::std::string& local_peer_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_local_peer_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_local_peer_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_local_peer_id();
+  void set_allocated_local_peer_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_local_peer_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_local_peer_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_local_peer_id();
+
+  public:
+  // string remote_peer_id = 2;
+  void clear_remote_peer_id() ;
+  const ::std::string& remote_peer_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_remote_peer_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_remote_peer_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_remote_peer_id();
+  void set_allocated_remote_peer_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_remote_peer_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_remote_peer_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_remote_peer_id();
+
+  public:
+  // uint64 link_id = 3;
+  void clear_link_id() ;
+  ::uint64_t link_id() const;
+  void set_link_id(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_link_id() const;
+  void _internal_set_link_id(::uint64_t value);
+
+  public:
+  // uint64 transport_id = 4;
+  void clear_transport_id() ;
+  ::uint64_t transport_id() const;
+  void set_transport_id(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_transport_id() const;
+  void _internal_set_transport_id(::uint64_t value);
+
+  public:
+  // uint64 remote_transport_id = 5;
+  void clear_remote_transport_id() ;
+  ::uint64_t remote_transport_id() const;
+  void set_remote_transport_id(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_remote_transport_id() const;
+  void _internal_set_remote_transport_id(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.status.NetworkLinkInfo)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   0, 65,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const NetworkLinkInfo& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr local_peer_id_;
+    ::google::protobuf::internal::ArenaStringPtr remote_peer_id_;
+    ::uint64_t link_id_;
+    ::uint64_t transport_id_;
+    ::uint64_t remote_transport_id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull NetworkLinkInfo_class_data_;
+// -------------------------------------------------------------------
+
 class NativePackageRecoveryStatus final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.status.NativePackageRecoveryStatus) */ {
  public:
@@ -1773,7 +2171,7 @@ class NativePackageRecoveryStatus final : public ::google::protobuf::Message
     return *reinterpret_cast<const NativePackageRecoveryStatus*>(
         &_NativePackageRecoveryStatus_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(NativePackageRecoveryStatus& a, NativePackageRecoveryStatus& b) { a.Swap(&b); }
   inline void Swap(NativePackageRecoveryStatus* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2060,7 +2458,7 @@ class LauncherRecoveryStatus final : public ::google::protobuf::Message
     return *reinterpret_cast<const LauncherRecoveryStatus*>(
         &_LauncherRecoveryStatus_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(LauncherRecoveryStatus& a, LauncherRecoveryStatus& b) { a.Swap(&b); }
   inline void Swap(LauncherRecoveryStatus* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2919,7 +3317,7 @@ class BrowserBootRecoveryStatus final : public ::google::protobuf::Message
     return *reinterpret_cast<const BrowserBootRecoveryStatus*>(
         &_BrowserBootRecoveryStatus_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(BrowserBootRecoveryStatus& a, BrowserBootRecoveryStatus& b) { a.Swap(&b); }
   inline void Swap(BrowserBootRecoveryStatus* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3148,7 +3546,7 @@ class WatchPluginsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchPluginsResponse*>(
         &_WatchPluginsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 14;
+  static constexpr int kIndexInFileMessages = 16;
   friend void swap(WatchPluginsResponse& a, WatchPluginsResponse& b) { a.Swap(&b); }
   inline void Swap(WatchPluginsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3357,7 +3755,7 @@ class WatchDirectivesResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchDirectivesResponse*>(
         &_WatchDirectivesResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 12;
+  static constexpr int kIndexInFileMessages = 14;
   friend void swap(WatchDirectivesResponse& a, WatchDirectivesResponse& b) { a.Swap(&b); }
   inline void Swap(WatchDirectivesResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3566,7 +3964,7 @@ class WatchControllersResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchControllersResponse*>(
         &_WatchControllersResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(WatchControllersResponse& a, WatchControllersResponse& b) { a.Swap(&b); }
   inline void Swap(WatchControllersResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3775,7 +4173,7 @@ class ReportRecoveryStatusRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ReportRecoveryStatusRequest*>(
         &_ReportRecoveryStatusRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 16;
+  static constexpr int kIndexInFileMessages = 20;
   friend void swap(ReportRecoveryStatusRequest& a, ReportRecoveryStatusRequest& b) { a.Swap(&b); }
   inline void Swap(ReportRecoveryStatusRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3987,7 +4385,7 @@ class RecoveryStatus final : public ::google::protobuf::Message
     return *reinterpret_cast<const RecoveryStatus*>(
         &_RecoveryStatus_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(RecoveryStatus& a, RecoveryStatus& b) { a.Swap(&b); }
   inline void Swap(RecoveryStatus* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4199,6 +4597,232 @@ class RecoveryStatus final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull RecoveryStatus_class_data_;
 // -------------------------------------------------------------------
 
+class NetworkPeerInfo final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.status.NetworkPeerInfo) */ {
+ public:
+  inline NetworkPeerInfo() : NetworkPeerInfo(nullptr) {}
+  ~NetworkPeerInfo() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(NetworkPeerInfo* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(NetworkPeerInfo));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR NetworkPeerInfo(::google::protobuf::internal::ConstantInitialized);
+
+  inline NetworkPeerInfo(const NetworkPeerInfo& from) : NetworkPeerInfo(nullptr, from) {}
+  inline NetworkPeerInfo(NetworkPeerInfo&& from) noexcept
+      : NetworkPeerInfo(nullptr, ::std::move(from)) {}
+  inline NetworkPeerInfo& operator=(const NetworkPeerInfo& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline NetworkPeerInfo& operator=(NetworkPeerInfo&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const NetworkPeerInfo& default_instance() {
+    return *reinterpret_cast<const NetworkPeerInfo*>(
+        &_NetworkPeerInfo_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 4;
+  friend void swap(NetworkPeerInfo& a, NetworkPeerInfo& b) { a.Swap(&b); }
+  inline void Swap(NetworkPeerInfo* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(NetworkPeerInfo* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  NetworkPeerInfo* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<NetworkPeerInfo>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const NetworkPeerInfo& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const NetworkPeerInfo& from) { NetworkPeerInfo::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(NetworkPeerInfo* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.status.NetworkPeerInfo"; }
+
+  explicit NetworkPeerInfo(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  NetworkPeerInfo(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const NetworkPeerInfo& from);
+  NetworkPeerInfo(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, NetworkPeerInfo&& from) noexcept
+      : NetworkPeerInfo(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kLinksFieldNumber = 3,
+    kPeerIdFieldNumber = 1,
+    kLinkCountFieldNumber = 2,
+  };
+  // repeated .s4wave.status.NetworkLinkInfo links = 3;
+  int links_size() const;
+  private:
+  int _internal_links_size() const;
+
+  public:
+  void clear_links() ;
+  ::s4wave::status::NetworkLinkInfo* PROTOBUF_NONNULL mutable_links(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkLinkInfo>* PROTOBUF_NONNULL mutable_links();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkLinkInfo>& _internal_links() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkLinkInfo>* PROTOBUF_NONNULL _internal_mutable_links();
+  public:
+  const ::s4wave::status::NetworkLinkInfo& links(int index) const;
+  ::s4wave::status::NetworkLinkInfo* PROTOBUF_NONNULL add_links();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkLinkInfo>& links() const;
+  // string peer_id = 1;
+  void clear_peer_id() ;
+  const ::std::string& peer_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_peer_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_peer_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_peer_id();
+  void set_allocated_peer_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_peer_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_peer_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_peer_id();
+
+  public:
+  // uint32 link_count = 2;
+  void clear_link_count() ;
+  ::uint32_t link_count() const;
+  void set_link_count(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_link_count() const;
+  void _internal_set_link_count(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.status.NetworkPeerInfo)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   1, 45,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const NetworkPeerInfo& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::status::NetworkLinkInfo > links_;
+    ::google::protobuf::internal::ArenaStringPtr peer_id_;
+    ::uint32_t link_count_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull NetworkPeerInfo_class_data_;
+// -------------------------------------------------------------------
+
 class WatchRecoveryStatusResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.status.WatchRecoveryStatusResponse) */ {
  public:
@@ -4254,7 +4878,7 @@ class WatchRecoveryStatusResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchRecoveryStatusResponse*>(
         &_WatchRecoveryStatusResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 18;
+  static constexpr int kIndexInFileMessages = 22;
   friend void swap(WatchRecoveryStatusResponse& a, WatchRecoveryStatusResponse& b) { a.Swap(&b); }
   inline void Swap(WatchRecoveryStatusResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4392,6 +5016,256 @@ class WatchRecoveryStatusResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull WatchRecoveryStatusResponse_class_data_;
+// -------------------------------------------------------------------
+
+class WatchNetworkStatsResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.status.WatchNetworkStatsResponse) */ {
+ public:
+  inline WatchNetworkStatsResponse() : WatchNetworkStatsResponse(nullptr) {}
+  ~WatchNetworkStatsResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(WatchNetworkStatsResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchNetworkStatsResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR WatchNetworkStatsResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline WatchNetworkStatsResponse(const WatchNetworkStatsResponse& from) : WatchNetworkStatsResponse(nullptr, from) {}
+  inline WatchNetworkStatsResponse(WatchNetworkStatsResponse&& from) noexcept
+      : WatchNetworkStatsResponse(nullptr, ::std::move(from)) {}
+  inline WatchNetworkStatsResponse& operator=(const WatchNetworkStatsResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WatchNetworkStatsResponse& operator=(WatchNetworkStatsResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WatchNetworkStatsResponse& default_instance() {
+    return *reinterpret_cast<const WatchNetworkStatsResponse*>(
+        &_WatchNetworkStatsResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 18;
+  friend void swap(WatchNetworkStatsResponse& a, WatchNetworkStatsResponse& b) { a.Swap(&b); }
+  inline void Swap(WatchNetworkStatsResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WatchNetworkStatsResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WatchNetworkStatsResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<WatchNetworkStatsResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const WatchNetworkStatsResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const WatchNetworkStatsResponse& from) { WatchNetworkStatsResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(WatchNetworkStatsResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.status.WatchNetworkStatsResponse"; }
+
+  explicit WatchNetworkStatsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  WatchNetworkStatsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchNetworkStatsResponse& from);
+  WatchNetworkStatsResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchNetworkStatsResponse&& from) noexcept
+      : WatchNetworkStatsResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPeersFieldNumber = 3,
+    kLocalPeerIdFieldNumber = 2,
+    kTransportRunningFieldNumber = 1,
+    kPeerCountFieldNumber = 4,
+    kLinkCountFieldNumber = 5,
+  };
+  // repeated .s4wave.status.NetworkPeerInfo peers = 3;
+  int peers_size() const;
+  private:
+  int _internal_peers_size() const;
+
+  public:
+  void clear_peers() ;
+  ::s4wave::status::NetworkPeerInfo* PROTOBUF_NONNULL mutable_peers(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkPeerInfo>* PROTOBUF_NONNULL mutable_peers();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkPeerInfo>& _internal_peers() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkPeerInfo>* PROTOBUF_NONNULL _internal_mutable_peers();
+  public:
+  const ::s4wave::status::NetworkPeerInfo& peers(int index) const;
+  ::s4wave::status::NetworkPeerInfo* PROTOBUF_NONNULL add_peers();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkPeerInfo>& peers() const;
+  // string local_peer_id = 2;
+  void clear_local_peer_id() ;
+  const ::std::string& local_peer_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_local_peer_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_local_peer_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_local_peer_id();
+  void set_allocated_local_peer_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_local_peer_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_local_peer_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_local_peer_id();
+
+  public:
+  // bool transport_running = 1;
+  void clear_transport_running() ;
+  bool transport_running() const;
+  void set_transport_running(bool value);
+
+  private:
+  bool _internal_transport_running() const;
+  void _internal_set_transport_running(bool value);
+
+  public:
+  // uint32 peer_count = 4;
+  void clear_peer_count() ;
+  ::uint32_t peer_count() const;
+  void set_peer_count(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_peer_count() const;
+  void _internal_set_peer_count(::uint32_t value);
+
+  public:
+  // uint32 link_count = 5;
+  void clear_link_count() ;
+  ::uint32_t link_count() const;
+  void set_link_count(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_link_count() const;
+  void _internal_set_link_count(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.status.WatchNetworkStatsResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   1, 61,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const WatchNetworkStatsResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::status::NetworkPeerInfo > peers_;
+    ::google::protobuf::internal::ArenaStringPtr local_peer_id_;
+    bool transport_running_;
+    ::uint32_t peer_count_;
+    ::uint32_t link_count_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fstatus_2fstatus_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull WatchNetworkStatsResponse_class_data_;
 
 // ===================================================================
 
@@ -4935,6 +5809,365 @@ inline void PluginInfo::set_allocated_state(::std::string* PROTOBUF_NULLABLE val
     _impl_.state_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:s4wave.status.PluginInfo.state)
+}
+
+// -------------------------------------------------------------------
+
+// NetworkLinkInfo
+
+// string local_peer_id = 1;
+inline void NetworkLinkInfo::clear_local_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_peer_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& NetworkLinkInfo::local_peer_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.NetworkLinkInfo.local_peer_id)
+  return _internal_local_peer_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void NetworkLinkInfo::set_local_peer_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.local_peer_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.NetworkLinkInfo.local_peer_id)
+}
+inline ::std::string* PROTOBUF_NONNULL NetworkLinkInfo::mutable_local_peer_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_local_peer_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.NetworkLinkInfo.local_peer_id)
+  return _s;
+}
+inline const ::std::string& NetworkLinkInfo::_internal_local_peer_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.local_peer_id_.Get();
+}
+inline void NetworkLinkInfo::_internal_set_local_peer_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_peer_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL NetworkLinkInfo::_internal_mutable_local_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.local_peer_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE NetworkLinkInfo::release_local_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.NetworkLinkInfo.local_peer_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.local_peer_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.local_peer_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void NetworkLinkInfo::set_allocated_local_peer_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.local_peer_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.local_peer_id_.IsDefault()) {
+    _impl_.local_peer_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.NetworkLinkInfo.local_peer_id)
+}
+
+// string remote_peer_id = 2;
+inline void NetworkLinkInfo::clear_remote_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.remote_peer_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& NetworkLinkInfo::remote_peer_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.NetworkLinkInfo.remote_peer_id)
+  return _internal_remote_peer_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void NetworkLinkInfo::set_remote_peer_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.remote_peer_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.NetworkLinkInfo.remote_peer_id)
+}
+inline ::std::string* PROTOBUF_NONNULL NetworkLinkInfo::mutable_remote_peer_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_remote_peer_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.NetworkLinkInfo.remote_peer_id)
+  return _s;
+}
+inline const ::std::string& NetworkLinkInfo::_internal_remote_peer_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.remote_peer_id_.Get();
+}
+inline void NetworkLinkInfo::_internal_set_remote_peer_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.remote_peer_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL NetworkLinkInfo::_internal_mutable_remote_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.remote_peer_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE NetworkLinkInfo::release_remote_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.NetworkLinkInfo.remote_peer_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.remote_peer_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.remote_peer_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void NetworkLinkInfo::set_allocated_remote_peer_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.remote_peer_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.remote_peer_id_.IsDefault()) {
+    _impl_.remote_peer_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.NetworkLinkInfo.remote_peer_id)
+}
+
+// uint64 link_id = 3;
+inline void NetworkLinkInfo::clear_link_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.link_id_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t NetworkLinkInfo::link_id() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.NetworkLinkInfo.link_id)
+  return _internal_link_id();
+}
+inline void NetworkLinkInfo::set_link_id(::uint64_t value) {
+  _internal_set_link_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.status.NetworkLinkInfo.link_id)
+}
+inline ::uint64_t NetworkLinkInfo::_internal_link_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.link_id_;
+}
+inline void NetworkLinkInfo::_internal_set_link_id(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.link_id_ = value;
+}
+
+// uint64 transport_id = 4;
+inline void NetworkLinkInfo::clear_transport_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.transport_id_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::uint64_t NetworkLinkInfo::transport_id() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.NetworkLinkInfo.transport_id)
+  return _internal_transport_id();
+}
+inline void NetworkLinkInfo::set_transport_id(::uint64_t value) {
+  _internal_set_transport_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.status.NetworkLinkInfo.transport_id)
+}
+inline ::uint64_t NetworkLinkInfo::_internal_transport_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.transport_id_;
+}
+inline void NetworkLinkInfo::_internal_set_transport_id(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.transport_id_ = value;
+}
+
+// uint64 remote_transport_id = 5;
+inline void NetworkLinkInfo::clear_remote_transport_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.remote_transport_id_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::uint64_t NetworkLinkInfo::remote_transport_id() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.NetworkLinkInfo.remote_transport_id)
+  return _internal_remote_transport_id();
+}
+inline void NetworkLinkInfo::set_remote_transport_id(::uint64_t value) {
+  _internal_set_remote_transport_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:s4wave.status.NetworkLinkInfo.remote_transport_id)
+}
+inline ::uint64_t NetworkLinkInfo::_internal_remote_transport_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.remote_transport_id_;
+}
+inline void NetworkLinkInfo::_internal_set_remote_transport_id(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.remote_transport_id_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// NetworkPeerInfo
+
+// string peer_id = 1;
+inline void NetworkPeerInfo::clear_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.peer_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& NetworkPeerInfo::peer_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.NetworkPeerInfo.peer_id)
+  return _internal_peer_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void NetworkPeerInfo::set_peer_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.peer_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.NetworkPeerInfo.peer_id)
+}
+inline ::std::string* PROTOBUF_NONNULL NetworkPeerInfo::mutable_peer_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_peer_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.NetworkPeerInfo.peer_id)
+  return _s;
+}
+inline const ::std::string& NetworkPeerInfo::_internal_peer_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.peer_id_.Get();
+}
+inline void NetworkPeerInfo::_internal_set_peer_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.peer_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL NetworkPeerInfo::_internal_mutable_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.peer_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE NetworkPeerInfo::release_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.NetworkPeerInfo.peer_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.peer_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.peer_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void NetworkPeerInfo::set_allocated_peer_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.peer_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.peer_id_.IsDefault()) {
+    _impl_.peer_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.NetworkPeerInfo.peer_id)
+}
+
+// uint32 link_count = 2;
+inline void NetworkPeerInfo::clear_link_count() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.link_count_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint32_t NetworkPeerInfo::link_count() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.NetworkPeerInfo.link_count)
+  return _internal_link_count();
+}
+inline void NetworkPeerInfo::set_link_count(::uint32_t value) {
+  _internal_set_link_count(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.status.NetworkPeerInfo.link_count)
+}
+inline ::uint32_t NetworkPeerInfo::_internal_link_count() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.link_count_;
+}
+inline void NetworkPeerInfo::_internal_set_link_count(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.link_count_ = value;
+}
+
+// repeated .s4wave.status.NetworkLinkInfo links = 3;
+inline int NetworkPeerInfo::_internal_links_size() const {
+  return _internal_links().size();
+}
+inline int NetworkPeerInfo::links_size() const {
+  return _internal_links_size();
+}
+inline void NetworkPeerInfo::clear_links() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.links_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::s4wave::status::NetworkLinkInfo* PROTOBUF_NONNULL NetworkPeerInfo::mutable_links(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.status.NetworkPeerInfo.links)
+  return _internal_mutable_links()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkLinkInfo>* PROTOBUF_NONNULL NetworkPeerInfo::mutable_links()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.status.NetworkPeerInfo.links)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_links();
+}
+inline const ::s4wave::status::NetworkLinkInfo& NetworkPeerInfo::links(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.NetworkPeerInfo.links)
+  return _internal_links().Get(index);
+}
+inline ::s4wave::status::NetworkLinkInfo* PROTOBUF_NONNULL NetworkPeerInfo::add_links()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::status::NetworkLinkInfo* _add =
+      _internal_mutable_links()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.status.NetworkPeerInfo.links)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkLinkInfo>& NetworkPeerInfo::links() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.status.NetworkPeerInfo.links)
+  return _internal_links();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkLinkInfo>&
+NetworkPeerInfo::_internal_links() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.links_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkLinkInfo>* PROTOBUF_NONNULL
+NetworkPeerInfo::_internal_mutable_links() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.links_;
 }
 
 // -------------------------------------------------------------------
@@ -8160,6 +9393,210 @@ inline ::uint32_t WatchPluginsResponse::_internal_plugin_count() const {
 inline void WatchPluginsResponse::_internal_set_plugin_count(::uint32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.plugin_count_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// WatchNetworkStatsRequest
+
+// -------------------------------------------------------------------
+
+// WatchNetworkStatsResponse
+
+// bool transport_running = 1;
+inline void WatchNetworkStatsResponse::clear_transport_running() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.transport_running_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline bool WatchNetworkStatsResponse::transport_running() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.WatchNetworkStatsResponse.transport_running)
+  return _internal_transport_running();
+}
+inline void WatchNetworkStatsResponse::set_transport_running(bool value) {
+  _internal_set_transport_running(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.status.WatchNetworkStatsResponse.transport_running)
+}
+inline bool WatchNetworkStatsResponse::_internal_transport_running() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.transport_running_;
+}
+inline void WatchNetworkStatsResponse::_internal_set_transport_running(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.transport_running_ = value;
+}
+
+// string local_peer_id = 2;
+inline void WatchNetworkStatsResponse::clear_local_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_peer_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& WatchNetworkStatsResponse::local_peer_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.WatchNetworkStatsResponse.local_peer_id)
+  return _internal_local_peer_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void WatchNetworkStatsResponse::set_local_peer_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.local_peer_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.status.WatchNetworkStatsResponse.local_peer_id)
+}
+inline ::std::string* PROTOBUF_NONNULL WatchNetworkStatsResponse::mutable_local_peer_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_local_peer_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.status.WatchNetworkStatsResponse.local_peer_id)
+  return _s;
+}
+inline const ::std::string& WatchNetworkStatsResponse::_internal_local_peer_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.local_peer_id_.Get();
+}
+inline void WatchNetworkStatsResponse::_internal_set_local_peer_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_peer_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL WatchNetworkStatsResponse::_internal_mutable_local_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.local_peer_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE WatchNetworkStatsResponse::release_local_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.status.WatchNetworkStatsResponse.local_peer_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.local_peer_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.local_peer_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void WatchNetworkStatsResponse::set_allocated_local_peer_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.local_peer_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.local_peer_id_.IsDefault()) {
+    _impl_.local_peer_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.status.WatchNetworkStatsResponse.local_peer_id)
+}
+
+// repeated .s4wave.status.NetworkPeerInfo peers = 3;
+inline int WatchNetworkStatsResponse::_internal_peers_size() const {
+  return _internal_peers().size();
+}
+inline int WatchNetworkStatsResponse::peers_size() const {
+  return _internal_peers_size();
+}
+inline void WatchNetworkStatsResponse::clear_peers() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.peers_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::s4wave::status::NetworkPeerInfo* PROTOBUF_NONNULL WatchNetworkStatsResponse::mutable_peers(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.status.WatchNetworkStatsResponse.peers)
+  return _internal_mutable_peers()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkPeerInfo>* PROTOBUF_NONNULL WatchNetworkStatsResponse::mutable_peers()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.status.WatchNetworkStatsResponse.peers)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_peers();
+}
+inline const ::s4wave::status::NetworkPeerInfo& WatchNetworkStatsResponse::peers(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.status.WatchNetworkStatsResponse.peers)
+  return _internal_peers().Get(index);
+}
+inline ::s4wave::status::NetworkPeerInfo* PROTOBUF_NONNULL WatchNetworkStatsResponse::add_peers()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::status::NetworkPeerInfo* _add =
+      _internal_mutable_peers()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.status.WatchNetworkStatsResponse.peers)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkPeerInfo>& WatchNetworkStatsResponse::peers() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.status.WatchNetworkStatsResponse.peers)
+  return _internal_peers();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkPeerInfo>&
+WatchNetworkStatsResponse::_internal_peers() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.peers_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::status::NetworkPeerInfo>* PROTOBUF_NONNULL
+WatchNetworkStatsResponse::_internal_mutable_peers() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.peers_;
+}
+
+// uint32 peer_count = 4;
+inline void WatchNetworkStatsResponse::clear_peer_count() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.peer_count_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::uint32_t WatchNetworkStatsResponse::peer_count() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.WatchNetworkStatsResponse.peer_count)
+  return _internal_peer_count();
+}
+inline void WatchNetworkStatsResponse::set_peer_count(::uint32_t value) {
+  _internal_set_peer_count(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.status.WatchNetworkStatsResponse.peer_count)
+}
+inline ::uint32_t WatchNetworkStatsResponse::_internal_peer_count() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.peer_count_;
+}
+inline void WatchNetworkStatsResponse::_internal_set_peer_count(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.peer_count_ = value;
+}
+
+// uint32 link_count = 5;
+inline void WatchNetworkStatsResponse::clear_link_count() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.link_count_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::uint32_t WatchNetworkStatsResponse::link_count() const {
+  // @@protoc_insertion_point(field_get:s4wave.status.WatchNetworkStatsResponse.link_count)
+  return _internal_link_count();
+}
+inline void WatchNetworkStatsResponse::set_link_count(::uint32_t value) {
+  _internal_set_link_count(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:s4wave.status.WatchNetworkStatsResponse.link_count)
+}
+inline ::uint32_t WatchNetworkStatsResponse::_internal_link_count() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.link_count_;
+}
+inline void WatchNetworkStatsResponse::_internal_set_link_count(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.link_count_ = value;
 }
 
 // -------------------------------------------------------------------

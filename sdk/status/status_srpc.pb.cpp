@@ -44,6 +44,18 @@ std::pair<std::unique_ptr<SRPCSystemStatusService_WatchPluginsClient>, starpc::E
   return {std::make_unique<SRPCSystemStatusService_WatchPluginsClient>(std::move(strm)), starpc::Error::OK};
 }
 
+std::pair<std::unique_ptr<SRPCSystemStatusService_WatchNetworkStatsClient>, starpc::Error> SRPCSystemStatusServiceClientImpl::WatchNetworkStats(const s4wave::status::WatchNetworkStatsRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "WatchNetworkStats", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCSystemStatusService_WatchNetworkStatsClient>(std::move(strm)), starpc::Error::OK};
+}
+
 starpc::Error SRPCSystemStatusServiceClientImpl::ReportRecoveryStatus(const s4wave::status::ReportRecoveryStatusRequest& in, s4wave::status::ReportRecoveryStatusResponse* out) {
   return cc_->ExecCall(service_id_, "ReportRecoveryStatus", in, out);
 }
@@ -65,6 +77,7 @@ std::vector<std::string> SRPCSystemStatusServiceHandler::GetMethodIDs() const {
     "WatchControllers",
     "WatchDirectives",
     "WatchPlugins",
+    "WatchNetworkStats",
     "ReportRecoveryStatus",
     "WatchRecoveryStatus",
   };
@@ -96,6 +109,12 @@ std::pair<bool, starpc::Error> SRPCSystemStatusServiceHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     SRPCSystemStatusService_WatchPluginsStream serverStrm(strm);
     return {true, impl_->WatchPlugins(req, &serverStrm)};
+  } else if (method_id == "WatchNetworkStats") {
+    s4wave::status::WatchNetworkStatsRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCSystemStatusService_WatchNetworkStatsStream serverStrm(strm);
+    return {true, impl_->WatchNetworkStats(req, &serverStrm)};
   } else if (method_id == "ReportRecoveryStatus") {
     s4wave::status::ReportRecoveryStatusRequest req;
     starpc::Error err = strm->MsgRecv(&req);

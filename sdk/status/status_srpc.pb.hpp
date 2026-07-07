@@ -26,6 +26,8 @@ class SRPCSystemStatusService_WatchDirectivesClient;
 class SRPCSystemStatusService_WatchDirectivesStream;
 class SRPCSystemStatusService_WatchPluginsClient;
 class SRPCSystemStatusService_WatchPluginsStream;
+class SRPCSystemStatusService_WatchNetworkStatsClient;
+class SRPCSystemStatusService_WatchNetworkStatsStream;
 class SRPCSystemStatusService_WatchRecoveryStatusClient;
 class SRPCSystemStatusService_WatchRecoveryStatusStream;
 
@@ -43,6 +45,8 @@ class SRPCSystemStatusServiceClient {
   virtual std::pair<std::unique_ptr<SRPCSystemStatusService_WatchDirectivesClient>, starpc::Error> WatchDirectives(const s4wave::status::WatchDirectivesRequest& in) = 0;
   // WatchPlugins
   virtual std::pair<std::unique_ptr<SRPCSystemStatusService_WatchPluginsClient>, starpc::Error> WatchPlugins(const s4wave::status::WatchPluginsRequest& in) = 0;
+  // WatchNetworkStats
+  virtual std::pair<std::unique_ptr<SRPCSystemStatusService_WatchNetworkStatsClient>, starpc::Error> WatchNetworkStats(const s4wave::status::WatchNetworkStatsRequest& in) = 0;
   // ReportRecoveryStatus
   virtual starpc::Error ReportRecoveryStatus(const s4wave::status::ReportRecoveryStatusRequest& in, s4wave::status::ReportRecoveryStatusResponse* out) = 0;
   // WatchRecoveryStatus
@@ -63,6 +67,8 @@ class SRPCSystemStatusServiceClientImpl : public SRPCSystemStatusServiceClient {
   virtual std::pair<std::unique_ptr<SRPCSystemStatusService_WatchDirectivesClient>, starpc::Error> WatchDirectives(const s4wave::status::WatchDirectivesRequest& in) override;
   // WatchPlugins
   virtual std::pair<std::unique_ptr<SRPCSystemStatusService_WatchPluginsClient>, starpc::Error> WatchPlugins(const s4wave::status::WatchPluginsRequest& in) override;
+  // WatchNetworkStats
+  virtual std::pair<std::unique_ptr<SRPCSystemStatusService_WatchNetworkStatsClient>, starpc::Error> WatchNetworkStats(const s4wave::status::WatchNetworkStatsRequest& in) override;
   // ReportRecoveryStatus
   virtual starpc::Error ReportRecoveryStatus(const s4wave::status::ReportRecoveryStatusRequest& in, s4wave::status::ReportRecoveryStatusResponse* out) override;
   // WatchRecoveryStatus
@@ -89,6 +95,8 @@ class SRPCSystemStatusServiceServer {
   virtual starpc::Error WatchDirectives(const s4wave::status::WatchDirectivesRequest& req, SRPCSystemStatusService_WatchDirectivesStream* strm) = 0;
   // WatchPlugins
   virtual starpc::Error WatchPlugins(const s4wave::status::WatchPluginsRequest& req, SRPCSystemStatusService_WatchPluginsStream* strm) = 0;
+  // WatchNetworkStats
+  virtual starpc::Error WatchNetworkStats(const s4wave::status::WatchNetworkStatsRequest& req, SRPCSystemStatusService_WatchNetworkStatsStream* strm) = 0;
   // ReportRecoveryStatus
   virtual starpc::Error ReportRecoveryStatus(const s4wave::status::ReportRecoveryStatusRequest& req, s4wave::status::ReportRecoveryStatusResponse* resp) = 0;
   // WatchRecoveryStatus
@@ -225,6 +233,41 @@ class SRPCSystemStatusService_WatchPluginsStream {
   }
 
   starpc::Error SendAndClose(const s4wave::status::WatchPluginsResponse& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
+
+// SRPCSystemStatusService_WatchNetworkStatsClient is the client stream for WatchNetworkStats.
+class SRPCSystemStatusService_WatchNetworkStatsClient {
+ public:
+  explicit SRPCSystemStatusService_WatchNetworkStatsClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(s4wave::status::WatchNetworkStatsResponse* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCSystemStatusService_WatchNetworkStatsStream is the server stream for WatchNetworkStats.
+class SRPCSystemStatusService_WatchNetworkStatsStream {
+ public:
+  explicit SRPCSystemStatusService_WatchNetworkStatsStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const s4wave::status::WatchNetworkStatsResponse& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const s4wave::status::WatchNetworkStatsResponse& msg) {
     starpc::Error err = strm_->MsgSend(msg);
     if (err != starpc::Error::OK) return err;
     return strm_->CloseSend();

@@ -8,6 +8,8 @@ import {
   WatchControllersResponse,
   WatchDirectivesRequest,
   WatchDirectivesResponse,
+  WatchNetworkStatsRequest,
+  WatchNetworkStatsResponse,
   WatchPluginsRequest,
   WatchPluginsResponse,
 } from '@s4wave/sdk/status/status.pb.js'
@@ -74,6 +76,26 @@ export function useWatchPlugins(): WatchPluginsResponse | null {
     {},
     WatchPluginsRequest.equals,
     WatchPluginsResponse.equals,
+  )
+}
+
+// useWatchNetworkStats streams the session transport's live network snapshot.
+// Returns the latest WatchNetworkStatsResponse or null while loading.
+export function useWatchNetworkStats(): WatchNetworkStatsResponse | null {
+  const session = SessionContext.useContext()
+  const sessionValue = useResourceValue(session)
+
+  const watchFn = useCallback(
+    (_: WatchNetworkStatsRequest, signal: AbortSignal) =>
+      sessionValue?.systemStatus.watchNetworkStats(signal) ?? null,
+    [sessionValue],
+  )
+
+  return useWatchStateRpc(
+    watchFn,
+    {},
+    WatchNetworkStatsRequest.equals,
+    WatchNetworkStatsResponse.equals,
   )
 }
 

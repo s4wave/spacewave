@@ -10,6 +10,7 @@ import type {
   WatchControllersResponse,
   WatchDirectivesResponse,
   WatchPluginsResponse,
+  WatchNetworkStatsResponse,
   WatchRecoveryStatusResponse,
 } from './status.pb.js'
 
@@ -40,6 +41,13 @@ export class SystemStatus {
     abortSignal?: AbortSignal,
   ): AsyncIterable<WatchPluginsResponse> {
     return this.service.WatchPlugins({}, abortSignal)
+  }
+
+  // watchNetworkStats streams the session transport's live network snapshot.
+  public watchNetworkStats(
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<WatchNetworkStatsResponse> {
+    return this.service.WatchNetworkStats({}, abortSignal)
   }
 
   // reportRecoveryStatus publishes renderer-owned recovery facts to the

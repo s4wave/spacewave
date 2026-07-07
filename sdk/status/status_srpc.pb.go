@@ -20,6 +20,8 @@ type SRPCSystemStatusServiceClient interface {
 
 	WatchPlugins(ctx context.Context, in *WatchPluginsRequest) (SRPCSystemStatusService_WatchPluginsClient, error)
 
+	WatchNetworkStats(ctx context.Context, in *WatchNetworkStatsRequest) (SRPCSystemStatusService_WatchNetworkStatsClient, error)
+
 	ReportRecoveryStatus(ctx context.Context, in *ReportRecoveryStatusRequest) (*ReportRecoveryStatusResponse, error)
 
 	WatchRecoveryStatus(ctx context.Context, in *WatchRecoveryStatusRequest) (SRPCSystemStatusService_WatchRecoveryStatusClient, error)
@@ -145,6 +147,40 @@ func (x *srpcSystemStatusService_WatchPluginsClient) RecvTo(m *WatchPluginsRespo
 	return x.MsgRecv(m)
 }
 
+func (c *srpcSystemStatusServiceClient) WatchNetworkStats(ctx context.Context, in *WatchNetworkStatsRequest) (SRPCSystemStatusService_WatchNetworkStatsClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchNetworkStats", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcSystemStatusService_WatchNetworkStatsClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCSystemStatusService_WatchNetworkStatsClient interface {
+	srpc.Stream
+	Recv() (*WatchNetworkStatsResponse, error)
+	RecvTo(*WatchNetworkStatsResponse) error
+}
+
+type srpcSystemStatusService_WatchNetworkStatsClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSystemStatusService_WatchNetworkStatsClient) Recv() (*WatchNetworkStatsResponse, error) {
+	m := new(WatchNetworkStatsResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSystemStatusService_WatchNetworkStatsClient) RecvTo(m *WatchNetworkStatsResponse) error {
+	return x.MsgRecv(m)
+}
+
 func (c *srpcSystemStatusServiceClient) ReportRecoveryStatus(ctx context.Context, in *ReportRecoveryStatusRequest) (*ReportRecoveryStatusResponse, error) {
 	out := new(ReportRecoveryStatusResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "ReportRecoveryStatus", in, out)
@@ -195,6 +231,8 @@ type SRPCSystemStatusServiceServer interface {
 
 	WatchPlugins(*WatchPluginsRequest, SRPCSystemStatusService_WatchPluginsStream) error
 
+	WatchNetworkStats(*WatchNetworkStatsRequest, SRPCSystemStatusService_WatchNetworkStatsStream) error
+
 	ReportRecoveryStatus(context.Context, *ReportRecoveryStatusRequest) (*ReportRecoveryStatusResponse, error)
 
 	WatchRecoveryStatus(*WatchRecoveryStatusRequest, SRPCSystemStatusService_WatchRecoveryStatusStream) error
@@ -229,6 +267,7 @@ func (SRPCSystemStatusServiceHandler) GetMethodIDs() []string {
 		"WatchControllers",
 		"WatchDirectives",
 		"WatchPlugins",
+		"WatchNetworkStats",
 		"ReportRecoveryStatus",
 		"WatchRecoveryStatus",
 	}
@@ -249,6 +288,8 @@ func (d *SRPCSystemStatusServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchDirectives(d.impl, strm)
 	case "WatchPlugins":
 		return true, d.InvokeMethod_WatchPlugins(d.impl, strm)
+	case "WatchNetworkStats":
+		return true, d.InvokeMethod_WatchNetworkStats(d.impl, strm)
 	case "ReportRecoveryStatus":
 		return true, d.InvokeMethod_ReportRecoveryStatus(d.impl, strm)
 	case "WatchRecoveryStatus":
@@ -283,6 +324,15 @@ func (SRPCSystemStatusServiceHandler) InvokeMethod_WatchPlugins(impl SRPCSystemS
 	}
 	serverStrm := &srpcSystemStatusService_WatchPluginsStream{strm}
 	return impl.WatchPlugins(req, serverStrm)
+}
+
+func (SRPCSystemStatusServiceHandler) InvokeMethod_WatchNetworkStats(impl SRPCSystemStatusServiceServer, strm srpc.Stream) error {
+	req := new(WatchNetworkStatsRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcSystemStatusService_WatchNetworkStatsStream{strm}
+	return impl.WatchNetworkStats(req, serverStrm)
 }
 
 func (SRPCSystemStatusServiceHandler) InvokeMethod_ReportRecoveryStatus(impl SRPCSystemStatusServiceServer, strm srpc.Stream) error {
@@ -367,6 +417,29 @@ func (x *srpcSystemStatusService_WatchPluginsStream) Send(m *WatchPluginsRespons
 }
 
 func (x *srpcSystemStatusService_WatchPluginsStream) SendAndClose(m *WatchPluginsResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
+}
+
+type SRPCSystemStatusService_WatchNetworkStatsStream interface {
+	srpc.Stream
+	Send(*WatchNetworkStatsResponse) error
+	SendAndClose(*WatchNetworkStatsResponse) error
+}
+
+type srpcSystemStatusService_WatchNetworkStatsStream struct {
+	srpc.Stream
+}
+
+func (x *srpcSystemStatusService_WatchNetworkStatsStream) Send(m *WatchNetworkStatsResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSystemStatusService_WatchNetworkStatsStream) SendAndClose(m *WatchNetworkStatsResponse) error {
 	if m != nil {
 		if err := x.MsgSend(m); err != nil {
 			return err

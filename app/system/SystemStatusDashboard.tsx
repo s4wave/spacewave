@@ -47,6 +47,7 @@ import {
   useWatchControllers,
   useWatchDirectives,
   useWatchPlugins,
+  useWatchNetworkStats,
 } from './useSystemStatus.js'
 import { useIsMobile } from '@s4wave/web/hooks/useMobile.js'
 
@@ -80,12 +81,26 @@ function makeOccurrenceKey(id: string | undefined, index: number): string {
 }
 
 const TRANSIENT_FEEDBACK_MS = 1600
-const STATS_KEYS = ['acct', 'spc', 'plug', 'ctrl', 'dir'] as const
+const STATS_KEYS = ['acct', 'spc', 'plug', 'net', 'ctrl', 'dir'] as const
 // SHOW_LOG_PANEL keeps the placeholder logs drawer hidden until a real log
 // stream backs the designed tray.
 const SHOW_LOG_PANEL = false
 
 type StatsKey = (typeof STATS_KEYS)[number]
+type NetworkLinkView = {
+  localPeerId?: string
+  remotePeerId?: string
+  linkId?: bigint
+  transportId?: bigint
+  remoteTransportId?: bigint
+}
+
+type NetworkPeerView = {
+  peerId?: string
+  linkCount?: number
+  links?: ReadonlyArray<NetworkLinkView>
+}
+
 
 function useCountDeltas(
   counts: Record<StatsKey, number>,
@@ -234,6 +249,32 @@ function buildPluginsSnapshotKey(
     .join('|')
 }
 
+function buildNetworkSnapshotKey(
+  peers: ReadonlyArray<NetworkPeerView>,
+  transportRunning: boolean,
+  localPeerId: string,
+): string {
+  return [
+    transportRunning ? 'running' : 'stopped',
+    localPeerId,
+    peers
+      .map((peer) =>
+        [
+          peer.peerId ?? '',
+          peer.linkCount ?? 0,
+          ...(peer.links ?? []).map((link) =>
+            [
+              link.linkId?.toString() ?? '',
+              link.transportId?.toString() ?? '',
+              link.remoteTransportId?.toString() ?? '',
+            ].join('/'),
+          ),
+        ].join(':'),
+      )
+      .join('|'),
+  ].join('|')
+}
+
 // Selection type for tree navigation.
 type Selection =
   | { kind: 'session'; index: number }
@@ -243,6 +284,7 @@ type Selection =
   | { kind: 'directive-group'; name: string }
   | { kind: 'spaces' }
   | { kind: 'plugins' }
+  | { kind: 'network' }
   | { kind: 'controllers' }
   | { kind: 'directives' }
   | { kind: 'resources' }
@@ -252,6 +294,7 @@ type SidebarSectionKey =
   | 'accounts'
   | 'spaces'
   | 'plugins'
+  | 'network'
   | 'controllers'
   | 'directives'
   | 'resources'
@@ -263,6 +306,7 @@ const DEFAULT_OPEN_SECTIONS: Record<SidebarSectionKey, boolean> = {
   accounts: true,
   spaces: true,
   plugins: true,
+  network: true,
   controllers: true,
   directives: true,
   resources: false,
@@ -313,6 +357,9 @@ function getSelectionLabel(
   if (selected.kind === 'plugins') {
     return 'Plugins'
   }
+  if (selected.kind === 'network') {
+    return 'Network'
+  }
   if (selected.kind === 'controllers') {
     return 'Controllers'
   }
@@ -361,6 +408,13 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
     () => pluginsResp?.plugins ?? [],
     [pluginsResp?.plugins],
   )
+  const networkResp = useWatchNetworkStats()
+  const networkPeerCount = networkResp?.peerCount ?? 0
+  const networkLinkCount = networkResp?.linkCount ?? 0
+  const networkPeers = useMemo(
+    () => networkResp?.peers ?? [],
+    [networkResp?.peers],
+  )
   const directiveGroups = useMemo(
     () => groupDirectives(directives),
     [directives],
@@ -370,6 +424,7 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
       acct: sessions.length,
       spc: spaces.length,
       plug: pluginCount,
+      net: networkPeerCount,
       ctrl: controllerCount,
       dir: directiveCount,
     }),
@@ -377,6 +432,7 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
       sessions.length,
       spaces.length,
       pluginCount,
+      networkPeerCount,
       controllerCount,
       directiveCount,
     ],
@@ -387,6 +443,8 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
       sessions.length,
       spaces.length,
       pluginCount,
+      networkPeerCount,
+      networkLinkCount,
       controllerCount,
       directiveCount,
     ].join('|'),
@@ -400,6 +458,13 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
   )
   const pluginsUpdatedAt = useSnapshotUpdatedAt(
     buildPluginsSnapshotKey(plugins),
+  )
+  const networkUpdatedAt = useSnapshotUpdatedAt(
+    buildNetworkSnapshotKey(
+      networkPeers,
+      networkResp?.transportRunning ?? false,
+      networkResp?.localPeerId ?? '',
+    ),
   )
   const isMobile = useIsMobile()
 
@@ -496,6 +561,7 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
         sessionCount={sessions.length}
         spaceCount={spaces.length}
         pluginCount={pluginCount}
+        networkPeerCount={networkPeerCount}
         controllerCount={controllerCount}
         directiveCount={directiveCount}
         deltas={statsDeltas}
@@ -513,6 +579,7 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
             controllerCount={controllerCount}
             directiveCount={directiveCount}
             pluginCount={pluginCount}
+            networkPeerCount={networkPeerCount}
             selected={selected}
             onSelect={handleSelect}
           />
@@ -546,6 +613,7 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
                     pluginCount={pluginCount}
                     selected={selected}
                     onSelect={handleSelect}
+                    networkPeerCount={networkPeerCount}
                     className="w-full border-r-0"
                   />
                 </div>
@@ -559,6 +627,10 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
               spaces={spaces}
               plugins={plugins}
               controllers={controllers}
+              networkResp={networkResp}
+              networkPeers={networkPeers}
+              networkPeerCount={networkPeerCount}
+              networkLinkCount={networkLinkCount}
               directiveGroups={directiveGroups}
               controllerCount={controllerCount}
               directives={directives}
@@ -568,6 +640,7 @@ export function SystemStatusDashboard({ onClose }: SystemStatusDashboardProps) {
               onClose={onClose}
               buildInfo={buildInfo}
               spacesUpdatedAt={spacesUpdatedAt}
+              networkUpdatedAt={networkUpdatedAt}
               pluginsUpdatedAt={pluginsUpdatedAt}
               controllersUpdatedAt={controllersUpdatedAt}
               directivesUpdatedAt={directivesUpdatedAt}
@@ -870,6 +943,7 @@ function StatsRibbon({
   sessionCount,
   spaceCount,
   pluginCount,
+  networkPeerCount,
   controllerCount,
   directiveCount,
   deltas,
@@ -878,6 +952,7 @@ function StatsRibbon({
   sessionCount: number
   spaceCount: number
   pluginCount: number
+  networkPeerCount: number
   controllerCount: number
   directiveCount: number
   deltas: Partial<Record<StatsKey, number>>
@@ -902,6 +977,12 @@ function StatsRibbon({
         count: pluginCount,
         noun: 'plugin',
         icon: <LuPuzzle className="text-foreground-alt/30 size-2.5" />,
+      },
+      {
+        key: 'net',
+        count: networkPeerCount,
+        noun: 'peer',
+        icon: <LuRadar className="text-foreground-alt/30 size-2.5" />,
       },
       {
         key: 'ctrl',
@@ -1017,6 +1098,9 @@ function getSidebarSectionIcon(section: SidebarSectionKey): ReactNode {
   if (section === 'plugins') {
     return <LuPuzzle className="size-3" />
   }
+  if (section === 'network') {
+    return <LuRadar className="size-3" />
+  }
   if (section === 'controllers') {
     return <LuCpu className="size-3" />
   }
@@ -1037,6 +1121,7 @@ function SidebarTree({
   directiveGroups,
   controllerCount,
   pluginCount,
+  networkPeerCount,
   directiveCount,
   selected,
   onSelect,
@@ -1052,6 +1137,7 @@ function SidebarTree({
   directiveGroups: ReadonlyArray<{ name: string; count: number }>
   controllerCount: number
   pluginCount: number
+  networkPeerCount: number
   directiveCount: number
   selected: Selection
   onSelect: (sel: Selection) => void
@@ -1200,6 +1286,29 @@ function SidebarTree({
             selected.instanceKey === instanceKey,
         })
       }
+    }
+
+    nextEntries.push({
+      id: 'section:network',
+      kind: 'section',
+      section: 'network',
+      label: 'Network',
+      count: networkPeerCount,
+      expanded: openSections.network,
+      level: 1,
+    })
+
+    if (openSections.network) {
+      nextEntries.push({
+        id: 'selection:network',
+        kind: 'selection',
+        label: 'Network links',
+        dot: networkPeerCount > 0 ? 'bg-success' : 'bg-foreground-alt/20',
+        level: 2,
+        parentSection: 'network',
+        selection: { kind: 'network' },
+        selected: selected.kind === 'network',
+      })
     }
 
     nextEntries.push({
@@ -1359,6 +1468,7 @@ function SidebarTree({
     directiveCount,
     openSections,
     pluginCount,
+    networkPeerCount,
     selected,
     sessions,
     showAllControllers,
@@ -1637,6 +1747,10 @@ function DetailView({
   spaces,
   plugins,
   controllers,
+  networkResp,
+  networkPeers,
+  networkPeerCount,
+  networkLinkCount,
   directiveGroups,
   buildInfo,
   pluginCount,
@@ -1647,6 +1761,7 @@ function DetailView({
   onClose,
   spacesUpdatedAt,
   pluginsUpdatedAt,
+  networkUpdatedAt,
   controllersUpdatedAt,
   directivesUpdatedAt,
 }: {
@@ -1663,6 +1778,10 @@ function DetailView({
     spaceMeta?: { name?: string }
   }>
   plugins: ReadonlyArray<{ id?: string; instanceKey?: string; state?: string }>
+  networkResp?: { transportRunning?: boolean; localPeerId?: string } | null
+  networkPeers: ReadonlyArray<NetworkPeerView>
+  networkPeerCount: number
+  networkLinkCount: number
   controllers: ReadonlyArray<{
     id?: string
     version?: string
@@ -1682,6 +1801,7 @@ function DetailView({
   onClose?: () => void
   spacesUpdatedAt: string
   pluginsUpdatedAt: string
+  networkUpdatedAt: string
   controllersUpdatedAt: string
   directivesUpdatedAt: string
 }) {
@@ -1736,6 +1856,18 @@ function DetailView({
         buildInfo={buildInfo}
         updatedAt={pluginsUpdatedAt}
         onBack={() => onSelect({ kind: 'plugins' })}
+      />
+    )
+  }
+
+  if (selected.kind === 'network') {
+    return (
+      <NetworkDetail
+        networkResp={networkResp}
+        peers={networkPeers}
+        peerCount={networkPeerCount}
+        linkCount={networkLinkCount}
+        updatedAt={networkUpdatedAt}
       />
     )
   }
@@ -2115,6 +2247,129 @@ function PluginsDetail({
                 {state}
               </span>
             </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function formatNetworkId(id: bigint | number | undefined): string {
+  return id == null ? '0' : id.toString()
+}
+
+function NetworkDetail({
+  networkResp,
+  peers,
+  peerCount,
+  linkCount,
+  updatedAt,
+}: {
+  networkResp?: { transportRunning?: boolean; localPeerId?: string } | null
+  peers: ReadonlyArray<NetworkPeerView>
+  peerCount: number
+  linkCount: number
+  updatedAt: string
+}) {
+  const transportRunning = networkResp?.transportRunning ?? false
+  const localPeerId = networkResp?.localPeerId ?? ''
+
+  return (
+    <div className="flex h-full flex-col p-4">
+      <div className="mb-2 flex items-center gap-2">
+        <LuRadar className="text-success/60 size-4" />
+        <span className="text-foreground text-sm font-medium">Network</span>
+        <span className="text-foreground-alt/30 font-mono text-xs">
+          {peerCount} peers / {linkCount} links
+        </span>
+        <LiveIndicator updatedAt={updatedAt} label="Network" />
+      </div>
+      <div className="grid gap-2 pb-2 md:grid-cols-2">
+        <DetailCard title="Transport" accent="border-success/40">
+          <div className="py-0.5">
+            <DetailRow
+              label="Status"
+              value={transportRunning ? 'running' : 'stopped'}
+              mono={false}
+            />
+            <DetailRow
+              label="Local Peer"
+              value={localPeerId || 'not available'}
+            />
+          </div>
+        </DetailCard>
+        <DetailCard title="Links" accent="border-brand/40">
+          <div className="py-0.5">
+            <DetailRow label="Peers" value={String(peerCount)} />
+            <DetailRow label="Links" value={String(linkCount)} />
+            <DetailRow
+              label="Source"
+              value="Bifrost link controller"
+              mono={false}
+            />
+          </div>
+        </DetailCard>
+      </div>
+      <div className="border-foreground/6 min-h-0 flex-1 overflow-auto rounded-md border">
+        {peers.length === 0 && (
+          <div className="px-3 py-2">
+            <span className="text-foreground-alt/30 text-[0.6rem]">
+              No active network links.
+            </span>
+          </div>
+        )}
+        {peers.map((peer, peerIndex) => {
+          const peerId = peer.peerId || 'unknown'
+          const links = peer.links ?? []
+          return (
+            <div
+              key={makeOccurrenceKey(peerId, peerIndex)}
+              className="border-foreground/4 border-b px-3 py-2 last:border-b-0"
+            >
+              <div className="mb-1 flex items-center gap-2">
+                <span className="bg-success size-1.5 shrink-0 rounded-full" />
+                <span className="text-foreground/80 min-w-0 flex-1 truncate font-mono text-[0.65rem]">
+                  {peerId}
+                </span>
+                <span className="bg-foreground/5 text-foreground-alt/45 rounded px-1.5 py-0.5 font-mono text-[0.5rem]">
+                  {peer.linkCount ?? links.length} link
+                  {(peer.linkCount ?? links.length) === 1 ? '' : 's'}
+                </span>
+              </div>
+              <div className="space-y-1 pl-3">
+                {links.map((link, linkIndex) => (
+                  <div
+                    key={makeOccurrenceKey(
+                      formatNetworkId(link.linkId),
+                      linkIndex,
+                    )}
+                    className="bg-foreground/[0.02] rounded px-2 py-1"
+                  >
+                    <div className="text-foreground-alt/40 mb-0.5 font-mono text-[0.55rem]">
+                      link {formatNetworkId(link.linkId)}
+                    </div>
+                    <div className="grid gap-x-3 gap-y-0.5 md:grid-cols-2">
+                      <DetailRow
+                        label="Transport"
+                        value={formatNetworkId(link.transportId)}
+                      />
+                      <DetailRow
+                        label="Remote Transport"
+                        value={formatNetworkId(link.remoteTransportId)}
+                      />
+                      <DetailRow
+                        label="Local Peer"
+                        value={link.localPeerId || 'unknown'}
+                      />
+                      <DetailRow
+                        label="Remote Peer"
+                        value={link.remotePeerId || peerId}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )
         })}
       </div>
