@@ -5,6 +5,8 @@ import userEvent from '@testing-library/user-event'
 
 import type { SqlValue } from '@go/github.com/s4wave/spacewave/db/sql/sql.pb.js'
 
+import { SqlWorkbenchTargetDbContext } from './sql-workbench-context.js'
+
 // FakeQuery drives the viewer through the SqlQuery handle surface.
 class FakeQuery {
   public readonly id = 1
@@ -43,6 +45,11 @@ class FakeQuery {
 
 let fakeQuery: FakeQuery
 const navigateToObjects = vi.fn()
+
+interface RenderOptions {
+  workbenchTargetDbObjectKey?: string
+  databaseKeys?: string[]
+}
 
 function useResourceMock<P, T>(
   parent: { value: P | null },
@@ -93,9 +100,25 @@ vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
 
 import { SqlQueryViewer } from './SqlQueryViewer.js'
 
-function renderViewer() {
+function renderViewer({
+  workbenchTargetDbObjectKey = '',
+  databaseKeys,
+}: RenderOptions = {}) {
+  const worldState =
+    databaseKeys == null
+      ? {}
+      : { value: { listObjectsWithType: vi.fn(async () => databaseKeys) } }
+  const viewer = (
+    <SqlQueryViewer objectInfo={{} as never} worldState={worldState as never} />
+  )
   return render(
-    <SqlQueryViewer objectInfo={{} as never} worldState={{} as never} />,
+    workbenchTargetDbObjectKey ? (
+      <SqlWorkbenchTargetDbContext.Provider value={workbenchTargetDbObjectKey}>
+        {viewer}
+      </SqlWorkbenchTargetDbContext.Provider>
+    ) : (
+      viewer
+    ),
   )
 }
 
@@ -133,6 +156,59 @@ describe('SqlQueryViewer', () => {
     await waitFor(() => expect(fakeQuery.runMaxRows).toBe(0))
     expect(fakeQuery.savedText?.sql).toBe('SELECT 2')
     expect(navigateToObjects).toHaveBeenCalledWith(['sql/db/result/abc'])
+  })
+
+  it('defaults an embedded workbench query to the workbench database', async () => {
+    fakeQuery = new FakeQuery('SELECT 1', 'mysql', '')
+    const user = userEvent.setup()
+    renderViewer({ workbenchTargetDbObjectKey: 'sql/db' })
+
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByLabelText(
+            'Target database object key',
+          ) as HTMLInputElement
+        ).value,
+      ).toBe('sql/db'),
+    )
+    await user.click(screen.getByText('Run'))
+
+    await waitFor(() => expect(fakeQuery.runMaxRows).toBe(0))
+    expect(fakeQuery.savedText?.targetDb).toBe('sql/db')
+    expect(navigateToObjects).toHaveBeenCalledWith(['sql/db/result/abc'])
+  })
+
+  it('defaults a standalone query to the sole database in the Space', async () => {
+    fakeQuery = new FakeQuery('SELECT 1', 'mysql', '')
+    const user = userEvent.setup()
+    renderViewer({ databaseKeys: ['sql/db'] })
+
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByLabelText(
+            'Target database object key',
+          ) as HTMLInputElement
+        ).value,
+      ).toBe('sql/db'),
+    )
+    await user.click(screen.getByText('Run'))
+
+    await waitFor(() => expect(fakeQuery.runMaxRows).toBe(0))
+    expect(fakeQuery.savedText?.targetDb).toBe('sql/db')
+  })
+
+  it('disables run with a target hint when the default database is ambiguous', async () => {
+    fakeQuery = new FakeQuery('SELECT 1', 'mysql', '')
+    renderViewer({ databaseKeys: ['sql/db-a', 'sql/db-b'] })
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Multiple SQL databases are available/),
+      ).toBeTruthy(),
+    )
+    expect((screen.getByText('Run') as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('blocks run on a malformed integer parameter', async () => {

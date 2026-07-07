@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useContext, useMemo, useState } from 'react'
 import {
   LuFileText,
   LuPlay,
@@ -19,9 +19,12 @@ import { ErrorState } from '@s4wave/web/ui/ErrorState.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 
 import type { SqlValue } from '@go/github.com/s4wave/spacewave/db/sql/sql.pb.js'
+import { SqlDbTypeID } from '@s4wave/sdk/sql/sql.js'
 import { SqlQuery, SqlQueryTypeID } from '@s4wave/sdk/sql/query/query.js'
+import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 
 import { buildParam, type SqlParamKind } from './sql-cell.js'
+import { SqlWorkbenchTargetDbContext } from './sql-workbench-context.js'
 
 export { SqlQueryTypeID }
 
@@ -49,6 +52,8 @@ export function SqlQueryViewer({
     SqlQueryTypeID,
   )
 
+  const workbenchTargetDb = useContext(SqlWorkbenchTargetDbContext)
+
   const queryResource = useResource(
     handle,
     async (query, signal) => {
@@ -59,6 +64,62 @@ export function SqlQueryViewer({
   )
 
   const loaded = queryResource.value
+  const needsSpaceDefaultTarget =
+    !!loaded && !loaded.targetDbObjectKey && !workbenchTargetDb
+  const databaseKeysResource = useResource(
+    worldState,
+    async (world, signal) => {
+      if (!world) return null
+      return listObjectsWithType(world, SqlDbTypeID, signal)
+    },
+    [],
+    { enabled: needsSpaceDefaultTarget },
+  )
+
+  const targetResolution = useMemo(() => {
+    if (loaded?.targetDbObjectKey) {
+      return { loading: false, targetDbObjectKey: '', hint: '' }
+    }
+    if (workbenchTargetDb) {
+      return { loading: false, targetDbObjectKey: workbenchTargetDb, hint: '' }
+    }
+    if (databaseKeysResource.error) {
+      return {
+        loading: false,
+        targetDbObjectKey: '',
+        hint: `Could not resolve a default database target: ${String(databaseKeysResource.error)}`,
+      }
+    }
+    const databaseKeys = databaseKeysResource.value ?? []
+    if (databaseKeys.length === 1) {
+      return {
+        loading: false,
+        targetDbObjectKey: databaseKeys[0] ?? '',
+        hint: '',
+      }
+    }
+    if (databaseKeysResource.loading && databaseKeysResource.value == null) {
+      return { loading: true, targetDbObjectKey: '', hint: '' }
+    }
+    if (databaseKeys.length === 0) {
+      return {
+        loading: false,
+        targetDbObjectKey: '',
+        hint: 'No SQL database is available in this Space. Create or open a database before running this query.',
+      }
+    }
+    return {
+      loading: false,
+      targetDbObjectKey: '',
+      hint: 'Multiple SQL databases are available. Choose a target database before running.',
+    }
+  }, [
+    databaseKeysResource.error,
+    databaseKeysResource.loading,
+    databaseKeysResource.value,
+    loaded?.targetDbObjectKey,
+    workbenchTargetDb,
+  ])
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
@@ -79,19 +140,24 @@ export function SqlQueryViewer({
             onRetry={queryResource.retry}
           />
         ) : null}
-        {loaded ? (
+        {loaded && targetResolution.loading ? (
+          <LoadingInline label="Resolving SQL database target" tone="muted" />
+        ) : null}
+        {loaded && !targetResolution.loading ? (
           <SqlQueryEditor
-            key={objectKey}
+            key={`${objectKey}:${loaded.targetDbObjectKey || targetResolution.targetDbObjectKey}`}
             handle={handle}
             sqlText={loaded.sqlText ?? ''}
             dialectHint={loaded.dialectHint ?? ''}
-            targetDbObjectKey={loaded.targetDbObjectKey ?? ''}
+            targetDbObjectKey={
+              loaded.targetDbObjectKey || targetResolution.targetDbObjectKey
+            }
+            persistedTargetDbObjectKey={loaded.targetDbObjectKey ?? ''}
+            targetDbHint={targetResolution.hint}
             onOpenTargetDb={
-              container && loaded.targetDbObjectKey
-                ? () =>
-                    container.navigateToObjects([
-                      loaded.targetDbObjectKey ?? '',
-                    ])
+              container
+                ? (targetDbObjectKey) =>
+                    container.navigateToObjects([targetDbObjectKey])
                 : undefined
             }
             onResult={
@@ -111,7 +177,9 @@ interface SqlQueryEditorProps {
   sqlText: string
   dialectHint: string
   targetDbObjectKey: string
-  onOpenTargetDb?: () => void
+  persistedTargetDbObjectKey: string
+  targetDbHint: string
+  onOpenTargetDb?: (targetDbObjectKey: string) => void
   onResult?: (resultObjectKey: string) => void
 }
 
@@ -122,6 +190,8 @@ function SqlQueryEditor({
   sqlText: savedSql,
   dialectHint: savedDialect,
   targetDbObjectKey: savedTargetDb,
+  persistedTargetDbObjectKey: persistedTargetDb,
+  targetDbHint,
   onOpenTargetDb,
   onResult,
 }: SqlQueryEditorProps) {
@@ -140,7 +210,9 @@ function SqlQueryEditor({
   const [error, setError] = useState<string | null>(null)
 
   const textDirty =
-    sql !== savedSql || dialect !== savedDialect || targetDb !== savedTargetDb
+    sql !== savedSql ||
+    dialect !== savedDialect ||
+    targetDb !== persistedTargetDb
   const paramsTouched = params.length > 0
 
   const buildParams = useCallback((): SqlValue[] => {
@@ -184,7 +256,7 @@ function SqlQueryEditor({
 
   const handleRun = useCallback(async () => {
     const query = handle.value
-    if (!query || paramError) return
+    if (!query || paramError || !targetDb.trim()) return
     setBusy(true)
     setError(null)
     try {
@@ -201,7 +273,7 @@ function SqlQueryEditor({
     } finally {
       setBusy(false)
     }
-  }, [handle.value, onResult, paramError, persist])
+  }, [handle.value, onResult, paramError, persist, targetDb])
 
   const handleDiscard = useCallback(() => {
     setSql(savedSql)
@@ -228,6 +300,9 @@ function SqlQueryEditor({
     setParams((rows) => rows.filter((row) => row.id !== id))
   }, [])
 
+  const canRun =
+    !busy && paramError == null && !!sql.trim() && !!targetDb.trim()
+
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4">
       <div className="flex items-center gap-2">
@@ -235,7 +310,7 @@ function SqlQueryEditor({
           variant="default"
           size="sm"
           onClick={handleRun}
-          disabled={busy || paramError != null || !sql.trim()}
+          disabled={!canRun}
           className="h-7 gap-1 text-xs"
         >
           <LuPlay className="size-3.5" />
@@ -307,11 +382,11 @@ function SqlQueryEditor({
               spellCheck={false}
               className="border-foreground/10 bg-background-primary text-foreground focus-visible:ring-ring min-w-0 flex-1 rounded-md border px-3 py-1.5 font-mono text-xs focus-visible:ring-1 focus-visible:outline-none"
             />
-            {onOpenTargetDb ? (
+            {onOpenTargetDb && targetDb.trim() ? (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onOpenTargetDb}
+                onClick={() => onOpenTargetDb(targetDb)}
                 className="h-7 shrink-0 text-xs"
               >
                 Open
@@ -358,6 +433,13 @@ function SqlQueryEditor({
       </div>
 
       {paramError ? <ErrorState variant="inline" message={paramError} /> : null}
+      {!targetDb.trim() && targetDbHint ? (
+        <ErrorState
+          variant="inline"
+          title="Target database required"
+          message={targetDbHint}
+        />
+      ) : null}
       {error ? (
         <ErrorState variant="inline" title="Run failed" message={error} />
       ) : null}

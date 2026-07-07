@@ -28,6 +28,8 @@ import {
   type WorkbenchTab,
 } from '@s4wave/sdk/sql/workbench/workbench.pb.js'
 
+import { SqlWorkbenchTargetDbContext } from './sql-workbench-context.js'
+
 export { SqlWorkbenchTypeID }
 
 const DEFAULT_SIDEBAR_WIDTH = 280
@@ -193,6 +195,7 @@ export function SqlWorkbenchViewer({
                   <EmbeddedObject
                     objectKey={targetDbKey}
                     worldState={worldState}
+                    targetDbObjectKey={targetDbKey}
                   />
                 </div>
               ) : (
@@ -232,6 +235,7 @@ export function SqlWorkbenchViewer({
                   key={activeTab.tabId}
                   objectKey={activeTab.objectKey}
                   worldState={worldState}
+                  targetDbObjectKey={targetDbKey}
                 />
               ) : (
                 <div className="text-foreground-alt/40 flex h-full items-center justify-center text-xs">
@@ -352,23 +356,30 @@ function TabStrip({ tabs, activeTabId, onSelect, onClose }: TabStripProps) {
 interface EmbeddedObjectProps {
   objectKey: string
   worldState: Resource<IWorldState>
+  targetDbObjectKey: string
 }
 
 // EmbeddedObject renders a world object's registered viewer inside the
 // workbench by constructing its ObjectInfo from the key. The object type is
 // resolved by the viewer from the world object handle.
-function EmbeddedObject({ objectKey, worldState }: EmbeddedObjectProps) {
+function EmbeddedObject({
+  objectKey,
+  worldState,
+  targetDbObjectKey,
+}: EmbeddedObjectProps) {
   const info: ObjectInfo = useMemo(
     () => ({ info: { case: 'worldObjectInfo', value: { objectKey } } }),
     [objectKey],
   )
   return (
-    <div className="h-full w-full">
-      <ObjectViewer
-        objectInfo={info}
-        worldState={worldState}
-        stateNamespace={['sql-workbench', objectKey]}
-      />
-    </div>
+    <SqlWorkbenchTargetDbContext.Provider value={targetDbObjectKey}>
+      <div className="h-full w-full">
+        <ObjectViewer
+          objectInfo={info}
+          worldState={worldState}
+          stateNamespace={['sql-workbench', objectKey]}
+        />
+      </div>
+    </SqlWorkbenchTargetDbContext.Provider>
   )
 }
