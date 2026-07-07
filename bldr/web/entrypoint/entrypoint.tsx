@@ -151,20 +151,22 @@ function resolveImmediateBootReady() {
   globalThis.__swReady = undefined
 }
 
-function waitForWebRuntime(webDocument: BldrWebDocument) {
+function waitForWebRuntime(webDocument: BldrWebDocument): Promise<boolean> {
   markStartupBoundary('runtime.wait-start', { source: 'browser' })
   setBrowserBootStatus('runtime', 'Connecting runtime...')
-  void webDocument
+  return webDocument
     .waitConn()
     .then(() => {
       markStartupBoundary('runtime.wait-ready', { source: 'browser' })
       setBrowserBootStatus('ready', 'Application ready.')
       resolveBootReady('shell.deferred-boot-ready')
+      return true
     })
     .catch((err: unknown) => {
       const detail = err instanceof Error ? err.message : String(err)
       setBrowserBootStatus('runtime-error', detail, 'error')
       console.error('entrypoint: failed to connect runtime', err)
+      return false
     })
 }
 
@@ -180,9 +182,16 @@ markStartupBoundary('shell.container-resolved', {
 
 if (container && deferBoot) {
   const webDocument = new BldrWebDocument(webDocumentOpts)
-  let root: ReturnType<typeof createRoot> | null = null
-
+  let root: Root | null = null
+  let runtimeReady = false
+  let pendingBoot = false
+  let bootedRootRendered = false
   const renderBootedRoot = () => {
+    if (bootedRootRendered) {
+      return
+    }
+    bootedRootRendered = true
+    pendingBoot = false
     container.removeAttribute('data-prerendered')
 
     if (
@@ -207,13 +216,24 @@ if (container && deferBoot) {
     root.render(<BldrRoot {...bldrRootProps} webDocument={webDocument} />)
   }
 
+  const runtimeReadyPromise = waitForWebRuntime(webDocument).then((ready) => {
+    runtimeReady = ready
+    if (runtimeReady && pendingBoot) {
+      renderBootedRoot()
+    }
+  })
+
   globalThis.__swBoot = (hash: string) => {
     markStartupBoundary('shell.boot-requested', { source: 'browser' })
     setBrowserBootStatus('app', 'Opening application...')
     setAppPath(hash)
-    renderBootedRoot()
+    pendingBoot = true
+    if (runtimeReady) {
+      renderBootedRoot()
+      return
+    }
+    void runtimeReadyPromise
   }
-  waitForWebRuntime(webDocument)
 } else if (container?.hasAttribute('data-prerendered')) {
   container.removeAttribute('data-prerendered')
   hydrateRoot(container, <BldrRoot {...bldrRootProps} />)

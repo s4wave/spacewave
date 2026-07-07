@@ -147,6 +147,7 @@ describe('browser entrypoint boot readiness', () => {
     renderedRootElements.length = 0
     globalThis.IS_REACT_ACT_ENVIRONMENT = true
     document.body.innerHTML = ''
+    window.history.replaceState({}, '', '/')
     globalThis.__swDeferBoot = undefined
     globalThis.__swBoot = undefined
     globalThis.__swReady = undefined
@@ -163,6 +164,7 @@ describe('browser entrypoint boot readiness', () => {
     initBrowserReleaseAutoReloadMock.mockClear()
     renderedRootElements.length = 0
     document.body.innerHTML = ''
+    window.history.replaceState({}, '', '/')
     globalThis.__swDeferBoot = undefined
     globalThis.__swBoot = undefined
     globalThis.__swReady = undefined
@@ -248,30 +250,77 @@ describe('browser entrypoint boot readiness', () => {
     )
   })
 
-  it('keeps deferred prerender boot gated on the web runtime', async () => {
+  it('defers prerender __swBoot rendering until waitConn resolves', async () => {
     document.body.innerHTML =
       '<div id="bldr-root" data-prerendered="true"></div>'
-    const ready = createReady()
-    let resolved = false
-    ready.promise.then(() => {
-      resolved = true
-    })
+    const runtimeReady = createReady()
+    waitConnMock.mockReturnValueOnce(runtimeReady.promise)
     globalThis.__swDeferBoot = true
-    globalThis.__swReady = ready.promise
-    globalThis.__swReadyResolve = ready.resolve
 
     await importEntrypoint()
     await Promise.resolve()
 
     expect(globalThis.__swBoot).toEqual(expect.any(Function))
     expect(waitConnMock).toHaveBeenCalledTimes(1)
-    expect(globalThis.__swReady).toBe(ready.promise)
-    expect(globalThis.__swReadyResolve).toBeUndefined()
-    expect(globalThis.__swBootStatus?.phase).toBe('ready')
-    expect(resolved).toBe(true)
-    expect(globalThis.__swStartupMarks?.map((mark) => mark.label)).toContain(
-      'shell.deferred-boot-ready',
-    )
+
+    const boot = globalThis.__swBoot
+    if (!boot) {
+      throw new Error('deferred boot callback was not installed')
+    }
+    boot('/quickstart/deferred')
+    await drainMicrotasks()
+
+    expect(window.location.hash).toBe('#/quickstart/deferred')
+    expect(createRootMock).not.toHaveBeenCalled()
+    expect(hydrateRootMock).not.toHaveBeenCalled()
+    expect(renderedRootElements).toHaveLength(0)
+    expect(
+      document.getElementById('bldr-root')?.hasAttribute('data-prerendered'),
+    ).toBe(true)
+
+    runtimeReady.resolve()
+    await drainMicrotasks()
+
+    expect(createRootMock).toHaveBeenCalledTimes(1)
+    expect(hydrateRootMock).not.toHaveBeenCalled()
+    expect(renderedRootElements).toHaveLength(1)
+    expect(React.isValidElement(renderedRootElements[0])).toBe(true)
+    expect(
+      document.getElementById('bldr-root')?.hasAttribute('data-prerendered'),
+    ).toBe(false)
+  })
+
+  it('coalesces deferred __swBoot requests to one render at the latest path', async () => {
+    document.body.innerHTML =
+      '<div id="bldr-root" data-prerendered="true"></div>'
+    const runtimeReady = createReady()
+    waitConnMock.mockReturnValueOnce(runtimeReady.promise)
+    globalThis.__swDeferBoot = true
+
+    await importEntrypoint()
+    await Promise.resolve()
+
+    const boot = globalThis.__swBoot
+    if (!boot) {
+      throw new Error('deferred boot callback was not installed')
+    }
+    boot('/quickstart/first')
+    boot('/quickstart/latest')
+    await drainMicrotasks()
+
+    expect(window.location.hash).toBe('#/quickstart/latest')
+    expect(createRootMock).not.toHaveBeenCalled()
+    expect(renderedRootElements).toHaveLength(0)
+
+    runtimeReady.resolve()
+    await drainMicrotasks()
+
+    expect(window.location.hash).toBe('#/quickstart/latest')
+    expect(createRootMock).toHaveBeenCalledTimes(1)
+    expect(renderedRootElements).toHaveLength(1)
+    expect(
+      document.getElementById('bldr-root')?.hasAttribute('data-prerendered'),
+    ).toBe(false)
   })
 
   it('imports injected startup module without fetching BLDR_STARTUP_JS from the entrypoint', async () => {

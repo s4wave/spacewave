@@ -20,6 +20,20 @@ function pluginAssetResponse(
   })
 }
 
+function deferred<T>(): {
+  promise: Promise<T>
+  resolve: (value: T | PromiseLike<T>) => void
+  reject: (reason?: unknown) => void
+} {
+  let resolve!: (value: T | PromiseLike<T>) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve
+    reject = promiseReject
+  })
+  return { promise, resolve, reject }
+}
+
 describe('WebView root module loader', () => {
   it('skips the root asset probe for non-plugin asset paths', async () => {
     const fetchRootAsset = vi.fn<typeof fetch>()
@@ -185,6 +199,127 @@ describe('WebView root module loader', () => {
       3,
       '/b/pa/spacewave-app/v/app/App-retry.mjs',
     )
+  })
+
+  it('coalesces concurrent root plugin module loads for the same retry nonce', async () => {
+    const scriptPath = '/b/pa/spacewave-app/v/app/App-coalesce-success.mjs'
+    const rootAsset = deferred<Response>()
+    const importedModule = { default: 'component' }
+    const moduleLoad = deferred<typeof importedModule>()
+    const importStarted = deferred<void>()
+    const fetchRootAsset = vi.fn(async () => await rootAsset.promise)
+    const importModule = vi.fn(() => {
+      importStarted.resolve()
+      return moduleLoad.promise
+    })
+
+    const firstLoad = loadWebViewScriptModule(scriptPath, {
+      fetchRootAsset,
+      importModule,
+    })
+    const secondLoad = loadWebViewScriptModule(scriptPath, {
+      fetchRootAsset,
+      importModule,
+    })
+
+    expect(fetchRootAsset).toHaveBeenCalledOnce()
+    expect(importModule).not.toHaveBeenCalled()
+
+    rootAsset.resolve(
+      pluginAssetResponse(200, 'export default function App() {}', {
+        'content-type': 'text/javascript',
+        'X-Bldr-Fetch-Source': 'plugin-assets',
+        'X-Bldr-Plugin-Asset-Fetch-Result': 'live',
+      }),
+    )
+    await importStarted.promise
+
+    expect(importModule).toHaveBeenCalledOnce()
+    expect(importModule).toHaveBeenCalledWith(scriptPath)
+
+    moduleLoad.resolve(importedModule)
+    const [firstModule, secondModule] = await Promise.all([
+      firstLoad,
+      secondLoad,
+    ])
+
+    expect(firstModule).toBe(importedModule)
+    expect(secondModule).toBe(importedModule)
+  })
+
+  it('coalesces concurrent import failures and lets the next retry issue a fresh load', async () => {
+    const scriptPath = '/b/pa/spacewave-app/v/app/App-coalesce-retry.mjs'
+    const importFailure = new TypeError(
+      'Failed to fetch dynamically imported module: /b/pa/spacewave-app/v/app/App-coalesce-retry.mjs',
+    )
+    const failedImport = deferred<never>()
+    const firstImportStarted = deferred<void>()
+    const retryModule = { default: 'retry component' }
+    let importCalls = 0
+    const fetchRootAsset = vi.fn(async () =>
+      pluginAssetResponse(200, 'export default function App() {}', {
+        'content-type': 'text/javascript',
+        'X-Bldr-Fetch-Source': 'plugin-assets',
+        'X-Bldr-Plugin-Asset-Fetch-Result': 'live',
+      }),
+    )
+    const importModule = vi.fn(() => {
+      importCalls += 1
+      if (importCalls === 1) {
+        firstImportStarted.resolve()
+        return failedImport.promise
+      }
+      return Promise.resolve(retryModule)
+    })
+
+    try {
+      const firstLoad = loadWebViewScriptModule(scriptPath, {
+        fetchRootAsset,
+        importModule,
+      })
+      const secondLoad = loadWebViewScriptModule(scriptPath, {
+        fetchRootAsset,
+        importModule,
+      })
+
+      await firstImportStarted.promise
+
+      expect(fetchRootAsset).toHaveBeenCalledOnce()
+      expect(importModule).toHaveBeenCalledOnce()
+      expect(importModule).toHaveBeenNthCalledWith(1, scriptPath)
+
+      failedImport.reject(importFailure)
+      const [firstResult, secondResult] = await Promise.allSettled([
+        firstLoad,
+        secondLoad,
+      ])
+
+      expect(firstResult).toEqual({
+        status: 'rejected',
+        reason: importFailure,
+      })
+      expect(secondResult).toEqual({
+        status: 'rejected',
+        reason: importFailure,
+      })
+
+      await expect(
+        loadWebViewScriptModule(scriptPath, {
+          fetchRootAsset,
+          importModule,
+        }),
+      ).resolves.toBe(retryModule)
+
+      expect(fetchRootAsset).toHaveBeenCalledTimes(2)
+      expect(importModule).toHaveBeenCalledTimes(2)
+      expect(importModule).toHaveBeenNthCalledWith(
+        2,
+        `${scriptPath}?bldr_retry=1`,
+      )
+    } finally {
+      globalThis.__bldrWebViewModuleImportError = undefined
+      globalThis.__bldrWebViewRootAssetStatus = undefined
+    }
   })
 
   it('imports the module after a live root plugin asset result', async () => {

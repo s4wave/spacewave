@@ -40,6 +40,7 @@ const rootPluginAssetPrefix = '/b/pa/'
 export const webViewRootAssetStatusEvent = 'bldr:webview-root-asset-status'
 export const webViewModuleImportErrorEvent = 'bldr:webview-module-import-error'
 const moduleImportRetryNonceByScriptPath = new Map<string, number>()
+const moduleLoadPromiseByImportPath = new Map<string, Promise<unknown>>()
 
 // webViewDownloadLabel derives a readable plugin name from a root asset path
 // such as "/b/pa/spacewave-app/v/b/fe/module.mjs" -> "spacewave-app".
@@ -239,9 +240,41 @@ function recordModuleImportSuccess(scriptPath: string) {
   moduleImportRetryNonceByScriptPath.delete(scriptPath)
 }
 
-export async function loadWebViewScriptModule<T>(
+export function loadWebViewScriptModule<T>(
   scriptPath: string,
   options: LoadWebViewScriptModuleOptions<T> = {},
+): Promise<T> {
+  const moduleImportPath = buildModuleImportPath(scriptPath)
+  const existing = moduleLoadPromiseByImportPath.get(moduleImportPath)
+  if (existing) {
+    return existing as Promise<T>
+  }
+
+  const promise = loadWebViewScriptModuleUncached(
+    scriptPath,
+    moduleImportPath,
+    options,
+  )
+  moduleLoadPromiseByImportPath.set(moduleImportPath, promise)
+  void promise.then(
+    () => {
+      if (moduleLoadPromiseByImportPath.get(moduleImportPath) === promise) {
+        moduleLoadPromiseByImportPath.delete(moduleImportPath)
+      }
+    },
+    () => {
+      if (moduleLoadPromiseByImportPath.get(moduleImportPath) === promise) {
+        moduleLoadPromiseByImportPath.delete(moduleImportPath)
+      }
+    },
+  )
+  return promise
+}
+
+async function loadWebViewScriptModuleUncached<T>(
+  scriptPath: string,
+  moduleImportPath: string,
+  options: LoadWebViewScriptModuleOptions<T>,
 ): Promise<T> {
   const isRootPluginAsset = isWebViewRootPluginAssetPath(scriptPath)
   // The browser's native dynamic import() exposes no byte progress, so a plugin
@@ -262,7 +295,6 @@ export async function loadWebViewScriptModule<T>(
   }
 
   const importModule = options.importModule ?? importWebViewScriptModule<T>
-  const moduleImportPath = buildModuleImportPath(scriptPath)
   try {
     const module = await importModule(moduleImportPath)
     recordModuleImportSuccess(scriptPath)

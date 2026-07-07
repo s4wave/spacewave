@@ -543,30 +543,25 @@ function primeRelease(){
   });
   return primePromise;
 }
-let entrypointModuleURLPromise;
-async function fetchEntrypointModule(release){
+let entrypointStreamPromise;
+async function streamEntrypointModule(release){
   const response=await fetch(release.entrypoint,{credentials:'same-origin'});
   if(!response.ok)throw new Error('failed to load entrypoint bundle: '+response.status);
   const total=release.entrypointDecompressedSize||parsePositiveByteLength(response.headers&&response.headers.get?response.headers.get('content-length'):undefined);
   if(total!==undefined)setBootStatus('app',startupPhaseInfo.frame.detail,'loading',0);
   else setBootStatus('app',startupPhaseInfo.frame.detail);
-  const parts=await streamBootDownload('app','Application',response,total,function(loaded,streamTotal){
+  await streamBootDownload('app','Application',response,total,function(loaded,streamTotal){
     if(streamTotal!==undefined)setBootStatus('app',startupPhaseInfo.frame.detail,'loading',loaded/streamTotal);
   });
   if(total!==undefined)setBootStatus('app',startupPhaseInfo.frame.detail,'loading',1);
-  return URL.createObjectURL(new Blob(parts,{type:'application/javascript'}));
 }
 function primeEntrypoint(release){
-  if(!entrypointModuleURLPromise)entrypointModuleURLPromise=fetchEntrypointModule(release);
-  return entrypointModuleURLPromise;
+  if(!entrypointStreamPromise)entrypointStreamPromise=streamEntrypointModule(release);
+  return entrypointStreamPromise;
 }
 async function importEntrypoint(release){
-  const moduleURL=await primeEntrypoint(release);
-  try{
-    return await import(moduleURL);
-  }finally{
-    try{URL.revokeObjectURL(moduleURL)}catch(_){}
-  }
+  await primeEntrypoint(release);
+  return await import(release.entrypoint);
 }
 function startBoot(){
   rewriteStaticHandoffLinks();

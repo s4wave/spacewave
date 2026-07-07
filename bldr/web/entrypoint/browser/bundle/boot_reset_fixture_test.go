@@ -399,8 +399,13 @@ console.log('boot-import-order-fixture=passed')
 `
 
 const stableBootEntrypointStreamProgressFixtureScript = `
+import { realpathSync } from 'node:fs'
+
 const bootPath = process.argv[2]
 if (!bootPath) throw new Error('missing boot asset path')
+const fixtureDirArg = process.argv[3]
+if (!fixtureDirArg) throw new Error('missing fixture dir')
+const fixtureDir = realpathSync(fixtureDirArg)
 
 const script = await Bun.file(bootPath).text()
 
@@ -501,7 +506,10 @@ async function runCase(testCase) {
   const sessionStorage = new StorageFixture({
     'spacewave-browser-tab-state-version': '1000000',
   })
-  const entrypointPath = '/entrypoint-' + testCase.name + '.mjs'
+  const entrypointSource = "globalThis.__fixtureEvents.push('import:direct:" + testCase.name + "'); export default null"
+  const entrypointFile = fixtureDir + '/entrypoint-' + testCase.name + '.mjs'
+  await Bun.write(entrypointFile, entrypointSource)
+  const entrypointPath = new URL(entrypointFile, 'file://').href
   const originalCreateObjectURL = URL.createObjectURL
   const originalRevokeObjectURL = URL.revokeObjectURL
 
@@ -509,15 +517,13 @@ async function runCase(testCase) {
   Object.defineProperty(URL, 'createObjectURL', {
     configurable: true,
     value() {
-      events.push('object-url')
-      const source = "globalThis.__fixtureEvents.push('import:object-url:" + testCase.name + "'); export default null"
-      return 'data:text/javascript;charset=utf-8,' + encodeURIComponent(source)
+      throw new Error('entrypoint import must use the canonical module URL')
     },
   })
   Object.defineProperty(URL, 'revokeObjectURL', {
     configurable: true,
     value() {
-      events.push('revoke:object-url')
+      events.push('revoke:unexpected-object-url')
     },
   })
   globalThis.localStorage = localStorage
@@ -633,18 +639,16 @@ async function runCase(testCase) {
   try {
     new Function(script)()
     await waitFor(
-      () => events.includes('revoke:object-url'),
-      testCase.name + ' entrypoint object URL import completion',
+      () => events.includes('import:direct:' + testCase.name),
+      testCase.name + ' canonical entrypoint import completion',
     )
 
     const manifestIndex = events.indexOf('fetch:/browser-release.json')
     const entrypointFetchIndex = events.indexOf('fetch:' + entrypointPath)
-    const objectURLIndex = events.indexOf('object-url')
-    const importIndex = events.indexOf('revoke:object-url')
+    const importIndex = events.indexOf('import:direct:' + testCase.name)
     assert(manifestIndex !== -1, testCase.name + ' did not fetch release manifest: ' + events.join(','))
     assert(entrypointFetchIndex > manifestIndex, testCase.name + ' did not fetch entrypoint after manifest: ' + events.join(','))
-    assert(objectURLIndex > entrypointFetchIndex, testCase.name + ' did not create object URL after entrypoint fetch: ' + events.join(','))
-    assert(importIndex > objectURLIndex, testCase.name + ' did not complete object URL import: ' + events.join(','))
+    assert(importIndex > entrypointFetchIndex, testCase.name + ' did not import the canonical entrypoint URL after progress stream: ' + events.join(','))
 
     const progressEvents = events.filter((event) => event.startsWith('status:app:'))
     if (testCase.expectedProgressEvents) {
@@ -695,8 +699,13 @@ console.log('boot-entrypoint-stream-progress-fixture=passed')
 `
 
 const stableBootDownloadRegistryFixtureScript = `
+import { realpathSync } from 'node:fs'
+
 const bootPath = process.argv[2]
 if (!bootPath) throw new Error('missing boot asset path')
+const fixtureDirArg = process.argv[3]
+if (!fixtureDirArg) throw new Error('missing fixture dir')
+const fixtureDir = realpathSync(fixtureDirArg)
 
 const script = await Bun.file(bootPath).text()
 
@@ -747,25 +756,27 @@ function streamChunks(chunks) {
 
 const events = []
 const downloadEventCounts = []
-const entrypointPath = '/entrypoint-registry.mjs'
 const localStorage = new StorageFixture({
   'spacewave-browser-app-state-version': '1000000',
 })
 const sessionStorage = new StorageFixture({
   'spacewave-browser-tab-state-version': '1000000',
 })
+globalThis.__fixtureEvents = events
+const entrypointSource = "globalThis.__fixtureEvents.push('import:direct:registry'); export default null"
+const entrypointFile = fixtureDir + '/entrypoint-registry.mjs'
+await Bun.write(entrypointFile, entrypointSource)
+const entrypointPath = new URL(entrypointFile, 'file://').href
 Object.defineProperty(URL, 'createObjectURL', {
   configurable: true,
   value() {
-    events.push('object-url')
-    const source = "export default null"
-    return 'data:text/javascript;charset=utf-8,' + encodeURIComponent(source)
+    throw new Error('entrypoint import must use the canonical module URL')
   },
 })
 Object.defineProperty(URL, 'revokeObjectURL', {
   configurable: true,
   value() {
-    events.push('revoke:object-url')
+    events.push('revoke:unexpected-object-url')
   },
 })
 globalThis.localStorage = localStorage
@@ -853,8 +864,8 @@ globalThis.fetch = async (url) => {
 new Function(script)()
 
 await waitFor(
-  () => events.includes('revoke:object-url'),
-  'entrypoint object URL import completion',
+  () => events.includes('import:direct:registry'),
+  'canonical entrypoint import completion',
 )
 
 const downloads = globalThis.__swBootDownloads ?? []
