@@ -29,21 +29,17 @@ const (
 type authSessionHandle interface {
 	Release()
 	GetSessionInfo(context.Context) (*s4wave_session.GetSessionInfoResponse, error)
-	AccessLocalSession() (authLocalSessionService, error)
 }
 
-type authLocalSessionService interface {
-	WatchEntityKeypairs(
-		context.Context,
-		*s4wave_session.WatchLocalEntityKeypairsRequest,
-	) (s4wave_session.SRPCLocalSessionResourceService_WatchEntityKeypairsClient, error)
-}
-
-type authMethodAccountService interface {
+type authAccountService interface {
 	WatchAuthMethods(
 		context.Context,
 		*s4wave_account.WatchAuthMethodsRequest,
 	) (s4wave_account.SRPCAccountResourceService_WatchAuthMethodsClient, error)
+	WatchEntityKeypairs(
+		context.Context,
+		*s4wave_account.WatchEntityKeypairsRequest,
+	) (s4wave_account.SRPCAccountResourceService_WatchEntityKeypairsClient, error)
 }
 
 type authThresholdAccountService interface {
@@ -70,10 +66,6 @@ func (s *mountedAuthSession) GetSessionInfo(ctx context.Context) (*s4wave_sessio
 	return s.session.GetSessionInfo(ctx)
 }
 
-func (s *mountedAuthSession) AccessLocalSession() (authLocalSessionService, error) {
-	return s.client.accessLocalSession(s.session)
-}
-
 var (
 	authResolveStatePath = resolveStatePathFromContext
 	authConnectDaemon    = connectDaemon
@@ -88,7 +80,7 @@ var (
 			session: sess,
 		}, nil
 	}
-	authAccessMethodAccount = func(ctx context.Context, client *sdkClient, providerID, accountID string) (authMethodAccountService, func(), error) {
+	authAccessMethodAccount = func(ctx context.Context, client *sdkClient, providerID, accountID string) (authAccountService, func(), error) {
 		return client.accessAccount(ctx, providerID, accountID)
 	}
 	authAccessThresholdAccount = func(ctx context.Context, client *sdkClient, providerID, accountID string) (authThresholdAccountService, func(), error) {
@@ -335,28 +327,24 @@ func runAuthMethodList(c *cli.Context, statePath, outputFormat string, sessionId
 	provID := info.GetSessionRef().GetProviderResourceRef().GetProviderId()
 	acctID := info.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 
+	acctSvc, acctCleanup, err := authAccessMethodAccount(ctx, client, provID, acctID)
+	if err != nil {
+		return err
+	}
+	defer acctCleanup()
+
 	var methods []*authMethodOutput
 	if isLocalAuthSession(info) {
-		localSvc, err := sess.AccessLocalSession()
+		strm, err := acctSvc.WatchEntityKeypairs(ctx, &s4wave_account.WatchEntityKeypairsRequest{})
 		if err != nil {
-			return err
-		}
-		strm, err := localSvc.WatchEntityKeypairs(ctx, &s4wave_session.WatchLocalEntityKeypairsRequest{})
-		if err != nil {
-			return errors.Wrap(err, "watch local entity keypairs")
+			return errors.Wrap(err, "watch entity keypairs")
 		}
 		resp, err := strm.Recv()
 		if err != nil {
-			return errors.Wrap(err, "recv local entity keypairs")
+			return errors.Wrap(err, "recv entity keypairs")
 		}
 		methods = buildLocalAuthMethodOutput(resp.GetKeypairs())
 	} else {
-		acctSvc, acctCleanup, err := authAccessMethodAccount(ctx, client, provID, acctID)
-		if err != nil {
-			return err
-		}
-		defer acctCleanup()
-
 		strm, err := acctSvc.WatchAuthMethods(ctx, &s4wave_account.WatchAuthMethodsRequest{})
 		if err != nil {
 			return errors.Wrap(err, "watch auth methods")
@@ -1132,9 +1120,10 @@ func isLocalAuthSession(info *s4wave_session.GetSessionInfoResponse) bool {
 	return info.GetSessionRef().GetProviderResourceRef().GetProviderId() == provider_local.ProviderID
 }
 
-func buildLocalAuthMethodOutput(keypairs []*session_pb.EntityKeypair) []*authMethodOutput {
-	methods := make([]*authMethodOutput, 0, len(keypairs))
-	for _, keypair := range keypairs {
+func buildLocalAuthMethodOutput(states []*s4wave_account.EntityKeypairState) []*authMethodOutput {
+	methods := make([]*authMethodOutput, 0, len(states))
+	for _, state := range states {
+		keypair := state.GetKeypair()
 		if keypair == nil {
 			continue
 		}

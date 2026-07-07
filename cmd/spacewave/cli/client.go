@@ -287,15 +287,6 @@ func (c *sdkClient) mountSession(ctx context.Context, idx uint32) (*s4wave_sessi
 	return sess, nil
 }
 
-// accessLocalSession accesses the local-session resource surface on a mounted session.
-func (c *sdkClient) accessLocalSession(sess *s4wave_session.Session) (s4wave_session.SRPCLocalSessionResourceServiceClient, error) {
-	client, err := sess.GetResourceRef().GetClient()
-	if err != nil {
-		return nil, errors.Wrap(err, "session client")
-	}
-	return s4wave_session.NewSRPCLocalSessionResourceServiceClient(client), nil
-}
-
 // mountSpace mounts a space by shared object ID and returns the SpaceResourceService client.
 func (c *sdkClient) mountSpace(ctx context.Context, sess *s4wave_session.Session, sharedObjectID string) (s4wave_space.SRPCSpaceResourceServiceClient, func(), error) {
 	soResp, err := sess.MountSharedObject(ctx, sharedObjectID)

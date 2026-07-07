@@ -15,6 +15,7 @@ import (
 	s4wave_provider "github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	session_pb "github.com/s4wave/spacewave/core/session"
+	s4wave_account "github.com/s4wave/spacewave/sdk/account"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
@@ -60,7 +61,7 @@ func TestNewAuthMethodAddSubcommandShape(t *testing.T) {
 	}
 }
 
-func TestRunAuthMethodListUsesLocalSessionResource(t *testing.T) {
+func TestRunAuthMethodListUsesLocalAccountKeypairs(t *testing.T) {
 	restore := stubAuthTestHooks(t)
 	defer restore()
 
@@ -68,27 +69,35 @@ func TestRunAuthMethodListUsesLocalSessionResource(t *testing.T) {
 		if idx != 1 {
 			t.Fatalf("unexpected session index: %d", idx)
 		}
-		return &fakeAuthSessionHandle{
-			info: localAuthSessionInfo(),
-			localSvc: &fakeLocalAuthSessionService{
-				resp: &s4wave_session.WatchLocalEntityKeypairsResponse{
-					Keypairs: []*session_pb.EntityKeypair{
-						{
+		return &fakeAuthSessionHandle{info: localAuthSessionInfo()}, nil
+	}
+	cleanupCalled := false
+	authAccessMethodAccount = func(ctx context.Context, client *sdkClient, providerID, accountID string) (authAccountService, func(), error) {
+		if providerID != provider_local.ProviderID {
+			t.Fatalf("unexpected provider id: %s", providerID)
+		}
+		if accountID != "local-account" {
+			t.Fatalf("unexpected account id: %s", accountID)
+		}
+		return &fakeAuthMethodAccountService{
+			t: t,
+			keypairResp: &s4wave_account.WatchEntityKeypairsResponse{
+				Keypairs: []*s4wave_account.EntityKeypairState{
+					{
+						Keypair: &session_pb.EntityKeypair{
 							PeerId:     "12D3KooWPasswordKeypair",
 							AuthMethod: auth_password.MethodID,
 						},
-						{
+					},
+					{
+						Keypair: &session_pb.EntityKeypair{
 							PeerId:     "12D3KooWBackupPemKeypair",
 							AuthMethod: "pem",
 						},
 					},
 				},
 			},
-		}, nil
-	}
-	authAccessMethodAccount = func(ctx context.Context, client *sdkClient, providerID, accountID string) (authMethodAccountService, func(), error) {
-		t.Fatal("unexpected account auth method access for local session")
-		return nil, nil, nil
+		}, func() { cleanupCalled = true }, nil
 	}
 
 	c := cli.NewContext(nil, emptyFlagSet(t), nil)
@@ -105,6 +114,9 @@ func TestRunAuthMethodListUsesLocalSessionResource(t *testing.T) {
 	assertContains(t, out, "Backup PEM")
 	assertContains(t, out, truncateID("12D3KooWPasswordKeypair", 20))
 	assertContains(t, out, truncateID("12D3KooWBackupPemKeypair", 20))
+	if !cleanupCalled {
+		t.Fatal("account cleanup was not called")
+	}
 }
 
 func TestRunAuthThresholdShowLocalSessionMessage(t *testing.T) {
@@ -182,7 +194,7 @@ func stubAuthTestHooks(t *testing.T) func() {
 		t.Fatal("authMountSession not stubbed")
 		return nil, nil
 	}
-	authAccessMethodAccount = func(ctx context.Context, client *sdkClient, providerID, accountID string) (authMethodAccountService, func(), error) {
+	authAccessMethodAccount = func(ctx context.Context, client *sdkClient, providerID, accountID string) (authAccountService, func(), error) {
 		t.Fatal("authAccessMethodAccount not stubbed")
 		return nil, nil, nil
 	}
@@ -248,10 +260,8 @@ func captureStdout(t *testing.T, fn func() error) (string, error) {
 }
 
 type fakeAuthSessionHandle struct {
-	info     *s4wave_session.GetSessionInfoResponse
-	infoErr  error
-	localSvc authLocalSessionService
-	localErr error
+	info    *s4wave_session.GetSessionInfoResponse
+	infoErr error
 }
 
 func (s *fakeAuthSessionHandle) Release() {}
@@ -263,62 +273,64 @@ func (s *fakeAuthSessionHandle) GetSessionInfo(context.Context) (*s4wave_session
 	return s.info, nil
 }
 
-func (s *fakeAuthSessionHandle) AccessLocalSession() (authLocalSessionService, error) {
-	if s.localErr != nil {
-		return nil, s.localErr
-	}
-	return s.localSvc, nil
+type fakeAuthMethodAccountService struct {
+	t              *testing.T
+	keypairResp    *s4wave_account.WatchEntityKeypairsResponse
+	keypairErr     error
+	keypairRecvErr error
 }
 
-type fakeLocalAuthSessionService struct {
-	resp    *s4wave_session.WatchLocalEntityKeypairsResponse
-	err     error
-	recvErr error
-}
-
-func (s *fakeLocalAuthSessionService) WatchEntityKeypairs(
+func (s *fakeAuthMethodAccountService) WatchAuthMethods(
 	ctx context.Context,
-	req *s4wave_session.WatchLocalEntityKeypairsRequest,
-) (s4wave_session.SRPCLocalSessionResourceService_WatchEntityKeypairsClient, error) {
-	if s.err != nil {
-		return nil, s.err
+	req *s4wave_account.WatchAuthMethodsRequest,
+) (s4wave_account.SRPCAccountResourceService_WatchAuthMethodsClient, error) {
+	s.t.Fatal("unexpected auth methods watch")
+	return nil, nil
+}
+
+func (s *fakeAuthMethodAccountService) WatchEntityKeypairs(
+	ctx context.Context,
+	req *s4wave_account.WatchEntityKeypairsRequest,
+) (s4wave_account.SRPCAccountResourceService_WatchEntityKeypairsClient, error) {
+	if s.keypairErr != nil {
+		return nil, s.keypairErr
 	}
-	return &fakeLocalEntityKeypairsStream{
+	return &fakeAccountEntityKeypairsStream{
 		ctx:     ctx,
-		resp:    s.resp,
-		recvErr: s.recvErr,
+		resp:    s.keypairResp,
+		recvErr: s.keypairRecvErr,
 	}, nil
 }
 
-type fakeLocalEntityKeypairsStream struct {
+type fakeAccountEntityKeypairsStream struct {
 	ctx     context.Context
-	resp    *s4wave_session.WatchLocalEntityKeypairsResponse
+	resp    *s4wave_account.WatchEntityKeypairsResponse
 	recvErr error
 }
 
-func (s *fakeLocalEntityKeypairsStream) Context() context.Context {
+func (s *fakeAccountEntityKeypairsStream) Context() context.Context {
 	if s.ctx != nil {
 		return s.ctx
 	}
 	return context.Background()
 }
 
-func (s *fakeLocalEntityKeypairsStream) MsgSend(srpc.Message) error { return nil }
+func (s *fakeAccountEntityKeypairsStream) MsgSend(srpc.Message) error { return nil }
 
-func (s *fakeLocalEntityKeypairsStream) MsgRecv(srpc.Message) error { return nil }
+func (s *fakeAccountEntityKeypairsStream) MsgRecv(srpc.Message) error { return nil }
 
-func (s *fakeLocalEntityKeypairsStream) CloseSend() error { return nil }
+func (s *fakeAccountEntityKeypairsStream) CloseSend() error { return nil }
 
-func (s *fakeLocalEntityKeypairsStream) Close() error { return nil }
+func (s *fakeAccountEntityKeypairsStream) Close() error { return nil }
 
-func (s *fakeLocalEntityKeypairsStream) Recv() (*s4wave_session.WatchLocalEntityKeypairsResponse, error) {
+func (s *fakeAccountEntityKeypairsStream) Recv() (*s4wave_account.WatchEntityKeypairsResponse, error) {
 	if s.recvErr != nil {
 		return nil, s.recvErr
 	}
 	return s.resp, nil
 }
 
-func (s *fakeLocalEntityKeypairsStream) RecvTo(m *s4wave_session.WatchLocalEntityKeypairsResponse) error {
+func (s *fakeAccountEntityKeypairsStream) RecvTo(m *s4wave_account.WatchEntityKeypairsResponse) error {
 	if s.recvErr != nil {
 		return s.recvErr
 	}
