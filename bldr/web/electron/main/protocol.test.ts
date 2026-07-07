@@ -25,9 +25,7 @@ describe('electron protocol', () => {
   })
 
   it('registers app scheme as fetch-capable without ServiceWorker privilege', async () => {
-    // Dynamic import intentionally re-evaluates the module-level Electron scheme
-    // registration side effect after vi.resetModules().
-    const { APP_SCHEME } = await import('./protocol.js')
+    const { APP_SCHEME } = await importProtocolWithFreshModuleState()
 
     expect(
       electronMock.protocol.registerSchemesAsPrivileged,
@@ -52,8 +50,8 @@ describe('electron protocol', () => {
   })
 
   it('extracts the WebDocument id from the referrer query string', async () => {
-    // Dynamic import re-evaluates Electron scheme registration after vi.resetModules().
-    const { extractWebDocumentClientId } = await import('./protocol.js')
+    const { extractWebDocumentClientId } =
+      await importProtocolWithFreshModuleState()
     const req = buildRequestLike(
       'app://index.html/b/pa/plugin/v/b/fe/app/App.mjs',
       'app://index.html?webDocumentId=electron-init',
@@ -62,12 +60,16 @@ describe('electron protocol', () => {
     expect(extractWebDocumentClientId(req)).toBe('electron-init')
   })
 
-  it('forwards plugin asset requests with the extracted client id and live headers', async () => {
-    // Dynamic import re-evaluates Electron scheme registration after vi.resetModules().
-    const { appRequestHandler } = await import('./protocol.js')
+  it('forwards plugin asset requests with the extracted client id, live headers, and cross-origin isolation headers', async () => {
+    const { appRequestHandler } = await importProtocolWithFreshModuleState()
     const swFetch = vi.fn().mockResolvedValue(
-      new Response('ok', {
-        headers: { 'content-type': 'application/javascript' },
+      new Response('sw body', {
+        status: 203,
+        statusText: 'Non-Authoritative Information',
+        headers: {
+          'Content-Type': 'application/javascript',
+          'X-Forwarded-By': 'service-worker',
+        },
       }),
     )
     const req = buildRequestLike(
@@ -77,15 +79,19 @@ describe('electron protocol', () => {
 
     const resp = await appRequestHandler(swFetch, req)
 
-    expect(await resp.text()).toBe('ok')
+    expect(resp.status).toBe(203)
+    expect(resp.statusText).toBe('Non-Authoritative Information')
+    expect(resp.headers.get('Content-Type')).toBe('application/javascript')
+    expect(resp.headers.get('X-Forwarded-By')).toBe('service-worker')
     expect(resp.headers.get('X-Bldr-Fetch-Source')).toBe('plugin-assets')
     expect(resp.headers.get('X-Bldr-Plugin-Asset-Fetch-Result')).toBe('live')
+    expectCrossOriginIsolationHeaders(resp)
+    expect(await resp.text()).toBe('sw body')
     expect(swFetch).toHaveBeenCalledWith(req, 'electron-init')
   })
 
-  it('leaves non-plugin Bldr runtime responses unclassified', async () => {
-    // Dynamic import re-evaluates Electron scheme registration after vi.resetModules().
-    const { appRequestHandler } = await import('./protocol.js')
+  it('leaves non-plugin Bldr runtime responses unclassified while adding cross-origin isolation headers', async () => {
+    const { appRequestHandler } = await importProtocolWithFreshModuleState()
     const swFetch = vi.fn().mockResolvedValue(new Response('ok'))
     const req = buildRequestLike(
       'app://index.html/b/pkg/@aptre/bldr/index.js',
@@ -97,12 +103,40 @@ describe('electron protocol', () => {
     expect(await resp.text()).toBe('ok')
     expect(resp.headers.get('X-Bldr-Fetch-Source')).toBeNull()
     expect(resp.headers.get('X-Bldr-Plugin-Asset-Fetch-Result')).toBeNull()
+    expectCrossOriginIsolationHeaders(resp)
     expect(swFetch).toHaveBeenCalledWith(req, 'electron-init')
   })
 
+  it('adds cross-origin isolation headers to app file responses without changing the fetched response payload', async () => {
+    const { appRequestHandler } = await importProtocolWithFreshModuleState()
+    electronMock.net.fetch.mockResolvedValueOnce(
+      new Response('asset body', {
+        status: 202,
+        statusText: 'Accepted',
+        headers: {
+          'Content-Type': 'application/javascript',
+          'Cross-Origin-Embedder-Policy': 'unsafe-none',
+          'X-Asset-Source': 'electron-net-fetch',
+        },
+      }),
+    )
+
+    const resp = await appRequestHandler(
+      vi.fn(),
+      buildRequestLike('app://index.html/assets/main.js'),
+    )
+
+    expect(resp.status).toBe(202)
+    expect(resp.statusText).toBe('Accepted')
+    expect(resp.headers.get('Content-Type')).toBe('application/javascript')
+    expect(resp.headers.get('X-Asset-Source')).toBe('electron-net-fetch')
+    expectCrossOriginIsolationHeaders(resp)
+    expect(await resp.text()).toBe('asset body')
+  })
+
   it('falls back to the request url when the referrer is absent', async () => {
-    // Dynamic import re-evaluates Electron scheme registration after vi.resetModules().
-    const { extractWebDocumentClientId } = await import('./protocol.js')
+    const { extractWebDocumentClientId } =
+      await importProtocolWithFreshModuleState()
     const req = buildRequestLike(
       'app://index.html/b/pd/plugin/plugin.mjs?webDocumentId=popout-1',
     )
@@ -110,6 +144,10 @@ describe('electron protocol', () => {
     expect(extractWebDocumentClientId(req)).toBe('popout-1')
   })
 })
+
+function importProtocolWithFreshModuleState() {
+  return import('./protocol.js')
+}
 
 function buildRequestLike(url: string, referrer = ''): GlobalRequest {
   return {
@@ -124,4 +162,12 @@ function buildRequestLike(url: string, referrer = ''): GlobalRequest {
       },
     },
   } as GlobalRequest
+}
+
+function expectCrossOriginIsolationHeaders(resp: GlobalResponse) {
+  expect(resp.headers.get('Cross-Origin-Opener-Policy')).toBe('same-origin')
+  expect(resp.headers.get('Cross-Origin-Embedder-Policy')).toBe(
+    'credentialless',
+  )
+  expect(resp.headers.get('Cross-Origin-Resource-Policy')).toBe('same-origin')
 }

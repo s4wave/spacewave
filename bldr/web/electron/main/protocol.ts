@@ -16,6 +16,12 @@ const pluginDistPathPrefix = '/b/pd/'
 const fetchSourceHeader = 'X-Bldr-Fetch-Source'
 const pluginAssetFetchResultHeader = 'X-Bldr-Plugin-Asset-Fetch-Result'
 
+const crossOriginIsolationHeaders = {
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Embedder-Policy': 'credentialless',
+  'Cross-Origin-Resource-Policy': 'same-origin',
+}
+
 // extractWebDocumentClientId recovers the owning WebDocument ID from a request.
 export function extractWebDocumentClientId(
   req: GlobalRequest,
@@ -59,7 +65,7 @@ export async function appRequestHandler(
     if (reqPath.startsWith(matchPrefix)) {
       console.log(`appRequestHandler: forwarding Bldr request: ${reqPath}`)
       const response = await swFetch(req, extractWebDocumentClientId(req))
-      return annotateElectronRuntimeFetchResponse(response, runtimeFetchSource)
+      return withElectronAppResponseHeaders(response, runtimeFetchSource)
     }
   }
 
@@ -72,26 +78,32 @@ export async function appRequestHandler(
   filePath = path.join(filePath, reqPath)
   if (!filePath.startsWith(distPath)) {
     console.warn('appRequestHandler: blocking fetch: ' + filePath)
-    return new Response('Forbidden: Access is denied', {
-      status: 403,
-      headers: { 'Content-Type': 'text/plain' },
-    })
+    return withElectronAppResponseHeaders(
+      new Response('Forbidden: Access is denied', {
+        status: 403,
+        headers: { 'Content-Type': 'text/plain' },
+      }),
+    )
   }
 
   // check if the file exists
   try {
-    return await electron.net.fetch(url.pathToFileURL(filePath).toString())
+    return withElectronAppResponseHeaders(
+      await electron.net.fetch(url.pathToFileURL(filePath).toString()),
+    )
   } catch (err) {
     // TODO: We know that .map files are not being fetched properly.
     // https://issues.chromium.org/issues/40765087
     // superceeds: https://issues.chromium.org/issues/41486524#comment4
     if (filePath.endsWith('.map')) {
-      return new Response(
-        'Source maps are not loaded via ServiceWorker correctly: see: https://issues.chromium.org/issues/40765087',
-        {
-          status: 503,
-          headers: { 'Content-Type': 'text/plain' },
-        },
+      return withElectronAppResponseHeaders(
+        new Response(
+          'Source maps are not loaded via ServiceWorker correctly: see: https://issues.chromium.org/issues/40765087',
+          {
+            status: 503,
+            headers: { 'Content-Type': 'text/plain' },
+          },
+        ),
       )
     }
 
@@ -104,24 +116,28 @@ export async function appRequestHandler(
       baseUrl += `?webDocumentId=${encodeURIComponent(docId)}`
     }
     console.warn(`appRequestHandler: SPA redirect: ${reqPath} -> ${baseUrl}`)
-    return new Response(null, {
-      status: 301,
-      headers: { Location: baseUrl },
-    })
+    return withElectronAppResponseHeaders(
+      new Response(null, {
+        status: 301,
+        headers: { Location: baseUrl },
+      }),
+    )
   }
 }
 
-function annotateElectronRuntimeFetchResponse(
+function withElectronAppResponseHeaders(
   response: GlobalResponse,
   source?: ElectronRuntimeFetchSource,
 ): GlobalResponse {
-  if (!source) {
-    return response
-  }
   const headers = new Headers(response.headers)
-  headers.set(fetchSourceHeader, source)
-  if (response.ok && !headers.has(pluginAssetFetchResultHeader)) {
-    headers.set(pluginAssetFetchResultHeader, 'live')
+  for (const [key, value] of Object.entries(crossOriginIsolationHeaders)) {
+    headers.set(key, value)
+  }
+  if (source) {
+    headers.set(fetchSourceHeader, source)
+    if (response.ok && !headers.has(pluginAssetFetchResultHeader)) {
+      headers.set(pluginAssetFetchResultHeader, 'live')
+    }
   }
   return new Response(response.body, {
     status: response.status,
