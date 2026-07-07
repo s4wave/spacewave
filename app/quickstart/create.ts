@@ -45,6 +45,7 @@ import {
   INIT_OBJECT_LAYOUT_OP_ID,
   OBJECT_LAYOUT_OBJECT_KEY,
 } from '@s4wave/core/space/world/ops/init-object-layout.js'
+import { ObjectLayoutTypeID } from '@s4wave/sdk/layout/world/object-layout.js'
 import {
   INIT_CANVAS_DEMO_OP_ID,
   CANVAS_DEMO_OBJECT_KEY,
@@ -758,6 +759,8 @@ export function getQuickstartInitialObjectType(
       return KvStoreTypeID
     case 'sql':
       return SqlDbTypeID
+    case 'forge':
+      return ObjectLayoutTypeID
     case 'space':
     case 'git':
     case 'notebook':
@@ -765,7 +768,6 @@ export function getQuickstartInitialObjectType(
     case 'blog':
     case 'chat':
     case 'v86':
-    case 'forge':
     case 'device':
       return ''
     default: {

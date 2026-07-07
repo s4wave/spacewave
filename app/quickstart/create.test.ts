@@ -627,6 +627,10 @@ describe('quickstart create', () => {
       objectKey: 'sql/db',
       objectType: 'sql/db',
     })
+    expect(getQuickstartInitialObjectRouteHandoff('forge')).toEqual({
+      objectKey: 'forge',
+      objectType: 'alpha/object-layout',
+    })
     expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'space')).toBe(
       '/u/2/so/space-1',
     )
