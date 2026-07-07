@@ -187,6 +187,32 @@ func TestRunCliHistoryRecallSupportsCursorEditingWithXtermArrowEscapes(t *testin
 	}
 }
 
+func TestRunCliHistoryDownRestoresNewerEntryAndDraft(t *testing.T) {
+	factory := &terminalFakeFactory{}
+	strm := newTerminalStream(
+		terminalInput("help\n"),
+		terminalInput("clear\n"),
+		terminalInput("hel\x1b[A\x1b[A\x1b[B\x1b[Bp\n"),
+		terminalClose(),
+	)
+
+	if err := cli_plugin.NewTerminalService(factory).RunCli(strm); err != nil {
+		t.Fatalf("RunCli: %v", err)
+	}
+
+	out := terminalOutput(strm)
+	if clearRecallCount := strings.Count(out, "\r\x1b[2Kspacewave> clear"); clearRecallCount != 2 {
+		t.Fatalf("clear history recall count = %d, want 2 in output %q", clearRecallCount, out)
+	}
+	assertContains(t, out, "\r\x1b[2Kspacewave> hel")
+	if helpCount := strings.Count(out, "Supported browser CLI commands:\r\n"); helpCount != 2 {
+		t.Fatalf("help output count = %d, want 2 in output %q", helpCount, out)
+	}
+	if factory.newCalls != 0 {
+		t.Fatalf("NewClient calls = %d, want 0", factory.newCalls)
+	}
+}
+
 func TestRunCliCtrlCCancelsHungCommandAndReprintsPrompt(t *testing.T) {
 	factory := &terminalFakeFactory{
 		client: &terminalFakeClient{blockMount: true},
