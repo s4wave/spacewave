@@ -782,9 +782,6 @@ export function CommandPalette() {
                 className="!px-0 [&_[cmdk-group-heading]]:px-3"
                 heading={`${paletteMode === 'chord' ? 'Chord' : 'Filter'} mode`}
               >
-                <div className="text-foreground-alt px-2 py-1 text-xs">
-                  Chord path: {chordPath.map(formatResolvedKey).join(' ')}
-                </div>
                 {paletteMode === 'chord' &&
                   chordContinuations.map((continuation) => (
                     <CommandChordItem

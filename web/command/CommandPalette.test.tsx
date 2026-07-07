@@ -379,9 +379,6 @@ describe('CommandPalette', () => {
     })
 
     expect(view.getByText('Chord mode')).toBeTruthy()
-    expect(
-      view.getByText(textContentMatches('Chord path: Leader F')),
-    ).toBeTruthy()
     expect(view.getByLabelText('Command search')).toHaveProperty('value', '')
     expect(mockInvokeCommand).not.toHaveBeenCalled()
   })
@@ -470,12 +467,9 @@ describe('CommandPalette', () => {
     })
 
     expect(view.getByText('Chord mode')).toBeTruthy()
-    expect(
-      view.getByText(textContentMatches('Chord path: Leader')),
-    ).toBeTruthy()
   })
 
-  it('shows the chord path before dispatching the next key', () => {
+  it('waits for the next chord key before dispatching', () => {
     mockCommands = [
       {
         command: {
@@ -505,9 +499,6 @@ describe('CommandPalette', () => {
     act(() => {
       fireEvent.keyDown(input, { key: 'f' })
     })
-    expect(
-      view.getByText(textContentMatches('Chord path: Leader F')),
-    ).toBeTruthy()
     expect(mockInvokeCommand).not.toHaveBeenCalled()
 
     act(() => {

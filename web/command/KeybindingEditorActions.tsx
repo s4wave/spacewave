@@ -80,7 +80,7 @@ export function KeybindingEditorActions() {
           disabled={!selectedLayerEditable}
           onClick={clearSelectedBindings}
         >
-          <LuTrash2 className="h-3.5 w-3.5" />
+          <LuTrash2 className="size-3.5" />
           Disable command bindings
         </Button>
         <Button
@@ -90,7 +90,7 @@ export function KeybindingEditorActions() {
           disabled={!selectedLayerEditable}
           onClick={resetSelectedCommand}
         >
-          <LuRotateCcw className="h-3.5 w-3.5" />
+          <LuRotateCcw className="size-3.5" />
           Reset command
         </Button>
         <Button
