@@ -760,7 +760,7 @@ export function LoginForm({
             className={cn(
               'group w-full rounded-md border transition-all duration-300',
               'border-brand/30 bg-brand/10 hover:bg-brand/20',
-              'disabled:cursor-not-allowed disabled:opacity-50',
+              'disabled:cursor-not-allowed disabled:border-foreground/10 disabled:bg-foreground/5 disabled:opacity-60 disabled:hover:bg-foreground/5',
               'flex h-10 items-center justify-center gap-2',
             )}
           >

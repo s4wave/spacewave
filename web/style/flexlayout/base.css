@@ -201,7 +201,7 @@
 }
 
 .flexlayout__tabset:has(.flexlayout__tabset-selected) {
-  @apply border-ui-outline-active;
+  @apply border-brand/30;
 }
 
 .flexlayout__tabset_container {

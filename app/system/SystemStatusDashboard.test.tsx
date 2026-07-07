@@ -173,7 +173,7 @@ describe('SystemStatusDashboard', () => {
 
   it('shows the spaces count in the stats ribbon', () => {
     renderDashboard()
-    expect(screen.getByText('2 spc')).toBeDefined()
+    expect(screen.getByText('2 spaces')).toBeDefined()
   })
 
   it('keeps the placeholder logs drawer hidden until log streaming lands', () => {

@@ -257,7 +257,9 @@ function SessionRow({ row, pending, onAction }: SessionRowProps) {
             <p className="text-foreground truncate text-xs font-medium">
               {label}
             </p>
-            {row.currentSession && (
+            {/* The local session's default label is already "This device";
+                skip the badge there so the row shows one, not two. */}
+            {row.currentSession && label !== 'This device' && (
               <span className="border-success/20 bg-success/10 text-success rounded-full border px-1.5 py-0.5 text-[0.55rem] font-medium">
                 This device
               </span>

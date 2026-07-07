@@ -621,10 +621,10 @@ export function SessionDetails({
                       <button
                         onClick={handleUpgradeToCloud}
                         className={cn(
-                          'border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
+                          'border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors',
                         )}
                       >
-                        <div className="bg-foreground/10 group-hover:bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                        <div className="bg-foreground/10 group-hover:bg-brand/10 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
                           <LuCloud className="text-foreground-alt group-hover:text-brand size-3.5 transition-colors" />
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col">
@@ -648,10 +648,10 @@ export function SessionDetails({
                         )
                       }
                       className={cn(
-                        'border-foreground/20 bg-foreground/5 hover:border-foreground/35 hover:bg-foreground/10 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
+                        'border-foreground/10 bg-foreground/5 hover:border-foreground/20 hover:bg-foreground/10 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors',
                       )}
                     >
-                      <div className="bg-foreground/10 group-hover:bg-foreground/15 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                      <div className="bg-foreground/10 group-hover:bg-foreground/15 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
                         <LuKeyboard className="text-foreground-alt size-3.5 transition-colors" />
                       </div>
                       <div className="flex min-w-0 flex-1 flex-col">
@@ -667,10 +667,10 @@ export function SessionDetails({
                     <button
                       onClick={() => navigateSession({ path: 'settings/cli' })}
                       className={cn(
-                        'border-foreground/20 bg-foreground/5 hover:border-foreground/35 hover:bg-foreground/10 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
+                        'border-foreground/10 bg-foreground/5 hover:border-foreground/20 hover:bg-foreground/10 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors',
                       )}
                     >
-                      <div className="bg-foreground/10 group-hover:bg-foreground/15 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                      <div className="bg-foreground/10 group-hover:bg-foreground/15 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
                         <LuTerminal className="text-foreground-alt size-3.5 transition-colors" />
                       </div>
                       <div className="flex min-w-0 flex-1 flex-col">
@@ -689,10 +689,10 @@ export function SessionDetails({
                           navigateSession({ path: 'settings/transfer' })
                         }
                         className={cn(
-                          'border-foreground/20 bg-foreground/5 hover:border-foreground/35 hover:bg-foreground/10 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
+                          'border-foreground/10 bg-foreground/5 hover:border-foreground/20 hover:bg-foreground/10 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors',
                         )}
                       >
-                        <div className="bg-foreground/10 group-hover:bg-foreground/15 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                        <div className="bg-foreground/10 group-hover:bg-foreground/15 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
                           <LuMerge className="text-foreground-alt size-3.5 transition-colors" />
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col">
@@ -711,11 +711,11 @@ export function SessionDetails({
                         onClick={handleLogoutClick}
                         disabled={loggingOut}
                         className={cn(
-                          'border-warning/30 bg-warning/5 hover:border-warning hover:bg-warning/10 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
+                          'border-warning/30 bg-warning/5 hover:border-warning hover:bg-warning/10 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors',
                           loggingOut && 'cursor-not-allowed opacity-50',
                         )}
                       >
-                        <div className="bg-warning/20 group-hover:bg-warning/30 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                        <div className="bg-warning/20 group-hover:bg-warning/30 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
                           <LuLogOut className="text-warning size-3.5" />
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col">
@@ -739,11 +739,11 @@ export function SessionDetails({
                           onClick={() => setDeleteSpaceOpen(true)}
                           disabled={!session}
                           className={cn(
-                            'border-destructive/20 bg-destructive/5 hover:border-destructive/40 hover:bg-destructive/10 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
+                            'border-destructive/20 bg-destructive/5 hover:border-destructive/40 hover:bg-destructive/10 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors',
                             !session && 'cursor-not-allowed opacity-50',
                           )}
                         >
-                          <div className="bg-destructive/10 group-hover:bg-destructive/15 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                          <div className="bg-destructive/10 group-hover:bg-destructive/15 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
                             <LuTrash2 className="text-destructive size-3.5 transition-colors" />
                           </div>
                           <div className="flex min-w-0 flex-1 flex-col">
@@ -760,10 +760,10 @@ export function SessionDetails({
                         <button
                           onClick={() => setDeleteAcctOpen(true)}
                           className={cn(
-                            'border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive hover:text-destructive-foreground group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2.5 text-left transition-colors',
+                            'border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive hover:text-destructive-foreground group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors',
                           )}
                         >
-                          <div className="bg-destructive/20 group-hover:bg-destructive-foreground/20 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                          <div className="bg-destructive/20 group-hover:bg-destructive-foreground/20 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
                             <LuTrash2 className="text-destructive group-hover:text-destructive-foreground size-3.5 transition-colors" />
                           </div>
                           <div className="flex min-w-0 flex-1 flex-col">

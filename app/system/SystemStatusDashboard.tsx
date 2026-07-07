@@ -883,33 +883,50 @@ function StatsRibbon({
   deltas: Partial<Record<StatsKey, number>>
   updatedAt: string
 }) {
+  const stats: { key: StatsKey; count: number; noun: string; icon: ReactNode }[] =
+    [
+      {
+        key: 'acct',
+        count: sessionCount,
+        noun: 'account',
+        icon: <span className="bg-success size-1.5 rounded-full" />,
+      },
+      {
+        key: 'spc',
+        count: spaceCount,
+        noun: 'space',
+        icon: <LuFolderOpen className="text-foreground-alt/30 size-2.5" />,
+      },
+      {
+        key: 'plug',
+        count: pluginCount,
+        noun: 'plugin',
+        icon: <LuPuzzle className="text-foreground-alt/30 size-2.5" />,
+      },
+      {
+        key: 'ctrl',
+        count: controllerCount,
+        noun: 'controller',
+        icon: <LuCpu className="text-foreground-alt/30 size-2.5" />,
+      },
+      {
+        key: 'dir',
+        count: directiveCount,
+        noun: 'directive',
+        icon: <LuRadar className="text-foreground-alt/30 size-2.5" />,
+      },
+    ]
   return (
     <div className="border-foreground/6 bg-background-deep/30 flex shrink-0 items-center gap-3 border-b px-4 py-1">
-      <StatPill
-        label={`${sessionCount} acct`}
-        delta={deltas.acct}
-        icon={<span className="bg-success size-1.5 rounded-full" />}
-      />
-      <StatPill
-        label={`${spaceCount} spc`}
-        delta={deltas.spc}
-        icon={<LuFolderOpen className="text-foreground-alt/30 size-2.5" />}
-      />
-      <StatPill
-        label={`${pluginCount} plug`}
-        delta={deltas.plug}
-        icon={<LuPuzzle className="text-foreground-alt/30 size-2.5" />}
-      />
-      <StatPill
-        label={`${controllerCount} ctrl`}
-        delta={deltas.ctrl}
-        icon={<LuCpu className="text-foreground-alt/30 size-2.5" />}
-      />
-      <StatPill
-        label={`${directiveCount} dir`}
-        delta={deltas.dir}
-        icon={<LuRadar className="text-foreground-alt/30 size-2.5" />}
-      />
+      {stats.map((stat) => (
+        <StatPill
+          key={stat.key}
+          label={`${stat.count} ${stat.noun}${stat.count === 1 ? '' : 's'}`}
+          delta={deltas[stat.key]}
+          icon={stat.icon}
+          muted={stat.count === 0}
+        />
+      ))}
       <div className="ml-auto">
         <LiveIndicator updatedAt={updatedAt} label="Ribbon" />
       </div>
@@ -921,13 +938,15 @@ function StatPill({
   label,
   icon,
   delta,
+  muted,
 }: {
   label: string
   icon: ReactNode
   delta?: number
+  muted?: boolean
 }) {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className={cn('flex items-center gap-1.5', muted && 'opacity-40')}>
       {icon}
       <span className="text-foreground/60 text-[0.6rem]">{label}</span>
       {delta != null && (
