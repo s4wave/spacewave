@@ -241,6 +241,13 @@ bun run bldr:build:release:cross
 build, scheduler, plugin-host, and controller activity. The same diagnostic logs
 are written to a timestamped file under `.bldr/logs/` for later inspection.
 
+Concurrent `bldr start`, `bldr build`, and `bldr publish` commands against the
+same `--state-path` serialize on `.bldr/state.lock`. When a second command
+would collide with an active state owner, Bldr prints the holder PID and state
+root before waiting for the lock. Use separate `--state-path` values only when
+CI or local proofs need independent web and desktop state trees to run in
+parallel.
+
 ### Start Plugins
 
 The `bldr start` command accepts a `--plugins` flag to load additional plugins

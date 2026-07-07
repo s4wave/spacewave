@@ -94,7 +94,7 @@ type DevtoolBus struct {
 }
 
 // BuildDevtoolBus builds the storage and bus for the devtool.
-// Returns a set of functions to call to release the controllers.
+// The returned bus owns the shared state lock until Release.
 func BuildDevtoolBus(
 	rctx context.Context,
 	le *logrus.Entry,
@@ -103,11 +103,23 @@ func BuildDevtoolBus(
 ) (*DevtoolBus, error) {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	var rels []func()
+	var stateLock *stateLock
 	rel := func() {
 		for _, fn := range rels {
 			fn()
 		}
+		if stateLock != nil {
+			stateLock.release()
+			stateLock = nil
+		}
 		ctxCancel()
+	}
+
+	var err error
+	stateLock, err = acquireStateLock(ctx, le, stateRoot)
+	if err != nil {
+		rel()
+		return nil, err
 	}
 
 	b, sr, err := core.NewCoreBus(ctx, le)
