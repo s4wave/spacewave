@@ -125,11 +125,47 @@ jobs:
           bun install --frozen-lockfile --ignore-scripts
           go mod vendor
 
-      - name: Build browser plugin channel manifests
+      - name: Build browser plugin channel manifest (spacewave-core)
         shell: bash
         run: |
           set -euo pipefail
-          bun run bldr -- --build-type=release --watch=false build -b plugin-release-browser
+          scripts/release/build-browser-plugin.sh spacewave-core
+
+      - name: Build browser plugin channel manifest (spacewave-web)
+        shell: bash
+        run: |
+          set -euo pipefail
+          scripts/release/build-browser-plugin.sh spacewave-web
+
+      - name: Build browser plugin channel manifest (spacewave-app)
+        shell: bash
+        run: |
+          set -euo pipefail
+          scripts/release/build-browser-plugin.sh spacewave-app
+
+      - name: Build browser plugin channel manifest (spacewave-notes)
+        shell: bash
+        run: |
+          set -euo pipefail
+          scripts/release/build-browser-plugin.sh spacewave-notes
+
+      - name: Build browser plugin channel manifest (spacewave-v86)
+        shell: bash
+        run: |
+          set -euo pipefail
+          scripts/release/build-browser-plugin.sh spacewave-v86
+
+      - name: Build browser plugin channel manifest (spacewave-cli-plugin)
+        shell: bash
+        run: |
+          set -euo pipefail
+          scripts/release/build-browser-plugin.sh spacewave-cli-plugin
+
+      - name: Build browser plugin channel manifest (web)
+        shell: bash
+        run: |
+          set -euo pipefail
+          scripts/release/build-browser-plugin.sh web
 
       - name: Upload plugin world state
         uses: actions/upload-artifact@v7
