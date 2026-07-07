@@ -1,4 +1,10 @@
-import React, { type DragEvent, useCallback, useMemo } from 'react'
+import React, {
+  createContext,
+  type DragEvent,
+  useCallback,
+  useContext,
+  useMemo,
+} from 'react'
 import { LuChevronDown, LuChevronUp } from 'react-icons/lu'
 import { cn } from '@s4wave/web/style/utils.js'
 import { useStateNamespace } from '@s4wave/web/state/persist.js'
@@ -52,6 +58,32 @@ interface FileListProps {
     event: DragEvent<HTMLDivElement>,
   ) => void
   onEntryDrop?: (entry: FileEntry, event: DragEvent<HTMLDivElement>) => void
+}
+
+type FileListRowConfig = Pick<
+  FileListProps,
+  | 'getEntryDetails'
+  | 'loadingId'
+  | 'renderEntry'
+  | 'currentPath'
+  | 'getDragEnvelope'
+  | 'getDownloadDragTarget'
+  | 'dropTargetEntryId'
+  | 'onEntryDragOver'
+  | 'onEntryDragLeave'
+  | 'onEntryDrop'
+>
+
+const FileListRowConfigContext = createContext<FileListRowConfig | null>(null)
+
+// FileListRow keeps the rendered row component identity stable while hover and
+// drag-drop props change during native drag sessions.
+function FileListRow(props: RowComponentProps<FileEntry>) {
+  const config = useContext(FileListRowConfigContext)
+  if (!config) {
+    throw new Error('FileListRow must be rendered inside FileList')
+  }
+  return <FileListEntry {...props} {...config} />
 }
 
 // isSortColumn narrows a string to a valid SortColumn value.
@@ -110,22 +142,19 @@ export function FileList({
     [onOpen],
   )
 
-  const RowComponent = useCallback(
-    (props: RowComponentProps<FileEntry>) => (
-      <FileListEntry
-        {...props}
-        getEntryDetails={getEntryDetails}
-        loadingId={loadingId}
-        renderEntry={renderEntry}
-        currentPath={currentPath}
-        getDragEnvelope={getDragEnvelope}
-        getDownloadDragTarget={getDownloadDragTarget}
-        dropTargetEntryId={dropTargetEntryId}
-        onEntryDragOver={onEntryDragOver}
-        onEntryDragLeave={onEntryDragLeave}
-        onEntryDrop={onEntryDrop}
-      />
-    ),
+  const rowConfig = useMemo<FileListRowConfig>(
+    () => ({
+      getEntryDetails,
+      loadingId,
+      renderEntry,
+      currentPath,
+      getDragEnvelope,
+      getDownloadDragTarget,
+      dropTargetEntryId,
+      onEntryDragOver,
+      onEntryDragLeave,
+      onEntryDrop,
+    }),
     [
       currentPath,
       dropTargetEntryId,
@@ -197,21 +226,23 @@ export function FileList({
   )
 
   return (
-    <List
-      items={items}
-      rowHeight={rowHeight ?? 24}
-      rowComponent={RowComponent}
-      onRowDefaultAction={handleOpen}
-      onRowContextMenu={onContextMenu}
-      onStateChange={onStateChange}
-      renderHeader={renderHeader}
-      sortFn={sortFn}
-      defaultSortKey="name"
-      defaultSortDirection="asc"
-      namespace={namespace}
-      stateKey="fileList"
-      autoHeight={autoHeight}
-      placeholder={placeholder}
-    />
+    <FileListRowConfigContext.Provider value={rowConfig}>
+      <List
+        items={items}
+        rowHeight={rowHeight ?? 24}
+        rowComponent={FileListRow}
+        onRowDefaultAction={handleOpen}
+        onRowContextMenu={onContextMenu}
+        onStateChange={onStateChange}
+        renderHeader={renderHeader}
+        sortFn={sortFn}
+        defaultSortKey="name"
+        defaultSortDirection="asc"
+        namespace={namespace}
+        stateKey="fileList"
+        autoHeight={autoHeight}
+        placeholder={placeholder}
+      />
+    </FileListRowConfigContext.Provider>
   )
 }

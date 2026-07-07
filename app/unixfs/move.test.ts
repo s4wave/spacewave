@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   buildUnixFSMoveItems,
   moveUnixFSItems,
+  moveUnixFSItemsFromDirectory,
   validateUnixFSMove,
 } from './move.js'
 
@@ -107,6 +108,46 @@ describe('moveUnixFSItems', () => {
     expect(renameDocs).toHaveBeenCalledWith(
       'todo.txt',
       'todo.txt',
+      77,
+      undefined,
+    )
+  })
+
+  it('uses the watched source directory handle for current-directory moves', async () => {
+    const renameSource = vi.fn()
+    const renameRootClone = vi.fn()
+    const clone = vi.fn()
+    const lookupPath = vi.fn()
+
+    clone.mockResolvedValue(
+      buildDisposableHandle({
+        id: 10,
+        rename: renameRootClone,
+      }),
+    )
+    lookupPath.mockResolvedValue({
+      handle: buildDisposableHandle({ id: 77 }),
+    })
+
+    await moveUnixFSItemsFromDirectory(
+      {
+        clone,
+        lookupPath,
+      } as never,
+      {
+        rename: renameSource,
+      } as never,
+      '/',
+      [{ id: 'a', name: 'hello.txt', isDir: false, path: '/hello.txt' }],
+      '/archive',
+    )
+
+    expect(lookupPath).toHaveBeenCalledWith('archive', undefined)
+    expect(clone).not.toHaveBeenCalled()
+    expect(renameRootClone).not.toHaveBeenCalled()
+    expect(renameSource).toHaveBeenCalledWith(
+      'hello.txt',
+      'hello.txt',
       77,
       undefined,
     )

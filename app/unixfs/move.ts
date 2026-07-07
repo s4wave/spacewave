@@ -210,3 +210,42 @@ export async function moveUnixFSItems(
     }
   }
 }
+
+// moveUnixFSItemsFromDirectory moves current-directory items through the watched
+// source directory handle so its readdir stream observes the mutation.
+export async function moveUnixFSItemsFromDirectory(
+  rootHandle: FSHandle,
+  sourceParentHandle: FSHandle,
+  sourceParentPath: string,
+  items: UnixFSMoveItem[],
+  destinationPath: string,
+  abortSignal?: AbortSignal,
+): Promise<void> {
+  const validation = validateUnixFSMove(items, destinationPath)
+  if (!validation.accepted) {
+    throw new Error(`invalid unixfs move: ${validation.reason}`)
+  }
+
+  const normalizedSourceParentPath =
+    normalizeUnixFSDisplayPath(sourceParentPath)
+  for (const item of items) {
+    if (getUnixFSParentPath(item.path) !== normalizedSourceParentPath) {
+      throw new Error('move item is outside the source directory')
+    }
+  }
+
+  using destinationHandle = await lookupUnixFSMoveHandle(
+    rootHandle,
+    destinationPath,
+    abortSignal,
+  )
+
+  for (const item of items) {
+    await sourceParentHandle.rename(
+      item.name,
+      item.name,
+      destinationHandle.id,
+      abortSignal,
+    )
+  }
+}

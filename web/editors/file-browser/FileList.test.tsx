@@ -1,3 +1,4 @@
+import { type ReactNode, useEffect } from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   render,
@@ -28,6 +29,19 @@ const longFilenameEntries: FileEntry[] = [
   },
   { id: '3', name: 'short.txt', isDir: false },
 ]
+
+function MountProbe({
+  name,
+  onUnmount,
+  children,
+}: {
+  name: string
+  onUnmount: (name: string) => void
+  children: ReactNode
+}) {
+  useEffect(() => () => onUnmount(name), [name, onUnmount])
+  return <>{children}</>
+}
 
 describe('FileList', () => {
   afterEach(() => {
@@ -328,6 +342,48 @@ describe('FileList', () => {
     )
 
     expect(fireEvent.dragOver(fileEntry!, { dataTransfer })).toBe(true)
+  })
+
+  it('keeps row elements mounted when the drop target highlight changes', async () => {
+    const onUnmount = vi.fn()
+    const renderEntry = ({
+      entry,
+      defaultNode,
+    }: {
+      entry: FileEntry
+      defaultNode: ReactNode
+    }) => (
+      <MountProbe name={entry.id} onUnmount={onUnmount}>
+        {defaultNode}
+      </MountProbe>
+    )
+    const { rerender } = render(
+      <FileList entries={mockEntries} renderEntry={renderEntry} />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Documents')[0]).toBeTruthy()
+    })
+
+    const documentsEntry = screen
+      .getAllByText('Documents')[0]
+      .closest('[role="row"]')
+    expect(documentsEntry).toBeTruthy()
+
+    rerender(
+      <FileList
+        entries={mockEntries}
+        renderEntry={renderEntry}
+        dropTargetEntryId="1"
+      />,
+    )
+
+    const highlightedEntry = screen
+      .getAllByText('Documents')[0]
+      .closest('[role="row"]')
+    expect(highlightedEntry).toBe(documentsEntry)
+    expect(highlightedEntry?.className).toContain('ring-brand/40')
+    expect(onUnmount).not.toHaveBeenCalled()
   })
 
   it('should handle keyboard navigation', async () => {

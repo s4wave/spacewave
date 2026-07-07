@@ -86,7 +86,7 @@ import { extractNativeUploadSelection } from './native-upload.js'
 import {
   buildUnixFSMoveItems,
   getUnixFSBaseName,
-  moveUnixFSItems,
+  moveUnixFSItemsFromDirectory,
   type UnixFSMoveItem,
   validateUnixFSMove,
 } from './move.js'
@@ -681,11 +681,18 @@ export function UnixFSBrowser({
   const handleConfirmMove = useCallback(
     async (destinationPath: string) => {
       const root = rootHandle.value
-      if (!root || !moveDialogItems) return
-      await moveUnixFSItems(root, moveDialogItems, destinationPath)
+      const sourceParent = pathHandle.value
+      if (!root || !sourceParent || !moveDialogItems) return
+      await moveUnixFSItemsFromDirectory(
+        root,
+        sourceParent,
+        displayPath,
+        moveDialogItems,
+        destinationPath,
+      )
       dispatch({ type: 'complete-move' })
     },
-    [moveDialogItems, rootHandle.value],
+    [displayPath, moveDialogItems, pathHandle.value, rootHandle.value],
   )
 
   const handleCancelDelete = useCallback(() => {
@@ -857,17 +864,24 @@ export function UnixFSBrowser({
       const acceptedMove = getAcceptedFolderMove(entry, e.dataTransfer)
       dispatch({ type: 'set-folder-drop-entry', id: null })
       const root = rootHandle.value
-      if (!acceptedMove || !root) return
+      const sourceParent = pathHandle.value
+      if (!acceptedMove || !root || !sourceParent) return
 
       void (async () => {
-        await moveUnixFSItems(
-          root,
-          acceptedMove.items,
-          acceptedMove.destinationPath,
-        )
+        try {
+          await moveUnixFSItemsFromDirectory(
+            root,
+            sourceParent,
+            displayPath,
+            acceptedMove.items,
+            acceptedMove.destinationPath,
+          )
+        } catch (err) {
+          toast.error('Move failed', { description: String(err) })
+        }
       })()
     },
-    [getAcceptedFolderMove, rootHandle.value],
+    [displayPath, getAcceptedFolderMove, pathHandle.value, rootHandle.value],
   )
 
   // Delete key handler

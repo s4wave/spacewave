@@ -909,8 +909,8 @@ describe('UnixFSBrowser drag gating', () => {
     expect(fireEvent.drop(folderEntry, { dataTransfer })).toBe(true)
 
     await waitFor(() => {
-      expect(h.mockRootClone).toHaveBeenCalledOnce()
       expect(h.mockRootLookupPath).toHaveBeenCalledWith('docs', undefined)
+      expect(h.mockRootClone).not.toHaveBeenCalled()
       expect(h.mockRename).toHaveBeenCalledWith(
         'file.txt',
         'file.txt',
@@ -1398,7 +1398,7 @@ describe('UnixFSBrowser drag gating', () => {
       await h.latestMoveDialogProps?.onConfirm?.('/archive')
     })
 
-    expect(h.mockRootClone).toHaveBeenCalledOnce()
+    expect(h.mockRootClone).not.toHaveBeenCalled()
     expect(h.mockRootLookupPath).toHaveBeenCalledWith('archive', undefined)
     expect(h.mockRename.mock.calls).toEqual([
       ['docs', 'docs', 77, undefined],
