@@ -30,10 +30,11 @@ import (
 
 // AccountResource wraps a provider account for resource access.
 type AccountResource struct {
-	mux          srpc.Invoker
-	account      *provider_spacewave.ProviderAccount
-	localAccount *provider_local.ProviderAccount
-	stepUpRef    *refcount.Ref[struct{}]
+	mux                 srpc.Invoker
+	account             *provider_spacewave.ProviderAccount
+	localAccount        *provider_local.ProviderAccount
+	localEntityKeyStore *provider_spacewave.EntityKeyStore
+	stepUpRef           *refcount.Ref[struct{}]
 }
 
 var errCloudAccountRequired = errors.New("account operation requires a cloud account")
@@ -54,6 +55,7 @@ func NewAccountResource(acc provider.ProviderAccount) *AccountResource {
 		r.stepUpRef = a.RetainEntityKeypairStepUp()
 	case *provider_local.ProviderAccount:
 		r.localAccount = a
+		r.localEntityKeyStore = provider_spacewave.NewEntityKeyStore()
 	default:
 		return nil
 	}
@@ -324,17 +326,17 @@ func (r *AccountResource) queueLocalAccountSettingsOp(
 
 	opData, err := op.MarshalVT()
 	if err != nil {
-		return errors.Wrap(err, "marshal account keybinding op")
+		return errors.Wrap(err, "marshal account settings op")
 	}
 	localID, err := so.QueueOperation(ctx, opData)
 	if err != nil {
-		return errors.Wrap(err, "queue account keybinding op")
+		return errors.Wrap(err, "queue account settings op")
 	}
 	if _, rejected, err := so.WaitOperation(ctx, localID); err != nil {
 		if rejected {
 			_ = so.ClearOperationResult(ctx, localID)
 		}
-		return errors.Wrap(err, "wait for account keybinding op")
+		return errors.Wrap(err, "wait for account settings op")
 	}
 	return nil
 }
@@ -698,6 +700,9 @@ func applySessionPresentation(
 
 // ResolveEntityKey resolves the entity private key from an EntityCredential.
 func (r *AccountResource) ResolveEntityKey(ctx context.Context, cred *session.EntityCredential) (bifrost_crypto.PrivKey, peer.ID, error) {
+	if r.localAccount != nil {
+		return r.resolveLocalEntityKey(cred)
+	}
 	if cred == nil {
 		return nil, "", errors.New("credential is required")
 	}
@@ -712,28 +717,51 @@ func (r *AccountResource) ResolveEntityKey(ctx context.Context, cred *session.En
 		if err != nil {
 			return nil, "", errors.Wrap(err, "fetch account info")
 		}
-		_, entityPriv, err := auth_password.BuildParametersWithUsernamePassword(info.EntityId, []byte(password))
-		if err != nil {
-			return nil, "", errors.Wrap(err, "derive entity key")
-		}
-		entityPeerID, err := peer.IDFromPrivateKey(entityPriv)
-		if err != nil {
-			return nil, "", errors.Wrap(err, "derive entity peer ID")
-		}
-		return entityPriv, entityPeerID, nil
+		return derivePasswordEntityKey(info.EntityId, []byte(password))
 	}
 	if len(pemPrivateKey) > 0 {
-		privKey, err := keypem.ParsePrivKeyPem(pemPrivateKey)
-		if err != nil {
-			return nil, "", errors.Wrap(err, "parse PEM private key")
-		}
-		peerID, err := peer.IDFromPrivateKey(privKey)
-		if err != nil {
-			return nil, "", errors.Wrap(err, "derive peer ID from PEM key")
-		}
-		return privKey, peerID, nil
+		return parsePemEntityKey(pemPrivateKey)
 	}
 	return nil, "", errors.New("password or pem_private_key is required")
+}
+
+func (r *AccountResource) resolveLocalEntityKey(cred *session.EntityCredential) (bifrost_crypto.PrivKey, peer.ID, error) {
+	if cred == nil {
+		return nil, "", errors.New("credential is required")
+	}
+	password := cred.GetPassword()
+	pemPrivateKey := cred.GetPemPrivateKey()
+	if password != "" {
+		return derivePasswordEntityKey(r.localAccount.GetAccountID(), []byte(password))
+	}
+	if len(pemPrivateKey) > 0 {
+		return parsePemEntityKey(pemPrivateKey)
+	}
+	return nil, "", errors.New("password or pem_private_key is required")
+}
+
+func derivePasswordEntityKey(username string, password []byte) (bifrost_crypto.PrivKey, peer.ID, error) {
+	_, entityPriv, err := auth_password.BuildParametersWithUsernamePassword(username, password)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "derive entity key")
+	}
+	entityPeerID, err := peer.IDFromPrivateKey(entityPriv)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "derive entity peer ID")
+	}
+	return entityPriv, entityPeerID, nil
+}
+
+func parsePemEntityKey(pemPrivateKey []byte) (bifrost_crypto.PrivKey, peer.ID, error) {
+	privKey, err := keypem.ParsePrivKeyPem(pemPrivateKey)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "parse PEM private key")
+	}
+	peerID, err := peer.IDFromPrivateKey(privKey)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "derive peer ID from PEM key")
+	}
+	return privKey, peerID, nil
 }
 
 // buildMultiSigEnvelope builds the typed MultiSigActionEnvelope bytes that
@@ -982,27 +1010,24 @@ func (r *AccountResource) RevokeSession(
 	return &s4wave_account.RevokeSessionResponse{}, nil
 }
 
-// GenerateBackupKey generates an Ed25519 backup keypair, registers the
-// public key with the cloud as a "pem" auth method, and returns the
-// private key PEM for the user to download and store safely.
+// GenerateBackupKey generates an Ed25519 backup keypair, registers the public
+// key with the account, and returns the private key PEM for the user to store
+// safely.
 func (r *AccountResource) GenerateBackupKey(
 	ctx context.Context,
 	req *s4wave_account.GenerateBackupKeyRequest,
 ) (*s4wave_account.GenerateBackupKeyResponse, error) {
+	if r.localAccount != nil {
+		return r.generateLocalBackupKey(ctx, req)
+	}
 	acc, err := r.requireCloudAccount()
 	if err != nil {
 		return nil, err
 	}
-	// Generate a new Ed25519 keypair for the backup key.
-	backupPriv, _, err := bifrost_crypto.GenerateEd25519Key(rand.Reader)
+	backupPeerID, pemData, err := generateBackupEntityKey()
 	if err != nil {
-		return nil, errors.Wrap(err, "generate backup key")
+		return nil, err
 	}
-	backupPeerID, err := peer.IDFromPrivateKey(backupPriv)
-	if err != nil {
-		return nil, errors.Wrap(err, "derive backup peer ID")
-	}
-	// Build the EntityKeypair and sign AddKeypairAction.
 	kp := &session.EntityKeypair{
 		PeerId:     backupPeerID.String(),
 		AuthMethod: "pem",
@@ -1012,7 +1037,6 @@ func (r *AccountResource) GenerateBackupKey(
 		return nil, errors.Wrap(err, "marshal action")
 	}
 
-	// Register the backup key with the cloud.
 	reqPath := accountAPIPath(acc.GetAccountID(), "keypair", "add")
 	if err := r.submitTrackedAction(
 		ctx,
@@ -1024,12 +1048,6 @@ func (r *AccountResource) GenerateBackupKey(
 		"register backup key",
 	); err != nil {
 		return nil, err
-	}
-
-	// Marshal private key to PEM.
-	pemData, err := keypem.MarshalPrivKeyPem(backupPriv)
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal PEM")
 	}
 
 	return &s4wave_account.GenerateBackupKeyResponse{
@@ -1044,6 +1062,9 @@ func (r *AccountResource) ChangePassword(
 	ctx context.Context,
 	req *s4wave_account.ChangePasswordRequest,
 ) (*s4wave_account.ChangePasswordResponse, error) {
+	if r.localAccount != nil {
+		return r.changeLocalPassword(ctx, req)
+	}
 	acc, err := r.requireCloudAccount()
 	if err != nil {
 		return nil, err
@@ -1054,7 +1075,6 @@ func (r *AccountResource) ChangePassword(
 		return nil, errors.New("old_password and new_password are required")
 	}
 
-	// Derive old entity keypair.
 	oldPriv, oldPeerID, err := r.ResolveEntityKey(ctx, &session.EntityCredential{
 		Credential: &session.EntityCredential_Password{Password: oldPassword},
 	})
@@ -1062,20 +1082,14 @@ func (r *AccountResource) ChangePassword(
 		return nil, errors.Wrap(err, "resolve old entity key")
 	}
 
-	// Derive new entity keypair from new password.
 	info, err := acc.GetAccountState(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "fetch account info")
 	}
-	_, newPriv, err := auth_password.BuildParametersWithUsernamePassword(info.EntityId, []byte(newPassword))
+	newPriv, newPeerID, err := derivePasswordEntityKey(info.EntityId, []byte(newPassword))
 	if err != nil {
 		return nil, errors.Wrap(err, "derive new entity key")
 	}
-	newPeerID, err := peer.IDFromPrivateKey(newPriv)
-	if err != nil {
-		return nil, errors.Wrap(err, "derive new entity peer ID")
-	}
-	// Add new keypair (signed with old entity key).
 	accountID := acc.GetAccountID()
 	kp := &session.EntityKeypair{
 		PeerId:     newPeerID.String(),
@@ -1098,7 +1112,6 @@ func (r *AccountResource) ChangePassword(
 		return nil, errors.Wrap(err, "add new keypair")
 	}
 
-	// Remove old keypair (signed with new entity key, now registered).
 	removeAction, err := (&api.RemoveKeypairAction{PeerId: oldPeerID.String()}).MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal remove action")
@@ -1119,6 +1132,115 @@ func (r *AccountResource) ChangePassword(
 	acc.BumpLocalEpoch()
 
 	return &s4wave_account.ChangePasswordResponse{}, nil
+}
+
+func (r *AccountResource) generateLocalBackupKey(
+	ctx context.Context,
+	req *s4wave_account.GenerateBackupKeyRequest,
+) (*s4wave_account.GenerateBackupKeyResponse, error) {
+	if cred := req.GetCredential(); cred != nil {
+		_, credentialPeerID, err := r.ResolveEntityKey(ctx, cred)
+		if err != nil {
+			return nil, err
+		}
+		if err := r.addLocalEntityKeypair(ctx, &session.EntityKeypair{
+			PeerId:     credentialPeerID.String(),
+			AuthMethod: localCredentialAuthMethod(cred),
+		}); err != nil {
+			return nil, errors.Wrap(err, "add credential keypair")
+		}
+	}
+
+	backupPeerID, pemData, err := generateBackupEntityKey()
+	if err != nil {
+		return nil, err
+	}
+	if err := r.addLocalEntityKeypair(ctx, &session.EntityKeypair{
+		PeerId:     backupPeerID.String(),
+		AuthMethod: "pem",
+	}); err != nil {
+		return nil, errors.Wrap(err, "add backup keypair")
+	}
+
+	return &s4wave_account.GenerateBackupKeyResponse{
+		PemData: pemData,
+		PeerId:  backupPeerID.String(),
+	}, nil
+}
+
+func (r *AccountResource) changeLocalPassword(
+	ctx context.Context,
+	req *s4wave_account.ChangePasswordRequest,
+) (*s4wave_account.ChangePasswordResponse, error) {
+	oldPassword := req.GetOldPassword()
+	newPassword := req.GetNewPassword()
+	if oldPassword == "" || newPassword == "" {
+		return nil, errors.New("old_password and new_password are required")
+	}
+
+	_, oldPeerID, err := r.ResolveEntityKey(ctx, &session.EntityCredential{
+		Credential: &session.EntityCredential_Password{Password: oldPassword},
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "resolve old entity key")
+	}
+	_, newPeerID, err := r.ResolveEntityKey(ctx, &session.EntityCredential{
+		Credential: &session.EntityCredential_Password{Password: newPassword},
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "derive new entity key")
+	}
+	if err := r.addLocalEntityKeypair(ctx, &session.EntityKeypair{
+		PeerId:     newPeerID.String(),
+		AuthMethod: auth_password.MethodID,
+	}); err != nil {
+		return nil, errors.Wrap(err, "add new keypair")
+	}
+	if err := r.removeLocalEntityKeypair(ctx, oldPeerID.String()); err != nil {
+		return nil, errors.Wrap(err, "remove old keypair")
+	}
+	return &s4wave_account.ChangePasswordResponse{}, nil
+}
+
+func (r *AccountResource) addLocalEntityKeypair(ctx context.Context, kp *session.EntityKeypair) error {
+	return r.queueLocalAccountSettingsOp(ctx, &account_settings.AccountSettingsOp{
+		Op: &account_settings.AccountSettingsOp_AddEntityKeypair{
+			AddEntityKeypair: kp,
+		},
+	})
+}
+
+func (r *AccountResource) removeLocalEntityKeypair(ctx context.Context, peerID string) error {
+	return r.queueLocalAccountSettingsOp(ctx, &account_settings.AccountSettingsOp{
+		Op: &account_settings.AccountSettingsOp_RemoveEntityKeypair{
+			RemoveEntityKeypair: &account_settings.RemoveEntityKeypairOp{
+				PeerId: peerID,
+			},
+		},
+	})
+}
+
+func generateBackupEntityKey() (peer.ID, []byte, error) {
+	backupPriv, _, err := bifrost_crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		return "", nil, errors.Wrap(err, "generate backup key")
+	}
+	backupPeerID, err := peer.IDFromPrivateKey(backupPriv)
+	if err != nil {
+		return "", nil, errors.Wrap(err, "derive backup peer ID")
+	}
+	pemData, err := keypem.MarshalPrivKeyPem(backupPriv)
+	if err != nil {
+		return "", nil, errors.Wrap(err, "marshal PEM")
+	}
+	return backupPeerID, pemData, nil
+}
+
+func localCredentialAuthMethod(cred *session.EntityCredential) string {
+	if cred.GetPassword() != "" {
+		return auth_password.MethodID
+	}
+	return "pem"
 }
 
 // accountAPIPath builds a canonical account API route.

@@ -28,24 +28,6 @@ namespace _pbi = ::google::protobuf::internal;
 namespace _fl = ::google::protobuf::internal::field_layout;
 namespace s4wave {
 namespace session {
-template <typename>
-PROTOBUF_CONSTEXPR WatchLocalEntityKeypairsRequest::WatchLocalEntityKeypairsRequest(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(WatchLocalEntityKeypairsRequest_class_data_.base()){}
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase() {
-}
-#endif  // PROTOBUF_CUSTOM_VTABLE
-struct WatchLocalEntityKeypairsRequestDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR WatchLocalEntityKeypairsRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~WatchLocalEntityKeypairsRequestDefaultTypeInternal() {}
-  union {
-    WatchLocalEntityKeypairsRequest _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchLocalEntityKeypairsRequestDefaultTypeInternal _WatchLocalEntityKeypairsRequest_default_instance_;
 
 inline constexpr WatchLocalDisplayNameResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -209,31 +191,6 @@ struct AddLocalEntityKeypairResponseDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AddLocalEntityKeypairResponseDefaultTypeInternal _AddLocalEntityKeypairResponse_default_instance_;
 
-inline constexpr WatchLocalEntityKeypairsResponse::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        keypairs_{} {}
-
-template <typename>
-PROTOBUF_CONSTEXPR WatchLocalEntityKeypairsResponse::WatchLocalEntityKeypairsResponse(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(WatchLocalEntityKeypairsResponse_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct WatchLocalEntityKeypairsResponseDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR WatchLocalEntityKeypairsResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~WatchLocalEntityKeypairsResponseDefaultTypeInternal() {}
-  union {
-    WatchLocalEntityKeypairsResponse _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchLocalEntityKeypairsResponseDefaultTypeInternal _WatchLocalEntityKeypairsResponse_default_instance_;
-
 inline constexpr AddLocalEntityKeypairRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -283,12 +240,6 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::session::RemoveLocalEntityKeypairRequest, _impl_.peer_id_),
         0,
         0x000, // bitmap
-        0x000, // bitmap
-        0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchLocalEntityKeypairsResponse, _impl_._has_bits_),
-        4, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchLocalEntityKeypairsResponse, _impl_.keypairs_),
-        0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::session::SetLocalDisplayNameRequest, _impl_._has_bits_),
         4, // hasbit index offset
@@ -309,20 +260,16 @@ static const ::_pbi::MigrationSchema
         {5, sizeof(::s4wave::session::AddLocalEntityKeypairResponse)},
         {10, sizeof(::s4wave::session::RemoveLocalEntityKeypairRequest)},
         {15, sizeof(::s4wave::session::RemoveLocalEntityKeypairResponse)},
-        {16, sizeof(::s4wave::session::WatchLocalEntityKeypairsRequest)},
-        {17, sizeof(::s4wave::session::WatchLocalEntityKeypairsResponse)},
-        {22, sizeof(::s4wave::session::SetLocalDisplayNameRequest)},
-        {27, sizeof(::s4wave::session::SetLocalDisplayNameResponse)},
-        {28, sizeof(::s4wave::session::WatchLocalDisplayNameRequest)},
-        {29, sizeof(::s4wave::session::WatchLocalDisplayNameResponse)},
+        {16, sizeof(::s4wave::session::SetLocalDisplayNameRequest)},
+        {21, sizeof(::s4wave::session::SetLocalDisplayNameResponse)},
+        {22, sizeof(::s4wave::session::WatchLocalDisplayNameRequest)},
+        {23, sizeof(::s4wave::session::WatchLocalDisplayNameResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::session::_AddLocalEntityKeypairRequest_default_instance_._instance,
     &::s4wave::session::_AddLocalEntityKeypairResponse_default_instance_._instance,
     &::s4wave::session::_RemoveLocalEntityKeypairRequest_default_instance_._instance,
     &::s4wave::session::_RemoveLocalEntityKeypairResponse_default_instance_._instance,
-    &::s4wave::session::_WatchLocalEntityKeypairsRequest_default_instance_._instance,
-    &::s4wave::session::_WatchLocalEntityKeypairsResponse_default_instance_._instance,
     &::s4wave::session::_SetLocalDisplayNameRequest_default_instance_._instance,
     &::s4wave::session::_SetLocalDisplayNameResponse_default_instance_._instance,
     &::s4wave::session::_WatchLocalDisplayNameRequest_default_instance_._instance,
@@ -340,32 +287,23 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fs
     "ntityKeypairResponse\022\017\n\007peer_id\030\001 \001(\t\"2\n"
     "\037RemoveLocalEntityKeypairRequest\022\017\n\007peer"
     "_id\030\001 \001(\t\"\"\n RemoveLocalEntityKeypairRes"
-    "ponse\"!\n\037WatchLocalEntityKeypairsRequest"
-    "\"L\n WatchLocalEntityKeypairsResponse\022(\n\010"
-    "keypairs\030\001 \003(\0132\026.session.EntityKeypair\"2"
-    "\n\032SetLocalDisplayNameRequest\022\024\n\014display_"
-    "name\030\001 \001(\t\"\035\n\033SetLocalDisplayNameRespons"
-    "e\"\036\n\034WatchLocalDisplayNameRequest\"5\n\035Wat"
-    "chLocalDisplayNameResponse\022\024\n\014display_na"
-    "me\030\001 \001(\t2\306\005\n\033LocalSessionResourceService"
-    "\022b\n\017ExportBackupKey\022&.s4wave.session.Exp"
-    "ortBackupKeyRequest\032\'.s4wave.session.Exp"
-    "ortBackupKeyResponse\022o\n\020AddEntityKeypair"
-    "\022,.s4wave.session.AddLocalEntityKeypairR"
-    "equest\032-.s4wave.session.AddLocalEntityKe"
-    "ypairResponse\022x\n\023RemoveEntityKeypair\022/.s"
-    "4wave.session.RemoveLocalEntityKeypairRe"
-    "quest\0320.s4wave.session.RemoveLocalEntity"
-    "KeypairResponse\022z\n\023WatchEntityKeypairs\022/"
-    ".s4wave.session.WatchLocalEntityKeypairs"
-    "Request\0320.s4wave.session.WatchLocalEntit"
-    "yKeypairsResponse0\001\022i\n\016SetDisplayName\022*."
-    "s4wave.session.SetLocalDisplayNameReques"
-    "t\032+.s4wave.session.SetLocalDisplayNameRe"
-    "sponse\022q\n\020WatchDisplayName\022,.s4wave.sess"
-    "ion.WatchLocalDisplayNameRequest\032-.s4wav"
-    "e.session.WatchLocalDisplayNameResponse0"
-    "\001b\006proto3"
+    "ponse\"2\n\032SetLocalDisplayNameRequest\022\024\n\014d"
+    "isplay_name\030\001 \001(\t\"\035\n\033SetLocalDisplayName"
+    "Response\"\036\n\034WatchLocalDisplayNameRequest"
+    "\"5\n\035WatchLocalDisplayNameResponse\022\024\n\014dis"
+    "play_name\030\001 \001(\t2\346\003\n\033LocalSessionResource"
+    "Service\022o\n\020AddEntityKeypair\022,.s4wave.ses"
+    "sion.AddLocalEntityKeypairRequest\032-.s4wa"
+    "ve.session.AddLocalEntityKeypairResponse"
+    "\022x\n\023RemoveEntityKeypair\022/.s4wave.session"
+    ".RemoveLocalEntityKeypairRequest\0320.s4wav"
+    "e.session.RemoveLocalEntityKeypairRespon"
+    "se\022i\n\016SetDisplayName\022*.s4wave.session.Se"
+    "tLocalDisplayNameRequest\032+.s4wave.sessio"
+    "n.SetLocalDisplayNameResponse\022q\n\020WatchDi"
+    "splayName\022,.s4wave.session.WatchLocalDis"
+    "playNameRequest\032-.s4wave.session.WatchLo"
+    "calDisplayNameResponse0\001b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2flocal_2dsession_2eproto_deps[2] = {
@@ -376,13 +314,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2flocal_2dsession_2eproto = {
     false,
     false,
-    1409,
+    1072,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2flocal_2dsession_2eproto,
     "github.com/s4wave/spacewave/sdk/session/local-session.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2flocal_2dsession_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2flocal_2dsession_2eproto_deps,
     2,
-    10,
+    8,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2flocal_2dsession_2eproto::offsets,
@@ -1326,405 +1264,6 @@ RemoveLocalEntityKeypairResponse::_table_ = {
 
 ::google::protobuf::Metadata RemoveLocalEntityKeypairResponse::GetMetadata() const {
   return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
-}
-// ===================================================================
-
-class WatchLocalEntityKeypairsRequest::_Internal {
- public:
-};
-
-WatchLocalEntityKeypairsRequest::WatchLocalEntityKeypairsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchLocalEntityKeypairsRequest_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(arena_constructor:s4wave.session.WatchLocalEntityKeypairsRequest)
-}
-WatchLocalEntityKeypairsRequest::WatchLocalEntityKeypairsRequest(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const WatchLocalEntityKeypairsRequest& from)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchLocalEntityKeypairsRequest_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  WatchLocalEntityKeypairsRequest* const _this = this;
-  (void)_this;
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-
-  // @@protoc_insertion_point(copy_constructor:s4wave.session.WatchLocalEntityKeypairsRequest)
-}
-
-inline void* PROTOBUF_NONNULL WatchLocalEntityKeypairsRequest::PlacementNew_(
-    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) WatchLocalEntityKeypairsRequest(arena);
-}
-constexpr auto WatchLocalEntityKeypairsRequest::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(WatchLocalEntityKeypairsRequest),
-                                            alignof(WatchLocalEntityKeypairsRequest));
-}
-constexpr auto WatchLocalEntityKeypairsRequest::InternalGenerateClassData_() {
-  return ::google::protobuf::internal::ClassDataFull{
-      ::google::protobuf::internal::ClassData{
-          &_WatchLocalEntityKeypairsRequest_default_instance_._instance,
-          &_table_.header,
-          nullptr,  // OnDemandRegisterArenaDtor
-          nullptr,  // IsInitialized
-          &WatchLocalEntityKeypairsRequest::MergeImpl,
-          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<WatchLocalEntityKeypairsRequest>(),
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-          &WatchLocalEntityKeypairsRequest::SharedDtor,
-          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<WatchLocalEntityKeypairsRequest>(), &WatchLocalEntityKeypairsRequest::ByteSizeLong,
-              &WatchLocalEntityKeypairsRequest::_InternalSerialize,
-#endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(WatchLocalEntityKeypairsRequest, _impl_._cached_size_),
-          false,
-      },
-      &WatchLocalEntityKeypairsRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2flocal_2dsession_2eproto,
-      nullptr,  // tracker
-  };
-}
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull WatchLocalEntityKeypairsRequest_class_data_ =
-        WatchLocalEntityKeypairsRequest::InternalGenerateClassData_();
-
-PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-WatchLocalEntityKeypairsRequest::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&WatchLocalEntityKeypairsRequest_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(WatchLocalEntityKeypairsRequest_class_data_.tc_table);
-  return WatchLocalEntityKeypairsRequest_class_data_.base();
-}
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
-WatchLocalEntityKeypairsRequest::_table_ = {
-  {
-    0,  // no _has_bits_
-    0, // no _extensions_
-    0, 0,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967295,  // skipmap
-    offsetof(decltype(_table_), field_names),  // no field_entries
-    0,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
-    WatchLocalEntityKeypairsRequest_class_data_.base(),
-    nullptr,  // post_loop_handler
-    ::_pbi::TcParser::GenericFallback,  // fallback
-    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::s4wave::session::WatchLocalEntityKeypairsRequest>(),  // to_prefetch
-    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
-  }, {{
-    {::_pbi::TcParser::MiniParse, {}},
-  }}, {{
-    65535, 65535
-  }}, // no field_entries, or aux_entries
-  {{
-  }},
-};
-
-
-
-
-
-
-
-::google::protobuf::Metadata WatchLocalEntityKeypairsRequest::GetMetadata() const {
-  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
-}
-// ===================================================================
-
-class WatchLocalEntityKeypairsResponse::_Internal {
- public:
-  using HasBits =
-      decltype(::std::declval<WatchLocalEntityKeypairsResponse>()._impl_._has_bits_);
-  static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(WatchLocalEntityKeypairsResponse, _impl_._has_bits_);
-};
-
-void WatchLocalEntityKeypairsResponse::clear_keypairs() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.keypairs_.Clear();
-  ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-WatchLocalEntityKeypairsResponse::WatchLocalEntityKeypairsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, WatchLocalEntityKeypairsResponse_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:s4wave.session.WatchLocalEntityKeypairsResponse)
-}
-PROTOBUF_NDEBUG_INLINE WatchLocalEntityKeypairsResponse::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::s4wave::session::WatchLocalEntityKeypairsResponse& from_msg)
-      : _has_bits_{from._has_bits_},
-        _cached_size_{0},
-        keypairs_{visibility, arena, from.keypairs_} {}
-
-WatchLocalEntityKeypairsResponse::WatchLocalEntityKeypairsResponse(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const WatchLocalEntityKeypairsResponse& from)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, WatchLocalEntityKeypairsResponse_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  WatchLocalEntityKeypairsResponse* const _this = this;
-  (void)_this;
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-
-  // @@protoc_insertion_point(copy_constructor:s4wave.session.WatchLocalEntityKeypairsResponse)
-}
-PROTOBUF_NDEBUG_INLINE WatchLocalEntityKeypairsResponse::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0},
-        keypairs_{visibility, arena} {}
-
-inline void WatchLocalEntityKeypairsResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
-  new (&_impl_) Impl_(internal_visibility(), arena);
-}
-WatchLocalEntityKeypairsResponse::~WatchLocalEntityKeypairsResponse() {
-  // @@protoc_insertion_point(destructor:s4wave.session.WatchLocalEntityKeypairsResponse)
-  SharedDtor(*this);
-}
-inline void WatchLocalEntityKeypairsResponse::SharedDtor(MessageLite& self) {
-  WatchLocalEntityKeypairsResponse& this_ = static_cast<WatchLocalEntityKeypairsResponse&>(self);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  ABSL_DCHECK(this_.GetArena() == nullptr);
-  this_._impl_.~Impl_();
-}
-
-inline void* PROTOBUF_NONNULL WatchLocalEntityKeypairsResponse::PlacementNew_(
-    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) WatchLocalEntityKeypairsResponse(arena);
-}
-constexpr auto WatchLocalEntityKeypairsResponse::InternalNewImpl_() {
-  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
-      PROTOBUF_FIELD_OFFSET(WatchLocalEntityKeypairsResponse, _impl_.keypairs_) +
-          decltype(WatchLocalEntityKeypairsResponse::_impl_.keypairs_)::
-              InternalGetArenaOffset(
-                  ::google::protobuf::Message::internal_visibility()),
-  });
-  if (arena_bits.has_value()) {
-    return ::google::protobuf::internal::MessageCreator::ZeroInit(
-        sizeof(WatchLocalEntityKeypairsResponse), alignof(WatchLocalEntityKeypairsResponse), *arena_bits);
-  } else {
-    return ::google::protobuf::internal::MessageCreator(&WatchLocalEntityKeypairsResponse::PlacementNew_,
-                                 sizeof(WatchLocalEntityKeypairsResponse),
-                                 alignof(WatchLocalEntityKeypairsResponse));
-  }
-}
-constexpr auto WatchLocalEntityKeypairsResponse::InternalGenerateClassData_() {
-  return ::google::protobuf::internal::ClassDataFull{
-      ::google::protobuf::internal::ClassData{
-          &_WatchLocalEntityKeypairsResponse_default_instance_._instance,
-          &_table_.header,
-          nullptr,  // OnDemandRegisterArenaDtor
-          nullptr,  // IsInitialized
-          &WatchLocalEntityKeypairsResponse::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<WatchLocalEntityKeypairsResponse>(),
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-          &WatchLocalEntityKeypairsResponse::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<WatchLocalEntityKeypairsResponse>(), &WatchLocalEntityKeypairsResponse::ByteSizeLong,
-              &WatchLocalEntityKeypairsResponse::_InternalSerialize,
-#endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(WatchLocalEntityKeypairsResponse, _impl_._cached_size_),
-          false,
-      },
-      &WatchLocalEntityKeypairsResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2flocal_2dsession_2eproto,
-      nullptr,  // tracker
-  };
-}
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull WatchLocalEntityKeypairsResponse_class_data_ =
-        WatchLocalEntityKeypairsResponse::InternalGenerateClassData_();
-
-PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-WatchLocalEntityKeypairsResponse::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&WatchLocalEntityKeypairsResponse_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(WatchLocalEntityKeypairsResponse_class_data_.tc_table);
-  return WatchLocalEntityKeypairsResponse_class_data_.base();
-}
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
-WatchLocalEntityKeypairsResponse::_table_ = {
-  {
-    PROTOBUF_FIELD_OFFSET(WatchLocalEntityKeypairsResponse, _impl_._has_bits_),
-    0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
-    1,  // num_aux_entries
-    offsetof(decltype(_table_), aux_entries),
-    WatchLocalEntityKeypairsResponse_class_data_.base(),
-    nullptr,  // post_loop_handler
-    ::_pbi::TcParser::GenericFallback,  // fallback
-    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::s4wave::session::WatchLocalEntityKeypairsResponse>(),  // to_prefetch
-    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
-  }, {{
-    // repeated .session.EntityKeypair keypairs = 1;
-    {::_pbi::TcParser::FastMtR1,
-     {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(WatchLocalEntityKeypairsResponse, _impl_.keypairs_)}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // repeated .session.EntityKeypair keypairs = 1;
-    {PROTOBUF_FIELD_OFFSET(WatchLocalEntityKeypairsResponse, _impl_.keypairs_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
-  }},
-  {{
-      {::_pbi::TcParser::GetTable<::session::EntityKeypair>()},
-  }},
-  {{
-  }},
-};
-PROTOBUF_NOINLINE void WatchLocalEntityKeypairsResponse::Clear() {
-// @@protoc_insertion_point(message_clear_start:s4wave.session.WatchLocalEntityKeypairsResponse)
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
-    _impl_.keypairs_.Clear();
-  }
-  _impl_._has_bits_.Clear();
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL WatchLocalEntityKeypairsResponse::_InternalSerialize(
-    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const WatchLocalEntityKeypairsResponse& this_ = static_cast<const WatchLocalEntityKeypairsResponse&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL WatchLocalEntityKeypairsResponse::_InternalSerialize(
-    ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const WatchLocalEntityKeypairsResponse& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  // @@protoc_insertion_point(serialize_to_array_start:s4wave.session.WatchLocalEntityKeypairsResponse)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = this_._impl_._has_bits_[0];
-  // repeated .session.EntityKeypair keypairs = 1;
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
-    for (unsigned i = 0, n = static_cast<unsigned>(
-                             this_._internal_keypairs_size());
-         i < n; i++) {
-      const auto& repfield = this_._internal_keypairs().Get(i);
-      target =
-          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
-              1, repfield, repfield.GetCachedSize(),
-              target, stream);
-    }
-  }
-
-  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:s4wave.session.WatchLocalEntityKeypairsResponse)
-  return target;
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t WatchLocalEntityKeypairsResponse::ByteSizeLong(const MessageLite& base) {
-  const WatchLocalEntityKeypairsResponse& this_ = static_cast<const WatchLocalEntityKeypairsResponse&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::size_t WatchLocalEntityKeypairsResponse::ByteSizeLong() const {
-  const WatchLocalEntityKeypairsResponse& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:s4wave.session.WatchLocalEntityKeypairsResponse)
-  ::size_t total_size = 0;
-
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void)cached_has_bits;
-
-  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
-   {
-    // repeated .session.EntityKeypair keypairs = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
-      total_size += 1UL * this_._internal_keypairs_size();
-      for (const auto& msg : this_._internal_keypairs()) {
-        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
-      }
-    }
-  }
-  return this_.MaybeComputeUnknownFieldsSize(total_size,
-                                             &this_._impl_._cached_size_);
-}
-
-void WatchLocalEntityKeypairsResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
-                            const ::google::protobuf::MessageLite& from_msg) {
-   auto* const _this =
-      static_cast<WatchLocalEntityKeypairsResponse*>(&to_msg);
-  auto& from = static_cast<const WatchLocalEntityKeypairsResponse&>(from_msg);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    from.CheckHasBitConsistency();
-  }
-  ::google::protobuf::Arena* arena = _this->GetArena();
-  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.session.WatchLocalEntityKeypairsResponse)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
-    _this->_internal_mutable_keypairs()->InternalMergeFromWithArena(
-        ::google::protobuf::MessageLite::internal_visibility(), arena,
-        from._internal_keypairs());
-  }
-  _this->_impl_._has_bits_[0] |= cached_has_bits;
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-}
-
-void WatchLocalEntityKeypairsResponse::CopyFrom(const WatchLocalEntityKeypairsResponse& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.session.WatchLocalEntityKeypairsResponse)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-
-void WatchLocalEntityKeypairsResponse::InternalSwap(WatchLocalEntityKeypairsResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
-  using ::std::swap;
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  _impl_.keypairs_.InternalSwap(&other->_impl_.keypairs_);
-}
-
-::google::protobuf::Metadata WatchLocalEntityKeypairsResponse::GetMetadata() const {
-  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 

@@ -6,10 +6,12 @@ import (
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
+	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
 )
@@ -26,6 +28,9 @@ func (r *AccountResource) WatchEntityKeypairs(
 	req *s4wave_account.WatchEntityKeypairsRequest,
 	strm s4wave_account.SRPCAccountResourceService_WatchEntityKeypairsStream,
 ) error {
+	if r.localAccount != nil {
+		return r.watchLocalEntityKeypairs(strm)
+	}
 	acc, err := r.requireCloudAccount()
 	if err != nil {
 		return err
@@ -179,11 +184,11 @@ func (r *AccountResource) UnlockEntityKeypair(
 	if requestedPeerID != "" && resolvedPeerID.String() != requestedPeerID {
 		return nil, errors.Errorf("resolved peer ID %s does not match requested %s", resolvedPeerID.String(), requestedPeerID)
 	}
-	acc, err := r.requireCloudAccount()
+	store, err := r.entityKeyStore()
 	if err != nil {
 		return nil, err
 	}
-	acc.GetEntityKeyStore().Unlock(resolvedPeerID, privKey)
+	store.Unlock(resolvedPeerID, privKey)
 	return &s4wave_account.UnlockEntityKeypairResponse{}, nil
 }
 
@@ -203,11 +208,11 @@ func (r *AccountResource) SignWithEntityKeypair(
 	if err != nil {
 		return nil, errors.Wrap(err, "decode peer ID")
 	}
-	acc, err := r.requireCloudAccount()
+	store, err := r.entityKeyStore()
 	if err != nil {
 		return nil, err
 	}
-	sig, err := acc.GetEntityKeyStore().SignRaw(pid, req.GetPayload())
+	sig, err := store.SignRaw(pid, req.GetPayload())
 	if err != nil {
 		return nil, errors.Wrap(err, "sign payload")
 	}
@@ -230,11 +235,11 @@ func (r *AccountResource) LockEntityKeypair(
 	if err != nil {
 		return nil, errors.Wrap(err, "decode peer ID")
 	}
-	acc, err := r.requireCloudAccount()
+	store, err := r.entityKeyStore()
 	if err != nil {
 		return nil, err
 	}
-	acc.GetEntityKeyStore().Lock(pid)
+	store.Lock(pid)
 	return &s4wave_account.LockEntityKeypairResponse{}, nil
 }
 
@@ -243,11 +248,11 @@ func (r *AccountResource) LockAllEntityKeypairs(
 	ctx context.Context,
 	_ *s4wave_account.LockAllEntityKeypairsRequest,
 ) (*s4wave_account.LockAllEntityKeypairsResponse, error) {
-	acc, err := r.requireCloudAccount()
+	store, err := r.entityKeyStore()
 	if err != nil {
 		return nil, err
 	}
-	acc.GetEntityKeyStore().LockAll()
+	store.LockAll()
 	return &s4wave_account.LockAllEntityKeypairsResponse{}, nil
 }
 
@@ -288,11 +293,11 @@ func (r *AccountResource) resolveOrSignWithStore(
 			SignedAt:  now,
 		}}, nil
 	}
-	acc, err := r.requireCloudAccount()
+	store, err := r.entityKeyStore()
 	if err != nil {
 		return nil, nil, err
 	}
-	storeSigs, err := acc.GetEntityKeyStore().SignAll(envelope)
+	storeSigs, err := store.SignAll(envelope)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "key store sign")
 	}
@@ -300,4 +305,76 @@ func (r *AccountResource) resolveOrSignWithStore(
 		return nil, nil, errors.New("no credentials provided and no keypairs unlocked")
 	}
 	return envelope, storeSigs, nil
+}
+
+func (r *AccountResource) watchLocalEntityKeypairs(
+	strm s4wave_account.SRPCAccountResourceService_WatchEntityKeypairsStream,
+) error {
+	ctx, ctxCancel := context.WithCancel(strm.Context())
+	defer ctxCancel()
+
+	_, relSO, stateCtr, relStateCtr, err := r.mountLocalAccountSettingsState(ctx, ctxCancel)
+	if err != nil {
+		return err
+	}
+	defer relSO()
+	defer relStateCtr()
+
+	store, err := r.entityKeyStore()
+	if err != nil {
+		return err
+	}
+	settings, err := decodeLocalAccountSettingsSnapshot(ctx, stateCtr.GetValue())
+	if err != nil {
+		return err
+	}
+	state := &entityKeypairsWatchState{
+		keypairs:      settings.GetEntityKeypairs(),
+		valid:         true,
+		unlockedPeers: store.GetUnlockedPeerIDs(),
+	}
+
+	bridgeCtx, cancelBridges := context.WithCancel(ctx)
+	defer cancelBridges()
+	go state.bridgeLocalAccountSettings(bridgeCtx, stateCtr)
+	go state.bridgeStore(bridgeCtx, store)
+
+	return state.runWatchLoop(ctx, strm.Send)
+}
+
+func (s *entityKeypairsWatchState) bridgeLocalAccountSettings(
+	ctx context.Context,
+	stateCtr ccontainer.Watchable[sobject.SharedObjectStateSnapshot],
+) {
+	current := stateCtr.GetValue()
+	for {
+		next, err := stateCtr.WaitValueChange(ctx, current, nil)
+		if err != nil {
+			return
+		}
+		current = next
+		settings, err := decodeLocalAccountSettingsSnapshot(ctx, next)
+		if err != nil {
+			return
+		}
+		s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			s.keypairs = settings.GetEntityKeypairs()
+			s.valid = true
+			broadcast()
+		})
+	}
+}
+
+func (r *AccountResource) entityKeyStore() (*provider_spacewave.EntityKeyStore, error) {
+	if r.localAccount != nil {
+		if r.localEntityKeyStore == nil {
+			r.localEntityKeyStore = provider_spacewave.NewEntityKeyStore()
+		}
+		return r.localEntityKeyStore, nil
+	}
+	acc, err := r.requireCloudAccount()
+	if err != nil {
+		return nil, err
+	}
+	return acc.GetEntityKeyStore(), nil
 }

@@ -8,28 +8,12 @@
 
 namespace s4wave::session {
 
-starpc::Error SRPCLocalSessionResourceServiceClientImpl::ExportBackupKey(const s4wave::session::ExportBackupKeyRequest& in, s4wave::session::ExportBackupKeyResponse* out) {
-  return cc_->ExecCall(service_id_, "ExportBackupKey", in, out);
-}
-
 starpc::Error SRPCLocalSessionResourceServiceClientImpl::AddEntityKeypair(const s4wave::session::AddLocalEntityKeypairRequest& in, s4wave::session::AddLocalEntityKeypairResponse* out) {
   return cc_->ExecCall(service_id_, "AddEntityKeypair", in, out);
 }
 
 starpc::Error SRPCLocalSessionResourceServiceClientImpl::RemoveEntityKeypair(const s4wave::session::RemoveLocalEntityKeypairRequest& in, s4wave::session::RemoveLocalEntityKeypairResponse* out) {
   return cc_->ExecCall(service_id_, "RemoveEntityKeypair", in, out);
-}
-
-std::pair<std::unique_ptr<SRPCLocalSessionResourceService_WatchEntityKeypairsClient>, starpc::Error> SRPCLocalSessionResourceServiceClientImpl::WatchEntityKeypairs(const s4wave::session::WatchLocalEntityKeypairsRequest& in) {
-  auto [strm, err] = cc_->NewStream(service_id_, "WatchEntityKeypairs", &in);
-  if (err != starpc::Error::OK) {
-    return {nullptr, err};
-  }
-  err = strm->CloseSend();
-  if (err != starpc::Error::OK) {
-    return {nullptr, err};
-  }
-  return {std::make_unique<SRPCLocalSessionResourceService_WatchEntityKeypairsClient>(std::move(strm)), starpc::Error::OK};
 }
 
 starpc::Error SRPCLocalSessionResourceServiceClientImpl::SetDisplayName(const s4wave::session::SetLocalDisplayNameRequest& in, s4wave::session::SetLocalDisplayNameResponse* out) {
@@ -50,10 +34,8 @@ std::pair<std::unique_ptr<SRPCLocalSessionResourceService_WatchDisplayNameClient
 
 std::vector<std::string> SRPCLocalSessionResourceServiceHandler::GetMethodIDs() const {
   return {
-    "ExportBackupKey",
     "AddEntityKeypair",
     "RemoveEntityKeypair",
-    "WatchEntityKeypairs",
     "SetDisplayName",
     "WatchDisplayName",
   };
@@ -67,15 +49,7 @@ std::pair<bool, starpc::Error> SRPCLocalSessionResourceServiceHandler::InvokeMet
     return {false, starpc::Error::OK};
   }
 
-  if (method_id == "ExportBackupKey") {
-    s4wave::session::ExportBackupKeyRequest req;
-    starpc::Error err = strm->MsgRecv(&req);
-    if (err != starpc::Error::OK) return {true, err};
-    s4wave::session::ExportBackupKeyResponse resp;
-    err = impl_->ExportBackupKey(req, &resp);
-    if (err != starpc::Error::OK) return {true, err};
-    return {true, strm->MsgSend(resp)};
-  } else if (method_id == "AddEntityKeypair") {
+  if (method_id == "AddEntityKeypair") {
     s4wave::session::AddLocalEntityKeypairRequest req;
     starpc::Error err = strm->MsgRecv(&req);
     if (err != starpc::Error::OK) return {true, err};
@@ -91,12 +65,6 @@ std::pair<bool, starpc::Error> SRPCLocalSessionResourceServiceHandler::InvokeMet
     err = impl_->RemoveEntityKeypair(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
-  } else if (method_id == "WatchEntityKeypairs") {
-    s4wave::session::WatchLocalEntityKeypairsRequest req;
-    starpc::Error err = strm->MsgRecv(&req);
-    if (err != starpc::Error::OK) return {true, err};
-    SRPCLocalSessionResourceService_WatchEntityKeypairsStream serverStrm(strm);
-    return {true, impl_->WatchEntityKeypairs(req, &serverStrm)};
   } else if (method_id == "SetDisplayName") {
     s4wave::session::SetLocalDisplayNameRequest req;
     starpc::Error err = strm->MsgRecv(&req);

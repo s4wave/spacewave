@@ -91,14 +91,6 @@ class WatchLocalDisplayNameResponse;
 struct WatchLocalDisplayNameResponseDefaultTypeInternal;
 extern WatchLocalDisplayNameResponseDefaultTypeInternal _WatchLocalDisplayNameResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull WatchLocalDisplayNameResponse_class_data_;
-class WatchLocalEntityKeypairsRequest;
-struct WatchLocalEntityKeypairsRequestDefaultTypeInternal;
-extern WatchLocalEntityKeypairsRequestDefaultTypeInternal _WatchLocalEntityKeypairsRequest_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull WatchLocalEntityKeypairsRequest_class_data_;
-class WatchLocalEntityKeypairsResponse;
-struct WatchLocalEntityKeypairsResponseDefaultTypeInternal;
-extern WatchLocalEntityKeypairsResponseDefaultTypeInternal _WatchLocalEntityKeypairsResponse_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull WatchLocalEntityKeypairsResponse_class_data_;
 }  // namespace session
 }  // namespace s4wave
 namespace google {
@@ -112,140 +104,6 @@ namespace session {
 // ===================================================================
 
 
-// -------------------------------------------------------------------
-
-class WatchLocalEntityKeypairsRequest final : public ::google::protobuf::internal::ZeroFieldsBase
-/* @@protoc_insertion_point(class_definition:s4wave.session.WatchLocalEntityKeypairsRequest) */ {
- public:
-  inline WatchLocalEntityKeypairsRequest() : WatchLocalEntityKeypairsRequest(nullptr) {}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(WatchLocalEntityKeypairsRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchLocalEntityKeypairsRequest));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR WatchLocalEntityKeypairsRequest(::google::protobuf::internal::ConstantInitialized);
-
-  inline WatchLocalEntityKeypairsRequest(const WatchLocalEntityKeypairsRequest& from) : WatchLocalEntityKeypairsRequest(nullptr, from) {}
-  inline WatchLocalEntityKeypairsRequest(WatchLocalEntityKeypairsRequest&& from) noexcept
-      : WatchLocalEntityKeypairsRequest(nullptr, ::std::move(from)) {}
-  inline WatchLocalEntityKeypairsRequest& operator=(const WatchLocalEntityKeypairsRequest& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline WatchLocalEntityKeypairsRequest& operator=(WatchLocalEntityKeypairsRequest&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const WatchLocalEntityKeypairsRequest& default_instance() {
-    return *reinterpret_cast<const WatchLocalEntityKeypairsRequest*>(
-        &_WatchLocalEntityKeypairsRequest_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 4;
-  friend void swap(WatchLocalEntityKeypairsRequest& a, WatchLocalEntityKeypairsRequest& b) { a.Swap(&b); }
-  inline void Swap(WatchLocalEntityKeypairsRequest* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(WatchLocalEntityKeypairsRequest* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  WatchLocalEntityKeypairsRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<WatchLocalEntityKeypairsRequest>(arena);
-  }
-  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
-  inline void CopyFrom(const WatchLocalEntityKeypairsRequest& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
-  }
-  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
-  void MergeFrom(const WatchLocalEntityKeypairsRequest& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
-  }
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.session.WatchLocalEntityKeypairsRequest"; }
-
-  explicit WatchLocalEntityKeypairsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  WatchLocalEntityKeypairsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchLocalEntityKeypairsRequest& from);
-  WatchLocalEntityKeypairsRequest(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchLocalEntityKeypairsRequest&& from) noexcept
-      : WatchLocalEntityKeypairsRequest(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  // @@protoc_insertion_point(class_scope:s4wave.session.WatchLocalEntityKeypairsRequest)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 0,
-                                   0, 0,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2flocal_2dsession_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull WatchLocalEntityKeypairsRequest_class_data_;
 // -------------------------------------------------------------------
 
 class WatchLocalDisplayNameResponse final : public ::google::protobuf::Message
@@ -303,7 +161,7 @@ class WatchLocalDisplayNameResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchLocalDisplayNameResponse*>(
         &_WatchLocalDisplayNameResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(WatchLocalDisplayNameResponse& a, WatchLocalDisplayNameResponse& b) { a.Swap(&b); }
   inline void Swap(WatchLocalDisplayNameResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -497,7 +355,7 @@ class WatchLocalDisplayNameRequest final : public ::google::protobuf::internal::
     return *reinterpret_cast<const WatchLocalDisplayNameRequest*>(
         &_WatchLocalDisplayNameRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(WatchLocalDisplayNameRequest& a, WatchLocalDisplayNameRequest& b) { a.Swap(&b); }
   inline void Swap(WatchLocalDisplayNameRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -631,7 +489,7 @@ class SetLocalDisplayNameResponse final : public ::google::protobuf::internal::Z
     return *reinterpret_cast<const SetLocalDisplayNameResponse*>(
         &_SetLocalDisplayNameResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(SetLocalDisplayNameResponse& a, SetLocalDisplayNameResponse& b) { a.Swap(&b); }
   inline void Swap(SetLocalDisplayNameResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -766,7 +624,7 @@ class SetLocalDisplayNameRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetLocalDisplayNameRequest*>(
         &_SetLocalDisplayNameRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(SetLocalDisplayNameRequest& a, SetLocalDisplayNameRequest& b) { a.Swap(&b); }
   inline void Swap(SetLocalDisplayNameRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1430,203 +1288,6 @@ class AddLocalEntityKeypairResponse final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull AddLocalEntityKeypairResponse_class_data_;
 // -------------------------------------------------------------------
 
-class WatchLocalEntityKeypairsResponse final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:s4wave.session.WatchLocalEntityKeypairsResponse) */ {
- public:
-  inline WatchLocalEntityKeypairsResponse() : WatchLocalEntityKeypairsResponse(nullptr) {}
-  ~WatchLocalEntityKeypairsResponse() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(WatchLocalEntityKeypairsResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(WatchLocalEntityKeypairsResponse));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR WatchLocalEntityKeypairsResponse(::google::protobuf::internal::ConstantInitialized);
-
-  inline WatchLocalEntityKeypairsResponse(const WatchLocalEntityKeypairsResponse& from) : WatchLocalEntityKeypairsResponse(nullptr, from) {}
-  inline WatchLocalEntityKeypairsResponse(WatchLocalEntityKeypairsResponse&& from) noexcept
-      : WatchLocalEntityKeypairsResponse(nullptr, ::std::move(from)) {}
-  inline WatchLocalEntityKeypairsResponse& operator=(const WatchLocalEntityKeypairsResponse& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline WatchLocalEntityKeypairsResponse& operator=(WatchLocalEntityKeypairsResponse&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const WatchLocalEntityKeypairsResponse& default_instance() {
-    return *reinterpret_cast<const WatchLocalEntityKeypairsResponse*>(
-        &_WatchLocalEntityKeypairsResponse_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 5;
-  friend void swap(WatchLocalEntityKeypairsResponse& a, WatchLocalEntityKeypairsResponse& b) { a.Swap(&b); }
-  inline void Swap(WatchLocalEntityKeypairsResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(WatchLocalEntityKeypairsResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  WatchLocalEntityKeypairsResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<WatchLocalEntityKeypairsResponse>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const WatchLocalEntityKeypairsResponse& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const WatchLocalEntityKeypairsResponse& from) { WatchLocalEntityKeypairsResponse::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(WatchLocalEntityKeypairsResponse* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.session.WatchLocalEntityKeypairsResponse"; }
-
-  explicit WatchLocalEntityKeypairsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  WatchLocalEntityKeypairsResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchLocalEntityKeypairsResponse& from);
-  WatchLocalEntityKeypairsResponse(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, WatchLocalEntityKeypairsResponse&& from) noexcept
-      : WatchLocalEntityKeypairsResponse(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kKeypairsFieldNumber = 1,
-  };
-  // repeated .session.EntityKeypair keypairs = 1;
-  int keypairs_size() const;
-  private:
-  int _internal_keypairs_size() const;
-
-  public:
-  void clear_keypairs() ;
-  ::session::EntityKeypair* PROTOBUF_NONNULL mutable_keypairs(int index);
-  ::google::protobuf::RepeatedPtrField<::session::EntityKeypair>* PROTOBUF_NONNULL mutable_keypairs();
-
-  private:
-  const ::google::protobuf::RepeatedPtrField<::session::EntityKeypair>& _internal_keypairs() const;
-  ::google::protobuf::RepeatedPtrField<::session::EntityKeypair>* PROTOBUF_NONNULL _internal_mutable_keypairs();
-  public:
-  const ::session::EntityKeypair& keypairs(int index) const;
-  ::session::EntityKeypair* PROTOBUF_NONNULL add_keypairs();
-  const ::google::protobuf::RepeatedPtrField<::session::EntityKeypair>& keypairs() const;
-  // @@protoc_insertion_point(class_scope:s4wave.session.WatchLocalEntityKeypairsResponse)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
-                                   1, 0,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const WatchLocalEntityKeypairsResponse& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::RepeatedPtrField< ::session::EntityKeypair > keypairs_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2flocal_2dsession_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull WatchLocalEntityKeypairsResponse_class_data_;
-// -------------------------------------------------------------------
-
 class AddLocalEntityKeypairRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.session.AddLocalEntityKeypairRequest) */ {
  public:
@@ -2071,64 +1732,6 @@ inline void RemoveLocalEntityKeypairRequest::set_allocated_peer_id(::std::string
 // -------------------------------------------------------------------
 
 // RemoveLocalEntityKeypairResponse
-
-// -------------------------------------------------------------------
-
-// WatchLocalEntityKeypairsRequest
-
-// -------------------------------------------------------------------
-
-// WatchLocalEntityKeypairsResponse
-
-// repeated .session.EntityKeypair keypairs = 1;
-inline int WatchLocalEntityKeypairsResponse::_internal_keypairs_size() const {
-  return _internal_keypairs().size();
-}
-inline int WatchLocalEntityKeypairsResponse::keypairs_size() const {
-  return _internal_keypairs_size();
-}
-inline ::session::EntityKeypair* PROTOBUF_NONNULL WatchLocalEntityKeypairsResponse::mutable_keypairs(int index)
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_mutable:s4wave.session.WatchLocalEntityKeypairsResponse.keypairs)
-  return _internal_mutable_keypairs()->Mutable(index);
-}
-inline ::google::protobuf::RepeatedPtrField<::session::EntityKeypair>* PROTOBUF_NONNULL WatchLocalEntityKeypairsResponse::mutable_keypairs()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
-  // @@protoc_insertion_point(field_mutable_list:s4wave.session.WatchLocalEntityKeypairsResponse.keypairs)
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _internal_mutable_keypairs();
-}
-inline const ::session::EntityKeypair& WatchLocalEntityKeypairsResponse::keypairs(int index) const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.session.WatchLocalEntityKeypairsResponse.keypairs)
-  return _internal_keypairs().Get(index);
-}
-inline ::session::EntityKeypair* PROTOBUF_NONNULL WatchLocalEntityKeypairsResponse::add_keypairs()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::session::EntityKeypair* _add =
-      _internal_mutable_keypairs()->InternalAddWithArena(
-          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
-  // @@protoc_insertion_point(field_add:s4wave.session.WatchLocalEntityKeypairsResponse.keypairs)
-  return _add;
-}
-inline const ::google::protobuf::RepeatedPtrField<::session::EntityKeypair>& WatchLocalEntityKeypairsResponse::keypairs() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_list:s4wave.session.WatchLocalEntityKeypairsResponse.keypairs)
-  return _internal_keypairs();
-}
-inline const ::google::protobuf::RepeatedPtrField<::session::EntityKeypair>&
-WatchLocalEntityKeypairsResponse::_internal_keypairs() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.keypairs_;
-}
-inline ::google::protobuf::RepeatedPtrField<::session::EntityKeypair>* PROTOBUF_NONNULL
-WatchLocalEntityKeypairsResponse::_internal_mutable_keypairs() {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return &_impl_.keypairs_;
-}
 
 // -------------------------------------------------------------------
 

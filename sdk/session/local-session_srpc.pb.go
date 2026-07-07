@@ -14,13 +14,9 @@ type SRPCLocalSessionResourceServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
-	ExportBackupKey(ctx context.Context, in *ExportBackupKeyRequest) (*ExportBackupKeyResponse, error)
-
 	AddEntityKeypair(ctx context.Context, in *AddLocalEntityKeypairRequest) (*AddLocalEntityKeypairResponse, error)
 
 	RemoveEntityKeypair(ctx context.Context, in *RemoveLocalEntityKeypairRequest) (*RemoveLocalEntityKeypairResponse, error)
-
-	WatchEntityKeypairs(ctx context.Context, in *WatchLocalEntityKeypairsRequest) (SRPCLocalSessionResourceService_WatchEntityKeypairsClient, error)
 
 	SetDisplayName(ctx context.Context, in *SetLocalDisplayNameRequest) (*SetLocalDisplayNameResponse, error)
 
@@ -45,15 +41,6 @@ func NewSRPCLocalSessionResourceServiceClientWithServiceID(cc srpc.Client, servi
 
 func (c *srpcLocalSessionResourceServiceClient) SRPCClient() srpc.Client { return c.cc }
 
-func (c *srpcLocalSessionResourceServiceClient) ExportBackupKey(ctx context.Context, in *ExportBackupKeyRequest) (*ExportBackupKeyResponse, error) {
-	out := new(ExportBackupKeyResponse)
-	err := c.cc.ExecCall(ctx, c.serviceID, "ExportBackupKey", in, out)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *srpcLocalSessionResourceServiceClient) AddEntityKeypair(ctx context.Context, in *AddLocalEntityKeypairRequest) (*AddLocalEntityKeypairResponse, error) {
 	out := new(AddLocalEntityKeypairResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "AddEntityKeypair", in, out)
@@ -70,40 +57,6 @@ func (c *srpcLocalSessionResourceServiceClient) RemoveEntityKeypair(ctx context.
 		return nil, err
 	}
 	return out, nil
-}
-
-func (c *srpcLocalSessionResourceServiceClient) WatchEntityKeypairs(ctx context.Context, in *WatchLocalEntityKeypairsRequest) (SRPCLocalSessionResourceService_WatchEntityKeypairsClient, error) {
-	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchEntityKeypairs", in)
-	if err != nil {
-		return nil, err
-	}
-	strm := &srpcLocalSessionResourceService_WatchEntityKeypairsClient{stream}
-	if err := strm.CloseSend(); err != nil {
-		return nil, err
-	}
-	return strm, nil
-}
-
-type SRPCLocalSessionResourceService_WatchEntityKeypairsClient interface {
-	srpc.Stream
-	Recv() (*WatchLocalEntityKeypairsResponse, error)
-	RecvTo(*WatchLocalEntityKeypairsResponse) error
-}
-
-type srpcLocalSessionResourceService_WatchEntityKeypairsClient struct {
-	srpc.Stream
-}
-
-func (x *srpcLocalSessionResourceService_WatchEntityKeypairsClient) Recv() (*WatchLocalEntityKeypairsResponse, error) {
-	m := new(WatchLocalEntityKeypairsResponse)
-	if err := x.MsgRecv(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (x *srpcLocalSessionResourceService_WatchEntityKeypairsClient) RecvTo(m *WatchLocalEntityKeypairsResponse) error {
-	return x.MsgRecv(m)
 }
 
 func (c *srpcLocalSessionResourceServiceClient) SetDisplayName(ctx context.Context, in *SetLocalDisplayNameRequest) (*SetLocalDisplayNameResponse, error) {
@@ -150,13 +103,9 @@ func (x *srpcLocalSessionResourceService_WatchDisplayNameClient) RecvTo(m *Watch
 }
 
 type SRPCLocalSessionResourceServiceServer interface {
-	ExportBackupKey(context.Context, *ExportBackupKeyRequest) (*ExportBackupKeyResponse, error)
-
 	AddEntityKeypair(context.Context, *AddLocalEntityKeypairRequest) (*AddLocalEntityKeypairResponse, error)
 
 	RemoveEntityKeypair(context.Context, *RemoveLocalEntityKeypairRequest) (*RemoveLocalEntityKeypairResponse, error)
-
-	WatchEntityKeypairs(*WatchLocalEntityKeypairsRequest, SRPCLocalSessionResourceService_WatchEntityKeypairsStream) error
 
 	SetDisplayName(context.Context, *SetLocalDisplayNameRequest) (*SetLocalDisplayNameResponse, error)
 
@@ -189,10 +138,8 @@ func (d *SRPCLocalSessionResourceServiceHandler) GetServiceID() string { return 
 
 func (SRPCLocalSessionResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
-		"ExportBackupKey",
 		"AddEntityKeypair",
 		"RemoveEntityKeypair",
-		"WatchEntityKeypairs",
 		"SetDisplayName",
 		"WatchDisplayName",
 	}
@@ -207,14 +154,10 @@ func (d *SRPCLocalSessionResourceServiceHandler) InvokeMethod(
 	}
 
 	switch methodID {
-	case "ExportBackupKey":
-		return true, d.InvokeMethod_ExportBackupKey(d.impl, strm)
 	case "AddEntityKeypair":
 		return true, d.InvokeMethod_AddEntityKeypair(d.impl, strm)
 	case "RemoveEntityKeypair":
 		return true, d.InvokeMethod_RemoveEntityKeypair(d.impl, strm)
-	case "WatchEntityKeypairs":
-		return true, d.InvokeMethod_WatchEntityKeypairs(d.impl, strm)
 	case "SetDisplayName":
 		return true, d.InvokeMethod_SetDisplayName(d.impl, strm)
 	case "WatchDisplayName":
@@ -222,18 +165,6 @@ func (d *SRPCLocalSessionResourceServiceHandler) InvokeMethod(
 	default:
 		return false, nil
 	}
-}
-
-func (SRPCLocalSessionResourceServiceHandler) InvokeMethod_ExportBackupKey(impl SRPCLocalSessionResourceServiceServer, strm srpc.Stream) error {
-	req := new(ExportBackupKeyRequest)
-	if err := strm.MsgRecv(req); err != nil {
-		return err
-	}
-	out, err := impl.ExportBackupKey(strm.Context(), req)
-	if err != nil {
-		return err
-	}
-	return strm.MsgSend(out)
 }
 
 func (SRPCLocalSessionResourceServiceHandler) InvokeMethod_AddEntityKeypair(impl SRPCLocalSessionResourceServiceServer, strm srpc.Stream) error {
@@ -260,15 +191,6 @@ func (SRPCLocalSessionResourceServiceHandler) InvokeMethod_RemoveEntityKeypair(i
 	return strm.MsgSend(out)
 }
 
-func (SRPCLocalSessionResourceServiceHandler) InvokeMethod_WatchEntityKeypairs(impl SRPCLocalSessionResourceServiceServer, strm srpc.Stream) error {
-	req := new(WatchLocalEntityKeypairsRequest)
-	if err := strm.MsgRecv(req); err != nil {
-		return err
-	}
-	serverStrm := &srpcLocalSessionResourceService_WatchEntityKeypairsStream{strm}
-	return impl.WatchEntityKeypairs(req, serverStrm)
-}
-
 func (SRPCLocalSessionResourceServiceHandler) InvokeMethod_SetDisplayName(impl SRPCLocalSessionResourceServiceServer, strm srpc.Stream) error {
 	req := new(SetLocalDisplayNameRequest)
 	if err := strm.MsgRecv(req); err != nil {
@@ -290,14 +212,6 @@ func (SRPCLocalSessionResourceServiceHandler) InvokeMethod_WatchDisplayName(impl
 	return impl.WatchDisplayName(req, serverStrm)
 }
 
-type SRPCLocalSessionResourceService_ExportBackupKeyStream interface {
-	srpc.Stream
-}
-
-type srpcLocalSessionResourceService_ExportBackupKeyStream struct {
-	srpc.Stream
-}
-
 type SRPCLocalSessionResourceService_AddEntityKeypairStream interface {
 	srpc.Stream
 }
@@ -312,29 +226,6 @@ type SRPCLocalSessionResourceService_RemoveEntityKeypairStream interface {
 
 type srpcLocalSessionResourceService_RemoveEntityKeypairStream struct {
 	srpc.Stream
-}
-
-type SRPCLocalSessionResourceService_WatchEntityKeypairsStream interface {
-	srpc.Stream
-	Send(*WatchLocalEntityKeypairsResponse) error
-	SendAndClose(*WatchLocalEntityKeypairsResponse) error
-}
-
-type srpcLocalSessionResourceService_WatchEntityKeypairsStream struct {
-	srpc.Stream
-}
-
-func (x *srpcLocalSessionResourceService_WatchEntityKeypairsStream) Send(m *WatchLocalEntityKeypairsResponse) error {
-	return x.MsgSend(m)
-}
-
-func (x *srpcLocalSessionResourceService_WatchEntityKeypairsStream) SendAndClose(m *WatchLocalEntityKeypairsResponse) error {
-	if m != nil {
-		if err := x.MsgSend(m); err != nil {
-			return err
-		}
-	}
-	return x.CloseSend()
 }
 
 type SRPCLocalSessionResourceService_SetDisplayNameStream interface {

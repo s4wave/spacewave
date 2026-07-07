@@ -9,17 +9,11 @@ import type {
   SetLocalDisplayNameResponse,
   WatchLocalDisplayNameRequest,
   WatchLocalDisplayNameResponse,
-  WatchLocalEntityKeypairsRequest,
-  WatchLocalEntityKeypairsResponse,
 } from './local-session.pb.js'
 import {
   LocalSessionResourceService,
   LocalSessionResourceServiceClient,
 } from './local-session_srpc.pb.js'
-import type {
-  ExportBackupKeyRequest,
-  ExportBackupKeyResponse,
-} from './session.pb.js'
 
 // LocalSession wraps the LocalSessionResourceService SRPC client.
 // Access via session.localProvider on a local session.
@@ -29,14 +23,6 @@ export class LocalSession extends Resource {
   constructor(resourceRef: ClientResourceRef) {
     super(resourceRef)
     this.service = new LocalSessionResourceServiceClient(resourceRef.client)
-  }
-
-  // exportBackupKey exports the session entity private key as a PEM file.
-  public async exportBackupKey(
-    request: ExportBackupKeyRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<ExportBackupKeyResponse> {
-    return await this.service.ExportBackupKey(request, abortSignal)
   }
 
   // addEntityKeypair derives an entity key from a credential and adds it to AccountSettings.
@@ -53,14 +39,6 @@ export class LocalSession extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<RemoveLocalEntityKeypairResponse> {
     return await this.service.RemoveEntityKeypair(request, abortSignal)
-  }
-
-  // watchEntityKeypairs streams entity keypairs from the AccountSettings SO.
-  public watchEntityKeypairs(
-    req?: WatchLocalEntityKeypairsRequest,
-    abortSignal?: AbortSignal,
-  ): AsyncIterable<WatchLocalEntityKeypairsResponse> {
-    return this.service.WatchEntityKeypairs(req ?? {}, abortSignal)
   }
 
   // setDisplayName updates the local provider account display name.

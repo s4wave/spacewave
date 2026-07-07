@@ -173,14 +173,6 @@ class DeleteSpaceResponse;
 struct DeleteSpaceResponseDefaultTypeInternal;
 extern DeleteSpaceResponseDefaultTypeInternal _DeleteSpaceResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull DeleteSpaceResponse_class_data_;
-class ExportBackupKeyRequest;
-struct ExportBackupKeyRequestDefaultTypeInternal;
-extern ExportBackupKeyRequestDefaultTypeInternal _ExportBackupKeyRequest_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull ExportBackupKeyRequest_class_data_;
-class ExportBackupKeyResponse;
-struct ExportBackupKeyResponseDefaultTypeInternal;
-extern ExportBackupKeyResponseDefaultTypeInternal _ExportBackupKeyResponse_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull ExportBackupKeyResponse_class_data_;
 class GeneratePairingCodeRequest;
 struct GeneratePairingCodeRequestDefaultTypeInternal;
 extern GeneratePairingCodeRequestDefaultTypeInternal _GeneratePairingCodeRequest_default_instance_;
@@ -727,7 +719,7 @@ class WatchTransferProgressRequest final : public ::google::protobuf::internal::
     return *reinterpret_cast<const WatchTransferProgressRequest*>(
         &_WatchTransferProgressRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 49;
+  static constexpr int kIndexInFileMessages = 47;
   friend void swap(WatchTransferProgressRequest& a, WatchTransferProgressRequest& b) { a.Swap(&b); }
   inline void Swap(WatchTransferProgressRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2021,7 +2013,7 @@ class WatchPairingStatusResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchPairingStatusResponse*>(
         &_WatchPairingStatusResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 58;
+  static constexpr int kIndexInFileMessages = 56;
   friend void swap(WatchPairingStatusResponse& a, WatchPairingStatusResponse& b) { a.Swap(&b); }
   inline void Swap(WatchPairingStatusResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2285,7 +2277,7 @@ class WatchPairingStatusRequest final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const WatchPairingStatusRequest*>(
         &_WatchPairingStatusRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 57;
+  static constexpr int kIndexInFileMessages = 55;
   friend void swap(WatchPairingStatusRequest& a, WatchPairingStatusRequest& b) { a.Swap(&b); }
   inline void Swap(WatchPairingStatusRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2419,7 +2411,7 @@ class WatchPairedDevicesRequest final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const WatchPairedDevicesRequest*>(
         &_WatchPairedDevicesRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 53;
+  static constexpr int kIndexInFileMessages = 51;
   friend void swap(WatchPairedDevicesRequest& a, WatchPairedDevicesRequest& b) { a.Swap(&b); }
   inline void Swap(WatchPairedDevicesRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3218,7 +3210,7 @@ class UnlinkDeviceResponse final : public ::google::protobuf::internal::ZeroFiel
     return *reinterpret_cast<const UnlinkDeviceResponse*>(
         &_UnlinkDeviceResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 56;
+  static constexpr int kIndexInFileMessages = 54;
   friend void swap(UnlinkDeviceResponse& a, UnlinkDeviceResponse& b) { a.Swap(&b); }
   inline void Swap(UnlinkDeviceResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3353,7 +3345,7 @@ class UnlinkDeviceRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const UnlinkDeviceRequest*>(
         &_UnlinkDeviceRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 55;
+  static constexpr int kIndexInFileMessages = 53;
   friend void swap(UnlinkDeviceRequest& a, UnlinkDeviceRequest& b) { a.Swap(&b); }
   inline void Swap(UnlinkDeviceRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3547,7 +3539,7 @@ class StartTransferResponse final : public ::google::protobuf::internal::ZeroFie
     return *reinterpret_cast<const StartTransferResponse*>(
         &_StartTransferResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 48;
+  static constexpr int kIndexInFileMessages = 46;
   friend void swap(StartTransferResponse& a, StartTransferResponse& b) { a.Swap(&b); }
   inline void Swap(StartTransferResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3682,7 +3674,7 @@ class StartTransferRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const StartTransferRequest*>(
         &_StartTransferRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 47;
+  static constexpr int kIndexInFileMessages = 45;
   friend void swap(StartTransferRequest& a, StartTransferRequest& b) { a.Swap(&b); }
   inline void Swap(StartTransferRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4513,7 +4505,7 @@ class RevokeSpaceInviteResponse final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const RevokeSpaceInviteResponse*>(
         &_RevokeSpaceInviteResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 68;
+  static constexpr int kIndexInFileMessages = 66;
   friend void swap(RevokeSpaceInviteResponse& a, RevokeSpaceInviteResponse& b) { a.Swap(&b); }
   inline void Swap(RevokeSpaceInviteResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4648,7 +4640,7 @@ class RevokeSpaceInviteRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RevokeSpaceInviteRequest*>(
         &_RevokeSpaceInviteRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 67;
+  static constexpr int kIndexInFileMessages = 65;
   friend void swap(RevokeSpaceInviteRequest& a, RevokeSpaceInviteRequest& b) { a.Swap(&b); }
   inline void Swap(RevokeSpaceInviteRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5206,7 +5198,7 @@ class RemoveSpaceParticipantResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveSpaceParticipantResponse*>(
         &_RemoveSpaceParticipantResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 66;
+  static constexpr int kIndexInFileMessages = 64;
   friend void swap(RemoveSpaceParticipantResponse& a, RemoveSpaceParticipantResponse& b) { a.Swap(&b); }
   inline void Swap(RemoveSpaceParticipantResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5396,7 +5388,7 @@ class RemoveSpaceParticipantRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveSpaceParticipantRequest*>(
         &_RemoveSpaceParticipantRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 65;
+  static constexpr int kIndexInFileMessages = 63;
   friend void swap(RemoveSpaceParticipantRequest& a, RemoveSpaceParticipantRequest& b) { a.Swap(&b); }
   inline void Swap(RemoveSpaceParticipantRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6071,7 +6063,7 @@ class LocalPairingOffer final : public ::google::protobuf::Message
     return *reinterpret_cast<const LocalPairingOffer*>(
         &_LocalPairingOffer_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 73;
+  static constexpr int kIndexInFileMessages = 71;
   friend void swap(LocalPairingOffer& a, LocalPairingOffer& b) { a.Swap(&b); }
   inline void Swap(LocalPairingOffer* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6283,7 +6275,7 @@ class LocalPairingAnswer final : public ::google::protobuf::Message
     return *reinterpret_cast<const LocalPairingAnswer*>(
         &_LocalPairingAnswer_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 74;
+  static constexpr int kIndexInFileMessages = 72;
   friend void swap(LocalPairingAnswer& a, LocalPairingAnswer& b) { a.Swap(&b); }
   inline void Swap(LocalPairingAnswer* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6495,7 +6487,7 @@ class ListSpaceParticipantsRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListSpaceParticipantsRequest*>(
         &_ListSpaceParticipantsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 63;
+  static constexpr int kIndexInFileMessages = 61;
   friend void swap(ListSpaceParticipantsRequest& a, ListSpaceParticipantsRequest& b) { a.Swap(&b); }
   inline void Swap(ListSpaceParticipantsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6690,7 +6682,7 @@ class ListSpaceInvitesRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListSpaceInvitesRequest*>(
         &_ListSpaceInvitesRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 61;
+  static constexpr int kIndexInFileMessages = 59;
   friend void swap(ListSpaceInvitesRequest& a, ListSpaceInvitesRequest& b) { a.Swap(&b); }
   inline void Swap(ListSpaceInvitesRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6885,7 +6877,7 @@ class JoinSpaceViaInviteResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const JoinSpaceViaInviteResponse*>(
         &_JoinSpaceViaInviteResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 70;
+  static constexpr int kIndexInFileMessages = 68;
   friend void swap(JoinSpaceViaInviteResponse& a, JoinSpaceViaInviteResponse& b) { a.Swap(&b); }
   inline void Swap(JoinSpaceViaInviteResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7091,7 +7083,7 @@ class GetTransferStatusRequest final : public ::google::protobuf::internal::Zero
     return *reinterpret_cast<const GetTransferStatusRequest*>(
         &_GetTransferStatusRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 71;
+  static constexpr int kIndexInFileMessages = 69;
   friend void swap(GetTransferStatusRequest& a, GetTransferStatusRequest& b) { a.Swap(&b); }
   inline void Swap(GetTransferStatusRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7226,7 +7218,7 @@ class GetTransferInventoryRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetTransferInventoryRequest*>(
         &_GetTransferInventoryRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 45;
+  static constexpr int kIndexInFileMessages = 43;
   friend void swap(GetTransferInventoryRequest& a, GetTransferInventoryRequest& b) { a.Swap(&b); }
   inline void Swap(GetTransferInventoryRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8221,413 +8213,6 @@ class GeneratePairingCodeRequest final : public ::google::protobuf::internal::Ze
 extern const ::google::protobuf::internal::ClassDataFull GeneratePairingCodeRequest_class_data_;
 // -------------------------------------------------------------------
 
-class ExportBackupKeyResponse final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:s4wave.session.ExportBackupKeyResponse) */ {
- public:
-  inline ExportBackupKeyResponse() : ExportBackupKeyResponse(nullptr) {}
-  ~ExportBackupKeyResponse() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(ExportBackupKeyResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(ExportBackupKeyResponse));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR ExportBackupKeyResponse(::google::protobuf::internal::ConstantInitialized);
-
-  inline ExportBackupKeyResponse(const ExportBackupKeyResponse& from) : ExportBackupKeyResponse(nullptr, from) {}
-  inline ExportBackupKeyResponse(ExportBackupKeyResponse&& from) noexcept
-      : ExportBackupKeyResponse(nullptr, ::std::move(from)) {}
-  inline ExportBackupKeyResponse& operator=(const ExportBackupKeyResponse& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline ExportBackupKeyResponse& operator=(ExportBackupKeyResponse&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const ExportBackupKeyResponse& default_instance() {
-    return *reinterpret_cast<const ExportBackupKeyResponse*>(
-        &_ExportBackupKeyResponse_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 44;
-  friend void swap(ExportBackupKeyResponse& a, ExportBackupKeyResponse& b) { a.Swap(&b); }
-  inline void Swap(ExportBackupKeyResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(ExportBackupKeyResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  ExportBackupKeyResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<ExportBackupKeyResponse>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const ExportBackupKeyResponse& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const ExportBackupKeyResponse& from) { ExportBackupKeyResponse::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(ExportBackupKeyResponse* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.session.ExportBackupKeyResponse"; }
-
-  explicit ExportBackupKeyResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  ExportBackupKeyResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ExportBackupKeyResponse& from);
-  ExportBackupKeyResponse(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ExportBackupKeyResponse&& from) noexcept
-      : ExportBackupKeyResponse(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kPemDataFieldNumber = 1,
-    kPeerIdFieldNumber = 2,
-  };
-  // bytes pem_data = 1;
-  void clear_pem_data() ;
-  const ::std::string& pem_data() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_pem_data(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_pem_data();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_pem_data();
-  void set_allocated_pem_data(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_pem_data() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_pem_data(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_pem_data();
-
-  public:
-  // string peer_id = 2;
-  void clear_peer_id() ;
-  const ::std::string& peer_id() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_peer_id(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_peer_id();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_peer_id();
-  void set_allocated_peer_id(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_peer_id() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_peer_id(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_peer_id();
-
-  public:
-  // @@protoc_insertion_point(class_scope:s4wave.session.ExportBackupKeyResponse)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   0, 54,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const ExportBackupKeyResponse& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr pem_data_;
-    ::google::protobuf::internal::ArenaStringPtr peer_id_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull ExportBackupKeyResponse_class_data_;
-// -------------------------------------------------------------------
-
-class ExportBackupKeyRequest final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:s4wave.session.ExportBackupKeyRequest) */ {
- public:
-  inline ExportBackupKeyRequest() : ExportBackupKeyRequest(nullptr) {}
-  ~ExportBackupKeyRequest() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(ExportBackupKeyRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(ExportBackupKeyRequest));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR ExportBackupKeyRequest(::google::protobuf::internal::ConstantInitialized);
-
-  inline ExportBackupKeyRequest(const ExportBackupKeyRequest& from) : ExportBackupKeyRequest(nullptr, from) {}
-  inline ExportBackupKeyRequest(ExportBackupKeyRequest&& from) noexcept
-      : ExportBackupKeyRequest(nullptr, ::std::move(from)) {}
-  inline ExportBackupKeyRequest& operator=(const ExportBackupKeyRequest& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline ExportBackupKeyRequest& operator=(ExportBackupKeyRequest&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const ExportBackupKeyRequest& default_instance() {
-    return *reinterpret_cast<const ExportBackupKeyRequest*>(
-        &_ExportBackupKeyRequest_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 43;
-  friend void swap(ExportBackupKeyRequest& a, ExportBackupKeyRequest& b) { a.Swap(&b); }
-  inline void Swap(ExportBackupKeyRequest* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(ExportBackupKeyRequest* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  ExportBackupKeyRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<ExportBackupKeyRequest>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const ExportBackupKeyRequest& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const ExportBackupKeyRequest& from) { ExportBackupKeyRequest::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(ExportBackupKeyRequest* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.session.ExportBackupKeyRequest"; }
-
-  explicit ExportBackupKeyRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  ExportBackupKeyRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ExportBackupKeyRequest& from);
-  ExportBackupKeyRequest(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ExportBackupKeyRequest&& from) noexcept
-      : ExportBackupKeyRequest(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kPasswordFieldNumber = 1,
-  };
-  // string password = 1;
-  void clear_password() ;
-  const ::std::string& password() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_password(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_password();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_password();
-  void set_allocated_password(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_password() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_password(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_password();
-
-  public:
-  // @@protoc_insertion_point(class_scope:s4wave.session.ExportBackupKeyRequest)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
-                                   0, 54,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const ExportBackupKeyRequest& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr password_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull ExportBackupKeyRequest_class_data_;
-// -------------------------------------------------------------------
-
 class DeleteSpaceResponse final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:s4wave.session.DeleteSpaceResponse) */ {
  public:
@@ -9565,7 +9150,7 @@ class CreateLocalPairingOfferResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateLocalPairingOfferResponse*>(
         &_CreateLocalPairingOfferResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 76;
+  static constexpr int kIndexInFileMessages = 74;
   friend void swap(CreateLocalPairingOfferResponse& a, CreateLocalPairingOfferResponse& b) { a.Swap(&b); }
   inline void Swap(CreateLocalPairingOfferResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9759,7 +9344,7 @@ class CreateLocalPairingOfferRequest final : public ::google::protobuf::internal
     return *reinterpret_cast<const CreateLocalPairingOfferRequest*>(
         &_CreateLocalPairingOfferRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 75;
+  static constexpr int kIndexInFileMessages = 73;
   friend void swap(CreateLocalPairingOfferRequest& a, CreateLocalPairingOfferRequest& b) { a.Swap(&b); }
   inline void Swap(CreateLocalPairingOfferRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10953,7 +10538,7 @@ class CancelTransferResponse final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const CancelTransferResponse*>(
         &_CancelTransferResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 52;
+  static constexpr int kIndexInFileMessages = 50;
   friend void swap(CancelTransferResponse& a, CancelTransferResponse& b) { a.Swap(&b); }
   inline void Swap(CancelTransferResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11087,7 +10672,7 @@ class CancelTransferRequest final : public ::google::protobuf::internal::ZeroFie
     return *reinterpret_cast<const CancelTransferRequest*>(
         &_CancelTransferRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 51;
+  static constexpr int kIndexInFileMessages = 49;
   friend void swap(CancelTransferRequest& a, CancelTransferRequest& b) { a.Swap(&b); }
   inline void Swap(CancelTransferRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11607,7 +11192,7 @@ class AcceptLocalPairingOfferResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AcceptLocalPairingOfferResponse*>(
         &_AcceptLocalPairingOfferResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 78;
+  static constexpr int kIndexInFileMessages = 76;
   friend void swap(AcceptLocalPairingOfferResponse& a, AcceptLocalPairingOfferResponse& b) { a.Swap(&b); }
   inline void Swap(AcceptLocalPairingOfferResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11802,7 +11387,7 @@ class AcceptLocalPairingOfferRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AcceptLocalPairingOfferRequest*>(
         &_AcceptLocalPairingOfferRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 77;
+  static constexpr int kIndexInFileMessages = 75;
   friend void swap(AcceptLocalPairingOfferRequest& a, AcceptLocalPairingOfferRequest& b) { a.Swap(&b); }
   inline void Swap(AcceptLocalPairingOfferRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11997,7 +11582,7 @@ class AcceptLocalPairingAnswerResponse final : public ::google::protobuf::Messag
     return *reinterpret_cast<const AcceptLocalPairingAnswerResponse*>(
         &_AcceptLocalPairingAnswerResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 80;
+  static constexpr int kIndexInFileMessages = 78;
   friend void swap(AcceptLocalPairingAnswerResponse& a, AcceptLocalPairingAnswerResponse& b) { a.Swap(&b); }
   inline void Swap(AcceptLocalPairingAnswerResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12192,7 +11777,7 @@ class AcceptLocalPairingAnswerRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AcceptLocalPairingAnswerRequest*>(
         &_AcceptLocalPairingAnswerRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 79;
+  static constexpr int kIndexInFileMessages = 77;
   friend void swap(AcceptLocalPairingAnswerRequest& a, AcceptLocalPairingAnswerRequest& b) { a.Swap(&b); }
   inline void Swap(AcceptLocalPairingAnswerRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13418,7 +13003,7 @@ class WatchPairedDevicesResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchPairedDevicesResponse*>(
         &_WatchPairedDevicesResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 54;
+  static constexpr int kIndexInFileMessages = 52;
   friend void swap(WatchPairedDevicesResponse& a, WatchPairedDevicesResponse& b) { a.Swap(&b); }
   inline void Swap(WatchPairedDevicesResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13909,7 +13494,7 @@ class ListSpaceParticipantsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListSpaceParticipantsResponse*>(
         &_ListSpaceParticipantsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 64;
+  static constexpr int kIndexInFileMessages = 62;
   friend void swap(ListSpaceParticipantsResponse& a, ListSpaceParticipantsResponse& b) { a.Swap(&b); }
   inline void Swap(ListSpaceParticipantsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14106,7 +13691,7 @@ class CreateSpaceInviteRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateSpaceInviteRequest*>(
         &_CreateSpaceInviteRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 59;
+  static constexpr int kIndexInFileMessages = 57;
   friend void swap(CreateSpaceInviteRequest& a, CreateSpaceInviteRequest& b) { a.Swap(&b); }
   inline void Swap(CreateSpaceInviteRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14359,7 +13944,7 @@ class ListSpaceInvitesResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListSpaceInvitesResponse*>(
         &_ListSpaceInvitesResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 62;
+  static constexpr int kIndexInFileMessages = 60;
   friend void swap(ListSpaceInvitesResponse& a, ListSpaceInvitesResponse& b) { a.Swap(&b); }
   inline void Swap(ListSpaceInvitesResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14556,7 +14141,7 @@ class JoinSpaceViaInviteRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const JoinSpaceViaInviteRequest*>(
         &_JoinSpaceViaInviteRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 69;
+  static constexpr int kIndexInFileMessages = 67;
   friend void swap(JoinSpaceViaInviteRequest& a, JoinSpaceViaInviteRequest& b) { a.Swap(&b); }
   inline void Swap(JoinSpaceViaInviteRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15250,7 +14835,7 @@ class CreateSpaceInviteResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateSpaceInviteResponse*>(
         &_CreateSpaceInviteResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 60;
+  static constexpr int kIndexInFileMessages = 58;
   friend void swap(CreateSpaceInviteResponse& a, CreateSpaceInviteResponse& b) { a.Swap(&b); }
   inline void Swap(CreateSpaceInviteResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15462,7 +15047,7 @@ class WatchTransferProgressResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchTransferProgressResponse*>(
         &_WatchTransferProgressResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 50;
+  static constexpr int kIndexInFileMessages = 48;
   friend void swap(WatchTransferProgressResponse& a, WatchTransferProgressResponse& b) { a.Swap(&b); }
   inline void Swap(WatchTransferProgressResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15657,7 +15242,7 @@ class GetTransferStatusResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetTransferStatusResponse*>(
         &_GetTransferStatusResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 72;
+  static constexpr int kIndexInFileMessages = 70;
   friend void swap(GetTransferStatusResponse& a, GetTransferStatusResponse& b) { a.Swap(&b); }
   inline void Swap(GetTransferStatusResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -16073,7 +15658,7 @@ class GetTransferInventoryResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetTransferInventoryResponse*>(
         &_GetTransferInventoryResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 46;
+  static constexpr int kIndexInFileMessages = 44;
   friend void swap(GetTransferInventoryResponse& a, GetTransferInventoryResponse& b) { a.Swap(&b); }
   inline void Swap(GetTransferInventoryResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -20671,209 +20256,6 @@ inline ::uint32_t WatchSessionStateAtomsResponse::_internal_store_count() const 
 inline void WatchSessionStateAtomsResponse::_internal_set_store_count(::uint32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.store_count_ = value;
-}
-
-// -------------------------------------------------------------------
-
-// ExportBackupKeyRequest
-
-// string password = 1;
-inline void ExportBackupKeyRequest::clear_password() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.password_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline const ::std::string& ExportBackupKeyRequest::password() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.session.ExportBackupKeyRequest.password)
-  return _internal_password();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void ExportBackupKeyRequest::set_password(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  _impl_.password_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.session.ExportBackupKeyRequest.password)
-}
-inline ::std::string* PROTOBUF_NONNULL ExportBackupKeyRequest::mutable_password()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::std::string* _s = _internal_mutable_password();
-  // @@protoc_insertion_point(field_mutable:s4wave.session.ExportBackupKeyRequest.password)
-  return _s;
-}
-inline const ::std::string& ExportBackupKeyRequest::_internal_password() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.password_.Get();
-}
-inline void ExportBackupKeyRequest::_internal_set_password(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.password_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL ExportBackupKeyRequest::_internal_mutable_password() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.password_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE ExportBackupKeyRequest::release_password() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.session.ExportBackupKeyRequest.password)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  auto* released = _impl_.password_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.password_.Set("", GetArena());
-  }
-  return released;
-}
-inline void ExportBackupKeyRequest::set_allocated_password(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.password_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.password_.IsDefault()) {
-    _impl_.password_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.session.ExportBackupKeyRequest.password)
-}
-
-// -------------------------------------------------------------------
-
-// ExportBackupKeyResponse
-
-// bytes pem_data = 1;
-inline void ExportBackupKeyResponse::clear_pem_data() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.pem_data_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline const ::std::string& ExportBackupKeyResponse::pem_data() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.session.ExportBackupKeyResponse.pem_data)
-  return _internal_pem_data();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void ExportBackupKeyResponse::set_pem_data(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  _impl_.pem_data_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.session.ExportBackupKeyResponse.pem_data)
-}
-inline ::std::string* PROTOBUF_NONNULL ExportBackupKeyResponse::mutable_pem_data()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::std::string* _s = _internal_mutable_pem_data();
-  // @@protoc_insertion_point(field_mutable:s4wave.session.ExportBackupKeyResponse.pem_data)
-  return _s;
-}
-inline const ::std::string& ExportBackupKeyResponse::_internal_pem_data() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.pem_data_.Get();
-}
-inline void ExportBackupKeyResponse::_internal_set_pem_data(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.pem_data_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL ExportBackupKeyResponse::_internal_mutable_pem_data() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.pem_data_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE ExportBackupKeyResponse::release_pem_data() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.session.ExportBackupKeyResponse.pem_data)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  auto* released = _impl_.pem_data_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.pem_data_.Set("", GetArena());
-  }
-  return released;
-}
-inline void ExportBackupKeyResponse::set_allocated_pem_data(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.pem_data_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.pem_data_.IsDefault()) {
-    _impl_.pem_data_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.session.ExportBackupKeyResponse.pem_data)
-}
-
-// string peer_id = 2;
-inline void ExportBackupKeyResponse::clear_peer_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.peer_id_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
-}
-inline const ::std::string& ExportBackupKeyResponse::peer_id() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.session.ExportBackupKeyResponse.peer_id)
-  return _internal_peer_id();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void ExportBackupKeyResponse::set_peer_id(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  _impl_.peer_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.session.ExportBackupKeyResponse.peer_id)
-}
-inline ::std::string* PROTOBUF_NONNULL ExportBackupKeyResponse::mutable_peer_id()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::std::string* _s = _internal_mutable_peer_id();
-  // @@protoc_insertion_point(field_mutable:s4wave.session.ExportBackupKeyResponse.peer_id)
-  return _s;
-}
-inline const ::std::string& ExportBackupKeyResponse::_internal_peer_id() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.peer_id_.Get();
-}
-inline void ExportBackupKeyResponse::_internal_set_peer_id(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.peer_id_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL ExportBackupKeyResponse::_internal_mutable_peer_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.peer_id_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE ExportBackupKeyResponse::release_peer_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.session.ExportBackupKeyResponse.peer_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  auto* released = _impl_.peer_id_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.peer_id_.Set("", GetArena());
-  }
-  return released;
-}
-inline void ExportBackupKeyResponse::set_allocated_peer_id(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  }
-  _impl_.peer_id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.peer_id_.IsDefault()) {
-    _impl_.peer_id_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.session.ExportBackupKeyResponse.peer_id)
 }
 
 // -------------------------------------------------------------------

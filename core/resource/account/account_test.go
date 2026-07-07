@@ -2,17 +2,25 @@ package resource_account_test
 
 import (
 	"context"
+	"crypto/rand"
+	"io"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/ccontainer"
+	auth_password "github.com/s4wave/spacewave/auth/method/password"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	"github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	resource_account "github.com/s4wave/spacewave/core/resource/account"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
+	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/keypem"
+	"github.com/s4wave/spacewave/net/peer"
 	s4wave_account "github.com/s4wave/spacewave/sdk/account"
 	s4wave_command "github.com/s4wave/spacewave/sdk/command"
 	"github.com/s4wave/spacewave/testbed"
@@ -94,6 +102,247 @@ func TestWatchAccountInfoLocal(t *testing.T) {
 	}
 	if received.GetKeypairCount() != 1 {
 		t.Fatalf("expected keypair count 1, got %d", received.GetKeypairCount())
+	}
+}
+
+func TestWatchEntityKeypairsLocalStreamsAccountSettingsKeypairs(t *testing.T) {
+	ctx := t.Context()
+
+	tb, _, _, acc, release := setupLocalProviderAccount(ctx, t)
+	defer release()
+
+	so, soRelease := mountLocalAccountSettingsSO(ctx, t, tb, acc)
+	defer soRelease()
+
+	peerID := generateTestPeerID(t)
+	keypairOp := &account_settings.AccountSettingsOp{
+		Op: &account_settings.AccountSettingsOp_AddEntityKeypair{
+			AddEntityKeypair: &session.EntityKeypair{
+				PeerId:     peerID,
+				AuthMethod: auth_password.MethodID,
+			},
+		},
+	}
+	keypairData, err := keypairOp.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	queueAccountSettingsOp(ctx, t, so, keypairData)
+	waitForAccountSettings(ctx, t, so, func(settings *account_settings.AccountSettings) bool {
+		return hasEntityKeypair(settings, peerID, auth_password.MethodID)
+	})
+
+	ar := resource_account.NewAccountResource(acc)
+	if ar == nil {
+		t.Fatal("expected local account resource")
+	}
+
+	var received *s4wave_account.WatchEntityKeypairsResponse
+	strm := &testWatchEntityKeypairsStream{
+		ctx: ctx,
+		onSend: func(resp *s4wave_account.WatchEntityKeypairsResponse) error {
+			received = resp
+			for _, state := range resp.GetKeypairs() {
+				keypair := state.GetKeypair()
+				if keypair.GetPeerId() == peerID && keypair.GetAuthMethod() == auth_password.MethodID {
+					return io.EOF
+				}
+			}
+			return nil
+		},
+	}
+
+	err = ar.WatchEntityKeypairs(&s4wave_account.WatchEntityKeypairsRequest{}, strm)
+	if err != nil && err != io.EOF {
+		t.Fatal(err)
+	}
+	if received == nil {
+		t.Fatal("expected local entity keypair snapshot")
+	}
+	if received.GetUnlockedCount() != 0 {
+		t.Fatalf("expected no unlocked local keypairs, got %d", received.GetUnlockedCount())
+	}
+	keypairs := received.GetKeypairs()
+	if len(keypairs) != 1 {
+		t.Fatalf("expected 1 entity keypair, got %d", len(keypairs))
+	}
+	state := keypairs[0]
+	if state.GetUnlocked() {
+		t.Fatal("expected local account keypair stream to report locked keypairs")
+	}
+	keypair := state.GetKeypair()
+	if keypair.GetPeerId() != peerID {
+		t.Fatalf("expected peer id %q, got %q", peerID, keypair.GetPeerId())
+	}
+	if keypair.GetAuthMethod() != auth_password.MethodID {
+		t.Fatalf("expected auth method %q, got %q", auth_password.MethodID, keypair.GetAuthMethod())
+	}
+}
+
+func TestGenerateBackupKeyLocalPersistsPEMKeypair(t *testing.T) {
+	ctx := t.Context()
+
+	tb, _, _, acc, release := setupLocalProviderAccount(ctx, t)
+	defer release()
+
+	so, soRelease := mountLocalAccountSettingsSO(ctx, t, tb, acc)
+	defer soRelease()
+
+	ar := resource_account.NewAccountResource(acc)
+	if ar == nil {
+		t.Fatal("expected local account resource")
+	}
+
+	resp, err := ar.GenerateBackupKey(ctx, &s4wave_account.GenerateBackupKeyRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.GetPemData()) == 0 {
+		t.Fatal("expected backup key PEM data")
+	}
+	if resp.GetPeerId() == "" {
+		t.Fatal("expected backup key peer id")
+	}
+	backupPriv, err := keypem.ParsePrivKeyPem(resp.GetPemData())
+	if err != nil {
+		t.Fatalf("parse generated backup PEM: %v", err)
+	}
+	backupPeerID, err := peer.IDFromPrivateKey(backupPriv)
+	if err != nil {
+		t.Fatalf("derive generated backup peer id: %v", err)
+	}
+	if backupPeerID.String() != resp.GetPeerId() {
+		t.Fatalf("PEM peer id = %q, response peer id = %q", backupPeerID.String(), resp.GetPeerId())
+	}
+
+	settings := waitForAccountSettings(ctx, t, so, func(settings *account_settings.AccountSettings) bool {
+		return hasEntityKeypair(settings, resp.GetPeerId(), "pem")
+	})
+	var matched *session.EntityKeypair
+	for _, kp := range settings.GetEntityKeypairs() {
+		if kp.GetPeerId() == resp.GetPeerId() {
+			matched = kp
+			break
+		}
+	}
+	if matched == nil {
+		t.Fatalf("expected AccountSettings PEM keypair row for %q", resp.GetPeerId())
+	}
+	if matched.GetAuthMethod() != "pem" {
+		t.Fatalf("expected persisted backup auth method %q, got %q", "pem", matched.GetAuthMethod())
+	}
+}
+
+func TestResolveEntityKeyLocalPasswordUsesAccountID(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("production-cost password scrypt is too slow under GoScript")
+	}
+
+	ctx := t.Context()
+
+	_, _, accountID, acc, release := setupLocalProviderAccount(ctx, t)
+	defer release()
+
+	password := "local-resolve-password"
+	_, expectedPriv, err := auth_password.BuildParametersWithUsernamePassword(accountID, []byte(password))
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedPeerID, err := peer.IDFromPrivateKey(expectedPriv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ar := resource_account.NewAccountResource(acc)
+	if ar == nil {
+		t.Fatal("expected local account resource")
+	}
+
+	priv, gotPeerID, err := ar.ResolveEntityKey(ctx, &session.EntityCredential{
+		Credential: &session.EntityCredential_Password{Password: password},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotPeerID != expectedPeerID {
+		t.Fatalf("expected password peer id %q derived from local account id %q, got %q", expectedPeerID, accountID, gotPeerID)
+	}
+
+	privPeerID, err := peer.IDFromPrivateKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if privPeerID != expectedPeerID {
+		t.Fatalf("resolved private key peer id = %q, expected %q", privPeerID, expectedPeerID)
+	}
+}
+
+func TestChangePasswordLocalReplacesPasswordKeypair(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("production-cost password scrypt is too slow under GoScript; PEM credential resource coverage runs separately")
+	}
+
+	ctx := t.Context()
+
+	tb, _, accountID, acc, release := setupLocalProviderAccount(ctx, t)
+	defer release()
+
+	so, soRelease := mountLocalAccountSettingsSO(ctx, t, tb, acc)
+	defer soRelease()
+
+	oldPassword := "old-local-password"
+	newPassword := "new-local-password"
+	oldPeerID := derivePasswordPeerID(t, accountID, oldPassword)
+	newPeerID := derivePasswordPeerID(t, accountID, newPassword)
+
+	oldKeypairOp := &account_settings.AccountSettingsOp{
+		Op: &account_settings.AccountSettingsOp_AddEntityKeypair{
+			AddEntityKeypair: &session.EntityKeypair{
+				PeerId:     oldPeerID,
+				AuthMethod: auth_password.MethodID,
+			},
+		},
+	}
+	oldKeypairData, err := oldKeypairOp.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	queueAccountSettingsOp(ctx, t, so, oldKeypairData)
+	waitForAccountSettings(ctx, t, so, func(settings *account_settings.AccountSettings) bool {
+		return hasEntityKeypair(settings, oldPeerID, auth_password.MethodID)
+	})
+
+	ar := resource_account.NewAccountResource(acc)
+	if ar == nil {
+		t.Fatal("expected local account resource")
+	}
+
+	if _, err := ar.ChangePassword(ctx, &s4wave_account.ChangePasswordRequest{
+		OldPassword: oldPassword,
+		NewPassword: newPassword,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	settings := waitForAccountSettings(ctx, t, so, func(settings *account_settings.AccountSettings) bool {
+		keypairs := settings.GetEntityKeypairs()
+		return len(keypairs) == 1 &&
+			keypairs[0].GetPeerId() == newPeerID &&
+			keypairs[0].GetAuthMethod() == auth_password.MethodID
+	})
+	keypairs := settings.GetEntityKeypairs()
+	if len(keypairs) != 1 {
+		t.Fatalf("expected exactly one password keypair after password change, got %d", len(keypairs))
+	}
+	keypair := keypairs[0]
+	if keypair.GetPeerId() != newPeerID {
+		t.Fatalf("expected new password peer id %q, got %q", newPeerID, keypair.GetPeerId())
+	}
+	if keypair.GetPeerId() == oldPeerID {
+		t.Fatalf("old password peer id %q remained after password change", oldPeerID)
+	}
+	if keypair.GetAuthMethod() != auth_password.MethodID {
+		t.Fatalf("expected auth method %q, got %q", auth_password.MethodID, keypair.GetAuthMethod())
 	}
 }
 
@@ -427,6 +676,52 @@ func mountLocalAccountSettingsSO(
 	return so, func() { mountRef.Release() }
 }
 
+func waitForAccountSettings(
+	ctx context.Context,
+	t *testing.T,
+	so sobject.SharedObject,
+	valid func(*account_settings.AccountSettings) bool,
+) *account_settings.AccountSettings {
+	t.Helper()
+
+	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer relStateCtr()
+
+	var settings *account_settings.AccountSettings
+	err = ccontainer.WatchChanges(
+		ctx,
+		nil,
+		stateCtr,
+		func(snap sobject.SharedObjectStateSnapshot) error {
+			settings = decodeAccountSettings(ctx, t, snap)
+			if valid(settings) {
+				return io.EOF
+			}
+			return nil
+		},
+		nil,
+	)
+	if err != nil && err != io.EOF {
+		t.Fatal(err)
+	}
+	if settings == nil {
+		t.Fatal("expected account settings state")
+	}
+	return settings
+}
+
+func hasEntityKeypair(settings *account_settings.AccountSettings, peerID string, authMethod string) bool {
+	for _, kp := range settings.GetEntityKeypairs() {
+		if kp.GetPeerId() == peerID && kp.GetAuthMethod() == authMethod {
+			return true
+		}
+	}
+	return false
+}
+
 func queueAccountSettingsOp(
 	ctx context.Context,
 	t *testing.T,
@@ -445,6 +740,74 @@ func queueAccountSettingsOp(
 		}
 		t.Fatal(err)
 	}
+}
+
+func readAccountSettings(ctx context.Context, t *testing.T, so sobject.SharedObject) *account_settings.AccountSettings {
+	t.Helper()
+
+	getter, ok := so.(interface {
+		GetSharedObjectState(context.Context) (sobject.SharedObjectStateSnapshot, error)
+	})
+	if !ok {
+		t.Fatal("mounted account settings shared object cannot read state directly")
+	}
+	snap, err := getter.GetSharedObjectState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return decodeAccountSettings(ctx, t, snap)
+}
+
+func decodeAccountSettings(
+	ctx context.Context,
+	t *testing.T,
+	snap sobject.SharedObjectStateSnapshot,
+) *account_settings.AccountSettings {
+	t.Helper()
+
+	settings := &account_settings.AccountSettings{}
+	if snap == nil {
+		return settings
+	}
+	rootInner, err := snap.GetRootInner(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rootInner == nil || len(rootInner.GetStateData()) == 0 {
+		return settings
+	}
+	if err := settings.UnmarshalVT(rootInner.GetStateData()); err != nil {
+		t.Fatal(err)
+	}
+	return settings
+}
+
+func generateTestPeerID(t *testing.T) string {
+	t.Helper()
+
+	priv, _, err := bifrost_crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pid, err := peer.IDFromPrivateKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return pid.String()
+}
+
+func derivePasswordPeerID(t *testing.T, accountID string, password string) string {
+	t.Helper()
+
+	_, priv, err := auth_password.BuildParametersWithUsernamePassword(accountID, []byte(password))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pid, err := peer.IDFromPrivateKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return pid.String()
 }
 
 type testWatchSessionsStream struct {
@@ -500,5 +863,25 @@ func (s *testWatchAccountInfoStream) Send(resp *s4wave_account.WatchAccountInfoR
 }
 
 func (s *testWatchAccountInfoStream) SendAndClose(resp *s4wave_account.WatchAccountInfoResponse) error {
+	return s.onSend(resp)
+}
+
+type testWatchEntityKeypairsStream struct {
+	ctx    context.Context
+	onSend func(*s4wave_account.WatchEntityKeypairsResponse) error
+}
+
+func (s *testWatchEntityKeypairsStream) Context() context.Context { return s.ctx }
+func (s *testWatchEntityKeypairsStream) MsgRecv(_ srpc.Message) error {
+	return nil
+}
+func (s *testWatchEntityKeypairsStream) CloseSend() error             { return nil }
+func (s *testWatchEntityKeypairsStream) Close() error                 { return nil }
+func (s *testWatchEntityKeypairsStream) MsgSend(_ srpc.Message) error { return nil }
+func (s *testWatchEntityKeypairsStream) Send(resp *s4wave_account.WatchEntityKeypairsResponse) error {
+	return s.onSend(resp)
+}
+
+func (s *testWatchEntityKeypairsStream) SendAndClose(resp *s4wave_account.WatchEntityKeypairsResponse) error {
 	return s.onSend(resp)
 }

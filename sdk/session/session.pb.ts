@@ -2084,59 +2084,6 @@ export const WatchSessionStateAtomsResponse: MessageType<WatchSessionStateAtomsR
   })
 
 /**
- * ExportBackupKeyRequest is the request for ExportBackupKey.
- *
- * @generated from message s4wave.session.ExportBackupKeyRequest
- */
-export interface ExportBackupKeyRequest {
-  /**
-   * Password encrypts the PEM output. Required.
-   *
-   * @generated from field: string password = 1;
-   */
-  password?: string
-}
-
-export const ExportBackupKeyRequest: MessageType<ExportBackupKeyRequest> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.session.ExportBackupKeyRequest',
-    fields: [
-      { no: 1, name: 'password', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * ExportBackupKeyResponse is the response for ExportBackupKey.
- *
- * @generated from message s4wave.session.ExportBackupKeyResponse
- */
-export interface ExportBackupKeyResponse {
-  /**
-   * PemData is the PEM-encoded private key.
-   *
-   * @generated from field: bytes pem_data = 1;
-   */
-  pemData?: Uint8Array
-  /**
-   * PeerId is the base58 peer ID derived from the key.
-   *
-   * @generated from field: string peer_id = 2;
-   */
-  peerId?: string
-}
-
-export const ExportBackupKeyResponse: MessageType<ExportBackupKeyResponse> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.session.ExportBackupKeyResponse',
-    fields: [
-      { no: 1, name: 'pem_data', kind: 'scalar', T: ScalarType.BYTES },
-      { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
  * GetTransferInventoryRequest is the request for GetTransferInventory.
  *
  * @generated from message s4wave.session.GetTransferInventoryRequest

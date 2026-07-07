@@ -20,8 +20,6 @@ namespace s4wave::session {
 // Service ID for LocalSessionResourceService
 constexpr const char* kSRPCLocalSessionResourceServiceServiceID = "s4wave.session.LocalSessionResourceService";
 
-class SRPCLocalSessionResourceService_WatchEntityKeypairsClient;
-class SRPCLocalSessionResourceService_WatchEntityKeypairsStream;
 class SRPCLocalSessionResourceService_WatchDisplayNameClient;
 class SRPCLocalSessionResourceService_WatchDisplayNameStream;
 
@@ -33,14 +31,10 @@ class SRPCLocalSessionResourceServiceClient {
   // SRPCClient returns the underlying SRPC client.
   virtual starpc::Client* SRPCClient() = 0;
 
-  // ExportBackupKey
-  virtual starpc::Error ExportBackupKey(const s4wave::session::ExportBackupKeyRequest& in, s4wave::session::ExportBackupKeyResponse* out) = 0;
   // AddEntityKeypair
   virtual starpc::Error AddEntityKeypair(const s4wave::session::AddLocalEntityKeypairRequest& in, s4wave::session::AddLocalEntityKeypairResponse* out) = 0;
   // RemoveEntityKeypair
   virtual starpc::Error RemoveEntityKeypair(const s4wave::session::RemoveLocalEntityKeypairRequest& in, s4wave::session::RemoveLocalEntityKeypairResponse* out) = 0;
-  // WatchEntityKeypairs
-  virtual std::pair<std::unique_ptr<SRPCLocalSessionResourceService_WatchEntityKeypairsClient>, starpc::Error> WatchEntityKeypairs(const s4wave::session::WatchLocalEntityKeypairsRequest& in) = 0;
   // SetDisplayName
   virtual starpc::Error SetDisplayName(const s4wave::session::SetLocalDisplayNameRequest& in, s4wave::session::SetLocalDisplayNameResponse* out) = 0;
   // WatchDisplayName
@@ -55,14 +49,10 @@ class SRPCLocalSessionResourceServiceClientImpl : public SRPCLocalSessionResourc
 
   starpc::Client* SRPCClient() override { return cc_; }
 
-  // ExportBackupKey
-  virtual starpc::Error ExportBackupKey(const s4wave::session::ExportBackupKeyRequest& in, s4wave::session::ExportBackupKeyResponse* out) override;
   // AddEntityKeypair
   virtual starpc::Error AddEntityKeypair(const s4wave::session::AddLocalEntityKeypairRequest& in, s4wave::session::AddLocalEntityKeypairResponse* out) override;
   // RemoveEntityKeypair
   virtual starpc::Error RemoveEntityKeypair(const s4wave::session::RemoveLocalEntityKeypairRequest& in, s4wave::session::RemoveLocalEntityKeypairResponse* out) override;
-  // WatchEntityKeypairs
-  virtual std::pair<std::unique_ptr<SRPCLocalSessionResourceService_WatchEntityKeypairsClient>, starpc::Error> WatchEntityKeypairs(const s4wave::session::WatchLocalEntityKeypairsRequest& in) override;
   // SetDisplayName
   virtual starpc::Error SetDisplayName(const s4wave::session::SetLocalDisplayNameRequest& in, s4wave::session::SetLocalDisplayNameResponse* out) override;
   // WatchDisplayName
@@ -83,14 +73,10 @@ class SRPCLocalSessionResourceServiceServer {
  public:
   virtual ~SRPCLocalSessionResourceServiceServer() = default;
 
-  // ExportBackupKey
-  virtual starpc::Error ExportBackupKey(const s4wave::session::ExportBackupKeyRequest& req, s4wave::session::ExportBackupKeyResponse* resp) = 0;
   // AddEntityKeypair
   virtual starpc::Error AddEntityKeypair(const s4wave::session::AddLocalEntityKeypairRequest& req, s4wave::session::AddLocalEntityKeypairResponse* resp) = 0;
   // RemoveEntityKeypair
   virtual starpc::Error RemoveEntityKeypair(const s4wave::session::RemoveLocalEntityKeypairRequest& req, s4wave::session::RemoveLocalEntityKeypairResponse* resp) = 0;
-  // WatchEntityKeypairs
-  virtual starpc::Error WatchEntityKeypairs(const s4wave::session::WatchLocalEntityKeypairsRequest& req, SRPCLocalSessionResourceService_WatchEntityKeypairsStream* strm) = 0;
   // SetDisplayName
   virtual starpc::Error SetDisplayName(const s4wave::session::SetLocalDisplayNameRequest& req, s4wave::session::SetLocalDisplayNameResponse* resp) = 0;
   // WatchDisplayName
@@ -130,41 +116,6 @@ inline std::pair<std::unique_ptr<SRPCLocalSessionResourceServiceHandler>, starpc
   }
   return {std::move(handler), starpc::Error::OK};
 }
-
-// SRPCLocalSessionResourceService_WatchEntityKeypairsClient is the client stream for WatchEntityKeypairs.
-class SRPCLocalSessionResourceService_WatchEntityKeypairsClient {
- public:
-  explicit SRPCLocalSessionResourceService_WatchEntityKeypairsClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
-
-  starpc::Error Recv(s4wave::session::WatchLocalEntityKeypairsResponse* msg) {
-    return strm_->MsgRecv(msg);
-  }
-
-  starpc::Error CloseSend() { return strm_->CloseSend(); }
-  starpc::Error Close() { return strm_->Close(); }
-
- private:
-  std::unique_ptr<starpc::Stream> strm_;
-};
-
-// SRPCLocalSessionResourceService_WatchEntityKeypairsStream is the server stream for WatchEntityKeypairs.
-class SRPCLocalSessionResourceService_WatchEntityKeypairsStream {
- public:
-  explicit SRPCLocalSessionResourceService_WatchEntityKeypairsStream(starpc::Stream* strm) : strm_(strm) {}
-
-  starpc::Error Send(const s4wave::session::WatchLocalEntityKeypairsResponse& msg) {
-    return strm_->MsgSend(msg);
-  }
-
-  starpc::Error SendAndClose(const s4wave::session::WatchLocalEntityKeypairsResponse& msg) {
-    starpc::Error err = strm_->MsgSend(msg);
-    if (err != starpc::Error::OK) return err;
-    return strm_->CloseSend();
-  }
-
- private:
-  starpc::Stream* strm_;
-};
 
 // SRPCLocalSessionResourceService_WatchDisplayNameClient is the client stream for WatchDisplayName.
 class SRPCLocalSessionResourceService_WatchDisplayNameClient {

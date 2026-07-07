@@ -2,10 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/sdk/session/local-session.proto (package s4wave.session, syntax proto3)
 /* eslint-disable */
 
-import {
-  EntityCredential,
-  EntityKeypair,
-} from '../../core/session/session.pb.js'
+import { EntityCredential } from '../../core/session/session.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
   createEmptyMessageType,
@@ -97,48 +94,6 @@ export const RemoveLocalEntityKeypairResponse: MessageType<RemoveLocalEntityKeyp
     's4wave.session.RemoveLocalEntityKeypairResponse',
     true,
   )
-
-/**
- * WatchLocalEntityKeypairsRequest is the request for WatchEntityKeypairs on local sessions.
- *
- * @generated from message s4wave.session.WatchLocalEntityKeypairsRequest
- */
-export interface WatchLocalEntityKeypairsRequest {}
-
-export const WatchLocalEntityKeypairsRequest: MessageType<WatchLocalEntityKeypairsRequest> =
-  /* @__PURE__ */ createEmptyMessageType<WatchLocalEntityKeypairsRequest>(
-    's4wave.session.WatchLocalEntityKeypairsRequest',
-    true,
-  )
-
-/**
- * WatchLocalEntityKeypairsResponse is the response for WatchEntityKeypairs on local sessions.
- *
- * @generated from message s4wave.session.WatchLocalEntityKeypairsResponse
- */
-export interface WatchLocalEntityKeypairsResponse {
-  /**
-   * Keypairs is the list of entity keypairs from AccountSettings.
-   *
-   * @generated from field: repeated session.EntityKeypair keypairs = 1;
-   */
-  keypairs?: EntityKeypair[]
-}
-
-export const WatchLocalEntityKeypairsResponse: MessageType<WatchLocalEntityKeypairsResponse> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.session.WatchLocalEntityKeypairsResponse',
-    fields: [
-      {
-        no: 1,
-        name: 'keypairs',
-        kind: 'message',
-        T: () => EntityKeypair,
-        repeated: true,
-      },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
 
 /**
  * SetLocalDisplayNameRequest is the request for SetDisplayName on local sessions.

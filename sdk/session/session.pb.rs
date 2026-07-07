@@ -489,23 +489,6 @@ pub struct WatchSessionStateAtomsResponse {
     #[prost(uint32, tag="2")]
     pub store_count: u32,
 }
-/// ExportBackupKeyRequest is the request for ExportBackupKey.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ExportBackupKeyRequest {
-    /// Password encrypts the PEM output. Required.
-    #[prost(string, tag="1")]
-    pub password: ::prost::alloc::string::String,
-}
-/// ExportBackupKeyResponse is the response for ExportBackupKey.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ExportBackupKeyResponse {
-    /// PemData is the PEM-encoded private key.
-    #[prost(bytes="vec", tag="1")]
-    pub pem_data: ::prost::alloc::vec::Vec<u8>,
-    /// PeerId is the base58 peer ID derived from the key.
-    #[prost(string, tag="2")]
-    pub peer_id: ::prost::alloc::string::String,
-}
 /// GetTransferInventoryRequest is the request for GetTransferInventory.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetTransferInventoryRequest {
@@ -1104,17 +1087,6 @@ pub struct RemoveLocalEntityKeypairRequest {
 /// RemoveLocalEntityKeypairResponse is the response for RemoveEntityKeypair.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RemoveLocalEntityKeypairResponse {
-}
-/// WatchLocalEntityKeypairsRequest is the request for WatchEntityKeypairs on local sessions.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct WatchLocalEntityKeypairsRequest {
-}
-/// WatchLocalEntityKeypairsResponse is the response for WatchEntityKeypairs on local sessions.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct WatchLocalEntityKeypairsResponse {
-    /// Keypairs is the list of entity keypairs from AccountSettings.
-    #[prost(message, repeated, tag="1")]
-    pub keypairs: ::prost::alloc::vec::Vec<super::super::session::EntityKeypair>,
 }
 /// SetLocalDisplayNameRequest is the request for SetDisplayName on local sessions.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

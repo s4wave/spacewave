@@ -10,6 +10,8 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { CredentialProofInput } from '@s4wave/web/ui/credential/CredentialProofInput.js'
 import { useCredentialProof } from '@s4wave/web/ui/credential/useCredentialProof.js'
 import { truncatePeerId } from '@s4wave/web/ui/credential/auth-utils.js'
+import { useMountAccount } from '@s4wave/web/hooks/useMountAccount.js'
+import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import type { EntityKeypair } from '@s4wave/core/session/session.pb.js'
 
 export interface EntityKeypairsSectionProps {
@@ -25,12 +27,16 @@ export function EntityKeypairsSection({
   const sessionResource = SessionContext.useContext()
   const session = useResourceValue(sessionResource)
 
+  const { providerId, accountId } = useSessionInfo(session)
+  const accountResource = useMountAccount(providerId, accountId)
   const keypairsResource = useStreamingResource(
-    sessionResource,
-    (sess, signal) => sess.localProvider.watchEntityKeypairs({}, signal),
+    accountResource,
+    (account, signal) => account.watchEntityKeypairs({}, signal),
     [],
   )
-  const keypairs = keypairsResource.value?.keypairs ?? []
+  const keypairs = (keypairsResource.value?.keypairs ?? [])
+    .map((state) => state.keypair)
+    .filter((keypair): keypair is EntityKeypair => keypair != null)
   const loading = keypairsResource.loading
 
   const [showAdd, setShowAdd] = useState(false)
@@ -57,12 +63,13 @@ export function EntityKeypairsSection({
   }, [session, cred])
 
   const handleExportBackup = useCallback(async () => {
-    if (!session || !cred.credential) return
+    const account = accountResource.value
+    if (!account || !cred.credential) return
     setExporting(true)
     setError(null)
     try {
-      const resp = await session.localProvider.exportBackupKey({
-        password: cred.password,
+      const resp = await account.generateBackupKey({
+        credential: cred.credential,
       })
       if (resp.pemData) {
         const filename = `backup-key-${resp.peerId?.slice(0, 8) ?? 'key'}.pem`
@@ -74,7 +81,7 @@ export function EntityKeypairsSection({
       setError(e instanceof Error ? e.message : 'Failed to export backup key')
     }
     setExporting(false)
-  }, [session, cred])
+  }, [accountResource.value, cred])
 
   const handleRemove = useCallback(
     async (peerId: string) => {

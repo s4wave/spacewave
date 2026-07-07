@@ -3,11 +3,6 @@
 /* eslint-disable */
 
 import {
-  ExportBackupKeyRequest,
-  ExportBackupKeyResponse,
-} from './session.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
-import {
   AddLocalEntityKeypairRequest,
   AddLocalEntityKeypairResponse,
   RemoveLocalEntityKeypairRequest,
@@ -16,9 +11,8 @@ import {
   SetLocalDisplayNameResponse,
   WatchLocalDisplayNameRequest,
   WatchLocalDisplayNameResponse,
-  WatchLocalEntityKeypairsRequest,
-  WatchLocalEntityKeypairsResponse,
 } from './local-session.pb.js'
+import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**
@@ -27,15 +21,6 @@ import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 export const LocalSessionResourceServiceDefinition = {
   typeName: 's4wave.session.LocalSessionResourceService',
   methods: {
-    /**
-     * @generated from rpc s4wave.session.LocalSessionResourceService.ExportBackupKey
-     */
-    ExportBackupKey: {
-      name: 'ExportBackupKey',
-      I: ExportBackupKeyRequest,
-      O: ExportBackupKeyResponse,
-      kind: MethodKind.Unary,
-    },
     /**
      * @generated from rpc s4wave.session.LocalSessionResourceService.AddEntityKeypair
      */
@@ -53,15 +38,6 @@ export const LocalSessionResourceServiceDefinition = {
       I: RemoveLocalEntityKeypairRequest,
       O: RemoveLocalEntityKeypairResponse,
       kind: MethodKind.Unary,
-    },
-    /**
-     * @generated from rpc s4wave.session.LocalSessionResourceService.WatchEntityKeypairs
-     */
-    WatchEntityKeypairs: {
-      name: 'WatchEntityKeypairs',
-      I: WatchLocalEntityKeypairsRequest,
-      O: WatchLocalEntityKeypairsResponse,
-      kind: MethodKind.ServerStreaming,
     },
     /**
      * @generated from rpc s4wave.session.LocalSessionResourceService.SetDisplayName
@@ -89,14 +65,6 @@ export const LocalSessionResourceServiceDefinition = {
  */
 export interface LocalSessionResourceService {
   /**
-   * @generated from rpc s4wave.session.LocalSessionResourceService.ExportBackupKey
-   */
-  ExportBackupKey(
-    request: ExportBackupKeyRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<ExportBackupKeyResponse>
-
-  /**
    * @generated from rpc s4wave.session.LocalSessionResourceService.AddEntityKeypair
    */
   AddEntityKeypair(
@@ -111,14 +79,6 @@ export interface LocalSessionResourceService {
     request: RemoveLocalEntityKeypairRequest,
     abortSignal?: AbortSignal,
   ): Promise<RemoveLocalEntityKeypairResponse>
-
-  /**
-   * @generated from rpc s4wave.session.LocalSessionResourceService.WatchEntityKeypairs
-   */
-  WatchEntityKeypairs(
-    request: WatchLocalEntityKeypairsRequest,
-    abortSignal?: AbortSignal,
-  ): MessageStream<WatchLocalEntityKeypairsResponse>
 
   /**
    * @generated from rpc s4wave.session.LocalSessionResourceService.SetDisplayName
@@ -146,30 +106,11 @@ export class LocalSessionResourceServiceClient implements LocalSessionResourceSe
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
     this.service = opts?.service || LocalSessionResourceServiceServiceName
     this.rpc = rpc
-    this.ExportBackupKey = this.ExportBackupKey.bind(this)
     this.AddEntityKeypair = this.AddEntityKeypair.bind(this)
     this.RemoveEntityKeypair = this.RemoveEntityKeypair.bind(this)
-    this.WatchEntityKeypairs = this.WatchEntityKeypairs.bind(this)
     this.SetDisplayName = this.SetDisplayName.bind(this)
     this.WatchDisplayName = this.WatchDisplayName.bind(this)
   }
-  /**
-   * @generated from rpc s4wave.session.LocalSessionResourceService.ExportBackupKey
-   */
-  async ExportBackupKey(
-    request: ExportBackupKeyRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<ExportBackupKeyResponse> {
-    const requestMsg = ExportBackupKeyRequest.create(request)
-    const result = await this.rpc.request(
-      this.service,
-      LocalSessionResourceServiceDefinition.methods.ExportBackupKey.name,
-      ExportBackupKeyRequest.toBinary(requestMsg),
-      abortSignal || undefined,
-    )
-    return ExportBackupKeyResponse.fromBinary(result)
-  }
-
   /**
    * @generated from rpc s4wave.session.LocalSessionResourceService.AddEntityKeypair
    */
@@ -202,23 +143,6 @@ export class LocalSessionResourceServiceClient implements LocalSessionResourceSe
       abortSignal || undefined,
     )
     return RemoveLocalEntityKeypairResponse.fromBinary(result)
-  }
-
-  /**
-   * @generated from rpc s4wave.session.LocalSessionResourceService.WatchEntityKeypairs
-   */
-  WatchEntityKeypairs(
-    request: WatchLocalEntityKeypairsRequest,
-    abortSignal?: AbortSignal,
-  ): MessageStream<WatchLocalEntityKeypairsResponse> {
-    const requestMsg = WatchLocalEntityKeypairsRequest.create(request)
-    const result = this.rpc.serverStreamingRequest(
-      this.service,
-      LocalSessionResourceServiceDefinition.methods.WatchEntityKeypairs.name,
-      WatchLocalEntityKeypairsRequest.toBinary(requestMsg),
-      abortSignal || undefined,
-    )
-    return buildDecodeMessageTransform(WatchLocalEntityKeypairsResponse)(result)
   }
 
   /**

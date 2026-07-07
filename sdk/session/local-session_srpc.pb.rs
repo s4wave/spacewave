@@ -8,17 +8,6 @@ use starpc::StreamExt;
 /// Service ID for LocalSessionResourceService.
 pub const LOCAL_SESSION_RESOURCE_SERVICE_SERVICE_ID: &str = "s4wave.session.LocalSessionResourceService";
 
-/// Stream trait for LocalSessionResourceService.WatchEntityKeypairs.
-#[starpc::async_trait]
-pub trait LocalSessionResourceServiceWatchEntityKeypairsStream: Send + Sync {
-    /// Returns the context for this stream.
-    fn context(&self) -> &starpc::Context;
-    /// Receives a message from the stream.
-    async fn recv(&self) -> starpc::Result<WatchLocalEntityKeypairsResponse>;
-    /// Closes the stream.
-    async fn close(&self) -> starpc::Result<()>;
-}
-
 /// Stream trait for LocalSessionResourceService.WatchDisplayName.
 #[starpc::async_trait]
 pub trait LocalSessionResourceServiceWatchDisplayNameStream: Send + Sync {
@@ -33,14 +22,10 @@ pub trait LocalSessionResourceServiceWatchDisplayNameStream: Send + Sync {
 /// Client trait for LocalSessionResourceService.
 #[starpc::async_trait]
 pub trait LocalSessionResourceServiceClient: Send + Sync {
-    /// ExportBackupKey.
-    async fn export_backup_key(&self, request: &ExportBackupKeyRequest) -> starpc::Result<ExportBackupKeyResponse>;
     /// AddEntityKeypair.
     async fn add_entity_keypair(&self, request: &AddLocalEntityKeypairRequest) -> starpc::Result<AddLocalEntityKeypairResponse>;
     /// RemoveEntityKeypair.
     async fn remove_entity_keypair(&self, request: &RemoveLocalEntityKeypairRequest) -> starpc::Result<RemoveLocalEntityKeypairResponse>;
-    /// WatchEntityKeypairs.
-    async fn watch_entity_keypairs(&self, request: &WatchLocalEntityKeypairsRequest) -> starpc::Result<Box<dyn LocalSessionResourceServiceWatchEntityKeypairsStream>>;
     /// SetDisplayName.
     async fn set_display_name(&self, request: &SetLocalDisplayNameRequest) -> starpc::Result<SetLocalDisplayNameResponse>;
     /// WatchDisplayName.
@@ -61,21 +46,11 @@ impl<C: starpc::Client> LocalSessionResourceServiceClientImpl<C> {
 
 #[starpc::async_trait]
 impl<C: starpc::Client + 'static> LocalSessionResourceServiceClient for LocalSessionResourceServiceClientImpl<C> {
-    async fn export_backup_key(&self, request: &ExportBackupKeyRequest) -> starpc::Result<ExportBackupKeyResponse> {
-        self.client.exec_call("s4wave.session.LocalSessionResourceService", "ExportBackupKey", request).await
-    }
     async fn add_entity_keypair(&self, request: &AddLocalEntityKeypairRequest) -> starpc::Result<AddLocalEntityKeypairResponse> {
         self.client.exec_call("s4wave.session.LocalSessionResourceService", "AddEntityKeypair", request).await
     }
     async fn remove_entity_keypair(&self, request: &RemoveLocalEntityKeypairRequest) -> starpc::Result<RemoveLocalEntityKeypairResponse> {
         self.client.exec_call("s4wave.session.LocalSessionResourceService", "RemoveEntityKeypair", request).await
-    }
-    async fn watch_entity_keypairs(&self, request: &WatchLocalEntityKeypairsRequest) -> starpc::Result<Box<dyn LocalSessionResourceServiceWatchEntityKeypairsStream>> {
-        use starpc::ProstMessage;
-        let data = request.encode_to_vec();
-        let stream = self.client.new_stream("s4wave.session.LocalSessionResourceService", "WatchEntityKeypairs", Some(&data)).await?;
-        stream.close_send().await?;
-        Ok(Box::new(LocalSessionResourceServiceWatchEntityKeypairsStreamImpl { stream }))
     }
     async fn set_display_name(&self, request: &SetLocalDisplayNameRequest) -> starpc::Result<SetLocalDisplayNameResponse> {
         self.client.exec_call("s4wave.session.LocalSessionResourceService", "SetDisplayName", request).await
@@ -86,23 +61,6 @@ impl<C: starpc::Client + 'static> LocalSessionResourceServiceClient for LocalSes
         let stream = self.client.new_stream("s4wave.session.LocalSessionResourceService", "WatchDisplayName", Some(&data)).await?;
         stream.close_send().await?;
         Ok(Box::new(LocalSessionResourceServiceWatchDisplayNameStreamImpl { stream }))
-    }
-}
-
-struct LocalSessionResourceServiceWatchEntityKeypairsStreamImpl {
-    stream: Box<dyn starpc::Stream>,
-}
-
-#[starpc::async_trait]
-impl LocalSessionResourceServiceWatchEntityKeypairsStream for LocalSessionResourceServiceWatchEntityKeypairsStreamImpl {
-    fn context(&self) -> &starpc::Context {
-        self.stream.context()
-    }
-    async fn recv(&self) -> starpc::Result<WatchLocalEntityKeypairsResponse> {
-        self.stream.msg_recv().await
-    }
-    async fn close(&self) -> starpc::Result<()> {
-        self.stream.close().await
     }
 }
 
@@ -126,14 +84,10 @@ impl LocalSessionResourceServiceWatchDisplayNameStream for LocalSessionResourceS
 /// Server trait for LocalSessionResourceService.
 #[starpc::async_trait]
 pub trait LocalSessionResourceServiceServer: Send + Sync {
-    /// ExportBackupKey.
-    async fn export_backup_key(&self, request: ExportBackupKeyRequest) -> starpc::Result<ExportBackupKeyResponse>;
     /// AddEntityKeypair.
     async fn add_entity_keypair(&self, request: AddLocalEntityKeypairRequest) -> starpc::Result<AddLocalEntityKeypairResponse>;
     /// RemoveEntityKeypair.
     async fn remove_entity_keypair(&self, request: RemoveLocalEntityKeypairRequest) -> starpc::Result<RemoveLocalEntityKeypairResponse>;
-    /// WatchEntityKeypairs.
-    async fn watch_entity_keypairs(&self, request: WatchLocalEntityKeypairsRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// SetDisplayName.
     async fn set_display_name(&self, request: SetLocalDisplayNameRequest) -> starpc::Result<SetLocalDisplayNameResponse>;
     /// WatchDisplayName.
@@ -141,10 +95,8 @@ pub trait LocalSessionResourceServiceServer: Send + Sync {
 }
 
 const LOCAL_SESSION_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
-    "ExportBackupKey",
     "AddEntityKeypair",
     "RemoveEntityKeypair",
-    "WatchEntityKeypairs",
     "SetDisplayName",
     "WatchDisplayName",
 ];
@@ -175,21 +127,6 @@ impl<S: LocalSessionResourceServiceServer + 'static> starpc::Invoker for LocalSe
         stream: Box<dyn starpc::Stream>,
     ) -> (bool, starpc::Result<()>) {
         match method_id {
-            "ExportBackupKey" => {
-                let request: ExportBackupKeyRequest = match stream.msg_recv().await {
-                    Ok(r) => r,
-                    Err(e) => return (true, Err(e)),
-                };
-                match self.server.export_backup_key(request).await {
-                    Ok(response) => {
-                        if let Err(e) = stream.msg_send(&response).await {
-                            return (true, Err(e));
-                        }
-                        (true, Ok(()))
-                    }
-                    Err(e) => (true, Err(e)),
-                }
-            }
             "AddEntityKeypair" => {
                 let request: AddLocalEntityKeypairRequest = match stream.msg_recv().await {
                     Ok(r) => r,
@@ -219,13 +156,6 @@ impl<S: LocalSessionResourceServiceServer + 'static> starpc::Invoker for LocalSe
                     }
                     Err(e) => (true, Err(e)),
                 }
-            }
-            "WatchEntityKeypairs" => {
-                let request: WatchLocalEntityKeypairsRequest = match stream.msg_recv().await {
-                    Ok(r) => r,
-                    Err(e) => return (true, Err(e)),
-                };
-                (true, self.server.watch_entity_keypairs(request, stream).await)
             }
             "SetDisplayName" => {
                 let request: SetLocalDisplayNameRequest = match stream.msg_recv().await {

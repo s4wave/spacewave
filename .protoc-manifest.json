@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "d9371397ffeedf32c448aced1e66b1d1f878d14948582ca46cd2893abec244e2",
+  "protocFlagsHash": "9af09c5895b4d96afd3475e6eb2dd66212168bf3ae46fd736d505b81760bd6a3",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.15.0,starpc=v0.49.18,protobuf-es-lite=1.1.0",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -4887,7 +4887,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/session": {
-      "hash": "17136ff376d9c79efa614af5593708f1fc18146e8ab35e158f327a54c60ddd70",
+      "hash": "a716b55a594001102c095b8cfc8b7014d660ce2c23563f18813989d9830329c7",
       "generatedFiles": [
         "sdk/session/local-session.pb.cc",
         "sdk/session/local-session.pb.go",

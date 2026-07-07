@@ -24,12 +24,10 @@ export function useSetupWizard(onboarding: LocalSessionOnboardingContextValue) {
   const [saving, setSaving] = useState(false)
   const [downloading, setDownloading] = useState(false)
 
-  const { providerId, accountId, isCloud } = useSessionInfo(session)
-  // Mount account resource for cloud sessions (GenerateBackupKey RPC).
-  // Local sessions use session.exportBackupKey instead.
-  const accountResource = useMountAccount(providerId, accountId, isCloud)
+  const { providerId, accountId } = useSessionInfo(session)
+  const accountResource = useMountAccount(providerId, accountId)
 
-  const accountReady = isCloud ? !!accountResource.value : !!session
+  const accountReady = !!accountResource.value
 
   const handleDownloadPem = useCallback(
     async (pemCredential?: Uint8Array) => {
@@ -40,36 +38,21 @@ export function useSetupWizard(onboarding: LocalSessionOnboardingContextValue) {
       setDownloading(true)
       setError(null)
       try {
-        let pemData: Uint8Array | undefined
-
-        if (isCloud) {
-          // Cloud: use account resource GenerateBackupKey RPC.
-          const acct = accountResource.value
-          if (!acct) {
-            setError('Account not ready')
-            return
-          }
-          const credential = pemCredential
-            ? {
-                credential: {
-                  case: 'pemPrivateKey' as const,
-                  value: pemCredential,
-                },
-              }
-            : { credential: { case: 'password' as const, value: password } }
-          const resp = await acct.generateBackupKey({ credential })
-          pemData = resp.pemData
-        } else {
-          // Local: use session ExportBackupKey RPC.
-          if (!session) {
-            setError('Session not ready')
-            return
-          }
-          const resp = await session.localProvider.exportBackupKey({
-            password,
-          })
-          pemData = resp.pemData
+        const acct = accountResource.value
+        if (!acct) {
+          setError('Account not ready')
+          return
         }
+        const credential = pemCredential
+          ? {
+              credential: {
+                case: 'pemPrivateKey' as const,
+                value: pemCredential,
+              },
+            }
+          : { credential: { case: 'password' as const, value: password } }
+        const resp = await acct.generateBackupKey({ credential })
+        const pemData = resp.pemData
 
         if (!pemData || pemData.length === 0) {
           setError('No PEM data returned')
@@ -89,7 +72,7 @@ export function useSetupWizard(onboarding: LocalSessionOnboardingContextValue) {
         setDownloading(false)
       }
     },
-    [isCloud, accountResource, session, password, onboarding],
+    [accountResource, password, onboarding],
   )
 
   const handleSkipPem = useCallback(() => {

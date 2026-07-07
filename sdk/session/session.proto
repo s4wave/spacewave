@@ -469,19 +469,6 @@ message WatchSessionStateAtomsResponse {
   uint32 store_count = 2;
 }
 
-// ExportBackupKeyRequest is the request for ExportBackupKey.
-message ExportBackupKeyRequest {
-  // Password encrypts the PEM output. Required.
-  string password = 1;
-}
-
-// ExportBackupKeyResponse is the response for ExportBackupKey.
-message ExportBackupKeyResponse {
-  // PemData is the PEM-encoded private key.
-  bytes pem_data = 1;
-  // PeerId is the base58 peer ID derived from the key.
-  string peer_id = 2;
-}
 
 // GetTransferInventoryRequest is the request for GetTransferInventory.
 message GetTransferInventoryRequest {
