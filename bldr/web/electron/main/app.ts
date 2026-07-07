@@ -59,6 +59,11 @@ const proxyFetchHeaderTimeoutMs = 30_000
 const logRendererEvents =
   isDebug && process.env.BLDR_ELECTRON_LOG_RENDERER === '1'
 const e2eControlPortEnv = 'BLDR_ELECTRON_E2E_CONTROL_PORT'
+// BLDR_ELECTRON_WINDOW_TITLE overrides the OS window title for this instance
+// so external tooling driving multiple concurrent app windows can tell them
+// apart. The override also pins the title against renderer document.title
+// updates.
+const windowTitleOverride = process.env.BLDR_ELECTRON_WINDOW_TITLE || ''
 
 // BldrElectronApp manages the main process for an Electron app.
 export class BldrElectronApp {
@@ -424,7 +429,7 @@ export class BldrElectronApp {
       frame: isMac,
       titleBarStyle: isMac ? 'hidden' : undefined,
 
-      title: init.windowTitle || init.appName || undefined,
+      title: windowTitleOverride || init.windowTitle || init.appName || undefined,
       height: init.windowHeight || 680,
       width: init.windowWidth || 900,
       show: false,
@@ -441,6 +446,14 @@ export class BldrElectronApp {
         backgroundThrottling: true,
       },
     })
+
+    if (windowTitleOverride) {
+      // Without preventDefault the renderer's document.title replaces the
+      // override as soon as the page loads.
+      nwindow.on('page-title-updated', (event) => {
+        event.preventDefault()
+      })
+    }
 
     if (isDebug && init.devTools) {
       nwindow.webContents.openDevTools()
