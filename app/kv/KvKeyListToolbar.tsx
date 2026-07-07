@@ -45,9 +45,9 @@ export function KvKeyListToolbar({
       <DashboardButton
         icon={
           sortDirection === 'asc' ? (
-            <LuArrowDownAZ className="h-3.5 w-3.5" />
+            <LuArrowDownAZ className="size-3.5" />
           ) : (
-            <LuArrowUpAZ className="h-3.5 w-3.5" />
+            <LuArrowUpAZ className="size-3.5" />
           )
         }
         onClick={onToggleSortDirection}

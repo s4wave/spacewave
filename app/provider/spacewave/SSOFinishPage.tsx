@@ -114,6 +114,7 @@ export function SSOFinishPage() {
         setState({ step: 'logging_in' })
         const pemBytes = base64ToBytes(blob)
 
+        // eslint-disable-next-line react-doctor/async-defer-await -- login response handling must ignore results only after the RPC settles.
         const loginResp = await withSpacewaveProvider(
           root,
           (spacewave) =>

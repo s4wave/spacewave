@@ -171,9 +171,9 @@ export function ObjectLink({
                 )}
               >
                 {copied ? (
-                  <LuCheck className="text-success h-3.5 w-3.5" />
+                  <LuCheck className="text-success size-3.5" />
                 ) : (
-                  <LuCopy className="h-3.5 w-3.5" />
+                  <LuCopy className="size-3.5" />
                 )}
               </button>
             </TooltipTrigger>
@@ -193,7 +193,7 @@ export function ObjectLink({
                   compact ? 'h-6 w-6' : 'h-7 w-7',
                 )}
               >
-                <LuExternalLink className="h-3.5 w-3.5" />
+                <LuExternalLink className="size-3.5" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom">Open in new tab</TooltipContent>

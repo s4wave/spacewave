@@ -258,8 +258,9 @@ function exportOrgNode(node: LexicalNode): string {
     return emitOrgList(
       node
         .getChildren()
-        .filter($isListItemNode)
-        .map((item) => item.getTextContent()),
+        .flatMap((item) =>
+          $isListItemNode(item) ? [item.getTextContent()] : [],
+        ),
       node.getListType() === 'number',
     )
   }
@@ -290,12 +291,16 @@ function exportInlineNode(node: LexicalNode): string {
 function exportTableRows(table: ElementNode): string[][] {
   return table
     .getChildren()
-    .filter($isTableRowNode)
-    .map((row) =>
-      row
-        .getChildren()
-        .filter($isTableCellNode)
-        .map((cell) => cell.getTextContent().trim()),
+    .flatMap((row) =>
+      $isTableRowNode(row)
+        ? [
+            row
+              .getChildren()
+              .flatMap((cell) =>
+                $isTableCellNode(cell) ? [cell.getTextContent().trim()] : [],
+              ),
+          ]
+        : [],
     )
 }
 

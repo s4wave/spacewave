@@ -56,6 +56,7 @@ export function SSOWaitPage() {
 
     const run = async () => {
       try {
+        // eslint-disable-next-line react-doctor/async-defer-await -- the abort guard belongs after the desktop SSO RPC returns.
         const resp = await withSpacewaveProvider(
           root,
           async (spacewave) =>

@@ -60,7 +60,7 @@ export function KvCreateKeyForm({
     <div className="border-foreground/6 bg-background-card/30 space-y-3 rounded-lg border p-3">
       <div className="flex items-center justify-between">
         <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuPlus className="h-3.5 w-3.5" />
+          <LuPlus className="size-3.5" />
           New Key
         </h3>
         <Button
@@ -69,9 +69,9 @@ export function KvCreateKeyForm({
           onClick={onCancel}
           disabled={busy}
           aria-label="Cancel new key"
-          className="h-6 w-6"
+          className="size-6"
         >
-          <LuX className="h-3.5 w-3.5" />
+          <LuX className="size-3.5" />
         </Button>
       </div>
       <KvValueEditor
@@ -110,7 +110,7 @@ export function KvCreateKeyForm({
           disabled={!canCreate}
           className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 h-7 gap-1 text-xs"
         >
-          <LuPlus className="h-3.5 w-3.5" />
+          <LuPlus className="size-3.5" />
           Create
         </Button>
       </div>

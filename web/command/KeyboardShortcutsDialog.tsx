@@ -151,7 +151,7 @@ export function KeyboardShortcutsDialog({
               {g.commands.map(({ state: cmd, displayBindings }) => (
                 <div
                   key={cmd.command?.commandId}
-                  className="hover:bg-foreground/5 flex items-center justify-between gap-3 rounded px-1 py-1 transition-colors"
+                  className="hover:bg-foreground/5 flex items-center justify-between gap-3 rounded p-1 transition-colors"
                 >
                   <span className="text-foreground text-sm">
                     {cmd.command?.label}

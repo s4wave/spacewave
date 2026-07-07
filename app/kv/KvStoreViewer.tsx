@@ -54,16 +54,16 @@ export function KvStoreViewer({
   const [creating, setCreating] = useState(false)
   const [mutationError, setMutationError] = useState<string | null>(null)
 
-  const rows = keysResource.value ?? []
+  const rows = useMemo(() => keysResource.value ?? [], [keysResource.value])
 
   const visibleRows = useMemo(() => {
     const filtered = prefix
       ? rows.filter((row) => row.label.startsWith(prefix))
       : rows
-    const sorted = [...filtered].sort((a, b) =>
+    const sorted = filtered.toSorted((a, b) =>
       a.label < b.label ? -1 : a.label > b.label ? 1 : 0,
     )
-    return sortDirection === 'asc' ? sorted : sorted.reverse()
+    return sortDirection === 'asc' ? sorted : sorted.toReversed()
   }, [rows, prefix, sortDirection])
 
   const selectedRow = useMemo(
@@ -158,7 +158,7 @@ export function KvStoreViewer({
           </span>
         </div>
         <DashboardButton
-          icon={<LuPlus className="h-3.5 w-3.5" />}
+          icon={<LuPlus className="size-3.5" />}
           onClick={handleStartCreate}
         >
           New Key

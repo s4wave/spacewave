@@ -44,7 +44,7 @@ export function KeybindingCommandList() {
         </select>
       </div>
       <div className="border-foreground/8 flex items-center gap-2 border-b px-3 py-2">
-        <LuSearch className="text-brand h-3.5 w-3.5" />
+        <LuSearch className="text-brand size-3.5" />
         <input
           className="placeholder:text-foreground-alt/50 text-foreground min-w-0 flex-1 bg-transparent text-sm outline-none"
           placeholder="Search commands..."

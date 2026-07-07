@@ -178,6 +178,7 @@ async function walkGalleryScope(
     }
 
     const entryPath = joinUnixFSDisplayPath(scopePath || '/', entry.name)
+    // eslint-disable-next-line react-doctor/async-await-in-loop -- recursive walk keeps one scoped child ref live at a time.
     using child = await handle.lookup(entry.name, signal)
     if (getUnixFSDirEntryKind(entry) === 'directory') {
       images.push(
@@ -385,6 +386,7 @@ class WatchedGalleryDir {
           try {
             this.children.set(
               entry.name,
+              // eslint-disable-next-line react-doctor/async-await-in-loop -- directory watchers are attached sequentially to preserve child owner order.
               await this.scope.watchChildDir(this, entry.name, entryPath),
             )
           } catch (err) {

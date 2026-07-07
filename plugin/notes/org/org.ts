@@ -415,14 +415,18 @@ export function readOrgTable(node: OrgNode): OrgTableParts | null {
     return null
   }
 
-  const rows = node.children
-    .filter((child) => child.type === 'table.row')
-    .map((row) =>
-      row.children
-        .filter((child) => child.type === 'table.cell')
-        .map((cell) => orgTextContent(cell).trim()),
+  const rows: string[][] = []
+  for (const child of node.children) {
+    if (child.type !== 'table.row') {
+      continue
+    }
+    const row = child.children.flatMap((cell) =>
+      cell.type === 'table.cell' ? [orgTextContent(cell).trim()] : [],
     )
-    .filter((row) => row.length > 0)
+    if (row.length > 0) {
+      rows.push(row)
+    }
+  }
 
   return rows.length > 0 ? { rows } : null
 }
@@ -474,8 +478,7 @@ export function readOrgLink(node: OrgNode): OrgLinkParts | null {
 
   const url = pathNode.source.replace(/^\[/, '').replace(/\]$/, '')
   const text = node.children
-    .filter((child) => child.type === 'text')
-    .map((child) => child.source)
+    .flatMap((child) => (child.type === 'text' ? [child.source] : []))
     .join('')
 
   return { url, text: text.length > 0 ? text : url }
@@ -525,8 +528,7 @@ function readOrgListItem(
   return {
     ordered: /^\d+[.)]$/.test(bullet.source),
     text: node.children
-      .filter((child) => child.type === 'text')
-      .map((child) => child.source)
+      .flatMap((child) => (child.type === 'text' ? [child.source] : []))
       .join('')
       .trim(),
   }

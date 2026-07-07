@@ -59,7 +59,7 @@ export function KvKeyDetail({
           {row.byteLength} B
         </span>
       </div>
-      <div className="flex-1 overflow-auto px-3 py-3">
+      <div className="flex-1 overflow-auto p-3">
         {valueResource.loading && !loadedValue ? (
           <LoadingInline label="Loading value" tone="muted" />
         ) : null}
@@ -181,7 +181,7 @@ function KvKeyEditorPane({
           disabled={!dirty || busy || parseError != null}
           className="h-7 gap-1 text-xs"
         >
-          <LuSave className="h-3.5 w-3.5" />
+          <LuSave className="size-3.5" />
           Save
         </Button>
         <Button
@@ -191,7 +191,7 @@ function KvKeyEditorPane({
           disabled={!dirty || busy}
           className="h-7 gap-1 text-xs"
         >
-          <LuUndo2 className="h-3.5 w-3.5" />
+          <LuUndo2 className="size-3.5" />
           Discard
         </Button>
         <div className="flex-1" />
@@ -207,7 +207,7 @@ function KvKeyEditorPane({
               disabled={busy}
               className="h-7 gap-1 text-xs"
             >
-              <LuTrash2 className="h-3.5 w-3.5" />
+              <LuTrash2 className="size-3.5" />
               Confirm
             </Button>
             <Button
@@ -231,7 +231,7 @@ function KvKeyEditorPane({
               'h-7 gap-1 text-xs',
             )}
           >
-            <LuTrash2 className="h-3.5 w-3.5" />
+            <LuTrash2 className="size-3.5" />
             Delete
           </Button>
         )}

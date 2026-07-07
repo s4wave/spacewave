@@ -30,7 +30,7 @@ export function KvValueEditor({
   rows = 6,
   ariaLabel,
 }: KvValueEditorProps) {
-  const handleChange = useCallback(
+  const updateDraft = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
       onDraftChange(event.target.value)
     },
@@ -47,7 +47,7 @@ export function KvValueEditor({
       </div>
       <textarea
         value={draft}
-        onChange={handleChange}
+        onChange={updateDraft}
         disabled={disabled}
         rows={rows}
         aria-label={ariaLabel}

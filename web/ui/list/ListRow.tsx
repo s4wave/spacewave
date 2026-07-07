@@ -1,4 +1,4 @@
-import { useCallback, use, useEffect, useRef, useState } from 'react'
+import { useCallback, use, useEffect, useRef } from 'react'
 import { cn } from '@s4wave/web/style/utils.js'
 import { ListStateContext } from './ListState.js'
 import { RowComponentProps } from './List.js'
@@ -12,14 +12,13 @@ export function ListRow<T>({
   style,
   ariaAttributes,
 }: RowComponentProps<T>) {
-  const [clickCount, setClickCount] = useState(0)
+  const clickCountRef = useRef(0)
   const clickTimerRef = useRef<number | null>(null)
 
   const handleListRowSelect = useCallback(
     (e: React.MouseEvent) => {
-      const newCount = clickCount + 1
-      setClickCount(newCount)
-
+      const newCount = clickCountRef.current + 1
+      clickCountRef.current = newCount
       if (onRowClick) {
         onRowClick(itemIndex, item, e, 1)
       }
@@ -32,11 +31,11 @@ export function ListRow<T>({
         if (newCount > 1 && onRowClick) {
           onRowClick(itemIndex, item, e, newCount)
         }
-        setClickCount(0)
+        clickCountRef.current = 0
         clickTimerRef.current = null
       }, 300)
     },
-    [clickCount, itemIndex, item, onRowClick],
+    [itemIndex, item, onRowClick],
   )
 
   const handleContextMenu = useCallback(

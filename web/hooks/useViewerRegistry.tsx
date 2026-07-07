@@ -122,6 +122,7 @@ export function viewerRegistrationToComponent(
     typeID: typeId,
     name: reg.viewerName || typeId,
     category: reg.category || undefined,
+    // eslint-disable-next-line react-doctor/no-dynamic-import-path -- Bldr plugin manifests provide viewer module URLs at runtime.
     component: React.lazy(() => import(/* @vite-ignore */ scriptPath)),
   }
 }

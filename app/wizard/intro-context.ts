@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, use } from 'react'
 
 // IntroWizardPresentationContext is true while the new-user introduction wizard
 // is presenting the target object beneath its overlay. The introduced object's
@@ -10,5 +10,5 @@ export const IntroWizardPresentationContext = createContext(false)
 // useIntroWizardPresentation reports whether an intro wizard is presenting the
 // surrounding object viewer.
 export function useIntroWizardPresentation(): boolean {
-  return useContext(IntroWizardPresentationContext)
+  return use(IntroWizardPresentationContext)
 }

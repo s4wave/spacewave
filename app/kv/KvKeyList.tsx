@@ -58,7 +58,7 @@ interface KvKeyListRowProps {
 }
 
 function KvKeyListRow({ row, selected, onSelectKey }: KvKeyListRowProps) {
-  const handleClick = useCallback(() => {
+  const selectKey = useCallback(() => {
     onSelectKey(row)
   }, [onSelectKey, row])
 
@@ -67,7 +67,7 @@ function KvKeyListRow({ row, selected, onSelectKey }: KvKeyListRowProps) {
       type="button"
       role="option"
       aria-selected={selected}
-      onClick={handleClick}
+      onClick={selectKey}
       className={cn(
         'flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors',
         'hover:bg-foreground/5',

@@ -146,8 +146,11 @@ export function SshHostViewer({
                 </div>
               ) : (
                 <div className="divide-foreground/8 divide-y">
-                  {pins.map((pin, idx) => (
-                    <TrustPinRow key={idx} pin={pin} />
+                  {pins.map((pin) => (
+                    <TrustPinRow
+                      key={`${pin.algorithm}:${pin.sha256Fingerprint || pin.publicKey}`}
+                      pin={pin}
+                    />
                   ))}
                 </div>
               )}

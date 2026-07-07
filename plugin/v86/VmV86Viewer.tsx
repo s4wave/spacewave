@@ -93,7 +93,8 @@ export default function VmV86Viewer({
   spaceContents,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  const contentsResource = spaceContents ?? SpaceContentsContext.useContext()
+  const contextContentsResource = SpaceContentsContext.useContext()
+  const contentsResource = spaceContents ?? contextContentsResource
   const contents = useResourceValue(contentsResource)
 
   // One-shot read of the VmV86 block. Re-runs when the underlying worldState

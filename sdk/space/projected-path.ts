@@ -88,7 +88,9 @@ export function normalizeProjectedSubpath(path: string): string {
 }
 
 export function joinProjectedSubpath(parts: string[]): string {
-  return parts.map(normalizeProjectedSubpath).filter(Boolean).join('/')
+  return parts
+    .flatMap((part) => normalizeProjectedSubpath(part) || [])
+    .join('/')
 }
 
 export function buildProjectedSpaceRootPath({

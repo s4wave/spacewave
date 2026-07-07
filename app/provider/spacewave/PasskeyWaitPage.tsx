@@ -68,6 +68,7 @@ export function PasskeyWaitPage() {
 
     const run = async () => {
       try {
+        // eslint-disable-next-line react-doctor/async-defer-await -- the abort guard belongs after the desktop passkey RPC returns.
         const resp = await withSpacewaveProvider(
           root,
           async (spacewave) =>

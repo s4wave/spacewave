@@ -221,23 +221,26 @@ export function buildSpaceObjectActionTargets(
   metadataById?: ObjectTypeMetadataById,
 ): SpaceObjectActionTarget[] {
   return objects
-    .filter(
-      (object) =>
-        !isHiddenSpaceObject(object.objectKey, object.objectType, metadataById),
-    )
-    .map((object) => {
+    .flatMap((object) => {
+      if (
+        isHiddenSpaceObject(object.objectKey, object.objectType, metadataById)
+      ) {
+        return []
+      }
       const objectKey = object.objectKey ?? ''
       const objectType = object.objectType ?? ''
-      return {
-        objectKey,
-        objectType,
-        label: getObjectDisplayName(objectKey),
-        objectTypeLabel: getObjectTypeLabel(objectType, metadataById),
-        objectTypeDescription: getObjectTypeDescription(
+      return [
+        {
+          objectKey,
           objectType,
-          metadataById,
-        ),
-      }
+          label: getObjectDisplayName(objectKey),
+          objectTypeLabel: getObjectTypeLabel(objectType, metadataById),
+          objectTypeDescription: getObjectTypeDescription(
+            objectType,
+            metadataById,
+          ),
+        },
+      ]
     })
     .toSorted((a, b) => a.objectKey.localeCompare(b.objectKey))
 }

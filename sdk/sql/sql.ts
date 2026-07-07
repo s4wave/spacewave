@@ -226,16 +226,17 @@ export class SqlTransaction {
           },
         })
         const resp = await nextQueryResponse(iterator)
-        if (resp.body?.case === 'reqError') {
-          throw new Error(resp.body.value)
+        const body = resp.body
+        if (body?.case === 'reqError') {
+          throw new Error(body.value)
         }
-        if (resp.body?.case === 'closed') {
+        if (body?.case === 'closed') {
           return { columns, rows }
         }
-        if (resp.body?.case !== 'batch') {
+        if (body?.case !== 'batch') {
           throw new Error('sql/db: query expected row batch or close')
         }
-        rows.push(...(resp.body.value.rows ?? []))
+        rows.push(...(body.value.rows ?? []))
       }
     } finally {
       requests.end()

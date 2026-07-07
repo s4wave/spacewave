@@ -120,24 +120,35 @@ export const CanvasNode = memo(function CanvasNode({
   onMoveEnd,
   onResize,
 }: CanvasNodeProps) {
-  const [mounted, setMounted] = useState(visible)
-  const unmountTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [mountedAfterHide, setMountedAfterHide] = useState(false)
+  const wasVisible = useRef(visible)
+  const unmountTimer = useRef<number | null>(null)
 
-  // Debounced mount/unmount for virtualization.
+  // Debounced unmount keeps a node alive briefly after it leaves the viewport so
+  // fast pan/zoom updates do not churn embedded object viewers.
   useEffect(() => {
     if (visible) {
       if (unmountTimer.current) {
         clearTimeout(unmountTimer.current)
         unmountTimer.current = null
       }
-    } else {
-      unmountTimer.current = setTimeout(() => {
-        setMounted(false)
-      }, UNMOUNT_DEBOUNCE_MS)
+      setMountedAfterHide(false)
+      wasVisible.current = true
+      return
     }
+
+    if (wasVisible.current) {
+      setMountedAfterHide(true)
+    }
+    wasVisible.current = false
+    unmountTimer.current = window.setTimeout(() => {
+      setMountedAfterHide(false)
+      unmountTimer.current = null
+    }, UNMOUNT_DEBOUNCE_MS)
     return () => {
       if (unmountTimer.current) {
         clearTimeout(unmountTimer.current)
+        unmountTimer.current = null
       }
     }
   }, [visible])
@@ -340,7 +351,7 @@ export const CanvasNode = memo(function CanvasNode({
     [node.x, node.y, node.width, node.height, node.zIndex, resizeOverride],
   )
 
-  if (!visible && !mounted) return null
+  if (!visible && !mountedAfterHide && !wasVisible.current) return null
 
   // labelText is the short label shown in outline-only mode.
   const labelText = node.objectKey ?? node.type

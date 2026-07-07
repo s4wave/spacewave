@@ -133,10 +133,10 @@ export function normalizeKeyCombo(
   binding: string,
   platform: KeybindingPlatform = detectPlatform(),
 ): string {
-  const parts = binding
-    .split('+')
-    .map((part) => part.trim())
-    .filter(Boolean)
+  const parts = binding.split('+').flatMap((part) => {
+    const trimmed = part.trim()
+    return trimmed ? [trimmed] : []
+  })
   let meta = false
   let ctrl = false
   let alt = false
@@ -447,13 +447,12 @@ function normalizeActiveFocusContexts(
   activeFocusContexts: readonly CommandFocusContext[],
 ): CommandFocusContext[] {
   const normalized: CommandFocusContext[] = []
+  const seen = new Set<CommandFocusContext>()
   for (const context of [CommandFocusContext.GLOBAL, ...activeFocusContexts]) {
-    if (
-      context === CommandFocusContext.UNSPECIFIED ||
-      normalized.includes(context)
-    ) {
+    if (context === CommandFocusContext.UNSPECIFIED || seen.has(context)) {
       continue
     }
+    seen.add(context)
     normalized.push(context)
   }
   return normalized
@@ -492,14 +491,16 @@ function selectSequenceTerminal(
   node: KeybindingSequenceNode,
   activeContexts: readonly CommandFocusContext[],
 ): SelectedKeybindingMatch | undefined {
+  const conflictsByContext = new Map(
+    node.conflicts.map((candidate) => [candidate.context, candidate]),
+  )
+  const bindingsByContext = new Map(
+    node.bindings.map((candidate) => [candidate.context, candidate]),
+  )
   for (const context of reverseContexts(activeContexts)) {
-    const conflict = node.conflicts.find(
-      (candidate) => candidate.context === context,
-    )
+    const conflict = conflictsByContext.get(context)
     if (conflict) return { conflict }
-    const binding = node.bindings.find(
-      (candidate) => candidate.context === context,
-    )
+    const binding = bindingsByContext.get(context)
     if (binding) return { binding }
   }
   return undefined

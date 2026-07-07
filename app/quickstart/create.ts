@@ -337,6 +337,7 @@ async function retryQuickstartRpc<T>(
     }
     const signal = makeQuickstartAttemptSignal(abortSignal, timeoutMs)
     try {
+      // eslint-disable-next-line react-doctor/async-await-in-loop -- retry attempts are sequential by contract.
       return await cb(signal)
     } catch (err) {
       lastErr = err
@@ -1198,6 +1199,7 @@ async function initKvQuickstart(
     await store.withTransaction(
       true,
       async (tx) => {
+        // eslint-disable-next-line react-doctor/async-parallel -- transaction writes stay ordered on one transaction owner.
         await tx.set(encoder.encode('hello'), encoder.encode('world'))
         await tx.set(
           encoder.encode('profile.json'),
@@ -1586,6 +1588,7 @@ async function initDeviceQuickstart(
   const wizardKey = buildWizardObjectKey(
     'Add Device ' + now.getTime().toString(36),
   )
+  // eslint-disable-next-line react-doctor/async-parallel -- quickstart world ops stay ordered so routing observes the dashboard before the wizard.
   await applyQuickstartWorldOp(
     setup.spaceWorld,
     CREATE_COMPUTERS_DASHBOARD_OP_ID,

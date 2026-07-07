@@ -65,6 +65,7 @@ export function TransferWizard() {
     const abort = new AbortController()
     void (async () => {
       try {
+        // eslint-disable-next-line react-doctor/async-defer-await -- recovery status is the data that decides whether the effect updates state.
         const status = await session.getTransferStatus(abort.signal)
         if (abort.signal.aborted) return
         if (status.active || status.hasCheckpoint) {

@@ -1,4 +1,4 @@
-import { useCallback, useContext, useMemo, useState } from 'react'
+import { use, useCallback, useMemo, useState } from 'react'
 import {
   LuFileText,
   LuPlay,
@@ -57,7 +57,7 @@ export function SqlQueryViewer({
     SqlQueryTypeID,
   )
 
-  const workbenchTargetDb = useContext(SqlWorkbenchTargetDbContext)
+  const workbenchTargetDb = use(SqlWorkbenchTargetDbContext)
 
   const queryResource = useResource(
     handle,

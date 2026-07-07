@@ -136,6 +136,7 @@ function NoteList({
       for (const entry of fileEntries) {
         if (signal.aborted) return entries
 
+        // eslint-disable-next-line react-doctor/async-await-in-loop -- note files load through one directory handle so child refs release before the next lookup.
         const child = await handle.lookup(entry.name, signal)
         const text = await readFileText(child, signal).finally(() =>
           child.release(),

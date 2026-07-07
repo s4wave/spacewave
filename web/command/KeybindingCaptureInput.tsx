@@ -40,11 +40,11 @@ export function KeybindingCaptureInput() {
         <div
           role="button"
           tabIndex={0}
-          className="border-brand/30 bg-brand/10 text-foreground ring-brand/20 rounded border px-3 py-3 text-sm ring-1 outline-none"
+          className="border-brand/30 bg-brand/10 text-foreground ring-brand/20 rounded border p-3 text-sm ring-1 outline-none"
           onKeyDown={handleCaptureKeyDown}
         >
           <div className="text-brand flex items-center gap-2 text-xs font-medium">
-            <span className="bg-brand h-2 w-2 rounded-full" />
+            <span className="bg-brand size-2 rounded-full" />
             Recording · press keys now
           </div>
           <div className="mt-2">

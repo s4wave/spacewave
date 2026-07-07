@@ -40,6 +40,7 @@ export function TextInputDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
+        {/* eslint-disable-next-line react-doctor/no-prevent-default -- plugin dialogs submit to in-memory callbacks, not no-JS document actions. */}
         <form
           onSubmit={(event) => {
             event.preventDefault()
@@ -102,6 +103,7 @@ export function SourceInputDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
+        {/* eslint-disable-next-line react-doctor/no-prevent-default -- plugin dialogs submit to in-memory callbacks, not no-JS document actions. */}
         <form
           onSubmit={(event) => {
             event.preventDefault()

@@ -124,8 +124,15 @@ function keyboardShortcutAliasMatches(text: string, query: string): boolean {
 }
 
 function highlightSemanticTerms(text: string, terms: readonly string[]) {
-  const normalizedTerms = terms.map(normalizeSearchText).filter(Boolean)
+  const normalizedTerms = terms.flatMap(
+    (term) => normalizeSearchText(term) || [],
+  )
   if (normalizedTerms.length === 0) return null
+  const termPattern = new RegExp(
+    normalizedTerms
+      .map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('|'),
+  )
 
   const content: ReactNode[] = []
   const tokenPattern = /[A-Za-z0-9]+/g
@@ -136,7 +143,7 @@ function highlightSemanticTerms(text: string, terms: readonly string[]) {
   while ((match = tokenPattern.exec(text))) {
     const token = match[0]
     const normalizedToken = normalizeSearchText(token)
-    if (!normalizedTerms.some((term) => normalizedToken.includes(term))) {
+    if (!termPattern.test(normalizedToken)) {
       continue
     }
 
@@ -431,14 +438,12 @@ export function CommandPalette() {
     if (subItemCommandId || paletteMode === 'chord' || !query.trim()) {
       return grouped
     }
-    return grouped
-      .map((group) => ({
-        ...group,
-        commands: group.commands.filter((cmd) =>
-          commandMatchesQuery(cmd, bindingGraph, query),
-        ),
-      }))
-      .filter((group) => group.commands.length > 0)
+    return grouped.flatMap((group) => {
+      const commands = group.commands.filter((cmd) =>
+        commandMatchesQuery(cmd, bindingGraph, query),
+      )
+      return commands.length > 0 ? [{ ...group, commands }] : []
+    })
   }, [bindingGraph, grouped, paletteMode, query, subItemCommandId])
 
   const resetChord = useCallback(() => {

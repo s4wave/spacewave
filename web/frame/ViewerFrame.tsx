@@ -45,17 +45,26 @@ interface BottomBarContextMenuState {
   openKind: BottomBarContextMenuOpenKind
 }
 
-function renderBottomBarButton(
-  item: BottomBarItem,
-  openMenu: string,
-  setOpenMenu: (id: string) => void,
+interface BottomBarButtonSlotProps {
+  item: BottomBarItem
+  openMenu: string
+  setOpenMenu: (id: string) => void
   openContextMenu?: (
     item: BottomBarItem,
     activation: BottomBarSecondaryActivation,
-  ) => void,
-  contextMenuOpen?: boolean,
-  className?: string,
-) {
+  ) => void
+  contextMenuOpen?: boolean
+  className?: string
+}
+
+function BottomBarButtonSlot({
+  item,
+  openMenu,
+  setOpenMenu,
+  openContextMenu,
+  contextMenuOpen,
+  className,
+}: BottomBarButtonSlotProps) {
   const selected = openMenu === item.id
   const button = item.button(
     selected,
@@ -327,13 +336,13 @@ export function ViewerFrame(props: ViewerFrameProps) {
 
         return (
           <>
-            {renderBottomBarButton(
-              first,
-              openMenu,
-              setOpenMenu,
-              openContextMenu,
-              contextMenuState?.itemId === first.id,
-            )}
+            <BottomBarButtonSlot
+              item={first}
+              openMenu={openMenu}
+              setOpenMenu={setOpenMenu}
+              openContextMenu={openContextMenu}
+              contextMenuOpen={contextMenuState?.itemId === first.id}
+            />
             <BottomBarBreadcrumbSeparator onClick={first.onBreadcrumbClick} />
             <CollapsedBottomBarItems
               items={middle}
@@ -345,13 +354,13 @@ export function ViewerFrame(props: ViewerFrameProps) {
             <BottomBarBreadcrumbSeparator
               onClick={beforeLast.onBreadcrumbClick}
             />
-            {renderBottomBarButton(
-              last,
-              openMenu,
-              setOpenMenu,
-              openContextMenu,
-              contextMenuState?.itemId === last.id,
-            )}
+            <BottomBarButtonSlot
+              item={last}
+              openMenu={openMenu}
+              setOpenMenu={setOpenMenu}
+              openContextMenu={openContextMenu}
+              contextMenuOpen={contextMenuState?.itemId === last.id}
+            />
           </>
         )
       })()
@@ -365,13 +374,13 @@ export function ViewerFrame(props: ViewerFrameProps) {
               {index > 0 && (
                 <BottomBarBreadcrumbSeparator onClick={prevItemHandler} />
               )}
-              {renderBottomBarButton(
-                item,
-                openMenu,
-                setOpenMenu,
-                openContextMenu,
-                contextMenuState?.itemId === item.id,
-              )}
+              <BottomBarButtonSlot
+                item={item}
+                openMenu={openMenu}
+                setOpenMenu={setOpenMenu}
+                openContextMenu={openContextMenu}
+                contextMenuOpen={contextMenuState?.itemId === item.id}
+              />
             </React.Fragment>
           )
         })}
@@ -383,13 +392,13 @@ export function ViewerFrame(props: ViewerFrameProps) {
       {rightItems.map((item) => {
         return (
           <React.Fragment key={item.id}>
-            {renderBottomBarButton(
-              item,
-              openMenu,
-              setOpenMenu,
-              openContextMenu,
-              contextMenuState?.itemId === item.id,
-            )}
+            <BottomBarButtonSlot
+              item={item}
+              openMenu={openMenu}
+              setOpenMenu={setOpenMenu}
+              openContextMenu={openContextMenu}
+              contextMenuOpen={contextMenuState?.itemId === item.id}
+            />
           </React.Fragment>
         )
       })}
