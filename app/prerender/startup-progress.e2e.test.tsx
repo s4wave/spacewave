@@ -65,7 +65,7 @@ async function captureStartupEvidence(name: string) {
 }
 
 function startupSurfaceBounds() {
-  const surface = document.querySelector('[data-sw-startup-preview]')
+  const surface = document.querySelector('.swb-canvas')
   if (!surface) return null
   const rect = surface.getBoundingClientRect()
   return {

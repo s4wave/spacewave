@@ -103,6 +103,20 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+// stepState reads the rendered per-phase state marker (data-state on the <li>)
+// and whether that step shows the active spinner rather than a static dot.
+function stepState(container: HTMLElement, label: string) {
+  const rail = container.querySelector('[aria-label="Startup phases"]')
+  const li = Array.from(rail?.querySelectorAll('.swb-step') ?? []).find(
+    (el) => el.querySelector('.swb-step-label')?.textContent === label,
+  )
+  return {
+    state: li?.getAttribute('data-state'),
+    spinner: !!li?.querySelector('.swb-spinner'),
+    dot: !!li?.querySelector('.swb-dot'),
+  }
+}
+
 describe('AppLoadingScreen', () => {
   it('renders the branded startup composition from the shared loading view', () => {
     const { container } = render(<AppLoadingScreen />)
@@ -117,11 +131,33 @@ describe('AppLoadingScreen', () => {
     expect(screen.getByText('Runtime')).toBeDefined()
     expect(screen.getByText('App')).toBeDefined()
     expect(screen.getByText('Done')).toBeDefined()
+    // The first-run hint tells new users the initial download can be slow.
     expect(
-      container
-        .querySelector('[data-sw-startup-preview]')
-        ?.getAttribute('data-sw-startup-preview-phase'),
-    ).toBe('runtime')
+      screen.getByText(/first launch downloads the full app bundle/i),
+    ).toBeDefined()
+    // The surface is self-styled from the inlined boot critical stylesheet so it
+    // paints branded before the Tailwind app.css loads.
+    expect(container.querySelector('.swb-canvas')).not.toBeNull()
+  })
+
+  it('marks each phase with its state: complete dot, current spinner, pending muted', () => {
+    const { container } = render(<AppLoadingScreen />)
+
+    expect(stepState(container, 'Prepare')).toMatchObject({
+      state: 'complete',
+      dot: true,
+      spinner: false,
+    })
+    expect(stepState(container, 'Runtime')).toMatchObject({
+      state: 'current',
+      spinner: true,
+      dot: false,
+    })
+    expect(stepState(container, 'Done')).toMatchObject({
+      state: 'pending',
+      dot: true,
+      spinner: false,
+    })
   })
 
   it('renders app bundle progress as determinate frame progress', () => {
@@ -165,14 +201,11 @@ describe('AppLoadingScreen', () => {
 
     expect(screen.getByText('42%')).toBeDefined()
     expect(screen.queryByText('84%')).toBeNull()
-    expect(
-      container.querySelector('.animate-progress-indeterminate'),
-    ).toBeNull()
-    expect(
-      container
-        .querySelector('[data-sw-startup-preview]')
-        ?.getAttribute('data-sw-startup-preview-phase'),
-    ).toBe('frame')
+    expect(container.querySelector('.swb-bar-fill--indeterminate')).toBeNull()
+    expect(stepState(container, 'App')).toMatchObject({
+      state: 'current',
+      spinner: true,
+    })
   })
 
   it('renders retry and back affordances for startup errors', () => {
@@ -203,7 +236,7 @@ describe('AppLoadingScreen', () => {
       })),
     }
 
-    render(<AppLoadingScreen />)
+    const { container } = render(<AppLoadingScreen />)
 
     expect(screen.getByText('Retry')).toBeDefined()
     expect(screen.getByText('Back')).toBeDefined()
@@ -212,6 +245,11 @@ describe('AppLoadingScreen', () => {
         'Startup did not finish. Check the browser console or startup marks for details.',
       ),
     ).toBeDefined()
+    expect(stepState(container, 'Connect')).toMatchObject({
+      state: 'error',
+      dot: true,
+      spinner: false,
+    })
   })
 
   it('keeps startup status, phases, and progress readable with reduced motion', () => {
@@ -237,6 +275,5 @@ describe('AppLoadingScreen', () => {
     ).toBeDefined()
     expect(screen.getByLabelText('Startup phases')).toBeDefined()
     expect(screen.getByText('58%')).toBeDefined()
-    expect(container.querySelector('.shine-border-mask')).toBeNull()
   })
 })

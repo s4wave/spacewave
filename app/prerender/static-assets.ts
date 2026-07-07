@@ -5,37 +5,64 @@ export interface ViteManifestEntry {
   css?: string[]
   file?: string
   isEntry?: boolean
+  imports?: string[]
   name?: string
   src?: string
 }
 
 export type ViteManifest = Record<string, ViteManifestEntry>
 
-export function selectAppCssFile(manifest: ViteManifest): string | undefined {
-  let fallbackCssFile: string | undefined
-  let fallbackCssCount = 0
+// APP_ENTRY_SRC is the source module of the app plugin entry, which imports
+// web/style/app.css. Its stylesheet is the full app CSS the prerendered shell
+// links.
+const APP_ENTRY_SRC = 'app/App.tsx'
 
-  for (const [key, entry] of Object.entries(manifest)) {
-    if (
-      entry.isEntry &&
-      (key === 'app/App.tsx' ||
-        entry.src === 'app/App.tsx' ||
-        entry.name === 'app')
-    ) {
+// isAppEntryRecord reports whether a manifest record is the app plugin entry.
+function isAppEntryRecord(key: string, entry: ViteManifestEntry): boolean {
+  return (
+    !!entry.isEntry &&
+    (key === APP_ENTRY_SRC ||
+      entry.src === APP_ENTRY_SRC ||
+      entry.name === 'app')
+  )
+}
+
+// isAppModuleRecord reports whether a record is the App application module: the
+// chunk App.tsx (and its app.css import) compiles into. Release builds split
+// App into a shared _App-<hash>.mjs chunk named "App" that carries app.css and
+// leave the thin entry record cssless, while dev/test builds keep the css on
+// the entry record itself. Matching the module by identity covers both shapes.
+function isAppModuleRecord(entry: ViteManifestEntry): boolean {
+  return entry.src === APP_ENTRY_SRC || entry.name === 'App'
+}
+
+// selectAppCssFile returns the app plugin stylesheet from a Vite manifest. It
+// walks the app entry's static import graph and returns the app.css attached to
+// the App application module, so it resolves the css whether the build records
+// it on the entry record or on the split App chunk the entry imports. It
+// returns undefined when no App-module css is reachable; the caller reports the
+// searched manifest keys so a changed manifest shape fails loudly.
+export function selectAppCssFile(manifest: ViteManifest): string | undefined {
+  const entryKey = Object.keys(manifest).find((key) =>
+    isAppEntryRecord(key, manifest[key]),
+  )
+  if (!entryKey) return undefined
+
+  const seen = new Set<string>()
+  const queue = [entryKey]
+  while (queue.length) {
+    const key = queue.shift()
+    if (key === undefined || seen.has(key)) continue
+    seen.add(key)
+    const entry = manifest[key]
+    if (!entry) continue
+    if (isAppModuleRecord(entry)) {
       const [cssFile] = entry.css ?? []
       if (cssFile) return cssFile
     }
-
-    for (const cssFile of entry.css ?? []) {
-      if (!basename(cssFile).startsWith('app-')) continue
-      fallbackCssCount++
-      if (fallbackCssCount === 1) {
-        fallbackCssFile = cssFile
-      }
-    }
+    for (const importKey of entry.imports ?? []) queue.push(importKey)
   }
-
-  return fallbackCssCount === 1 ? fallbackCssFile : undefined
+  return undefined
 }
 const requiredStaticExtensions = new Set([
   '.css',

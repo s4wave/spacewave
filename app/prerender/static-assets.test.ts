@@ -57,4 +57,50 @@ describe('selectAppCssFile', () => {
 
     expect(selectAppCssFile(manifest)).toBe('assets/app-def.css')
   })
+
+  it('resolves app CSS from the split App chunk in release manifests', () => {
+    // Release builds emit a thin cssless entry that statically imports a shared
+    // _App-<hash>.mjs chunk (name "App") carrying app.css, alongside unrelated
+    // component-chunk css that must not be selected.
+    const manifest: ViteManifest = {
+      '_AnimatedLogo-D_8yyfZb.mjs': {
+        file: 'AnimatedLogo-D_8yyfZb.mjs',
+        name: 'AnimatedLogo',
+        css: ['AnimatedLogo-DaLnvTQS.css'],
+      },
+      '_App-DbWiT3Sv.mjs': {
+        file: 'App-DbWiT3Sv.mjs',
+        name: 'App',
+        css: ['App-Cgwaez6P.css'],
+      },
+      'app/App.tsx': {
+        file: 'app/App2.mjs',
+        src: 'app/App.tsx',
+        name: 'App',
+        isEntry: true,
+        imports: ['_App-DbWiT3Sv.mjs'],
+      },
+    }
+
+    expect(selectAppCssFile(manifest)).toBe('App-Cgwaez6P.css')
+  })
+
+  it('returns undefined when no App-module css is reachable from the entry', () => {
+    const manifest: ViteManifest = {
+      '_vendor-abc.mjs': {
+        file: 'vendor-abc.mjs',
+        name: 'vendor',
+        css: ['vendor-abc.css'],
+      },
+      'app/App.tsx': {
+        file: 'app/App2.mjs',
+        src: 'app/App.tsx',
+        name: 'App',
+        isEntry: true,
+        imports: [],
+      },
+    }
+
+    expect(selectAppCssFile(manifest)).toBeUndefined()
+  })
 })

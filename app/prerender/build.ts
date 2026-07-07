@@ -157,7 +157,17 @@ function extractViteCss(log: (msg: string) => void): {
   ) as ViteManifest
   const cssFile = selectAppCssFile(viteManifest)
   if (!cssFile) {
-    console.error('No CSS entry found in Vite manifest')
+    const entryKeys = Object.keys(viteManifest).filter(
+      (key) => viteManifest[key].isEntry,
+    )
+    const cssKeys = Object.keys(viteManifest).filter(
+      (key) => (viteManifest[key].css ?? []).length > 0,
+    )
+    console.error(
+      `No app CSS found in Vite manifest ${viteManifestPath}.\n` +
+        `  entry keys: ${entryKeys.join(', ') || '(none)'}\n` +
+        `  keys with css: ${cssKeys.join(', ') || '(none)'}`,
+    )
     process.exit(1)
   }
 
