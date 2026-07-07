@@ -46,6 +46,37 @@ func (a *ProviderAccount) RefreshOrganizationList(ctx context.Context) error {
 	return nil
 }
 
+// PublishCreatedOrganization updates the session-local org summary from the
+// successful create response without doing another cloud round-trip.
+func (a *ProviderAccount) PublishCreatedOrganization(org *api.OrgResponse) {
+	if org == nil || org.GetId() == "" {
+		return
+	}
+	created := org.CloneVT()
+	a.orgBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		a.invalidateOrganizationSnapshotsLocked(created.GetId())
+		if a.orgListValid {
+			for idx, existing := range a.orgList {
+				if existing.GetId() == created.GetId() {
+					a.orgList[idx] = created
+					broadcast()
+					return
+				}
+			}
+			a.orgList = append(a.orgList, created)
+		}
+		broadcast()
+	})
+}
+
+// QueueOrganizationSync schedules the keyed organization sync owner.
+func (a *ProviderAccount) QueueOrganizationSync(orgID string) {
+	if orgID == "" || a.orgSyncs == nil {
+		return
+	}
+	a.orgSyncs.SetKey(orgID, true)
+}
+
 // GetCachedSharedObjectOrganizationID returns the cached owner org id for an SO.
 func (a *ProviderAccount) GetCachedSharedObjectOrganizationID(
 	soID string,

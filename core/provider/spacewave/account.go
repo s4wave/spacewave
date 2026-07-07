@@ -448,7 +448,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	acc.wsTracker.onOrgChanged = func(orgID string) {
 		le.WithField("org-id", orgID).Debug("org changed via ws notify")
 		acc.InvalidateBillingSnapshot("")
-		acc.orgSyncs.SetKey(orgID, true)
+		acc.QueueOrganizationSync(orgID)
 	}
 	acc.wsTracker.onPendingParticipant = func(soID, accountID string) {
 		le.WithField("sobject-id", soID).

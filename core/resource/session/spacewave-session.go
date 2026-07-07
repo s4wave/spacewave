@@ -752,10 +752,12 @@ func (r *SpacewaveSessionResource) CreateOrganization(
 		return nil, errors.Wrap(err, "unmarshal org")
 	}
 
-	// Create org SharedObject using the cloud org ID as the SO ID.
+	// Publish the cloud response synchronously so cached org-list readers cannot
+	// observe a stale list after this RPC returns. Root SO bootstrap and the full
+	// cloud refresh run through the ProviderAccount org-sync keyed owner.
 	orgID := info.GetId()
-	r.refreshOrganizationCaches(ctx, orgID, true)
-	r.initOrgSharedObject(ctx, orgID, req.GetDisplayName())
+	r.swAcc.PublishCreatedOrganization(&info)
+	r.swAcc.QueueOrganizationSync(orgID)
 
 	return &s4wave_provider_spacewave.CreateOrganizationResponse{
 		Organization: &s4wave_provider_spacewave.OrganizationInfo{
@@ -764,40 +766,6 @@ func (r *SpacewaveSessionResource) CreateOrganization(
 			Role:        info.GetRole(),
 		},
 	}, nil
-}
-
-// initOrgSharedObject creates a local org SharedObject and submits InitOrganizationOp.
-// Failures are logged as warnings since the cloud org already exists.
-func (r *SpacewaveSessionResource) initOrgSharedObject(ctx context.Context, orgID string, displayName string) {
-	le := r.le.WithField("org-id", orgID)
-
-	ref, err := r.swAcc.CreateSharedObject(ctx, orgID, s4wave_org.NewOrgSharedObjectMeta(displayName), sobject.OwnerTypeOrganization, orgID)
-	if err != nil {
-		le.WithError(err).Warn("failed to create org SO")
-		return
-	}
-
-	so, relSO, err := r.swAcc.MountSharedObject(ctx, ref, nil)
-	if err != nil {
-		le.WithError(err).Warn("failed to mount org SO")
-		return
-	}
-	defer relSO()
-
-	initOp := &s4wave_org.InitOrganizationOp{
-		OrgObjectKey:     s4wave_org.OrgObjectKey,
-		DisplayName:      displayName,
-		CreatorAccountId: r.swAcc.GetAccountID(),
-		Timestamp:        timestamppb.Now(),
-	}
-	opData, err := s4wave_org.MarshalInitOrgSOOp(initOp)
-	if err != nil {
-		le.WithError(err).Warn("failed to marshal init org op")
-		return
-	}
-	if _, err := so.QueueOperation(ctx, opData); err != nil {
-		le.WithError(err).Warn("failed to queue init org op")
-	}
 }
 
 // queueOrgUpdateOp mounts the org SO and queues an UpdateOrgOp.
