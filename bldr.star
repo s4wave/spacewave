@@ -609,12 +609,22 @@ build("release-web-e2e-goscript",
 build("cli-plugin",  manifests=["spacewave-cli-plugin"], targets=["browser"])
 build("cli",         manifests=["spacewave"])
 
-# plugin-release-browser builds the browser-side plugin channel surface: the
-# wasm spacewave-core manifest plus the JS plugin manifests that live in the
-# remote world.
+# plugin-release-browser records the browser-side plugin channel manifest set.
+# The CI release helper builds each manifest with its release platform because
+# the remote world mixes the GoScript core/js manifest, JS plugin manifests, and
+# web/web/js/wasm manifest in one channel.
+PLUGIN_RELEASE_BROWSER_MANIFEST_OVERRIDES = {
+    "spacewave-core": spacewave_core_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
+}
+def plugin_release_browser_manifest_overrides(manifest_id):
+    if manifest_id == "spacewave-core":
+        return PLUGIN_RELEASE_BROWSER_MANIFEST_OVERRIDES
+    return {}
+
 build("plugin-release-browser",
     manifests=REMOTE_WORLD_MANIFESTS,
     targets=["browser"],
+    manifestOverrides=PLUGIN_RELEASE_BROWSER_MANIFEST_OVERRIDES,
 )
 
 build("plugin-release-browser-tinygo",
@@ -779,3 +789,4 @@ project(
         loadWebStartup=WEB_STARTUP,
     ),
 )
+
