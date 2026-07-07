@@ -3,8 +3,16 @@ name: CI
 on:
   push:
     branches: ['master']
+    paths-ignore:
+      - 'doc/**'
+      - '*.md'
+      - 'CHANGELOG.org'
   pull_request:
     branches: ['master']
+    paths-ignore:
+      - 'doc/**'
+      - '*.md'
+      - 'CHANGELOG.org'
   workflow_dispatch:
 
 # Queue CI by branch/PR instead of canceling older runs. Canceling makes older
@@ -283,27 +291,33 @@ jobs:
             script: test:go:e2e:cli
             needs_playwright: false
             playwright_browsers: ''
+            timeout_minutes: 10
           - name: bldr-comms
             script: test:go:e2e:bldr-comms
             needs_playwright: true
             playwright_browsers: chromium firefox webkit
+            timeout_minutes: 10
           - name: alpha-core
             script: test:go:e2e:core
             needs_playwright: false
             playwright_browsers: ''
+            timeout_minutes: 40
           - name: alpha-browser
             script: test:go:e2e:browser
             needs_playwright: true
             playwright_browsers: chromium
+            timeout_minutes: 20
           - name: opfs-chrome-smoke
             script: test:go:db:opfs:chrome:smoke
             needs_playwright: true
             playwright_browsers: chromium
+            timeout_minutes: 10
           - name: trace-service
             script: test:go:e2e:trace
             needs_playwright: false
             playwright_browsers: ''
-    timeout-minutes: 45
+            timeout_minutes: 20
+    timeout-minutes: ${{ matrix.suite.timeout_minutes }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
@@ -349,15 +363,20 @@ jobs:
         slice:
           - name: support
             run: '^(TestE2ECloudAuthConfigEndpoint|TestStableE2ECloudAuthConfigAddr|TestApplyE2ECloudAuthConfigEndpoint|TestCompileTestScripts|TestCrashReportClassifiesGoFatalAndExitedGoLoop|TestDrainCrashReportDoesNotWaitForFutureMessages|TestTrace(CaptureBytes|CaptureWritesFile|PathDerivation|WindowControl|PolicyBehavior)|Test(Enable(TinyGo|GoScript)ForManifest|ResolveE2EWasmCompiler(RejectsInvalid|RejectsLegacyTinyGoEnv)?|Configure(TinyGoForManifest(RemovesDebugTrace|RemovesSessionHarnessWebRTC|DeterministicConfig)|GoScriptForManifestRemovesSeedRuntimeConfig)|StartupBuildCacheDefaultsToTinyGo|WorkerMode(DefaultsToDedicated|SelectsSharedWorker)|ApplyE2EWasmTinyGoCompilerEnv(DefaultsToFastProfile|CopiesExplicitDebugKnobs)|ClearHarnessStateRoot(PreservesStartupBuildCache|RemovesStartupBuildCache)|BrowserPeerErrorClassification|PeerWatcher(ReturnsNewestObservation|ObservationAfterSkipsStalePeers)|ResourceConnectionTimingSnapshot))$'
+            timeout_minutes: 20
           - name: harness
             run: '^(TestWasmHarness.*|TestSessionHarnessPeerInfo|TestMultiSessionPeerDiscovery|TestSignalRelayCrossConnect|TestEndToEndLinkEstablishment|TestBrowser(LaunchFromGo|SessionIsolation|HelpersAndRawAccess|RouteNavigation)|TestRetainedState(PageSessionReusesWarmContext|ResourceSessionSupportsSequentialReuse|SessionReleaseCleansPerSessionState)|TestRootResourceMount|TestSessionMount|TestSpaceMountAfterQuickstart|TestResourceSetupHelpers)$'
+            timeout_minutes: 40
           - name: drive
             run: '^(TestQuickstartDrive(Route|DirectRouteStartup|NavigateHomeFromNestedDir|DeleteSpace|Trace|NavigateTrace|UploadCrashRecovery|SingleEntryRowMove|VideoPreview)|TestDriveScenarioSequence|TestDriveNavigationBurstTrace|TestExistingDriveOpenMeasurement)$'
+            timeout_minutes: 40
           - name: forge-blog
             run: '^(TestQuickstartForge(Route|Trace)|TestForge(ScenarioSequence|WorkerExecution)|TestBlog(CoexistenceScenario|QuickstartSetupProbe|QuickstartRetainedStateRegistrationProbe))$'
+            timeout_minutes: 20
           - name: session-sync
             run: '^(TestLocalOnboardingScenario|TestMultiSessionScenario|TestNoCloud(AnonymousParticipantSync|PairingDirect)|TestBackgroundThrottledLifecycle|TestRecreatedPageSharedObjectHealthGuard|TestRetainedStatePagePeerProbe)$'
-    timeout-minutes: 45
+            timeout_minutes: 30
+    timeout-minutes: ${{ matrix.slice.timeout_minutes }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
@@ -439,7 +458,8 @@ jobs:
           - name: bldr-web
             script: bldr:test:e2e
             playwright_browsers: chromium firefox
-    timeout-minutes: 45
+            timeout_minutes: 15
+    timeout-minutes: ${{ matrix.suite.timeout_minutes }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
