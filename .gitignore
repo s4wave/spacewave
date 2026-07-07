@@ -42,6 +42,7 @@ __debug_bin*
 hydra/
 *.test
 __screenshots__
+app/space/spaceplugins-*.png
 /.opencode/
 /.claude/cache
 *-eslint.json
