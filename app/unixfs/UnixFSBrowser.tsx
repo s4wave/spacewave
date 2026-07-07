@@ -612,6 +612,8 @@ function useUnixFSBrowserElement({
     handleEntryDragOver,
     handleEntryDragLeave,
     handleEntryDrop,
+    handlePathTargetDragOver,
+    handlePathTargetDrop,
   } = useUnixFSBrowserDrag({
     unixfsId,
     displayPath,
@@ -764,6 +766,9 @@ function useUnixFSBrowserElement({
     canGoBack: history?.canGoBack ?? false,
     canGoForward: history?.canGoForward ?? false,
     canGoUp: displayPath !== '/',
+    upDropPath: getUnixFSParentPath(displayPath),
+    onPathTargetDragOver: handlePathTargetDragOver,
+    onPathTargetDrop: handlePathTargetDrop,
   }
   const shellActionProps = {
     ...shellNavigationProps,

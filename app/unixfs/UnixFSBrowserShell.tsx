@@ -1,4 +1,4 @@
-import type { KeyboardEvent, ReactNode } from 'react'
+import type { DragEvent, KeyboardEvent, ReactNode } from 'react'
 
 import { Toolbar } from '@s4wave/web/editors/file-browser/Toolbar.js'
 
@@ -12,10 +12,16 @@ interface UnixFSBrowserShellProps {
   canGoBack: boolean
   canGoForward: boolean
   canGoUp: boolean
+  upDropPath?: string
   interactive?: boolean
   onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void
   onNewFolder?: () => void
   onUploadFiles?: () => void
+  onPathTargetDragOver?: (
+    path: string,
+    event: DragEvent<HTMLElement>,
+  ) => boolean
+  onPathTargetDrop?: (path: string, event: DragEvent<HTMLElement>) => void
 }
 
 export function UnixFSBrowserShell({
@@ -28,10 +34,13 @@ export function UnixFSBrowserShell({
   canGoBack,
   canGoForward,
   canGoUp,
+  upDropPath,
   interactive = false,
   onKeyDown,
   onNewFolder,
   onUploadFiles,
+  onPathTargetDragOver,
+  onPathTargetDrop,
 }: UnixFSBrowserShellProps) {
   return (
     <div
@@ -44,6 +53,7 @@ export function UnixFSBrowserShell({
       <Toolbar
         currentPath={currentPath}
         onPathChange={onPathChange}
+        upDropPath={upDropPath}
         onNavigate={onPathChange}
         onBack={onBack}
         onForward={onForward}
@@ -53,6 +63,8 @@ export function UnixFSBrowserShell({
         canGoUp={canGoUp}
         onNewFolder={onNewFolder}
         onUploadFiles={onUploadFiles}
+        onPathTargetDragOver={onPathTargetDragOver}
+        onPathTargetDrop={onPathTargetDrop}
       />
       {children}
     </div>

@@ -83,17 +83,17 @@ export function useUnixFSBrowserDrag({
     [setDragging, sourceParentHandle, uploadManager],
   )
 
-  const getAcceptedFolderMove = useCallback(
-    (entry: FileEntry, dataTransfer: DataTransfer | null | undefined) => {
-      if (!entry.isDir) return null
-
+  const getAcceptedPathMove = useCallback(
+    (
+      destinationPath: string,
+      dataTransfer: DataTransfer | null | undefined,
+    ) => {
       const movableItems = readUnixFSMovableAppDragItems(dataTransfer)
       if (movableItems.length === 0) return null
       if (movableItems.some((item) => item.value.unixfsId !== unixfsId)) {
         return null
       }
 
-      const destPath = joinUnixFSDisplayPath(displayPath, entry.name)
       const moveItems = movableItems.map((movableItem) => {
         const sourceName =
           movableItem.label ?? getUnixFSBaseName(movableItem.value.path)
@@ -105,17 +105,28 @@ export function useUnixFSBrowserDrag({
         }
       })
       if (moveItems.some((item) => !item.name)) return null
-      const validation = validateUnixFSMove(moveItems, destPath)
+      const validation = validateUnixFSMove(moveItems, destinationPath)
       if (!validation.accepted) {
         return null
       }
 
       return {
-        destinationPath: destPath,
+        destinationPath,
         items: moveItems,
       }
     },
-    [displayPath, unixfsId],
+    [unixfsId],
+  )
+
+  const getAcceptedFolderMove = useCallback(
+    (entry: FileEntry, dataTransfer: DataTransfer | null | undefined) => {
+      if (!entry.isDir) return null
+      return getAcceptedPathMove(
+        joinUnixFSDisplayPath(displayPath, entry.name),
+        dataTransfer,
+      )
+    },
+    [displayPath, getAcceptedPathMove],
   )
 
   const handleEntryDragOver = useCallback(
@@ -173,6 +184,49 @@ export function useUnixFSBrowserDrag({
     ],
   )
 
+  const handlePathTargetDragOver = useCallback(
+    (destinationPath: string, event: DragEvent<HTMLElement>) => {
+      const acceptedMove = getAcceptedPathMove(
+        destinationPath,
+        event.dataTransfer,
+      )
+      if (!acceptedMove) return false
+      event.preventDefault()
+      event.stopPropagation()
+      event.dataTransfer.dropEffect = 'move'
+      return true
+    },
+    [getAcceptedPathMove],
+  )
+
+  const handlePathTargetDrop = useCallback(
+    (destinationPath: string, event: DragEvent<HTMLElement>) => {
+      const acceptedMove = getAcceptedPathMove(
+        destinationPath,
+        event.dataTransfer,
+      )
+      if (!acceptedMove) return
+      event.preventDefault()
+      event.stopPropagation()
+      if (!rootHandle || !sourceParentHandle) return
+
+      void (async () => {
+        try {
+          await moveUnixFSItemsFromDirectory(
+            rootHandle,
+            sourceParentHandle,
+            displayPath,
+            acceptedMove.items,
+            acceptedMove.destinationPath,
+          )
+        } catch (err) {
+          toast.error('Move failed', { description: String(err) })
+        }
+      })()
+    },
+    [displayPath, getAcceptedPathMove, rootHandle, sourceParentHandle],
+  )
+
   return {
     handleDragOver,
     handleDragLeave,
@@ -180,5 +234,7 @@ export function useUnixFSBrowserDrag({
     handleEntryDragOver,
     handleEntryDragLeave,
     handleEntryDrop,
+    handlePathTargetDragOver,
+    handlePathTargetDrop,
   }
 }

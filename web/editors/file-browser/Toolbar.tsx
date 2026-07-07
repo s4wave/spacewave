@@ -1,5 +1,12 @@
 /* eslint-disable react-doctor/no-many-boolean-props */
-import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type DragEvent,
+  type ReactNode,
+} from 'react'
 import {
   LuChevronLeft,
   LuChevronRight,
@@ -40,8 +47,14 @@ interface ToolbarProps {
   canGoBack?: boolean
   canGoForward?: boolean
   canGoUp?: boolean
+  upDropPath?: string
   onNewFolder?: () => void
   onUploadFiles?: () => void
+  onPathTargetDragOver?: (
+    path: string,
+    event: DragEvent<HTMLElement>,
+  ) => boolean
+  onPathTargetDrop?: (path: string, event: DragEvent<HTMLElement>) => void
   height?: number
   hideNav?: boolean
 }
@@ -56,8 +69,11 @@ export function Toolbar({
   canGoBack = false,
   canGoForward = false,
   canGoUp = true,
+  upDropPath,
   onNewFolder,
   onUploadFiles,
+  onPathTargetDragOver,
+  onPathTargetDrop,
   height,
   hideNav,
 }: ToolbarProps) {
@@ -106,6 +122,16 @@ export function Toolbar({
             label="Up"
             onClick={onUp}
             disabled={!canGoUp}
+            onDragOver={
+              canGoUp && upDropPath
+                ? (event) => onPathTargetDragOver?.(upDropPath, event)
+                : undefined
+            }
+            onDrop={
+              canGoUp && upDropPath
+                ? (event) => onPathTargetDrop?.(upDropPath, event)
+                : undefined
+            }
           />
         </div>
       )}
@@ -115,6 +141,8 @@ export function Toolbar({
           path={currentPath}
           onPathChange={onPathChange}
           onNavigate={onNavigate}
+          onPathTargetDragOver={onPathTargetDragOver}
+          onPathTargetDrop={onPathTargetDrop}
         />
       ) : (
         <div className="flex-1" />
@@ -156,6 +184,9 @@ export function Toolbar({
             canGoBack={canGoBack}
             canGoForward={canGoForward}
             canGoUp={canGoUp}
+            upDropPath={upDropPath}
+            onPathTargetDragOver={onPathTargetDragOver}
+            onPathTargetDrop={onPathTargetDrop}
           />
         )
       ) : (
@@ -169,17 +200,28 @@ interface NavIconButtonProps {
   icon: ReactNode
   label: string
   onClick?: () => void
+  onDragOver?: (event: DragEvent<HTMLButtonElement>) => void
+  onDrop?: (event: DragEvent<HTMLButtonElement>) => void
   disabled?: boolean
 }
 
 // NavIconButton renders a compact toolbar action with foreground-alt to
 // foreground hover, matching the design-system panel header convention.
-function NavIconButton({ icon, label, onClick, disabled }: NavIconButtonProps) {
+function NavIconButton({
+  icon,
+  label,
+  onClick,
+  onDragOver,
+  onDrop,
+  disabled,
+}: NavIconButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
       title={label}
       aria-label={label}
       className={cn(
@@ -203,6 +245,12 @@ interface OverflowMenuProps {
   canGoBack?: boolean
   canGoForward?: boolean
   canGoUp?: boolean
+  upDropPath?: string
+  onPathTargetDragOver?: (
+    path: string,
+    event: DragEvent<HTMLElement>,
+  ) => boolean
+  onPathTargetDrop?: (path: string, event: DragEvent<HTMLElement>) => void
 }
 
 function OverflowMenu({
@@ -214,6 +262,9 @@ function OverflowMenu({
   canGoBack = false,
   canGoForward = false,
   canGoUp = true,
+  upDropPath,
+  onPathTargetDragOver,
+  onPathTargetDrop,
 }: OverflowMenuProps) {
   const showNavItems = collapseLevel === 'nav' || collapseLevel === 'path'
 
@@ -244,7 +295,20 @@ function OverflowMenu({
               <LuChevronRight className="size-3.5" />
               Forward
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onUp} disabled={!canGoUp}>
+            <DropdownMenuItem
+              onClick={onUp}
+              disabled={!canGoUp}
+              onDragOver={
+                canGoUp && upDropPath
+                  ? (event) => onPathTargetDragOver?.(upDropPath, event)
+                  : undefined
+              }
+              onDrop={
+                canGoUp && upDropPath
+                  ? (event) => onPathTargetDrop?.(upDropPath, event)
+                  : undefined
+              }
+            >
               <LuChevronUp className="size-3.5" />
               Up
             </DropdownMenuItem>

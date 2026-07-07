@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useCallback,
+  type DragEvent,
   type KeyboardEvent,
 } from 'react'
 import { LuChevronRight, LuHouse } from 'react-icons/lu'
@@ -14,6 +15,11 @@ interface PathInputProps {
   path: string
   onPathChange?: (path: string) => void
   onNavigate?: (path: string) => void
+  onPathTargetDragOver?: (
+    path: string,
+    event: DragEvent<HTMLElement>,
+  ) => boolean
+  onPathTargetDrop?: (path: string, event: DragEvent<HTMLElement>) => void
   className?: string
 }
 
@@ -22,6 +28,8 @@ export function PathInput({
   path,
   onPathChange,
   onNavigate,
+  onPathTargetDragOver,
+  onPathTargetDrop,
   className,
 }: PathInputProps) {
   const [isEditing, setIsEditing] = useState(false)
@@ -126,6 +134,8 @@ export function PathInput({
           e.stopPropagation()
           handleRootClick()
         }}
+        onDragOver={(e) => onPathTargetDragOver?.('/', e)}
+        onDrop={(e) => onPathTargetDrop?.('/', e)}
         className={cn(
           'hover:bg-pulldown-hover flex items-center rounded px-1 transition-colors',
           pathSegments.length === 0 && 'text-text-highlight',
@@ -146,6 +156,18 @@ export function PathInput({
               e.stopPropagation()
               handleBreadcrumbClick(index)
             }}
+            onDragOver={(e) =>
+              onPathTargetDragOver?.(
+                '/' + pathSegments.slice(0, index + 1).join('/'),
+                e,
+              )
+            }
+            onDrop={(e) =>
+              onPathTargetDrop?.(
+                '/' + pathSegments.slice(0, index + 1).join('/'),
+                e,
+              )
+            }
             className={cn(
               'hover:bg-pulldown-hover rounded px-1 whitespace-nowrap transition-colors',
               index === pathSegments.length - 1 && 'text-text-highlight',
