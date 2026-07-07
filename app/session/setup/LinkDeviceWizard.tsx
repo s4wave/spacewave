@@ -128,140 +128,138 @@ export function LinkDeviceWizard({ exitPath }: LinkDeviceWizardProps) {
 
   return (
     <SetupPageLayout title="Link My Device">
-      <div className="border-foreground/20 bg-background-get-started relative overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm">
-        <div className="p-6">
-          {sessionInfoError && (
-            <UnsupportedLinkStep
-              message={sessionInfoError.message}
-              buttonLabel="Back"
-              onDone={handleExit}
+      <div>
+        {sessionInfoError && (
+          <UnsupportedLinkStep
+            message={sessionInfoError.message}
+            buttonLabel="Back"
+            onDone={handleExit}
+          />
+        )}
+
+        {!sessionInfoError && sessionInfoLoading && (
+          <UnsupportedLinkStep
+            message="Loading session pairing capabilities..."
+            buttonLabel="Back"
+            onDone={handleExit}
+          />
+        )}
+
+        {!sessionInfoError && !sessionInfoLoading && !pairingSupported && (
+          <UnsupportedLinkStep
+            message="Device linking is available from local sessions only."
+            buttonLabel="Back"
+            onDone={handleExit}
+          />
+        )}
+
+        {!sessionInfoError &&
+          !sessionInfoLoading &&
+          pairingSupported &&
+          step === 'choose' && (
+            <ChooseStep
+              onDownload={() => setStep('download')}
+              onGenerate={() => setStep('pairing')}
+              onEnterCode={() => setStep('enter_code')}
+              onDirectOffer={
+                directPairingSupported
+                  ? () => setStep('direct_offer')
+                  : undefined
+              }
+              onDirectAnswer={
+                directPairingSupported
+                  ? () => setStep('direct_answer')
+                  : undefined
+              }
+              onSkip={handleSkip}
             />
           )}
 
-          {!sessionInfoError && sessionInfoLoading && (
-            <UnsupportedLinkStep
-              message="Loading session pairing capabilities..."
-              buttonLabel="Back"
-              onDone={handleExit}
+        {!sessionInfoError &&
+          !sessionInfoLoading &&
+          pairingSupported &&
+          step === 'download' && (
+            <DownloadStep
+              onContinue={() => setStep('pairing')}
+              onBack={() => setStep('choose')}
             />
           )}
 
-          {!sessionInfoError && !sessionInfoLoading && !pairingSupported && (
-            <UnsupportedLinkStep
-              message="Device linking is available from local sessions only."
-              buttonLabel="Back"
-              onDone={handleExit}
+        {!sessionInfoError &&
+          !sessionInfoLoading &&
+          pairingSupported &&
+          step === 'pairing' && (
+            <PairingStep
+              session={session}
+              code={codeResult.data ?? null}
+              loading={codeResult.loading}
+              error={codeResult.error ? codeResult.error.message : null}
+              generation={codeGeneration}
+              onRegenerateCode={handleRegenerateCode}
+              onRemotePeerResolved={handleRemotePeerResolved}
+              onBack={() => handleBack('choose')}
             />
           )}
 
-          {!sessionInfoError &&
-            !sessionInfoLoading &&
-            pairingSupported &&
-            step === 'choose' && (
-              <ChooseStep
-                onDownload={() => setStep('download')}
-                onGenerate={() => setStep('pairing')}
-                onEnterCode={() => setStep('enter_code')}
-                onDirectOffer={
-                  directPairingSupported
-                    ? () => setStep('direct_offer')
-                    : undefined
-                }
-                onDirectAnswer={
-                  directPairingSupported
-                    ? () => setStep('direct_answer')
-                    : undefined
-                }
-                onSkip={handleSkip}
-              />
-            )}
+        {!sessionInfoError &&
+          !sessionInfoLoading &&
+          pairingSupported &&
+          step === 'enter_code' && (
+            <EnterCodeStep
+              session={session}
+              onRemotePeerResolved={handleRemotePeerResolved}
+              onBack={() => setStep('choose')}
+            />
+          )}
 
-          {!sessionInfoError &&
-            !sessionInfoLoading &&
-            pairingSupported &&
-            step === 'download' && (
-              <DownloadStep
-                onContinue={() => setStep('pairing')}
-                onBack={() => setStep('choose')}
-              />
-            )}
+        {!sessionInfoError &&
+          !sessionInfoLoading &&
+          pairingSupported &&
+          step === 'direct_offer' && (
+            <DirectOfferStep
+              session={session}
+              onRemotePeerResolved={handleRemotePeerResolved}
+              onBack={() => setStep('choose')}
+            />
+          )}
 
-          {!sessionInfoError &&
-            !sessionInfoLoading &&
-            pairingSupported &&
-            step === 'pairing' && (
-              <PairingStep
-                session={session}
-                code={codeResult.data ?? null}
-                loading={codeResult.loading}
-                error={codeResult.error ? codeResult.error.message : null}
-                generation={codeGeneration}
-                onRegenerateCode={handleRegenerateCode}
-                onRemotePeerResolved={handleRemotePeerResolved}
-                onBack={() => handleBack('choose')}
-              />
-            )}
+        {!sessionInfoError &&
+          !sessionInfoLoading &&
+          pairingSupported &&
+          step === 'direct_answer' && (
+            <DirectAnswerStep
+              session={session}
+              onRemotePeerResolved={handleRemotePeerResolved}
+              onBack={() => setStep('choose')}
+            />
+          )}
 
-          {!sessionInfoError &&
-            !sessionInfoLoading &&
-            pairingSupported &&
-            step === 'enter_code' && (
-              <EnterCodeStep
-                session={session}
-                onRemotePeerResolved={handleRemotePeerResolved}
-                onBack={() => setStep('choose')}
-              />
-            )}
+        {!sessionInfoError &&
+          !sessionInfoLoading &&
+          pairingSupported &&
+          step === 'verify' && (
+            <VerifyStep
+              session={session}
+              remotePeerId={remotePeerId}
+              onContinue={() => setStep('done')}
+              onAbort={() => handleBack('choose')}
+            />
+          )}
 
-          {!sessionInfoError &&
-            !sessionInfoLoading &&
-            pairingSupported &&
-            step === 'direct_offer' && (
-              <DirectOfferStep
-                session={session}
-                onRemotePeerResolved={handleRemotePeerResolved}
-                onBack={() => setStep('choose')}
-              />
-            )}
-
-          {!sessionInfoError &&
-            !sessionInfoLoading &&
-            pairingSupported &&
-            step === 'direct_answer' && (
-              <DirectAnswerStep
-                session={session}
-                onRemotePeerResolved={handleRemotePeerResolved}
-                onBack={() => setStep('choose')}
-              />
-            )}
-
-          {!sessionInfoError &&
-            !sessionInfoLoading &&
-            pairingSupported &&
-            step === 'verify' && (
-              <VerifyStep
-                session={session}
-                remotePeerId={remotePeerId}
-                onContinue={() => setStep('done')}
-                onAbort={() => handleBack('choose')}
-              />
-            )}
-
-          {!sessionInfoError &&
-            !sessionInfoLoading &&
-            pairingSupported &&
-            step === 'done' && (
-              <LinkDeviceDoneStep
-                session={session}
-                remotePeerId={remotePeerId}
-                onDone={handleDone}
-                onLinkMore={() => {
-                  setRemotePeerId(null)
-                  setStep('choose')
-                }}
-              />
-            )}
-        </div>
+        {!sessionInfoError &&
+          !sessionInfoLoading &&
+          pairingSupported &&
+          step === 'done' && (
+            <LinkDeviceDoneStep
+              session={session}
+              remotePeerId={remotePeerId}
+              onDone={handleDone}
+              onLinkMore={() => {
+                setRemotePeerId(null)
+                setStep('choose')
+              }}
+            />
+          )}
       </div>
     </SetupPageLayout>
   )
@@ -325,51 +323,54 @@ function ChooseStep({
   onSkip,
 }: ChooseStepProps) {
   return (
-    <div className="space-y-4">
-      <div className="text-center">
-        <p className="text-foreground-alt text-xs leading-relaxed">
-          Connect another device to sync your data peer-to-peer.
-        </p>
-      </div>
+    <div className="space-y-5">
+      <p className="text-foreground-alt text-center text-xs leading-relaxed">
+        Connect another device to sync your data peer-to-peer.
+      </p>
 
-      <div className="space-y-2">
+      <OptionGroup label="On this device">
         <ChooseOption
           icon={LuSmartphone}
           label="Generate code for another device"
           description="Show a pairing code for your other device to enter"
+          recommended
           onClick={onGenerate}
         />
+        {onDirectOffer && (
+          <ChooseOption
+            icon={LuWifi}
+            label="Show QR code"
+            description="Display a QR code for your other device to scan"
+            onClick={onDirectOffer}
+          />
+        )}
+      </OptionGroup>
+
+      <OptionGroup label="On your other device">
         <ChooseOption
           icon={LuKeyboard}
           label="Enter a code from another device"
           description="Type a code shown on your other device"
           onClick={onEnterCode}
         />
-        {onDirectOffer && (
-          <ChooseOption
-            icon={LuWifi}
-            label="Direct connection (show QR)"
-            description="Generate a QR code for another device to scan"
-            onClick={onDirectOffer}
-          />
-        )}
         {onDirectAnswer && (
           <ChooseOption
             icon={LuCamera}
-            label="Direct connection (scan QR)"
-            description="Scan a QR code from another device"
+            label="Scan QR code"
+            description="Scan a QR code shown on your other device"
             onClick={onDirectAnswer}
           />
         )}
-        {!isDesktop && onDownload && (
-          <ChooseOption
-            icon={LuMonitor}
-            label="Download desktop app"
-            description="Install Spacewave on your computer"
-            onClick={onDownload}
-          />
-        )}
-      </div>
+      </OptionGroup>
+
+      {!isDesktop && onDownload && (
+        <ChooseOption
+          icon={LuMonitor}
+          label="Download desktop app"
+          description="Install Spacewave on your computer"
+          onClick={onDownload}
+        />
+      )}
 
       <button
         onClick={onSkip}
@@ -381,10 +382,30 @@ function ChooseStep({
   )
 }
 
+interface OptionGroupProps {
+  label: string
+  children: React.ReactNode
+}
+
+// OptionGroup labels a set of linking options by which device shows the pairing
+// code, so the two capture directions read as distinct paths instead of one
+// flat list of near-identical rows.
+function OptionGroup({ label, children }: OptionGroupProps) {
+  return (
+    <div className="space-y-2">
+      <h3 className="text-foreground-alt px-1 text-xs font-medium tracking-wide uppercase">
+        {label}
+      </h3>
+      {children}
+    </div>
+  )
+}
+
 interface ChooseOptionProps {
   icon: React.ComponentType<{ className?: string }>
   label: string
   description: string
+  recommended?: boolean
   onClick: () => void
 }
 
@@ -392,6 +413,7 @@ function ChooseOption({
   icon: Icon,
   label,
   description,
+  recommended,
   onClick,
 }: ChooseOptionProps) {
   return (
@@ -400,14 +422,22 @@ function ChooseOption({
       className={cn(
         'w-full rounded-md border transition-all duration-300',
         'border-foreground/10 hover:border-brand/30 hover:bg-brand/5',
+        'focus-visible:border-brand/30 focus-visible:bg-brand/5 focus-visible:outline-none',
         'flex items-center gap-3 p-3 text-left',
       )}
     >
       <div className="bg-brand/10 flex size-9 shrink-0 items-center justify-center rounded-lg">
         <Icon className="text-brand size-4" />
       </div>
-      <div>
-        <span className="text-foreground text-sm font-medium">{label}</span>
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-foreground text-sm font-medium">{label}</span>
+          {recommended && (
+            <span className="bg-brand/15 text-brand rounded-full px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase">
+              Recommended
+            </span>
+          )}
+        </div>
         <p className="text-foreground-alt text-xs">{description}</p>
       </div>
       <LuArrowRight className="text-foreground-alt ml-auto size-4 shrink-0" />

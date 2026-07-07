@@ -99,8 +99,28 @@ describe('LinkDeviceWizard', () => {
 
     expect(screen.getByText('Generate code for another device')).toBeDefined()
     expect(screen.getByText('Enter a code from another device')).toBeDefined()
+    expect(screen.queryByText('Show QR code')).toBeNull()
+    expect(screen.queryByText('Scan QR code')).toBeNull()
+  })
+
+  it('groups options by which device shows the code and renames the direct QR paths', () => {
+    render(<LinkDeviceWizard />)
+
+    expect(screen.getByText('On this device')).toBeDefined()
+    expect(screen.getByText('On your other device')).toBeDefined()
+    expect(screen.getByText('Show QR code')).toBeDefined()
+    expect(screen.getByText('Scan QR code')).toBeDefined()
     expect(screen.queryByText('Direct connection (show QR)')).toBeNull()
     expect(screen.queryByText('Direct connection (scan QR)')).toBeNull()
+  })
+
+  it('marks the generate-code path as the recommended default', () => {
+    render(<LinkDeviceWizard />)
+
+    const recommended = screen.getByText('Recommended')
+    const option = recommended.closest('button')
+    expect(option).not.toBeNull()
+    expect(option?.textContent).toContain('Generate code for another device')
   })
 
   it('starts watching pairing status after the generated code resolves', async () => {
