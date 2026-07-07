@@ -54,6 +54,9 @@ type DevtoolArgs struct {
 	// Watch indicates we should watch for changes.
 	Watch bool
 
+	// NoTUI disables the live terminal dashboard.
+	NoTUI bool
+
 	// Remote is the remote config to use.
 	// Controls which world is used to store objects.
 	Remote string
@@ -252,6 +255,14 @@ func (a *DevtoolArgs) BuildFlags() []cli.Flag {
 			EnvVars:     []string{"BLDR_GOSCRIPT_CODE_SPLITTING"},
 			Value:       a.GoScriptCodeSplitting,
 			Destination: &a.GoScriptCodeSplitting,
+		},
+
+		&cli.BoolFlag{
+			Name:        "no-tui",
+			Usage:       "disable the live terminal dashboard",
+			EnvVars:     []string{bldrNoTUIEnv},
+			Value:       a.NoTUI,
+			Destination: &a.NoTUI,
 		},
 
 		&cli.StringFlag{

@@ -55,8 +55,10 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	defer d.Release()
 	commandLogFile := a.commandLogFile()
 	d.setCommandStartingWithLogFile("start web", "initializing web runtime", commandLogFile)
+	ctx, stopTUI := a.startDevtoolTUI(ctx, d.GetStatusProducer(), "http://"+a.WebListenAddr)
 	defer func() {
 		d.finishCommandWithLogFile(ctx, "start web", commandLogFile, err)
+		stopTUI()
 	}()
 
 	err = d.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath)
@@ -65,7 +67,7 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	}
 
 	// write the banner
-	writeBannerTo(os.Stderr)
+	a.writeBannerTo(os.Stderr)
 
 	// start the plugin storage volume
 	pluginVolumeID := bldr_plugin.PluginVolumeID

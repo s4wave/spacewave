@@ -237,16 +237,20 @@ bun run bldr:build:release:cross
 
 ### Terminal Status and Logs
 
-`bldr start` and `bldr build` stream colored log output to the terminal covering
-build, scheduler, plugin-host, and controller activity. The same diagnostic logs
-are written to a timestamped file under `.bldr/logs/` for later inspection.
+`bldr start` and `bldr build` show a live terminal dashboard when stdin and
+stderr are terminals. The dashboard projects the command state, manifest fetch
+and build progress, plugin health, controller activity, and recent errors from
+the devtool status model. Press `Ctrl-C` to cancel the command; press `o` from a
+web start dashboard to open the browser. Use `--no-tui` or `BLDR_NO_TUI=1` to
+keep plain terminal output.
 
-Concurrent `bldr start`, `bldr build`, and `bldr publish` commands against the
-same `--state-path` serialize on `.bldr/state.lock`. When a second command
-would collide with an active state owner, Bldr prints the holder PID and state
-root before waiting for the lock. Use separate `--state-path` values only when
-CI or local proofs need independent web and desktop state trees to run in
-parallel.
+Diagnostic logs are written to a timestamped file under `.bldr/logs/` while the
+dashboard owns the terminal. Concurrent `bldr start`, `bldr build`, and `bldr
+publish` commands against the same `--state-path` serialize on
+`.bldr/state.lock`. When a second command would collide with an active state
+owner, Bldr prints the holder PID and state root before waiting for the lock.
+Use separate `--state-path` values only when CI or local proofs need independent
+web and desktop state trees to run in parallel.
 
 ### Start Plugins
 

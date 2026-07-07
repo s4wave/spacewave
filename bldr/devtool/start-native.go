@@ -46,8 +46,10 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	defer b.Release()
 	commandLogFile := a.commandLogFile()
 	b.setCommandStartingWithLogFile("start desktop", "initializing desktop runtime", commandLogFile)
+	ctx, stopTUI := a.startDevtoolTUI(ctx, b.GetStatusProducer(), "")
 	defer func() {
 		b.finishCommandWithLogFile(ctx, "start desktop", commandLogFile, err)
+		stopTUI()
 	}()
 
 	// sync dist sources
@@ -57,7 +59,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	}
 
 	// write the banner
-	writeBannerTo(os.Stderr)
+	a.writeBannerTo(os.Stderr)
 
 	// start the plugin storage volume
 	pluginVolumeID := bldr_plugin.PluginVolumeID
