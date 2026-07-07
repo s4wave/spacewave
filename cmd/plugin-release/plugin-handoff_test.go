@@ -5,6 +5,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/fastjson"
@@ -63,6 +64,12 @@ func TestWritePluginHandoffManifestRecordsSurfacesAndArtifacts(t *testing.T) {
 	if len(refs) != 2 {
 		t.Fatalf("manifest_refs len = %d, want 2", len(refs))
 	}
+	if got := refs[0].GetUint("rev"); got != 31 {
+		t.Fatalf("first manifest ref rev = %d, want 31", got)
+	}
+	if got := refs[1].GetUint("rev"); got != 31 {
+		t.Fatalf("second manifest ref rev = %d, want 31", got)
+	}
 	if got := string(v.GetStringBytes("world", "path")); got != "devtool.s4wave" {
 		t.Fatalf("world path = %q", got)
 	}
@@ -98,6 +105,33 @@ func TestWritePluginHandoffManifestRejectsNonArrayManifestRefs(t *testing.T) {
 	})
 	if err == nil || err.Error() != "manifest refs must be a JSON array" {
 		t.Fatalf("expected manifest refs array rejection, got %v", err)
+	}
+}
+func TestWritePluginHandoffManifestRejectsZeroManifestRefRev(t *testing.T) {
+	root := t.TempDir()
+	worldPath := filepath.Join(root, "devtool.s4wave")
+	manifestRefsPath := filepath.Join(root, "manifest-refs.json")
+	writePluginTestFile(t, worldPath, []byte("world"))
+	writePluginTestFile(t, manifestRefsPath, []byte(`[
+  {"manifest_id":"spacewave-notes","platform_id":"js","rev":0,"ref":"notes-ref"}
+]`))
+
+	err := writePluginHandoffManifest(pluginHandoffOptions{
+		rootDir:            root,
+		worldPath:          worldPath,
+		manifestRefsPath:   manifestRefsPath,
+		pluginRev:          "abc123",
+		releaseEnvironment: "plugin-production",
+		requestedSelection: "browser",
+		gitSHA:             "abc123",
+		runID:              "456",
+		runAttempt:         "3",
+		sourceRepo:         "s4wave/spacewave",
+		workflow:           "plugin-release",
+		includeBrowser:     true,
+	})
+	if err == nil || !strings.Contains(err.Error(), "manifest ref rev must be non-zero: spacewave-notes/js") {
+		t.Fatalf("expected manifest ref rev rejection, got %v", err)
 	}
 }
 

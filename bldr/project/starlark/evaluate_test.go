@@ -48,6 +48,9 @@ build("app", manifests=["test-manifest"], targets=["desktop"])
 	if mc.GetBuilder().GetRev() != 1 {
 		t.Fatalf("expected builder rev 1, got %d", mc.GetBuilder().GetRev())
 	}
+	if mc.GetRev() != 1 {
+		t.Fatalf("expected manifest rev 1, got %d", mc.GetRev())
+	}
 	if len(result.Config.GetBuild()) != 1 {
 		t.Fatalf("expected 1 build target, got %d", len(result.Config.GetBuild()))
 	}
