@@ -272,7 +272,9 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 		bldrNativePlatform,
 		bldrDistRoot,
 		entrypointDir,
-		"/entrypoint/", // set the pathPrefix to /entrypoint/ so web pkg paths are correct
+		// Match browser web-package URLs so import-map and sibling imports share
+		// module identity.
+		"/entrypoint",
 		minify,
 		!minify,
 		devMode,
