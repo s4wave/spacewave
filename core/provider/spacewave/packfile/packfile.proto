@@ -49,6 +49,9 @@ message PullResponse {
   repeated PackfileEntry entries = 1;
   // ReplacementEvents is the list of atomic replacement events.
   repeated PackReplacementEvent replacement_events = 2;
+  // LatestSequence is the current monotonic sequence head for the block store,
+  // even when Entries and ReplacementEvents are empty for an up-to-date pull.
+  uint64 latest_sequence = 3;
 }
 
 // PushResponse is the response to a push request.

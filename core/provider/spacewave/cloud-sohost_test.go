@@ -1,11 +1,9 @@
 package provider_spacewave
 
 import (
+	"bytes"
 	"context"
 	"errors"
-	"testing"
-	"time"
-
 	"github.com/aperturerobotics/util/ccontainer"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -13,6 +11,10 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
 )
 
 const testSharedObjectID = "test-shared-object"
@@ -163,7 +165,7 @@ func TestAsyncCallbackJobsDoesNotReplayTriggerAfterCancel(t *testing.T) {
 	}
 }
 
-func TestCloudSOHostRefreshesBlockManifestBeforeInlineState(t *testing.T) {
+func TestCloudSOHostRefreshesBlockManifestBeforeInlineStateWhenNonceAdvances(t *testing.T) {
 	host := &cloudSOHost{
 		le:       logrus.New().WithField("test", t.Name()),
 		soID:     testSharedObjectID,
@@ -179,8 +181,9 @@ func TestCloudSOHostRefreshesBlockManifestBeforeInlineState(t *testing.T) {
 	}
 
 	host.handleSONotify(&api.SONotifyEventPayload{
-		Seqno:      1,
-		ChangeType: "op",
+		Seqno:           1,
+		ChangeType:      "op",
+		BlockStoreNonce: 1,
 		StateMessage: &api.SOStateMessage{
 			Seqno: 1,
 			Content: &api.SOStateMessage_Snapshot{
@@ -190,14 +193,67 @@ func TestCloudSOHostRefreshesBlockManifestBeforeInlineState(t *testing.T) {
 	})
 
 	if !refreshed {
-		t.Fatal("block manifest refresh was not called")
+		t.Fatal("block manifest refresh was not called for an advanced block-store nonce")
 	}
 	if host.stateCtr.GetValue() == nil {
 		t.Fatal("inline SO state was not published after refresh")
 	}
 }
 
-func TestCloudSOHostTriggersPullWhenBlockManifestRefreshFails(t *testing.T) {
+func TestCloudSOHostSkipsBlockManifestRefreshWithoutAdvancedNonce(t *testing.T) {
+	host := &cloudSOHost{
+		le:       logrus.New().WithField("test", t.Name()),
+		soID:     testSharedObjectID,
+		stateCtr: ccontainer.NewCContainer[*sobject.SOState](nil),
+	}
+	var localManifestSeq uint64
+	host.blockManifestSequence = func(context.Context) (uint64, error) {
+		return localManifestSeq, nil
+	}
+	var refreshCalls int
+	host.refreshBlockManifest = func(context.Context) error {
+		refreshCalls++
+		return nil
+	}
+	notify := func(seqno, blockStoreNonce uint64) {
+		t.Helper()
+		host.handleSONotify(&api.SONotifyEventPayload{
+			Seqno:           seqno,
+			ChangeType:      "op",
+			BlockStoreNonce: blockStoreNonce,
+			StateMessage: &api.SOStateMessage{
+				Seqno: seqno,
+				Content: &api.SOStateMessage_Snapshot{
+					Snapshot: &sobject.SOState{},
+				},
+			},
+		})
+	}
+
+	notify(1, 0)
+	if refreshCalls != 0 {
+		t.Fatalf("refreshBlockManifest called %d time(s) without a block-store nonce", refreshCalls)
+	}
+	if host.stateCtr.GetValue() == nil {
+		t.Fatal("inline SO state without a block-store nonce was not applied")
+	}
+
+	notify(2, 7)
+	if refreshCalls != 1 {
+		t.Fatalf("refreshBlockManifest calls after advanced nonce = %d, want 1", refreshCalls)
+	}
+	localManifestSeq = 7
+	notify(3, 7)
+	if refreshCalls != 1 {
+		t.Fatalf("refreshBlockManifest calls after unchanged nonce = %d, want 1", refreshCalls)
+	}
+	notify(4, 8)
+	if refreshCalls != 2 {
+		t.Fatalf("refreshBlockManifest calls after second advanced nonce = %d, want 2", refreshCalls)
+	}
+}
+
+func TestCloudSOHostTriggersPullWhenAdvancedBlockManifestRefreshFails(t *testing.T) {
 	host := &cloudSOHost{
 		le:          logrus.New().WithField("test", t.Name()),
 		soID:        testSharedObjectID,
@@ -210,8 +266,9 @@ func TestCloudSOHostTriggersPullWhenBlockManifestRefreshFails(t *testing.T) {
 	}
 
 	host.handleSONotify(&api.SONotifyEventPayload{
-		Seqno:      1,
-		ChangeType: "op",
+		Seqno:           1,
+		ChangeType:      "op",
+		BlockStoreNonce: 1,
 		StateMessage: &api.SOStateMessage{
 			Seqno: 1,
 			Content: &api.SOStateMessage_Snapshot{
@@ -225,6 +282,65 @@ func TestCloudSOHostTriggersPullWhenBlockManifestRefreshFails(t *testing.T) {
 	}
 	if !host.pullRoutine.Pending() {
 		t.Fatal("pull recovery was not triggered after block manifest refresh failed")
+	}
+}
+
+func TestCloudSOHostUsesInlineConfigChainWhenPulledStateHashChanges(t *testing.T) {
+	const accountID = "acct-inline-chain"
+	soID := testSharedObjectID
+	entityPriv, _ := generateTestKeypair(t)
+	ownerPriv, ownerPID := generateTestKeypair(t)
+	state, chainResp, _, _ := buildRejoinTestFixtures(
+		t,
+		soID,
+		accountID,
+		ownerPriv,
+		ownerPID,
+		entityPriv,
+		1,
+	)
+	stateData := mustMarshalVT(t, &api.SOStateMessage{
+		Seqno:       1,
+		ConfigChain: chainResp,
+		Content: &api.SOStateMessage_Snapshot{
+			Snapshot: state,
+		},
+	})
+
+	var configChainRequests int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/sobject/" + soID + "/state":
+			_, _ = w.Write(stateData)
+		case "/api/sobject/" + soID + "/config-chain":
+			configChainRequests++
+			w.WriteHeader(http.StatusInternalServerError)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	host := &cloudSOHost{
+		le:                  logrus.New().WithField("test", t.Name()),
+		client:              NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, ownerPriv, ownerPID.String()),
+		soID:                soID,
+		privKey:             ownerPriv,
+		peerID:              ownerPID,
+		stateCtr:            ccontainer.NewCContainer[*sobject.SOState](nil),
+		lastConfigChainHash: []byte("stale-config-hash"),
+	}
+	if err := host.pullState(context.Background(), SeedReasonColdSeed); err != nil {
+		t.Fatalf("pull state: %v", err)
+	}
+	if configChainRequests != 0 {
+		t.Fatalf("pulled state made %d separate /config-chain request(s) despite inline config_chain", configChainRequests)
+	}
+	if host.stateCtr.GetValue() == nil {
+		t.Fatal("pulled inline-config-chain state was not accepted")
+	}
+	if !bytes.Equal(host.lastConfigChainHash, state.GetConfig().GetConfigChainHash()) {
+		t.Fatalf("verified config chain hash = %x, want %x", host.lastConfigChainHash, state.GetConfig().GetConfigChainHash())
 	}
 }
 

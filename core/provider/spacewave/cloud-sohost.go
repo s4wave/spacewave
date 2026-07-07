@@ -96,6 +96,9 @@ type cloudSOHost struct {
 	// refreshBlockManifest pulls remote packfile metadata before publishing
 	// remote SO state that may reference newly-pushed blocks.
 	refreshBlockManifest func(ctx context.Context) error
+	// blockManifestSequence returns the local pull cursor for the backing block
+	// store manifest.
+	blockManifestSequence func(ctx context.Context) (uint64, error)
 	// initialStateErr stores the last verification rejection seen while no
 	// accepted state snapshot had been cached yet.
 	initialStateErr error
@@ -181,7 +184,9 @@ func (h *cloudSOHost) Execute(ctx context.Context) error {
 
 	h.soHost.SetContext(ctx)
 
-	h.tracker.RegisterNotifyCallback(h.soID, h.handleSONotify)
+	h.tracker.RegisterNotifyCallback(h.soID, func(payload *api.SONotifyEventPayload) {
+		h.handleSONotifyWithContext(ctx, payload)
+	})
 	defer h.tracker.UnregisterNotifyCallback(h.soID)
 
 	h.pullRoutine.SetContext(ctx)
@@ -285,14 +290,14 @@ func (h *cloudSOHost) pullState(ctx context.Context, reason SeedReason) error {
 		return err
 	}
 
-	state, lastSeqno, err := decodeSOStateResponse(stateData)
+	state, lastSeqno, configChain, err := decodeSOStateResponse(stateData)
 	if errors.Is(err, errSOStateDeltaResponse) && since > 0 {
 		h.le.WithField("since", since).Debug("received delta from state pull, retrying full snapshot")
 		stateData, err = h.client.GetSOState(ctx, h.soID, 0, SeedReasonGapRecovery)
 		if err != nil {
 			return err
 		}
-		state, lastSeqno, err = decodeSOStateResponse(stateData)
+		state, lastSeqno, configChain, err = decodeSOStateResponse(stateData)
 	}
 	if err != nil {
 		return err
@@ -309,12 +314,16 @@ func (h *cloudSOHost) pullState(ctx context.Context, reason SeedReason) error {
 		return nil
 	}
 
+	embeddedChainSynced := h.syncEmbeddedConfigChain(ctx, state, configChain)
+
 	// D10: Client-side state verification before accepting.
 	if err := h.verifyPulledState(state); err != nil {
 		if errors.Is(err, errSOConfigChainChanged) {
-			if syncErr := h.syncConfigChainSingleflight(ctx, state.GetConfig().GetConfigChainHash()); syncErr != nil {
-				h.le.WithError(syncErr).Warn("failed to verify updated config chain for pulled state")
-				return nil
+			if !embeddedChainSynced {
+				if syncErr := h.syncConfigChainSingleflight(ctx, state.GetConfig().GetConfigChainHash()); syncErr != nil {
+					h.le.WithError(syncErr).Warn("failed to verify updated config chain for pulled state")
+					return nil
+				}
 			}
 			if err := h.verifyPulledState(state); err != nil {
 				h.noteInitialStateRejection(
@@ -378,18 +387,40 @@ func (h *cloudSOHost) noteInitialStateRejection(err error) {
 }
 
 // decodeSOStateResponse decodes an SOStateMessage snapshot or delta marker.
-func decodeSOStateResponse(data []byte) (*sobject.SOState, uint64, error) {
+func decodeSOStateResponse(data []byte) (*sobject.SOState, uint64, *sobject.SOConfigChainResponse, error) {
 	msg := &api.SOStateMessage{}
 	if err := msg.UnmarshalVT(data); err != nil {
-		return nil, 0, errors.Wrap(err, "unmarshal SOStateMessage")
+		return nil, 0, nil, errors.Wrap(err, "unmarshal SOStateMessage")
 	}
 	if snap := msg.GetSnapshot(); snap != nil {
-		return snap, msg.GetSeqno(), nil
+		return snap, msg.GetSeqno(), msg.GetConfigChain(), nil
 	}
 	if msg.GetDelta() != nil {
-		return nil, 0, errSOStateDeltaResponse
+		return nil, 0, nil, errSOStateDeltaResponse
 	}
-	return nil, 0, errors.New("missing snapshot or delta in SOStateMessage")
+	return nil, 0, nil, errors.New("missing snapshot or delta in SOStateMessage")
+}
+
+func (h *cloudSOHost) syncEmbeddedConfigChain(
+	ctx context.Context,
+	state *sobject.SOState,
+	chain *sobject.SOConfigChainResponse,
+) bool {
+	if state == nil || chain == nil {
+		return false
+	}
+	newHash := state.GetConfig().GetConfigChainHash()
+	if err := h.chainSeed.Run(ctx, &h.bcast, func(ctx context.Context) error {
+		return h.syncConfigChainResponse(ctx, chain, newHash)
+	}); err != nil {
+		h.le.WithError(err).Warn("failed to verify embedded config chain from state response")
+		return false
+	}
+	var synced bool
+	h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		synced = bytes.Equal(h.lastConfigChainHash, newHash)
+	})
+	return synced
 }
 
 // verifyChangeLogSeqno rejects snapshots whose changelog counter goes backwards.
@@ -466,25 +497,29 @@ func (h *cloudSOHost) triggerPull() {
 }
 
 // handleSONotify processes an SONotifyEventPayload delivered via so_notify.
+func (h *cloudSOHost) handleSONotify(payload *api.SONotifyEventPayload) {
+	h.handleSONotifyWithContext(context.Background(), payload)
+}
+
+// handleSONotifyWithContext processes an SONotifyEventPayload delivered via so_notify.
 // When the payload carries an inline SOStateMessage, the host applies it
 // directly without issuing an HTTP /state pull. configChanged events trigger
 // a config-chain re-verify only; the state pull fallback only fires for
 // genuine gap or cold-cache cases.
-func (h *cloudSOHost) handleSONotify(payload *api.SONotifyEventPayload) {
+func (h *cloudSOHost) handleSONotifyWithContext(ctx context.Context, payload *api.SONotifyEventPayload) {
 	if payload == nil {
 		return
 	}
 
 	if msg := payload.GetStateMessage(); msg != nil {
-		if h.refreshBlockManifest != nil {
-			if err := h.refreshBlockManifest(context.Background()); err != nil {
-				h.le.WithError(err).
-					WithField("change-type", payload.GetChangeType()).
-					WithField("seqno", payload.GetSeqno()).
-					Warn("failed to refresh block manifest before inline state apply")
-				h.triggerPull()
-				return
-			}
+		if err := h.refreshBlockManifestForNonce(ctx, payload.GetBlockStoreNonce()); err != nil {
+			h.le.WithError(err).
+				WithField("change-type", payload.GetChangeType()).
+				WithField("seqno", payload.GetSeqno()).
+				WithField("blockstore-nonce", payload.GetBlockStoreNonce()).
+				Warn("failed to refresh block manifest before inline state apply")
+			h.triggerPull()
+			return
 		}
 		if err := h.handleStateDelta(msg); err != nil {
 			// Config chain mismatch: verifyPulledState already signaled the
@@ -524,6 +559,22 @@ func (h *cloudSOHost) handleSONotify(payload *api.SONotifyEventPayload) {
 			WithField("seqno", payload.GetSeqno()).
 			Warn("so_notify arrived without inline state payload; ignoring")
 	}
+}
+
+func (h *cloudSOHost) refreshBlockManifestForNonce(ctx context.Context, nonce uint64) error {
+	if nonce == 0 || h.refreshBlockManifest == nil {
+		return nil
+	}
+	if h.blockManifestSequence != nil {
+		lastSeq, err := h.blockManifestSequence(ctx)
+		if err != nil {
+			return errors.Wrap(err, "read local block manifest sequence")
+		}
+		if nonce <= lastSeq {
+			return nil
+		}
+	}
+	return h.refreshBlockManifest(ctx)
 }
 
 // handleStateDelta applies an inline SOStateMessage from a session WS event.
@@ -1078,6 +1129,14 @@ func (h *cloudSOHost) syncConfigChain(ctx context.Context, newHash []byte) error
 	if err := resp.UnmarshalVT(chainData); err != nil {
 		return errors.Wrap(err, "parse config chain response")
 	}
+	return h.syncConfigChainResponse(ctx, resp, newHash)
+}
+
+func (h *cloudSOHost) syncConfigChainResponse(
+	ctx context.Context,
+	resp *sobject.SOConfigChainResponse,
+	newHash []byte,
+) error {
 
 	entries := resp.GetConfigChanges()
 	if err := sobject.VerifyConfigChain(entries); err != nil {
@@ -1093,9 +1152,16 @@ func (h *cloudSOHost) syncConfigChain(ctx context.Context, newHash []byte) error
 	if err != nil {
 		return errors.Wrap(err, "hash genesis config change")
 	}
-	if len(h.genesisHash) == 0 {
-		h.genesisHash = genesisEntryHash
-	} else if !bytes.Equal(genesisEntryHash, h.genesisHash) {
+	var genesisHash []byte
+	var genesisMismatch bool
+	h.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if len(h.genesisHash) == 0 {
+			h.genesisHash = bytes.Clone(genesisEntryHash)
+		}
+		genesisHash = append([]byte(nil), h.genesisHash...)
+		genesisMismatch = !bytes.Equal(genesisEntryHash, h.genesisHash)
+	})
+	if genesisMismatch {
 		if h.ctxCancel != nil {
 			h.ctxCancel()
 		}
@@ -1115,7 +1181,7 @@ func (h *cloudSOHost) syncConfigChain(ctx context.Context, newHash []byte) error
 
 	latestConfig := entries[len(entries)-1].GetConfig()
 	cache := &api.VerifiedSOStateCache{
-		GenesisHash:              append([]byte(nil), h.genesisHash...),
+		GenesisHash:              genesisHash,
 		VerifiedConfigChainHash:  append([]byte(nil), newHash...),
 		VerifiedConfigChainSeqno: entries[len(entries)-1].GetConfigSeqno(),
 		KeyEpochs:                cloneVTSlice(resp.GetKeyEpochs()),

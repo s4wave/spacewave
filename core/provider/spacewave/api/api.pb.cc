@@ -4855,6 +4855,34 @@ struct CancelBillingRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CancelBillingRequestDefaultTypeInternal _CancelBillingRequest_default_instance_;
 
+inline constexpr BlockStoreNonceEventPayload::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        resource_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        nonce_{::uint64_t{0u}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR BlockStoreNonceEventPayload::BlockStoreNonceEventPayload(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(BlockStoreNonceEventPayload_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct BlockStoreNonceEventPayloadDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR BlockStoreNonceEventPayloadDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~BlockStoreNonceEventPayloadDefaultTypeInternal() {}
+  union {
+    BlockStoreNonceEventPayload _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BlockStoreNonceEventPayloadDefaultTypeInternal _BlockStoreNonceEventPayload_default_instance_;
+
 inline constexpr BillingUsageResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -6940,6 +6968,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 inline constexpr SOStateMessage::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
+        config_chain_{nullptr},
         seqno_{::uint64_t{0u}},
         content_{},
         _oneof_case_{} {}
@@ -7000,7 +7029,8 @@ inline constexpr SONotifyEventPayload::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         state_message_{nullptr},
         metadata_{nullptr},
-        seqno_{::uint64_t{0u}} {}
+        seqno_{::uint64_t{0u}},
+        block_store_nonce_{::uint64_t{0u}} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR SONotifyEventPayload::SONotifyEventPayload(::_pbi::ConstantInitialized)
@@ -7148,18 +7178,20 @@ const ::uint32_t
         0x085, // bitmap
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SOStateMessage, _impl_._has_bits_),
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SOStateMessage, _impl_._oneof_case_[0]),
-        10, // hasbit index offset
+        11, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SOStateMessage, _impl_.seqno_),
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SOStateMessage, _impl_.content_),
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SOStateMessage, _impl_.content_),
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SOStateMessage, _impl_.content_),
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SOStateMessage, _impl_.content_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SOStateMessage, _impl_.config_chain_),
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SOStateMessage, _impl_.content_),
+        1,
+        ~0u,
+        ~0u,
+        ~0u,
+        ~0u,
         0,
-        ~0u,
-        ~0u,
-        ~0u,
-        ~0u,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SOStateError, _impl_._has_bits_),
         6, // hasbit index offset
@@ -7272,6 +7304,13 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::PendingParticipantPayload, _impl_.account_id_),
         0,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::BlockStoreNonceEventPayload, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::BlockStoreNonceEventPayload, _impl_.resource_id_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::BlockStoreNonceEventPayload, _impl_.nonce_),
+        0,
+        1,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::MemberSessionChangedPayload, _impl_._has_bits_),
         5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::MemberSessionChangedPayload, _impl_.session_peer_id_),
@@ -7287,15 +7326,17 @@ const ::uint32_t
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SONotifyEventPayload, _impl_._has_bits_),
-        7, // hasbit index offset
+        8, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SONotifyEventPayload, _impl_.seqno_),
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SONotifyEventPayload, _impl_.change_type_),
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SONotifyEventPayload, _impl_.state_message_),
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SONotifyEventPayload, _impl_.metadata_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SONotifyEventPayload, _impl_.block_store_nonce_),
         3,
         0,
         1,
         2,
+        4,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::MultiSigActionEnvelope, _impl_._has_bits_),
         8, // hasbit index offset
@@ -8993,239 +9034,240 @@ static const ::_pbi::MigrationSchema
         {72, sizeof(::provider::spacewave::api::ListAccountSessionsResponse)},
         {77, sizeof(::provider::spacewave::api::ErrorResponse)},
         {88, sizeof(::provider::spacewave::api::SOStateMessage)},
-        {103, sizeof(::provider::spacewave::api::SOStateError)},
-        {112, sizeof(::provider::spacewave::api::SOStateDelta)},
-        {119, sizeof(::provider::spacewave::api::SOStateDeltaEntry)},
-        {128, sizeof(::provider::spacewave::api::PostRootRequest)},
-        {135, sizeof(::provider::spacewave::api::SessionMessage)},
-        {141, sizeof(::provider::spacewave::api::SOSessionUpdate)},
-        {148, sizeof(::provider::spacewave::api::SessionEvent)},
-        {157, sizeof(::provider::spacewave::api::NotifySharedObjectChangeRequest)},
-        {164, sizeof(::provider::spacewave::api::NotifyAccountChangedRequest)},
-        {169, sizeof(::provider::spacewave::api::NotifyOrganizationChangedRequest)},
-        {174, sizeof(::provider::spacewave::api::NotifyPendingParticipantRequest)},
-        {181, sizeof(::provider::spacewave::api::NotifySessionEventRequest)},
-        {190, sizeof(::provider::spacewave::api::NotifySessionRequest)},
-        {199, sizeof(::provider::spacewave::api::AccountChangedPayload)},
-        {204, sizeof(::provider::spacewave::api::OrgChangedPayload)},
-        {209, sizeof(::provider::spacewave::api::PendingParticipantPayload)},
-        {214, sizeof(::provider::spacewave::api::MemberSessionChangedPayload)},
-        {221, sizeof(::provider::spacewave::api::InviteMailboxEventPayload)},
-        {228, sizeof(::provider::spacewave::api::SONotifyEventPayload)},
-        {239, sizeof(::provider::spacewave::api::MultiSigActionEnvelope)},
-        {252, sizeof(::provider::spacewave::api::MultiSigRequest)},
-        {259, sizeof(::provider::spacewave::api::EntitySignature)},
-        {268, sizeof(::provider::spacewave::api::AddKeypairAction)},
-        {273, sizeof(::provider::spacewave::api::RemoveKeypairAction)},
-        {278, sizeof(::provider::spacewave::api::UpdateThresholdAction)},
-        {283, sizeof(::provider::spacewave::api::RevokeSessionAction)},
-        {288, sizeof(::provider::spacewave::api::DeleteAccountAction)},
-        {289, sizeof(::provider::spacewave::api::CustodiedKeyParams)},
-        {294, sizeof(::provider::spacewave::api::SSOLinkAction)},
-        {309, sizeof(::provider::spacewave::api::SSOCodeExchangeResponse)},
-        {336, sizeof(::provider::spacewave::api::ConfirmSSORequest)},
-        {351, sizeof(::provider::spacewave::api::ConfirmSSOResponse)},
-        {358, sizeof(::provider::spacewave::api::SigningPayload)},
-        {375, sizeof(::provider::spacewave::api::WriteTicketProofPayload)},
-        {392, sizeof(::provider::spacewave::api::WriteTicketProof)},
-        {399, sizeof(::provider::spacewave::api::CheckoutRequest)},
-        {410, sizeof(::provider::spacewave::api::CheckoutResponse)},
-        {419, sizeof(::provider::spacewave::api::SwitchIntervalRequest)},
-        {424, sizeof(::provider::spacewave::api::SwitchIntervalResponse)},
-        {429, sizeof(::provider::spacewave::api::BillingPortalRequest)},
-        {430, sizeof(::provider::spacewave::api::BillingPortalResponse)},
-        {435, sizeof(::provider::spacewave::api::BillingStateResponse)},
-        {458, sizeof(::provider::spacewave::api::BillingUsageResponse)},
-        {481, sizeof(::provider::spacewave::api::CheckoutStatusMessage)},
-        {488, sizeof(::provider::spacewave::api::CreateSObjectRequest)},
-        {501, sizeof(::provider::spacewave::api::CreateSObjectResponse)},
-        {508, sizeof(::provider::spacewave::api::DeleteSObjectResponse)},
-        {513, sizeof(::provider::spacewave::api::SubmitOpResponse)},
-        {518, sizeof(::provider::spacewave::api::SubmitRootResponse)},
-        {523, sizeof(::provider::spacewave::api::PostConfigResponse)},
-        {524, sizeof(::provider::spacewave::api::PostConfigStateResponse)},
-        {525, sizeof(::provider::spacewave::api::PostKeyEpochResponse)},
-        {526, sizeof(::provider::spacewave::api::ReinitializeSObjectResponse)},
-        {527, sizeof(::provider::spacewave::api::InviteBeaconRequest)},
-        {536, sizeof(::provider::spacewave::api::InviteBeaconResponse)},
-        {537, sizeof(::provider::spacewave::api::SpaceMetadataResponse)},
-        {550, sizeof(::provider::spacewave::api::CreateOrgRequest)},
-        {555, sizeof(::provider::spacewave::api::CreateTargetedInviteDraftByUsernameRequest)},
-        {570, sizeof(::provider::spacewave::api::CreateTargetedInviteDraftByUsernameResponse)},
-        {575, sizeof(::provider::spacewave::api::ResolveUsernameRequest)},
-        {586, sizeof(::provider::spacewave::api::ResolveUsernameResponse)},
-        {605, sizeof(::provider::spacewave::api::TargetedInvitationEnvelope)},
-        {640, sizeof(::provider::spacewave::api::TargetedInvitationInfo)},
-        {675, sizeof(::provider::spacewave::api::CreateTargetedInvitationRequest)},
-        {694, sizeof(::provider::spacewave::api::CreateTargetedInvitationResponse)},
-        {699, sizeof(::provider::spacewave::api::ListTargetedInvitationsRequest)},
-        {700, sizeof(::provider::spacewave::api::ListTargetedInvitationsResponse)},
-        {705, sizeof(::provider::spacewave::api::GetTargetedInvitationRequest)},
-        {710, sizeof(::provider::spacewave::api::GetTargetedInvitationResponse)},
-        {715, sizeof(::provider::spacewave::api::RevokeTargetedInvitationRequest)},
-        {720, sizeof(::provider::spacewave::api::RevokeTargetedInvitationResponse)},
-        {725, sizeof(::provider::spacewave::api::ProcessTargetedInvitationRequest)},
-        {732, sizeof(::provider::spacewave::api::ProcessTargetedInvitationResponse)},
-        {737, sizeof(::provider::spacewave::api::AcceptTargetedOrganizationInvitationRequest)},
-        {742, sizeof(::provider::spacewave::api::AcceptTargetedOrganizationInvitationResponse)},
-        {749, sizeof(::provider::spacewave::api::OrgResponse)},
-        {760, sizeof(::provider::spacewave::api::CreateOrgInviteRequest)},
-        {771, sizeof(::provider::spacewave::api::OrgInviteResponse)},
-        {786, sizeof(::provider::spacewave::api::JoinOrgRequest)},
-        {791, sizeof(::provider::spacewave::api::UpdateOrgRequest)},
-        {796, sizeof(::provider::spacewave::api::UpdateOrgResponse)},
-        {801, sizeof(::provider::spacewave::api::ResourceListEntry)},
-        {808, sizeof(::provider::spacewave::api::ListResourcesResponse)},
-        {813, sizeof(::provider::spacewave::api::TransferResourceRequest)},
-        {822, sizeof(::provider::spacewave::api::AssignBillingAccountRequest)},
-        {831, sizeof(::provider::spacewave::api::AssignBillingAccountResponse)},
-        {832, sizeof(::provider::spacewave::api::DetachBillingAccountRequest)},
-        {839, sizeof(::provider::spacewave::api::DetachBillingAccountResponse)},
-        {840, sizeof(::provider::spacewave::api::ManagedBillingAccount)},
-        {859, sizeof(::provider::spacewave::api::PrincipalAssignment)},
-        {868, sizeof(::provider::spacewave::api::CreateBillingAccountRequest)},
-        {873, sizeof(::provider::spacewave::api::RenameBillingAccountRequest)},
-        {880, sizeof(::provider::spacewave::api::RenameBillingAccountResponse)},
-        {881, sizeof(::provider::spacewave::api::DeleteBillingAccountRequest)},
-        {882, sizeof(::provider::spacewave::api::DeleteBillingAccountResponse)},
-        {883, sizeof(::provider::spacewave::api::CreateBillingAccountResponse)},
-        {888, sizeof(::provider::spacewave::api::ListManagedBillingAccountsRequest)},
-        {889, sizeof(::provider::spacewave::api::ListManagedBillingAccountsResponse)},
-        {894, sizeof(::provider::spacewave::api::OrgSpaceEntry)},
-        {903, sizeof(::provider::spacewave::api::GetOrgResponse)},
-        {918, sizeof(::provider::spacewave::api::OrgMember)},
-        {931, sizeof(::provider::spacewave::api::ListOrgsResponse)},
-        {936, sizeof(::provider::spacewave::api::ListOrgInvitesResponse)},
-        {941, sizeof(::provider::spacewave::api::AccountInfoResponse)},
-        {970, sizeof(::provider::spacewave::api::ListKeypairsResponse)},
-        {975, sizeof(::provider::spacewave::api::AccountAuthMethod)},
-        {990, sizeof(::provider::spacewave::api::AccountSObjectBinding)},
-        {999, sizeof(::provider::spacewave::api::EnsureAccountSObjectBindingRequest)},
-        {1004, sizeof(::provider::spacewave::api::EnsureAccountSObjectBindingResponse)},
-        {1009, sizeof(::provider::spacewave::api::FinalizeAccountSObjectBindingRequest)},
-        {1016, sizeof(::provider::spacewave::api::FinalizeAccountSObjectBindingResponse)},
-        {1021, sizeof(::provider::spacewave::api::AccountStateResponse)},
-        {1056, sizeof(::provider::spacewave::api::AccountStateCache)},
-        {1063, sizeof(::provider::spacewave::api::VerifiedSOStateCache)},
-        {1076, sizeof(::provider::spacewave::api::TicketResponse)},
-        {1081, sizeof(::provider::spacewave::api::WriteTicketBundleResponse)},
-        {1090, sizeof(::provider::spacewave::api::SignalTicketResponse)},
-        {1095, sizeof(::provider::spacewave::api::PackMetadataRepairEntry)},
-        {1108, sizeof(::provider::spacewave::api::PackMetadataRepairRequest)},
-        {1115, sizeof(::provider::spacewave::api::PackMetadataRepairResponse)},
-        {1124, sizeof(::provider::spacewave::api::CreateBlockStoreResponse)},
-        {1131, sizeof(::provider::spacewave::api::AccountEmailInfo)},
-        {1142, sizeof(::provider::spacewave::api::ListAccountEmailsResponse)},
-        {1147, sizeof(::provider::spacewave::api::AddEmailRequest)},
-        {1152, sizeof(::provider::spacewave::api::AddEmailResponse)},
-        {1159, sizeof(::provider::spacewave::api::RemoveEmailRequest)},
-        {1164, sizeof(::provider::spacewave::api::RemoveEmailResponse)},
-        {1165, sizeof(::provider::spacewave::api::SetPrimaryEmailRequest)},
-        {1170, sizeof(::provider::spacewave::api::SetPrimaryEmailResponse)},
-        {1175, sizeof(::provider::spacewave::api::RequestEmailVerificationRequest)},
-        {1180, sizeof(::provider::spacewave::api::RequestEmailVerificationResponse)},
-        {1187, sizeof(::provider::spacewave::api::EmailVerifyCodeRequest)},
-        {1194, sizeof(::provider::spacewave::api::EmailVerifyCodeResponse)},
-        {1199, sizeof(::provider::spacewave::api::RequestDeleteNowEmailRequest)},
-        {1200, sizeof(::provider::spacewave::api::RequestDeleteNowEmailResponse)},
-        {1209, sizeof(::provider::spacewave::api::DeleteNowVerifyCodeRequest)},
-        {1214, sizeof(::provider::spacewave::api::DeleteNowVerifyCodeResponse)},
-        {1239, sizeof(::provider::spacewave::api::UndoDeleteNowResponse)},
-        {1244, sizeof(::provider::spacewave::api::SSOCodeExchangeRequest)},
-        {1253, sizeof(::provider::spacewave::api::RequestRecoveryEmailRequest)},
-        {1258, sizeof(::provider::spacewave::api::RequestRecoveryEmailResponse)},
-        {1263, sizeof(::provider::spacewave::api::RecoverVerifyRequest)},
-        {1268, sizeof(::provider::spacewave::api::RecoverVerifyResponse)},
-        {1281, sizeof(::provider::spacewave::api::RecoverExecuteRequest)},
-        {1292, sizeof(::provider::spacewave::api::RecoverExecuteKeypair)},
-        {1301, sizeof(::provider::spacewave::api::RecoverExecuteSignature)},
-        {1308, sizeof(::provider::spacewave::api::RecoverExecuteResponse)},
-        {1315, sizeof(::provider::spacewave::api::AuthSessionCreateRequest)},
-        {1322, sizeof(::provider::spacewave::api::AuthSessionCreateResponse)},
-        {1331, sizeof(::provider::spacewave::api::AuthSessionResultExchangeRequest)},
-        {1336, sizeof(::provider::spacewave::api::DesktopSSOStartRequest)},
-        {1343, sizeof(::provider::spacewave::api::DesktopSSOStartResponse)},
-        {1350, sizeof(::provider::spacewave::api::DesktopSSOLinkStartRequest)},
-        {1355, sizeof(::provider::spacewave::api::DesktopSSOLinkStartResponse)},
-        {1362, sizeof(::provider::spacewave::api::DesktopSSOLinkResult)},
-        {1371, sizeof(::provider::spacewave::api::DesktopPasskeyStartRequest)},
-        {1372, sizeof(::provider::spacewave::api::DesktopPasskeyStartResponse)},
-        {1381, sizeof(::provider::spacewave::api::StartDesktopPasskeyReauthRequest)},
-        {1386, sizeof(::provider::spacewave::api::AuthSessionDeleteRequest)},
-        {1393, sizeof(::provider::spacewave::api::AuthSessionDeleteResponse)},
-        {1398, sizeof(::provider::spacewave::api::AuthConfigResponse)},
-        {1417, sizeof(::provider::spacewave::api::PasskeyOptionsResponse)},
-        {1422, sizeof(::provider::spacewave::api::PasskeyAuthOptionsRequest)},
-        {1427, sizeof(::provider::spacewave::api::PasskeyRegisterChallengeRequest)},
-        {1432, sizeof(::provider::spacewave::api::PasskeyRegisterVerifyRequest)},
-        {1447, sizeof(::provider::spacewave::api::PasskeyRegisterVerifyResponse)},
-        {1454, sizeof(::provider::spacewave::api::PasskeyAuthVerifyRequest)},
-        {1459, sizeof(::provider::spacewave::api::PasskeyAuthVerifyResponse)},
-        {1478, sizeof(::provider::spacewave::api::PasskeyConfirmRequest)},
-        {1505, sizeof(::provider::spacewave::api::PasskeyConfirmResponse)},
-        {1512, sizeof(::provider::spacewave::api::PasskeyCheckUsernameRequest)},
-        {1517, sizeof(::provider::spacewave::api::PasskeyCheckUsernameResponse)},
-        {1522, sizeof(::provider::spacewave::api::DesktopPasskeyLinkedResult)},
-        {1539, sizeof(::provider::spacewave::api::DesktopPasskeyNewAccountResult)},
-        {1552, sizeof(::provider::spacewave::api::DesktopPasskeyRelayResult)},
-        {1563, sizeof(::provider::spacewave::api::DesktopPasskeyRelayResponse)},
-        {1564, sizeof(::provider::spacewave::api::DesktopPasskeyRegisterResult)},
-        {1577, sizeof(::provider::spacewave::api::DesktopPasskeyRegisterRelayResult)},
-        {1584, sizeof(::provider::spacewave::api::DesktopPasskeyReauthVerifyRequest)},
-        {1591, sizeof(::provider::spacewave::api::DesktopPasskeyReauthResult)},
-        {1606, sizeof(::provider::spacewave::api::DesktopPasskeyReauthRelayResult)},
-        {1613, sizeof(::provider::spacewave::api::DesktopPasskeyRegisterChallengeRequest)},
-        {1618, sizeof(::provider::spacewave::api::DesktopPasskeyRegisterChallengeResponse)},
-        {1625, sizeof(::provider::spacewave::api::PairingRequest)},
-        {1632, sizeof(::provider::spacewave::api::PairingResponse)},
-        {1637, sizeof(::provider::spacewave::api::EnrollMemberRequest)},
-        {1644, sizeof(::provider::spacewave::api::EnrollMemberPeer)},
-        {1649, sizeof(::provider::spacewave::api::EnrollMemberResponse)},
-        {1654, sizeof(::provider::spacewave::api::ResolveMemberParticipantsRequest)},
-        {1659, sizeof(::provider::spacewave::api::ResolveMemberParticipantsResponse)},
-        {1664, sizeof(::provider::spacewave::api::SORecoveryEntityKeypairs)},
-        {1671, sizeof(::provider::spacewave::api::ListSORecoveryEntityKeypairsResponse)},
-        {1676, sizeof(::provider::spacewave::api::GetSORecoveryEnvelopeResponse)},
-        {1681, sizeof(::provider::spacewave::api::PostConfigStateRequest)},
-        {1692, sizeof(::provider::spacewave::api::PostKeyEpochRequest)},
-        {1699, sizeof(::provider::spacewave::api::RegisterInviteCodeRequest)},
-        {1710, sizeof(::provider::spacewave::api::RegisterInviteCodeResponse)},
-        {1711, sizeof(::provider::spacewave::api::LookupInviteCodeResponse)},
-        {1718, sizeof(::provider::spacewave::api::GetMailboxResponse)},
-        {1723, sizeof(::provider::spacewave::api::SubmitMailboxEntryRequest)},
-        {1734, sizeof(::provider::spacewave::api::SubmitMailboxEntryResponse)},
-        {1741, sizeof(::provider::spacewave::api::MailboxEntry)},
-        {1762, sizeof(::provider::spacewave::api::ProcessMailboxEntryRequest)},
-        {1769, sizeof(::provider::spacewave::api::ProcessMailboxEntryResponse)},
-        {1774, sizeof(::provider::spacewave::api::KeypairAddResult)},
-        {1779, sizeof(::provider::spacewave::api::KeypairRemoveResult)},
-        {1784, sizeof(::provider::spacewave::api::ThresholdChangeResult)},
-        {1789, sizeof(::provider::spacewave::api::SessionRevokeResult)},
-        {1794, sizeof(::provider::spacewave::api::AccountDeleteResult)},
-        {1799, sizeof(::provider::spacewave::api::SsoLinkResult)},
-        {1806, sizeof(::provider::spacewave::api::MultiSigActionResponse)},
-        {1815, sizeof(::provider::spacewave::api::UndoDeleteRequest)},
-        {1816, sizeof(::provider::spacewave::api::RegisterPasskeyOptionsRequest)},
-        {1817, sizeof(::provider::spacewave::api::SessionTicketRequest)},
-        {1818, sizeof(::provider::spacewave::api::ReinitializeSObjectRequest)},
-        {1819, sizeof(::provider::spacewave::api::OrgDeleteRequest)},
-        {1820, sizeof(::provider::spacewave::api::OrgDeleteResponse)},
-        {1825, sizeof(::provider::spacewave::api::OrgLeaveRequest)},
-        {1826, sizeof(::provider::spacewave::api::OrgLeaveResponse)},
-        {1831, sizeof(::provider::spacewave::api::RemoveOrgMemberRequest)},
-        {1832, sizeof(::provider::spacewave::api::RemoveOrgMemberResponse)},
-        {1837, sizeof(::provider::spacewave::api::CancelOrgInviteRequest)},
-        {1838, sizeof(::provider::spacewave::api::CancelOrgInviteResponse)},
-        {1843, sizeof(::provider::spacewave::api::CancelBillingRequest)},
-        {1844, sizeof(::provider::spacewave::api::CancelBillingResponse)},
-        {1849, sizeof(::provider::spacewave::api::ReactivateBillingRequest)},
-        {1850, sizeof(::provider::spacewave::api::ReactivateBillingResponse)},
-        {1855, sizeof(::provider::spacewave::api::ClientErrorReportRequest)},
-        {1868, sizeof(::provider::spacewave::api::ClientErrorReportResponse)},
-        {1875, sizeof(::provider::spacewave::api::SsoCallbackResult)},
-        {1902, sizeof(::provider::spacewave::api::PasskeyRelay)},
-        {1912, sizeof(::provider::spacewave::api::WsAuthSessionServerFrame)},
-        {1919, sizeof(::provider::spacewave::api::WsBillingCheckoutServerFrame)},
+        {105, sizeof(::provider::spacewave::api::SOStateError)},
+        {114, sizeof(::provider::spacewave::api::SOStateDelta)},
+        {121, sizeof(::provider::spacewave::api::SOStateDeltaEntry)},
+        {130, sizeof(::provider::spacewave::api::PostRootRequest)},
+        {137, sizeof(::provider::spacewave::api::SessionMessage)},
+        {143, sizeof(::provider::spacewave::api::SOSessionUpdate)},
+        {150, sizeof(::provider::spacewave::api::SessionEvent)},
+        {159, sizeof(::provider::spacewave::api::NotifySharedObjectChangeRequest)},
+        {166, sizeof(::provider::spacewave::api::NotifyAccountChangedRequest)},
+        {171, sizeof(::provider::spacewave::api::NotifyOrganizationChangedRequest)},
+        {176, sizeof(::provider::spacewave::api::NotifyPendingParticipantRequest)},
+        {183, sizeof(::provider::spacewave::api::NotifySessionEventRequest)},
+        {192, sizeof(::provider::spacewave::api::NotifySessionRequest)},
+        {201, sizeof(::provider::spacewave::api::AccountChangedPayload)},
+        {206, sizeof(::provider::spacewave::api::OrgChangedPayload)},
+        {211, sizeof(::provider::spacewave::api::PendingParticipantPayload)},
+        {216, sizeof(::provider::spacewave::api::BlockStoreNonceEventPayload)},
+        {223, sizeof(::provider::spacewave::api::MemberSessionChangedPayload)},
+        {230, sizeof(::provider::spacewave::api::InviteMailboxEventPayload)},
+        {237, sizeof(::provider::spacewave::api::SONotifyEventPayload)},
+        {250, sizeof(::provider::spacewave::api::MultiSigActionEnvelope)},
+        {263, sizeof(::provider::spacewave::api::MultiSigRequest)},
+        {270, sizeof(::provider::spacewave::api::EntitySignature)},
+        {279, sizeof(::provider::spacewave::api::AddKeypairAction)},
+        {284, sizeof(::provider::spacewave::api::RemoveKeypairAction)},
+        {289, sizeof(::provider::spacewave::api::UpdateThresholdAction)},
+        {294, sizeof(::provider::spacewave::api::RevokeSessionAction)},
+        {299, sizeof(::provider::spacewave::api::DeleteAccountAction)},
+        {300, sizeof(::provider::spacewave::api::CustodiedKeyParams)},
+        {305, sizeof(::provider::spacewave::api::SSOLinkAction)},
+        {320, sizeof(::provider::spacewave::api::SSOCodeExchangeResponse)},
+        {347, sizeof(::provider::spacewave::api::ConfirmSSORequest)},
+        {362, sizeof(::provider::spacewave::api::ConfirmSSOResponse)},
+        {369, sizeof(::provider::spacewave::api::SigningPayload)},
+        {386, sizeof(::provider::spacewave::api::WriteTicketProofPayload)},
+        {403, sizeof(::provider::spacewave::api::WriteTicketProof)},
+        {410, sizeof(::provider::spacewave::api::CheckoutRequest)},
+        {421, sizeof(::provider::spacewave::api::CheckoutResponse)},
+        {430, sizeof(::provider::spacewave::api::SwitchIntervalRequest)},
+        {435, sizeof(::provider::spacewave::api::SwitchIntervalResponse)},
+        {440, sizeof(::provider::spacewave::api::BillingPortalRequest)},
+        {441, sizeof(::provider::spacewave::api::BillingPortalResponse)},
+        {446, sizeof(::provider::spacewave::api::BillingStateResponse)},
+        {469, sizeof(::provider::spacewave::api::BillingUsageResponse)},
+        {492, sizeof(::provider::spacewave::api::CheckoutStatusMessage)},
+        {499, sizeof(::provider::spacewave::api::CreateSObjectRequest)},
+        {512, sizeof(::provider::spacewave::api::CreateSObjectResponse)},
+        {519, sizeof(::provider::spacewave::api::DeleteSObjectResponse)},
+        {524, sizeof(::provider::spacewave::api::SubmitOpResponse)},
+        {529, sizeof(::provider::spacewave::api::SubmitRootResponse)},
+        {534, sizeof(::provider::spacewave::api::PostConfigResponse)},
+        {535, sizeof(::provider::spacewave::api::PostConfigStateResponse)},
+        {536, sizeof(::provider::spacewave::api::PostKeyEpochResponse)},
+        {537, sizeof(::provider::spacewave::api::ReinitializeSObjectResponse)},
+        {538, sizeof(::provider::spacewave::api::InviteBeaconRequest)},
+        {547, sizeof(::provider::spacewave::api::InviteBeaconResponse)},
+        {548, sizeof(::provider::spacewave::api::SpaceMetadataResponse)},
+        {561, sizeof(::provider::spacewave::api::CreateOrgRequest)},
+        {566, sizeof(::provider::spacewave::api::CreateTargetedInviteDraftByUsernameRequest)},
+        {581, sizeof(::provider::spacewave::api::CreateTargetedInviteDraftByUsernameResponse)},
+        {586, sizeof(::provider::spacewave::api::ResolveUsernameRequest)},
+        {597, sizeof(::provider::spacewave::api::ResolveUsernameResponse)},
+        {616, sizeof(::provider::spacewave::api::TargetedInvitationEnvelope)},
+        {651, sizeof(::provider::spacewave::api::TargetedInvitationInfo)},
+        {686, sizeof(::provider::spacewave::api::CreateTargetedInvitationRequest)},
+        {705, sizeof(::provider::spacewave::api::CreateTargetedInvitationResponse)},
+        {710, sizeof(::provider::spacewave::api::ListTargetedInvitationsRequest)},
+        {711, sizeof(::provider::spacewave::api::ListTargetedInvitationsResponse)},
+        {716, sizeof(::provider::spacewave::api::GetTargetedInvitationRequest)},
+        {721, sizeof(::provider::spacewave::api::GetTargetedInvitationResponse)},
+        {726, sizeof(::provider::spacewave::api::RevokeTargetedInvitationRequest)},
+        {731, sizeof(::provider::spacewave::api::RevokeTargetedInvitationResponse)},
+        {736, sizeof(::provider::spacewave::api::ProcessTargetedInvitationRequest)},
+        {743, sizeof(::provider::spacewave::api::ProcessTargetedInvitationResponse)},
+        {748, sizeof(::provider::spacewave::api::AcceptTargetedOrganizationInvitationRequest)},
+        {753, sizeof(::provider::spacewave::api::AcceptTargetedOrganizationInvitationResponse)},
+        {760, sizeof(::provider::spacewave::api::OrgResponse)},
+        {771, sizeof(::provider::spacewave::api::CreateOrgInviteRequest)},
+        {782, sizeof(::provider::spacewave::api::OrgInviteResponse)},
+        {797, sizeof(::provider::spacewave::api::JoinOrgRequest)},
+        {802, sizeof(::provider::spacewave::api::UpdateOrgRequest)},
+        {807, sizeof(::provider::spacewave::api::UpdateOrgResponse)},
+        {812, sizeof(::provider::spacewave::api::ResourceListEntry)},
+        {819, sizeof(::provider::spacewave::api::ListResourcesResponse)},
+        {824, sizeof(::provider::spacewave::api::TransferResourceRequest)},
+        {833, sizeof(::provider::spacewave::api::AssignBillingAccountRequest)},
+        {842, sizeof(::provider::spacewave::api::AssignBillingAccountResponse)},
+        {843, sizeof(::provider::spacewave::api::DetachBillingAccountRequest)},
+        {850, sizeof(::provider::spacewave::api::DetachBillingAccountResponse)},
+        {851, sizeof(::provider::spacewave::api::ManagedBillingAccount)},
+        {870, sizeof(::provider::spacewave::api::PrincipalAssignment)},
+        {879, sizeof(::provider::spacewave::api::CreateBillingAccountRequest)},
+        {884, sizeof(::provider::spacewave::api::RenameBillingAccountRequest)},
+        {891, sizeof(::provider::spacewave::api::RenameBillingAccountResponse)},
+        {892, sizeof(::provider::spacewave::api::DeleteBillingAccountRequest)},
+        {893, sizeof(::provider::spacewave::api::DeleteBillingAccountResponse)},
+        {894, sizeof(::provider::spacewave::api::CreateBillingAccountResponse)},
+        {899, sizeof(::provider::spacewave::api::ListManagedBillingAccountsRequest)},
+        {900, sizeof(::provider::spacewave::api::ListManagedBillingAccountsResponse)},
+        {905, sizeof(::provider::spacewave::api::OrgSpaceEntry)},
+        {914, sizeof(::provider::spacewave::api::GetOrgResponse)},
+        {929, sizeof(::provider::spacewave::api::OrgMember)},
+        {942, sizeof(::provider::spacewave::api::ListOrgsResponse)},
+        {947, sizeof(::provider::spacewave::api::ListOrgInvitesResponse)},
+        {952, sizeof(::provider::spacewave::api::AccountInfoResponse)},
+        {981, sizeof(::provider::spacewave::api::ListKeypairsResponse)},
+        {986, sizeof(::provider::spacewave::api::AccountAuthMethod)},
+        {1001, sizeof(::provider::spacewave::api::AccountSObjectBinding)},
+        {1010, sizeof(::provider::spacewave::api::EnsureAccountSObjectBindingRequest)},
+        {1015, sizeof(::provider::spacewave::api::EnsureAccountSObjectBindingResponse)},
+        {1020, sizeof(::provider::spacewave::api::FinalizeAccountSObjectBindingRequest)},
+        {1027, sizeof(::provider::spacewave::api::FinalizeAccountSObjectBindingResponse)},
+        {1032, sizeof(::provider::spacewave::api::AccountStateResponse)},
+        {1067, sizeof(::provider::spacewave::api::AccountStateCache)},
+        {1074, sizeof(::provider::spacewave::api::VerifiedSOStateCache)},
+        {1087, sizeof(::provider::spacewave::api::TicketResponse)},
+        {1092, sizeof(::provider::spacewave::api::WriteTicketBundleResponse)},
+        {1101, sizeof(::provider::spacewave::api::SignalTicketResponse)},
+        {1106, sizeof(::provider::spacewave::api::PackMetadataRepairEntry)},
+        {1119, sizeof(::provider::spacewave::api::PackMetadataRepairRequest)},
+        {1126, sizeof(::provider::spacewave::api::PackMetadataRepairResponse)},
+        {1135, sizeof(::provider::spacewave::api::CreateBlockStoreResponse)},
+        {1142, sizeof(::provider::spacewave::api::AccountEmailInfo)},
+        {1153, sizeof(::provider::spacewave::api::ListAccountEmailsResponse)},
+        {1158, sizeof(::provider::spacewave::api::AddEmailRequest)},
+        {1163, sizeof(::provider::spacewave::api::AddEmailResponse)},
+        {1170, sizeof(::provider::spacewave::api::RemoveEmailRequest)},
+        {1175, sizeof(::provider::spacewave::api::RemoveEmailResponse)},
+        {1176, sizeof(::provider::spacewave::api::SetPrimaryEmailRequest)},
+        {1181, sizeof(::provider::spacewave::api::SetPrimaryEmailResponse)},
+        {1186, sizeof(::provider::spacewave::api::RequestEmailVerificationRequest)},
+        {1191, sizeof(::provider::spacewave::api::RequestEmailVerificationResponse)},
+        {1198, sizeof(::provider::spacewave::api::EmailVerifyCodeRequest)},
+        {1205, sizeof(::provider::spacewave::api::EmailVerifyCodeResponse)},
+        {1210, sizeof(::provider::spacewave::api::RequestDeleteNowEmailRequest)},
+        {1211, sizeof(::provider::spacewave::api::RequestDeleteNowEmailResponse)},
+        {1220, sizeof(::provider::spacewave::api::DeleteNowVerifyCodeRequest)},
+        {1225, sizeof(::provider::spacewave::api::DeleteNowVerifyCodeResponse)},
+        {1250, sizeof(::provider::spacewave::api::UndoDeleteNowResponse)},
+        {1255, sizeof(::provider::spacewave::api::SSOCodeExchangeRequest)},
+        {1264, sizeof(::provider::spacewave::api::RequestRecoveryEmailRequest)},
+        {1269, sizeof(::provider::spacewave::api::RequestRecoveryEmailResponse)},
+        {1274, sizeof(::provider::spacewave::api::RecoverVerifyRequest)},
+        {1279, sizeof(::provider::spacewave::api::RecoverVerifyResponse)},
+        {1292, sizeof(::provider::spacewave::api::RecoverExecuteRequest)},
+        {1303, sizeof(::provider::spacewave::api::RecoverExecuteKeypair)},
+        {1312, sizeof(::provider::spacewave::api::RecoverExecuteSignature)},
+        {1319, sizeof(::provider::spacewave::api::RecoverExecuteResponse)},
+        {1326, sizeof(::provider::spacewave::api::AuthSessionCreateRequest)},
+        {1333, sizeof(::provider::spacewave::api::AuthSessionCreateResponse)},
+        {1342, sizeof(::provider::spacewave::api::AuthSessionResultExchangeRequest)},
+        {1347, sizeof(::provider::spacewave::api::DesktopSSOStartRequest)},
+        {1354, sizeof(::provider::spacewave::api::DesktopSSOStartResponse)},
+        {1361, sizeof(::provider::spacewave::api::DesktopSSOLinkStartRequest)},
+        {1366, sizeof(::provider::spacewave::api::DesktopSSOLinkStartResponse)},
+        {1373, sizeof(::provider::spacewave::api::DesktopSSOLinkResult)},
+        {1382, sizeof(::provider::spacewave::api::DesktopPasskeyStartRequest)},
+        {1383, sizeof(::provider::spacewave::api::DesktopPasskeyStartResponse)},
+        {1392, sizeof(::provider::spacewave::api::StartDesktopPasskeyReauthRequest)},
+        {1397, sizeof(::provider::spacewave::api::AuthSessionDeleteRequest)},
+        {1404, sizeof(::provider::spacewave::api::AuthSessionDeleteResponse)},
+        {1409, sizeof(::provider::spacewave::api::AuthConfigResponse)},
+        {1428, sizeof(::provider::spacewave::api::PasskeyOptionsResponse)},
+        {1433, sizeof(::provider::spacewave::api::PasskeyAuthOptionsRequest)},
+        {1438, sizeof(::provider::spacewave::api::PasskeyRegisterChallengeRequest)},
+        {1443, sizeof(::provider::spacewave::api::PasskeyRegisterVerifyRequest)},
+        {1458, sizeof(::provider::spacewave::api::PasskeyRegisterVerifyResponse)},
+        {1465, sizeof(::provider::spacewave::api::PasskeyAuthVerifyRequest)},
+        {1470, sizeof(::provider::spacewave::api::PasskeyAuthVerifyResponse)},
+        {1489, sizeof(::provider::spacewave::api::PasskeyConfirmRequest)},
+        {1516, sizeof(::provider::spacewave::api::PasskeyConfirmResponse)},
+        {1523, sizeof(::provider::spacewave::api::PasskeyCheckUsernameRequest)},
+        {1528, sizeof(::provider::spacewave::api::PasskeyCheckUsernameResponse)},
+        {1533, sizeof(::provider::spacewave::api::DesktopPasskeyLinkedResult)},
+        {1550, sizeof(::provider::spacewave::api::DesktopPasskeyNewAccountResult)},
+        {1563, sizeof(::provider::spacewave::api::DesktopPasskeyRelayResult)},
+        {1574, sizeof(::provider::spacewave::api::DesktopPasskeyRelayResponse)},
+        {1575, sizeof(::provider::spacewave::api::DesktopPasskeyRegisterResult)},
+        {1588, sizeof(::provider::spacewave::api::DesktopPasskeyRegisterRelayResult)},
+        {1595, sizeof(::provider::spacewave::api::DesktopPasskeyReauthVerifyRequest)},
+        {1602, sizeof(::provider::spacewave::api::DesktopPasskeyReauthResult)},
+        {1617, sizeof(::provider::spacewave::api::DesktopPasskeyReauthRelayResult)},
+        {1624, sizeof(::provider::spacewave::api::DesktopPasskeyRegisterChallengeRequest)},
+        {1629, sizeof(::provider::spacewave::api::DesktopPasskeyRegisterChallengeResponse)},
+        {1636, sizeof(::provider::spacewave::api::PairingRequest)},
+        {1643, sizeof(::provider::spacewave::api::PairingResponse)},
+        {1648, sizeof(::provider::spacewave::api::EnrollMemberRequest)},
+        {1655, sizeof(::provider::spacewave::api::EnrollMemberPeer)},
+        {1660, sizeof(::provider::spacewave::api::EnrollMemberResponse)},
+        {1665, sizeof(::provider::spacewave::api::ResolveMemberParticipantsRequest)},
+        {1670, sizeof(::provider::spacewave::api::ResolveMemberParticipantsResponse)},
+        {1675, sizeof(::provider::spacewave::api::SORecoveryEntityKeypairs)},
+        {1682, sizeof(::provider::spacewave::api::ListSORecoveryEntityKeypairsResponse)},
+        {1687, sizeof(::provider::spacewave::api::GetSORecoveryEnvelopeResponse)},
+        {1692, sizeof(::provider::spacewave::api::PostConfigStateRequest)},
+        {1703, sizeof(::provider::spacewave::api::PostKeyEpochRequest)},
+        {1710, sizeof(::provider::spacewave::api::RegisterInviteCodeRequest)},
+        {1721, sizeof(::provider::spacewave::api::RegisterInviteCodeResponse)},
+        {1722, sizeof(::provider::spacewave::api::LookupInviteCodeResponse)},
+        {1729, sizeof(::provider::spacewave::api::GetMailboxResponse)},
+        {1734, sizeof(::provider::spacewave::api::SubmitMailboxEntryRequest)},
+        {1745, sizeof(::provider::spacewave::api::SubmitMailboxEntryResponse)},
+        {1752, sizeof(::provider::spacewave::api::MailboxEntry)},
+        {1773, sizeof(::provider::spacewave::api::ProcessMailboxEntryRequest)},
+        {1780, sizeof(::provider::spacewave::api::ProcessMailboxEntryResponse)},
+        {1785, sizeof(::provider::spacewave::api::KeypairAddResult)},
+        {1790, sizeof(::provider::spacewave::api::KeypairRemoveResult)},
+        {1795, sizeof(::provider::spacewave::api::ThresholdChangeResult)},
+        {1800, sizeof(::provider::spacewave::api::SessionRevokeResult)},
+        {1805, sizeof(::provider::spacewave::api::AccountDeleteResult)},
+        {1810, sizeof(::provider::spacewave::api::SsoLinkResult)},
+        {1817, sizeof(::provider::spacewave::api::MultiSigActionResponse)},
+        {1826, sizeof(::provider::spacewave::api::UndoDeleteRequest)},
+        {1827, sizeof(::provider::spacewave::api::RegisterPasskeyOptionsRequest)},
+        {1828, sizeof(::provider::spacewave::api::SessionTicketRequest)},
+        {1829, sizeof(::provider::spacewave::api::ReinitializeSObjectRequest)},
+        {1830, sizeof(::provider::spacewave::api::OrgDeleteRequest)},
+        {1831, sizeof(::provider::spacewave::api::OrgDeleteResponse)},
+        {1836, sizeof(::provider::spacewave::api::OrgLeaveRequest)},
+        {1837, sizeof(::provider::spacewave::api::OrgLeaveResponse)},
+        {1842, sizeof(::provider::spacewave::api::RemoveOrgMemberRequest)},
+        {1843, sizeof(::provider::spacewave::api::RemoveOrgMemberResponse)},
+        {1848, sizeof(::provider::spacewave::api::CancelOrgInviteRequest)},
+        {1849, sizeof(::provider::spacewave::api::CancelOrgInviteResponse)},
+        {1854, sizeof(::provider::spacewave::api::CancelBillingRequest)},
+        {1855, sizeof(::provider::spacewave::api::CancelBillingResponse)},
+        {1860, sizeof(::provider::spacewave::api::ReactivateBillingRequest)},
+        {1861, sizeof(::provider::spacewave::api::ReactivateBillingResponse)},
+        {1866, sizeof(::provider::spacewave::api::ClientErrorReportRequest)},
+        {1879, sizeof(::provider::spacewave::api::ClientErrorReportResponse)},
+        {1886, sizeof(::provider::spacewave::api::SsoCallbackResult)},
+        {1913, sizeof(::provider::spacewave::api::PasskeyRelay)},
+        {1923, sizeof(::provider::spacewave::api::WsAuthSessionServerFrame)},
+        {1930, sizeof(::provider::spacewave::api::WsBillingCheckoutServerFrame)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::provider::spacewave::api::_RegisterAccountRequest_default_instance_._instance,
@@ -9253,6 +9295,7 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::provider::spacewave::api::_AccountChangedPayload_default_instance_._instance,
     &::provider::spacewave::api::_OrgChangedPayload_default_instance_._instance,
     &::provider::spacewave::api::_PendingParticipantPayload_default_instance_._instance,
+    &::provider::spacewave::api::_BlockStoreNonceEventPayload_default_instance_._instance,
     &::provider::spacewave::api::_MemberSessionChangedPayload_default_instance_._instance,
     &::provider::spacewave::api::_InviteMailboxEventPayload_default_instance_._instance,
     &::provider::spacewave::api::_SONotifyEventPayload_default_instance_._instance,
@@ -9506,622 +9549,625 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     "ewave.api.AccountSessionInfo\"^\n\rErrorRes"
     "ponse\022\014\n\004code\030\001 \001(\t\022\017\n\007message\030\002 \001(\t\022\021\n\t"
     "retryable\030\003 \001(\010\022\033\n\023retry_after_seconds\030\004"
-    " \001(\r\"\365\001\n\016SOStateMessage\022\r\n\005seqno\030\001 \001(\004\022$"
+    " \001(\r\"\253\002\n\016SOStateMessage\022\r\n\005seqno\030\001 \001(\004\022$"
     "\n\010snapshot\030\002 \001(\0132\020.sobject.SOStateH\000\0225\n\005"
     "delta\030\003 \001(\0132$.provider.spacewave.api.SOS"
     "tateDeltaH\000\0225\n\005error\030\004 \001(\0132$.provider.sp"
     "acewave.api.SOStateErrorH\000\0225\n\016config_cha"
     "nged\030\005 \001(\0132\033.sobject.SharedObjectConfigH"
-    "\000B\t\n\007content\"@\n\014SOStateError\022\014\n\004code\030\001 \001"
-    "(\t\022\017\n\007message\030\002 \001(\t\022\021\n\tretryable\030\003 \001(\010\"Y"
-    "\n\014SOStateDelta\022\r\n\005since\030\001 \001(\004\022:\n\007entries"
-    "\030\002 \003(\0132).provider.spacewave.api.SOStateD"
-    "eltaEntry\"L\n\021SOStateDeltaEntry\022\r\n\005seqno\030"
-    "\001 \001(\004\022\023\n\013change_type\030\002 \001(\t\022\023\n\013change_dat"
-    "a\030\003 \001(\014\"e\n\017PostRootRequest\022\035\n\004root\030\001 \001(\013"
-    "2\017.sobject.SORoot\0223\n\014rejected_ops\030\002 \003(\0132"
-    "\035.sobject.SOOperationRejection\"\312\001\n\016Sessi"
-    "onMessage\022<\n\tso_update\030\001 \001(\0132\'.provider."
-    "spacewave.api.SOSessionUpdateH\000\0223\n\016so_li"
-    "st_update\030\002 \001(\0132\031.sobject.SharedObjectLi"
-    "stH\000\022=\n\rsession_event\030\003 \001(\0132$.provider.s"
-    "pacewave.api.SessionEventH\000B\006\n\004body\"Y\n\017S"
-    "OSessionUpdate\022\r\n\005so_id\030\001 \001(\t\0227\n\007message"
-    "\030\002 \001(\0132&.provider.spacewave.api.SOStateM"
-    "essage\"<\n\014SessionEvent\022\014\n\004type\030\001 \001(\t\022\r\n\005"
-    "so_id\030\002 \001(\t\022\017\n\007payload\030\003 \001(\014\"A\n\037NotifySh"
-    "aredObjectChangeRequest\022\r\n\005so_id\030\001 \001(\t\022\017"
-    "\n\007payload\030\002 \001(\014\",\n\033NotifyAccountChangedR"
-    "equest\022\r\n\005epoch\030\001 \001(\004\"2\n NotifyOrganizat"
-    "ionChangedRequest\022\016\n\006org_id\030\001 \001(\t\"D\n\037Not"
-    "ifyPendingParticipantRequest\022\r\n\005so_id\030\001 "
-    "\001(\t\022\022\n\naccount_id\030\002 \001(\t\"I\n\031NotifySession"
-    "EventRequest\022\014\n\004type\030\001 \001(\t\022\r\n\005so_id\030\002 \001("
-    "\t\022\017\n\007payload\030\003 \001(\014\"\341\003\n\024NotifySessionRequ"
-    "est\022W\n\024shared_object_change\030\001 \001(\01327.prov"
-    "ider.spacewave.api.NotifySharedObjectCha"
-    "ngeRequestH\000\022N\n\017account_changed\030\002 \001(\01323."
-    "provider.spacewave.api.NotifyAccountChan"
-    "gedRequestH\000\022X\n\024organization_changed\030\003 \001"
-    "(\01328.provider.spacewave.api.NotifyOrgani"
-    "zationChangedRequestH\000\022V\n\023pending_partic"
-    "ipant\030\004 \001(\01327.provider.spacewave.api.Not"
-    "ifyPendingParticipantRequestH\000\022J\n\rsessio"
-    "n_event\030\005 \001(\01321.provider.spacewave.api.N"
-    "otifySessionEventRequestH\000\022\032\n\020update_ava"
-    "ilable\030\006 \001(\010H\000B\006\n\004body\"&\n\025AccountChanged"
-    "Payload\022\r\n\005epoch\030\001 \001(\004\"#\n\021OrgChangedPayl"
-    "oad\022\016\n\006org_id\030\001 \001(\t\"/\n\031PendingParticipan"
-    "tPayload\022\022\n\naccount_id\030\001 \001(\t\"J\n\033MemberSe"
-    "ssionChangedPayload\022\027\n\017session_peer_id\030\001"
-    " \001(\t\022\022\n\naccount_id\030\002 \001(\t\"d\n\031InviteMailbo"
-    "xEventPayload\0223\n\005entry\030\001 \001(\0132$.provider."
-    "spacewave.api.MailboxEntry\022\022\n\nupdated_at"
-    "\030\002 \001(\003\"\272\001\n\024SONotifyEventPayload\022\r\n\005seqno"
-    "\030\001 \001(\004\022\023\n\013change_type\030\002 \001(\t\022=\n\rstate_mes"
-    "sage\030\003 \001(\0132&.provider.spacewave.api.SOSt"
-    "ateMessage\022\?\n\010metadata\030\004 \001(\0132-.provider."
-    "spacewave.api.SpaceMetadataResponse\"\225\001\n\026"
-    "MultiSigActionEnvelope\022\022\n\naccount_id\030\001 \001"
-    "(\t\0228\n\004kind\030\002 \001(\0162*.provider.spacewave.ap"
-    "i.MultiSigActionKind\022\016\n\006method\030\003 \001(\t\022\014\n\004"
-    "path\030\004 \001(\t\022\017\n\007payload\030\005 \001(\014\"`\n\017MultiSigR"
-    "equest\022\020\n\010envelope\030\001 \001(\014\022;\n\nsignatures\030\002"
-    " \003(\0132\'.provider.spacewave.api.EntitySign"
-    "ature\"d\n\017EntitySignature\022\017\n\007peer_id\030\001 \001("
-    "\t\022\021\n\tsignature\030\002 \001(\014\022-\n\tsigned_at\030\003 \001(\0132"
-    "\032.google.protobuf.Timestamp\";\n\020AddKeypai"
-    "rAction\022\'\n\007keypair\030\001 \001(\0132\026.session.Entit"
-    "yKeypair\"&\n\023RemoveKeypairAction\022\017\n\007peer_"
-    "id\030\001 \001(\t\"*\n\025UpdateThresholdAction\022\021\n\tthr"
-    "eshold\030\001 \001(\r\".\n\023RevokeSessionAction\022\027\n\017s"
-    "ession_peer_id\030\001 \001(\t\"\025\n\023DeleteAccountAct"
-    "ion\")\n\022CustodiedKeyParams\022\023\n\013pin_wrapped"
-    "\030\001 \001(\010\"\206\001\n\rSSOLinkAction\022\020\n\010provider\030\001 \001"
-    "(\t\022\014\n\004code\030\002 \001(\t\022\024\n\014redirect_uri\030\003 \001(\t\022\031"
-    "\n\021encrypted_privkey\030\004 \001(\014\022\017\n\007peer_id\030\005 \001"
-    "(\t\022\023\n\013auth_params\030\006 \001(\014\"\373\001\n\027SSOCodeExcha"
-    "ngeResponse\022\016\n\006linked\030\001 \001(\010\022\022\n\naccount_i"
-    "d\030\002 \001(\t\022\021\n\tentity_id\030\003 \001(\t\022\026\n\016encrypted_"
-    "blob\030\004 \001(\t\022\023\n\013pin_wrapped\030\005 \001(\010\022\023\n\013auth_"
-    "params\030\006 \001(\t\022\020\n\010provider\030\007 \001(\t\022\r\n\005email\030"
-    "\010 \001(\t\022\020\n\010username\030\t \001(\t\022\013\n\003sub\030\n \001(\t\022\r\n\005"
-    "error\030\013 \001(\t\022\030\n\020device_encrypted\030\014 \001(\010\"\226\001"
-    "\n\021ConfirmSSORequest\022\r\n\005nonce\030\001 \001(\t\022\020\n\010us"
-    "ername\030\002 \001(\t\022\032\n\022wrapped_entity_key\030\003 \001(\t"
-    "\022\026\n\016entity_peer_id\030\004 \001(\t\022\027\n\017session_peer"
-    "_id\030\005 \001(\t\022\023\n\013pin_wrapped\030\006 \001(\010\"A\n\022Confir"
-    "mSSOResponse\022\022\n\naccount_id\030\001 \001(\t\022\027\n\017sess"
-    "ion_peer_id\030\002 \001(\t\"\237\001\n\016SigningPayload\022\022\n\n"
-    "env_prefix\030\001 \001(\t\022\016\n\006method\030\002 \001(\t\022\014\n\004path"
-    "\030\003 \001(\t\022\024\n\014timestamp_ms\030\004 \001(\003\022\026\n\016content_"
-    "length\030\005 \001(\003\022\025\n\rbody_hash_hex\030\006 \001(\t\022\026\n\016s"
-    "igned_headers\030\007 \001(\t\"\244\001\n\027WriteTicketProof"
-    "Payload\022\016\n\006ticket\030\001 \001(\t\022\016\n\006method\030\002 \001(\t\022"
-    "\014\n\004path\030\003 \001(\t\022\024\n\014timestamp_ms\030\004 \001(\003\022\026\n\016c"
-    "ontent_length\030\005 \001(\003\022\025\n\rbody_hash_hex\030\006 \001"
-    "(\t\022\026\n\016signed_headers\030\007 \001(\t\"6\n\020WriteTicke"
-    "tProof\022\017\n\007payload\030\001 \001(\014\022\021\n\tsignature\030\002 \001"
-    "(\014\"\234\001\n\017CheckoutRequest\022\023\n\013success_url\030\001 "
-    "\001(\t\022\022\n\ncancel_url\030\002 \001(\t\022D\n\020billing_inter"
-    "val\030\003 \001(\0162*.s4wave.provider.spacewave.Bi"
-    "llingInterval\022\032\n\022billing_account_id\030\004 \001("
-    "\t\"K\n\020CheckoutResponse\022\024\n\014checkout_url\030\001 "
-    "\001(\t\022\021\n\tws_ticket\030\002 \001(\t\022\016\n\006status\030\003 \001(\t\"]"
-    "\n\025SwitchIntervalRequest\022D\n\020billing_inter"
-    "val\030\001 \001(\0162*.s4wave.provider.spacewave.Bi"
-    "llingInterval\"^\n\026SwitchIntervalResponse\022"
-    "D\n\020billing_interval\030\001 \001(\0162*.s4wave.provi"
-    "der.spacewave.BillingInterval\"\026\n\024Billing"
-    "PortalRequest\"$\n\025BillingPortalResponse\022\013"
-    "\n\003url\030\001 \001(\t\"\200\003\n\024BillingStateResponse\0228\n\006"
-    "status\030\001 \001(\0162(.s4wave.provider.spacewave"
-    ".BillingStatus\022D\n\020billing_interval\030\002 \001(\016"
-    "2*.s4wave.provider.spacewave.BillingInte"
-    "rval\022\026\n\016past_due_since\030\003 \001(\003\022\021\n\tcancel_a"
-    "t\030\004 \001(\003\022\032\n\022current_period_end\030\005 \001(\003\022F\n\017l"
-    "ifecycle_state\030\006 \001(\0162-.provider.spacewav"
-    "e.api.AccountLifecycleState\022\021\n\tdelete_at"
-    "\030\007 \001(\003\022\034\n\024lifecycle_updated_at\030\010 \001(\003\022\022\n\n"
-    "deleted_at\030\t \001(\003\022\024\n\014display_name\030\n \001(\t\"\216"
-    "\003\n\024BillingUsageResponse\022\025\n\rstorage_bytes"
-    "\030\001 \001(\001\022\021\n\twrite_ops\030\002 \001(\003\022\020\n\010read_ops\030\003 "
-    "\001(\003\022\035\n\025storage_overage_bytes\030\004 \001(\001\0221\n)st"
-    "orage_overage_monthly_cost_estimate_usd\030"
-    "\005 \001(\001\022/\n\'storage_overage_month_to_date_g"
-    "b_months\030\006 \001(\001\0227\n/storage_overage_month_"
-    "to_date_cost_estimate_usd\030\007 \001(\001\022)\n!stora"
-    "ge_overage_deleted_gb_months\030\010 \001(\001\0221\n)st"
-    "orage_overage_deleted_cost_estimate_usd\030"
-    "\t \001(\001\022 \n\030usage_metered_through_at\030\n \001(\003\""
-    "5\n\025CheckoutStatusMessage\022\014\n\004type\030\001 \001(\t\022\016"
-    "\n\006status\030\002 \001(\t\"\200\001\n\024CreateSObjectRequest\022"
-    "\024\n\014display_name\030\001 \001(\t\022\023\n\013object_type\030\002 \001"
-    "(\t\022\022\n\nowner_type\030\003 \001(\t\022\020\n\010owner_id\030\005 \001(\t"
-    "\022\027\n\017account_private\030\004 \001(\010\"7\n\025CreateSObje"
-    "ctResponse\022\n\n\002id\030\001 \001(\t\022\022\n\naccount_id\030\002 \001"
-    "(\t\"(\n\025DeleteSObjectResponse\022\017\n\007deleted\030\001"
-    " \001(\010\"!\n\020SubmitOpResponse\022\r\n\005seqno\030\001 \001(\004\""
-    "#\n\022SubmitRootResponse\022\r\n\005seqno\030\001 \001(\004\"\024\n\022"
-    "PostConfigResponse\"\031\n\027PostConfigStateRes"
-    "ponse\"\026\n\024PostKeyEpochResponse\"\035\n\033Reiniti"
-    "alizeSObjectResponse\"P\n\023InviteBeaconRequ"
-    "est\022\021\n\tinvite_id\030\001 \001(\t\022\022\n\ntoken_hash\030\002 \001"
-    "(\t\022\022\n\nexpires_at\030\003 \001(\003\"\026\n\024InviteBeaconRe"
-    "sponse\"}\n\025SpaceMetadataResponse\022\022\n\nowner"
-    "_type\030\001 \001(\t\022\024\n\014display_name\030\002 \001(\t\022\023\n\013obj"
-    "ect_type\030\003 \001(\t\022\023\n\013public_read\030\004 \001(\010\022\020\n\010o"
-    "wner_id\030\005 \001(\t\"(\n\020CreateOrgRequest\022\024\n\014dis"
-    "play_name\030\001 \001(\t\"\302\001\n*CreateTargetedInvite"
-    "DraftByUsernameRequest\022\020\n\010username\030\001 \001(\t"
+    "\000\0224\n\014config_chain\030\006 \001(\0132\036.sobject.SOConf"
+    "igChainResponseB\t\n\007content\"@\n\014SOStateErr"
+    "or\022\014\n\004code\030\001 \001(\t\022\017\n\007message\030\002 \001(\t\022\021\n\tret"
+    "ryable\030\003 \001(\010\"Y\n\014SOStateDelta\022\r\n\005since\030\001 "
+    "\001(\004\022:\n\007entries\030\002 \003(\0132).provider.spacewav"
+    "e.api.SOStateDeltaEntry\"L\n\021SOStateDeltaE"
+    "ntry\022\r\n\005seqno\030\001 \001(\004\022\023\n\013change_type\030\002 \001(\t"
+    "\022\023\n\013change_data\030\003 \001(\014\"e\n\017PostRootRequest"
+    "\022\035\n\004root\030\001 \001(\0132\017.sobject.SORoot\0223\n\014rejec"
+    "ted_ops\030\002 \003(\0132\035.sobject.SOOperationRejec"
+    "tion\"\312\001\n\016SessionMessage\022<\n\tso_update\030\001 \001"
+    "(\0132\'.provider.spacewave.api.SOSessionUpd"
+    "ateH\000\0223\n\016so_list_update\030\002 \001(\0132\031.sobject."
+    "SharedObjectListH\000\022=\n\rsession_event\030\003 \001("
+    "\0132$.provider.spacewave.api.SessionEventH"
+    "\000B\006\n\004body\"Y\n\017SOSessionUpdate\022\r\n\005so_id\030\001 "
+    "\001(\t\0227\n\007message\030\002 \001(\0132&.provider.spacewav"
+    "e.api.SOStateMessage\"<\n\014SessionEvent\022\014\n\004"
+    "type\030\001 \001(\t\022\r\n\005so_id\030\002 \001(\t\022\017\n\007payload\030\003 \001"
+    "(\014\"A\n\037NotifySharedObjectChangeRequest\022\r\n"
+    "\005so_id\030\001 \001(\t\022\017\n\007payload\030\002 \001(\014\",\n\033NotifyA"
+    "ccountChangedRequest\022\r\n\005epoch\030\001 \001(\004\"2\n N"
+    "otifyOrganizationChangedRequest\022\016\n\006org_i"
+    "d\030\001 \001(\t\"D\n\037NotifyPendingParticipantReque"
+    "st\022\r\n\005so_id\030\001 \001(\t\022\022\n\naccount_id\030\002 \001(\t\"I\n"
+    "\031NotifySessionEventRequest\022\014\n\004type\030\001 \001(\t"
+    "\022\r\n\005so_id\030\002 \001(\t\022\017\n\007payload\030\003 \001(\014\"\341\003\n\024Not"
+    "ifySessionRequest\022W\n\024shared_object_chang"
+    "e\030\001 \001(\01327.provider.spacewave.api.NotifyS"
+    "haredObjectChangeRequestH\000\022N\n\017account_ch"
+    "anged\030\002 \001(\01323.provider.spacewave.api.Not"
+    "ifyAccountChangedRequestH\000\022X\n\024organizati"
+    "on_changed\030\003 \001(\01328.provider.spacewave.ap"
+    "i.NotifyOrganizationChangedRequestH\000\022V\n\023"
+    "pending_participant\030\004 \001(\01327.provider.spa"
+    "cewave.api.NotifyPendingParticipantReque"
+    "stH\000\022J\n\rsession_event\030\005 \001(\01321.provider.s"
+    "pacewave.api.NotifySessionEventRequestH\000"
+    "\022\032\n\020update_available\030\006 \001(\010H\000B\006\n\004body\"&\n\025"
+    "AccountChangedPayload\022\r\n\005epoch\030\001 \001(\004\"#\n\021"
+    "OrgChangedPayload\022\016\n\006org_id\030\001 \001(\t\"/\n\031Pen"
+    "dingParticipantPayload\022\022\n\naccount_id\030\001 \001"
+    "(\t\"A\n\033BlockStoreNonceEventPayload\022\023\n\013res"
+    "ource_id\030\001 \001(\t\022\r\n\005nonce\030\002 \001(\004\"J\n\033MemberS"
+    "essionChangedPayload\022\027\n\017session_peer_id\030"
+    "\001 \001(\t\022\022\n\naccount_id\030\002 \001(\t\"d\n\031InviteMailb"
+    "oxEventPayload\0223\n\005entry\030\001 \001(\0132$.provider"
+    ".spacewave.api.MailboxEntry\022\022\n\nupdated_a"
+    "t\030\002 \001(\003\"\325\001\n\024SONotifyEventPayload\022\r\n\005seqn"
+    "o\030\001 \001(\004\022\023\n\013change_type\030\002 \001(\t\022=\n\rstate_me"
+    "ssage\030\003 \001(\0132&.provider.spacewave.api.SOS"
+    "tateMessage\022\?\n\010metadata\030\004 \001(\0132-.provider"
+    ".spacewave.api.SpaceMetadataResponse\022\031\n\021"
+    "block_store_nonce\030\005 \001(\004\"\225\001\n\026MultiSigActi"
+    "onEnvelope\022\022\n\naccount_id\030\001 \001(\t\0228\n\004kind\030\002"
+    " \001(\0162*.provider.spacewave.api.MultiSigAc"
+    "tionKind\022\016\n\006method\030\003 \001(\t\022\014\n\004path\030\004 \001(\t\022\017"
+    "\n\007payload\030\005 \001(\014\"`\n\017MultiSigRequest\022\020\n\010en"
+    "velope\030\001 \001(\014\022;\n\nsignatures\030\002 \003(\0132\'.provi"
+    "der.spacewave.api.EntitySignature\"d\n\017Ent"
+    "itySignature\022\017\n\007peer_id\030\001 \001(\t\022\021\n\tsignatu"
+    "re\030\002 \001(\014\022-\n\tsigned_at\030\003 \001(\0132\032.google.pro"
+    "tobuf.Timestamp\";\n\020AddKeypairAction\022\'\n\007k"
+    "eypair\030\001 \001(\0132\026.session.EntityKeypair\"&\n\023"
+    "RemoveKeypairAction\022\017\n\007peer_id\030\001 \001(\t\"*\n\025"
+    "UpdateThresholdAction\022\021\n\tthreshold\030\001 \001(\r"
+    "\".\n\023RevokeSessionAction\022\027\n\017session_peer_"
+    "id\030\001 \001(\t\"\025\n\023DeleteAccountAction\")\n\022Custo"
+    "diedKeyParams\022\023\n\013pin_wrapped\030\001 \001(\010\"\206\001\n\rS"
+    "SOLinkAction\022\020\n\010provider\030\001 \001(\t\022\014\n\004code\030\002"
+    " \001(\t\022\024\n\014redirect_uri\030\003 \001(\t\022\031\n\021encrypted_"
+    "privkey\030\004 \001(\014\022\017\n\007peer_id\030\005 \001(\t\022\023\n\013auth_p"
+    "arams\030\006 \001(\014\"\373\001\n\027SSOCodeExchangeResponse\022"
+    "\016\n\006linked\030\001 \001(\010\022\022\n\naccount_id\030\002 \001(\t\022\021\n\te"
+    "ntity_id\030\003 \001(\t\022\026\n\016encrypted_blob\030\004 \001(\t\022\023"
+    "\n\013pin_wrapped\030\005 \001(\010\022\023\n\013auth_params\030\006 \001(\t"
+    "\022\020\n\010provider\030\007 \001(\t\022\r\n\005email\030\010 \001(\t\022\020\n\010use"
+    "rname\030\t \001(\t\022\013\n\003sub\030\n \001(\t\022\r\n\005error\030\013 \001(\t\022"
+    "\030\n\020device_encrypted\030\014 \001(\010\"\226\001\n\021ConfirmSSO"
+    "Request\022\r\n\005nonce\030\001 \001(\t\022\020\n\010username\030\002 \001(\t"
+    "\022\032\n\022wrapped_entity_key\030\003 \001(\t\022\026\n\016entity_p"
+    "eer_id\030\004 \001(\t\022\027\n\017session_peer_id\030\005 \001(\t\022\023\n"
+    "\013pin_wrapped\030\006 \001(\010\"A\n\022ConfirmSSOResponse"
+    "\022\022\n\naccount_id\030\001 \001(\t\022\027\n\017session_peer_id\030"
+    "\002 \001(\t\"\237\001\n\016SigningPayload\022\022\n\nenv_prefix\030\001"
+    " \001(\t\022\016\n\006method\030\002 \001(\t\022\014\n\004path\030\003 \001(\t\022\024\n\014ti"
+    "mestamp_ms\030\004 \001(\003\022\026\n\016content_length\030\005 \001(\003"
+    "\022\025\n\rbody_hash_hex\030\006 \001(\t\022\026\n\016signed_header"
+    "s\030\007 \001(\t\"\244\001\n\027WriteTicketProofPayload\022\016\n\006t"
+    "icket\030\001 \001(\t\022\016\n\006method\030\002 \001(\t\022\014\n\004path\030\003 \001("
+    "\t\022\024\n\014timestamp_ms\030\004 \001(\003\022\026\n\016content_lengt"
+    "h\030\005 \001(\003\022\025\n\rbody_hash_hex\030\006 \001(\t\022\026\n\016signed"
+    "_headers\030\007 \001(\t\"6\n\020WriteTicketProof\022\017\n\007pa"
+    "yload\030\001 \001(\014\022\021\n\tsignature\030\002 \001(\014\"\234\001\n\017Check"
+    "outRequest\022\023\n\013success_url\030\001 \001(\t\022\022\n\ncance"
+    "l_url\030\002 \001(\t\022D\n\020billing_interval\030\003 \001(\0162*."
+    "s4wave.provider.spacewave.BillingInterva"
+    "l\022\032\n\022billing_account_id\030\004 \001(\t\"K\n\020Checkou"
+    "tResponse\022\024\n\014checkout_url\030\001 \001(\t\022\021\n\tws_ti"
+    "cket\030\002 \001(\t\022\016\n\006status\030\003 \001(\t\"]\n\025SwitchInte"
+    "rvalRequest\022D\n\020billing_interval\030\001 \001(\0162*."
+    "s4wave.provider.spacewave.BillingInterva"
+    "l\"^\n\026SwitchIntervalResponse\022D\n\020billing_i"
+    "nterval\030\001 \001(\0162*.s4wave.provider.spacewav"
+    "e.BillingInterval\"\026\n\024BillingPortalReques"
+    "t\"$\n\025BillingPortalResponse\022\013\n\003url\030\001 \001(\t\""
+    "\200\003\n\024BillingStateResponse\0228\n\006status\030\001 \001(\016"
+    "2(.s4wave.provider.spacewave.BillingStat"
+    "us\022D\n\020billing_interval\030\002 \001(\0162*.s4wave.pr"
+    "ovider.spacewave.BillingInterval\022\026\n\016past"
+    "_due_since\030\003 \001(\003\022\021\n\tcancel_at\030\004 \001(\003\022\032\n\022c"
+    "urrent_period_end\030\005 \001(\003\022F\n\017lifecycle_sta"
+    "te\030\006 \001(\0162-.provider.spacewave.api.Accoun"
+    "tLifecycleState\022\021\n\tdelete_at\030\007 \001(\003\022\034\n\024li"
+    "fecycle_updated_at\030\010 \001(\003\022\022\n\ndeleted_at\030\t"
+    " \001(\003\022\024\n\014display_name\030\n \001(\t\"\216\003\n\024BillingUs"
+    "ageResponse\022\025\n\rstorage_bytes\030\001 \001(\001\022\021\n\twr"
+    "ite_ops\030\002 \001(\003\022\020\n\010read_ops\030\003 \001(\003\022\035\n\025stora"
+    "ge_overage_bytes\030\004 \001(\001\0221\n)storage_overag"
+    "e_monthly_cost_estimate_usd\030\005 \001(\001\022/\n\'sto"
+    "rage_overage_month_to_date_gb_months\030\006 \001"
+    "(\001\0227\n/storage_overage_month_to_date_cost"
+    "_estimate_usd\030\007 \001(\001\022)\n!storage_overage_d"
+    "eleted_gb_months\030\010 \001(\001\0221\n)storage_overag"
+    "e_deleted_cost_estimate_usd\030\t \001(\001\022 \n\030usa"
+    "ge_metered_through_at\030\n \001(\003\"5\n\025CheckoutS"
+    "tatusMessage\022\014\n\004type\030\001 \001(\t\022\016\n\006status\030\002 \001"
+    "(\t\"\200\001\n\024CreateSObjectRequest\022\024\n\014display_n"
+    "ame\030\001 \001(\t\022\023\n\013object_type\030\002 \001(\t\022\022\n\nowner_"
+    "type\030\003 \001(\t\022\020\n\010owner_id\030\005 \001(\t\022\027\n\017account_"
+    "private\030\004 \001(\010\"7\n\025CreateSObjectResponse\022\n"
+    "\n\002id\030\001 \001(\t\022\022\n\naccount_id\030\002 \001(\t\"(\n\025Delete"
+    "SObjectResponse\022\017\n\007deleted\030\001 \001(\010\"!\n\020Subm"
+    "itOpResponse\022\r\n\005seqno\030\001 \001(\004\"#\n\022SubmitRoo"
+    "tResponse\022\r\n\005seqno\030\001 \001(\004\"\024\n\022PostConfigRe"
+    "sponse\"\031\n\027PostConfigStateResponse\"\026\n\024Pos"
+    "tKeyEpochResponse\"\035\n\033ReinitializeSObject"
+    "Response\"P\n\023InviteBeaconRequest\022\021\n\tinvit"
+    "e_id\030\001 \001(\t\022\022\n\ntoken_hash\030\002 \001(\t\022\022\n\nexpire"
+    "s_at\030\003 \001(\003\"\026\n\024InviteBeaconResponse\"}\n\025Sp"
+    "aceMetadataResponse\022\022\n\nowner_type\030\001 \001(\t\022"
+    "\024\n\014display_name\030\002 \001(\t\022\023\n\013object_type\030\003 \001"
+    "(\t\022\023\n\013public_read\030\004 \001(\010\022\020\n\010owner_id\030\005 \001("
+    "\t\"(\n\020CreateOrgRequest\022\024\n\014display_name\030\001 "
+    "\001(\t\"\302\001\n*CreateTargetedInviteDraftByUsern"
+    "ameRequest\022\020\n\010username\030\001 \001(\t\022>\n\007purpose\030"
+    "\002 \001(\0162-.provider.spacewave.api.TargetedI"
+    "nvitePurpose\022\020\n\010space_id\030\003 \001(\t\022\016\n\006org_id"
+    "\030\004 \001(\t\022\014\n\004role\030\005 \001(\t\022\022\n\nexpires_at\030\006 \001(\003"
+    "\"\?\n+CreateTargetedInviteDraftByUsernameR"
+    "esponse\022\020\n\010accepted\030\001 \001(\010\"\214\001\n\026ResolveUse"
+    "rnameRequest\022\020\n\010username\030\001 \001(\t\022>\n\007purpos"
+    "e\030\002 \001(\0162-.provider.spacewave.api.Targete"
+    "dInvitePurpose\022\020\n\010space_id\030\003 \001(\t\022\016\n\006org_"
+    "id\030\004 \001(\t\"\270\001\n\027ResolveUsernameResponse\022\r\n\005"
+    "found\030\001 \001(\010\022\022\n\naccount_id\030\002 \001(\t\022\021\n\tentit"
+    "y_id\030\003 \001(\t\022\021\n\tdomain_id\030\004 \001(\t\022\024\n\014relatio"
+    "nship\030\005 \001(\t\022\022\n\ncan_invite\030\006 \001(\010\022\023\n\013entit"
+    "y_uuid\030\007 \001(\t\022\025\n\raccount_epoch\030\010 \001(\003\"\266\003\n\032"
+    "TargetedInvitationEnvelope\022\026\n\016schema_ver"
+    "sion\030\001 \001(\r\022>\n\007purpose\030\002 \001(\0162-.provider.s"
+    "pacewave.api.TargetedInvitePurpose\022\022\n\nco"
+    "ntext_id\030\003 \001(\t\022\030\n\020actor_account_id\030\004 \001(\t"
+    "\022\031\n\021actor_entity_uuid\030\005 \001(\t\022\033\n\023actor_acc"
+    "ount_epoch\030\020 \001(\003\022\026\n\016signer_peer_id\030\006 \001(\t"
+    "\022\031\n\021target_account_id\030\007 \001(\t\022\030\n\020target_en"
+    "tity_id\030\010 \001(\t\022\032\n\022target_entity_uuid\030\t \001("
+    "\t\022\034\n\024target_account_epoch\030\n \001(\003\022\014\n\004role\030"
+    "\013 \001(\t\022\022\n\nexpires_at\030\014 \001(\003\022\r\n\005nonce\030\r \001(\014"
+    "\022\017\n\007payload\030\016 \001(\014\022\021\n\tsignature\030\017 \001(\014\"\312\003\n"
+    "\026TargetedInvitationInfo\022\n\n\002id\030\001 \001(\t\022\030\n\020a"
+    "ctor_account_id\030\002 \001(\t\022\031\n\021target_account_"
+    "id\030\003 \001(\t\022\030\n\020target_entity_id\030\004 \001(\t\022\032\n\022ta"
+    "rget_entity_uuid\030\005 \001(\t\022\034\n\024target_account"
+    "_epoch\030\006 \001(\003\022>\n\007purpose\030\007 \001(\0162-.provider"
+    ".spacewave.api.TargetedInvitePurpose\022\022\n\n"
+    "context_id\030\010 \001(\t\022\014\n\004role\030\t \001(\t\022\016\n\006status"
+    "\030\n \001(\t\022\025\n\renvelope_hash\030\013 \001(\t\022D\n\010envelop"
+    "e\030\014 \001(\01322.provider.spacewave.api.Targete"
+    "dInvitationEnvelope\022\022\n\ncreated_at\030\r \001(\003\022"
+    "\022\n\nupdated_at\030\016 \001(\003\022\022\n\nexpires_at\030\017 \001(\003\022"
+    "\020\n\010draft_id\030\020 \001(\t\"\230\002\n\037CreateTargetedInvi"
+    "tationRequest\022\031\n\021target_account_id\030\001 \001(\t"
     "\022>\n\007purpose\030\002 \001(\0162-.provider.spacewave.a"
     "pi.TargetedInvitePurpose\022\020\n\010space_id\030\003 \001"
     "(\t\022\016\n\006org_id\030\004 \001(\t\022\014\n\004role\030\005 \001(\t\022\022\n\nexpi"
-    "res_at\030\006 \001(\003\"\?\n+CreateTargetedInviteDraf"
-    "tByUsernameResponse\022\020\n\010accepted\030\001 \001(\010\"\214\001"
-    "\n\026ResolveUsernameRequest\022\020\n\010username\030\001 \001"
-    "(\t\022>\n\007purpose\030\002 \001(\0162-.provider.spacewave"
-    ".api.TargetedInvitePurpose\022\020\n\010space_id\030\003"
-    " \001(\t\022\016\n\006org_id\030\004 \001(\t\"\270\001\n\027ResolveUsername"
-    "Response\022\r\n\005found\030\001 \001(\010\022\022\n\naccount_id\030\002 "
-    "\001(\t\022\021\n\tentity_id\030\003 \001(\t\022\021\n\tdomain_id\030\004 \001("
-    "\t\022\024\n\014relationship\030\005 \001(\t\022\022\n\ncan_invite\030\006 "
-    "\001(\010\022\023\n\013entity_uuid\030\007 \001(\t\022\025\n\raccount_epoc"
-    "h\030\010 \001(\003\"\266\003\n\032TargetedInvitationEnvelope\022\026"
-    "\n\016schema_version\030\001 \001(\r\022>\n\007purpose\030\002 \001(\0162"
-    "-.provider.spacewave.api.TargetedInviteP"
-    "urpose\022\022\n\ncontext_id\030\003 \001(\t\022\030\n\020actor_acco"
-    "unt_id\030\004 \001(\t\022\031\n\021actor_entity_uuid\030\005 \001(\t\022"
-    "\033\n\023actor_account_epoch\030\020 \001(\003\022\026\n\016signer_p"
-    "eer_id\030\006 \001(\t\022\031\n\021target_account_id\030\007 \001(\t\022"
-    "\030\n\020target_entity_id\030\010 \001(\t\022\032\n\022target_enti"
-    "ty_uuid\030\t \001(\t\022\034\n\024target_account_epoch\030\n "
-    "\001(\003\022\014\n\004role\030\013 \001(\t\022\022\n\nexpires_at\030\014 \001(\003\022\r\n"
-    "\005nonce\030\r \001(\014\022\017\n\007payload\030\016 \001(\014\022\021\n\tsignatu"
-    "re\030\017 \001(\014\"\312\003\n\026TargetedInvitationInfo\022\n\n\002i"
-    "d\030\001 \001(\t\022\030\n\020actor_account_id\030\002 \001(\t\022\031\n\021tar"
-    "get_account_id\030\003 \001(\t\022\030\n\020target_entity_id"
-    "\030\004 \001(\t\022\032\n\022target_entity_uuid\030\005 \001(\t\022\034\n\024ta"
-    "rget_account_epoch\030\006 \001(\003\022>\n\007purpose\030\007 \001("
-    "\0162-.provider.spacewave.api.TargetedInvit"
-    "ePurpose\022\022\n\ncontext_id\030\010 \001(\t\022\014\n\004role\030\t \001"
-    "(\t\022\016\n\006status\030\n \001(\t\022\025\n\renvelope_hash\030\013 \001("
-    "\t\022D\n\010envelope\030\014 \001(\01322.provider.spacewave"
-    ".api.TargetedInvitationEnvelope\022\022\n\ncreat"
-    "ed_at\030\r \001(\003\022\022\n\nupdated_at\030\016 \001(\003\022\022\n\nexpir"
-    "es_at\030\017 \001(\003\022\020\n\010draft_id\030\020 \001(\t\"\230\002\n\037Create"
-    "TargetedInvitationRequest\022\031\n\021target_acco"
-    "unt_id\030\001 \001(\t\022>\n\007purpose\030\002 \001(\0162-.provider"
-    ".spacewave.api.TargetedInvitePurpose\022\020\n\010"
-    "space_id\030\003 \001(\t\022\016\n\006org_id\030\004 \001(\t\022\014\n\004role\030\005"
-    " \001(\t\022\022\n\nexpires_at\030\006 \001(\003\022D\n\010envelope\030\007 \001"
-    "(\01322.provider.spacewave.api.TargetedInvi"
-    "tationEnvelope\022\020\n\010draft_id\030\010 \001(\t\"f\n Crea"
-    "teTargetedInvitationResponse\022B\n\ninvitati"
-    "on\030\001 \001(\0132..provider.spacewave.api.Target"
-    "edInvitationInfo\" \n\036ListTargetedInvitati"
-    "onsRequest\"f\n\037ListTargetedInvitationsRes"
-    "ponse\022C\n\013invitations\030\001 \003(\0132..provider.sp"
-    "acewave.api.TargetedInvitationInfo\"*\n\034Ge"
-    "tTargetedInvitationRequest\022\n\n\002id\030\001 \001(\t\"c"
-    "\n\035GetTargetedInvitationResponse\022B\n\ninvit"
-    "ation\030\001 \001(\0132..provider.spacewave.api.Tar"
-    "getedInvitationInfo\"-\n\037RevokeTargetedInv"
-    "itationRequest\022\n\n\002id\030\001 \001(\t\"f\n RevokeTarg"
-    "etedInvitationResponse\022B\n\ninvitation\030\001 \001"
-    "(\0132..provider.spacewave.api.TargetedInvi"
-    "tationInfo\">\n ProcessTargetedInvitationR"
-    "equest\022\n\n\002id\030\001 \001(\t\022\016\n\006action\030\002 \001(\t\"g\n!Pr"
-    "ocessTargetedInvitationResponse\022B\n\ninvit"
-    "ation\030\001 \001(\0132..provider.spacewave.api.Tar"
-    "getedInvitationInfo\"9\n+AcceptTargetedOrg"
-    "anizationInvitationRequest\022\n\n\002id\030\001 \001(\t\"\255"
-    "\001\n,AcceptTargetedOrganizationInvitationR"
-    "esponse\022B\n\ninvitation\030\001 \001(\0132..provider.s"
-    "pacewave.api.TargetedInvitationInfo\0229\n\014o"
-    "rganization\030\002 \001(\0132#.provider.spacewave.a"
-    "pi.OrgResponse\"P\n\013OrgResponse\022\n\n\002id\030\001 \001("
-    "\t\022\024\n\014display_name\030\002 \001(\t\022\014\n\004role\030\003 \001(\t\022\021\n"
-    "\tspace_ids\030\004 \003(\t\"[\n\026CreateOrgInviteReque"
-    "st\022\014\n\004type\030\001 \001(\t\022\020\n\010max_uses\030\002 \001(\005\022\022\n\nex"
-    "pires_at\030\003 \001(\003\022\r\n\005email\030\004 \001(\t\"p\n\021OrgInvi"
-    "teResponse\022\n\n\002id\030\001 \001(\t\022\014\n\004type\030\002 \001(\t\022\r\n\005"
-    "token\030\003 \001(\t\022\014\n\004uses\030\004 \001(\005\022\020\n\010max_uses\030\005 "
-    "\001(\005\022\022\n\nexpires_at\030\006 \001(\003\"\037\n\016JoinOrgReques"
-    "t\022\r\n\005token\030\001 \001(\t\"(\n\020UpdateOrgRequest\022\024\n\014"
-    "display_name\030\001 \001(\t\"\037\n\021UpdateOrgResponse\022"
-    "\n\n\002id\030\001 \001(\t\"-\n\021ResourceListEntry\022\n\n\002id\030\001"
-    " \001(\t\022\014\n\004type\030\002 \001(\t\"U\n\025ListResourcesRespo"
-    "nse\022<\n\tresources\030\001 \003(\0132).provider.spacew"
-    "ave.api.ResourceListEntry\"\\\n\027TransferRes"
-    "ourceRequest\022\023\n\013resource_id\030\001 \001(\t\022\026\n\016new"
-    "_owner_type\030\002 \001(\t\022\024\n\014new_owner_id\030\003 \001(\t\""
-    "m\n\033AssignBillingAccountRequest\022\032\n\022billin"
-    "g_account_id\030\001 \001(\t\022\031\n\021target_owner_type\030"
-    "\002 \001(\t\022\027\n\017target_owner_id\030\003 \001(\t\"\036\n\034Assign"
-    "BillingAccountResponse\"Q\n\033DetachBillingA"
-    "ccountRequest\022\031\n\021target_owner_type\030\001 \001(\t"
-    "\022\027\n\017target_owner_id\030\002 \001(\t\"\036\n\034DetachBilli"
-    "ngAccountResponse\"\314\002\n\025ManagedBillingAcco"
-    "unt\022\n\n\002id\030\001 \001(\t\022\032\n\022stripe_customer_id\030\002 "
-    "\001(\t\022E\n\023subscription_status\030\003 \001(\0162(.s4wav"
-    "e.provider.spacewave.BillingStatus\022F\n\017li"
-    "fecycle_state\030\004 \001(\0162-.provider.spacewave"
-    ".api.AccountLifecycleState\022\022\n\ncreated_at"
-    "\030\005 \001(\003\022\022\n\nupdated_at\030\006 \001(\003\022>\n\tassignees\030"
-    "\007 \003(\0132+.provider.spacewave.api.Principal"
-    "Assignment\022\024\n\014display_name\030\010 \001(\t\"Q\n\023Prin"
-    "cipalAssignment\022\022\n\nowner_type\030\001 \001(\t\022\020\n\010o"
-    "wner_id\030\002 \001(\t\022\024\n\014display_name\030\003 \001(\t\"3\n\033C"
-    "reateBillingAccountRequest\022\024\n\014display_na"
-    "me\030\001 \001(\t\"O\n\033RenameBillingAccountRequest\022"
-    "\032\n\022billing_account_id\030\001 \001(\t\022\024\n\014display_n"
-    "ame\030\002 \001(\t\"\036\n\034RenameBillingAccountRespons"
-    "e\"\035\n\033DeleteBillingAccountRequest\"\036\n\034Dele"
-    "teBillingAccountResponse\":\n\034CreateBillin"
-    "gAccountResponse\022\032\n\022billing_account_id\030\001"
-    " \001(\t\"#\n!ListManagedBillingAccountsReques"
-    "t\"e\n\"ListManagedBillingAccountsResponse\022"
-    "\?\n\010accounts\030\001 \003(\0132-.provider.spacewave.a"
-    "pi.ManagedBillingAccount\"F\n\rOrgSpaceEntr"
-    "y\022\n\n\002id\030\001 \001(\t\022\024\n\014display_name\030\002 \001(\t\022\023\n\013o"
-    "bject_type\030\003 \001(\t\"\323\001\n\016GetOrgResponse\022\n\n\002i"
-    "d\030\001 \001(\t\022\024\n\014display_name\030\002 \001(\t\022\032\n\022billing"
-    "_account_id\030\003 \001(\t\0222\n\007members\030\004 \003(\0132!.pro"
-    "vider.spacewave.api.OrgMember\0225\n\006spaces\030"
-    "\005 \003(\0132%.provider.spacewave.api.OrgSpaceE"
-    "ntry\022\030\n\020root_state_so_id\030\006 \001(\t\"c\n\tOrgMem"
-    "ber\022\n\n\002id\030\001 \001(\t\022\022\n\nsubject_id\030\002 \001(\t\022\017\n\007r"
-    "ole_id\030\003 \001(\t\022\022\n\ncreated_at\030\004 \001(\003\022\021\n\tenti"
-    "ty_id\030\005 \001(\t\"N\n\020ListOrgsResponse\022:\n\rorgan"
-    "izations\030\001 \003(\0132#.provider.spacewave.api."
-    "OrgResponse\"T\n\026ListOrgInvitesResponse\022:\n"
-    "\007invites\030\001 \003(\0132).provider.spacewave.api."
-    "OrgInviteResponse\"\222\003\n\023AccountInfoRespons"
-    "e\022\022\n\naccount_id\030\001 \001(\t\022\021\n\tentity_id\030\002 \001(\t"
-    "\022\026\n\016auth_threshold\030\003 \001(\r\022\025\n\rkeypair_coun"
-    "t\030\004 \001(\r\022\r\n\005epoch\030\005 \001(\r\022E\n\023subscription_s"
-    "tatus\030\006 \001(\0162(.s4wave.provider.spacewave."
-    "BillingStatus\022\021\n\tcancel_at\030\007 \001(\003\022\032\n\022bill"
-    "ing_account_id\030\010 \001(\t\022F\n\017lifecycle_state\030"
-    "\t \001(\0162-.provider.spacewave.api.AccountLi"
-    "fecycleState\022\021\n\tdelete_at\030\n \001(\003\022\034\n\024lifec"
-    "ycle_updated_at\030\013 \001(\003\022\022\n\ndeleted_at\030\014 \001("
-    "\003\022\023\n\013entity_uuid\030\r \001(\t\"@\n\024ListKeypairsRe"
-    "sponse\022(\n\010keypairs\030\001 \003(\0132\026.session.Entit"
-    "yKeypair\"\304\001\n\021AccountAuthMethod\022\017\n\007peer_i"
-    "d\030\001 \001(\t\022;\n\004kind\030\002 \001(\0162-.provider.spacewa"
-    "ve.api.AccountAuthMethodKind\022\020\n\010provider"
-    "\030\003 \001(\t\022\r\n\005label\030\004 \001(\t\022\027\n\017secondary_label"
-    "\030\005 \001(\t\022\'\n\007keypair\030\006 \001(\0132\026.session.Entity"
-    "Keypair\"z\n\025AccountSObjectBinding\022\017\n\007purp"
-    "ose\030\001 \001(\t\022\r\n\005so_id\030\002 \001(\t\022A\n\005state\030\003 \001(\0162"
-    "2.provider.spacewave.api.AccountSObjectB"
-    "indingState\"5\n\"EnsureAccountSObjectBindi"
-    "ngRequest\022\017\n\007purpose\030\001 \001(\t\"e\n#EnsureAcco"
-    "untSObjectBindingResponse\022>\n\007binding\030\001 \001"
-    "(\0132-.provider.spacewave.api.AccountSObje"
-    "ctBinding\"F\n$FinalizeAccountSObjectBindi"
-    "ngRequest\022\017\n\007purpose\030\001 \001(\t\022\r\n\005so_id\030\002 \001("
-    "\t\"g\n%FinalizeAccountSObjectBindingRespon"
-    "se\022>\n\007binding\030\001 \001(\0132-.provider.spacewave"
-    ".api.AccountSObjectBinding\"\322\004\n\024AccountSt"
-    "ateResponse\022\022\n\naccount_id\030\001 \001(\t\022\021\n\tentit"
-    "y_id\030\002 \001(\t\022\026\n\016auth_threshold\030\003 \001(\r\022\025\n\rke"
-    "ypair_count\030\004 \001(\r\022\r\n\005epoch\030\005 \001(\r\022E\n\023subs"
-    "cription_status\030\006 \001(\0162(.s4wave.provider."
-    "spacewave.BillingStatus\022\021\n\tcancel_at\030\007 \001"
-    "(\003\022\032\n\022billing_account_id\030\010 \001(\t\022(\n\010keypai"
-    "rs\030\t \003(\0132\026.session.EntityKeypair\022\026\n\016emai"
-    "l_verified\030\n \001(\010\022O\n\030account_sobject_bind"
-    "ings\030\013 \003(\0132-.provider.spacewave.api.Acco"
-    "untSObjectBinding\022\?\n\014auth_methods\030\014 \003(\0132"
-    ").provider.spacewave.api.AccountAuthMeth"
-    "od\022F\n\017lifecycle_state\030\r \001(\0162-.provider.s"
-    "pacewave.api.AccountLifecycleState\022\021\n\tde"
-    "lete_at\030\016 \001(\003\022\034\n\024lifecycle_updated_at\030\017 "
-    "\001(\003\022\022\n\ndeleted_at\030\020 \001(\003\"g\n\021AccountStateC"
-    "ache\022;\n\005state\030\001 \001(\0132,.provider.spacewave"
-    ".api.AccountStateResponse\022\025\n\rfetched_epo"
-    "ch\030\002 \001(\r\"\323\001\n\024VerifiedSOStateCache\022\024\n\014gen"
-    "esis_hash\030\001 \001(\014\022\"\n\032verified_config_chain"
-    "_hash\030\002 \001(\014\022#\n\033verified_config_chain_seq"
-    "no\030\003 \001(\004\022\'\n\nkey_epochs\030\004 \003(\0132\023.sobject.S"
-    "OKeyEpoch\0223\n\016current_config\030\005 \001(\0132\033.sobj"
-    "ect.SharedObjectConfig\" \n\016TicketResponse"
-    "\022\016\n\006ticket\030\001 \001(\t\"j\n\031WriteTicketBundleRes"
-    "ponse\022\024\n\014so_op_ticket\030\001 \001(\t\022\026\n\016so_root_t"
-    "icket\030\002 \001(\t\022\037\n\027bstore_sync_push_ticket\030\003"
-    " \001(\t\"%\n\024SignalTicketResponse\022\r\n\005token\030\001 "
-    "\001(\t\"x\n\027PackMetadataRepairEntry\022\n\n\002id\030\001 \001"
-    "(\t\022\024\n\014bloom_filter\030\002 \001(\014\022\023\n\013block_count\030"
-    "\003 \001(\004\022\022\n\nsize_bytes\030\004 \001(\004\022\022\n\nsha256_hex\030"
-    "\005 \001(\t\"n\n\031PackMetadataRepairRequest\022\017\n\007dr"
-    "y_run\030\001 \001(\010\022@\n\007entries\030\002 \003(\0132/.provider."
-    "spacewave.api.PackMetadataRepairEntry\"O\n"
-    "\032PackMetadataRepairResponse\022\017\n\007scanned\030\001"
-    " \001(\004\022\017\n\007changed\030\002 \001(\004\022\017\n\007dry_run\030\003 \001(\010\":"
-    "\n\030CreateBlockStoreResponse\022\n\n\002id\030\001 \001(\t\022\022"
-    "\n\naccount_id\030\002 \001(\t\"T\n\020AccountEmailInfo\022\r"
-    "\n\005email\030\001 \001(\t\022\020\n\010verified\030\002 \001(\010\022\016\n\006sourc"
-    "e\030\003 \001(\t\022\017\n\007primary\030\004 \001(\010\"U\n\031ListAccountE"
-    "mailsResponse\0228\n\006emails\030\001 \003(\0132(.provider"
-    ".spacewave.api.AccountEmailInfo\" \n\017AddEm"
-    "ailRequest\022\r\n\005email\030\001 \001(\t\"5\n\020AddEmailRes"
-    "ponse\022\014\n\004sent\030\001 \001(\010\022\023\n\013retry_after\030\002 \001(\r"
-    "\"#\n\022RemoveEmailRequest\022\r\n\005email\030\001 \001(\t\"\025\n"
-    "\023RemoveEmailResponse\"\'\n\026SetPrimaryEmailR"
-    "equest\022\r\n\005email\030\001 \001(\t\"*\n\027SetPrimaryEmail"
-    "Response\022\017\n\007primary\030\001 \001(\t\"0\n\037RequestEmai"
-    "lVerificationRequest\022\r\n\005email\030\001 \001(\t\"E\n R"
-    "equestEmailVerificationResponse\022\014\n\004sent\030"
-    "\001 \001(\010\022\023\n\013retry_after\030\002 \001(\r\"5\n\026EmailVerif"
-    "yCodeRequest\022\r\n\005email\030\001 \001(\t\022\014\n\004code\030\002 \001("
-    "\t\"+\n\027EmailVerifyCodeResponse\022\020\n\010verified"
-    "\030\001 \001(\010\"\036\n\034RequestDeleteNowEmailRequest\"Q"
-    "\n\035RequestDeleteNowEmailResponse\022\014\n\004sent\030"
-    "\001 \001(\010\022\023\n\013retry_after\030\002 \001(\r\022\r\n\005email\030\003 \001("
-    "\t\"*\n\032DeleteNowVerifyCodeRequest\022\014\n\004code\030"
-    "\001 \001(\t\"\235\002\n\033DeleteNowVerifyCodeResponse\022\021\n"
-    "\tdelete_at\030\001 \001(\003\022\022\n\ninvoice_id\030\002 \001(\t\022\026\n\016"
-    "invoice_status\030\003 \001(\t\022\030\n\020invoice_currency"
-    "\030\004 \001(\t\022\025\n\rinvoice_total\030\005 \001(\003\022\032\n\022invoice"
-    "_amount_due\030\006 \001(\003\022\030\n\020charge_attempted\030\007 "
-    "\001(\010\022\025\n\rrefund_amount\030\010 \001(\003\022\027\n\017refund_cur"
-    "rency\030\t \001(\t\022\021\n\trefund_id\030\n \001(\t\022\025\n\rrefund"
-    "_status\030\013 \001(\t\"\'\n\025UndoDeleteNowResponse\022\016"
-    "\n\006undone\030\001 \001(\010\"N\n\026SSOCodeExchangeRequest"
-    "\022\020\n\010provider\030\001 \001(\t\022\014\n\004code\030\002 \001(\t\022\024\n\014redi"
-    "rect_uri\030\003 \001(\t\",\n\033RequestRecoveryEmailRe"
-    "quest\022\r\n\005email\030\001 \001(\t\",\n\034RequestRecoveryE"
-    "mailResponse\022\014\n\004sent\030\001 \001(\010\"%\n\024RecoverVer"
-    "ifyRequest\022\r\n\005token\030\001 \001(\t\"y\n\025RecoverVeri"
-    "fyResponse\022\022\n\naccount_id\030\001 \001(\t\022\021\n\tentity"
-    "_id\030\002 \001(\t\022\r\n\005email\030\003 \001(\t\022\025\n\rsso_provider"
-    "s\030\004 \003(\t\022\023\n\013has_passkey\030\005 \001(\010\"\307\001\n\025Recover"
-    "ExecuteRequest\022\r\n\005token\030\001 \001(\t\022B\n\013add_key"
-    "pair\030\002 \001(\0132-.provider.spacewave.api.Reco"
-    "verExecuteKeypair\022C\n\nsignatures\030\003 \003(\0132/."
-    "provider.spacewave.api.RecoverExecuteSig"
-    "nature\022\026\n\016remove_peer_id\030\004 \001(\t\"R\n\025Recove"
-    "rExecuteKeypair\022\017\n\007peer_id\030\001 \001(\t\022\023\n\013auth"
-    "_method\030\002 \001(\t\022\023\n\013auth_params\030\003 \001(\t\"=\n\027Re"
-    "coverExecuteSignature\022\017\n\007peer_id\030\001 \001(\t\022\021"
-    "\n\tsignature\030\002 \001(\t\"=\n\026RecoverExecuteRespo"
-    "nse\022\022\n\naccount_id\030\001 \001(\t\022\017\n\007peer_id\030\002 \001(\t"
-    "\"D\n\030AuthSessionCreateRequest\022\r\n\005nonce\030\001 "
-    "\001(\t\022\031\n\021device_public_key\030\002 \001(\014\"M\n\031AuthSe"
-    "ssionCreateResponse\022\r\n\005nonce\030\001 \001(\t\022\021\n\tws"
-    "_ticket\030\002 \001(\t\022\016\n\006ticket\030\003 \001(\t\"1\n AuthSes"
-    "sionResultExchangeRequest\022\r\n\005nonce\030\001 \001(\t"
-    "\"E\n\026DesktopSSOStartRequest\022\020\n\010provider\030\001"
-    " \001(\t\022\031\n\021device_public_key\030\002 \001(\014\">\n\027Deskt"
-    "opSSOStartResponse\022\021\n\tws_ticket\030\001 \001(\t\022\020\n"
-    "\010open_url\030\002 \001(\t\".\n\032DesktopSSOLinkStartRe"
-    "quest\022\020\n\010provider\030\001 \001(\t\"B\n\033DesktopSSOLin"
-    "kStartResponse\022\021\n\tws_ticket\030\001 \001(\t\022\020\n\010ope"
-    "n_url\030\002 \001(\t\"E\n\024DesktopSSOLinkResult\022\020\n\010p"
-    "rovider\030\001 \001(\t\022\014\n\004code\030\002 \001(\t\022\r\n\005email\030\003 \001"
-    "(\t\"\034\n\032DesktopPasskeyStartRequest\"Q\n\033Desk"
-    "topPasskeyStartResponse\022\r\n\005nonce\030\001 \001(\t\022\021"
-    "\n\tws_ticket\030\002 \001(\t\022\020\n\010open_url\030\003 \001(\t\"3\n S"
-    "tartDesktopPasskeyReauthRequest\022\017\n\007peer_"
-    "id\030\001 \001(\t\"<\n\030AuthSessionDeleteRequest\022\r\n\005"
-    "nonce\030\001 \001(\t\022\021\n\tws_ticket\030\002 \001(\t\",\n\031AuthSe"
-    "ssionDeleteResponse\022\017\n\007deleted\030\001 \001(\010\"\334\001\n"
-    "\022AuthConfigResponse\022\024\n\014sso_base_url\030\001 \001("
-    "\t\022\024\n\014exchange_url\030\002 \001(\t\022\023\n\013confirm_url\030\003"
-    " \001(\t\022\032\n\022turnstile_site_key\030\004 \001(\t\022\030\n\020acco"
-    "unt_base_url\030\005 \001(\t\022\027\n\017public_base_url\030\006 "
-    "\001(\t\022\032\n\022google_sso_enabled\030\007 \001(\010\022\032\n\022githu"
-    "b_sso_enabled\030\010 \001(\010\")\n\026PasskeyOptionsRes"
-    "ponse\022\017\n\007options\030\001 \001(\t\"-\n\031PasskeyAuthOpt"
-    "ionsRequest\022\020\n\010username\030\001 \001(\t\"3\n\037Passkey"
-    "RegisterChallengeRequest\022\020\n\010username\030\001 \001"
-    "(\t\"\237\001\n\034PasskeyRegisterVerifyRequest\022\027\n\017c"
-    "redential_json\030\001 \001(\t\022\023\n\013prf_capable\030\002 \001("
-    "\010\022\031\n\021encrypted_privkey\030\003 \001(\t\022\017\n\007peer_id\030"
-    "\004 \001(\t\022\023\n\013auth_params\030\005 \001(\t\022\020\n\010prf_salt\030\006"
-    " \001(\t\"G\n\035PasskeyRegisterVerifyResponse\022\017\n"
-    "\007success\030\001 \001(\010\022\025\n\rcredential_id\030\002 \001(\t\"3\n"
-    "\030PasskeyAuthVerifyRequest\022\027\n\017credential_"
-    "json\030\001 \001(\t\"\275\001\n\031PasskeyAuthVerifyResponse"
-    "\022\020\n\010verified\030\001 \001(\010\022\022\n\naccount_id\030\002 \001(\t\022\021"
-    "\n\tentity_id\030\003 \001(\t\022\026\n\016encrypted_blob\030\004 \001("
-    "\t\022\023\n\013prf_capable\030\005 \001(\010\022\020\n\010prf_salt\030\006 \001(\t"
-    "\022\023\n\013auth_params\030\007 \001(\t\022\023\n\013pin_wrapped\030\010 \001"
-    "(\010\"\236\002\n\025PasskeyConfirmRequest\022\027\n\017credenti"
-    "al_json\030\001 \001(\t\022\020\n\010username\030\002 \001(\t\022\032\n\022wrapp"
-    "ed_entity_key\030\003 \001(\t\022\026\n\016entity_peer_id\030\004 "
-    "\001(\t\022\027\n\017session_peer_id\030\005 \001(\t\022\023\n\013pin_wrap"
-    "ped\030\006 \001(\010\022\023\n\013prf_capable\030\007 \001(\010\022\020\n\010prf_sa"
-    "lt\030\010 \001(\t\022\023\n\013auth_params\030\t \001(\t\022\r\n\005email\030\n"
-    " \001(\t\022\025\n\rentity_pubkey\030\013 \001(\t\022\026\n\016session_p"
-    "ubkey\030\014 \001(\t\"E\n\026PasskeyConfirmResponse\022\022\n"
-    "\naccount_id\030\001 \001(\t\022\027\n\017session_peer_id\030\002 \001"
-    "(\t\"/\n\033PasskeyCheckUsernameRequest\022\020\n\010use"
-    "rname\030\001 \001(\t\"*\n\034PasskeyCheckUsernameRespo"
-    "nse\022\n\n\002ok\030\001 \001(\010\"\255\001\n\032DesktopPasskeyLinked"
-    "Result\022\022\n\naccount_id\030\001 \001(\t\022\026\n\016encrypted_"
-    "blob\030\002 \001(\t\022\023\n\013prf_capable\030\003 \001(\010\022\020\n\010prf_s"
-    "alt\030\004 \001(\t\022\023\n\013auth_params\030\005 \001(\t\022\023\n\013pin_wr"
-    "apped\030\006 \001(\010\022\022\n\nprf_output\030\007 \001(\t\"\206\001\n\036Desk"
-    "topPasskeyNewAccountResult\022\020\n\010username\030\001"
-    " \001(\t\022\027\n\017credential_json\030\002 \001(\t\022\023\n\013prf_cap"
-    "able\030\003 \001(\010\022\020\n\010prf_salt\030\004 \001(\t\022\022\n\nprf_outp"
-    "ut\030\005 \001(\t\"\311\001\n\031DesktopPasskeyRelayResult\022\r"
-    "\n\005nonce\030\001 \001(\t\022D\n\006linked\030\002 \001(\01322.provider"
-    ".spacewave.api.DesktopPasskeyLinkedResul"
-    "tH\000\022M\n\013new_account\030\003 \001(\01326.provider.spac"
-    "ewave.api.DesktopPasskeyNewAccountResult"
-    "H\000B\010\n\006result\"\035\n\033DesktopPasskeyRelayRespo"
-    "nse\"\204\001\n\034DesktopPasskeyRegisterResult\022\020\n\010"
-    "username\030\001 \001(\t\022\027\n\017credential_json\030\002 \001(\t\022"
-    "\023\n\013prf_capable\030\003 \001(\010\022\020\n\010prf_salt\030\004 \001(\t\022\022"
-    "\n\nprf_output\030\005 \001(\t\"z\n!DesktopPasskeyRegi"
-    "sterRelayResult\022\r\n\005nonce\030\001 \001(\t\022F\n\010regist"
-    "er\030\002 \001(\01324.provider.spacewave.api.Deskto"
-    "pPasskeyRegisterResult\"K\n!DesktopPasskey"
-    "ReauthVerifyRequest\022\r\n\005nonce\030\001 \001(\t\022\027\n\017cr"
-    "edential_json\030\002 \001(\t\"\231\001\n\032DesktopPasskeyRe"
-    "authResult\022\026\n\016encrypted_blob\030\001 \001(\t\022\023\n\013pr"
-    "f_capable\030\002 \001(\010\022\020\n\010prf_salt\030\003 \001(\t\022\023\n\013aut"
-    "h_params\030\004 \001(\t\022\023\n\013pin_wrapped\030\005 \001(\010\022\022\n\np"
-    "rf_output\030\006 \001(\t\"t\n\037DesktopPasskeyReauthR"
-    "elayResult\022\r\n\005nonce\030\001 \001(\t\022B\n\006reauth\030\002 \001("
-    "\01322.provider.spacewave.api.DesktopPasske"
-    "yReauthResult\"7\n&DesktopPasskeyRegisterC"
-    "hallengeRequest\022\r\n\005nonce\030\001 \001(\t\"Q\n\'Deskto"
-    "pPasskeyRegisterChallengeResponse\022\024\n\014opt"
-    "ions_json\030\001 \001(\t\022\020\n\010username\030\002 \001(\t\"/\n\016Pai"
-    "ringRequest\022\014\n\004code\030\001 \001(\t\022\017\n\007peer_id\030\002 \001"
-    "(\t\"\"\n\017PairingResponse\022\017\n\007peer_id\030\001 \001(\t\"C"
-    "\n\023EnrollMemberRequest\022\022\n\naccount_id\030\001 \001("
-    "\t\022\030\n\020ignore_exclusion\030\002 \001(\010\"#\n\020EnrollMem"
-    "berPeer\022\017\n\007peer_id\030\001 \001(\t\"O\n\024EnrollMember"
-    "Response\0227\n\005peers\030\001 \003(\0132(.provider.space"
-    "wave.api.EnrollMemberPeer\"6\n ResolveMemb"
-    "erParticipantsRequest\022\022\n\naccount_id\030\001 \001("
-    "\t\"5\n!ResolveMemberParticipantsResponse\022\020"
-    "\n\010peer_ids\030\001 \003(\t\"W\n\030SORecoveryEntityKeyp"
-    "airs\022\021\n\tentity_id\030\001 \001(\t\022(\n\010keypairs\030\002 \003("
-    "\0132\026.session.EntityKeypair\"j\n$ListSORecov"
-    "eryEntityKeypairsResponse\022B\n\010entities\030\001 "
-    "\003(\01320.provider.spacewave.api.SORecoveryE"
-    "ntityKeypairs\"T\n\035GetSORecoveryEnvelopeRe"
-    "sponse\0223\n\010envelope\030\001 \001(\0132!.sobject.SOEnt"
-    "ityRecoveryEnvelope\"\272\001\n\026PostConfigStateR"
-    "equest\022\025\n\rconfig_change\030\001 \001(\014\022\"\n\007invites"
-    "\030\002 \003(\0132\021.sobject.SOInvite\022&\n\tkey_epoch\030\003"
-    " \001(\0132\023.sobject.SOKeyEpoch\022=\n\022recovery_en"
-    "velopes\030\004 \003(\0132!.sobject.SOEntityRecovery"
-    "Envelope\"|\n\023PostKeyEpochRequest\022&\n\tkey_e"
-    "poch\030\001 \001(\0132\023.sobject.SOKeyEpoch\022=\n\022recov"
-    "ery_envelopes\030\002 \003(\0132!.sobject.SOEntityRe"
-    "coveryEnvelope\"h\n\031RegisterInviteCodeRequ"
-    "est\022\014\n\004code\030\001 \001(\t\022\021\n\tinvite_id\030\002 \001(\t\022\026\n\016"
-    "invite_message\030\003 \001(\t\022\022\n\nexpires_at\030\004 \001(\003"
-    "\"\034\n\032RegisterInviteCodeResponse\"E\n\030Lookup"
-    "InviteCodeResponse\022\021\n\tinvite_id\030\001 \001(\t\022\026\n"
-    "\016invite_message\030\002 \001(\t\"K\n\022GetMailboxRespo"
-    "nse\0225\n\007entries\030\001 \003(\0132$.provider.spacewav"
-    "e.api.MailboxEntry\"\274\001\n\031SubmitMailboxEntr"
-    "yRequest\022\021\n\tinvite_id\030\001 \001(\t\022\r\n\005token\030\002 \001"
-    "(\014\022.\n\rjoin_response\030\003 \001(\0132\027.sobject.SOJo"
-    "inResponse\022M\n\021targeted_envelope\030\004 \001(\01322."
-    "provider.spacewave.api.TargetedInvitatio"
-    "nEnvelope\"8\n\032SubmitMailboxEntryResponse\022"
-    "\n\n\002id\030\001 \001(\003\022\016\n\006status\030\002 \001(\t\"\210\002\n\014MailboxE"
-    "ntry\022\n\n\002id\030\001 \001(\003\022\021\n\tinvite_id\030\002 \001(\t\022\017\n\007p"
-    "eer_id\030\003 \001(\t\022.\n\rjoin_response\030\004 \001(\0132\027.so"
-    "bject.SOJoinResponse\022\016\n\006status\030\005 \001(\t\022\022\n\n"
-    "created_at\030\006 \001(\003\022\022\n\naccount_id\030\007 \001(\t\022\021\n\t"
-    "entity_id\030\010 \001(\t\022M\n\021targeted_envelope\030\t \001"
-    "(\01322.provider.spacewave.api.TargetedInvi"
-    "tationEnvelope\"8\n\032ProcessMailboxEntryReq"
-    "uest\022\n\n\002id\030\001 \001(\003\022\016\n\006accept\030\002 \001(\010\"-\n\033Proc"
-    "essMailboxEntryResponse\022\016\n\006status\030\001 \001(\t\""
-    "&\n\020KeypairAddResult\022\022\n\nkeypair_id\030\001 \001(\t\""
-    "&\n\023KeypairRemoveResult\022\017\n\007removed\030\001 \001(\010\""
-    "*\n\025ThresholdChangeResult\022\021\n\tthreshold\030\001 "
-    "\001(\r\"&\n\023SessionRevokeResult\022\017\n\007revoked\030\001 "
-    "\001(\010\"(\n\023AccountDeleteResult\022\021\n\tscheduled\030"
-    "\001 \001(\010\"1\n\rSsoLinkResult\022\016\n\006linked\030\001 \001(\010\022\020"
-    "\n\010provider\030\002 \001(\t\"\276\003\n\026MultiSigActionRespo"
-    "nse\022\?\n\013keypair_add\030\001 \001(\0132(.provider.spac"
-    "ewave.api.KeypairAddResultH\000\022E\n\016keypair_"
-    "remove\030\002 \001(\0132+.provider.spacewave.api.Ke"
-    "ypairRemoveResultH\000\022I\n\020threshold_change\030"
-    "\003 \001(\0132-.provider.spacewave.api.Threshold"
-    "ChangeResultH\000\022E\n\016session_revoke\030\004 \001(\0132+"
-    ".provider.spacewave.api.SessionRevokeRes"
-    "ultH\000\022E\n\016account_delete\030\005 \001(\0132+.provider"
-    ".spacewave.api.AccountDeleteResultH\000\0229\n\010"
-    "sso_link\030\006 \001(\0132%.provider.spacewave.api."
-    "SsoLinkResultH\000B\010\n\006result\"\023\n\021UndoDeleteR"
-    "equest\"\037\n\035RegisterPasskeyOptionsRequest\""
-    "\026\n\024SessionTicketRequest\"\034\n\032ReinitializeS"
-    "ObjectRequest\"\022\n\020OrgDeleteRequest\"\037\n\021Org"
-    "DeleteResponse\022\n\n\002id\030\001 \001(\t\"\021\n\017OrgLeaveRe"
-    "quest\"\"\n\020OrgLeaveResponse\022\016\n\006org_id\030\001 \001("
-    "\t\"\030\n\026RemoveOrgMemberRequest\",\n\027RemoveOrg"
-    "MemberResponse\022\021\n\tmember_id\030\001 \001(\t\"\030\n\026Can"
-    "celOrgInviteRequest\",\n\027CancelOrgInviteRe"
-    "sponse\022\021\n\tinvite_id\030\001 \001(\t\"\026\n\024CancelBilli"
-    "ngRequest\"\'\n\025CancelBillingResponse\022\016\n\006st"
-    "atus\030\001 \001(\t\"\032\n\030ReactivateBillingRequest\"+"
-    "\n\031ReactivateBillingResponse\022\016\n\006status\030\001 "
-    "\001(\t\"}\n\030ClientErrorReportRequest\022\022\n\nerror"
-    "_code\030\001 \001(\t\022\021\n\tcomponent\030\002 \001(\t\022\025\n\rresour"
-    "ce_type\030\003 \001(\t\022\023\n\013resource_id\030\004 \001(\t\022\016\n\006de"
-    "tail\030\005 \001(\t\"J\n\031ClientErrorReportResponse\022"
-    "\020\n\010accepted\030\001 \001(\010\022\033\n\023retry_after_seconds"
-    "\030\002 \001(\r\"\365\001\n\021SsoCallbackResult\022\016\n\006linked\030\001"
-    " \001(\010\022\020\n\010provider\030\002 \001(\t\022\r\n\005email\030\003 \001(\t\022\013\n"
-    "\003sub\030\004 \001(\t\022\022\n\naccount_id\030\005 \001(\t\022\021\n\tentity"
-    "_id\030\006 \001(\t\022\020\n\010username\030\007 \001(\t\022\026\n\016encrypted"
-    "_blob\030\010 \001(\t\022\023\n\013pin_wrapped\030\t \001(\010\022\023\n\013auth"
-    "_params\030\n \001(\t\022\r\n\005error\030\013 \001(\t\022\030\n\020device_e"
-    "ncrypted\030\014 \001(\010\"\273\004\n\014PasskeyRelay\022D\n\006linke"
-    "d\030\001 \001(\01322.provider.spacewave.api.Desktop"
-    "PasskeyLinkedResultH\000\022M\n\013new_account\030\002 \001"
-    "(\01326.provider.spacewave.api.DesktopPassk"
-    "eyNewAccountResultH\000\022I\n\014relay_result\030\003 \001"
-    "(\01321.provider.spacewave.api.DesktopPassk"
-    "eyRelayResultH\000\022O\n\017register_result\030\004 \001(\013"
-    "24.provider.spacewave.api.DesktopPasskey"
-    "RegisterResultH\000\022S\n\016register_relay\030\005 \001(\013"
-    "29.provider.spacewave.api.DesktopPasskey"
-    "RegisterRelayResultH\000\022K\n\rreauth_result\030\006"
-    " \001(\01322.provider.spacewave.api.DesktopPas"
-    "skeyReauthResultH\000\022O\n\014reauth_relay\030\007 \001(\013"
-    "27.provider.spacewave.api.DesktopPasskey"
-    "ReauthRelayResultH\000B\007\n\005relay\"\240\002\n\030WsAuthS"
-    "essionServerFrame\0228\n\ncompletion\030\001 \001(\0132\"."
-    "session.handoff.HandoffCompletionH\000\022A\n\014s"
-    "so_callback\030\002 \001(\0132).provider.spacewave.a"
-    "pi.SsoCallbackResultH\000\022=\n\rpasskey_relay\030"
-    "\003 \001(\0132$.provider.spacewave.api.PasskeyRe"
-    "layH\000\022@\n\010sso_link\030\004 \001(\0132,.provider.space"
-    "wave.api.DesktopSSOLinkResultH\000B\006\n\004body\""
-    "g\n\034WsBillingCheckoutServerFrame\022\?\n\006statu"
-    "s\030\001 \001(\0132-.provider.spacewave.api.Checkou"
-    "tStatusMessageH\000B\006\n\004body*\260\002\n\022MultiSigAct"
-    "ionKind\022%\n!MULTI_SIG_ACTION_KIND_UNSPECI"
-    "FIED\020\000\022%\n!MULTI_SIG_ACTION_KIND_ADD_KEYP"
-    "AIR\020\001\022(\n$MULTI_SIG_ACTION_KIND_REMOVE_KE"
-    "YPAIR\020\002\022*\n&MULTI_SIG_ACTION_KIND_UPDATE_"
-    "THRESHOLD\020\003\022(\n$MULTI_SIG_ACTION_KIND_REV"
-    "OKE_SESSION\020\004\022(\n$MULTI_SIG_ACTION_KIND_D"
-    "ELETE_ACCOUNT\020\005\022\"\n\036MULTI_SIG_ACTION_KIND"
-    "_SSO_LINK\020\006*\300\003\n\025AccountLifecycleState\022#\n"
-    "\037ACCOUNT_LIFECYCLE_STATE_UNKNOWN\020\000\022\"\n\036AC"
-    "COUNT_LIFECYCLE_STATE_ACTIVE\020\001\022<\n8ACCOUN"
-    "T_LIFECYCLE_STATE_ACTIVE_WITH_CANCEL_AT_"
-    "PERIOD_END\020\002\0223\n/ACCOUNT_LIFECYCLE_STATE_"
-    "CANCELED_GRACE_READONLY\020\003\0223\n/ACCOUNT_LIF"
-    "ECYCLE_STATE_PENDING_DELETE_READONLY\020\004\022+"
-    "\n\'ACCOUNT_LIFECYCLE_STATE_LAPSED_READONL"
-    "Y\020\005\0221\n-ACCOUNT_LIFECYCLE_STATE_DELETED_P"
-    "ENDING_PURGE\020\006\022#\n\037ACCOUNT_LIFECYCLE_STAT"
-    "E_DELETED\020\007\0221\n-ACCOUNT_LIFECYCLE_STATE_D"
-    "ISPUTED_HARD_SUSPEND\020\010*\215\001\n\025TargetedInvit"
-    "ePurpose\022\'\n#TARGETED_INVITE_PURPOSE_UNSP"
-    "ECIFIED\020\000\022!\n\035TARGETED_INVITE_PURPOSE_SPA"
-    "CE\020\001\022(\n$TARGETED_INVITE_PURPOSE_ORGANIZA"
-    "TION\020\002*\257\002\n\025AccountAuthMethodKind\022(\n$ACCO"
-    "UNT_AUTH_METHOD_KIND_UNSPECIFIED\020\000\022%\n!AC"
-    "COUNT_AUTH_METHOD_KIND_PASSWORD\020\001\022\'\n#ACC"
-    "OUNT_AUTH_METHOD_KIND_BACKUP_KEY\020\002\022$\n AC"
-    "COUNT_AUTH_METHOD_KIND_PASSKEY\020\003\022\'\n#ACCO"
-    "UNT_AUTH_METHOD_KIND_GOOGLE_SSO\020\004\022\'\n#ACC"
-    "OUNT_AUTH_METHOD_KIND_GITHUB_SSO\020\005\022$\n AC"
-    "COUNT_AUTH_METHOD_KIND_UNKNOWN\020\006*\240\001\n\032Acc"
-    "ountSObjectBindingState\022-\n)ACCOUNT_SOBJE"
-    "CT_BINDING_STATE_UNSPECIFIED\020\000\022*\n&ACCOUN"
-    "T_SOBJECT_BINDING_STATE_RESERVED\020\001\022\'\n#AC"
-    "COUNT_SOBJECT_BINDING_STATE_READY\020\002b\006pro"
-    "to3"
+    "res_at\030\006 \001(\003\022D\n\010envelope\030\007 \001(\01322.provide"
+    "r.spacewave.api.TargetedInvitationEnvelo"
+    "pe\022\020\n\010draft_id\030\010 \001(\t\"f\n CreateTargetedIn"
+    "vitationResponse\022B\n\ninvitation\030\001 \001(\0132..p"
+    "rovider.spacewave.api.TargetedInvitation"
+    "Info\" \n\036ListTargetedInvitationsRequest\"f"
+    "\n\037ListTargetedInvitationsResponse\022C\n\013inv"
+    "itations\030\001 \003(\0132..provider.spacewave.api."
+    "TargetedInvitationInfo\"*\n\034GetTargetedInv"
+    "itationRequest\022\n\n\002id\030\001 \001(\t\"c\n\035GetTargete"
+    "dInvitationResponse\022B\n\ninvitation\030\001 \001(\0132"
+    "..provider.spacewave.api.TargetedInvitat"
+    "ionInfo\"-\n\037RevokeTargetedInvitationReque"
+    "st\022\n\n\002id\030\001 \001(\t\"f\n RevokeTargetedInvitati"
+    "onResponse\022B\n\ninvitation\030\001 \001(\0132..provide"
+    "r.spacewave.api.TargetedInvitationInfo\">"
+    "\n ProcessTargetedInvitationRequest\022\n\n\002id"
+    "\030\001 \001(\t\022\016\n\006action\030\002 \001(\t\"g\n!ProcessTargete"
+    "dInvitationResponse\022B\n\ninvitation\030\001 \001(\0132"
+    "..provider.spacewave.api.TargetedInvitat"
+    "ionInfo\"9\n+AcceptTargetedOrganizationInv"
+    "itationRequest\022\n\n\002id\030\001 \001(\t\"\255\001\n,AcceptTar"
+    "getedOrganizationInvitationResponse\022B\n\ni"
+    "nvitation\030\001 \001(\0132..provider.spacewave.api"
+    ".TargetedInvitationInfo\0229\n\014organization\030"
+    "\002 \001(\0132#.provider.spacewave.api.OrgRespon"
+    "se\"P\n\013OrgResponse\022\n\n\002id\030\001 \001(\t\022\024\n\014display"
+    "_name\030\002 \001(\t\022\014\n\004role\030\003 \001(\t\022\021\n\tspace_ids\030\004"
+    " \003(\t\"[\n\026CreateOrgInviteRequest\022\014\n\004type\030\001"
+    " \001(\t\022\020\n\010max_uses\030\002 \001(\005\022\022\n\nexpires_at\030\003 \001"
+    "(\003\022\r\n\005email\030\004 \001(\t\"p\n\021OrgInviteResponse\022\n"
+    "\n\002id\030\001 \001(\t\022\014\n\004type\030\002 \001(\t\022\r\n\005token\030\003 \001(\t\022"
+    "\014\n\004uses\030\004 \001(\005\022\020\n\010max_uses\030\005 \001(\005\022\022\n\nexpir"
+    "es_at\030\006 \001(\003\"\037\n\016JoinOrgRequest\022\r\n\005token\030\001"
+    " \001(\t\"(\n\020UpdateOrgRequest\022\024\n\014display_name"
+    "\030\001 \001(\t\"\037\n\021UpdateOrgResponse\022\n\n\002id\030\001 \001(\t\""
+    "-\n\021ResourceListEntry\022\n\n\002id\030\001 \001(\t\022\014\n\004type"
+    "\030\002 \001(\t\"U\n\025ListResourcesResponse\022<\n\tresou"
+    "rces\030\001 \003(\0132).provider.spacewave.api.Reso"
+    "urceListEntry\"\\\n\027TransferResourceRequest"
+    "\022\023\n\013resource_id\030\001 \001(\t\022\026\n\016new_owner_type\030"
+    "\002 \001(\t\022\024\n\014new_owner_id\030\003 \001(\t\"m\n\033AssignBil"
+    "lingAccountRequest\022\032\n\022billing_account_id"
+    "\030\001 \001(\t\022\031\n\021target_owner_type\030\002 \001(\t\022\027\n\017tar"
+    "get_owner_id\030\003 \001(\t\"\036\n\034AssignBillingAccou"
+    "ntResponse\"Q\n\033DetachBillingAccountReques"
+    "t\022\031\n\021target_owner_type\030\001 \001(\t\022\027\n\017target_o"
+    "wner_id\030\002 \001(\t\"\036\n\034DetachBillingAccountRes"
+    "ponse\"\314\002\n\025ManagedBillingAccount\022\n\n\002id\030\001 "
+    "\001(\t\022\032\n\022stripe_customer_id\030\002 \001(\t\022E\n\023subsc"
+    "ription_status\030\003 \001(\0162(.s4wave.provider.s"
+    "pacewave.BillingStatus\022F\n\017lifecycle_stat"
+    "e\030\004 \001(\0162-.provider.spacewave.api.Account"
+    "LifecycleState\022\022\n\ncreated_at\030\005 \001(\003\022\022\n\nup"
+    "dated_at\030\006 \001(\003\022>\n\tassignees\030\007 \003(\0132+.prov"
+    "ider.spacewave.api.PrincipalAssignment\022\024"
+    "\n\014display_name\030\010 \001(\t\"Q\n\023PrincipalAssignm"
+    "ent\022\022\n\nowner_type\030\001 \001(\t\022\020\n\010owner_id\030\002 \001("
+    "\t\022\024\n\014display_name\030\003 \001(\t\"3\n\033CreateBilling"
+    "AccountRequest\022\024\n\014display_name\030\001 \001(\t\"O\n\033"
+    "RenameBillingAccountRequest\022\032\n\022billing_a"
+    "ccount_id\030\001 \001(\t\022\024\n\014display_name\030\002 \001(\t\"\036\n"
+    "\034RenameBillingAccountResponse\"\035\n\033DeleteB"
+    "illingAccountRequest\"\036\n\034DeleteBillingAcc"
+    "ountResponse\":\n\034CreateBillingAccountResp"
+    "onse\022\032\n\022billing_account_id\030\001 \001(\t\"#\n!List"
+    "ManagedBillingAccountsRequest\"e\n\"ListMan"
+    "agedBillingAccountsResponse\022\?\n\010accounts\030"
+    "\001 \003(\0132-.provider.spacewave.api.ManagedBi"
+    "llingAccount\"F\n\rOrgSpaceEntry\022\n\n\002id\030\001 \001("
+    "\t\022\024\n\014display_name\030\002 \001(\t\022\023\n\013object_type\030\003"
+    " \001(\t\"\323\001\n\016GetOrgResponse\022\n\n\002id\030\001 \001(\t\022\024\n\014d"
+    "isplay_name\030\002 \001(\t\022\032\n\022billing_account_id\030"
+    "\003 \001(\t\0222\n\007members\030\004 \003(\0132!.provider.spacew"
+    "ave.api.OrgMember\0225\n\006spaces\030\005 \003(\0132%.prov"
+    "ider.spacewave.api.OrgSpaceEntry\022\030\n\020root"
+    "_state_so_id\030\006 \001(\t\"c\n\tOrgMember\022\n\n\002id\030\001 "
+    "\001(\t\022\022\n\nsubject_id\030\002 \001(\t\022\017\n\007role_id\030\003 \001(\t"
+    "\022\022\n\ncreated_at\030\004 \001(\003\022\021\n\tentity_id\030\005 \001(\t\""
+    "N\n\020ListOrgsResponse\022:\n\rorganizations\030\001 \003"
+    "(\0132#.provider.spacewave.api.OrgResponse\""
+    "T\n\026ListOrgInvitesResponse\022:\n\007invites\030\001 \003"
+    "(\0132).provider.spacewave.api.OrgInviteRes"
+    "ponse\"\222\003\n\023AccountInfoResponse\022\022\n\naccount"
+    "_id\030\001 \001(\t\022\021\n\tentity_id\030\002 \001(\t\022\026\n\016auth_thr"
+    "eshold\030\003 \001(\r\022\025\n\rkeypair_count\030\004 \001(\r\022\r\n\005e"
+    "poch\030\005 \001(\r\022E\n\023subscription_status\030\006 \001(\0162"
+    "(.s4wave.provider.spacewave.BillingStatu"
+    "s\022\021\n\tcancel_at\030\007 \001(\003\022\032\n\022billing_account_"
+    "id\030\010 \001(\t\022F\n\017lifecycle_state\030\t \001(\0162-.prov"
+    "ider.spacewave.api.AccountLifecycleState"
+    "\022\021\n\tdelete_at\030\n \001(\003\022\034\n\024lifecycle_updated"
+    "_at\030\013 \001(\003\022\022\n\ndeleted_at\030\014 \001(\003\022\023\n\013entity_"
+    "uuid\030\r \001(\t\"@\n\024ListKeypairsResponse\022(\n\010ke"
+    "ypairs\030\001 \003(\0132\026.session.EntityKeypair\"\304\001\n"
+    "\021AccountAuthMethod\022\017\n\007peer_id\030\001 \001(\t\022;\n\004k"
+    "ind\030\002 \001(\0162-.provider.spacewave.api.Accou"
+    "ntAuthMethodKind\022\020\n\010provider\030\003 \001(\t\022\r\n\005la"
+    "bel\030\004 \001(\t\022\027\n\017secondary_label\030\005 \001(\t\022\'\n\007ke"
+    "ypair\030\006 \001(\0132\026.session.EntityKeypair\"z\n\025A"
+    "ccountSObjectBinding\022\017\n\007purpose\030\001 \001(\t\022\r\n"
+    "\005so_id\030\002 \001(\t\022A\n\005state\030\003 \001(\01622.provider.s"
+    "pacewave.api.AccountSObjectBindingState\""
+    "5\n\"EnsureAccountSObjectBindingRequest\022\017\n"
+    "\007purpose\030\001 \001(\t\"e\n#EnsureAccountSObjectBi"
+    "ndingResponse\022>\n\007binding\030\001 \001(\0132-.provide"
+    "r.spacewave.api.AccountSObjectBinding\"F\n"
+    "$FinalizeAccountSObjectBindingRequest\022\017\n"
+    "\007purpose\030\001 \001(\t\022\r\n\005so_id\030\002 \001(\t\"g\n%Finaliz"
+    "eAccountSObjectBindingResponse\022>\n\007bindin"
+    "g\030\001 \001(\0132-.provider.spacewave.api.Account"
+    "SObjectBinding\"\322\004\n\024AccountStateResponse\022"
+    "\022\n\naccount_id\030\001 \001(\t\022\021\n\tentity_id\030\002 \001(\t\022\026"
+    "\n\016auth_threshold\030\003 \001(\r\022\025\n\rkeypair_count\030"
+    "\004 \001(\r\022\r\n\005epoch\030\005 \001(\r\022E\n\023subscription_sta"
+    "tus\030\006 \001(\0162(.s4wave.provider.spacewave.Bi"
+    "llingStatus\022\021\n\tcancel_at\030\007 \001(\003\022\032\n\022billin"
+    "g_account_id\030\010 \001(\t\022(\n\010keypairs\030\t \003(\0132\026.s"
+    "ession.EntityKeypair\022\026\n\016email_verified\030\n"
+    " \001(\010\022O\n\030account_sobject_bindings\030\013 \003(\0132-"
+    ".provider.spacewave.api.AccountSObjectBi"
+    "nding\022\?\n\014auth_methods\030\014 \003(\0132).provider.s"
+    "pacewave.api.AccountAuthMethod\022F\n\017lifecy"
+    "cle_state\030\r \001(\0162-.provider.spacewave.api"
+    ".AccountLifecycleState\022\021\n\tdelete_at\030\016 \001("
+    "\003\022\034\n\024lifecycle_updated_at\030\017 \001(\003\022\022\n\ndelet"
+    "ed_at\030\020 \001(\003\"g\n\021AccountStateCache\022;\n\005stat"
+    "e\030\001 \001(\0132,.provider.spacewave.api.Account"
+    "StateResponse\022\025\n\rfetched_epoch\030\002 \001(\r\"\323\001\n"
+    "\024VerifiedSOStateCache\022\024\n\014genesis_hash\030\001 "
+    "\001(\014\022\"\n\032verified_config_chain_hash\030\002 \001(\014\022"
+    "#\n\033verified_config_chain_seqno\030\003 \001(\004\022\'\n\n"
+    "key_epochs\030\004 \003(\0132\023.sobject.SOKeyEpoch\0223\n"
+    "\016current_config\030\005 \001(\0132\033.sobject.SharedOb"
+    "jectConfig\" \n\016TicketResponse\022\016\n\006ticket\030\001"
+    " \001(\t\"j\n\031WriteTicketBundleResponse\022\024\n\014so_"
+    "op_ticket\030\001 \001(\t\022\026\n\016so_root_ticket\030\002 \001(\t\022"
+    "\037\n\027bstore_sync_push_ticket\030\003 \001(\t\"%\n\024Sign"
+    "alTicketResponse\022\r\n\005token\030\001 \001(\t\"x\n\027PackM"
+    "etadataRepairEntry\022\n\n\002id\030\001 \001(\t\022\024\n\014bloom_"
+    "filter\030\002 \001(\014\022\023\n\013block_count\030\003 \001(\004\022\022\n\nsiz"
+    "e_bytes\030\004 \001(\004\022\022\n\nsha256_hex\030\005 \001(\t\"n\n\031Pac"
+    "kMetadataRepairRequest\022\017\n\007dry_run\030\001 \001(\010\022"
+    "@\n\007entries\030\002 \003(\0132/.provider.spacewave.ap"
+    "i.PackMetadataRepairEntry\"O\n\032PackMetadat"
+    "aRepairResponse\022\017\n\007scanned\030\001 \001(\004\022\017\n\007chan"
+    "ged\030\002 \001(\004\022\017\n\007dry_run\030\003 \001(\010\":\n\030CreateBloc"
+    "kStoreResponse\022\n\n\002id\030\001 \001(\t\022\022\n\naccount_id"
+    "\030\002 \001(\t\"T\n\020AccountEmailInfo\022\r\n\005email\030\001 \001("
+    "\t\022\020\n\010verified\030\002 \001(\010\022\016\n\006source\030\003 \001(\t\022\017\n\007p"
+    "rimary\030\004 \001(\010\"U\n\031ListAccountEmailsRespons"
+    "e\0228\n\006emails\030\001 \003(\0132(.provider.spacewave.a"
+    "pi.AccountEmailInfo\" \n\017AddEmailRequest\022\r"
+    "\n\005email\030\001 \001(\t\"5\n\020AddEmailResponse\022\014\n\004sen"
+    "t\030\001 \001(\010\022\023\n\013retry_after\030\002 \001(\r\"#\n\022RemoveEm"
+    "ailRequest\022\r\n\005email\030\001 \001(\t\"\025\n\023RemoveEmail"
+    "Response\"\'\n\026SetPrimaryEmailRequest\022\r\n\005em"
+    "ail\030\001 \001(\t\"*\n\027SetPrimaryEmailResponse\022\017\n\007"
+    "primary\030\001 \001(\t\"0\n\037RequestEmailVerificatio"
+    "nRequest\022\r\n\005email\030\001 \001(\t\"E\n RequestEmailV"
+    "erificationResponse\022\014\n\004sent\030\001 \001(\010\022\023\n\013ret"
+    "ry_after\030\002 \001(\r\"5\n\026EmailVerifyCodeRequest"
+    "\022\r\n\005email\030\001 \001(\t\022\014\n\004code\030\002 \001(\t\"+\n\027EmailVe"
+    "rifyCodeResponse\022\020\n\010verified\030\001 \001(\010\"\036\n\034Re"
+    "questDeleteNowEmailRequest\"Q\n\035RequestDel"
+    "eteNowEmailResponse\022\014\n\004sent\030\001 \001(\010\022\023\n\013ret"
+    "ry_after\030\002 \001(\r\022\r\n\005email\030\003 \001(\t\"*\n\032DeleteN"
+    "owVerifyCodeRequest\022\014\n\004code\030\001 \001(\t\"\235\002\n\033De"
+    "leteNowVerifyCodeResponse\022\021\n\tdelete_at\030\001"
+    " \001(\003\022\022\n\ninvoice_id\030\002 \001(\t\022\026\n\016invoice_stat"
+    "us\030\003 \001(\t\022\030\n\020invoice_currency\030\004 \001(\t\022\025\n\rin"
+    "voice_total\030\005 \001(\003\022\032\n\022invoice_amount_due\030"
+    "\006 \001(\003\022\030\n\020charge_attempted\030\007 \001(\010\022\025\n\rrefun"
+    "d_amount\030\010 \001(\003\022\027\n\017refund_currency\030\t \001(\t\022"
+    "\021\n\trefund_id\030\n \001(\t\022\025\n\rrefund_status\030\013 \001("
+    "\t\"\'\n\025UndoDeleteNowResponse\022\016\n\006undone\030\001 \001"
+    "(\010\"N\n\026SSOCodeExchangeRequest\022\020\n\010provider"
+    "\030\001 \001(\t\022\014\n\004code\030\002 \001(\t\022\024\n\014redirect_uri\030\003 \001"
+    "(\t\",\n\033RequestRecoveryEmailRequest\022\r\n\005ema"
+    "il\030\001 \001(\t\",\n\034RequestRecoveryEmailResponse"
+    "\022\014\n\004sent\030\001 \001(\010\"%\n\024RecoverVerifyRequest\022\r"
+    "\n\005token\030\001 \001(\t\"y\n\025RecoverVerifyResponse\022\022"
+    "\n\naccount_id\030\001 \001(\t\022\021\n\tentity_id\030\002 \001(\t\022\r\n"
+    "\005email\030\003 \001(\t\022\025\n\rsso_providers\030\004 \003(\t\022\023\n\013h"
+    "as_passkey\030\005 \001(\010\"\307\001\n\025RecoverExecuteReque"
+    "st\022\r\n\005token\030\001 \001(\t\022B\n\013add_keypair\030\002 \001(\0132-"
+    ".provider.spacewave.api.RecoverExecuteKe"
+    "ypair\022C\n\nsignatures\030\003 \003(\0132/.provider.spa"
+    "cewave.api.RecoverExecuteSignature\022\026\n\016re"
+    "move_peer_id\030\004 \001(\t\"R\n\025RecoverExecuteKeyp"
+    "air\022\017\n\007peer_id\030\001 \001(\t\022\023\n\013auth_method\030\002 \001("
+    "\t\022\023\n\013auth_params\030\003 \001(\t\"=\n\027RecoverExecute"
+    "Signature\022\017\n\007peer_id\030\001 \001(\t\022\021\n\tsignature\030"
+    "\002 \001(\t\"=\n\026RecoverExecuteResponse\022\022\n\naccou"
+    "nt_id\030\001 \001(\t\022\017\n\007peer_id\030\002 \001(\t\"D\n\030AuthSess"
+    "ionCreateRequest\022\r\n\005nonce\030\001 \001(\t\022\031\n\021devic"
+    "e_public_key\030\002 \001(\014\"M\n\031AuthSessionCreateR"
+    "esponse\022\r\n\005nonce\030\001 \001(\t\022\021\n\tws_ticket\030\002 \001("
+    "\t\022\016\n\006ticket\030\003 \001(\t\"1\n AuthSessionResultEx"
+    "changeRequest\022\r\n\005nonce\030\001 \001(\t\"E\n\026DesktopS"
+    "SOStartRequest\022\020\n\010provider\030\001 \001(\t\022\031\n\021devi"
+    "ce_public_key\030\002 \001(\014\">\n\027DesktopSSOStartRe"
+    "sponse\022\021\n\tws_ticket\030\001 \001(\t\022\020\n\010open_url\030\002 "
+    "\001(\t\".\n\032DesktopSSOLinkStartRequest\022\020\n\010pro"
+    "vider\030\001 \001(\t\"B\n\033DesktopSSOLinkStartRespon"
+    "se\022\021\n\tws_ticket\030\001 \001(\t\022\020\n\010open_url\030\002 \001(\t\""
+    "E\n\024DesktopSSOLinkResult\022\020\n\010provider\030\001 \001("
+    "\t\022\014\n\004code\030\002 \001(\t\022\r\n\005email\030\003 \001(\t\"\034\n\032Deskto"
+    "pPasskeyStartRequest\"Q\n\033DesktopPasskeySt"
+    "artResponse\022\r\n\005nonce\030\001 \001(\t\022\021\n\tws_ticket\030"
+    "\002 \001(\t\022\020\n\010open_url\030\003 \001(\t\"3\n StartDesktopP"
+    "asskeyReauthRequest\022\017\n\007peer_id\030\001 \001(\t\"<\n\030"
+    "AuthSessionDeleteRequest\022\r\n\005nonce\030\001 \001(\t\022"
+    "\021\n\tws_ticket\030\002 \001(\t\",\n\031AuthSessionDeleteR"
+    "esponse\022\017\n\007deleted\030\001 \001(\010\"\334\001\n\022AuthConfigR"
+    "esponse\022\024\n\014sso_base_url\030\001 \001(\t\022\024\n\014exchang"
+    "e_url\030\002 \001(\t\022\023\n\013confirm_url\030\003 \001(\t\022\032\n\022turn"
+    "stile_site_key\030\004 \001(\t\022\030\n\020account_base_url"
+    "\030\005 \001(\t\022\027\n\017public_base_url\030\006 \001(\t\022\032\n\022googl"
+    "e_sso_enabled\030\007 \001(\010\022\032\n\022github_sso_enable"
+    "d\030\010 \001(\010\")\n\026PasskeyOptionsResponse\022\017\n\007opt"
+    "ions\030\001 \001(\t\"-\n\031PasskeyAuthOptionsRequest\022"
+    "\020\n\010username\030\001 \001(\t\"3\n\037PasskeyRegisterChal"
+    "lengeRequest\022\020\n\010username\030\001 \001(\t\"\237\001\n\034Passk"
+    "eyRegisterVerifyRequest\022\027\n\017credential_js"
+    "on\030\001 \001(\t\022\023\n\013prf_capable\030\002 \001(\010\022\031\n\021encrypt"
+    "ed_privkey\030\003 \001(\t\022\017\n\007peer_id\030\004 \001(\t\022\023\n\013aut"
+    "h_params\030\005 \001(\t\022\020\n\010prf_salt\030\006 \001(\t\"G\n\035Pass"
+    "keyRegisterVerifyResponse\022\017\n\007success\030\001 \001"
+    "(\010\022\025\n\rcredential_id\030\002 \001(\t\"3\n\030PasskeyAuth"
+    "VerifyRequest\022\027\n\017credential_json\030\001 \001(\t\"\275"
+    "\001\n\031PasskeyAuthVerifyResponse\022\020\n\010verified"
+    "\030\001 \001(\010\022\022\n\naccount_id\030\002 \001(\t\022\021\n\tentity_id\030"
+    "\003 \001(\t\022\026\n\016encrypted_blob\030\004 \001(\t\022\023\n\013prf_cap"
+    "able\030\005 \001(\010\022\020\n\010prf_salt\030\006 \001(\t\022\023\n\013auth_par"
+    "ams\030\007 \001(\t\022\023\n\013pin_wrapped\030\010 \001(\010\"\236\002\n\025Passk"
+    "eyConfirmRequest\022\027\n\017credential_json\030\001 \001("
+    "\t\022\020\n\010username\030\002 \001(\t\022\032\n\022wrapped_entity_ke"
+    "y\030\003 \001(\t\022\026\n\016entity_peer_id\030\004 \001(\t\022\027\n\017sessi"
+    "on_peer_id\030\005 \001(\t\022\023\n\013pin_wrapped\030\006 \001(\010\022\023\n"
+    "\013prf_capable\030\007 \001(\010\022\020\n\010prf_salt\030\010 \001(\t\022\023\n\013"
+    "auth_params\030\t \001(\t\022\r\n\005email\030\n \001(\t\022\025\n\renti"
+    "ty_pubkey\030\013 \001(\t\022\026\n\016session_pubkey\030\014 \001(\t\""
+    "E\n\026PasskeyConfirmResponse\022\022\n\naccount_id\030"
+    "\001 \001(\t\022\027\n\017session_peer_id\030\002 \001(\t\"/\n\033Passke"
+    "yCheckUsernameRequest\022\020\n\010username\030\001 \001(\t\""
+    "*\n\034PasskeyCheckUsernameResponse\022\n\n\002ok\030\001 "
+    "\001(\010\"\255\001\n\032DesktopPasskeyLinkedResult\022\022\n\nac"
+    "count_id\030\001 \001(\t\022\026\n\016encrypted_blob\030\002 \001(\t\022\023"
+    "\n\013prf_capable\030\003 \001(\010\022\020\n\010prf_salt\030\004 \001(\t\022\023\n"
+    "\013auth_params\030\005 \001(\t\022\023\n\013pin_wrapped\030\006 \001(\010\022"
+    "\022\n\nprf_output\030\007 \001(\t\"\206\001\n\036DesktopPasskeyNe"
+    "wAccountResult\022\020\n\010username\030\001 \001(\t\022\027\n\017cred"
+    "ential_json\030\002 \001(\t\022\023\n\013prf_capable\030\003 \001(\010\022\020"
+    "\n\010prf_salt\030\004 \001(\t\022\022\n\nprf_output\030\005 \001(\t\"\311\001\n"
+    "\031DesktopPasskeyRelayResult\022\r\n\005nonce\030\001 \001("
+    "\t\022D\n\006linked\030\002 \001(\01322.provider.spacewave.a"
+    "pi.DesktopPasskeyLinkedResultH\000\022M\n\013new_a"
+    "ccount\030\003 \001(\01326.provider.spacewave.api.De"
+    "sktopPasskeyNewAccountResultH\000B\010\n\006result"
+    "\"\035\n\033DesktopPasskeyRelayResponse\"\204\001\n\034Desk"
+    "topPasskeyRegisterResult\022\020\n\010username\030\001 \001"
+    "(\t\022\027\n\017credential_json\030\002 \001(\t\022\023\n\013prf_capab"
+    "le\030\003 \001(\010\022\020\n\010prf_salt\030\004 \001(\t\022\022\n\nprf_output"
+    "\030\005 \001(\t\"z\n!DesktopPasskeyRegisterRelayRes"
+    "ult\022\r\n\005nonce\030\001 \001(\t\022F\n\010register\030\002 \001(\01324.p"
+    "rovider.spacewave.api.DesktopPasskeyRegi"
+    "sterResult\"K\n!DesktopPasskeyReauthVerify"
+    "Request\022\r\n\005nonce\030\001 \001(\t\022\027\n\017credential_jso"
+    "n\030\002 \001(\t\"\231\001\n\032DesktopPasskeyReauthResult\022\026"
+    "\n\016encrypted_blob\030\001 \001(\t\022\023\n\013prf_capable\030\002 "
+    "\001(\010\022\020\n\010prf_salt\030\003 \001(\t\022\023\n\013auth_params\030\004 \001"
+    "(\t\022\023\n\013pin_wrapped\030\005 \001(\010\022\022\n\nprf_output\030\006 "
+    "\001(\t\"t\n\037DesktopPasskeyReauthRelayResult\022\r"
+    "\n\005nonce\030\001 \001(\t\022B\n\006reauth\030\002 \001(\01322.provider"
+    ".spacewave.api.DesktopPasskeyReauthResul"
+    "t\"7\n&DesktopPasskeyRegisterChallengeRequ"
+    "est\022\r\n\005nonce\030\001 \001(\t\"Q\n\'DesktopPasskeyRegi"
+    "sterChallengeResponse\022\024\n\014options_json\030\001 "
+    "\001(\t\022\020\n\010username\030\002 \001(\t\"/\n\016PairingRequest\022"
+    "\014\n\004code\030\001 \001(\t\022\017\n\007peer_id\030\002 \001(\t\"\"\n\017Pairin"
+    "gResponse\022\017\n\007peer_id\030\001 \001(\t\"C\n\023EnrollMemb"
+    "erRequest\022\022\n\naccount_id\030\001 \001(\t\022\030\n\020ignore_"
+    "exclusion\030\002 \001(\010\"#\n\020EnrollMemberPeer\022\017\n\007p"
+    "eer_id\030\001 \001(\t\"O\n\024EnrollMemberResponse\0227\n\005"
+    "peers\030\001 \003(\0132(.provider.spacewave.api.Enr"
+    "ollMemberPeer\"6\n ResolveMemberParticipan"
+    "tsRequest\022\022\n\naccount_id\030\001 \001(\t\"5\n!Resolve"
+    "MemberParticipantsResponse\022\020\n\010peer_ids\030\001"
+    " \003(\t\"W\n\030SORecoveryEntityKeypairs\022\021\n\tenti"
+    "ty_id\030\001 \001(\t\022(\n\010keypairs\030\002 \003(\0132\026.session."
+    "EntityKeypair\"j\n$ListSORecoveryEntityKey"
+    "pairsResponse\022B\n\010entities\030\001 \003(\01320.provid"
+    "er.spacewave.api.SORecoveryEntityKeypair"
+    "s\"T\n\035GetSORecoveryEnvelopeResponse\0223\n\010en"
+    "velope\030\001 \001(\0132!.sobject.SOEntityRecoveryE"
+    "nvelope\"\272\001\n\026PostConfigStateRequest\022\025\n\rco"
+    "nfig_change\030\001 \001(\014\022\"\n\007invites\030\002 \003(\0132\021.sob"
+    "ject.SOInvite\022&\n\tkey_epoch\030\003 \001(\0132\023.sobje"
+    "ct.SOKeyEpoch\022=\n\022recovery_envelopes\030\004 \003("
+    "\0132!.sobject.SOEntityRecoveryEnvelope\"|\n\023"
+    "PostKeyEpochRequest\022&\n\tkey_epoch\030\001 \001(\0132\023"
+    ".sobject.SOKeyEpoch\022=\n\022recovery_envelope"
+    "s\030\002 \003(\0132!.sobject.SOEntityRecoveryEnvelo"
+    "pe\"h\n\031RegisterInviteCodeRequest\022\014\n\004code\030"
+    "\001 \001(\t\022\021\n\tinvite_id\030\002 \001(\t\022\026\n\016invite_messa"
+    "ge\030\003 \001(\t\022\022\n\nexpires_at\030\004 \001(\003\"\034\n\032Register"
+    "InviteCodeResponse\"E\n\030LookupInviteCodeRe"
+    "sponse\022\021\n\tinvite_id\030\001 \001(\t\022\026\n\016invite_mess"
+    "age\030\002 \001(\t\"K\n\022GetMailboxResponse\0225\n\007entri"
+    "es\030\001 \003(\0132$.provider.spacewave.api.Mailbo"
+    "xEntry\"\274\001\n\031SubmitMailboxEntryRequest\022\021\n\t"
+    "invite_id\030\001 \001(\t\022\r\n\005token\030\002 \001(\014\022.\n\rjoin_r"
+    "esponse\030\003 \001(\0132\027.sobject.SOJoinResponse\022M"
+    "\n\021targeted_envelope\030\004 \001(\01322.provider.spa"
+    "cewave.api.TargetedInvitationEnvelope\"8\n"
+    "\032SubmitMailboxEntryResponse\022\n\n\002id\030\001 \001(\003\022"
+    "\016\n\006status\030\002 \001(\t\"\210\002\n\014MailboxEntry\022\n\n\002id\030\001"
+    " \001(\003\022\021\n\tinvite_id\030\002 \001(\t\022\017\n\007peer_id\030\003 \001(\t"
+    "\022.\n\rjoin_response\030\004 \001(\0132\027.sobject.SOJoin"
+    "Response\022\016\n\006status\030\005 \001(\t\022\022\n\ncreated_at\030\006"
+    " \001(\003\022\022\n\naccount_id\030\007 \001(\t\022\021\n\tentity_id\030\010 "
+    "\001(\t\022M\n\021targeted_envelope\030\t \001(\01322.provide"
+    "r.spacewave.api.TargetedInvitationEnvelo"
+    "pe\"8\n\032ProcessMailboxEntryRequest\022\n\n\002id\030\001"
+    " \001(\003\022\016\n\006accept\030\002 \001(\010\"-\n\033ProcessMailboxEn"
+    "tryResponse\022\016\n\006status\030\001 \001(\t\"&\n\020KeypairAd"
+    "dResult\022\022\n\nkeypair_id\030\001 \001(\t\"&\n\023KeypairRe"
+    "moveResult\022\017\n\007removed\030\001 \001(\010\"*\n\025Threshold"
+    "ChangeResult\022\021\n\tthreshold\030\001 \001(\r\"&\n\023Sessi"
+    "onRevokeResult\022\017\n\007revoked\030\001 \001(\010\"(\n\023Accou"
+    "ntDeleteResult\022\021\n\tscheduled\030\001 \001(\010\"1\n\rSso"
+    "LinkResult\022\016\n\006linked\030\001 \001(\010\022\020\n\010provider\030\002"
+    " \001(\t\"\276\003\n\026MultiSigActionResponse\022\?\n\013keypa"
+    "ir_add\030\001 \001(\0132(.provider.spacewave.api.Ke"
+    "ypairAddResultH\000\022E\n\016keypair_remove\030\002 \001(\013"
+    "2+.provider.spacewave.api.KeypairRemoveR"
+    "esultH\000\022I\n\020threshold_change\030\003 \001(\0132-.prov"
+    "ider.spacewave.api.ThresholdChangeResult"
+    "H\000\022E\n\016session_revoke\030\004 \001(\0132+.provider.sp"
+    "acewave.api.SessionRevokeResultH\000\022E\n\016acc"
+    "ount_delete\030\005 \001(\0132+.provider.spacewave.a"
+    "pi.AccountDeleteResultH\000\0229\n\010sso_link\030\006 \001"
+    "(\0132%.provider.spacewave.api.SsoLinkResul"
+    "tH\000B\010\n\006result\"\023\n\021UndoDeleteRequest\"\037\n\035Re"
+    "gisterPasskeyOptionsRequest\"\026\n\024SessionTi"
+    "cketRequest\"\034\n\032ReinitializeSObjectReques"
+    "t\"\022\n\020OrgDeleteRequest\"\037\n\021OrgDeleteRespon"
+    "se\022\n\n\002id\030\001 \001(\t\"\021\n\017OrgLeaveRequest\"\"\n\020Org"
+    "LeaveResponse\022\016\n\006org_id\030\001 \001(\t\"\030\n\026RemoveO"
+    "rgMemberRequest\",\n\027RemoveOrgMemberRespon"
+    "se\022\021\n\tmember_id\030\001 \001(\t\"\030\n\026CancelOrgInvite"
+    "Request\",\n\027CancelOrgInviteResponse\022\021\n\tin"
+    "vite_id\030\001 \001(\t\"\026\n\024CancelBillingRequest\"\'\n"
+    "\025CancelBillingResponse\022\016\n\006status\030\001 \001(\t\"\032"
+    "\n\030ReactivateBillingRequest\"+\n\031Reactivate"
+    "BillingResponse\022\016\n\006status\030\001 \001(\t\"}\n\030Clien"
+    "tErrorReportRequest\022\022\n\nerror_code\030\001 \001(\t\022"
+    "\021\n\tcomponent\030\002 \001(\t\022\025\n\rresource_type\030\003 \001("
+    "\t\022\023\n\013resource_id\030\004 \001(\t\022\016\n\006detail\030\005 \001(\t\"J"
+    "\n\031ClientErrorReportResponse\022\020\n\010accepted\030"
+    "\001 \001(\010\022\033\n\023retry_after_seconds\030\002 \001(\r\"\365\001\n\021S"
+    "soCallbackResult\022\016\n\006linked\030\001 \001(\010\022\020\n\010prov"
+    "ider\030\002 \001(\t\022\r\n\005email\030\003 \001(\t\022\013\n\003sub\030\004 \001(\t\022\022"
+    "\n\naccount_id\030\005 \001(\t\022\021\n\tentity_id\030\006 \001(\t\022\020\n"
+    "\010username\030\007 \001(\t\022\026\n\016encrypted_blob\030\010 \001(\t\022"
+    "\023\n\013pin_wrapped\030\t \001(\010\022\023\n\013auth_params\030\n \001("
+    "\t\022\r\n\005error\030\013 \001(\t\022\030\n\020device_encrypted\030\014 \001"
+    "(\010\"\273\004\n\014PasskeyRelay\022D\n\006linked\030\001 \001(\01322.pr"
+    "ovider.spacewave.api.DesktopPasskeyLinke"
+    "dResultH\000\022M\n\013new_account\030\002 \001(\01326.provide"
+    "r.spacewave.api.DesktopPasskeyNewAccount"
+    "ResultH\000\022I\n\014relay_result\030\003 \001(\01321.provide"
+    "r.spacewave.api.DesktopPasskeyRelayResul"
+    "tH\000\022O\n\017register_result\030\004 \001(\01324.provider."
+    "spacewave.api.DesktopPasskeyRegisterResu"
+    "ltH\000\022S\n\016register_relay\030\005 \001(\01329.provider."
+    "spacewave.api.DesktopPasskeyRegisterRela"
+    "yResultH\000\022K\n\rreauth_result\030\006 \001(\01322.provi"
+    "der.spacewave.api.DesktopPasskeyReauthRe"
+    "sultH\000\022O\n\014reauth_relay\030\007 \001(\01327.provider."
+    "spacewave.api.DesktopPasskeyReauthRelayR"
+    "esultH\000B\007\n\005relay\"\240\002\n\030WsAuthSessionServer"
+    "Frame\0228\n\ncompletion\030\001 \001(\0132\".session.hand"
+    "off.HandoffCompletionH\000\022A\n\014sso_callback\030"
+    "\002 \001(\0132).provider.spacewave.api.SsoCallba"
+    "ckResultH\000\022=\n\rpasskey_relay\030\003 \001(\0132$.prov"
+    "ider.spacewave.api.PasskeyRelayH\000\022@\n\010sso"
+    "_link\030\004 \001(\0132,.provider.spacewave.api.Des"
+    "ktopSSOLinkResultH\000B\006\n\004body\"g\n\034WsBilling"
+    "CheckoutServerFrame\022\?\n\006status\030\001 \001(\0132-.pr"
+    "ovider.spacewave.api.CheckoutStatusMessa"
+    "geH\000B\006\n\004body*\260\002\n\022MultiSigActionKind\022%\n!M"
+    "ULTI_SIG_ACTION_KIND_UNSPECIFIED\020\000\022%\n!MU"
+    "LTI_SIG_ACTION_KIND_ADD_KEYPAIR\020\001\022(\n$MUL"
+    "TI_SIG_ACTION_KIND_REMOVE_KEYPAIR\020\002\022*\n&M"
+    "ULTI_SIG_ACTION_KIND_UPDATE_THRESHOLD\020\003\022"
+    "(\n$MULTI_SIG_ACTION_KIND_REVOKE_SESSION\020"
+    "\004\022(\n$MULTI_SIG_ACTION_KIND_DELETE_ACCOUN"
+    "T\020\005\022\"\n\036MULTI_SIG_ACTION_KIND_SSO_LINK\020\006*"
+    "\300\003\n\025AccountLifecycleState\022#\n\037ACCOUNT_LIF"
+    "ECYCLE_STATE_UNKNOWN\020\000\022\"\n\036ACCOUNT_LIFECY"
+    "CLE_STATE_ACTIVE\020\001\022<\n8ACCOUNT_LIFECYCLE_"
+    "STATE_ACTIVE_WITH_CANCEL_AT_PERIOD_END\020\002"
+    "\0223\n/ACCOUNT_LIFECYCLE_STATE_CANCELED_GRA"
+    "CE_READONLY\020\003\0223\n/ACCOUNT_LIFECYCLE_STATE"
+    "_PENDING_DELETE_READONLY\020\004\022+\n\'ACCOUNT_LI"
+    "FECYCLE_STATE_LAPSED_READONLY\020\005\0221\n-ACCOU"
+    "NT_LIFECYCLE_STATE_DELETED_PENDING_PURGE"
+    "\020\006\022#\n\037ACCOUNT_LIFECYCLE_STATE_DELETED\020\007\022"
+    "1\n-ACCOUNT_LIFECYCLE_STATE_DISPUTED_HARD"
+    "_SUSPEND\020\010*\215\001\n\025TargetedInvitePurpose\022\'\n#"
+    "TARGETED_INVITE_PURPOSE_UNSPECIFIED\020\000\022!\n"
+    "\035TARGETED_INVITE_PURPOSE_SPACE\020\001\022(\n$TARG"
+    "ETED_INVITE_PURPOSE_ORGANIZATION\020\002*\257\002\n\025A"
+    "ccountAuthMethodKind\022(\n$ACCOUNT_AUTH_MET"
+    "HOD_KIND_UNSPECIFIED\020\000\022%\n!ACCOUNT_AUTH_M"
+    "ETHOD_KIND_PASSWORD\020\001\022\'\n#ACCOUNT_AUTH_ME"
+    "THOD_KIND_BACKUP_KEY\020\002\022$\n ACCOUNT_AUTH_M"
+    "ETHOD_KIND_PASSKEY\020\003\022\'\n#ACCOUNT_AUTH_MET"
+    "HOD_KIND_GOOGLE_SSO\020\004\022\'\n#ACCOUNT_AUTH_ME"
+    "THOD_KIND_GITHUB_SSO\020\005\022$\n ACCOUNT_AUTH_M"
+    "ETHOD_KIND_UNKNOWN\020\006*\240\001\n\032AccountSObjectB"
+    "indingState\022-\n)ACCOUNT_SOBJECT_BINDING_S"
+    "TATE_UNSPECIFIED\020\000\022*\n&ACCOUNT_SOBJECT_BI"
+    "NDING_STATE_RESERVED\020\001\022\'\n#ACCOUNT_SOBJEC"
+    "T_BINDING_STATE_READY\020\002b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto_deps[5] = {
@@ -10135,13 +10181,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fco
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto = {
     false,
     false,
-    25923,
+    26071,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto,
     "github.com/s4wave/spacewave/core/provider/spacewave/api/api.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto_deps,
     5,
-    242,
+    243,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto::offsets,
@@ -13474,6 +13520,12 @@ void SOStateMessage::clear_config_changed() {
     clear_has_content();
   }
 }
+void SOStateMessage::clear_config_chain() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.config_chain_ != nullptr) _impl_.config_chain_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
 SOStateMessage::SOStateMessage(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, SOStateMessage_class_data_.base()) {
@@ -13505,6 +13557,10 @@ SOStateMessage::SOStateMessage(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.config_chain_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.config_chain_)
+                : nullptr;
   _impl_.seqno_ = from._impl_.seqno_;
   switch (content_case()) {
     case CONTENT_NOT_SET:
@@ -13534,7 +13590,12 @@ PROTOBUF_NDEBUG_INLINE SOStateMessage::Impl_::Impl_(
 
 inline void SOStateMessage::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.seqno_ = {};
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, config_chain_),
+           0,
+           offsetof(Impl_, seqno_) -
+               offsetof(Impl_, config_chain_) +
+               sizeof(Impl_::seqno_));
 }
 SOStateMessage::~SOStateMessage() {
   // @@protoc_insertion_point(destructor:provider.spacewave.api.SOStateMessage)
@@ -13547,6 +13608,7 @@ inline void SOStateMessage::SharedDtor(MessageLite& self) {
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.config_chain_;
   if (this_.has_content()) {
     this_.clear_content();
   }
@@ -13640,17 +13702,17 @@ SOStateMessage::GetClassData() const {
   return SOStateMessage_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 5, 4, 0, 2>
+const ::_pbi::TcParseTable<1, 6, 5, 0, 2>
 SOStateMessage::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(SOStateMessage, _impl_._has_bits_),
     0, // no _extensions_
-    5, 0,  // max_field_number, fast_idx_mask
+    6, 8,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967264,  // skipmap
+    4294967232,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    5,  // num_field_entries
-    4,  // num_aux_entries
+    6,  // num_field_entries
+    5,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     SOStateMessage_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -13659,15 +13721,19 @@ SOStateMessage::_table_ = {
     ::_pbi::TcParser::GetTable<::provider::spacewave::api::SOStateMessage>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    // .sobject.SOConfigChainResponse config_chain = 6;
+    {::_pbi::TcParser::FastMtS1,
+     {50, 0, 4,
+      PROTOBUF_FIELD_OFFSET(SOStateMessage, _impl_.config_chain_)}},
     // uint64 seqno = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOStateMessage, _impl_.seqno_), 0>(),
-     {8, 0, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOStateMessage, _impl_.seqno_), 1>(),
+     {8, 1, 0,
       PROTOBUF_FIELD_OFFSET(SOStateMessage, _impl_.seqno_)}},
   }}, {{
     65535, 65535
   }}, {{
     // uint64 seqno = 1;
-    {PROTOBUF_FIELD_OFFSET(SOStateMessage, _impl_.seqno_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(SOStateMessage, _impl_.seqno_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // .sobject.SOState snapshot = 2;
     {PROTOBUF_FIELD_OFFSET(SOStateMessage, _impl_.content_.snapshot_), _Internal::kOneofCaseOffset + 0, 0, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
     // .provider.spacewave.api.SOStateDelta delta = 3;
@@ -13676,12 +13742,15 @@ SOStateMessage::_table_ = {
     {PROTOBUF_FIELD_OFFSET(SOStateMessage, _impl_.content_.error_), _Internal::kOneofCaseOffset + 0, 2, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
     // .sobject.SharedObjectConfig config_changed = 5;
     {PROTOBUF_FIELD_OFFSET(SOStateMessage, _impl_.content_.config_changed_), _Internal::kOneofCaseOffset + 0, 3, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOConfigChainResponse config_chain = 6;
+    {PROTOBUF_FIELD_OFFSET(SOStateMessage, _impl_.config_chain_), _Internal::kHasBitsOffset + 0, 4, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::sobject::SOState>()},
       {::_pbi::TcParser::GetTable<::provider::spacewave::api::SOStateDelta>()},
       {::_pbi::TcParser::GetTable<::provider::spacewave::api::SOStateError>()},
       {::_pbi::TcParser::GetTable<::sobject::SharedObjectConfig>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOConfigChainResponse>()},
   }},
   {{
   }},
@@ -13693,6 +13762,11 @@ PROTOBUF_NOINLINE void SOStateMessage::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    ABSL_DCHECK(_impl_.config_chain_ != nullptr);
+    _impl_.config_chain_->Clear();
+  }
   _impl_.seqno_ = ::uint64_t{0u};
   clear_content();
   _impl_._has_bits_.Clear();
@@ -13719,7 +13793,7 @@ PROTOBUF_NOINLINE void SOStateMessage::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // uint64 seqno = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     if (this_._internal_seqno() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -13755,6 +13829,13 @@ PROTOBUF_NOINLINE void SOStateMessage::Clear() {
     default:
       break;
   }
+  // .sobject.SOConfigChainResponse config_chain = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        6, *this_._impl_.config_chain_, this_._impl_.config_chain_->GetCachedSize(), target,
+        stream);
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -13778,10 +13859,16 @@ PROTOBUF_NOINLINE void SOStateMessage::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void)cached_has_bits;
 
-   {
-    // uint64 seqno = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // .sobject.SOConfigChainResponse config_chain = 6;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.config_chain_);
+    }
+    // uint64 seqno = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (this_._internal_seqno() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
             this_._internal_seqno());
@@ -13836,9 +13923,19 @@ void SOStateMessage::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (from._internal_seqno() != 0) {
-      _this->_impl_.seqno_ = from._impl_.seqno_;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      ABSL_DCHECK(from._impl_.config_chain_ != nullptr);
+      if (_this->_impl_.config_chain_ == nullptr) {
+        _this->_impl_.config_chain_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.config_chain_);
+      } else {
+        _this->_impl_.config_chain_->MergeFrom(*from._impl_.config_chain_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_seqno() != 0) {
+        _this->_impl_.seqno_ = from._impl_.seqno_;
+      }
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -13906,7 +14003,12 @@ void SOStateMessage::InternalSwap(SOStateMessage* PROTOBUF_RESTRICT PROTOBUF_NON
   using ::std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  swap(_impl_.seqno_, other->_impl_.seqno_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SOStateMessage, _impl_.seqno_)
+      + sizeof(SOStateMessage::_impl_.seqno_)
+      - PROTOBUF_FIELD_OFFSET(SOStateMessage, _impl_.config_chain_)>(
+          reinterpret_cast<char*>(&_impl_.config_chain_),
+          reinterpret_cast<char*>(&other->_impl_.config_chain_));
   swap(_impl_.content_, other->_impl_.content_);
   swap(_impl_._oneof_case_[0], other->_impl_._oneof_case_[0]);
 }
@@ -19222,6 +19324,315 @@ void PendingParticipantPayload::InternalSwap(PendingParticipantPayload* PROTOBUF
 }
 // ===================================================================
 
+class BlockStoreNonceEventPayload::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<BlockStoreNonceEventPayload>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(BlockStoreNonceEventPayload, _impl_._has_bits_);
+};
+
+BlockStoreNonceEventPayload::BlockStoreNonceEventPayload(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, BlockStoreNonceEventPayload_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:provider.spacewave.api.BlockStoreNonceEventPayload)
+}
+PROTOBUF_NDEBUG_INLINE BlockStoreNonceEventPayload::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::provider::spacewave::api::BlockStoreNonceEventPayload& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        resource_id_(arena, from.resource_id_) {}
+
+BlockStoreNonceEventPayload::BlockStoreNonceEventPayload(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const BlockStoreNonceEventPayload& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, BlockStoreNonceEventPayload_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  BlockStoreNonceEventPayload* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.nonce_ = from._impl_.nonce_;
+
+  // @@protoc_insertion_point(copy_constructor:provider.spacewave.api.BlockStoreNonceEventPayload)
+}
+PROTOBUF_NDEBUG_INLINE BlockStoreNonceEventPayload::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        resource_id_(arena) {}
+
+inline void BlockStoreNonceEventPayload::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.nonce_ = {};
+}
+BlockStoreNonceEventPayload::~BlockStoreNonceEventPayload() {
+  // @@protoc_insertion_point(destructor:provider.spacewave.api.BlockStoreNonceEventPayload)
+  SharedDtor(*this);
+}
+inline void BlockStoreNonceEventPayload::SharedDtor(MessageLite& self) {
+  BlockStoreNonceEventPayload& this_ = static_cast<BlockStoreNonceEventPayload&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.resource_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL BlockStoreNonceEventPayload::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) BlockStoreNonceEventPayload(arena);
+}
+constexpr auto BlockStoreNonceEventPayload::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(BlockStoreNonceEventPayload),
+                                            alignof(BlockStoreNonceEventPayload));
+}
+constexpr auto BlockStoreNonceEventPayload::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_BlockStoreNonceEventPayload_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &BlockStoreNonceEventPayload::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<BlockStoreNonceEventPayload>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &BlockStoreNonceEventPayload::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<BlockStoreNonceEventPayload>(), &BlockStoreNonceEventPayload::ByteSizeLong,
+              &BlockStoreNonceEventPayload::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(BlockStoreNonceEventPayload, _impl_._cached_size_),
+          false,
+      },
+      &BlockStoreNonceEventPayload::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull BlockStoreNonceEventPayload_class_data_ =
+        BlockStoreNonceEventPayload::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+BlockStoreNonceEventPayload::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&BlockStoreNonceEventPayload_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(BlockStoreNonceEventPayload_class_data_.tc_table);
+  return BlockStoreNonceEventPayload_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 70, 2>
+BlockStoreNonceEventPayload::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(BlockStoreNonceEventPayload, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    BlockStoreNonceEventPayload_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::provider::spacewave::api::BlockStoreNonceEventPayload>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // uint64 nonce = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(BlockStoreNonceEventPayload, _impl_.nonce_), 1>(),
+     {16, 1, 0,
+      PROTOBUF_FIELD_OFFSET(BlockStoreNonceEventPayload, _impl_.nonce_)}},
+    // string resource_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(BlockStoreNonceEventPayload, _impl_.resource_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string resource_id = 1;
+    {PROTOBUF_FIELD_OFFSET(BlockStoreNonceEventPayload, _impl_.resource_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint64 nonce = 2;
+    {PROTOBUF_FIELD_OFFSET(BlockStoreNonceEventPayload, _impl_.nonce_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+  }},
+  // no aux_entries
+  {{
+    "\62\13\0\0\0\0\0\0"
+    "provider.spacewave.api.BlockStoreNonceEventPayload"
+    "resource_id"
+  }},
+};
+PROTOBUF_NOINLINE void BlockStoreNonceEventPayload::Clear() {
+// @@protoc_insertion_point(message_clear_start:provider.spacewave.api.BlockStoreNonceEventPayload)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.resource_id_.ClearNonDefaultToEmpty();
+  }
+  _impl_.nonce_ = ::uint64_t{0u};
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL BlockStoreNonceEventPayload::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const BlockStoreNonceEventPayload& this_ = static_cast<const BlockStoreNonceEventPayload&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL BlockStoreNonceEventPayload::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const BlockStoreNonceEventPayload& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:provider.spacewave.api.BlockStoreNonceEventPayload)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string resource_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_resource_id().empty()) {
+      const ::std::string& _s = this_._internal_resource_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "provider.spacewave.api.BlockStoreNonceEventPayload.resource_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // uint64 nonce = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_nonce() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          2, this_._internal_nonce(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:provider.spacewave.api.BlockStoreNonceEventPayload)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t BlockStoreNonceEventPayload::ByteSizeLong(const MessageLite& base) {
+  const BlockStoreNonceEventPayload& this_ = static_cast<const BlockStoreNonceEventPayload&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t BlockStoreNonceEventPayload::ByteSizeLong() const {
+  const BlockStoreNonceEventPayload& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:provider.spacewave.api.BlockStoreNonceEventPayload)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string resource_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_resource_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_resource_id());
+      }
+    }
+    // uint64 nonce = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_nonce() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_nonce());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void BlockStoreNonceEventPayload::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<BlockStoreNonceEventPayload*>(&to_msg);
+  auto& from = static_cast<const BlockStoreNonceEventPayload&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:provider.spacewave.api.BlockStoreNonceEventPayload)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_resource_id().empty()) {
+        _this->_internal_set_resource_id(from._internal_resource_id());
+      } else {
+        if (_this->_impl_.resource_id_.IsDefault()) {
+          _this->_internal_set_resource_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_nonce() != 0) {
+        _this->_impl_.nonce_ = from._impl_.nonce_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void BlockStoreNonceEventPayload::CopyFrom(const BlockStoreNonceEventPayload& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:provider.spacewave.api.BlockStoreNonceEventPayload)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void BlockStoreNonceEventPayload::InternalSwap(BlockStoreNonceEventPayload* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.resource_id_, &other->_impl_.resource_id_, arena);
+  swap(_impl_.nonce_, other->_impl_.nonce_);
+}
+
+::google::protobuf::Metadata BlockStoreNonceEventPayload::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
 class MemberSessionChangedPayload::_Internal {
  public:
   using HasBits =
@@ -19900,7 +20311,13 @@ SONotifyEventPayload::SONotifyEventPayload(
   _impl_.metadata_ = (CheckHasBit(cached_has_bits, 0x00000004U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.metadata_)
                 : nullptr;
-  _impl_.seqno_ = from._impl_.seqno_;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, seqno_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, seqno_),
+           offsetof(Impl_, block_store_nonce_) -
+               offsetof(Impl_, seqno_) +
+               sizeof(Impl_::block_store_nonce_));
 
   // @@protoc_insertion_point(copy_constructor:provider.spacewave.api.SONotifyEventPayload)
 }
@@ -19915,9 +20332,9 @@ inline void SONotifyEventPayload::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE are
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, state_message_),
            0,
-           offsetof(Impl_, seqno_) -
+           offsetof(Impl_, block_store_nonce_) -
                offsetof(Impl_, state_message_) +
-               sizeof(Impl_::seqno_));
+               sizeof(Impl_::block_store_nonce_));
 }
 SONotifyEventPayload::~SONotifyEventPayload() {
   // @@protoc_insertion_point(destructor:provider.spacewave.api.SONotifyEventPayload)
@@ -19979,16 +20396,16 @@ SONotifyEventPayload::GetClassData() const {
   return SONotifyEventPayload_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 4, 2, 63, 2>
+const ::_pbi::TcParseTable<3, 5, 2, 63, 2>
 SONotifyEventPayload::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(SONotifyEventPayload, _impl_._has_bits_),
     0, // no _extensions_
-    4, 24,  // max_field_number, fast_idx_mask
+    5, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
+    4294967264,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
+    5,  // num_field_entries
     2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     SONotifyEventPayload_class_data_.base(),
@@ -19998,10 +20415,7 @@ SONotifyEventPayload::_table_ = {
     ::_pbi::TcParser::GetTable<::provider::spacewave::api::SONotifyEventPayload>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // .provider.spacewave.api.SpaceMetadataResponse metadata = 4;
-    {::_pbi::TcParser::FastMtS1,
-     {34, 2, 1,
-      PROTOBUF_FIELD_OFFSET(SONotifyEventPayload, _impl_.metadata_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // uint64 seqno = 1;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SONotifyEventPayload, _impl_.seqno_), 3>(),
      {8, 3, 0,
@@ -20014,6 +20428,16 @@ SONotifyEventPayload::_table_ = {
     {::_pbi::TcParser::FastMtS1,
      {26, 1, 0,
       PROTOBUF_FIELD_OFFSET(SONotifyEventPayload, _impl_.state_message_)}},
+    // .provider.spacewave.api.SpaceMetadataResponse metadata = 4;
+    {::_pbi::TcParser::FastMtS1,
+     {34, 2, 1,
+      PROTOBUF_FIELD_OFFSET(SONotifyEventPayload, _impl_.metadata_)}},
+    // uint64 block_store_nonce = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SONotifyEventPayload, _impl_.block_store_nonce_), 4>(),
+     {40, 4, 0,
+      PROTOBUF_FIELD_OFFSET(SONotifyEventPayload, _impl_.block_store_nonce_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
@@ -20025,6 +20449,8 @@ SONotifyEventPayload::_table_ = {
     {PROTOBUF_FIELD_OFFSET(SONotifyEventPayload, _impl_.state_message_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .provider.spacewave.api.SpaceMetadataResponse metadata = 4;
     {PROTOBUF_FIELD_OFFSET(SONotifyEventPayload, _impl_.metadata_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint64 block_store_nonce = 5;
+    {PROTOBUF_FIELD_OFFSET(SONotifyEventPayload, _impl_.block_store_nonce_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::provider::spacewave::api::SOStateMessage>()},
@@ -20057,7 +20483,11 @@ PROTOBUF_NOINLINE void SONotifyEventPayload::Clear() {
       _impl_.metadata_->Clear();
     }
   }
-  _impl_.seqno_ = ::uint64_t{0u};
+  if (BatchCheckHasBit(cached_has_bits, 0x00000018U)) {
+    ::memset(&_impl_.seqno_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.block_store_nonce_) -
+        reinterpret_cast<char*>(&_impl_.seqno_)) + sizeof(_impl_.block_store_nonce_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -20114,6 +20544,15 @@ PROTOBUF_NOINLINE void SONotifyEventPayload::Clear() {
         stream);
   }
 
+  // uint64 block_store_nonce = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_block_store_nonce() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          5, this_._internal_block_store_nonce(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -20139,7 +20578,7 @@ PROTOBUF_NOINLINE void SONotifyEventPayload::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     // string change_type = 2;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_change_type().empty()) {
@@ -20164,6 +20603,13 @@ PROTOBUF_NOINLINE void SONotifyEventPayload::Clear() {
             this_._internal_seqno());
       }
     }
+    // uint64 block_store_nonce = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_block_store_nonce() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_block_store_nonce());
+      }
+    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -20184,7 +20630,7 @@ void SONotifyEventPayload::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_change_type().empty()) {
         _this->_internal_set_change_type(from._internal_change_type());
@@ -20215,6 +20661,11 @@ void SONotifyEventPayload::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.seqno_ = from._impl_.seqno_;
       }
     }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_block_store_nonce() != 0) {
+        _this->_impl_.block_store_nonce_ = from._impl_.block_store_nonce_;
+      }
+    }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -20237,8 +20688,8 @@ void SONotifyEventPayload::InternalSwap(SONotifyEventPayload* PROTOBUF_RESTRICT 
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.change_type_, &other->_impl_.change_type_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(SONotifyEventPayload, _impl_.seqno_)
-      + sizeof(SONotifyEventPayload::_impl_.seqno_)
+      PROTOBUF_FIELD_OFFSET(SONotifyEventPayload, _impl_.block_store_nonce_)
+      + sizeof(SONotifyEventPayload::_impl_.block_store_nonce_)
       - PROTOBUF_FIELD_OFFSET(SONotifyEventPayload, _impl_.state_message_)>(
           reinterpret_cast<char*>(&_impl_.state_message_),
           reinterpret_cast<char*>(&other->_impl_.state_message_));

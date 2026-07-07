@@ -113,6 +113,34 @@ func (m *Manifest) GetLastPullSequence(ctx context.Context) (uint64, error) {
 	return parsed, nil
 }
 
+// SetLastPullSequence advances the last-seen monotonic pull sequence cursor.
+func (m *Manifest) SetLastPullSequence(ctx context.Context, sequence uint64) error {
+	current, err := m.GetLastPullSequence(ctx)
+	if err != nil {
+		return err
+	}
+	if sequence <= current {
+		return nil
+	}
+
+	tx, err := m.store.NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrap(err, "creating write transaction")
+	}
+	defer tx.Discard()
+	if err := tx.Set(
+		ctx,
+		metaLastPullSequenceKey,
+		[]byte(strconv.FormatUint(sequence, 10)),
+	); err != nil {
+		return errors.Wrap(err, "setting last pull sequence")
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return errors.Wrap(err, "committing last pull sequence")
+	}
+	return nil
+}
+
 // ApplyDelta applies entries and replacement events to the manifest and
 // persists the highest pull sequence cursor.
 func (m *Manifest) ApplyDelta(

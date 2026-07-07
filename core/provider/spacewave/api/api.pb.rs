@@ -140,6 +140,11 @@ pub struct SoStateMessage {
     /// Seqno is the server's current change_log sequence number.
     #[prost(uint64, tag="1")]
     pub seqno: u64,
+    /// ConfigChain carries the config-chain entries and key epochs that verify the
+    /// snapshot's config_chain_hash. State responses include it so clients do not
+    /// burst a separate /config-chain request after every cold state pull.
+    #[prost(message, optional, tag="6")]
+    pub config_chain: ::core::option::Option<super::super::super::sobject::SoConfigChainResponse>,
     /// Content is the message payload.
     #[prost(oneof="so_state_message::Content", tags="2, 3, 4, 5")]
     pub content: ::core::option::Option<so_state_message::Content>,
@@ -365,6 +370,18 @@ pub struct PendingParticipantPayload {
     #[prost(string, tag="1")]
     pub account_id: ::prost::alloc::string::String,
 }
+/// BlockStoreNonceEventPayload is the payload for bstore_nonce session events.
+/// It tells a session that a block store it has previously pulled advanced past
+/// the nonce last recorded by the Session DO.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BlockStoreNonceEventPayload {
+    /// ResourceId is the block store resource id.
+    #[prost(string, tag="1")]
+    pub resource_id: ::prost::alloc::string::String,
+    /// Nonce is the latest monotonic packfile sequence in the block store.
+    #[prost(uint64, tag="2")]
+    pub nonce: u64,
+}
 /// MemberSessionChangedPayload is the payload for member_session_added and
 /// member_session_removed session events.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -416,6 +433,11 @@ pub struct SoNotifyEventPayload {
     /// notifications. It is unset for state/config/delete notifications.
     #[prost(message, optional, tag="4")]
     pub metadata: ::core::option::Option<SpaceMetadataResponse>,
+    /// BlockStoreNonce is the latest block-store pull cursor known when this
+    /// shared-object notification was emitted. Receivers refresh pack metadata
+    /// only when this value is ahead of their local manifest cursor.
+    #[prost(uint64, tag="5")]
+    pub block_store_nonce: u64,
 }
 /// MultiSigActionEnvelope is the typed, endpoint-bound payload that entity keys
 /// sign. The server verifies signatures over the serialized envelope bytes and

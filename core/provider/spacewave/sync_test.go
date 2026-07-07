@@ -686,6 +686,53 @@ func TestSyncControllerInitSkipsPullForRemoteManifest(t *testing.T) {
 	}
 }
 
+func TestSyncControllerPullNowRecordsLatestSequenceFromEmptyPull(t *testing.T) {
+	ctx := context.Background()
+	respData := mustMarshalVT(t, &packfile.PullResponse{LatestSequence: 9})
+	var pullRequests int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/bstore/test-res/sync/pull" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.RawQuery != "" {
+			t.Fatalf("unexpected query: %s", r.URL.RawQuery)
+		}
+		pullRequests++
+		_, _ = w.Write(respData)
+	}))
+	defer srv.Close()
+
+	priv, pid := generateTestKeypair(t)
+	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
+	store := newSyncTestKvStore()
+	mfst, err := packfile_manifest.New(ctx, store)
+	if err != nil {
+		t.Fatalf("new manifest: %v", err)
+	}
+	s := &syncController{
+		le:         logrus.NewEntry(logrus.New()),
+		store:      store,
+		client:     cli,
+		resourceID: "test-res",
+		mfst:       mfst,
+		lower:      packfile_store.NewPackfileStore(nil, nil),
+	}
+
+	if err := s.PullNow(ctx); err != nil {
+		t.Fatalf("PullNow: %v", err)
+	}
+	if pullRequests != 1 {
+		t.Fatalf("pull requests = %d, want 1", pullRequests)
+	}
+	lastSeq, err := mfst.GetLastPullSequence(ctx)
+	if err != nil {
+		t.Fatalf("get last pull sequence: %v", err)
+	}
+	if lastSeq != 9 {
+		t.Fatalf("last pull sequence = %d, want 9", lastSeq)
+	}
+}
+
 func TestSyncControllerInitReturnsAccessGatedPullError(t *testing.T) {
 	ctx := context.Background()
 	errResp := &api.ErrorResponse{

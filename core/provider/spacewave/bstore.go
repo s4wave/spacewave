@@ -54,6 +54,8 @@ type BlockStore struct {
 	forceSync func(ctx context.Context) error
 	// refreshRemote pulls remote packfile metadata into the local lower store.
 	refreshRemote func(ctx context.Context) error
+	// remoteSequence returns the local manifest's last-seen remote sequence.
+	remoteSequence func(ctx context.Context) (uint64, error)
 }
 
 // GetID returns the inner store id.
@@ -191,6 +193,14 @@ func (b *BlockStore) RefreshRemote(ctx context.Context) error {
 	refreshCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), forceSyncTimeout)
 	defer cancel()
 	return b.refreshRemote(refreshCtx)
+}
+
+// RemoteSequence returns the last-seen remote packfile sequence.
+func (b *BlockStore) RemoteSequence(ctx context.Context) (uint64, error) {
+	if b.remoteSequence == nil {
+		return 0, nil
+	}
+	return b.remoteSequence(ctx)
 }
 
 // NewBlockStoreRef builds a new BlockStoreRef for the cloud provider.
@@ -360,6 +370,11 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		gateBcast:  &t.a.accountBcast,
 		skipPull:   publicRemote != nil,
 	}
+	sc.remotePullRoutine = newCoalescedTriggerRoutine(
+		le,
+		"bstore-remote-pull",
+		sc.pullRemoteOnTrigger,
+	)
 	if publicRemote != nil {
 		sc.remote = publicRemote.Entries
 	}
@@ -368,6 +383,14 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	dirtyUpper.markDirty = sc.MarkDirty
 	bstoreHandle.forceSync = sc.FlushNowUnordered
 	bstoreHandle.refreshRemote = sc.PullNow
+	bstoreHandle.remoteSequence = sc.LastPullSequence
+
+	if !sc.skipPull && t.a.wsTracker != nil {
+		t.a.wsTracker.RegisterBlockStoreNonceCallback(t.id, func(uint64) {
+			sc.TriggerRemotePull()
+		})
+		defer t.a.wsTracker.UnregisterBlockStoreNonceCallback(t.id)
+	}
 
 	// Run the initial pull. If access is gated, signal the error to mount
 	// callers and block to prevent keyed retry.

@@ -61,6 +61,10 @@ pub struct PullResponse {
     /// ReplacementEvents is the list of atomic replacement events.
     #[prost(message, repeated, tag="2")]
     pub replacement_events: ::prost::alloc::vec::Vec<PackReplacementEvent>,
+    /// LatestSequence is the current monotonic sequence head for the block store,
+    /// even when Entries and ReplacementEvents are empty for an up-to-date pull.
+    #[prost(uint64, tag="3")]
+    pub latest_sequence: u64,
 }
 /// PushResponse is the response to a push request.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

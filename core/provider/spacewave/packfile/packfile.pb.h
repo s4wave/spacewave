@@ -1003,6 +1003,7 @@ class PullResponse final : public ::google::protobuf::Message
   enum : int {
     kEntriesFieldNumber = 1,
     kReplacementEventsFieldNumber = 2,
+    kLatestSequenceFieldNumber = 3,
   };
   // repeated .provider.spacewave.packfile.PackfileEntry entries = 1;
   int entries_size() const;
@@ -1038,11 +1039,21 @@ class PullResponse final : public ::google::protobuf::Message
   const ::provider::spacewave::packfile::PackReplacementEvent& replacement_events(int index) const;
   ::provider::spacewave::packfile::PackReplacementEvent* PROTOBUF_NONNULL add_replacement_events();
   const ::google::protobuf::RepeatedPtrField<::provider::spacewave::packfile::PackReplacementEvent>& replacement_events() const;
+  // uint64 latest_sequence = 3;
+  void clear_latest_sequence() ;
+  ::uint64_t latest_sequence() const;
+  void set_latest_sequence(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_latest_sequence() const;
+  void _internal_set_latest_sequence(::uint64_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:provider.spacewave.packfile.PullResponse)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
                                    2, 0,
                                    2>
       _table_;
@@ -1066,6 +1077,7 @@ class PullResponse final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::RepeatedPtrField< ::provider::spacewave::packfile::PackfileEntry > entries_;
     ::google::protobuf::RepeatedPtrField< ::provider::spacewave::packfile::PackReplacementEvent > replacement_events_;
+    ::uint64_t latest_sequence_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1858,6 +1870,31 @@ inline ::google::protobuf::RepeatedPtrField<::provider::spacewave::packfile::Pac
 PullResponse::_internal_mutable_replacement_events() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.replacement_events_;
+}
+
+// uint64 latest_sequence = 3;
+inline void PullResponse::clear_latest_sequence() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.latest_sequence_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t PullResponse::latest_sequence() const {
+  // @@protoc_insertion_point(field_get:provider.spacewave.packfile.PullResponse.latest_sequence)
+  return _internal_latest_sequence();
+}
+inline void PullResponse::set_latest_sequence(::uint64_t value) {
+  _internal_set_latest_sequence(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:provider.spacewave.packfile.PullResponse.latest_sequence)
+}
+inline ::uint64_t PullResponse::_internal_latest_sequence() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.latest_sequence_;
+}
+inline void PullResponse::_internal_set_latest_sequence(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.latest_sequence_ = value;
 }
 
 // -------------------------------------------------------------------

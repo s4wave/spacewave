@@ -15,6 +15,7 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import {
   SharedObjectConfig,
   SharedObjectList,
+  SOConfigChainResponse,
   SOEntityRecoveryEnvelope,
   SOInvite,
   SOJoinResponse,
@@ -849,6 +850,14 @@ export interface SOStateMessage {
    * @generated from field: uint64 seqno = 1;
    */
   seqno?: bigint
+  /**
+   * ConfigChain carries the config-chain entries and key epochs that verify the
+   * snapshot's config_chain_hash. State responses include it so clients do not
+   * burst a separate /config-chain request after every cold state pull.
+   *
+   * @generated from field: sobject.SOConfigChainResponse config_chain = 6;
+   */
+  configChain?: SOConfigChainResponse
 
   /**
    * Content is the message payload.
@@ -930,6 +939,12 @@ export const SOStateMessage: MessageType<SOStateMessage> =
         kind: 'message',
         T: () => SharedObjectConfig,
         oneof: 'content',
+      },
+      {
+        no: 6,
+        name: 'config_chain',
+        kind: 'message',
+        T: () => SOConfigChainResponse,
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
@@ -1457,6 +1472,38 @@ export const PendingParticipantPayload: MessageType<PendingParticipantPayload> =
   })
 
 /**
+ * BlockStoreNonceEventPayload is the payload for bstore_nonce session events.
+ * It tells a session that a block store it has previously pulled advanced past
+ * the nonce last recorded by the Session DO.
+ *
+ * @generated from message provider.spacewave.api.BlockStoreNonceEventPayload
+ */
+export interface BlockStoreNonceEventPayload {
+  /**
+   * ResourceId is the block store resource id.
+   *
+   * @generated from field: string resource_id = 1;
+   */
+  resourceId?: string
+  /**
+   * Nonce is the latest monotonic packfile sequence in the block store.
+   *
+   * @generated from field: uint64 nonce = 2;
+   */
+  nonce?: bigint
+}
+
+export const BlockStoreNonceEventPayload: MessageType<BlockStoreNonceEventPayload> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.BlockStoreNonceEventPayload',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * MemberSessionChangedPayload is the payload for member_session_added and
  * member_session_removed session events.
  *
@@ -1861,6 +1908,14 @@ export interface SONotifyEventPayload {
    * @generated from field: provider.spacewave.api.SpaceMetadataResponse metadata = 4;
    */
   metadata?: SpaceMetadataResponse
+  /**
+   * BlockStoreNonce is the latest block-store pull cursor known when this
+   * shared-object notification was emitted. Receivers refresh pack metadata
+   * only when this value is ahead of their local manifest cursor.
+   *
+   * @generated from field: uint64 block_store_nonce = 5;
+   */
+  blockStoreNonce?: bigint
 }
 
 export const SONotifyEventPayload: MessageType<SONotifyEventPayload> =
@@ -1880,6 +1935,12 @@ export const SONotifyEventPayload: MessageType<SONotifyEventPayload> =
         name: 'metadata',
         kind: 'message',
         T: () => SpaceMetadataResponse,
+      },
+      {
+        no: 5,
+        name: 'block_store_nonce',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,

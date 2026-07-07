@@ -44,20 +44,21 @@ const syncFlushMaxPackBytes int64 = 4 * 1024 * 1024
 
 // syncController manages packfile push/pull synchronization.
 type syncController struct {
-	le         *logrus.Entry
-	store      kvtx.Store
-	client     *SessionClient
-	resourceID string
-	mfst       *manifest.Manifest
-	lower      *packfile_store.PackfileStore
-	remote     func() []*packfile.PackfileEntry
-	upper      block.StoreOps
-	refGraph   packfile_order.RefGraph
-	conf       *SyncConfig
-	tmpDir     string
-	telemetry  *ProviderAccount
-	gateBcast  *broadcast.Broadcast
-	skipPull   bool
+	le                *logrus.Entry
+	store             kvtx.Store
+	client            *SessionClient
+	resourceID        string
+	mfst              *manifest.Manifest
+	lower             *packfile_store.PackfileStore
+	remote            func() []*packfile.PackfileEntry
+	upper             block.StoreOps
+	refGraph          packfile_order.RefGraph
+	conf              *SyncConfig
+	tmpDir            string
+	telemetry         *ProviderAccount
+	gateBcast         *broadcast.Broadcast
+	skipPull          bool
+	remotePullRoutine *coalescedTriggerRoutine
 
 	// dirtySize is guarded by bcast.
 	dirtySize int64
@@ -122,6 +123,11 @@ func (s *syncController) mergedManifestEntries() []*packfile.PackfileEntry {
 
 // Execute runs the sync controller loop.
 func (s *syncController) Execute(ctx context.Context) error {
+	if s.remotePullRoutine != nil && !s.skipPull {
+		s.remotePullRoutine.SetContext(ctx)
+		defer s.remotePullRoutine.ClearContext()
+	}
+
 	bo := providerBackoff.Construct()
 	threshold := int64(s.conf.GetSizeThresholdBytes())
 	if threshold == 0 {
@@ -305,6 +311,25 @@ func (s *syncController) PullNow(ctx context.Context) error {
 		return nil
 	}
 	return s.pull(ctx)
+}
+
+// LastPullSequence returns the local manifest's last-seen remote sequence.
+func (s *syncController) LastPullSequence(ctx context.Context) (uint64, error) {
+	return s.mfst.GetLastPullSequence(ctx)
+}
+
+// TriggerRemotePull coalesces a remote block-store nonce notification into one pull.
+func (s *syncController) TriggerRemotePull() {
+	if s.remotePullRoutine != nil && !s.skipPull {
+		s.remotePullRoutine.Trigger()
+	}
+}
+
+func (s *syncController) pullRemoteOnTrigger(ctx context.Context) {
+	if err := s.PullNow(ctx); err != nil && ctx.Err() == nil {
+		s.le.WithError(err).Warn("remote nonce pull failed")
+		s.recordSyncOwnerError(err)
+	}
 }
 
 // pushPackfile pushes a packfile and retries the same pack ID once when the
@@ -869,12 +894,23 @@ func (s *syncController) pull(ctx context.Context) error {
 
 	entries := resp.GetEntries()
 	events := resp.GetReplacementEvents()
+	latestSequence := resp.GetLatestSequence()
 	if len(entries) == 0 && len(events) == 0 {
+		if latestSequence > lastSeq {
+			if err := s.mfst.SetLastPullSequence(ctx, latestSequence); err != nil {
+				return errors.Wrap(err, "recording empty pull sequence")
+			}
+		}
 		return nil
 	}
 
 	if err := s.mfst.ApplyDelta(ctx, entries, events); err != nil {
 		return errors.Wrap(err, "applying pull delta")
+	}
+	if latestSequence > lastSeq {
+		if err := s.mfst.SetLastPullSequence(ctx, latestSequence); err != nil {
+			return errors.Wrap(err, "recording pull sequence")
+		}
 	}
 	s.lower.UpdateManifest(s.mergedManifestEntries())
 

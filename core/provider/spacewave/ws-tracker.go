@@ -79,7 +79,9 @@ type wsTracker struct {
 	accountBcast *broadcast.Broadcast
 	// notifyCallbacks maps so_id to so_notify event callback.
 	notifyCallbacks map[string]func(*api.SONotifyEventPayload)
-	// bcast guards the notifyCallbacks map.
+	// bstoreNonceCallbacks maps block-store resource ids to nonce callbacks.
+	bstoreNonceCallbacks map[string]func(uint64)
+	// bcast guards the callback maps.
 	bcast broadcast.Broadcast
 	// dormant is true while the tracker is idling on an idleable cloud error.
 	// Only touched by Execute/runWebSocket, which run on a single goroutine.
@@ -94,9 +96,10 @@ type wsTracker struct {
 // newWSTracker constructs a new wsTracker.
 func newWSTracker(le *logrus.Entry, getClient func() *SessionClient) *wsTracker {
 	t := &wsTracker{
-		le:              le,
-		getClient:       getClient,
-		notifyCallbacks: make(map[string]func(*api.SONotifyEventPayload)),
+		le:                   le,
+		getClient:            getClient,
+		notifyCallbacks:      make(map[string]func(*api.SONotifyEventPayload)),
+		bstoreNonceCallbacks: make(map[string]func(uint64)),
 	}
 	t.rc = refcount.NewRefCountWithOptions(
 		nil,
@@ -343,6 +346,21 @@ func (t *wsTracker) runWebSocket(ctx context.Context, reconnect bool) (bool, err
 					t.onSONotify(soID, payload)
 				}
 			}
+			if evt.GetType() == "bstore_nonce" {
+				resourceID, nonce, ok := parseBlockStoreNonceEventPayload(evt.GetPayload())
+				if resourceID == "" {
+					resourceID = evt.GetSoId()
+				}
+				var nonceCb func(uint64)
+				if ok && resourceID != "" {
+					t.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+						nonceCb = t.bstoreNonceCallbacks[resourceID]
+					})
+				}
+				if nonceCb != nil {
+					nonceCb(nonce)
+				}
+			}
 			if evt.GetType() == "invite_mailbox" && t.onInviteMailbox != nil {
 				entry, updatedAt, ok := parseInviteMailboxEventPayload(evt.GetPayload())
 				if ok {
@@ -402,6 +420,20 @@ func (t *wsTracker) UnregisterNotifyCallback(soID string) {
 	})
 }
 
+// RegisterBlockStoreNonceCallback registers a bstore_nonce callback for a resource id.
+func (t *wsTracker) RegisterBlockStoreNonceCallback(resourceID string, cb func(uint64)) {
+	t.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		t.bstoreNonceCallbacks[resourceID] = cb
+	})
+}
+
+// UnregisterBlockStoreNonceCallback removes a bstore_nonce callback for a resource id.
+func (t *wsTracker) UnregisterBlockStoreNonceCallback(resourceID string) {
+	t.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		delete(t.bstoreNonceCallbacks, resourceID)
+	})
+}
+
 // parseEpochFromPayload extracts the epoch number from an account_changed
 // event payload.
 // Returns 0 if the payload cannot be parsed.
@@ -454,6 +486,19 @@ func parseSONotifyEventPayload(payload []byte) (*api.SONotifyEventPayload, bool)
 		return nil, false
 	}
 	return &p, true
+}
+
+// parseBlockStoreNonceEventPayload decodes the proto-encoded
+// BlockStoreNonceEventPayload attached to bstore_nonce session events.
+func parseBlockStoreNonceEventPayload(payload []byte) (string, uint64, bool) {
+	if len(payload) == 0 {
+		return "", 0, false
+	}
+	var p api.BlockStoreNonceEventPayload
+	if err := p.UnmarshalVT(payload); err != nil {
+		return "", 0, false
+	}
+	return p.GetResourceId(), p.GetNonce(), true
 }
 
 // parseInviteMailboxEventPayload decodes the proto-encoded

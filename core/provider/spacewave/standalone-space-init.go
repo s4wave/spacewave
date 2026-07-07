@@ -117,20 +117,22 @@ func (c *SessionClient) loadStandaloneInitState(
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "get so state")
 	}
-	state, _, err := decodeSOStateResponse(stateData)
+	state, _, chain, err := decodeSOStateResponse(stateData)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "decode so state")
 	}
 	if state == nil {
 		return nil, nil, errors.New("missing so state snapshot")
 	}
-	chainData, err := c.GetConfigChain(ctx, spaceID)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "get config chain")
-	}
-	chain := &sobject.SOConfigChainResponse{}
-	if err := chain.UnmarshalVT(chainData); err != nil {
-		return nil, nil, errors.Wrap(err, "unmarshal config chain")
+	if chain == nil {
+		chainData, err := c.GetConfigChain(ctx, spaceID)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "get config chain")
+		}
+		chain = &sobject.SOConfigChainResponse{}
+		if err := chain.UnmarshalVT(chainData); err != nil {
+			return nil, nil, errors.Wrap(err, "unmarshal config chain")
+		}
 	}
 	return state, chain, nil
 }

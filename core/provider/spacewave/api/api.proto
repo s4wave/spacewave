@@ -124,6 +124,10 @@ message SOStateMessage {
     // ConfigChanged carries the new config after a participant role change.
     .sobject.SharedObjectConfig config_changed = 5;
   }
+  // ConfigChain carries the config-chain entries and key epochs that verify the
+  // snapshot's config_chain_hash. State responses include it so clients do not
+  // burst a separate /config-chain request after every cold state pull.
+  .sobject.SOConfigChainResponse config_chain = 6;
 }
 
 // SOStateError is a server-side error notification sent to subscribers.
@@ -278,6 +282,16 @@ message PendingParticipantPayload {
   string account_id = 1;
 }
 
+// BlockStoreNonceEventPayload is the payload for bstore_nonce session events.
+// It tells a session that a block store it has previously pulled advanced past
+// the nonce last recorded by the Session DO.
+message BlockStoreNonceEventPayload {
+  // ResourceId is the block store resource id.
+  string resource_id = 1;
+  // Nonce is the latest monotonic packfile sequence in the block store.
+  uint64 nonce = 2;
+}
+
 // MemberSessionChangedPayload is the payload for member_session_added and
 // member_session_removed session events.
 message MemberSessionChangedPayload {
@@ -320,6 +334,10 @@ message SONotifyEventPayload {
   // Metadata carries the authoritative metadata snapshot for metadata-change
   // notifications. It is unset for state/config/delete notifications.
   SpaceMetadataResponse metadata = 4;
+  // BlockStoreNonce is the latest block-store pull cursor known when this
+  // shared-object notification was emitted. Receivers refresh pack metadata
+  // only when this value is ahead of their local manifest cursor.
+  uint64 block_store_nonce = 5;
 }
 
 // MultiSigActionKind identifies the typed multi-sig action carried by an

@@ -169,6 +169,13 @@ export interface PullResponse {
    * @generated from field: repeated provider.spacewave.packfile.PackReplacementEvent replacement_events = 2;
    */
   replacementEvents?: PackReplacementEvent[]
+  /**
+   * LatestSequence is the current monotonic sequence head for the block store,
+   * even when Entries and ReplacementEvents are empty for an up-to-date pull.
+   *
+   * @generated from field: uint64 latest_sequence = 3;
+   */
+  latestSequence?: bigint
 }
 
 export const PullResponse: MessageType<PullResponse> =
@@ -189,6 +196,7 @@ export const PullResponse: MessageType<PullResponse> =
         T: () => PackReplacementEvent,
         repeated: true,
       },
+      { no: 3, name: 'latest_sequence', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

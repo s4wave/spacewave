@@ -3,6 +3,8 @@ package provider_spacewave
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -10,6 +12,9 @@ import (
 
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/routine"
+	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
+	packfile_manifest "github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
+	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	"github.com/s4wave/spacewave/core/provider/spacewave/synctelemetry"
 	"github.com/sirupsen/logrus"
 )
@@ -91,6 +96,67 @@ func TestBstoreSyncOwnerStopWaitsForExecuteCleanup(t *testing.T) {
 	case <-cleaned:
 	default:
 		t.Fatal("Stop returned before Execute cleanup completed")
+	}
+}
+
+func TestSyncControllerCoalescesNonceTriggersIntoPullNow(t *testing.T) {
+	ctx := context.Background()
+	pullStarted := make(chan struct{}, 3)
+	releasePull := make(chan struct{})
+	respData := mustMarshalVT(t, &packfile.PullResponse{LatestSequence: 7})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/bstore/space-1/sync/pull" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		pullStarted <- struct{}{}
+		<-releasePull
+		_, _ = w.Write(respData)
+	}))
+	defer srv.Close()
+
+	priv, pid := generateTestKeypair(t)
+	store := newSyncTestKvStore()
+	mfst, err := packfile_manifest.New(ctx, store)
+	if err != nil {
+		t.Fatalf("new manifest: %v", err)
+	}
+	sc := &syncController{
+		le:         logrus.NewEntry(logrus.New()),
+		store:      store,
+		client:     NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String()),
+		resourceID: "space-1",
+		mfst:       mfst,
+		lower:      packfile_store.NewPackfileStore(nil, nil),
+	}
+	sc.remotePullRoutine = newCoalescedTriggerRoutine(
+		logrus.NewEntry(logrus.New()),
+		"test-bstore-remote-pull",
+		sc.pullRemoteOnTrigger,
+	)
+	runCtx, cancel := context.WithCancel(context.Background())
+	sc.remotePullRoutine.SetContext(runCtx)
+	defer func() {
+		cancel()
+		sc.remotePullRoutine.ClearContext()
+	}()
+
+	sc.TriggerRemotePull()
+	waitForBstoreSyncOwnerSignal(t, pullStarted, time.Second, "nonce-triggered pull")
+	sc.TriggerRemotePull()
+	sc.TriggerRemotePull()
+	sc.TriggerRemotePull()
+	select {
+	case <-pullStarted:
+		t.Fatal("coalesced nonce triggers started a redundant concurrent pull")
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	close(releasePull)
+	waitForBstoreSyncOwnerSignal(t, pullStarted, time.Second, "coalesced pending pull")
+	select {
+	case <-pullStarted:
+		t.Fatal("coalesced nonce triggers replayed more than one pending pull")
+	case <-time.After(250 * time.Millisecond):
 	}
 }
 
