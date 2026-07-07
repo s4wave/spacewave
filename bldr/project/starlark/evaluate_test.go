@@ -617,6 +617,16 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 			t.Fatalf("plugin-release-browser manifests missing %s: %v", want, pluginReleaseBrowser.GetManifests())
 		}
 	}
+	pluginReleaseOverride := pluginReleaseBrowser.GetManifestOverrides()["spacewave-core"]
+	if pluginReleaseOverride == nil {
+		t.Fatal("plugin-release-browser spacewave-core GoScript override not found")
+	}
+	pluginReleaseCoreConf := mustGoPluginConfig(t, pluginReleaseOverride.GetConfig())
+	pluginReleaseJSConf := flattenGoConfigForPlatform(t, pluginReleaseCoreConf, "js")
+	if pluginReleaseJSConf.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT {
+		t.Fatalf("plugin-release-browser js spacewave-core goCompiler: got %s, want GO_COMPILER_GOSCRIPT", pluginReleaseJSConf.GetGoCompiler())
+	}
+
 
 	webBuild := result.Config.GetBuild()["release-remote-web"]
 	if webBuild == nil {

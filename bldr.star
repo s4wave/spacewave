@@ -621,6 +621,12 @@ def plugin_release_browser_manifest_overrides(manifest_id):
         return PLUGIN_RELEASE_BROWSER_MANIFEST_OVERRIDES
     return {}
 
+def plugin_release_browser_manifest_platform_ids(manifest_id):
+    if manifest_id == "web":
+        return ["web/js/wasm"]
+    return ["js"]
+
+
 build("plugin-release-browser",
     manifests=REMOTE_WORLD_MANIFESTS,
     targets=["browser"],
