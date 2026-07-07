@@ -65,6 +65,7 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
 
 vi.mock('@s4wave/web/hooks/useRootResource.js', () => ({
   useRootResource: () => commandLinePageMocks.rootResource,
+  useRootResourceWithClient: () => commandLinePageMocks.rootResource,
 }))
 
 vi.mock('@s4wave/web/router/router.js', () => ({
@@ -122,6 +123,18 @@ describe('DesktopCLIInstallCard', () => {
     expect(
       screen.getByText('spacewave-cli rev 9 (desktop/darwin/arm64)'),
     ).toBeDefined()
+  })
+
+  it('maps unimplemented desktop install resource errors to unavailable copy', () => {
+    render(<DesktopCLIInstallCard error={new Error('unimplemented')} />)
+
+    expect(screen.getByText('Desktop CLI install unavailable')).toBeDefined()
+    expect(
+      screen.getByText(
+        'This desktop build has not exposed managed CLI install yet. You can still use the in-app terminal below.',
+      ),
+    ).toBeDefined()
+    expect(screen.queryByText('unimplemented')).toBeNull()
   })
 
   it('renders update, conflict, failure, and progress states without local PATH reconstruction', () => {

@@ -1,5 +1,12 @@
-import { useCallback, useMemo, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
 import { isDesktop } from '@aptre/bldr'
+import { useBldrContext } from '@aptre/bldr-react'
 import {
   LuArrowLeft,
   LuDownload,
@@ -10,6 +17,10 @@ import {
   LuUsers,
 } from 'react-icons/lu'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { Client as ResourceClient } from '@aptre/bldr-sdk/resource/index.js'
+import { ResourceServiceClient } from '@aptre/bldr-sdk/resource/resource_srpc.pb.js'
+import { Client as SRPCClient } from 'starpc'
 import type { Root } from '@s4wave/sdk/root'
 import {
   DesktopCLIInstallActionKind,
@@ -22,10 +33,13 @@ import {
 import { DesktopCLIInstallResourceServiceClient } from '@go/github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime/desktop-runtime_srpc.pb.js'
 
 import { useRuntimeHandoff } from '@s4wave/app/listener/RuntimeHandoffContext.js'
-import { useListenerStatus } from '@s4wave/app/hooks/useListenerStatus.js'
+import {
+  useListenerStatus,
+  type ListenerStatus,
+} from '@s4wave/app/hooks/useListenerStatus.js'
 import { useShellTabs } from '@s4wave/app/ShellTabContext.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
-import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
+import { useRootResourceWithClient } from '@s4wave/web/hooks/useRootResource.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
@@ -45,9 +59,9 @@ export function CommandLineSetupPage() {
   const navigate = useNavigate()
   const sessionIdx = useSessionIndex()
   const status = useListenerStatus()
-  const rootResource = useRootResource()
+  const desktopRootResource = useDesktopRuntimeRootResource()
   const { activeTabId, openPathInActiveTabset } = useShellTabs()
-  const cliInstall = useDesktopCLIInstallState(rootResource)
+  const cliInstall = useDesktopCLIInstallState(desktopRootResource)
 
   const handleBack = useCallback(() => {
     navigate({ path: '../../' })
@@ -66,7 +80,7 @@ export function CommandLineSetupPage() {
   }, [activeTabId, openPathInActiveTabset, sessionIdx])
   const handleCLIInstallAction = useCallback(
     async (action: DesktopCLIInstallActionItem) => {
-      const root = rootResource.value
+      const root = desktopRootResource.value
       if (!root) return
       const service = new DesktopCLIInstallResourceServiceClient(root.client)
       await service.InvokeCLIInstallAction({
@@ -74,7 +88,7 @@ export function CommandLineSetupPage() {
         generation: action.generation,
       })
     },
-    [rootResource.value],
+    [desktopRootResource.value],
   )
 
   const opts: CommandOptions = useMemo(
@@ -161,9 +175,35 @@ function InAppTerminalLauncher({ onOpen }: { onOpen: () => void }) {
   )
 }
 
-function useDesktopCLIInstallState(
-  rootResource: ReturnType<typeof useRootResource>,
-) {
+function useDesktopRuntimeRootResource(): Resource<Root> {
+  const bldrContext = useBldrContext()
+  const webDocument = bldrContext?.webDocument
+  const [resourceClient, setResourceClient] = useState<ResourceClient | null>(
+    null,
+  )
+
+  useEffect(() => {
+    if (!isDesktop || !webDocument) return
+
+    const abortController = new AbortController()
+    const rpcClient = new SRPCClient(
+      webDocument.openWebDocumentHostStream.bind(webDocument),
+    )
+    const service = new ResourceServiceClient(rpcClient)
+    const client = new ResourceClient(service, abortController.signal)
+    setResourceClient(client)
+
+    return () => {
+      client.dispose()
+      setResourceClient(null)
+      abortController.abort()
+    }
+  }, [webDocument])
+
+  return useRootResourceWithClient(resourceClient)
+}
+
+function useDesktopCLIInstallState(rootResource: Resource<Root>) {
   return useStreamingResource(
     rootResource,
     (root: Root, signal: AbortSignal) =>
@@ -197,7 +237,11 @@ export function DesktopCLIInstallCard({
   const presentation = desktopCLIInstallPresentation(state, loading, error)
   const selectedTarget = state?.targets?.find((target) => target.selected)
   const actions = state?.actions ?? []
-
+  const errorMessage = (state?.errorMessage ?? '')
+    .toLowerCase()
+    .includes('unimplemented')
+    ? ''
+    : (state?.errorMessage ?? '')
   return (
     <section className="border-foreground/6 bg-background-card/30 rounded-lg border p-4 backdrop-blur-sm">
       <div className="mb-3 flex items-start gap-3">
@@ -268,8 +312,8 @@ export function DesktopCLIInstallCard({
         </div>
       )}
 
-      {state?.errorMessage && (
-        <p className="text-danger mt-3 text-xs">{state.errorMessage}</p>
+      {errorMessage && (
+        <p className="text-danger mt-3 text-xs">{errorMessage}</p>
       )}
     </section>
   )
@@ -396,10 +440,19 @@ function desktopCLIInstallPresentation(
   detail: string
 } {
   if (error) {
+    if (error.message.toLowerCase().includes('unimplemented')) {
+      return {
+        tone: 'muted',
+        label: 'Desktop CLI install unavailable',
+        detail:
+          'This desktop build has not exposed managed CLI install yet. You can still use the in-app terminal below.',
+      }
+    }
     return {
       tone: 'error',
       label: 'Install state unavailable',
-      detail: error.message,
+      detail:
+        'The desktop runtime could not load managed CLI install state. Use the in-app terminal below, then check desktop logs if this persists.',
     }
   }
   if (loading || !state) {
@@ -710,7 +763,7 @@ function ListenerStatusChip() {
 // for a given status/handoff pair. Caller must have already gated on
 // isDesktop; this helper is only valid for the desktop path.
 function listenerToneLabel(
-  status: ReturnType<typeof useListenerStatus>,
+  status: ListenerStatus | null,
   handoffActive: boolean,
 ): { tone: 'ready' | 'warning' | 'muted'; label: string } {
   if (handoffActive) return { tone: 'warning', label: 'Not listening' }
