@@ -12,11 +12,10 @@ import type {
   ObjectViewerComponent,
   ObjectViewerComponentProps,
 } from './object.js'
-import { getObjectKey } from './object.js'
+import { debugViewerComponentID, getObjectKey } from './object.js'
 import type { ObjectInfo } from './object.pb.js'
 import { ObjectViewerLoadingState } from './ObjectViewerLoadingState.js'
 
-const debugViewerComponentID = 'spacewave.debug.viewer'
 interface ObjectViewerContentProps {
   objectInfo: ObjectInfo
   worldState: Resource<IWorldState>
