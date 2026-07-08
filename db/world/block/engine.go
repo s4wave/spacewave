@@ -74,6 +74,13 @@ type Engine struct {
 	writeCoordKeyPrefix []byte
 	// writeHeadRefresh rereads the durable World head before a write mutation starts.
 	writeHeadRefresh func(context.Context) (*bucket.ObjectRef, error)
+	// decodedBlocks owns bounded decoded-node reuse across world-state rebuilds.
+	// Entries are keyed by verified block ref, block type, and transform identity.
+	decodedBlocks *block.DecodedBlockCache
+	// decodedBlockCacheOptions override the production decoded cache budget.
+	decodedBlockCacheOptions block.DecodedBlockCacheOptions
+	// decodedBlockCacheOptionsSet indicates an explicit cache option override.
+	decodedBlockCacheOptionsSet bool
 	// changeWaiters are selective changelog waiters keyed by the filters they
 	// registered before blocking. Guarded by rmtx.
 	changeWaiters map[*changeWaiter]struct{}
@@ -116,6 +123,15 @@ func WithWriteCoordinator(
 	}
 }
 
+// WithDecodedBlockCacheOptions overrides the engine-owned decoded-block cache.
+// Passing Disabled bypasses shared decoded retention for tests and attribution.
+func WithDecodedBlockCacheOptions(opts block.DecodedBlockCacheOptions) EngineOption {
+	return func(e *Engine) {
+		e.decodedBlockCacheOptions = opts
+		e.decodedBlockCacheOptionsSet = true
+	}
+}
+
 // NewEngine constructs a new world engine.
 // commitFn can be nil.
 func NewEngine(
@@ -145,6 +161,23 @@ func NewEngine(
 		}
 	}
 
+	cacheOpts := block.DefaultDecodedBlockCacheOptions()
+	if e.decodedBlockCacheOptionsSet {
+		cacheOpts = e.decodedBlockCacheOptions
+	}
+	if cacheOpts.Disabled {
+		e.baseRoot.SetDecodedBlockCache(nil)
+		e.root.SetDecodedBlockCache(nil)
+	} else {
+		decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(cacheOpts)
+		if err != nil {
+			return nil, err
+		}
+		e.decodedBlocks = decodedBlocks
+		e.baseRoot.SetDecodedBlockCache(decodedBlocks)
+		e.root.SetDecodedBlockCache(decodedBlocks)
+	}
+
 	// In the opt-in single-writer deferred-durability mode, defer block durability
 	// so per-commit writes accumulate and become durable only at Sync, alongside
 	// the deferred durable head. Coordinator mode and all callers that did not opt
@@ -163,6 +196,9 @@ func NewEngine(
 	err := e.updateReadWriteTxns(taskCtx)
 	subtask.End()
 	if err != nil {
+		if e.decodedBlocks != nil {
+			e.decodedBlocks.Close()
+		}
 		return nil, err
 	}
 	return e, nil
@@ -299,7 +335,6 @@ func (e *Engine) setRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) er
 	}
 
 	// apply committed changes or rollback
-	// oldRoot := e.root.GetRef().Clone()
 	oldRoot := e.root
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/set-root-ref/follow-ref")
 	nextRoot, err := e.baseRoot.FollowRef(taskCtx, ref)
@@ -312,6 +347,11 @@ func (e *Engine) setRootRefLocked(ctx context.Context, ref *bucket.ObjectRef) er
 	err = e.updateReadWriteTxns(taskCtx)
 	subtask.End()
 	if err == nil {
+		// The old root cursor position changed. Child entries stay reusable
+		// because decoded cache keys are verified immutable block refs.
+		if e.decodedBlocks != nil {
+			e.decodedBlocks.InvalidateRef(ctx, oldRoot.GetRef().GetRootRef())
+		}
 		oldRoot.Release()
 		e.notifyChangeWaitersLocked(ctx, prevSeqno)
 	} else {
@@ -728,6 +768,10 @@ func (e *Engine) Close() error {
 	if e.root != nil {
 		e.root.Release()
 		e.root = nil
+	}
+	if e.decodedBlocks != nil {
+		e.decodedBlocks.Close()
+		e.decodedBlocks = nil
 	}
 	if e.baseRoot != nil {
 		e.baseRoot.Release()

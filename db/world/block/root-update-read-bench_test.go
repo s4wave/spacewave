@@ -120,6 +120,64 @@ func BenchmarkEngineRootUpdateReadAttribution(b *testing.B) {
 	}
 }
 
+func TestEngineDefaultDecodedCacheReusesRepeatedReads(t *testing.T) {
+	ctx := context.Background()
+
+	for _, tc := range []struct {
+		name         string
+		decodedCache bool
+	}{
+		{name: "default-cache", decodedCache: true},
+		{name: "disabled-cache"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fixture, cleanup := setupRootUpdateReadBench(ctx, t, tc.decodedCache)
+			defer cleanup()
+
+			firstRoot := fixture.roots[1]
+			secondRoot := fixture.roots[2]
+			_ = fixture.readSnapshotAtRoot(t, ctx, firstRoot, true)
+			snapshot := fixture.readSnapshotAtRoot(t, ctx, secondRoot, true)
+
+			if tc.decodedCache {
+				if snapshot.DecodedBlockCacheAttemptCount == 0 || snapshot.DecodedBlockCacheHitCount == 0 {
+					t.Fatalf("default engine reads must use the engine-owned decoded cache, got %+v", snapshot)
+				}
+				return
+			}
+
+			if snapshot.DecodedBlockCacheAttemptCount != 0 ||
+				snapshot.DecodedBlockCacheHitCount != 0 ||
+				snapshot.DecodedBlockCacheMissCount != 0 ||
+				snapshot.DecodedBlockStoreAttemptCount != 0 {
+				t.Fatalf("disabled decoded cache must preserve uncached read attribution, got %+v", snapshot)
+			}
+			if snapshot.DecodedBlockUnmarshalCount == 0 {
+				t.Fatalf("disabled decoded cache read should still decode blocks, got %+v", snapshot)
+			}
+		})
+	}
+}
+
+func TestEngineDecodedCacheRootChangeInvalidatesOnlyOldRoot(t *testing.T) {
+	ctx := context.Background()
+	fixture, cleanup := setupRootUpdateReadBench(ctx, t, true)
+	defer cleanup()
+
+	oldRoot := fixture.roots[1]
+	nextRoot := fixture.roots[2]
+	_ = fixture.readSnapshotAtRoot(t, ctx, oldRoot, true)
+	_ = fixture.readSnapshotAtRoot(t, ctx, nextRoot, true)
+
+	snapshot := fixture.readSnapshotAtRoot(t, ctx, oldRoot, false)
+	if snapshot.DecodedBlockCacheMissCount == 0 {
+		t.Fatalf("returning to the invalidated old root should miss that root entry, got %+v", snapshot)
+	}
+	if snapshot.DecodedBlockCacheHitCount == 0 {
+		t.Fatalf("root change should retain shared child decoded entries, got %+v", snapshot)
+	}
+}
+
 type rootUpdateReadBenchFixture struct {
 	engine        *Engine
 	decodedBlocks *block.DecodedBlockCache
@@ -144,22 +202,13 @@ func setupRootUpdateReadBench(ctx context.Context, tb testing.TB, decodedCache b
 		tb.Fatal(err.Error())
 	}
 
-	var decodedBlocks *block.DecodedBlockCache
-	if decodedCache {
-		decodedBlocks, err = block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
-		if err != nil {
-			root.Release()
-			tbed.Release()
-			tb.Fatal(err.Error())
-		}
-		root.SetDecodedBlockCache(decodedBlocks)
+	var opts []EngineOption
+	if !decodedCache {
+		opts = append(opts, WithDecodedBlockCacheOptions(block.DecodedBlockCacheOptions{Disabled: true}))
 	}
 
-	eng, err := NewEngine(ctx, le, root, world_mock.LookupMockOp, nil, false)
+	eng, err := NewEngine(ctx, le, root, world_mock.LookupMockOp, nil, false, opts...)
 	if err != nil {
-		if decodedBlocks != nil {
-			decodedBlocks.Close()
-		}
 		root.Release()
 		tbed.Release()
 		tb.Fatal(err.Error())
@@ -168,9 +217,6 @@ func setupRootUpdateReadBench(ctx context.Context, tb testing.TB, decodedCache b
 	cleanup := func() {
 		if err := eng.Close(); err != nil {
 			tb.Fatal(err.Error())
-		}
-		if decodedBlocks != nil {
-			decodedBlocks.Close()
 		}
 		tbed.Release()
 	}
@@ -241,7 +287,7 @@ func setupRootUpdateReadBench(ctx context.Context, tb testing.TB, decodedCache b
 
 	fixture := &rootUpdateReadBenchFixture{
 		engine:        eng,
-		decodedBlocks: decodedBlocks,
+		decodedBlocks: eng.decodedBlocks,
 		roots:         roots,
 		objectKeys:    objectKeys,
 		graphFilter:   graphFilters,
@@ -259,6 +305,28 @@ func (f *rootUpdateReadBenchFixture) publishRoot(ctx context.Context, ref *bucke
 	f.engine.rmtx.Lock()
 	defer f.engine.rmtx.Unlock()
 	return f.engine.setRootRefLocked(ctx, ref)
+}
+
+func (f *rootUpdateReadBenchFixture) readSnapshotAtRoot(t *testing.T, ctx context.Context, ref *bucket.ObjectRef, waitAfterPublish bool) block.ReadCounterSnapshot {
+	t.Helper()
+
+	opCtx, counter := block.WithReadCounter(ctx)
+	if err := f.publishRoot(opCtx, ref); err != nil {
+		t.Fatal(err.Error())
+	}
+	if waitAfterPublish {
+		f.waitDecodedCache()
+	}
+	readTx, err := f.engine.NewBlockEngineTransaction(opCtx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer readTx.Discard()
+	if err := f.readObjectAndGraphPaths(opCtx, readTx); err != nil {
+		t.Fatal(err.Error())
+	}
+	f.waitDecodedCache()
+	return counter.Snapshot()
 }
 
 func (f *rootUpdateReadBenchFixture) readObjectAndGraphPaths(ctx context.Context, readTx *EngineTx) error {
