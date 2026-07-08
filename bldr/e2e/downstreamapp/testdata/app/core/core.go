@@ -2,7 +2,6 @@ package downstream_core
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/pkg/errors"
 
@@ -11,7 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 )
 
-const controllerID = "bldr/e2e/downstreamapp/core"
+const controllerID = "downstream-app/core"
 
 type Config struct{}
 
@@ -25,7 +24,7 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 }
 
 func (c *Config) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct{}{})
+	return []byte("{}"), nil
 }
 
 func (c *Config) UnmarshalJSON([]byte) error {

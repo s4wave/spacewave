@@ -494,6 +494,13 @@ async function buildWebPkg(
         if (!ext || !knownExts.has(ext)) break
         name = name.substring(0, name.length - ext.length)
       }
+      if (
+        rootServedName &&
+        name.startsWith('dist/') &&
+        name.substring('dist/'.length) === rootServedName
+      ) {
+        name = rootServedName
+      }
       input[name] = path.isAbsolute(imp) ? imp : path.resolve(pkgRoot, imp)
     }
 

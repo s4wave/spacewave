@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 
 	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
+	bldr "github.com/s4wave/spacewave/bldr"
+	"github.com/s4wave/spacewave/bldr/util/npm"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 	"github.com/sirupsen/logrus"
@@ -23,7 +25,16 @@ func BuildWebPluginBrowserEntrypoint(ctx context.Context, le *logrus.Entry, bldr
 	outFilename := filepath.Base(outFile)
 	le.Infof("building %v", outFilename)
 
+	depsDir := filepath.Join(filepath.Dir(outFile), "runtime-deps")
+	if err := npm.EnsureBunInstall(ctx, le, filepath.Dir(outFile), bldr.ResolveDistSourcePath(bldrDistRoot, "dist", "deps", "package.json"), depsDir); err != nil {
+		return err
+	}
+	if err := npm.EnsureNodeModulesLink(bldrDistRoot, depsDir); err != nil {
+		return err
+	}
+
 	opts := entrypoint_browser_bundle.BrowserBuildOpts(bldrDistRoot, minify, sourcemaps)
+	opts.NodePaths = append(opts.NodePaths, filepath.Join(depsDir, "node_modules"))
 	opts.EntryPoints = []string{path.Join(webPluginBrowserPkg, "web-plugin-browser.ts")}
 	opts.Outfile = outFile
 	opts.Write = true

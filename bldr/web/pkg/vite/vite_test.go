@@ -60,6 +60,7 @@ func TestBuildWebPkgsViteKeepsRelativeSourceFiles(t *testing.T) {
 		false,
 		false,
 		true,
+		nil,
 		client,
 		filepath.Join(t.TempDir(), "cache"),
 	)
@@ -110,6 +111,7 @@ func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
 		false,
 		false,
 		true,
+		nil,
 		client,
 		filepath.Join(t.TempDir(), "cache"),
 	)
@@ -166,6 +168,7 @@ func TestBuildWebPkgsVitePropagatesJavaScriptPolicy(t *testing.T) {
 		true,
 		false,
 		true,
+		[]string{"react", "policy-pkg"},
 		client,
 		filepath.Join(t.TempDir(), "cache"),
 	)
@@ -184,5 +187,8 @@ func TestBuildWebPkgsVitePropagatesJavaScriptPolicy(t *testing.T) {
 	}
 	if !req.GetJsSourcemaps() {
 		t.Fatal("request did not enable JavaScript sourcemaps")
+	}
+	if !slices.Equal(req.GetExternalPkgs(), []string{"react"}) {
+		t.Fatalf("external packages = %v, want [react]", req.GetExternalPkgs())
 	}
 }

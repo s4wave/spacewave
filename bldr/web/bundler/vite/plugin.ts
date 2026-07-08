@@ -270,6 +270,9 @@ export function createWebPkgRemapPlugin(
               ? alias.replacement
               : path.resolve(root, alias.replacement)
             webPkgRoots[find] = resolved
+            if (config.addWebPkgRoot) {
+              config.addWebPkgRoot(find, resolved)
+            }
             if (debug)
               console.log(`[bldr-pkg-resolve] root for ${find}: ${resolved}`)
           }

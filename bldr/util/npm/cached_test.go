@@ -6,6 +6,76 @@ import (
 	"testing"
 )
 
+func TestEnsureNodeModulesLinkCreatesSymlinkToInstallNodeModules(t *testing.T) {
+	parentDir := t.TempDir()
+	installDir := t.TempDir()
+	installNodeModules := filepath.Join(installDir, "node_modules")
+	if err := os.Mkdir(installNodeModules, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := EnsureNodeModulesLink(parentDir, installDir); err != nil {
+		t.Fatal(err)
+	}
+
+	assertNodeModulesSymlinkTarget(t, parentDir, installNodeModules)
+}
+
+func TestEnsureNodeModulesLinkToleratesExistingSymlinkToInstallNodeModules(t *testing.T) {
+	parentDir := t.TempDir()
+	installDir := t.TempDir()
+	installNodeModules := filepath.Join(installDir, "node_modules")
+	if err := os.Mkdir(installNodeModules, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	target, err := filepath.Abs(installNodeModules)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(target, filepath.Join(parentDir, "node_modules")); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := EnsureNodeModulesLink(parentDir, installDir); err != nil {
+		t.Fatal(err)
+	}
+
+	assertNodeModulesSymlinkTarget(t, parentDir, installNodeModules)
+}
+
+func assertNodeModulesSymlinkTarget(t *testing.T, parentDir, installNodeModules string) {
+	t.Helper()
+
+	linkPath := filepath.Join(parentDir, "node_modules")
+	info, err := os.Lstat(linkPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode()&os.ModeSymlink == 0 {
+		t.Fatalf("%s is mode %v, want symlink", linkPath, info.Mode())
+	}
+
+	target, err := os.Readlink(linkPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !filepath.IsAbs(target) {
+		target = filepath.Join(parentDir, target)
+	}
+	target, err = filepath.Abs(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := filepath.Abs(installNodeModules)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if target != want {
+		t.Fatalf("node_modules symlink target=%q want %q", target, want)
+	}
+}
+
 func TestReadSiblingBunLock(t *testing.T) {
 	dir := t.TempDir()
 	pkgPath := filepath.Join(dir, "package.json")

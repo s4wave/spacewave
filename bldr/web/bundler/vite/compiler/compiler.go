@@ -815,6 +815,7 @@ func (c *Controller) performFullRebuild(
 			isRelease,
 			jsMinification,
 			jsSourcemaps,
+			web_pkg_external.BldrExternal,
 			bundlerClient,
 			filepath.Join(workingPath, "cache"),
 		)

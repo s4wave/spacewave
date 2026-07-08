@@ -758,6 +758,7 @@ func ApplyRuntimeDistDepsResolver(opts *esbuild.BuildOptions, buildPkgsDir strin
 	if buildPkgsDir == "" {
 		return
 	}
+	opts.NodePaths = append(opts.NodePaths, filepath.Join(buildPkgsDir, "node_modules"))
 	opts.Plugins = append(opts.Plugins, RuntimeDistDepsResolverPlugin(opts.AbsWorkingDir))
 }
 
@@ -1191,6 +1192,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 			minify,
 			minify,
 			sourcemaps,
+			nil,
 			client,
 			filepath.Join(viteWorkingPath, "cache"),
 		)

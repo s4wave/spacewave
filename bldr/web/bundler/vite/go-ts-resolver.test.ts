@@ -151,12 +151,58 @@ describe('goTsResolver', () => {
       expect(vendorRelativeResult).toBe(join(appVendorDir, 'projection.pb.ts'))
 
       const aliases = buildGoAliases(sourceRoot, distRoot)
-      const vendorAlias = aliases[aliases.length - 1]
-      expect(String(vendorAlias.find)).toBe(String(/^@go\/(.*)$/))
-      expect(vendorAlias.replacement).toBe(join(sourceRoot, 'vendor', '$1'))
+      expect(aliases).toHaveLength(1)
+      expect(String(aliases[0].find)).toBe(
+        String(/^@go\/github\.com\/example\/app\/(.*)$/),
+      )
+      expect(aliases[0].replacement).toBe(join(sourceRoot, '$1'))
     } finally {
       await rm(sourceRoot, { recursive: true, force: true })
       await rm(distRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('resolves materialized scoped package imports from a .s4wave/sdk root', async () => {
+    const projectRoot = await mkdtemp(join(tmpdir(), 'go-ts-materialized-'))
+    try {
+      const sdkDir = join(projectRoot, '.s4wave', 'sdk')
+      await mkdir(sdkDir, { recursive: true })
+      await writeFile(join(sdkDir, 'foo.ts'), 'export const foo = 1')
+
+      const plugin = goTsResolver(projectRoot)
+      const resolveId = plugin.resolveId as (
+        source: string,
+        importer?: string,
+      ) => Promise<string | null>
+
+      const result = await resolveId('@s4wave/sdk/foo.js')
+
+      expect(result).toBe(join(sdkDir, 'foo.ts'))
+    } finally {
+      await rm(projectRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('builds aliases for materialized scoped package roots', async () => {
+    const projectRoot = await mkdtemp(join(tmpdir(), 'go-ts-aliases-'))
+    try {
+      await mkdir(join(projectRoot, '.s4wave', 'web'), { recursive: true })
+      await mkdir(join(projectRoot, '.aptre', 'bldr-sdk'), { recursive: true })
+
+      const aliases = buildGoAliases(projectRoot)
+      const replacementsByFind = new Map(
+        aliases.map((alias) => [String(alias.find), alias.replacement]),
+      )
+
+      expect(aliases).toHaveLength(2)
+      expect(replacementsByFind.get('@s4wave/web')).toBe(
+        join(projectRoot, '.s4wave', 'web'),
+      )
+      expect(replacementsByFind.get('@aptre/bldr-sdk')).toBe(
+        join(projectRoot, '.aptre', 'bldr-sdk'),
+      )
+    } finally {
+      await rm(projectRoot, { recursive: true, force: true })
     }
   })
 })

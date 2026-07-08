@@ -17,6 +17,8 @@ import (
 	"github.com/aperturerobotics/util/pipesock"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
+	bldr "github.com/s4wave/spacewave/bldr"
+	"github.com/s4wave/spacewave/bldr/util/npm"
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
@@ -50,11 +52,29 @@ func RunOneShot(
 	)
 	pipeUuid := "vite-" + strings.ToLower(b58.Encode(pipeUuidBin[:]))[:4] + "-" + randstring.RandomIdentifier(4)
 
-	// Compile the vite service script with esbuild.
+	// Compile the vite service script with esbuild from an installed runtime deps dir.
 	if err := os.MkdirAll(workingPath, 0o755); err != nil {
 		return err
 	}
-	viteScriptPath := filepath.Join(workingPath, "bldr-"+pipeUuid+".mjs")
+	depsDir := filepath.Join(workingPath, "vite-runtime-deps")
+	if err := npm.EnsureBunInstall(ctx, le, workingPath, bldr.ResolveDistSourcePath(distSourcePath, "dist", "deps", "package.json"), depsDir); err != nil {
+		return err
+	}
+	if err := npm.EnsureNodeModulesLink(distSourcePath, depsDir); err != nil {
+		return err
+	}
+	if err := npm.EnsureNodeModulesLink(sourcePath, depsDir); err != nil {
+		return err
+	}
+	execDir := filepath.Join(os.TempDir(), "bd-"+pipeUuid)
+	if err := os.MkdirAll(execDir, 0o755); err != nil {
+		return err
+	}
+	defer os.RemoveAll(execDir)
+	if err := npm.EnsureNodeModulesLink(execDir, depsDir); err != nil {
+		return err
+	}
+	viteScriptPath := filepath.Join(execDir, "bldr-"+pipeUuid+".mjs")
 	opts := esbuild.BuildOptions{
 		AbsWorkingDir: distSourcePath,
 		SourceRoot:    workingPath,
@@ -77,9 +97,10 @@ func RunOneShot(
 			bldr_esbuild_build.ExternalNodeModulesPlugin(),
 			bldr_esbuild_build.GoVendorTsResolverPlugin(sourcePath, distSourcePath),
 		},
-		External: []string{"starpc", "vite"},
-		Bundle:   true,
-		Write:    true,
+		NodePaths: []string{filepath.Join(depsDir, "node_modules")},
+		External:  []string{"@aptre/protobuf-es-lite", "@aptre/protobuf-es-lite/*", "it-pipe", "it-pushable", "starpc", "vite"},
+		Bundle:    true,
+		Write:     true,
 	}
 	result := esbuild.Build(opts)
 	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
@@ -89,7 +110,7 @@ func RunOneShot(
 	defer os.Remove(viteScriptPath + ".map")
 
 	// Set up the IPC pipe.
-	pipeListener, err := pipesock.BuildPipeListener(le, workingPath, pipeUuid)
+	pipeListener, err := pipesock.BuildPipeListener(le, filepath.Dir(viteScriptPath), pipeUuid)
 	if err != nil {
 		return err
 	}
@@ -120,6 +141,7 @@ func RunOneShot(
 		"FORCE_COLOR=0",
 		"BLDR_PROJECT_ROOT="+sourcePath,
 		"BLDR_DIST_ROOT="+distSourcePath,
+		"BLDR_DIST_DEPS_NODE_MODULES="+filepath.Join(depsDir, "node_modules"),
 	)
 
 	if ctx.Err() != nil {

@@ -138,21 +138,27 @@ func TestRuntimeDistDepsResolverPinsBldrRuntimePackages(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := os.MkdirAll(filepath.Join(projectRoot, "state", "build-web-pkgs"), 0o755); err != nil {
+	buildPkgsDir := filepath.Join(projectRoot, "state", "build-web-pkgs")
+	runtimeDepDir := filepath.Join(buildPkgsDir, "node_modules", "runtime-dep")
+	if err := os.MkdirAll(runtimeDepDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(runtimeDepDir, "index.js"), []byte(`export const depMarker = "runtime-node-dep";`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(
 		filepath.Join(projectRoot, "entry.ts"),
 		[]byte(`import { runtimeMarker } from "@aptre/bldr";
 import { reactMarker } from "@aptre/bldr-react";
-console.log(runtimeMarker, reactMarker);`),
+import { depMarker } from "runtime-dep";
+console.log(runtimeMarker, reactMarker, depMarker);`),
 		0o644,
 	); err != nil {
 		t.Fatal(err)
 	}
 
 	opts := BrowserBuildOpts(projectRoot, false, false)
-	ApplyRuntimeDistDepsResolver(&opts, filepath.Join(projectRoot, "state", "build-web-pkgs"))
+	ApplyRuntimeDistDepsResolver(&opts, buildPkgsDir)
 	opts.EntryPoints = []string{"entry.ts"}
 	opts.Outfile = filepath.Join(projectRoot, "out.js")
 	opts.Write = true
@@ -169,7 +175,7 @@ console.log(runtimeMarker, reactMarker);`),
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, marker := range []string{"bldr-runtime", "bldr-react-runtime"} {
+	for _, marker := range []string{"bldr-runtime", "bldr-react-runtime", "runtime-node-dep"} {
 		if !strings.Contains(string(out), marker) {
 			t.Fatalf("output does not contain %s marker: %s", marker, out)
 		}

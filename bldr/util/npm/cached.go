@@ -64,6 +64,52 @@ func EnsureBunInstall(ctx context.Context, le *logrus.Entry, stateDir, srcPackag
 	return writeInstallHash(targetDir, hash)
 }
 
+// EnsureNodeModulesLink links parentDir/node_modules to installDir/node_modules.
+func EnsureNodeModulesLink(parentDir, installDir string) error {
+	target, err := filepath.Abs(filepath.Join(installDir, "node_modules"))
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(target); err != nil {
+		return err
+	}
+	linkPath := filepath.Join(parentDir, "node_modules")
+	info, err := os.Lstat(linkPath)
+	if err == nil {
+		if info.Mode()&os.ModeSymlink == 0 {
+			return nil
+		}
+		existing, err := os.Readlink(linkPath)
+		if err != nil {
+			return err
+		}
+		if !filepath.IsAbs(existing) {
+			existing = filepath.Join(parentDir, existing)
+		}
+		existing, err = filepath.Abs(existing)
+		if err != nil {
+			return err
+		}
+		if _, err := os.Stat(existing); err == nil {
+			return nil
+		}
+		if err := os.Remove(linkPath); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	if err := os.Symlink(target, linkPath); err != nil {
+		if !os.IsExist(err) {
+			return err
+		}
+		if _, err := os.Lstat(linkPath); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func readSiblingBunLock(srcPackageJson string) ([]byte, bool, error) {
 	lockPath := filepath.Join(filepath.Dir(srcPackageJson), "bun.lock")
 	data, err := os.ReadFile(lockPath)

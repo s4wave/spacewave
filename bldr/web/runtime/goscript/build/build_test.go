@@ -127,6 +127,61 @@ func TestBuildWebGoScriptPluginScriptDeploysBlake3Sidecar(t *testing.T) {
 	})
 }
 
+func TestBuildWebGoScriptPluginScriptBundlesNodeModuleImports(t *testing.T) {
+	root := t.TempDir()
+	bldrDistRoot := filepath.Join(root, "dist")
+	writeRolldownToolFixture(t, bldrDistRoot)
+	workDir := filepath.Join(root, "work")
+	goScriptOutputRoot := filepath.Join(root, "goscript")
+	outPath := filepath.Join(root, "out", "plugin.mjs")
+	aesPath := filepath.Join(bldrDistRoot, "dist", "deps", "node_modules", "@noble", "ciphers", "aes.js")
+
+	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"), `
+export default async function runGoScriptPlugin(_api, pluginMain) {
+  await pluginMain()
+}
+`)
+	writeTestFile(t, filepath.Join(goScriptOutputRoot, "@goscript", "example", "main", "plugin.gs.ts"), `
+import { aesProof } from "@noble/ciphers/aes.js"
+
+export async function main() {
+  return aesProof
+}
+`)
+	writeTestFile(t, aesPath, `
+export const aesProof = "noble-aes-proof"
+`)
+
+	inputs, err := BuildWebGoScriptPluginScript(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		bldrDistRoot,
+		workDir,
+		goScriptOutputRoot,
+		outPath,
+		"example/main",
+		false,
+		false,
+		false,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertInputsContainPaths(t, inputs, aesPath)
+	out, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outString := string(out)
+	if !strings.Contains(outString, "noble-aes-proof") {
+		t.Fatalf("bundle missing node module payload:\n%s", outString)
+	}
+	if strings.Contains(outString, `from"@noble/ciphers/aes.js"`) ||
+		strings.Contains(outString, `from "@noble/ciphers/aes.js"`) {
+		t.Fatalf("bundle kept bare node module import:\n%s", outString)
+	}
+}
+
 func TestBuildWebGoScriptPluginScriptExternalizesSharedGoScriptImports(t *testing.T) {
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")

@@ -4,7 +4,7 @@ import os from 'os'
 import fs from 'fs'
 import type { ResolvedConfig } from 'vite'
 
-import { createWebPkgRemapPlugin } from './plugin.js'
+import { createWebPkgRemapPlugin, readPackageRootServedName } from './plugin.js'
 
 describe('createWebPkgRemapPlugin', () => {
   it('preserves runtime externals and rewrites sibling web packages in rendered chunks', () => {
@@ -186,6 +186,89 @@ describe('createWebPkgRemapPlugin', () => {
       id: '/b/pkg/@aptre/protobuf-es-lite/google/protobuf/timestamp.mjs',
       external: true,
     })
+  })
+
+  it('maps a dist mjs package root export to the served index URL', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-pkg-dist-mjs-'))
+    try {
+      const pkgRoot = path.join(root, 'node_modules', 'root-output-pkg')
+      fs.mkdirSync(path.join(pkgRoot, 'dist'), { recursive: true })
+      fs.writeFileSync(
+        path.join(pkgRoot, 'package.json'),
+        JSON.stringify({
+          name: 'root-output-pkg',
+          type: 'module',
+          exports: { '.': { import: './dist/index.mjs' } },
+        }),
+      )
+      fs.writeFileSync(
+        path.join(pkgRoot, 'dist', 'index.mjs'),
+        'export const root = true\n',
+      )
+
+      expect(readPackageRootServedName(pkgRoot)).toBe('index')
+
+      const reportedRoots: Array<[string, string]> = []
+      const plugin = createWebPkgRemapPlugin({
+        webPkgIDs: ['root-output-pkg'],
+        webPkgBasePath: '/entrypoint/pkgs',
+        addWebPkgRoot: (webPkgID, webPkgRoot) => {
+          reportedRoots.push([webPkgID, webPkgRoot])
+        },
+      })
+
+      const configResolved = plugin.configResolved
+      if (typeof configResolved !== 'function') {
+        throw new Error('missing configResolved hook')
+      }
+      configResolved.call(
+        {} as never,
+        {
+          root,
+          resolve: {
+            alias: [{ find: 'root-output-pkg', replacement: pkgRoot }],
+          },
+        } as ResolvedConfig,
+      )
+      expect(reportedRoots).toEqual([['root-output-pkg', pkgRoot]])
+
+      const renderChunk = plugin.renderChunk
+      if (typeof renderChunk !== 'function') {
+        throw new Error('missing renderChunk hook')
+      }
+      const rendered = renderChunk.call(
+        {} as never,
+        'import { root as pkgRoot } from "root-output-pkg";',
+        {} as never,
+        {} as never,
+        {} as never,
+      )
+      expect(rendered).toContain('"/entrypoint/pkgs/root-output-pkg/index.mjs"')
+      expect(rendered).not.toContain('/dist/')
+
+      const resolveId = plugin.resolveId
+      if (typeof resolveId !== 'function') {
+        throw new Error('missing resolveId hook')
+      }
+      const resolved = await resolveId.call(
+        {
+          resolve: async () => {
+            throw new Error(
+              'root export served map must not hit on-disk resolution',
+            )
+          },
+        } as never,
+        'root-output-pkg',
+        path.join(root, 'src', 'entry.js'),
+        { isEntry: false },
+      )
+      expect(resolved).toEqual({
+        id: '/entrypoint/pkgs/root-output-pkg/index.mjs',
+        external: true,
+      })
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
   })
 
   it('maps a dist root export to the served index URL without declared imports', async () => {

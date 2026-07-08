@@ -67,6 +67,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 			false,
 			false,
 			true,
+			nil,
 			client,
 			filepath.Join(workingDir, "cache"),
 		)

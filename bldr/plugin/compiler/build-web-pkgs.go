@@ -78,6 +78,7 @@ func BuildDirectWebPkgs(
 			isRelease,
 			jsMinification,
 			jsSourcemaps,
+			nil,
 			client,
 			filepath.Join(viteWorkingPath, "cache"),
 		)
