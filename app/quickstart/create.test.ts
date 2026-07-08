@@ -575,6 +575,48 @@ describe('quickstart create', () => {
     expect(getSettingsIndexPath(applyWorldOp)).toBe('notebook')
   })
 
+  it('surfaces a controlled timeout when Notes registration never arrives', async () => {
+    const timeoutController = new AbortController()
+    const timeoutSpy = vi
+      .spyOn(AbortSignal, 'timeout')
+      .mockReturnValue(timeoutController.signal)
+    const watchAbort = new Error('watch aborted')
+    quickstartRegistryMocks.ListQuickstarts.mockResolvedValue({
+      registrations: [],
+    })
+    quickstartRegistryMocks.WatchQuickstarts.mockReturnValue({
+      [Symbol.asyncIterator]() {
+        return {
+          next() {
+            timeoutController.abort(watchAbort)
+            return Promise.reject(watchAbort)
+          },
+        }
+      },
+    })
+    const { world, applyWorldOp } = buildQuickstartWorld()
+
+    try {
+      await expect(
+        populateSpace('notebook', notesQuickstartSetup(world, 56) as never),
+      ).rejects.toThrow(
+        'Timed out waiting for quickstart registration: notebook',
+      )
+
+      expect(timeoutSpy).toHaveBeenCalledWith(120000)
+      expect(quickstartRegistryMocks.WatchQuickstarts).toHaveBeenCalledWith(
+        {},
+        timeoutController.signal,
+      )
+      expect(quickstartRegistryMocks.ExecuteQuickstart).not.toHaveBeenCalled()
+      expect(getLastSettings(applyWorldOp).pluginIds).toEqual([
+        'spacewave-notes',
+      ])
+    } finally {
+      timeoutSpy.mockRestore()
+    }
+  })
+
   it('maps quickstarts to friendly seeded space names', () => {
     const cases: [QuickstartSpaceCreateId, string][] = [
       ['space', 'My Space'],

@@ -99,7 +99,7 @@ import { markQuickstartStartupBoundary } from './startup-boundary.js'
 const NOTES_PLUGIN_ID = 'spacewave-notes'
 const V86_PLUGIN_ID = 'spacewave-v86'
 const SET_V86_STATE_OP_ID = 'vm/v86/set-state'
-const QUICKSTART_REGISTRATION_TIMEOUT_MS = import.meta.env?.DEV ? 240000 : 30000
+const QUICKSTART_REGISTRATION_TIMEOUT_MS = 120000
 const QUICKSTART_LOCAL_PROVIDER_READY_TIMEOUT_MS = 120000
 const QUICKSTART_CREATE_LOCAL_ACCOUNT_TIMEOUT_MS = import.meta.env?.DEV
   ? 240000

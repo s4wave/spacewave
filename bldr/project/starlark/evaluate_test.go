@@ -516,13 +516,7 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		}
 	}
 	browserDistConf := mustDistConfig(t, browserOverride.GetConfig())
-	assertDistBrowserStartupClosure(t, "release-web", browserDistConf, "js")
-
-	for _, coldPlugin := range []string{`"spacewave-notes"`, `"spacewave-v86"`} {
-		if strings.Contains(browserCfg, coldPlugin) {
-			t.Fatalf("browser release embed/load config unexpectedly includes cold plugin %s: %s", coldPlugin, browserCfg)
-		}
-	}
+	assertDistBrowserReleaseEmbeddedManifests(t, "release-web", browserDistConf, "js")
 
 	e2eBrowserRelease := result.Config.GetBuild()["release-web-e2e"]
 	if e2eBrowserRelease == nil {
@@ -763,7 +757,7 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 		t.Fatal("spacewave-browser TinyGo release-web override not found")
 	}
 	tinygoReleaseDistConf := mustDistConfig(t, tinygoReleaseBrowserOverride.GetConfig())
-	assertDistBrowserStartupClosure(t, "release-web-tinygo", tinygoReleaseDistConf, "web/js/wasm")
+	assertDistBrowserReleaseEmbeddedManifests(t, "release-web-tinygo", tinygoReleaseDistConf, "web/js/wasm")
 
 	goscriptE2EReleaseBuild := result.Config.GetBuild()["release-web-e2e-goscript"]
 	if goscriptE2EReleaseBuild == nil {
@@ -856,6 +850,40 @@ func assertDistBrowserStartupClosure(
 		{manifestID: "web", platformID: "web/js/wasm"},
 		{manifestID: "spacewave-web", platformID: "js"},
 		{manifestID: "spacewave-app", platformID: "js"},
+	}
+	for _, want := range wantEmbedManifests {
+		assertDistEmbedPlatform(t, label, conf, want.manifestID, want.platformID)
+	}
+	assertDistEmbedManifests(t, label, conf, wantEmbedManifests)
+}
+
+func assertDistBrowserReleaseEmbeddedManifests(
+	t *testing.T,
+	label string,
+	conf *bldr_dist_compiler.Config,
+	goPlatformID string,
+) {
+	t.Helper()
+
+	wantLoadPlugins := []string{
+		"spacewave-launcher",
+		"spacewave-core",
+		"spacewave-web",
+		"spacewave-app",
+		"web",
+	}
+	if got := conf.GetLoadPlugins(); !slices.Equal(got, wantLoadPlugins) {
+		t.Fatalf("%s load plugins: got %v, want %v", label, got, wantLoadPlugins)
+	}
+
+	wantEmbedManifests := []distEmbedManifestWant{
+		{manifestID: "spacewave-launcher", platformID: goPlatformID},
+		{manifestID: "spacewave-core", platformID: goPlatformID},
+		{manifestID: "web", platformID: "web/js/wasm"},
+		{manifestID: "spacewave-web", platformID: "js"},
+		{manifestID: "spacewave-app", platformID: "js"},
+		{manifestID: "spacewave-notes", platformID: "js"},
+		{manifestID: "spacewave-v86", platformID: "js"},
 	}
 	for _, want := range wantEmbedManifests {
 		assertDistEmbedPlatform(t, label, conf, want.manifestID, want.platformID)

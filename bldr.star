@@ -498,15 +498,13 @@ REMOTE_WORLD_MANIFESTS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86",
     "spacewave-cli-plugin", "web",
 ]
-# Browser release intentionally embeds the full startup app closure:
-# spacewave-launcher, spacewave-core, web, spacewave-web, and spacewave-app.
-# The embedded Manifest world is the first FetchManifest source available to the
-# dist host, so these startup plugins must be resolvable before the launcher has
-# mounted the Release World. Launcher-only embedding can replace this list only
-# after a non-circular Release World FetchManifest path is owned by the host or
-# launcher and release preflight proves the Release World contains those
-# non-launcher startup tuples.
-def browser_release_embed_manifests(go_platform_id):
+# Browser release embeds the startup app closure plus dynamic quickstart plugin
+# manifests. The embedded Manifest world is the first FetchManifest source
+# available to the dist host, so startup plugins must be resolvable before the
+# launcher has mounted the Release World, and hidden quickstart plugins must be
+# resolvable on staging/browser-only deploys where the plugin Release World may
+# lag the entrypoint generation.
+def browser_startup_embed_manifests(go_platform_id):
     return [
         {"manifestId": "spacewave-launcher",
          "platformId": go_platform_id},
@@ -521,10 +519,19 @@ def browser_release_embed_manifests(go_platform_id):
     ]
 
 
+def browser_release_embed_manifests(go_platform_id):
+    return browser_startup_embed_manifests(go_platform_id) + [
+        {"manifestId": "spacewave-notes",
+         "platformId": "js"},
+        {"manifestId": "spacewave-v86",
+         "platformId": "js"},
+    ]
+
+
 BROWSER_RELEASE_EMBED_MANIFESTS = browser_release_embed_manifests("js")
 BROWSER_RELEASE_WASM_EMBED_MANIFESTS = browser_release_embed_manifests("web/js/wasm")
-BROWSER_RELEASE_E2E_EMBED_MANIFESTS = BROWSER_RELEASE_WASM_EMBED_MANIFESTS
-BROWSER_RELEASE_E2E_GOSCRIPT_EMBED_MANIFESTS = browser_release_embed_manifests("js")
+BROWSER_RELEASE_E2E_EMBED_MANIFESTS = browser_startup_embed_manifests("web/js/wasm")
+BROWSER_RELEASE_E2E_GOSCRIPT_EMBED_MANIFESTS = browser_startup_embed_manifests("js")
 
 build("app",         manifests=DEV_MANIFESTS,     targets=["desktop"])
 build("web",         manifests=DEV_MANIFESTS,     targets=["browser"])
