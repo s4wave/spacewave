@@ -111,7 +111,7 @@ func (o *manifestBuildOwner) publishResult(
 	rebuildReason := o.rebuildReasonSnapshot()
 	if err == nil {
 		if result != nil {
-			if err := result.Validate(); err != nil {
+			if err := result.ValidateBuildCache(); err != nil {
 				le.WithError(err).Debug("skipping world-backed manifest build result")
 			} else if err := o.c.storeManifestBuildResult(ctx, le, result); err != nil {
 				resultPromise.SetResult(nil, err)

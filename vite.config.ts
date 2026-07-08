@@ -1,7 +1,6 @@
-import { defineConfig } from 'vite'
-import { resolve } from 'path'
+import { defineConfig, type Plugin } from 'vite'
+import { dirname, resolve } from 'node:path'
 import { existsSync } from 'node:fs'
-import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import react from '@vitejs/plugin-react'
@@ -47,6 +46,63 @@ function resolveBldrSourcePath(...segments: string[]) {
     : resolve(__dirname, 'bldr', ...segments)
 }
 
+// optimizedDepVersionImports keeps React-dependent optimized dependency chunks
+// on one browser module URL. Vite 8 appends ?v=... to optimized dep entries
+// imported by source modules, while shared chunks import each other without the
+// query; React and ReactDOM then initialize separate dispatcher singletons.
+function optimizedDepVersionImports(): Plugin {
+  const rewriteImportSource = (
+    code: string,
+    versionQuery: string,
+    pattern: RegExp,
+  ) => {
+    return code.replace(pattern, (match, prefix, quote, source, suffix = '') => {
+      if (source.includes('?')) return match
+      return `${prefix}${quote}${source}${versionQuery}${suffix}`
+    })
+  }
+  const reactOptimizedDepImport =
+    /["']\.\/(?:react(?:_jsx(?:-dev)?-runtime)?|react-dom(?:_client)?|client-[^"']+)\.js["']/
+  const optimizedDepSource = "\\./[^\"']+\\.js"
+
+  return {
+    name: 'spacewave-optimized-dep-version-imports',
+    apply: 'serve',
+    transform(code, id) {
+      const queryStart = id.indexOf('?')
+      if (queryStart === -1) return null
+      const file = id.slice(0, queryStart)
+      if (!file.includes('/node_modules/.vite/') || !file.endsWith('.js')) {
+        return null
+      }
+      if (!reactOptimizedDepImport.test(code)) return null
+      const version = new URLSearchParams(id.slice(queryStart + 1)).get('v')
+      if (!version) return null
+      const versionQuery = `?v=${version}`
+      let rewritten = rewriteImportSource(
+        code,
+        versionQuery,
+        new RegExp(`(\\bfrom\\s*)(["'])(${optimizedDepSource})(["'])`, 'g'),
+      )
+      rewritten = rewriteImportSource(
+        rewritten,
+        versionQuery,
+        new RegExp(`(\\bimport\\s*)(["'])(${optimizedDepSource})(["'])`, 'g'),
+      )
+      rewritten = rewriteImportSource(
+        rewritten,
+        versionQuery,
+        new RegExp(
+          `(\\bimport\\s*\\(\\s*)(["'])(${optimizedDepSource})(["']\\s*\\))`,
+          'g',
+        ),
+      )
+      if (rewritten === code) return null
+      return { code: rewritten, map: null }
+    },
+  }
+}
+
 export default defineConfig({
   build: {
     assetsInlineLimit: 2048,
@@ -63,6 +119,7 @@ export default defineConfig({
   },
 
   resolve: {
+    dedupe: ['react', 'react-dom'],
     alias: [
       ...buildGoAliases(__dirname),
       {
@@ -112,5 +169,10 @@ export default defineConfig({
     ],
   },
 
-  plugins: [react(), tailwindcss(), goTsResolver(__dirname)],
+  plugins: [
+    optimizedDepVersionImports(),
+    react(),
+    tailwindcss(),
+    goTsResolver(__dirname),
+  ],
 })

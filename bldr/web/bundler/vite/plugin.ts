@@ -1,7 +1,6 @@
 import path from 'path'
 import fs from 'fs'
-import type { Rollup } from 'vite'
-import { Plugin } from 'vite'
+import type { Plugin, Rollup } from 'vite'
 
 // List of file extensions that should be remapped to .mjs
 const JS_EXTENSIONS = ['.js', '.cjs', '.jsx', '.ts', '.tsx']
@@ -215,6 +214,20 @@ function relativePathInsideRoot(root: string, filename: string): string | null {
   return relPath
 }
 
+function resolveWebPkgRootFromAlias(root: string, replacement: string): string {
+  const resolved = path.isAbsolute(replacement)
+    ? replacement
+    : path.resolve(root, replacement)
+
+  try {
+    const stat = fs.statSync(resolved)
+    return stat.isFile() ? path.dirname(resolved) : resolved
+  } catch {
+    const ext = path.extname(resolved)
+    return JS_EXTENSION_SET.has(ext) ? path.dirname(resolved) : resolved
+  }
+}
+
 export function createWebPkgRemapPlugin(
   config: WebPkgRemapPluginConfig,
 ): Plugin {
@@ -238,9 +251,9 @@ export function createWebPkgRemapPlugin(
   // Resolved root directories for each web pkg, populated in configResolved.
   const webPkgRoots: Record<string, string> = {}
 
-  // Served-name maps for packages with declared imports. When a package has a
-  // map, its served names are derived from the declared imports (matching
-  // buildWebPkg) instead of the on-disk file layout.
+  // Served-name maps for packages with declared imports. Declared imports seed
+  // the map with buildWebPkg-compatible served names; package root exports may
+  // add a bare-specifier entry later without replacing declared entries.
   const servedNameMaps: Record<string, Map<string, string>> = {}
   for (const pkg of remappedWebPkgIDs) {
     const imports = config.webPkgImports?.[pkg]
@@ -266,9 +279,7 @@ export function createWebPkgRemapPlugin(
           const find =
             typeof alias.find === 'string' ? alias.find : alias.find?.source
           if (find && webPkgIDSet.has(find) && alias.replacement) {
-            const resolved = path.isAbsolute(alias.replacement)
-              ? alias.replacement
-              : path.resolve(root, alias.replacement)
+            const resolved = resolveWebPkgRootFromAlias(root, alias.replacement)
             webPkgRoots[find] = resolved
             if (config.addWebPkgRoot) {
               config.addWebPkgRoot(find, resolved)
@@ -294,15 +305,13 @@ export function createWebPkgRemapPlugin(
             // Not resolvable from node_modules, will use empty root
           }
         }
-        // Declared imports (webPkgImports) own the served-name map: they map the
-        // bare specifier to the dist-stripped served index buildWebPkg emits.
-        // Only fall back to the package.json root export (whose dist/ subdir
-        // differs from the served names) when the package has no declared map,
-        // so the on-disk path never clobbers an authoritative declared entry.
-        const rootServedName =
-          !servedNameMaps[pkgID] && webPkgRoots[pkgID]
-            ? readPackageRootServedName(webPkgRoots[pkgID])
-            : null
+        // Package root exports are additive to declared imports. Explicit
+        // webPkgImports still own their served names, but packages whose bare
+        // export is not index (for example ./build/foo.module.js) need a bare
+        // specifier mapping even when config also declares extra entrypoints.
+        const rootServedName = webPkgRoots[pkgID]
+          ? readPackageRootServedName(webPkgRoots[pkgID])
+          : null
         if (rootServedName) {
           let map = servedNameMaps[pkgID]
           if (!map) {
@@ -310,8 +319,8 @@ export function createWebPkgRemapPlugin(
             servedNameMaps[pkgID] = map
           }
           const served = rootServedName + '.mjs'
-          map.set('', served)
-          map.set(rootServedName, served)
+          if (!map.has('')) map.set('', served)
+          if (!map.has(rootServedName)) map.set(rootServedName, served)
           if (debug)
             console.log(
               `[bldr-pkg-resolve] root served name for ${pkgID}: ${served}`,

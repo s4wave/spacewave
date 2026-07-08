@@ -1192,7 +1192,7 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 			minify,
 			minify,
 			sourcemaps,
-			nil,
+			web_pkg_external.BldrExternal,
 			client,
 			filepath.Join(viteWorkingPath, "cache"),
 		)

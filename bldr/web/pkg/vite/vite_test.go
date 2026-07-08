@@ -13,6 +13,7 @@ import (
 	srpc "github.com/aperturerobotics/starpc/srpc"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
+	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	"github.com/sirupsen/logrus"
 )
 
@@ -190,5 +191,80 @@ func TestBuildWebPkgsVitePropagatesJavaScriptPolicy(t *testing.T) {
 	}
 	if !slices.Equal(req.GetExternalPkgs(), []string{"react"}) {
 		t.Fatalf("external packages = %v, want [react]", req.GetExternalPkgs())
+	}
+}
+
+func TestBuildWebPkgsViteExternalizesBldrSingletonPeers(t *testing.T) {
+	codeRootPath := t.TempDir()
+	webPkgRefs := []*web_pkg.WebPkgRef{{
+		WebPkgId:   "react",
+		WebPkgRoot: filepath.Join(codeRootPath, "node_modules", "react"),
+	}, {
+		WebPkgId:   "react-dom",
+		WebPkgRoot: filepath.Join(codeRootPath, "node_modules", "react-dom"),
+	}, {
+		WebPkgId:   "@aptre/bldr-react",
+		WebPkgRoot: filepath.Join(codeRootPath, "node_modules", "@aptre", "bldr-react"),
+	}}
+	client := &fakeViteBundlerClient{
+		resp: &bldr_vite.BuildWebPkgResponse{Success: true},
+	}
+
+	_, _, _, err := BuildWebPkgsVite(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		codeRootPath,
+		webPkgRefs,
+		filepath.Join(t.TempDir(), "out"),
+		"/b/pkg/",
+		false,
+		false,
+		true,
+		web_pkg_external.BldrExternal,
+		client,
+		filepath.Join(t.TempDir(), "cache"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	requests := make(map[string]*bldr_vite.BuildWebPkgRequest, len(client.requests))
+	for _, req := range client.requests {
+		requests[req.GetPkgId()] = req
+	}
+	if len(requests) != len(webPkgRefs) {
+		t.Fatalf("unexpected request count: got %d want %d", len(requests), len(webPkgRefs))
+	}
+
+	react := requests["react"]
+	if react == nil {
+		t.Fatal("missing react build request")
+	}
+	assertExternalPkgs(t, react, []string{"react-dom", "@aptre/bldr", "@aptre/bldr-react"}, []string{"react"})
+
+	reactDOM := requests["react-dom"]
+	if reactDOM == nil {
+		t.Fatal("missing react-dom build request")
+	}
+	assertExternalPkgs(t, reactDOM, []string{"react"}, []string{"react-dom"})
+
+	bldrReact := requests["@aptre/bldr-react"]
+	if bldrReact == nil {
+		t.Fatal("missing @aptre/bldr-react build request")
+	}
+	assertExternalPkgs(t, bldrReact, []string{"react", "react-dom", "@aptre/bldr"}, []string{"@aptre/bldr-react"})
+}
+
+func assertExternalPkgs(t *testing.T, req *bldr_vite.BuildWebPkgRequest, wantPresent, wantAbsent []string) {
+	t.Helper()
+	externalPkgs := req.GetExternalPkgs()
+	for _, pkgID := range wantPresent {
+		if !slices.Contains(externalPkgs, pkgID) {
+			t.Fatalf("%s external packages = %v, missing %s", req.GetPkgId(), externalPkgs, pkgID)
+		}
+	}
+	for _, pkgID := range wantAbsent {
+		if slices.Contains(externalPkgs, pkgID) {
+			t.Fatalf("%s external packages = %v, unexpectedly contains %s", req.GetPkgId(), externalPkgs, pkgID)
+		}
 	}
 }

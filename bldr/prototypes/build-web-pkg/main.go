@@ -10,6 +10,7 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
+	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	web_pkg_vite "github.com/s4wave/spacewave/bldr/web/pkg/vite"
 	"github.com/sirupsen/logrus"
 )
@@ -67,7 +68,7 @@ func run(ctx context.Context, le *logrus.Entry) error {
 			false,
 			false,
 			true,
-			nil,
+			web_pkg_external.BldrExternal,
 			client,
 			filepath.Join(workingDir, "cache"),
 		)

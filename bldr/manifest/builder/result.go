@@ -33,9 +33,21 @@ func UnmarshalBuilderResult(ctx context.Context, bcs *block.Cursor) (*BuilderRes
 	return block.UnmarshalBlock[*BuilderResult](ctx, bcs, NewBuilderResultBlock)
 }
 
-// Validate validates the BuilderResult.
+// Validate validates the BuilderResult for executable manifest use.
 func (r *BuilderResult) Validate() error {
-	if err := r.GetManifest().Validate(); err != nil {
+	return r.validate(true)
+}
+
+// ValidateBuildCache validates the BuilderResult as build provenance.
+//
+// Asset-only submanifests, such as Vite child manifests, do not own a runtime
+// entrypoint. Startup and executable manifest paths must keep using Validate.
+func (r *BuilderResult) ValidateBuildCache() error {
+	return r.validate(false)
+}
+
+func (r *BuilderResult) validate(requireEntrypoint bool) error {
+	if err := validateManifest(r.GetManifest(), requireEntrypoint); err != nil {
 		return errors.Wrap(err, "manifest")
 	}
 	if err := r.GetManifestRef().Validate(); err != nil {
@@ -46,6 +58,22 @@ func (r *BuilderResult) Validate() error {
 	}
 	if err := r.GetInputManifest().Validate(); err != nil {
 		return errors.Wrap(err, "input_manifest")
+	}
+	return nil
+}
+
+func validateManifest(m *manifest.Manifest, requireEntrypoint bool) error {
+	if requireEntrypoint {
+		return m.Validate()
+	}
+	if err := m.GetMeta().Validate(false); err != nil {
+		return errors.Wrap(err, "meta")
+	}
+	if err := m.GetDistFsRef().Validate(true); err != nil {
+		return errors.Wrap(err, "dist_fs_ref")
+	}
+	if err := m.GetAssetsFsRef().Validate(true); err != nil {
+		return errors.Wrap(err, "assets_fs_ref")
 	}
 	return nil
 }

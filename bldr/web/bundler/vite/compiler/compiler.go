@@ -462,33 +462,47 @@ func (c *Controller) buildInputManifest(
 	}
 
 	updatedManifestMeta := &bldr_manifest_builder.InputManifest{Metadata: inputManifestMetaBin}
-	inputFileKinds := map[InputFileKind][]string{
-		InputFileKind_InputFileKind_VITE: viteBuildResult.viteSrcFiles,
-	}
+	inputFileKinds := []struct {
+		kind     InputFileKind
+		srcPaths []string
+	}{{
+		kind:     InputFileKind_InputFileKind_VITE,
+		srcPaths: viteBuildResult.viteSrcFiles,
+	}}
 
 	if len(webPkgSrcFiles) != 0 {
-		inputFileKinds[InputFileKind_InputFileKind_WEB_PKG] = webPkgSrcFiles
+		inputFileKinds = append(inputFileKinds, struct {
+			kind     InputFileKind
+			srcPaths []string
+		}{
+			kind:     InputFileKind_InputFileKind_WEB_PKG,
+			srcPaths: webPkgSrcFiles,
+		})
 	}
 
-	for kind, srcPaths := range inputFileKinds {
-		meta := &InputFileMeta{Kind: kind}
+	filesByPath := make(map[string]*bldr_manifest_builder.InputManifest_File)
+	for _, input := range inputFileKinds {
+		meta := &InputFileMeta{Kind: input.kind}
 		metaBin, err := meta.MarshalVT()
 		if err != nil {
 			return nil, err
 		}
 
-		srcPathsCopy := slices.Clone(srcPaths)
+		srcPathsCopy := slices.Clone(input.srcPaths)
 		srcPathsCopy, err = filterSourceRelativePaths(sourcePath, srcPathsCopy)
 		if err != nil {
 			return nil, err
 		}
 
 		for _, srcPath := range srcPathsCopy {
-			updatedManifestMeta.Files = append(updatedManifestMeta.Files, &bldr_manifest_builder.InputManifest_File{
+			filesByPath[srcPath] = &bldr_manifest_builder.InputManifest_File{
 				Path:     srcPath,
 				Metadata: metaBin,
-			})
+			}
 		}
+	}
+	for _, file := range filesByPath {
+		updatedManifestMeta.Files = append(updatedManifestMeta.Files, file)
 	}
 	updatedManifestMeta.SortFiles()
 

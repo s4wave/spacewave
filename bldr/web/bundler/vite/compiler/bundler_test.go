@@ -174,6 +174,42 @@ func TestBuildViteBundleMetaMergesDuplicateBundleMetadata(t *testing.T) {
 	}
 }
 
+func TestBuildInputManifestDeduplicatesWebPkgViteInputs(t *testing.T) {
+	sourcePath := t.TempDir()
+	sharedPath := filepath.Join(sourcePath, "src", "shared-runtime.ts")
+	manifest, err := (&Controller{}).buildInputManifest(
+		sourcePath,
+		&viteBuildResult{
+			viteSrcFiles: []string{sharedPath},
+		},
+		nil,
+		nil,
+		[]string{filepath.Clean("src/shared-runtime.ts")},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := manifest.Validate(); err != nil {
+		t.Fatalf("input manifest did not validate: %v", err)
+	}
+
+	files := manifest.GetFiles()
+	if len(files) != 1 {
+		t.Fatalf("input manifest file count=%d want 1: %v", len(files), files)
+	}
+	wantPath := filepath.Clean("src/shared-runtime.ts")
+	if files[0].GetPath() != wantPath {
+		t.Fatalf("input manifest path=%q want %q", files[0].GetPath(), wantPath)
+	}
+	meta := &InputFileMeta{}
+	if err := meta.UnmarshalVT(files[0].GetMetadata()); err != nil {
+		t.Fatal(err)
+	}
+	if meta.GetKind() != InputFileKind_InputFileKind_WEB_PKG {
+		t.Fatalf("input manifest kind=%s want WEB_PKG", meta.GetKind())
+	}
+}
+
 func TestBuildViteBundlePropagatesJavaScriptPolicy(t *testing.T) {
 	codeRoot := t.TempDir()
 	distRoot := t.TempDir()
