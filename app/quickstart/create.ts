@@ -98,6 +98,9 @@ import {
   createNotebookClientSide,
 } from '../../plugin/notes/content-seed.js'
 import { createBlogClientSide } from '../../plugin/notes/blog-seed.js'
+import { NotebookTypeID } from '../../plugin/notes/sdk/notebook.js'
+import { DocsTypeID } from '../../plugin/notes/sdk/docs.js'
+import { BlogTypeID } from '../../plugin/notes/sdk/blog.js'
 import { NOTEBOOK_OBJECT_KEY } from '../../plugin/notes/proto/init-notebook.js'
 import { BLOG_OBJECT_KEY } from '../../plugin/notes/proto/create-blog.js'
 import { type QuickstartSpaceCreateId } from './options.js'
@@ -771,11 +774,14 @@ export function getQuickstartInitialObjectKey(
       return ''
     case 'space':
     case 'git':
-    case 'notebook':
-    case 'docs':
-    case 'blog':
     case 'v86':
       return ''
+    case 'notebook':
+      return NOTEBOOK_OBJECT_KEY
+    case 'docs':
+      return DOCS_QUICKSTART_OBJECT_KEY
+    case 'blog':
+      return BLOG_OBJECT_KEY
     default: {
       const _exhaustive: never = quickstartId
       return _exhaustive
@@ -799,13 +805,16 @@ export function getQuickstartInitialObjectType(
       return ObjectLayoutTypeID
     case 'space':
     case 'git':
-    case 'notebook':
-    case 'docs':
-    case 'blog':
     case 'chat':
     case 'v86':
     case 'device':
       return ''
+    case 'notebook':
+      return NotebookTypeID
+    case 'docs':
+      return DocsTypeID
+    case 'blog':
+      return BlogTypeID
     default: {
       const _exhaustive: never = quickstartId
       return _exhaustive

@@ -626,14 +626,32 @@ describe('quickstart create', () => {
     }
   })
 
-  it('routes Drive quickstart through the Space default route', () => {
+  it('routes object-backed quickstarts through their initial object paths', () => {
     expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'drive')).toBe(
       '/u/2/so/space-1',
     )
     expect(getQuickstartInitialObjectRouteHandoff('drive')).toBeUndefined()
-    expect(getQuickstartInitialObjectRouteHandoff('notebook')).toBeUndefined()
-    expect(getQuickstartInitialObjectRouteHandoff('docs')).toBeUndefined()
-    expect(getQuickstartInitialObjectRouteHandoff('blog')).toBeUndefined()
+    expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'notebook')).toBe(
+      '/u/2/so/space-1/-/notebook',
+    )
+    expect(getQuickstartInitialObjectRouteHandoff('notebook')).toEqual({
+      objectKey: 'notebook',
+      objectType: 'notes/notebook',
+    })
+    expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'docs')).toBe(
+      '/u/2/so/space-1/-/documentation',
+    )
+    expect(getQuickstartInitialObjectRouteHandoff('docs')).toEqual({
+      objectKey: 'documentation',
+      objectType: 'notes/docs',
+    })
+    expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'blog')).toBe(
+      '/u/2/so/space-1/-/blog/site',
+    )
+    expect(getQuickstartInitialObjectRouteHandoff('blog')).toEqual({
+      objectKey: 'blog/site',
+      objectType: 'notes/blog',
+    })
     expect(getQuickstartInitialObjectRouteHandoff('git')).toBeUndefined()
     expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1/', 'canvas')).toBe(
       '/u/2/so/space-1/-/canvas-1',
