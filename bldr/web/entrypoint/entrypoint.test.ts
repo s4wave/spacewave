@@ -61,6 +61,7 @@ declare global {
   var __swReadyResolve: (() => void) | undefined
   var __swStartupModuleImportedFrom: string | undefined
   var BLDR_STARTUP_JS: string | undefined
+  var BLDR_RUNTIME_WASM_ENV: Record<string, string> | undefined
   var IS_REACT_ACT_ENVIRONMENT: boolean | undefined
 }
 
@@ -147,7 +148,7 @@ describe('browser entrypoint boot readiness', () => {
     renderedRootElements.length = 0
     globalThis.IS_REACT_ACT_ENVIRONMENT = true
     document.body.innerHTML = ''
-    window.history.replaceState({}, '', '/')
+    window.location.href = 'http://localhost/'
     globalThis.__swDeferBoot = undefined
     globalThis.__swBoot = undefined
     globalThis.__swReady = undefined
@@ -156,6 +157,7 @@ describe('browser entrypoint boot readiness', () => {
     globalThis.__swStartupMarks = undefined
     globalThis.__swStartupMarkSequence = undefined
     globalThis.__swStartupModuleImportedFrom = undefined
+    globalThis.BLDR_RUNTIME_WASM_ENV = undefined
   })
 
   afterEach(() => {
@@ -164,7 +166,7 @@ describe('browser entrypoint boot readiness', () => {
     initBrowserReleaseAutoReloadMock.mockClear()
     renderedRootElements.length = 0
     document.body.innerHTML = ''
-    window.history.replaceState({}, '', '/')
+    window.location.href = 'http://localhost/'
     globalThis.__swDeferBoot = undefined
     globalThis.__swBoot = undefined
     globalThis.__swReady = undefined
@@ -173,6 +175,7 @@ describe('browser entrypoint boot readiness', () => {
     globalThis.__swStartupMarks = undefined
     globalThis.__swStartupMarkSequence = undefined
     globalThis.__swStartupModuleImportedFrom = undefined
+    globalThis.BLDR_RUNTIME_WASM_ENV = undefined
     globalThis.IS_REACT_ACT_ENVIRONMENT = undefined
   })
 
@@ -192,6 +195,32 @@ describe('browser entrypoint boot readiness', () => {
     await importEntrypoint()
 
     expect(initBrowserReleaseAutoReloadMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('publishes staging CDN runtime env while preserving existing runtime keys', async () => {
+    window.location.href = 'https://staging.spacewave.app/'
+    globalThis.BLDR_RUNTIME_WASM_ENV = {
+      UNRELATED_EXISTING_KEY: 'keep-me',
+    }
+    document.body.innerHTML = '<div id="bldr-root"></div>'
+
+    await importEntrypoint()
+
+    expect(globalThis.BLDR_RUNTIME_WASM_ENV).toEqual({
+      UNRELATED_EXISTING_KEY: 'keep-me',
+      SPACEWAVE_CDN_BASE_URL: 'https://cdn-staging.spacewave.app',
+    })
+  })
+
+  it('does not publish a staging CDN override on production origin', async () => {
+    window.location.href = 'https://spacewave.app/'
+    document.body.innerHTML = '<div id="bldr-root"></div>'
+
+    await importEntrypoint()
+
+    expect(
+      globalThis.BLDR_RUNTIME_WASM_ENV?.SPACEWAVE_CDN_BASE_URL,
+    ).toBeUndefined()
   })
 
   it('resolves boot readiness after immediate render', async () => {
