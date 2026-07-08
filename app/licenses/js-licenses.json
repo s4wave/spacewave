@@ -627,6 +627,11 @@
     "identifier": "Apache-2.0 OR MIT"
   },
   {
+    "name": "lru_map",
+    "version": "0.4.1",
+    "identifier": "MIT"
+  },
+  {
     "name": "main-event",
     "version": "1.0.4",
     "identifier": "Apache-2.0 OR MIT"

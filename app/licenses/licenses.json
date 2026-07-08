@@ -1841,6 +1841,12 @@
       "source": "js"
     },
     {
+      "name": "lru_map",
+      "version": "0.4.1",
+      "spdx": "MIT",
+      "source": "js"
+    },
+    {
       "name": "lukechampine.com/blake3",
       "version": "v1.2.1",
       "spdx": "MIT",
