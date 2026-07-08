@@ -34,15 +34,14 @@ type Blake3WasmExports = {
   ): void
 }
 
-const blake3SidecarPath = './sidecars/blake3.wasm'
+const blake3SidecarURL = new URL('./sidecars/blake3.wasm', import.meta.url)
 const textEncoder = new TextEncoder()
 
 export async function installGoScriptBlake3Sidecar(): Promise<void> {
   if (globalThis.BLDR_BLAKE3) {
     return
   }
-  const wasmURL = new URL(blake3SidecarPath, import.meta.url)
-  const response = await fetch(wasmURL)
+  const response = await fetch(blake3SidecarURL)
   if (!response.ok) {
     throw new Error(`failed to load BLAKE3 sidecar: ${response.status}`)
   }
