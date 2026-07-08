@@ -605,6 +605,14 @@ func (c *Cursor) SetDecodedBlockCache(cache *block.DecodedBlockCache) {
 	c.decodedBlocks = cache
 }
 
+// GetDecodedBlockCache returns the decoded-block cache borrowed by the cursor, if any.
+func (c *Cursor) GetDecodedBlockCache() *block.DecodedBlockCache {
+	if c == nil {
+		return nil
+	}
+	return c.decodedBlocks
+}
+
 // GetStepFactorySet returns the step factory set for the cursor.
 func (c *Cursor) GetStepFactorySet() (sfs *block_transform.StepFactorySet) {
 	return c.sfs

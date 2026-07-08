@@ -168,6 +168,12 @@ func NewEngine(
 	if cacheOpts.Disabled {
 		e.baseRoot.SetDecodedBlockCache(nil)
 		e.root.SetDecodedBlockCache(nil)
+	} else if borrowed := e.baseRoot.GetDecodedBlockCache(); borrowed != nil {
+		// The caller already set a borrowed cache on the cursor (the sobject
+		// engine shares its block store cache). Share it instead of shadowing
+		// it with an engine-owned cache; e.decodedBlocks stays nil so Close
+		// never closes a cache the engine does not own.
+		e.root.SetDecodedBlockCache(borrowed)
 	} else {
 		decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(cacheOpts)
 		if err != nil {
