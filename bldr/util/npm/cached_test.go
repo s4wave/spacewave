@@ -130,3 +130,30 @@ func TestBunMinimumReleaseAgeArg(t *testing.T) {
 		t.Fatalf("minimum age arg = %#v, want --minimum-release-age=0", got)
 	}
 }
+
+func TestLockBunInstallTargetNormalizesTargetDir(t *testing.T) {
+	dir := t.TempDir()
+	child := filepath.Join(dir, "deps")
+	rel, err := filepath.Rel(dir, child)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	unlock := lockBunInstallTarget(filepath.Join(dir, rel))
+	secondEntered := make(chan struct{})
+	secondDone := make(chan struct{})
+	go func() {
+		defer close(secondDone)
+		secondUnlock := lockBunInstallTarget(child)
+		defer secondUnlock()
+		close(secondEntered)
+	}()
+
+	select {
+	case <-secondEntered:
+		t.Fatal("second lock entered before first target unlock")
+	default:
+	}
+	unlock()
+	<-secondDone
+}

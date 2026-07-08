@@ -521,6 +521,71 @@ describe('createWebPkgRemapPlugin', () => {
     }
   })
 
+  it('reports file aliases as web package root directories', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-pkg-file-root-'))
+    try {
+      const pkgRoot = path.join(root, 'web', 'bldr')
+      fs.mkdirSync(pkgRoot, { recursive: true })
+      fs.writeFileSync(
+        path.join(pkgRoot, 'index.ts'),
+        'export const root = true\n',
+      )
+
+      const reportedRoots: Array<[string, string]> = []
+      const plugin = createWebPkgRemapPlugin({
+        webPkgIDs: ['@aptre/bldr'],
+        addWebPkgRoot: (webPkgID, webPkgRoot) => {
+          reportedRoots.push([webPkgID, webPkgRoot])
+        },
+      })
+
+      const configResolved = plugin.configResolved
+      if (typeof configResolved !== 'function') {
+        throw new Error('missing configResolved hook')
+      }
+      configResolved.call(
+        {} as never,
+        {
+          root,
+          resolve: {
+            alias: [
+              {
+                find: '@aptre/bldr',
+                replacement: path.join(pkgRoot, 'index.js'),
+              },
+            ],
+          },
+        } as ResolvedConfig,
+      )
+
+      expect(reportedRoots).toEqual([['@aptre/bldr', pkgRoot]])
+
+      const resolveId = plugin.resolveId
+      if (typeof resolveId !== 'function') {
+        throw new Error('missing resolveId hook')
+      }
+      const resolved = await resolveId.call(
+        {
+          resolve: async () => ({
+            id: path.join(pkgRoot, 'index.ts'),
+            external: false,
+            meta: {},
+            moduleSideEffects: true,
+          }),
+        } as never,
+        '@aptre/bldr',
+        path.join(root, 'src', 'entry.ts'),
+        { isEntry: false },
+      )
+
+      expect(resolved).toEqual({
+        id: '/b/pkg/@aptre/bldr/index.mjs',
+        external: true,
+      })
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
   it('falls back to the import specifier when a resolved file only shares the package root prefix', async () => {
     const root = path.join(path.sep, 'repo')
     const pkgRoot = path.join(root, 'node_modules', 'pkg')

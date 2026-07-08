@@ -761,8 +761,8 @@ func TestBuildWebGoScriptPluginScriptCodeSplittingUsesLazyMainLoader(t *testing.
 	goScriptOutputRoot := filepath.Join(root, "goscript")
 	outPath := filepath.Join(root, "out", "plugin.mjs")
 	runtimePath := filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts")
-	mainPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "main", "plugin.gs.ts")
-	lazyPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "lazy", "index.ts")
+	mainPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "s4wave", "example", "main", "plugin.gs.ts")
+	lazyPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "s4wave", "example", "lazy", "index.ts")
 
 	writeTestFile(t, runtimePath, `
 export default async function runGoScriptPlugin(api, loadPluginMain) {
@@ -797,7 +797,7 @@ export const LazyValue = "loaded from public plugin split chunk"
 		workDir,
 		goScriptOutputRoot,
 		outPath,
-		"example/main",
+		"github.com/s4wave/example/main",
 		false,
 		true,
 		true,
@@ -834,10 +834,13 @@ func TestBuildWebGoScriptRuntimeScriptCodeSplittingDefersMainChunkUntilMessage(t
 	goScriptOutputRoot := filepath.Join(root, "goscript")
 	outPath := filepath.Join(root, "out", "runtime.mjs")
 	runtimePath := filepath.Join(bldrDistRoot, "web", "entrypoint", "browser", "runtime-goscript.ts")
-	mainPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "runtime", "main.gs.ts")
-	lazyPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "lazy", "index.ts")
+	mainPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "s4wave", "example", "runtime", "main.gs.ts")
+	lazyPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "s4wave", "example", "lazy", "index.ts")
+	sharedPkgRoot := filepath.Join(workDir, "node_modules", "shared-runtime-helper")
 
 	writeTestFile(t, runtimePath, `
+import { sharedValue } from "shared-runtime-helper"
+
 export default function runGoScriptRuntime(loadDistMain) {
   if (typeof loadDistMain !== "function") {
     throw new Error("runtime main loader was not a function")
@@ -845,6 +848,7 @@ export default function runGoScriptRuntime(loadDistMain) {
   if (globalThis.__runtimeMainModuleEvaluated) {
     throw new Error("runtime main module loaded before listener setup")
   }
+  globalThis.__runtimeSharedValue = sharedValue
   globalThis.__runtimeLoaderInstalled = true
   self.onmessage = async (event) => {
     if (globalThis.__runtimeMainModuleEvaluated) {
@@ -856,15 +860,21 @@ export default function runGoScriptRuntime(loadDistMain) {
 }
 `)
 	writeTestFile(t, mainPath, `
+import { sharedValue } from "shared-runtime-helper"
+
 globalThis.__runtimeMainModuleEvaluated = true
 
 export async function main(init) {
   const lazy = await import("../lazy/index.js")
-  globalThis.__runtimeMainResult = init.prefix + ":" + lazy.LazyValue
+  globalThis.__runtimeMainResult = init.prefix + ":" + sharedValue + ":" + lazy.LazyValue
 }
 `)
 	writeTestFile(t, lazyPath, `
 export const LazyValue = "loaded from public runtime split chunk"
+`)
+	writeTestFile(t, filepath.Join(sharedPkgRoot, "package.json"), `{"module":"index.js"}`)
+	writeTestFile(t, filepath.Join(sharedPkgRoot, "index.ts"), `
+export const sharedValue = "shared dependency"
 `)
 
 	inputs, err := BuildWebGoScriptRuntimeScript(
@@ -874,7 +884,7 @@ export const LazyValue = "loaded from public runtime split chunk"
 		workDir,
 		goScriptOutputRoot,
 		outPath,
-		"example/runtime",
+		"github.com/s4wave/example/runtime",
 		false,
 		false,
 		true,
@@ -885,7 +895,7 @@ export const LazyValue = "loaded from public runtime split chunk"
 	assertInputsContainPaths(t, inputs, mainPath, lazyPath)
 	assertSplitOutputLoadsPayloadFromChunk(t, outPath, "loaded from public runtime split chunk")
 
-	runBundledRuntimeEntryModule(t, filepath.Join(workDir, "..", "..", "bun"), outPath, "loaded from public runtime split chunk")
+	runBundledRuntimeEntryModule(t, filepath.Join(workDir, "..", "..", "bun"), outPath, "shared dependency:loaded from public runtime split chunk")
 }
 
 func TestRenderRolldownGoScriptConfigCodeSplittingWritesManualGroups(t *testing.T) {
@@ -916,8 +926,8 @@ func TestRenderRolldownGoScriptConfigCodeSplittingWritesManualGroups(t *testing.
 	if sharedIndex > appIndex {
 		t.Fatalf("shared codeSplitting group must be rendered before app group:\n%s", config)
 	}
-	if !strings.Contains(config, `name:"shared",test:(id)=>isGoScriptModule(id,"")&&!isGoScriptModule(id,"github.com/s4wave/"),priority:1`) {
-		t.Fatalf("rendered config missing prioritized shared GoScript group with app exclusion:\n%s", config)
+	if !strings.Contains(config, `name:"shared",test:(id)=>!isEntrypointModule(id)&&!id.startsWith("\0")&&!isGoScriptModule(id,"github.com/s4wave/"),priority:1`) {
+		t.Fatalf("rendered config missing prioritized shared dependency group with app exclusion:\n%s", config)
 	}
 	if !strings.Contains(config, `name:"app",test:(id)=>isGoScriptModule(id,"github.com/s4wave/")`) {
 		t.Fatalf("rendered config missing app GoScript group:\n%s", config)

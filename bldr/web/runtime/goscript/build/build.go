@@ -969,7 +969,7 @@ func renderRolldownGoScriptOutputConfig(codeSplitting bool) string {
       groups: [
         {
           name: "shared",
-          test: (id) => isGoScriptModule(id, "") && !isGoScriptModule(id, "github.com/s4wave/"),
+          test: (id) => !isEntrypointModule(id) && !id.startsWith("\0") && !isGoScriptModule(id, "github.com/s4wave/"),
           priority: 1,
         },
         {
@@ -1029,6 +1029,18 @@ function existingTypeScriptSibling(filePath) {
   }
   if (existingFile(filePath)) return filePath
   return null
+}
+
+function realFilePath(filePath) {
+  try {
+    return fs.realpathSync(filePath)
+  } catch {
+    return path.normalize(filePath)
+  }
+}
+
+function isEntrypointModule(id) {
+  return realFilePath(id) === realFilePath(opts.entrypointPath)
 }
 
 function existingSourcePath(filePath) {

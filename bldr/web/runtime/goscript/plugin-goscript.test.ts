@@ -3,6 +3,7 @@ import { HandleStreamCtr, type PacketStream } from 'starpc'
 import type { BackendAPI } from '@aptre/bldr-sdk'
 
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
+import { resolveGoScriptBlake3SidecarURLs } from './blake3-sidecar.js'
 import main from './plugin-goscript.js'
 
 const originalMessageChannel = globalThis.MessageChannel
@@ -87,6 +88,17 @@ describe('plugin-goscript generation lifecycle', () => {
     expect(lifecycle).toEqual(['loader:installed', 'main:installed'])
     expect(fetchBlake3).toHaveBeenCalledTimes(1)
     expect(instantiateBlake3).toHaveBeenCalledTimes(1)
+  })
+
+  it('resolves BLAKE3 sidecars beside chunked runtime helpers', () => {
+    const urls = resolveGoScriptBlake3SidecarURLs(
+      'https://example.test/entrypoint/rev/chunks/shared-abc.mjs',
+    ).map((url) => url.pathname)
+
+    expect(urls).toEqual([
+      '/entrypoint/rev/sidecars/blake3.wasm',
+      '/entrypoint/rev/chunks/sidecars/blake3.wasm',
+    ])
   })
 
   it('turns accept-stream into a terminal error after the GoScript plugin exits', async () => {

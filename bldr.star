@@ -30,6 +30,7 @@ def core_go_pkgs(include_export=True):
 LAUNCHER_GO_PKGS = [
     "./core/provider/spacewave/launcher/controller",
     "github.com/s4wave/spacewave/bldr/manifest/fetch/world",
+    "github.com/s4wave/spacewave/core/cdn/bstore/controller",
     "github.com/s4wave/spacewave/core/cdn/world/controller",
     "github.com/s4wave/spacewave/core/space/world/optypes",
     "github.com/s4wave/spacewave/db/block/store/overlay",

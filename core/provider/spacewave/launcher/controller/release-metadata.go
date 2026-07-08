@@ -4,10 +4,10 @@ package spacewave_launcher_controller
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -460,31 +460,39 @@ func marshalManagedCLIReleaseSidecar(
 	binaryPath string,
 ) string {
 	meta := ref.GetMeta()
-	// encoding/json: this sidecar is a non-proto on-disk struct and fastjson has
-	// no struct-tag encoder. The fixed string/uint fields cannot fail to marshal.
-	data, err := json.MarshalIndent(struct {
-		BinaryPath     string `json:"binary_path"`
-		ProjectID      string `json:"project_id"`
-		EntrypointRole string `json:"entrypoint_role"`
-		ChannelKey     string `json:"channel_key"`
-		ManifestID     string `json:"manifest_id"`
-		ManifestRev    uint64 `json:"manifest_rev"`
-		PlatformID     string `json:"platform_id"`
-		ManifestRef    string `json:"manifest_ref"`
-	}{
-		BinaryPath:     binaryPath,
-		ProjectID:      metadata.GetProjectId(),
-		EntrypointRole: "cli",
-		ChannelKey:     metadata.GetChannelKey(),
-		ManifestID:     meta.GetManifestId(),
-		ManifestRev:    meta.GetRev(),
-		PlatformID:     meta.GetPlatformId(),
-		ManifestRef:    ref.GetManifestRef().MarshalString(),
-	}, "", "  ")
-	if err != nil {
-		panic(err)
+	var data []byte
+	appendStringField := func(key string, val string, trailing bool) {
+		data = append(data, "  "...)
+		data = strconv.AppendQuote(data, key)
+		data = append(data, ": "...)
+		data = strconv.AppendQuote(data, val)
+		if trailing {
+			data = append(data, ',')
+		}
+		data = append(data, '\n')
 	}
-	return string(data) + "\n"
+	appendUintField := func(key string, val uint64, trailing bool) {
+		data = append(data, "  "...)
+		data = strconv.AppendQuote(data, key)
+		data = append(data, ": "...)
+		data = strconv.AppendUint(data, val, 10)
+		if trailing {
+			data = append(data, ',')
+		}
+		data = append(data, '\n')
+	}
+
+	data = append(data, "{\n"...)
+	appendStringField("binary_path", binaryPath, true)
+	appendStringField("project_id", metadata.GetProjectId(), true)
+	appendStringField("entrypoint_role", "cli", true)
+	appendStringField("channel_key", metadata.GetChannelKey(), true)
+	appendStringField("manifest_id", meta.GetManifestId(), true)
+	appendUintField("manifest_rev", meta.GetRev(), true)
+	appendStringField("platform_id", meta.GetPlatformId(), true)
+	appendStringField("manifest_ref", ref.GetManifestRef().MarshalString(), false)
+	data = append(data, "}\n"...)
+	return string(data)
 }
 
 func (c *Controller) verifyStagedReleaseEntrypoint(

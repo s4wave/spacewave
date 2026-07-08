@@ -37,13 +37,34 @@ type Blake3WasmExports = {
 const blake3SidecarURL = new URL('./sidecars/blake3.wasm', import.meta.url)
 const textEncoder = new TextEncoder()
 
+export function resolveGoScriptBlake3SidecarURLs(moduleURL: string): URL[] {
+  const primary = new URL('./sidecars/blake3.wasm', moduleURL)
+  if (!primary.pathname.includes('/chunks/sidecars/')) {
+    return [primary]
+  }
+  return [new URL('../sidecars/blake3.wasm', moduleURL), primary]
+}
+
 export async function installGoScriptBlake3Sidecar(): Promise<void> {
   if (globalThis.BLDR_BLAKE3) {
     return
   }
-  const response = await fetch(blake3SidecarURL)
-  if (!response.ok) {
-    throw new Error(`failed to load BLAKE3 sidecar: ${response.status}`)
+  // Bundled dev/e2e output inlines the module-level URL as a data: URL;
+  // chunked release output serves sidecars beside the entrypoint, so probe
+  // the resolver candidates instead.
+  const candidates =
+    blake3SidecarURL.protocol === 'data:'
+      ? [blake3SidecarURL]
+      : resolveGoScriptBlake3SidecarURLs(import.meta.url)
+  let response: Response | null = null
+  for (const wasmURL of candidates) {
+    response = await fetch(wasmURL)
+    if (response.ok) {
+      break
+    }
+  }
+  if (!response?.ok) {
+    throw new Error(`failed to load BLAKE3 sidecar: ${response?.status}`)
   }
   const { instance } = await WebAssembly.instantiate(
     await response.arrayBuffer(),
