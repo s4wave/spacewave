@@ -36,16 +36,16 @@ describe('getObjectViewersForType', () => {
     ])
   })
 
-  it('does not statically register notes viewers in the app shell', () => {
+  it('statically registers first-party Notes viewers for public quickstarts', () => {
     expect(
       getObjectViewersForType('notes/notebook').map((viewer) => viewer.name),
-    ).toEqual(['Debug Viewer'])
+    ).toEqual(['Notebook', 'Debug Viewer'])
     expect(
       getObjectViewersForType('notes/blog').map((viewer) => viewer.name),
-    ).toEqual(['Debug Viewer'])
+    ).toEqual(['Blog', 'Debug Viewer'])
     expect(
       getObjectViewersForType('notes/docs').map((viewer) => viewer.name),
-    ).toEqual(['Debug Viewer'])
+    ).toEqual(['Documentation', 'Debug Viewer'])
   })
 
   it('keeps the intro wizard ahead of the generic wizard viewer', () => {
