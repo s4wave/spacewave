@@ -123,13 +123,21 @@ func (c *Controller) processResolvers(ctx context.Context, ws world.WorldState) 
 			}
 		}
 
-		// Diff against previous value.
-		next := &manifest.FetchManifestValue{ManifestRefs: refs}
-		if entry.emitted == nil || !next.EqualVT(entry.emitted) {
-			_ = entry.handler.ClearValues()
-			_, _ = entry.handler.AddValue(next)
-			entry.emitted = next
+		if len(refs) == 0 {
+			if entry.emitted != nil {
+				_ = entry.handler.ClearValues()
+				entry.emitted = nil
+			}
 			le.WithField("manifest-id", mid).Debugf("resolved %d manifest(s)", len(manifests))
+		} else {
+			// Diff against previous value.
+			next := &manifest.FetchManifestValue{ManifestRefs: refs}
+			if entry.emitted == nil || !next.EqualVT(entry.emitted) {
+				_ = entry.handler.ClearValues()
+				_, _ = entry.handler.AddValue(next)
+				entry.emitted = next
+				le.WithField("manifest-id", mid).Debugf("resolved %d manifest(s)", len(manifests))
+			}
 		}
 		entry.handler.MarkIdle(true)
 		trace.Log(entryCtx, "result", "resolved")
