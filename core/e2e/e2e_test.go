@@ -7,12 +7,15 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
 	bldr_manifest_builder_controller "github.com/s4wave/spacewave/bldr/manifest/builder/controller"
@@ -40,6 +43,8 @@ const (
 	coreE2ETestHashObjectRefAndValidation = "hash"
 	coreE2ETestTypedObjectLayoutAccess    = "typedObject"
 )
+
+const coreE2EBrowserSuiteName = "Resources SDK with Real Backend E2E"
 
 var coreE2E *coreE2EFixture
 
@@ -153,7 +158,12 @@ func runCoreE2EBrowserShard(t *testing.T, shardName string, tests ...string) {
 		t.Fatal("core e2e browser server was not initialized")
 	}
 
-	pattern := strings.Join(tests, "|")
+	patterns := make([]string, 0, len(tests))
+	for _, test := range tests {
+		patterns = append(patterns, regexp.QuoteMeta(coreE2EBrowserSuiteName+" "+test))
+	}
+	pattern := "^(" + strings.Join(patterns, "|") + ")$"
+	reportFile := filepath.Join(t.TempDir(), shardName+"-vitest.json")
 	args := []string{
 		"run",
 		"vitest",
@@ -162,6 +172,10 @@ func runCoreE2EBrowserShard(t *testing.T, shardName string, tests ...string) {
 		"app/App.backend.e2e.test.tsx",
 		"--testNamePattern",
 		pattern,
+		"--reporter=default",
+		"--reporter=json",
+		"--outputFile",
+		reportFile,
 	}
 	cmd := exec.CommandContext(t.Context(), "bun", args...)
 	cmd.Dir = coreE2E.repoRoot
@@ -170,8 +184,63 @@ func runCoreE2EBrowserShard(t *testing.T, shardName string, tests ...string) {
 	cmd.Stderr = os.Stderr
 
 	t.Logf("running browser shard %s with %d App.backend.e2e scenarios", shardName, len(tests))
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("browser shard %s failed: %v", shardName, err)
+	runErr := cmd.Run()
+	assertCoreE2EBrowserShardPassedTests(t, shardName, tests, reportFile)
+	if runErr != nil {
+		t.Fatalf("browser shard %s failed: %v", shardName, runErr)
+	}
+}
+
+func assertCoreE2EBrowserShardPassedTests(t *testing.T, shardName string, expected []string, reportFile string) {
+	t.Helper()
+
+	data, err := os.ReadFile(reportFile)
+	if err != nil {
+		t.Fatalf("read browser shard %s vitest JSON report: %v", shardName, err)
+	}
+
+	var parser fastjson.Parser
+	report, err := parser.ParseBytes(data)
+	if err != nil {
+		t.Fatalf("parse browser shard %s vitest JSON report: %v", shardName, err)
+	}
+
+	expectedSet := make(map[string]struct{}, len(expected))
+	for _, name := range expected {
+		expectedSet[name] = struct{}{}
+	}
+
+	passedSet := make(map[string]struct{}, len(expected))
+	for _, file := range report.GetArray("testResults") {
+		for _, assertion := range file.GetArray("assertionResults") {
+			if string(assertion.GetStringBytes("status")) == "passed" {
+				passedSet[string(assertion.GetStringBytes("title"))] = struct{}{}
+			}
+		}
+	}
+
+	missing := make([]string, 0)
+	for _, name := range expected {
+		if _, ok := passedSet[name]; !ok {
+			missing = append(missing, name)
+		}
+	}
+
+	extra := make([]string, 0)
+	for name := range passedSet {
+		if _, ok := expectedSet[name]; !ok {
+			extra = append(extra, name)
+		}
+	}
+	slices.Sort(extra)
+
+	if len(missing) != 0 || len(extra) != 0 {
+		t.Fatalf(
+			"browser shard %s passed scenario coverage mismatch: missing [%s], extra [%s]",
+			shardName,
+			strings.Join(missing, ", "),
+			strings.Join(extra, ", "),
+		)
 	}
 }
 
