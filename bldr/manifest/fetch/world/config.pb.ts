@@ -50,6 +50,35 @@ export interface Config {
    * @generated from field: uint64 override_manifest_rev = 5;
    */
   overrideManifestRev?: bigint
+  /**
+   * CdnSpaceId optionally mounts a read-only CDN Release World under EngineId.
+   * When set, CdnBaseUrl is required and the controller resolves EngineId
+   * without needing a separate World engine controller.
+   *
+   * @generated from field: string cdn_space_id = 6;
+   */
+  cdnSpaceId?: string
+  /**
+   * CdnBaseUrl is the public CDN base URL for CdnSpaceId.
+   *
+   * @generated from field: string cdn_base_url = 7;
+   */
+  cdnBaseUrl?: string
+  /**
+   * PointerTtlDur is the cached CDN root pointer TTL.
+   * Empty uses the CDN block store default. Negative disables expiry.
+   *
+   * @generated from field: string pointer_ttl_dur = 8;
+   */
+  pointerTtlDur?: string
+  /**
+   * ReleaseMetadataChannelKey reads ReleaseMetadata.ManifestRefs for this
+   * channel when ordinary manifest graph links are absent. Empty disables the
+   * release-metadata fallback.
+   *
+   * @generated from field: string release_metadata_channel_key = 9;
+   */
+  releaseMetadataChannelKey?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -75,6 +104,15 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       name: 'override_manifest_rev',
       kind: 'scalar',
       T: ScalarType.UINT64,
+    },
+    { no: 6, name: 'cdn_space_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 7, name: 'cdn_base_url', kind: 'scalar', T: ScalarType.STRING },
+    { no: 8, name: 'pointer_ttl_dur', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 9,
+      name: 'release_metadata_channel_key',
+      kind: 'scalar',
+      T: ScalarType.STRING,
     },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,

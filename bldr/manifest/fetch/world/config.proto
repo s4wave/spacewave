@@ -18,4 +18,17 @@ message Config {
   // OverrideManifestRev overrides the manifest revision in the returned metadata.
   // Ignored if unset or zero.
   uint64 override_manifest_rev = 5;
+  // CdnSpaceId optionally mounts a read-only CDN Release World under EngineId.
+  // When set, CdnBaseUrl is required and the controller resolves EngineId
+  // without needing a separate World engine controller.
+  string cdn_space_id = 6;
+  // CdnBaseUrl is the public CDN base URL for CdnSpaceId.
+  string cdn_base_url = 7;
+  // PointerTtlDur is the cached CDN root pointer TTL.
+  // Empty uses the CDN block store default. Negative disables expiry.
+  string pointer_ttl_dur = 8;
+  // ReleaseMetadataChannelKey reads ReleaseMetadata.ManifestRefs for this
+  // channel when ordinary manifest graph links are absent. Empty disables the
+  // release-metadata fallback.
+  string release_metadata_channel_key = 9;
 }

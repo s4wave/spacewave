@@ -467,6 +467,18 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if browserOverride == nil {
 		t.Fatal("override for browser 'spacewave-browser' not found")
 	}
+	browserDistCfg := string(browserOverride.GetConfig())
+	for _, want := range []string{
+		`"release-world-fetch"`,
+		`"spacewave-release-world"`,
+		`"cdnSpaceId":"01kqjmfxd44r7ggrq78efad3d2"`,
+		`"https://cdn.spacewave.app"`,
+		`"releaseMetadataChannelKey":"stable"`,
+	} {
+		if !strings.Contains(browserDistCfg, want) {
+			t.Fatalf("production browser release dist config missing %s: %s", want, browserDistCfg)
+		}
+	}
 	for name, override := range map[string]string{
 		"spacewave-launcher": string(browserLauncherOverride.GetConfig()),
 		"spacewave-core":     string(browserCoreOverride.GetConfig()),
@@ -900,7 +912,7 @@ func mustGoPluginConfig(t *testing.T, data []byte) *bldr_plugin_compiler_go.Conf
 
 func assertBrowserLauncherOmitsReleaseWorld(t *testing.T, label string, conf *bldr_plugin_compiler_go.Config) {
 	t.Helper()
-	for _, key := range []string{"release-world", "release-world-fetch", "release-world-ops"} {
+	for _, key := range []string{"release-world", "release-world-fetch"} {
 		if conf.GetConfigSet()[key] != nil {
 			t.Fatalf("%s launcher configSet includes %s", label, key)
 		}

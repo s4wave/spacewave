@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "7f7347c7b0bca337d60cc8ee4844ed0234b81bdae0558423ab2bc74c14074bd5",
+  "protocFlagsHash": "dec1006ca7ba7deb9526ecb0ce96782bad33a98bc0fe032849a3e8acc0478a96",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.15.0,starpc=v0.49.18,protobuf-es-lite=1.1.0",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -195,7 +195,7 @@
       "protoFiles": ["bldr/manifest/fetch/rpc/config.proto"]
     },
     "github.com/s4wave/spacewave/bldr/manifest/fetch/world": {
-      "hash": "e47753c24d180e1056e0b9418793c156882254aed761cf71df4c7f63cdf341c1",
+      "hash": "7e2206feaf9a92944871aa4aa204a3ce1b68fa0627c40ada4ce49c2247403fb4",
       "generatedFiles": [
         "bldr/manifest/fetch/world/config.pb.cc",
         "bldr/manifest/fetch/world/config.pb.go",

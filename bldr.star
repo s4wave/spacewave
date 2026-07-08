@@ -30,9 +30,6 @@ def core_go_pkgs(include_export=True):
 LAUNCHER_GO_PKGS = [
     "./core/provider/spacewave/launcher/controller",
     "github.com/s4wave/spacewave/bldr/manifest/fetch/world",
-    "github.com/s4wave/spacewave/core/cdn/bstore/controller",
-    "github.com/s4wave/spacewave/core/cdn/world/controller",
-    "github.com/s4wave/spacewave/core/space/world/optypes",
     "github.com/s4wave/spacewave/db/block/store/overlay",
     "github.com/s4wave/spacewave/db/block/store/rpc/server",
     "github.com/s4wave/spacewave/db/object/peer",
@@ -168,6 +165,19 @@ def spacewave_launcher_controller_config(
         conf["initDistConfig"] = init_dist_config
     return conf
 
+def release_world_host_config_set(
+        space_id="01kqjmfxd44r7ggrq78efad3d2",
+        cdn_base_url="https://cdn.spacewave.app"):
+    return {
+        "release-world-fetch": config_entry("bldr/manifest/fetch/world", 1, {
+            "engineId": "spacewave-release-world",
+            "objectKeys": ["spacewave/release/manifests"],
+            "cdnSpaceId": space_id,
+            "cdnBaseUrl": cdn_base_url,
+            "releaseMetadataChannelKey": "stable",
+        }),
+    }
+
 def spacewave_launcher_config(
         launcher_controller_config=spacewave_launcher_controller_config(),
         web_go_compiler=None,
@@ -183,20 +193,7 @@ def spacewave_launcher_config(
         }),
     }
     if include_release_world:
-        config_set.update({
-            "release-world": config_entry("spacewave/cdn/world", 1, {
-                "engineId": "spacewave-release-world",
-                "spaceId": "01kqjmfxd44r7ggrq78efad3d2",
-                "cdnBaseUrl": "https://cdn.spacewave.app",
-            }),
-            "release-world-ops": config_entry("space/world/ops", 1, {
-                "engineId": "spacewave-release-world",
-            }),
-            "release-world-fetch": config_entry("bldr/manifest/fetch/world", 1, {
-                "engineId": "spacewave-release-world",
-                "objectKeys": ["spacewave/release/manifests"],
-            }),
-        })
+        config_set.update(release_world_host_config_set())
     conf = {
         "goPkgs": LAUNCHER_GO_PKGS if include_release_world else LAUNCHER_BROWSER_GO_PKGS,
         "configSet": config_set,
@@ -419,7 +416,12 @@ BROWSER_RELEASE_E2E_LOAD_PLUGINS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "web",
 ]
 
-def dist_release_config(embed_manifests, load_plugins, entrypoint_role="desktop", go_compiler=None):
+def dist_release_config(
+        embed_manifests,
+        load_plugins,
+        entrypoint_role="desktop",
+        go_compiler=None,
+        host_config_set=None):
     conf = dist_compiler_config(
         cliPkgs=["./cmd/spacewave/cli"],
         embedManifests=embed_manifests,
@@ -430,6 +432,8 @@ def dist_release_config(embed_manifests, load_plugins, entrypoint_role="desktop"
     )
     if go_compiler:
         conf["goCompiler"] = go_compiler
+    if host_config_set:
+        conf["hostConfigSet"] = host_config_set
     return conf
 
 manifest("spacewave-dist",
@@ -535,6 +539,7 @@ build("release-web",
             BROWSER_RELEASE_LOAD_PLUGINS,
             entrypoint_role="browser",
             go_compiler="GO_COMPILER_GOSCRIPT",
+            host_config_set=release_world_host_config_set(),
         ),
     },
 )
