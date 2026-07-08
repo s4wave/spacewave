@@ -2,7 +2,7 @@ module github.com/s4wave/spacewave
 
 go 1.26.4
 
-require github.com/s4wave/goscript v0.2.15-0.20260706223351-7bd9c9df0e54 // master
+require github.com/s4wave/goscript v0.2.15-0.20260708070209-9509bf610f15 // master
 
 replace (
 	// aperture: use compatibility forks
@@ -95,7 +95,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-alpha.1.0.20260702110057-606e1d5a143d // main
-	github.com/go-git/go-git/v6 v6.0.0-alpha.4.0.20260706163144-533c6877795c // main
+	github.com/go-git/go-git/v6 v6.0.0-alpha.4.0.20260707125336-d60654d4f998 // main
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.6.0
