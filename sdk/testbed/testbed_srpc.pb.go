@@ -18,6 +18,8 @@ type SRPCTestbedResourceServiceClient interface {
 
 	MarkTestResult(ctx context.Context, in *MarkTestResultRequest) (*MarkTestResultResponse, error)
 
+	ClaimTest(ctx context.Context, in *ClaimTestRequest) (*ClaimTestResponse, error)
+
 	AccessStateAtom(ctx context.Context, in *AccessStateAtomRequest) (*AccessStateAtomResponse, error)
 }
 
@@ -57,6 +59,15 @@ func (c *srpcTestbedResourceServiceClient) MarkTestResult(ctx context.Context, i
 	return out, nil
 }
 
+func (c *srpcTestbedResourceServiceClient) ClaimTest(ctx context.Context, in *ClaimTestRequest) (*ClaimTestResponse, error) {
+	out := new(ClaimTestResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ClaimTest", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcTestbedResourceServiceClient) AccessStateAtom(ctx context.Context, in *AccessStateAtomRequest) (*AccessStateAtomResponse, error) {
 	out := new(AccessStateAtomResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "AccessStateAtom", in, out)
@@ -70,6 +81,8 @@ type SRPCTestbedResourceServiceServer interface {
 	CreateWorld(context.Context, *CreateWorldRequest) (*CreateWorldResponse, error)
 
 	MarkTestResult(context.Context, *MarkTestResultRequest) (*MarkTestResultResponse, error)
+
+	ClaimTest(context.Context, *ClaimTestRequest) (*ClaimTestResponse, error)
 
 	AccessStateAtom(context.Context, *AccessStateAtomRequest) (*AccessStateAtomResponse, error)
 }
@@ -102,6 +115,7 @@ func (SRPCTestbedResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"CreateWorld",
 		"MarkTestResult",
+		"ClaimTest",
 		"AccessStateAtom",
 	}
 }
@@ -119,6 +133,8 @@ func (d *SRPCTestbedResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_CreateWorld(d.impl, strm)
 	case "MarkTestResult":
 		return true, d.InvokeMethod_MarkTestResult(d.impl, strm)
+	case "ClaimTest":
+		return true, d.InvokeMethod_ClaimTest(d.impl, strm)
 	case "AccessStateAtom":
 		return true, d.InvokeMethod_AccessStateAtom(d.impl, strm)
 	default:
@@ -150,6 +166,18 @@ func (SRPCTestbedResourceServiceHandler) InvokeMethod_MarkTestResult(impl SRPCTe
 	return strm.MsgSend(out)
 }
 
+func (SRPCTestbedResourceServiceHandler) InvokeMethod_ClaimTest(impl SRPCTestbedResourceServiceServer, strm srpc.Stream) error {
+	req := new(ClaimTestRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ClaimTest(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 func (SRPCTestbedResourceServiceHandler) InvokeMethod_AccessStateAtom(impl SRPCTestbedResourceServiceServer, strm srpc.Stream) error {
 	req := new(AccessStateAtomRequest)
 	if err := strm.MsgRecv(req); err != nil {
@@ -175,6 +203,14 @@ type SRPCTestbedResourceService_MarkTestResultStream interface {
 }
 
 type srpcTestbedResourceService_MarkTestResultStream struct {
+	srpc.Stream
+}
+
+type SRPCTestbedResourceService_ClaimTestStream interface {
+	srpc.Stream
+}
+
+type srpcTestbedResourceService_ClaimTestStream struct {
 	srpc.Stream
 }
 

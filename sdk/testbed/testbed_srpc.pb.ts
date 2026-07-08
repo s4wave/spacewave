@@ -5,6 +5,8 @@
 import {
   AccessStateAtomRequest,
   AccessStateAtomResponse,
+  ClaimTestRequest,
+  ClaimTestResponse,
   CreateWorldRequest,
   CreateWorldResponse,
   MarkTestResultRequest,
@@ -35,6 +37,15 @@ export const TestbedResourceServiceDefinition = {
       name: 'MarkTestResult',
       I: MarkTestResultRequest,
       O: MarkTestResultResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.testbed.TestbedResourceService.ClaimTest
+     */
+    ClaimTest: {
+      name: 'ClaimTest',
+      I: ClaimTestRequest,
+      O: ClaimTestResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -70,6 +81,14 @@ export interface TestbedResourceService {
   ): Promise<MarkTestResultResponse>
 
   /**
+   * @generated from rpc s4wave.testbed.TestbedResourceService.ClaimTest
+   */
+  ClaimTest(
+    request: ClaimTestRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ClaimTestResponse>
+
+  /**
    * @generated from rpc s4wave.testbed.TestbedResourceService.AccessStateAtom
    */
   AccessStateAtom(
@@ -89,6 +108,7 @@ export class TestbedResourceServiceClient implements TestbedResourceService {
     this.rpc = rpc
     this.CreateWorld = this.CreateWorld.bind(this)
     this.MarkTestResult = this.MarkTestResult.bind(this)
+    this.ClaimTest = this.ClaimTest.bind(this)
     this.AccessStateAtom = this.AccessStateAtom.bind(this)
   }
   /**
@@ -123,6 +143,23 @@ export class TestbedResourceServiceClient implements TestbedResourceService {
       abortSignal || undefined,
     )
     return MarkTestResultResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.testbed.TestbedResourceService.ClaimTest
+   */
+  async ClaimTest(
+    request: ClaimTestRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ClaimTestResponse> {
+    const requestMsg = ClaimTestRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      TestbedResourceServiceDefinition.methods.ClaimTest.name,
+      ClaimTestRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ClaimTestResponse.fromBinary(result)
   }
 
   /**

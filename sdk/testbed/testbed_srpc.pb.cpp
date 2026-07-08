@@ -16,6 +16,10 @@ starpc::Error SRPCTestbedResourceServiceClientImpl::MarkTestResult(const s4wave:
   return cc_->ExecCall(service_id_, "MarkTestResult", in, out);
 }
 
+starpc::Error SRPCTestbedResourceServiceClientImpl::ClaimTest(const s4wave::testbed::ClaimTestRequest& in, s4wave::testbed::ClaimTestResponse* out) {
+  return cc_->ExecCall(service_id_, "ClaimTest", in, out);
+}
+
 starpc::Error SRPCTestbedResourceServiceClientImpl::AccessStateAtom(const s4wave::testbed::AccessStateAtomRequest& in, s4wave::testbed::AccessStateAtomResponse* out) {
   return cc_->ExecCall(service_id_, "AccessStateAtom", in, out);
 }
@@ -24,6 +28,7 @@ std::vector<std::string> SRPCTestbedResourceServiceHandler::GetMethodIDs() const
   return {
     "CreateWorld",
     "MarkTestResult",
+    "ClaimTest",
     "AccessStateAtom",
   };
 }
@@ -50,6 +55,14 @@ std::pair<bool, starpc::Error> SRPCTestbedResourceServiceHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     s4wave::testbed::MarkTestResultResponse resp;
     err = impl_->MarkTestResult(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "ClaimTest") {
+    s4wave::testbed::ClaimTestRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::testbed::ClaimTestResponse resp;
+    err = impl_->ClaimTest(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   } else if (method_id == "AccessStateAtom") {

@@ -33,6 +33,8 @@ class SRPCTestbedResourceServiceClient {
   virtual starpc::Error CreateWorld(const s4wave::testbed::CreateWorldRequest& in, s4wave::testbed::CreateWorldResponse* out) = 0;
   // MarkTestResult
   virtual starpc::Error MarkTestResult(const s4wave::testbed::MarkTestResultRequest& in, s4wave::testbed::MarkTestResultResponse* out) = 0;
+  // ClaimTest
+  virtual starpc::Error ClaimTest(const s4wave::testbed::ClaimTestRequest& in, s4wave::testbed::ClaimTestResponse* out) = 0;
   // AccessStateAtom
   virtual starpc::Error AccessStateAtom(const s4wave::testbed::AccessStateAtomRequest& in, s4wave::testbed::AccessStateAtomResponse* out) = 0;
 };
@@ -49,6 +51,8 @@ class SRPCTestbedResourceServiceClientImpl : public SRPCTestbedResourceServiceCl
   virtual starpc::Error CreateWorld(const s4wave::testbed::CreateWorldRequest& in, s4wave::testbed::CreateWorldResponse* out) override;
   // MarkTestResult
   virtual starpc::Error MarkTestResult(const s4wave::testbed::MarkTestResultRequest& in, s4wave::testbed::MarkTestResultResponse* out) override;
+  // ClaimTest
+  virtual starpc::Error ClaimTest(const s4wave::testbed::ClaimTestRequest& in, s4wave::testbed::ClaimTestResponse* out) override;
   // AccessStateAtom
   virtual starpc::Error AccessStateAtom(const s4wave::testbed::AccessStateAtomRequest& in, s4wave::testbed::AccessStateAtomResponse* out) override;
 
@@ -71,6 +75,8 @@ class SRPCTestbedResourceServiceServer {
   virtual starpc::Error CreateWorld(const s4wave::testbed::CreateWorldRequest& req, s4wave::testbed::CreateWorldResponse* resp) = 0;
   // MarkTestResult
   virtual starpc::Error MarkTestResult(const s4wave::testbed::MarkTestResultRequest& req, s4wave::testbed::MarkTestResultResponse* resp) = 0;
+  // ClaimTest
+  virtual starpc::Error ClaimTest(const s4wave::testbed::ClaimTestRequest& req, s4wave::testbed::ClaimTestResponse* resp) = 0;
   // AccessStateAtom
   virtual starpc::Error AccessStateAtom(const s4wave::testbed::AccessStateAtomRequest& req, s4wave::testbed::AccessStateAtomResponse* resp) = 0;
 };

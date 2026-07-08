@@ -11,6 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/util/fsutil"
+	"github.com/pkg/errors"
 	bldr_manifest_builder_controller "github.com/s4wave/spacewave/bldr/manifest/builder/controller"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	bldr_plugin_compiler_js "github.com/s4wave/spacewave/bldr/plugin/compiler/js"
@@ -30,21 +31,94 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TIER: pr
-func TestSpacewaveCoreE2E(t *testing.T) {
+const (
+	coreE2ETestProviderQuickstartDrive    = "provider"
+	coreE2ETestHashObjectRefAndValidation = "hash"
+	coreE2ETestTypedObjectLayoutAccess    = "typedObject"
+)
+
+var coreE2E *coreE2EFixture
+
+type coreE2EFixture struct {
+	cancel                context.CancelFunc
+	testbedResourceServer *resource_testbed.TestbedResourceServer
+	release               []func()
+}
+
+func TestMain(m *testing.M) {
 	if os.Getenv("RUN_CORE_E2E") == "" {
-		t.Skip("set RUN_CORE_E2E=1 to run the core E2E test")
+		os.Exit(m.Run())
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// get path to repo root
+	fixture, err := newCoreE2EFixture(ctx, cancel, le)
+	if err != nil {
+		os.Stderr.WriteString("core e2e setup failed: " + err.Error() + "\n")
+		os.Exit(1)
+	}
+	coreE2E = fixture
+
+	code := m.Run()
+	fixture.Close()
+	os.Exit(code)
+}
+
+// TIER: pr
+func TestSpacewaveCoreE2EProviderQuickstartDrive(t *testing.T) {
+	runCoreE2ETest(t, coreE2ETestProviderQuickstartDrive)
+}
+
+// TIER: pr
+func TestSpacewaveCoreE2EHashObjectRefAndValidation(t *testing.T) {
+	runCoreE2ETest(t, coreE2ETestHashObjectRefAndValidation)
+}
+
+// TIER: pr
+func TestSpacewaveCoreE2ETypedObjectLayoutAccess(t *testing.T) {
+	runCoreE2ETest(t, coreE2ETestTypedObjectLayoutAccess)
+}
+
+func runCoreE2ETest(t *testing.T, testName string) {
+	if os.Getenv("RUN_CORE_E2E") == "" {
+		t.Skip("set RUN_CORE_E2E=1 to run the core E2E test")
+	}
+
+	t.Parallel()
+
+	if coreE2E == nil {
+		t.Fatal("core e2e fixture was not initialized")
+	}
+
+	success, errorMsg, err := coreE2E.testbedResourceServer.RunTest(t.Context(), testName)
+	if err != nil {
+		t.Fatalf("error waiting for %s test result: %v", testName, err)
+	}
+	if !success {
+		t.Fatalf("%s test failed: %s", testName, errorMsg)
+	}
+}
+
+func newCoreE2EFixture(
+	ctx context.Context,
+	cancel context.CancelFunc,
+	le *logrus.Entry,
+) (_ *coreE2EFixture, retErr error) {
+	fixture := &coreE2EFixture{
+		cancel: cancel,
+	}
+	defer func() {
+		if retErr != nil {
+			fixture.Close()
+		}
+	}()
+
 	wd, err := os.Getwd()
 	if err != nil {
-		t.Fatal(err.Error())
+		return nil, errors.Wrap(err, "get working directory")
 	}
 	repoRoot := filepath.Join(wd, "../..")
 	workDir := filepath.Join(wd, ".bldr")
@@ -53,31 +127,26 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 	pluginStateDir := filepath.Join(workDir, "plugin", "state")
 	pluginDistDir := filepath.Join(workDir, "plugin", "dist")
 
-	// cleanup the build dir if it exists
 	if err := fsutil.CleanCreateDir(buildDir); err != nil {
-		t.Fatal(err.Error())
+		return nil, errors.Wrap(err, "clean build directory")
 	}
 	if err := fsutil.CleanCreateDir(pluginStateDir); err != nil {
-		t.Fatal(err.Error())
+		return nil, errors.Wrap(err, "clean plugin state directory")
 	}
 	if err := fsutil.CleanCreateDir(pluginDistDir); err != nil {
-		t.Fatal(err.Error())
+		return nil, errors.Wrap(err, "clean plugin dist directory")
 	}
 
-	// check out the web dist sources
-	err = s4wave_core_e2e.CheckoutWebDistSources(ctx, le, repoRoot, distDir)
-	if err != nil {
-		t.Fatal(err.Error())
+	if err := s4wave_core_e2e.CheckoutWebDistSources(ctx, le, repoRoot, distDir); err != nil {
+		return nil, errors.Wrap(err, "checkout web dist sources")
 	}
 
-	// build the bldr testbed
 	tb, err := testbed.BuildTestbed(ctx, le)
 	if err != nil {
-		t.Fatal(err.Error())
+		return nil, errors.Wrap(err, "build bldr testbed")
 	}
-	defer tb.Release()
+	fixture.release = append(fixture.release, tb.Release)
 
-	// add the controllers we will need
 	b, sr := tb.GetBus(), tb.GetStaticResolver()
 	sr.AddFactory(plugin_host_process.NewFactory(b))
 	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
@@ -89,83 +158,69 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 	sr.AddFactory(volume_rpc_server.NewFactory(b))
 	sr.AddFactory(world_block_engine.NewFactory(b))
 
-	// create testbed resource server
-	volumeID := tb.GetVolume().GetID()
-	bucketID := "e2e-testbed-bucket"
 	testbedResourceServer := resource_testbed.NewTestbedResourceServer(
 		ctx,
 		le,
 		b,
-		volumeID,
-		bucketID,
+		tb.GetVolume().GetID(),
+		"e2e-testbed-bucket",
 	)
+	fixture.testbedResourceServer = testbedResourceServer
 
-	// register testbed resource service directly on testbed mux
-	// the JS plugin reaches this via bus fallback: hostMux has its own
-	// ResourceServer (from scheduler), so wrapping in ResourceServer here
-	// would be shadowed. Direct registration is reachable because hostMux
-	// falls through to LookupRpcService for unknown services.
+	// The JS plugin reaches this via bus fallback: hostMux has its own
+	// ResourceServer, so wrapping in ResourceServer here would be shadowed.
 	if err := testbedResourceServer.Register(tb.GetMux()); err != nil {
-		t.Fatal(err.Error())
+		return nil, errors.Wrap(err, "register testbed resource server")
 	}
 
-	// start a peer controller to serve GetPeer directives
 	volPeer, err := tb.GetVolume().GetPeer(ctx, true)
 	if err != nil {
-		t.Fatal(err.Error())
+		return nil, errors.Wrap(err, "get volume peer")
 	}
 	peerCtrl := peer_controller.NewController(le, volPeer)
 	relPeerCtrl, err := tb.GetBus().AddController(ctx, peerCtrl, nil)
 	if err != nil {
-		t.Fatal(err.Error())
+		return nil, errors.Wrap(err, "add peer controller")
 	}
-	defer relPeerCtrl()
+	fixture.release = append(fixture.release, relPeerCtrl)
 
-	// start objecttype controller to resolve LookupObjectType directives
 	objectTypeCtrl := objecttype_controller.NewController(space_world_objecttypes.LookupObjectType)
 	relObjectTypeCtrl, err := tb.GetBus().AddController(ctx, objectTypeCtrl, nil)
 	if err != nil {
-		t.Fatal(err.Error())
+		return nil, errors.Wrap(err, "add object type controller")
 	}
-	defer relObjectTypeCtrl()
+	fixture.release = append(fixture.release, relObjectTypeCtrl)
 
-	// load the go plugin host
-	processHost, _, processRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_process.Controller](
+	_, _, processRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_process.Controller](
 		ctx,
 		tb.GetBus(),
 		resolver.NewLoadControllerWithConfig(plugin_host_process.NewConfig(pluginStateDir, pluginDistDir)),
 		nil,
 	)
 	if err != nil {
-		t.Fatal(err.Error())
+		return nil, errors.Wrap(err, "start process plugin host")
 	}
-	defer processRef.Release()
-	_ = processHost
+	fixture.release = append(fixture.release, processRef.Release)
 
-	// load the js plugin host
-	quickjsHost, _, quickjsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_wazero_quickjs.Controller](
+	_, _, quickjsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_wazero_quickjs.Controller](
 		ctx,
 		tb.GetBus(),
 		resolver.NewLoadControllerWithConfig(plugin_host_wazero_quickjs.NewConfig()),
 		nil,
 	)
 	if err != nil {
-		t.Fatal(err.Error())
+		return nil, errors.Wrap(err, "start quickjs plugin host")
 	}
-	defer quickjsHostRef.Release()
-	_ = quickjsHost
+	fixture.release = append(fixture.release, quickjsHostRef.Release)
 
-	// load the merged project config
 	projectConfig, err := s4wave_core_e2e.LoadProjectConfig(repoRoot)
-	if err == nil {
-		err = projectConfig.Validate()
-	}
 	if err != nil {
-		t.Fatal(err.Error())
+		return nil, errors.Wrap(err, "load project config")
+	}
+	if err := projectConfig.Validate(); err != nil {
+		return nil, errors.Wrap(err, "validate project config")
 	}
 
-	// apply the devtool remote for building manifests
-	// see devtool/bus.go in bldr
 	projectConfig.Remotes = map[string]*bldr_project.RemoteConfig{
 		"devtool": {
 			EngineId:       tb.GetWorldEngineID(),
@@ -175,68 +230,44 @@ func TestSpacewaveCoreE2E(t *testing.T) {
 		},
 	}
 
-	// configure the project controller
 	projCtrlConf := bldr_project_controller.NewConfig(repoRoot, workDir, projectConfig, false, true)
 	projCtrlConf.FetchManifestRemote = "devtool"
 
-	// run the project controller, which also compiles and starts the plugins
-	projCtrl, _, projCtrlRef, err := loader.WaitExecControllerRunningTyped[*bldr_project_controller.Controller](
+	_, _, projCtrlRef, err := loader.WaitExecControllerRunningTyped[*bldr_project_controller.Controller](
 		ctx,
 		tb.GetBus(),
 		resolver.NewLoadControllerWithConfig(projCtrlConf),
 		nil,
 	)
 	if err != nil {
-		t.Fatal(err.Error())
+		return nil, errors.Wrap(err, "start project controller")
 	}
-	defer projCtrlRef.Release()
-	_ = projCtrl
+	fixture.release = append(fixture.release, projCtrlRef.Release)
 
-	type testResult struct {
-		success  bool
-		errorMsg string
-		err      error
-	}
-	waitCtx, waitCancel := context.WithCancel(ctx)
-	defer waitCancel()
-	startupErrCh := make(chan error, 1)
 	go func() {
-		startupErrCh <- tb.GetScheduler().WaitPluginsRunning(waitCtx, projectConfig.GetStart().GetPlugins())
-	}()
-	testResultCh := make(chan testResult, 1)
-	go func() {
-		success, errorMsg, err := testbedResourceServer.WaitForTestResult(waitCtx)
-		testResultCh <- testResult{success: success, errorMsg: errorMsg, err: err}
-	}()
-
-	le.Info("waiting for test to complete...")
-	for startupErrCh != nil {
-		select {
-		case err := <-startupErrCh:
-			startupErrCh = nil
-			if err != nil {
-				t.Fatalf("error waiting for startup plugins: %v", err)
+		err := tb.GetScheduler().WaitPluginsRunning(ctx, projectConfig.GetStart().GetPlugins())
+		if err != nil {
+			if ctx.Err() == nil {
+				testbedResourceServer.FailQueuedTests(false, "error waiting for startup plugins: "+err.Error())
 			}
-		case result := <-testResultCh:
-			waitCancel()
-			if result.err != nil {
-				t.Fatalf("error waiting for test result: %v", result.err)
-			}
-			if !result.success {
-				t.Fatalf("test failed: %s", result.errorMsg)
-			}
-			le.Info("test completed successfully")
 			return
 		}
-	}
+		le.Info("startup plugins running")
+	}()
 
-	result := <-testResultCh
-	if result.err != nil {
-		t.Fatalf("error waiting for test result: %v", result.err)
-	}
-	if !result.success {
-		t.Fatalf("test failed: %s", result.errorMsg)
-	}
+	return fixture, nil
+}
 
-	le.Info("test completed successfully")
+func (f *coreE2EFixture) Close() {
+	if f.testbedResourceServer != nil {
+		f.testbedResourceServer.CloseTestQueue()
+	}
+	for i := len(f.release) - 1; i >= 0; i-- {
+		f.release[i]()
+	}
+	f.release = nil
+	if f.cancel != nil {
+		f.cancel()
+		f.cancel = nil
+	}
 }
