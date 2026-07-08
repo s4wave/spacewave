@@ -46,59 +46,29 @@ function resolveBldrSourcePath(...segments: string[]) {
     : resolve(__dirname, 'bldr', ...segments)
 }
 
-// optimizedDepVersionImports keeps React-dependent optimized dependency chunks
-// on one browser module URL. Vite 8 appends ?v=... to optimized dep entries
-// imported by source modules, while shared chunks import each other without the
-// query; React and ReactDOM then initialize separate dispatcher singletons.
-function optimizedDepVersionImports(): Plugin {
-  const rewriteImportSource = (
-    code: string,
-    versionQuery: string,
-    pattern: RegExp,
-  ) => {
-    return code.replace(pattern, (match, prefix, quote, source, suffix = '') => {
-      if (source.includes('?')) return match
-      return `${prefix}${quote}${source}${versionQuery}${suffix}`
-    })
-  }
-  const reactOptimizedDepImport =
-    /["']\.\/(?:react(?:_jsx(?:-dev)?-runtime)?|react-dom(?:_client)?|client-[^"']+)\.js["']/
-  const optimizedDepSource = "\\./[^\"']+\\.js"
-
+// canonicalReactOptimizedDep keeps React's optimized entry canonical when Vite
+// serves both /react.js and /react.js?v=... during dependency optimization.
+// ReactDOM's optimized chunks import /react.js without the query; source
+// modules import /react.js?v=..., and those must share one dispatcher.
+function canonicalReactOptimizedDep(): Plugin {
   return {
-    name: 'spacewave-optimized-dep-version-imports',
+    name: 'spacewave-canonical-react-optimized-dep',
     apply: 'serve',
-    transform(code, id) {
+    transform(_code, id) {
       const queryStart = id.indexOf('?')
       if (queryStart === -1) return null
-      const file = id.slice(0, queryStart)
-      if (!file.includes('/node_modules/.vite/') || !file.endsWith('.js')) {
+      const file = id.slice(0, queryStart).replaceAll('\\', '/')
+      if (
+        !file.includes('/node_modules/.vite/') ||
+        !file.includes('/deps/') ||
+        !file.endsWith('/react.js')
+      ) {
         return null
       }
-      if (!reactOptimizedDepImport.test(code)) return null
-      const version = new URLSearchParams(id.slice(queryStart + 1)).get('v')
-      if (!version) return null
-      const versionQuery = `?v=${version}`
-      let rewritten = rewriteImportSource(
-        code,
-        versionQuery,
-        new RegExp(`(\\bfrom\\s*)(["'])(${optimizedDepSource})(["'])`, 'g'),
-      )
-      rewritten = rewriteImportSource(
-        rewritten,
-        versionQuery,
-        new RegExp(`(\\bimport\\s*)(["'])(${optimizedDepSource})(["'])`, 'g'),
-      )
-      rewritten = rewriteImportSource(
-        rewritten,
-        versionQuery,
-        new RegExp(
-          `(\\bimport\\s*\\(\\s*)(["'])(${optimizedDepSource})(["']\\s*\\))`,
-          'g',
-        ),
-      )
-      if (rewritten === code) return null
-      return { code: rewritten, map: null }
+      return {
+        code: 'export { default } from "./react.js"\nexport * from "./react.js"\n',
+        map: null,
+      }
     },
   }
 }
@@ -170,7 +140,7 @@ export default defineConfig({
   },
 
   plugins: [
-    optimizedDepVersionImports(),
+    canonicalReactOptimizedDep(),
     react(),
     tailwindcss(),
     goTsResolver(__dirname),
