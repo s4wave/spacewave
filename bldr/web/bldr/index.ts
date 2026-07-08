@@ -9,6 +9,10 @@ export type {
 } from './web-runtime.js'
 export type { WebView, WebViewRegistration } from './web-view.js'
 export { WebDocument } from './web-document.js'
+export {
+  ProxyRTCPeerConnection,
+  setBridgePort,
+} from '../runtime/wasm/webrtc-bridge.js'
 export type {
   WebDocumentOptions,
   CreateWebViewFunc,
