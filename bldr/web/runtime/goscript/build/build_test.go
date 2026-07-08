@@ -765,14 +765,18 @@ func TestBuildWebGoScriptPluginScriptCodeSplittingUsesLazyMainLoader(t *testing.
 	lazyPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "s4wave", "example", "lazy", "index.ts")
 
 	writeTestFile(t, runtimePath, `
-export default async function runGoScriptPlugin(api, loadPluginMain) {
+export default async function runGoScriptPlugin(api, loadPluginMain, runtimeEnv) {
   if (typeof loadPluginMain !== "function") {
     throw new Error("plugin main loader was not a function")
+  }
+  if (runtimeEnv?.SPACEWAVE_CDN_BASE_URL !== "https://staging-cdn.example.test") {
+    throw new Error("plugin runtime env was not forwarded into runGoScriptPlugin")
   }
   if (globalThis.__pluginMainModuleEvaluated) {
     throw new Error("plugin main module loaded before wrapper invoked the lazy loader")
   }
   globalThis.__pluginLoaderWasFunction = true
+  globalThis.__pluginRuntimeEnvWasForwarded = true
   const pluginMain = await loadPluginMain()
   globalThis.__pluginMainLoadedAfterLoader = globalThis.__pluginMainModuleEvaluated === true
   await pluginMain(api)
@@ -1376,9 +1380,12 @@ const mod = await import(pathToFileURL(process.argv[2]).href)
 if (globalThis.__pluginMainModuleEvaluated) {
   throw new Error("plugin main chunk loaded during entry import")
 }
-await mod.default({ prefix: "plugin-api" })
+await mod.default({ prefix: "plugin-api" }, undefined, { SPACEWAVE_CDN_BASE_URL: "https://staging-cdn.example.test" })
 if (globalThis.__pluginLoaderWasFunction !== true) {
   throw new Error("plugin wrapper did not receive a loader function")
+}
+if (globalThis.__pluginRuntimeEnvWasForwarded !== true) {
+  throw new Error("plugin wrapper did not forward runtime env")
 }
 if (globalThis.__pluginMainLoadedAfterLoader !== true) {
   throw new Error("plugin main was not loaded through the lazy loader")

@@ -13,6 +13,18 @@ type GoPushableSink = {
 export type GoScriptPluginMain = () => void | Promise<void>
 export type GoScriptPluginMainLoader = () => Promise<GoScriptPluginMain>
 
+type RuntimeEnv = Record<string, string>
+
+type ProcessEnv = Record<string, string | undefined>
+
+interface ProcessLike {
+  env?: ProcessEnv
+}
+
+interface ProcessEnvGlobal {
+  process?: ProcessLike
+}
+
 declare global {
   var BLDR_BASE_URL: string
   var BLDR_PLUGIN_START_INFO: string | undefined
@@ -38,12 +50,18 @@ class GoScriptPluginGeneration {
   private readonly activeAcceptedStreams = new Set<BrowserMessagePortDuplex>()
   private terminalError?: Error
 
-  public constructor(private readonly api: BackendAPI) {}
+  private restoreRuntimeEnv?: () => void
+
+  public constructor(
+    private readonly api: BackendAPI,
+    private readonly runtimeEnv?: RuntimeEnv,
+  ) {}
 
   public start(
     startInfo: PluginStartInfo,
     loadPluginMain: GoScriptPluginMainLoader,
   ) {
+    this.restoreRuntimeEnv = installRuntimeEnv(this.runtimeEnv)
     const pluginStartInfoJsonB64 = btoa(PluginStartInfo.toJsonString(startInfo))
     globalScope.BLDR_PLUGIN_START_INFO = pluginStartInfoJsonB64
 
@@ -101,6 +119,8 @@ class GoScriptPluginGeneration {
     }
 
     const terminalError = castToError(err, 'GoScript plugin process failed')
+    this.restoreRuntimeEnv?.()
+    this.restoreRuntimeEnv = undefined
     this.terminalError = terminalError
     console.warn(
       'plugin-goscript: GoScript plugin process exited',
@@ -128,8 +148,9 @@ class GoScriptPluginGeneration {
 export default async function main(
   api: BackendAPI,
   loadPluginMain: GoScriptPluginMainLoader,
+  runtimeEnv?: RuntimeEnv,
 ): Promise<void> {
-  const generation = new GoScriptPluginGeneration(api)
+  const generation = new GoScriptPluginGeneration(api, runtimeEnv)
 
   globalScope.BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME = (
     onMessage,
@@ -200,6 +221,43 @@ export default async function main(
   }
 
   generation.start(api.startInfo, loadPluginMain)
+}
+
+function installRuntimeEnv(runtimeEnv?: RuntimeEnv): () => void {
+  if (!runtimeEnv || Object.keys(runtimeEnv).length === 0) {
+    return () => {}
+  }
+
+  const scope = globalScope as typeof globalThis & ProcessEnvGlobal
+  const proc = scope.process ?? {}
+  const env = proc.env ?? {}
+  const createdProcess = !scope.process
+  const createdEnv = !proc.env
+  const previous = new Map<string, string | undefined>()
+
+  for (const [key, value] of Object.entries(runtimeEnv)) {
+    previous.set(key, env[key])
+    env[key] = value
+  }
+
+  proc.env = env
+  scope.process = proc
+
+  return () => {
+    for (const [key, value] of previous) {
+      if (value === undefined) {
+        delete env[key]
+        continue
+      }
+      env[key] = value
+    }
+    if (createdEnv && Object.keys(env).length === 0) {
+      delete proc.env
+    }
+    if (createdProcess && Object.keys(proc).length === 0) {
+      delete scope.process
+    }
+  }
 }
 
 class BrowserMessagePortDuplex {

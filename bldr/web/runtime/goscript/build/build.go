@@ -143,13 +143,13 @@ func BuildWebGoScriptPluginScriptWithOptions(
 	mainImport := "@goscript/" + strings.Trim(mainPackagePath, "/") + "/plugin.gs.js"
 	entrypoint := "import runGoScriptPlugin from " + strconv.Quote(runtimeImport) + "\n" +
 		"import { main as pluginMain } from " + strconv.Quote(mainImport) + "\n\n" +
-		"export default async function main(api) {\n" +
-		"  await runGoScriptPlugin(api, () => Promise.resolve(pluginMain))\n" +
+		"export default async function main(api, _abortSignal, runtimeEnv) {\n" +
+		"  await runGoScriptPlugin(api, () => Promise.resolve(pluginMain), runtimeEnv)\n" +
 		"}\n"
 	if codeSplitting {
 		entrypoint = "import runGoScriptPlugin from " + strconv.Quote(runtimeImport) + "\n\n" +
-			"export default async function main(api) {\n" +
-			"  await runGoScriptPlugin(api, async () => (await import(" + strconv.Quote(mainImport) + ")).main)\n" +
+			"export default async function main(api, _abortSignal, runtimeEnv) {\n" +
+			"  await runGoScriptPlugin(api, async () => (await import(" + strconv.Quote(mainImport) + ")).main, runtimeEnv)\n" +
 			"}\n"
 	}
 	if err := os.WriteFile(entrypointPath, []byte(entrypoint), 0o644); err != nil {

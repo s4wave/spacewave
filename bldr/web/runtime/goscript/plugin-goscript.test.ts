@@ -10,6 +10,20 @@ const originalMessageChannel = globalThis.MessageChannel
 const originalConsoleWarn = console.warn
 let reportedFailures: unknown[]
 
+type PluginMain = () => void | Promise<void>
+type PluginMainLoader = () => Promise<PluginMain>
+type GoScriptRuntimeMain = (
+  api: BackendAPI,
+  loadPluginMain: PluginMainLoader,
+  runtimeEnv?: Record<string, string>,
+) => Promise<void>
+type ProcessEnvGlobal = typeof globalThis & {
+  process: {
+    env: Record<string, string | undefined>
+    [key: string]: unknown
+  }
+}
+
 describe('plugin-goscript generation lifecycle', () => {
   beforeEach(() => {
     globalThis.MessageChannel = originalMessageChannel
@@ -51,6 +65,83 @@ describe('plugin-goscript generation lifecycle', () => {
       btoa(PluginStartInfo.toJsonString(api.startInfo)),
     )
     expect(reportedFailures).toEqual([err])
+  })
+
+  it('installs runtime env for plugin main and restores only its entries after exit', async () => {
+    const api = buildBackendAPI()
+    const runtimeEnv = {
+      SPACEWAVE_CDN_BASE_URL: 'https://staging-cdn.example.test',
+      SPACEWAVE_CDN_SPACE: 'staging-space',
+      OVERRIDDEN_BY_RUNTIME: 'runtime-value',
+    }
+    const originalProcess = globalThis.process
+    vi.stubGlobal(
+      'process',
+      Object.assign({}, originalProcess, {
+        env: {
+          UNRELATED_PRE_EXISTING: 'keep-me',
+          OVERRIDDEN_BY_RUNTIME: 'original-value',
+        },
+      }),
+    )
+    let rejectPluginMain!: (err: unknown) => void
+    const pluginMainExited = new Promise<void>((_resolve, reject) => {
+      rejectPluginMain = reject
+    })
+    let resolvePluginMainRan!: () => void
+    const pluginMainRan = new Promise<void>((resolve) => {
+      resolvePluginMainRan = resolve
+    })
+    const failureReported = new Promise<void>((resolve) => {
+      globalThis.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE = (
+        reportedErr: unknown,
+      ) => {
+        reportedFailures.push(reportedErr)
+        resolve()
+      }
+    })
+    let envWhilePluginMainRan:
+      | Record<string, string | undefined>
+      | undefined
+    let startInfoWhilePluginMainRan: string | undefined
+
+    await (main as GoScriptRuntimeMain)(
+      api,
+      async () => () => {
+        envWhilePluginMainRan = {
+          ...(globalThis as ProcessEnvGlobal).process.env,
+        }
+        startInfoWhilePluginMainRan = globalThis.BLDR_PLUGIN_START_INFO
+        resolvePluginMainRan()
+        return pluginMainExited
+      },
+      runtimeEnv,
+    )
+    await pluginMainRan
+
+    expect(startInfoWhilePluginMainRan).toBe(
+      btoa(PluginStartInfo.toJsonString(api.startInfo)),
+    )
+    expect(envWhilePluginMainRan).toMatchObject({
+      SPACEWAVE_CDN_BASE_URL: 'https://staging-cdn.example.test',
+      SPACEWAVE_CDN_SPACE: 'staging-space',
+      OVERRIDDEN_BY_RUNTIME: 'runtime-value',
+      UNRELATED_PRE_EXISTING: 'keep-me',
+    })
+
+    rejectPluginMain(new Error('runtime env cleanup trigger'))
+    await failureReported
+
+    expect((globalThis as ProcessEnvGlobal).process.env).toMatchObject({
+      UNRELATED_PRE_EXISTING: 'keep-me',
+      OVERRIDDEN_BY_RUNTIME: 'original-value',
+    })
+    expect(
+      (globalThis as ProcessEnvGlobal).process.env.SPACEWAVE_CDN_BASE_URL,
+    ).toBeUndefined()
+    expect(
+      (globalThis as ProcessEnvGlobal).process.env.SPACEWAVE_CDN_SPACE,
+    ).toBeUndefined()
   })
 
   it('installs the BLAKE3 sidecar before loading GoScript plugin main', async () => {
@@ -168,6 +259,7 @@ describe('plugin-goscript generation lifecycle', () => {
     ).rejects.toThrow('fatal goscript exit')
   })
 })
+
 
 function buildBackendAPI(): BackendAPI {
   return {
