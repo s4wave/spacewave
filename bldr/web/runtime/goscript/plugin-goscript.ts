@@ -228,7 +228,9 @@ function installRuntimeEnv(runtimeEnv?: RuntimeEnv): () => void {
     return () => {}
   }
 
-  const scope = globalScope as typeof globalThis & ProcessEnvGlobal
+  // Do not intersect with typeof globalThis: node typings declare process
+  // non-optional there, which forbids the delete below.
+  const scope = globalScope as unknown as ProcessEnvGlobal
   const proc = scope.process ?? {}
   const env = proc.env ?? {}
   const createdProcess = !scope.process

@@ -49,6 +49,7 @@ interface NoteListEntry {
   title: string
   frontmatter: Frontmatter
   tags: string[]
+  status?: string
   format: NoteFileFormat
 }
 
