@@ -28,9 +28,9 @@ import (
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/blake3"
 )
 
 func newGitWorldState(t *testing.T) (context.Context, *logrus.Entry, world.WorldState, func(), peer.ID) {

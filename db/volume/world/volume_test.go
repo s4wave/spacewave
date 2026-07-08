@@ -16,7 +16,7 @@ import (
 	volume_test "github.com/s4wave/spacewave/db/volume/test"
 	volume_world "github.com/s4wave/spacewave/db/volume/world"
 	"github.com/s4wave/spacewave/db/world/testbed"
-	"github.com/zeebo/blake3"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 )
 
 // TestWorldVolume tests the world backed volume.

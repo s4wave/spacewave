@@ -3,7 +3,7 @@ package blockenc
 import (
 	"crypto/sha256"
 
-	"github.com/zeebo/blake3"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 )
 
 // nonceBlake3Context is the blake3 nonce constant.

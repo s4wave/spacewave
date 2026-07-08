@@ -9,7 +9,7 @@ import (
 	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/util/blockenc"
-	"github.com/zeebo/blake3"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 )
 
 func newEngineTransformConfig(engineBucketID string) (*block_transform.Config, error) {

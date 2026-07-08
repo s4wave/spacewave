@@ -20,9 +20,9 @@ import (
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/s4wave/spacewave/net/util/randstring"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/blake3"
 )
 
 // RunOneShot starts a ViteBundler process, calls the provided function with the

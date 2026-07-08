@@ -10,9 +10,9 @@ import (
 	execution_transaction "github.com/s4wave/spacewave/forge/execution/tx"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/blake3"
 
 	uuid "github.com/satori/go.uuid"
 )

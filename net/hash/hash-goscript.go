@@ -7,6 +7,8 @@ import (
 	"crypto/sha1" //nolint:gosec // Git object storage requires SHA-1.
 	"crypto/sha256"
 	"hash"
+
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 )
 
 func init() {
@@ -18,6 +20,7 @@ func init() {
 var SupportedHashTypes = []HashType{
 	HashType_HashType_SHA256,
 	HashType_HashType_SHA1,
+	HashType_HashType_BLAKE3,
 }
 
 // Validate validates the hash type.
@@ -25,10 +28,10 @@ func (h HashType) Validate() error {
 	switch h {
 	case HashType_HashType_UNKNOWN:
 		return nil
-	case HashType_HashType_SHA256, HashType_HashType_SHA1:
+	case HashType_HashType_SHA256, HashType_HashType_SHA1, HashType_HashType_BLAKE3:
 		return nil
 	default:
-		return newUnsupportedHashTypeError(h, "hash type unsupported in goscript: "+h.String())
+		return newUnsupportedHashTypeError(h, "hash type unknown: "+h.String())
 	}
 }
 
@@ -39,6 +42,8 @@ func (h HashType) GetHashLen() int {
 		return sha256.Size
 	case HashType_HashType_SHA1:
 		return sha1.Size
+	case HashType_HashType_BLAKE3:
+		return 32
 	}
 	return 0
 }
@@ -50,7 +55,9 @@ func (h HashType) BuildHasher() (hash.Hash, error) {
 		return sha256.New(), nil
 	case HashType_HashType_SHA1:
 		return sha1.New(), nil
+	case HashType_HashType_BLAKE3:
+		return blake3.New(), nil
 	default:
-		return nil, newUnsupportedHashTypeError(h, "hash type unsupported in goscript: "+h.String())
+		return nil, newUnsupportedHashTypeError(h, "hash type unknown: "+h.String())
 	}
 }

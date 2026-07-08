@@ -29,6 +29,8 @@ const (
 	GoScriptSharedWebPkgID       = "@s4wave/goscript-shared"
 	goScriptBundleReportFilename = "plugin-goscript-bundle-report.json"
 	rolldownCLIRelPath           = "node_modules/rolldown/dist/cli.mjs"
+
+	goScriptSidecarOutputDir = "sidecars"
 )
 
 // GoScriptSharedImportMap maps a local @goscript import to the provider URL
@@ -299,6 +301,12 @@ func runRolldownGoScriptBundle(
 	if err != nil {
 		return nil, err
 	}
+	sidecarInputs, err := deployGoScriptSidecars(bldrDistRoot, filepath.Dir(outPath))
+	if err != nil {
+		return nil, err
+	}
+	inputPaths = append(inputPaths, sidecarInputs...)
+	slices.Sort(inputPaths)
 	if err := writeGoScriptBundleReport(GoScriptBundleReportPath(workDir), outPath, inputPaths, minify, sourcemaps, codeSplitting); err != nil {
 		return nil, err
 	}
@@ -491,6 +499,90 @@ func resolveGoScriptSourceRoot(bldrDistRoot string) string {
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			return bldrDistRoot
+		}
+		dir = parent
+	}
+}
+
+type goScriptSidecar struct {
+	Name      string
+	SourceRel string
+	OutputRel string
+}
+
+var goScriptSidecars = []goScriptSidecar{
+	{
+		Name:      "blake3",
+		SourceRel: filepath.Join("rs", "blake3", "blake3.wasm"),
+		OutputRel: filepath.Join(goScriptSidecarOutputDir, "blake3.wasm"),
+	},
+}
+
+func deployGoScriptSidecars(bldrDistRoot, outDir string) ([]string, error) {
+	inputs := make([]string, 0, len(goScriptSidecars))
+	for _, sidecar := range goScriptSidecars {
+		src, err := resolveGoScriptSidecarSource(bldrDistRoot, sidecar)
+		if err != nil {
+			return nil, err
+		}
+		if src == "" {
+			continue
+		}
+		dst := filepath.Join(outDir, sidecar.OutputRel)
+		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+			return nil, errors.Wrapf(err, "create goscript sidecar output dir for %s", sidecar.Name)
+		}
+		data, err := os.ReadFile(src)
+		if err != nil {
+			return nil, errors.Wrapf(err, "read goscript sidecar %s", sidecar.Name)
+		}
+		if err := os.WriteFile(dst, data, 0o644); err != nil {
+			return nil, errors.Wrapf(err, "write goscript sidecar %s", sidecar.Name)
+		}
+		// Match the rolldown input normalization: report the symlink-resolved
+		// source path so macOS /var vs /private/var aliases compare equal.
+		if realPath, err := filepath.EvalSymlinks(src); err == nil {
+			src = realPath
+		}
+		inputs = append(inputs, filepath.Clean(src))
+	}
+	return inputs, nil
+}
+
+func resolveGoScriptSidecarSource(bldrDistRoot string, sidecar goScriptSidecar) (string, error) {
+	sourceRoot, sourceRootHasModule := resolveGoScriptSourceRootWithModule(bldrDistRoot)
+	candidates := []string{
+		filepath.Join(sourceRoot, sidecar.SourceRel),
+		filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, sidecar.OutputRel),
+	}
+	for _, candidate := range candidates {
+		info, err := os.Stat(candidate)
+		switch {
+		case err == nil && !info.IsDir():
+			return candidate, nil
+		case err == nil:
+			return "", errors.Errorf("goscript sidecar %s path is a directory: %s", sidecar.Name, candidate)
+		case os.IsNotExist(err):
+			continue
+		default:
+			return "", errors.Wrapf(err, "stat goscript sidecar %s", sidecar.Name)
+		}
+	}
+	if !sourceRootHasModule {
+		return "", nil
+	}
+	return "", errors.Errorf("goscript sidecar %s missing; rebuild %s", sidecar.Name, sidecar.SourceRel)
+}
+
+func resolveGoScriptSourceRootWithModule(bldrDistRoot string) (string, bool) {
+	dir := bldrDistRoot
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, true
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return bldrDistRoot, false
 		}
 		dir = parent
 	}

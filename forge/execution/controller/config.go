@@ -6,10 +6,10 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/config"
 	forge_target "github.com/s4wave/spacewave/forge/target"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/util/confparse"
 	uuid "github.com/satori/go.uuid"
-	"github.com/zeebo/blake3"
 )
 
 // ConfigID is the string used to identify this config object.

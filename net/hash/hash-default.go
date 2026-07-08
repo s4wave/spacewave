@@ -7,7 +7,7 @@ import (
 	"crypto/sha256"
 	"hash"
 
-	"github.com/zeebo/blake3"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 )
 
 // SupportedHashTypes is the list of built-in hash types.

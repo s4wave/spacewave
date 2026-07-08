@@ -10,7 +10,7 @@ import (
 	"syscall/js"
 
 	"github.com/pkg/errors"
-	"github.com/zeebo/blake3"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 )
 
 // subtleCryptoDigestMinSize is the measured browser wasm crossover where

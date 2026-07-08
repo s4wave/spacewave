@@ -15,6 +15,7 @@ describe('plugin-goscript generation lifecycle', () => {
     console.warn = vi.fn()
     reportedFailures = []
     delete globalThis.BLDR_PLUGIN_START_INFO
+    globalThis.BLDR_BLAKE3 = buildInstalledBlake3Sidecar()
     globalThis.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE = (err: unknown) => {
       reportedFailures.push(err)
     }
@@ -23,6 +24,9 @@ describe('plugin-goscript generation lifecycle', () => {
   afterEach(() => {
     globalThis.MessageChannel = originalMessageChannel
     console.warn = originalConsoleWarn
+    delete globalThis.BLDR_BLAKE3
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
   })
 
   it('publishes start info and reports plugin main failure', async () => {
@@ -46,6 +50,43 @@ describe('plugin-goscript generation lifecycle', () => {
       btoa(PluginStartInfo.toJsonString(api.startInfo)),
     )
     expect(reportedFailures).toEqual([err])
+  })
+
+  it('installs the BLAKE3 sidecar before loading GoScript plugin main', async () => {
+    const api = buildBackendAPI()
+    delete globalThis.BLDR_BLAKE3
+    const fetchBlake3 = vi.fn(async () => {
+      return new Response(new Uint8Array([0, 1, 2]), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchBlake3)
+    const instantiateBlake3 = vi
+      .spyOn(WebAssembly, 'instantiate')
+      .mockResolvedValue(
+        buildBlake3Instantiation() as unknown as WebAssembly.Instance,
+      )
+    const lifecycle: string[] = []
+    let resolvePluginStarted!: () => void
+    const pluginStarted = new Promise<void>((resolve) => {
+      resolvePluginStarted = resolve
+    })
+
+    await main(api, async () => {
+      lifecycle.push(
+        globalThis.BLDR_BLAKE3 ? 'loader:installed' : 'loader:missing',
+      )
+      return () => {
+        lifecycle.push(
+          globalThis.BLDR_BLAKE3 ? 'main:installed' : 'main:missing',
+        )
+        resolvePluginStarted()
+        return new Promise<void>(() => {})
+      }
+    })
+    await pluginStarted
+
+    expect(lifecycle).toEqual(['loader:installed', 'main:installed'])
+    expect(fetchBlake3).toHaveBeenCalledTimes(1)
+    expect(instantiateBlake3).toHaveBeenCalledTimes(1)
   })
 
   it('turns accept-stream into a terminal error after the GoScript plugin exits', async () => {
@@ -76,6 +117,14 @@ describe('plugin-goscript generation lifecycle', () => {
       rejectPluginMain = reject
     })
     const api = buildBackendAPI()
+    const failureReported = new Promise<void>((resolve) => {
+      globalThis.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE = (
+        reportedErr: unknown,
+      ) => {
+        reportedFailures.push(reportedErr)
+        resolve()
+      }
+    })
     await main(api, async () => () => pluginMainExited)
     await Promise.resolve()
     await Promise.resolve()
@@ -99,10 +148,7 @@ describe('plugin-goscript generation lifecycle', () => {
     expect(acceptedChannel.port2.close).not.toHaveBeenCalled()
 
     rejectPluginMain(new Error('fatal goscript exit'))
-    await Promise.resolve()
-    await Promise.resolve()
-    await Promise.resolve()
-    await Promise.resolve()
+    await failureReported
 
     expect(acceptedChannel.port2.close).toHaveBeenCalledTimes(1)
     await expect(
@@ -157,5 +203,28 @@ function buildMessageChannel(): MessageChannel {
   return {
     port1: buildMessagePort(),
     port2: buildMessagePort(),
+  }
+}
+
+function buildInstalledBlake3Sidecar() {
+  return {
+    hash: () => new Uint8Array(),
+    keyedHash: () => new Uint8Array(),
+    deriveKey: () => new Uint8Array(),
+  }
+}
+
+function buildBlake3Instantiation(): WebAssembly.WebAssemblyInstantiatedSource {
+  return {
+    instance: {
+      exports: {
+        memory: new WebAssembly.Memory({ initial: 1 }),
+        blake3_workspace: vi.fn(() => 32),
+        blake3_hash: vi.fn(),
+        blake3_keyed_hash: vi.fn(),
+        blake3_derive_key: vi.fn(),
+      },
+    } as unknown as WebAssembly.Instance,
+    module: {} as WebAssembly.Module,
   }
 }

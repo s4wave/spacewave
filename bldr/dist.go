@@ -26,6 +26,7 @@ import (
 //go:embed web/runtime/*.ts web/runtime/sw/*.ts
 //go:embed web/saucer/*.ts
 //go:embed web/runtime/goscript/*.ts
+//go:embed web/runtime/goscript/sidecars/*.wasm
 //go:embed web/runtime/wasm
 //go:embed web/runtime/wasm/go-process.ts web/runtime/wasm/plugin-wasm.ts
 //go:embed web/runtime/wasm/fetch-decompress.ts web/runtime/wasm/node-stubs.js

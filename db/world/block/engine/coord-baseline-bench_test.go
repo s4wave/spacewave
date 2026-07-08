@@ -18,8 +18,8 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/blake3"
 )
 
 func TestWorldEngineStaleHeadPublicationRejectsOpenWriter(t *testing.T) {

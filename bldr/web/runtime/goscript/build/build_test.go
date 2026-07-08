@@ -108,6 +108,25 @@ export const Present = 1
 	}
 }
 
+func TestBuildWebGoScriptPluginScriptDeploysBlake3Sidecar(t *testing.T) {
+	t.Run("source root artifact wins over bundled fixture", func(t *testing.T) {
+		root := t.TempDir()
+		bldrDistRoot := filepath.Join(root, "bldr")
+		sidecarSourcePath := filepath.Join(root, "rs", "blake3", "blake3.wasm")
+		buildPluginWithBlake3Sidecar(t, root, bldrDistRoot, sidecarSourcePath, "source-root-wasm", func() {
+			writeTestFile(t, filepath.Join(root, "go.mod"), "module github.com/s4wave/spacewave\n")
+			writeTestFile(t, sidecarSourcePath, "source-root-wasm")
+		})
+	})
+
+	t.Run("dist fixture is used outside a source checkout", func(t *testing.T) {
+		root := t.TempDir()
+		bldrDistRoot := filepath.Join(root, "dist")
+		sidecarSourcePath := filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, goScriptSidecarOutputDir, "blake3.wasm")
+		buildPluginWithBlake3Sidecar(t, root, bldrDistRoot, sidecarSourcePath, "fixture", nil)
+	})
+}
+
 func TestBuildWebGoScriptPluginScriptExternalizesSharedGoScriptImports(t *testing.T) {
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")
@@ -1010,6 +1029,54 @@ export const Unused = 2
 	assertInlineAndExternalSourceMap(t, readableMapOutPath)
 }
 
+func buildPluginWithBlake3Sidecar(t *testing.T, root, bldrDistRoot, sidecarSourcePath, wantSidecar string, arrange func()) {
+	t.Helper()
+	writeRolldownToolFixture(t, bldrDistRoot)
+	if arrange != nil {
+		arrange()
+	}
+	workDir := filepath.Join(root, "work")
+	goScriptOutputRoot := filepath.Join(root, "goscript")
+	outPath := filepath.Join(root, "out", "plugin.mjs")
+
+	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"), `
+export default async function runGoScriptPlugin(_api, pluginMain) {
+  await pluginMain()
+}
+`)
+	writeTestFile(t, filepath.Join(goScriptOutputRoot, "@goscript", "example", "main", "plugin.gs.ts"), `
+export async function main() {
+  return "ok"
+}
+`)
+
+	inputs, err := BuildWebGoScriptPluginScript(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		bldrDistRoot,
+		workDir,
+		goScriptOutputRoot,
+		outPath,
+		"example/main",
+		false,
+		false,
+		false,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertInputsContainPaths(t, inputs, sidecarSourcePath)
+	outSidecarPath := filepath.Join(filepath.Dir(outPath), goScriptSidecarOutputDir, "blake3.wasm")
+	gotSidecar, err := os.ReadFile(outSidecarPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(gotSidecar) != wantSidecar {
+		t.Fatalf("deployed sidecar = %q, want %q", gotSidecar, wantSidecar)
+	}
+	assertBundleReport(t, GoScriptBundleReportPath(workDir), outPath, false, false, false, inputs)
+}
+
 func assertBundleReport(t *testing.T, reportPath, outPath string, minify, sourcemaps, codeSplitting bool, inputs []string) {
 	t.Helper()
 	reportBytes, err := os.ReadFile(reportPath)
@@ -1312,6 +1379,7 @@ func writeRolldownToolFixture(t *testing.T, bldrDistRoot string) {
 	if err := os.Symlink(cliPath, targetPath); err != nil {
 		t.Fatal(err)
 	}
+	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, goScriptSidecarOutputDir, "blake3.wasm"), "fixture")
 }
 
 func findTestRolldownCLIPath(t *testing.T) string {

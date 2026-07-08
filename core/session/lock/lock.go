@@ -6,7 +6,7 @@ import (
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/zeebo/blake3"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 )
 
 // DeriveStorageKey derives the auto-unlock storage key from the volume's

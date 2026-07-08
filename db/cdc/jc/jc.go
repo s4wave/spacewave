@@ -29,7 +29,7 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/util/scrub"
-	"github.com/zeebo/blake3"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 )
 
 var (

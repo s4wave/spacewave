@@ -25,9 +25,9 @@ import (
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/s4wave/spacewave/net/util/randstring"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/blake3"
 )
 
 // viteBundlerTracker is a running Vite compiler instance.

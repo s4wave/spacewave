@@ -24,9 +24,9 @@ import (
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	bldr_web_bundler_vite_compiler "github.com/s4wave/spacewave/bldr/web/bundler/vite/compiler"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/s4wave/spacewave/net/util/randstring"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/blake3"
 )
 
 // Bundler bundles TypeScript eval scripts using a Vite subprocess.

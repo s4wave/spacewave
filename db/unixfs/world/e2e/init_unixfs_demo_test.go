@@ -19,8 +19,8 @@ import (
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/blake3"
 )
 
 // TestInitUnixFSDemo tests the InitUnixFSDemoOp operation.

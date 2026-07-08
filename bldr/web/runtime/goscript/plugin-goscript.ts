@@ -3,6 +3,7 @@ import { pushable } from 'it-pushable'
 import type { PacketStream } from 'starpc'
 import { BackendAPI } from '@aptre/bldr-sdk'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
+import { installGoScriptBlake3Sidecar } from './blake3-sidecar.js'
 
 type GoPushableSink = {
   push: (message: Uint8Array) => void
@@ -47,6 +48,7 @@ class GoScriptPluginGeneration {
     globalScope.BLDR_PLUGIN_START_INFO = pluginStartInfoJsonB64
 
     void Promise.resolve()
+      .then(() => installGoScriptBlake3Sidecar())
       .then(() => loadPluginMain())
       .then((pluginMain) => pluginMain())
       .then(

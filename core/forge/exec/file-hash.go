@@ -8,8 +8,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
 	forge_target "github.com/s4wave/spacewave/forge/target"
+	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/sirupsen/logrus"
-	"github.com/zeebo/blake3"
 )
 
 // FileHashConfigID is the config ID for the file-hash handler.

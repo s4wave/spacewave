@@ -11,6 +11,7 @@ import {
   WebRuntime,
 } from '../../bldr/web-runtime.js'
 import { RuntimeOpfsBridge } from './runtime-opfs-bridge.js'
+import { installGoScriptBlake3Sidecar } from '../../runtime/goscript/blake3-sidecar.js'
 
 export type GoScriptRuntimeMain = () => void | Promise<void>
 export type GoScriptRuntimeMainLoader = () => Promise<GoScriptRuntimeMain>
@@ -78,6 +79,8 @@ async function startGoScriptRuntime(
     webRuntimeId,
   })
   startGoRpcStreams()
+
+  await installGoScriptBlake3Sidecar()
 
   const distMain = await loadDistMain()
   await Promise.resolve()
