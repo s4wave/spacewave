@@ -40,5 +40,9 @@ func stopProcessTree(cmd *exec.Cmd) error {
 	}
 }
 
+func processGroupAlive(pid int) bool {
+	return false
+}
+
 func stopStateRootProcesses(stateRoot string) {
 }

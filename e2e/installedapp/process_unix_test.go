@@ -3,6 +3,7 @@
 package installedapp
 
 import (
+	"errors"
 	"os/exec"
 	"regexp"
 	"syscall"
@@ -45,9 +46,19 @@ func stopProcessTree(cmd *exec.Cmd) error {
 	}
 }
 
+func processGroupAlive(pid int) bool {
+	if pid <= 0 {
+		return false
+	}
+	err := syscall.Kill(-pid, 0)
+	return err == nil || errors.Is(err, syscall.EPERM)
+}
+
 func stopStateRootProcesses(stateRoot string) {
 	pattern := regexp.QuoteMeta(stateRoot)
 	_ = exec.Command("pkill", "-TERM", "-f", pattern).Run()
+	// The state-dir cleanup path has no child process handle to wait on, so
+	// cleanup gives pkill one bounded settle before the final SIGKILL.
 	time.Sleep(500 * time.Millisecond)
 	_ = exec.Command("pkill", "-KILL", "-f", pattern).Run()
 }
