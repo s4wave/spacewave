@@ -1,5 +1,69 @@
 #+TITLE: Spacewave Changelog
 
+* v0.54.0
+<2026-07-09 Thu>
+
+Spacewave 0.54.0 makes the first browser load dramatically faster: the core
+startup download is about 90% smaller, with SQL Database tools loaded only when
+you open them. It also adds honest startup download progress, a branded loading
+screen, richer Create Object choices, blog subscriptions, and broad reliability
+fixes for browser updates, Quickstarts, Drive, desktop startup, and peer-to-peer
+connections.
+
+** Features
+- Create Object now shows icons and one-line descriptions, includes registered
+  Chat Channel, Documentation, Blog, Forge Dashboard, and V86 VM choices, and
+  reliably refreshes the available choices when the palette opens.
+- The Spacewave blog now lets readers subscribe for development updates and
+  release announcements directly from the end of a post.
+- Command Line can now open in a Spacewave tab, with help, command history,
+  interrupt, and live watch support.
+- SQL Database saved queries now restore their parameters, including binary
+  values, and supported table views can update rows safely within the active
+  view.
+- System Status now includes a Network panel showing live connection and
+  transport state.
+
+** Fixes
+- Fixed browser startup paths that could stop at a completed download, wedge
+  after a reload, or fail to continue when a replacement browser tab was already
+  ready.
+- Fixed browser updates and reloads that could reuse stale app downloads,
+  reducing stuck loading screens and stale views after a new release.
+- Fixed desktop startup failures that could leave the app unable to connect to
+  its window or repeatedly retry a valid app screen.
+- Fixed the Home tab after Drive Quickstart so it opens the session instead of
+  showing a blank grey pane.
+- Fixed Drive drag-and-drop so files can be moved onto folders, root and parent
+  breadcrumbs, and Up controls without the drop silently disappearing.
+- Fixed Notebook, Docs, and Blog Quickstarts so their app content can load on
+  demand and open the seeded object; Forge Dashboard and V86 VM startup paths
+  also recover more reliably.
+- Fixed WebRTC connection teardown so pending channels close cleanly when the
+  browser connection disappears instead of leaving stalled peer-to-peer work
+  behind.
+- Fixed browser-based numeric operations for 32-bit multiplication and string
+  minimum/maximum comparisons, preventing incorrect results in affected apps.
+
+** Improvements
+- The browser's core startup download is about 90% smaller because SQL Database
+  tools are no longer part of every first load; shared app code is also cached
+  more effectively across reloads and updates.
+- Browser startup now appears immediately with Spacewave branding, clear phases,
+  live byte counts, per-download progress, and Retry or Back actions when
+  startup fails.
+- Drive uploads now show start and completion feedback near the upload
+  indicator, and first-run guidance presents one callout at a time without
+  hiding upload progress.
+- Git Spaces bring in large repositories more efficiently, reducing storage
+  overhead during clone and import operations.
+- Docs now adapt more cleanly to narrow windows and smaller screens.
+- Desktop development builds start faster by skipping browser-only startup work
+  that the desktop app does not need.
+
+** Security
+- Updated cryptographic dependencies to address reported security issues.
+
 * v0.53.1
 <2026-07-05 Sun>
 
