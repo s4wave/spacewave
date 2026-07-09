@@ -52,7 +52,11 @@ const (
 )
 
 var (
-	goScriptBrowserGoManifests  = []string{"spacewave-launcher", "spacewave-core"}
+	goScriptBrowserGoManifests = []string{
+		"spacewave-launcher",
+		"spacewave-core",
+		"spacewave-sql",
+	}
 	goScriptBrowserStartPlugins = []string{
 		"spacewave-launcher",
 		"spacewave-core",

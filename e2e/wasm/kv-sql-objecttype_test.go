@@ -187,7 +187,7 @@ func waitForObjectTypeRoute(t testing.TB, page playwright.Page, objectKey string
 		if (!hash.includes('/u/') || !hash.includes('/so/') || !hash.endsWith('/' + objectKey)) {
 			return false
 		}
-		const text = document.body.textContent ?? ''
+		const text = document.querySelector('#bldr-root')?.textContent ?? document.body.textContent ?? ''
 		if (
 			text.includes('unavailable') ||
 			text.includes('Run failed') ||
@@ -230,7 +230,7 @@ func waitForSqlQueryResult(t testing.TB, page playwright.Page) {
 		if (!hash.includes('/sql/query/example/results/')) {
 			return false
 		}
-		const text = document.body.textContent ?? ''
+		const text = document.querySelector('#bldr-root')?.textContent ?? document.body.textContent ?? ''
 		if (text.includes('Query execution failed') || text.includes('Run failed')) {
 			throw new Error(text.replace(/\s+/g, ' ').slice(0, 1200))
 		}
@@ -411,31 +411,34 @@ func assertNoObjectTypeBrowserCrash(t testing.TB, console <-chan string, label s
 }
 
 func collectObjectTypeQuickstartDebug(page playwright.Page) any {
-	debug, err := page.Evaluate(`() => JSON.stringify({
-		url: window.location.href,
-		hash: window.location.hash,
-		timing: globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null,
-		startup: globalThis.__swBootStatus ?? null,
-		startupMarks: globalThis.__swStartupMarks ?? [],
-		appText: document.querySelector('#bldr-root')?.textContent?.replace(/\s+/g, ' ').slice(0, 2500) ?? '',
-		inputs: Array.from(document.querySelectorAll('input,textarea')).map((input) => ({
-			ariaLabel: input.getAttribute('aria-label'),
-			placeholder: input.getAttribute('placeholder'),
-			value: input.value?.slice?.(0, 240) ?? '',
-			disabled: input.disabled,
-		})),
-		buttons: Array.from(document.querySelectorAll('button')).map((button) => ({
-			text: button.textContent?.replace(/\s+/g, ' ').trim().slice(0, 160) ?? '',
-			ariaLabel: button.getAttribute('aria-label') ?? '',
-			title: button.getAttribute('title') ?? '',
-			disabled: button.disabled,
-		})),
-		headings: Array.from(document.querySelectorAll('h1,h2,h3,[data-slot="loading-title"],[data-slot="loading-detail"]')).map((el) => ({
-			tag: el.tagName,
-			text: el.textContent?.replace(/\s+/g, ' ').trim().slice(0, 180) ?? '',
-		})),
-		bodyText: document.body.textContent?.replace(/\s+/g, ' ').slice(0, 3000) ?? '',
-	})`)
+	debug, err := page.Evaluate(`() => {
+		const startupMarks = globalThis.__swStartupMarks ?? []
+		return JSON.stringify({
+			url: window.location.href,
+			hash: window.location.hash,
+			timing: globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null,
+			startup: globalThis.__swBootStatus ?? null,
+			appText: document.querySelector('#bldr-root')?.textContent?.replace(/\s+/g, ' ').slice(0, 2500) ?? '',
+			inputs: Array.from(document.querySelectorAll('input,textarea')).map((input) => ({
+				ariaLabel: input.getAttribute('aria-label'),
+				placeholder: input.getAttribute('placeholder'),
+				value: input.value?.slice?.(0, 240) ?? '',
+				disabled: input.disabled,
+			})),
+			buttons: Array.from(document.querySelectorAll('button')).map((button) => ({
+				text: button.textContent?.replace(/\s+/g, ' ').trim().slice(0, 160) ?? '',
+				ariaLabel: button.getAttribute('aria-label') ?? '',
+				title: button.getAttribute('title') ?? '',
+				disabled: button.disabled,
+			})),
+			headings: Array.from(document.querySelectorAll('h1,h2,h3,[data-slot="loading-title"],[data-slot="loading-detail"]')).map((el) => ({
+				tag: el.tagName,
+				text: el.textContent?.replace(/\s+/g, ' ').trim().slice(0, 180) ?? '',
+			})),
+			bodyText: document.body.textContent?.replace(/\s+/g, ' ').slice(0, 3000) ?? '',
+			startupMarks: startupMarks.slice(Math.max(0, startupMarks.length - 20)),
+		})
+	}`)
 	if err != nil {
 		return "failed to collect object type quickstart debug: " + err.Error()
 	}

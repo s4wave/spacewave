@@ -387,7 +387,7 @@ func TestConfigureGoScriptForManifestPreservesTraceService(t *testing.T) {
 	}
 }
 
-func TestConfigureGoScriptBrowserStartupUsesLauncherAndCore(t *testing.T) {
+func TestConfigureGoScriptBrowserStartupUsesLauncherCoreAndBuildsSQL(t *testing.T) {
 	launcherStatic := mustMarshalGoPluginConfig(t, &bldr_plugin_compiler_go.Config{
 		GoPkgs: []string{"./production-launcher"},
 	})
@@ -407,6 +407,12 @@ func TestConfigureGoScriptBrowserStartupUsesLauncherAndCore(t *testing.T) {
 			"root-resource": {Id: "resource/root"},
 		},
 	})
+	sqlStatic := mustMarshalGoPluginConfig(t, &bldr_plugin_compiler_go.Config{
+		GoPkgs: []string{"./plugin/sql"},
+		ConfigSet: map[string]*configset_proto.ControllerConfig{
+			"spacewave-sql": {Id: "plugin/sql"},
+		},
+	})
 	conf := &bldr_project.ProjectConfig{
 		Start: &bldr_project.StartConfig{
 			Plugins: []string{"web", "spacewave-web", "spacewave-app", "spacewave-core", "spacewave-debug"},
@@ -422,6 +428,12 @@ func TestConfigureGoScriptBrowserStartupUsesLauncherAndCore(t *testing.T) {
 				Builder: &configset_proto.ControllerConfig{
 					Id:     bldr_plugin_compiler_go.ConfigID,
 					Config: coreStatic,
+				},
+			},
+			"spacewave-sql": {
+				Builder: &configset_proto.ControllerConfig{
+					Id:     bldr_plugin_compiler_go.ConfigID,
+					Config: sqlStatic,
 				},
 			},
 		},
@@ -479,6 +491,21 @@ func TestConfigureGoScriptBrowserStartupUsesLauncherAndCore(t *testing.T) {
 	}
 	if _, ok := core.GetConfigSet()["root-resource"]; !ok {
 		t.Fatal("core GoScript startup config removed root-resource")
+	}
+
+	sqlPlugin := &bldr_plugin_compiler_go.Config{}
+	if err := sqlPlugin.UnmarshalJSON(conf.GetManifests()["spacewave-sql"].GetBuilder().GetConfig()); err != nil {
+		t.Fatal(err)
+	}
+	sqlWeb := sqlPlugin.GetPlatformTypes()["web"]
+	if sqlWeb == nil || sqlWeb.GetGoCompiler() != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT {
+		t.Fatalf("SQL web GoScript config missing: %#v", sqlWeb)
+	}
+	if !slices.Contains(sqlPlugin.GetGoPkgs(), "./plugin/sql") {
+		t.Fatalf("SQL GoScript startup config removed ./plugin/sql: %v", sqlPlugin.GetGoPkgs())
+	}
+	if _, ok := sqlPlugin.GetConfigSet()["spacewave-sql"]; !ok {
+		t.Fatal("SQL GoScript startup config removed spacewave-sql config")
 	}
 }
 
