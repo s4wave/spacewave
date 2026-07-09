@@ -279,6 +279,42 @@ describe('DesktopCLIInstallCard', () => {
     ).toBeDefined()
   })
 
+  it('copies walkthrough commands with the explicit socket path flag', () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    const originalClipboard = navigator.clipboard
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      writable: true,
+      configurable: true,
+    })
+
+    try {
+      render(
+        <WalkthroughSection
+          opts={{
+            sessionIndex: 4,
+            socketPath: '/run/spacewave-session-4.sock',
+          }}
+        />,
+      )
+
+      const copyButtons = screen.getAllByRole('button', {
+        name: 'Copy command',
+      })
+      fireEvent.click(copyButtons[0]!)
+
+      expect(writeText).toHaveBeenCalledWith(
+        "spacewave --socket-path '/run/spacewave-session-4.sock' --session-index 4 status",
+      )
+    } finally {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: originalClipboard,
+        writable: true,
+        configurable: true,
+      })
+    }
+  })
+
   it('opens the session-local in-app terminal in browser composition without desktop install state', () => {
     commandLinePageMocks.isDesktop = false
     commandLinePageMocks.cliInstallResource = {

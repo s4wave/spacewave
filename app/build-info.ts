@@ -41,7 +41,8 @@ export const FALLBACK_APP_BUILD_INFO: AppBuildInfo = {
 function readBuildInfo(): AppBuildInfo {
   const raw = globalThis.__BLDR_BUILD_INFO__
   if (!raw) return FALLBACK_APP_BUILD_INFO
-  const version = raw.version || 'dev'
+  const rawVersion = raw.version || raw.mainVersion || 'dev'
+  const version = rawVersion === '(devel)' ? 'dev' : rawVersion
   const goVersion = raw.goVersion || ''
   const runtimeLabel =
     raw.runtimeLabel ||

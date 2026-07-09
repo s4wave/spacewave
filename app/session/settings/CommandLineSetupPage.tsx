@@ -646,7 +646,7 @@ function MoreCommandRow({
 }) {
   return (
     <li className="flex flex-col gap-0.5">
-      <code className="text-foreground bg-foreground/5 w-fit max-w-full truncate rounded px-1.5 py-0.5 font-mono text-xs">
+      <code className="text-foreground bg-foreground/5 w-fit max-w-full truncate rounded px-1.5 py-0.5 font-mono text-xs [font-variant-ligatures:none]">
         {command}
       </code>
       <p className="text-foreground-alt text-xs">{explanation}</p>
@@ -671,7 +671,7 @@ function CommandStep({
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <div className="border-foreground/10 bg-background/40 flex items-center gap-2 rounded-md border px-2.5 py-1.5">
-          <code className="text-foreground min-w-0 flex-1 truncate font-mono text-xs">
+          <code className="text-foreground min-w-0 flex-1 truncate font-mono text-xs [font-variant-ligatures:none]">
             {command}
           </code>
           <CopyButton text={command} label="Copy command" />

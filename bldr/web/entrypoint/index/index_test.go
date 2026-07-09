@@ -45,6 +45,15 @@ func TestRenderIndexHTML(t *testing.T) {
 	if !strings.Contains(result, `name="darkreader-lock"`) {
 		t.Error("RenderIndexHTML() result doesn't contain Dark Reader lock")
 	}
+	if !strings.Contains(result, `id="bldr-initial-loading-shell"`) {
+		t.Error("RenderIndexHTML() result doesn't contain initial loading shell")
+	}
+	if !strings.Contains(result, `Spacewave`) {
+		t.Error("RenderIndexHTML() result doesn't contain Spacewave brand copy")
+	}
+	if strings.Contains(result, `Loading app`) {
+		t.Error("RenderIndexHTML() result contains raw Loading app text")
+	}
 }
 
 func TestRenderIndexHTMLInvalidTemplate(t *testing.T) {

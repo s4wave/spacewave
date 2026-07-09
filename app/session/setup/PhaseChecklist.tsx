@@ -1,4 +1,4 @@
-import { LuCircleCheck } from 'react-icons/lu'
+import { LuCheck } from 'react-icons/lu'
 
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 import { cn } from '@s4wave/web/style/utils.js'
@@ -30,7 +30,9 @@ function PhaseChecklistRow({ label, done, active }: PhaseChecklistItem) {
   return (
     <div className="flex items-center gap-2">
       {done ? (
-        <LuCircleCheck className="text-brand size-4" />
+        <div className="bg-brand text-background flex size-4 items-center justify-center rounded-full">
+          <LuCheck className="size-3" />
+        </div>
       ) : active ? (
         <Spinner className="text-brand" />
       ) : (

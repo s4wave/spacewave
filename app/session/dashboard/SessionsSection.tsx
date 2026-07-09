@@ -1,5 +1,11 @@
 import { useCallback, useMemo, useState } from 'react'
-import { LuCloud, LuLogOut, LuSmartphone, LuUnlink } from 'react-icons/lu'
+import {
+  LuCloud,
+  LuLink,
+  LuLogOut,
+  LuSmartphone,
+  LuUnlink,
+} from 'react-icons/lu'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import {
@@ -169,10 +175,21 @@ export function SessionsSection({
             {isLocal && (
               <div className="border-foreground/10 border-t pt-2">
                 <button
+                  type="button"
                   onClick={handleLinkDeviceClick}
-                  className="text-brand hover:text-brand/80 text-xs font-medium transition-colors"
+                  className="border-foreground/10 bg-foreground/5 hover:border-brand/30 hover:bg-brand/5 group flex w-full cursor-pointer items-center gap-3 rounded-md border p-2 text-left transition-colors"
                 >
-                  Link Another Device
+                  <div className="bg-foreground/10 group-hover:bg-brand/10 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
+                    <LuLink className="text-foreground-alt group-hover:text-brand size-3.5 transition-colors" />
+                  </div>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span className="text-foreground text-xs font-medium select-none">
+                      Link Another Device
+                    </span>
+                    <span className="text-foreground-alt text-xs select-none">
+                      Connect another device to sync your data peer-to-peer.
+                    </span>
+                  </div>
                 </button>
               </div>
             )}

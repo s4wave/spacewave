@@ -43,7 +43,7 @@ describe('PhaseChecklist', () => {
     )
   })
 
-  it('renders a spinner for the active row and a pending dot for pending rows', () => {
+  it('renders completed, active, and pending state indicators with distinct shapes', () => {
     const { container } = render(
       <PhaseChecklist
         phases={[
@@ -56,18 +56,24 @@ describe('PhaseChecklist', () => {
     const rows = container.querySelectorAll(':scope > div > div')
     expect(rows.length).toBe(3)
 
-    const doneIcon = rows[0].querySelector('svg')
+    const doneOwner = rows[0].querySelector(':scope > div')
+    expect(doneOwner?.tagName).toBe('DIV')
+    expect(doneOwner?.getAttribute('class') ?? '').toContain('rounded-full')
+    expect(doneOwner?.getAttribute('class') ?? '').toContain('bg-brand')
+    expect(doneOwner?.querySelector('svg')).not.toBeNull()
+    expect(
+      doneOwner?.querySelector('svg')?.getAttribute('class') ?? '',
+    ).not.toContain('animate-spin')
+
     const activeIcon = rows[1].querySelector('svg')
-    const pendingIcon = rows[2].querySelector('svg')
-
-    expect(doneIcon).not.toBeNull()
-    expect(doneIcon?.getAttribute('class') ?? '').not.toContain('animate-spin')
-
     expect(activeIcon).not.toBeNull()
     expect(activeIcon?.getAttribute('class') ?? '').toContain('animate-spin')
 
+    const pendingIcon = rows[2].querySelector('svg')
     expect(pendingIcon).toBeNull()
     const pendingDot = rows[2].querySelector('div.rounded-full')
     expect(pendingDot).not.toBeNull()
+    expect(pendingDot?.getAttribute('class') ?? '').toContain('border')
+    expect(pendingDot?.getAttribute('class') ?? '').not.toContain('bg-brand')
   })
 })

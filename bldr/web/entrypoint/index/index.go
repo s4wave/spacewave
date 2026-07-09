@@ -46,7 +46,9 @@ func (m ImportMap) String() string {
 // RenderIndexHTML renders the embedded browser index shell with the provided data.
 func RenderIndexHTML(data IndexData) (string, error) {
 	const (
-		importMapToken  = "{{ .ImportMap.String }}"
+		// #nosec G101 -- These are Go template markers, not credentials.
+		importMapToken = "{{ .ImportMap.String }}"
+		// #nosec G101 -- This is a Go template marker, not a credential.
 		entrypointToken = "{{ .EntrypointPath }}"
 	)
 	if !strings.Contains(indexHTML, importMapToken) || !strings.Contains(indexHTML, entrypointToken) {

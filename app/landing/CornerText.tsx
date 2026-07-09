@@ -26,7 +26,7 @@ export function CornerText({ show }: CornerTextProps) {
 
   // Desktop offsets account for window chrome (traffic lights on mac)
   const topLeftPos =
-    isDesktop && isMac ? 'top-[7px] left-[68px]' : 'top-2 left-4'
+    isDesktop && isMac ? 'top-[7px] left-[63px]' : 'top-2 left-4'
   const topRightPos = isDesktop && isMac ? 'top-[7px]' : 'top-2'
 
   const content = (

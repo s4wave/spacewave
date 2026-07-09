@@ -118,6 +118,36 @@ function setBrowserBootStatus(
   writeBrowserBootStatus({ phase, detail, state, progress })
 }
 
+const INITIAL_LOADING_CSS = `
+.sw-initial-shell{display:flex;align-items:center;justify-content:center;min-height:100%;width:100%;background:#0a0a0a;color:#fafafa;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.sw-initial-card{display:flex;flex-direction:column;align-items:center;gap:1rem;text-align:center}
+.sw-initial-logo{display:flex;height:5rem;width:5rem;align-items:center;justify-content:center;border-radius:1rem;background:color-mix(in srgb,#4f8cff 10%,transparent);box-shadow:0 0 42px color-mix(in srgb,#4f8cff 22%,transparent)}
+.sw-initial-logo-mark{display:flex;height:2.75rem;width:2.75rem;align-items:center;justify-content:center;border-radius:0.75rem;background:#4f8cff;color:#fff;font-weight:700;letter-spacing:-0.04em}
+.sw-initial-title{margin:0;font-size:1.5rem;font-weight:600;letter-spacing:-0.01em;line-height:1.2}
+.sw-initial-spinner{height:0.875rem;width:0.875rem;border-radius:9999px;border:2px solid color-mix(in srgb,#4f8cff 25%,transparent);border-top-color:#4f8cff;animation:sw-initial-spin 0.7s linear infinite}
+@keyframes sw-initial-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.sw-initial-spinner{animation:none}}
+`.trim()
+
+function InitialLoadingFrame() {
+  return (
+    <div
+      className="sw-initial-shell"
+      role="status"
+      aria-label="Loading Spacewave"
+    >
+      <style>{INITIAL_LOADING_CSS}</style>
+      <div className="sw-initial-card">
+        <div className="sw-initial-logo" aria-hidden="true">
+          <div className="sw-initial-logo-mark">S</div>
+        </div>
+        <h1 className="sw-initial-title">Spacewave</h1>
+        <div className="sw-initial-spinner" aria-hidden="true" />
+      </div>
+    </div>
+  )
+}
+
 // BLDR_STARTUP_JS is build-injected per bundle with the startup component
 // module specifier, so it is not known at author time.
 declare const BLDR_STARTUP_JS: string | undefined
@@ -138,7 +168,7 @@ if (typeof BLDR_STARTUP_JS === 'string') {
 
     return (
       <WebViewErrorBoundary>
-        <Suspense fallback={<div>Loading app…</div>}>
+        <Suspense fallback={<InitialLoadingFrame />}>
           {loadedComponent}
         </Suspense>
       </WebViewErrorBoundary>

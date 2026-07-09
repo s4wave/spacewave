@@ -192,6 +192,39 @@ describe('SessionsSection', () => {
     expect(screen.getByText('Linked')).toBeDefined()
   })
 
+  it('renders Link Another Device as a carded icon row for local sessions', () => {
+    mockUseStreamingResource.mockReturnValue(
+      sessionsResult({
+        sessions: [
+          {
+            peerId: 'peer-current',
+            currentSession: true,
+            kind: AccountSessionKind.AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION,
+            label: 'This device',
+          },
+        ],
+      }),
+    )
+    render(<SessionsSection account={mockAccountResource} isLocal />)
+
+    const linkAction = screen.getByRole('button', {
+      name: /Link Another Device/,
+    })
+    const description = screen.getByText(
+      'Connect another device to sync your data peer-to-peer.',
+    )
+
+    expect(description.closest('button')).toBe(linkAction)
+    expect(linkAction.className).toContain('border')
+    expect(linkAction.className).toContain('rounded')
+    expect(linkAction.querySelector('svg')).not.toBeNull()
+
+    fireEvent.click(linkAction)
+    expect(mockNavigate).toHaveBeenCalledWith({
+      path: 'setup/link-device',
+    })
+  })
+
   it('does not mount cloud auth confirmation for local sessions', () => {
     mockUseStreamingResource.mockReturnValue(
       sessionsResult({

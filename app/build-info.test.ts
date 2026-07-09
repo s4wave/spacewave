@@ -26,4 +26,18 @@ describe('getAppBuildInfo', () => {
       browserGenerationId: 'deadbeefcafebabe',
     })
   })
+
+  it('uses mainVersion for release labels when raw version is absent', () => {
+    globalThis.__BLDR_BUILD_INFO__ = {
+      mainVersion: '2026.7.8',
+      goVersion: 'go1.25',
+      goos: 'js',
+      goarch: 'wasm',
+    }
+
+    const info = getAppBuildInfo()
+    expect(info.version).toBe('2026.7.8')
+    expect(info.cornerLabel).toBe('2026.7.8@go1.25')
+    expect(info.cornerLabel).not.toContain('dev')
+  })
 })
