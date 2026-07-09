@@ -24,9 +24,11 @@ export function CornerText({ show }: CornerTextProps) {
     'text-foreground-alt pointer-events-none z-50 text-[10px] transition-opacity duration-300 select-none narrow:hidden'
   const opacityClass = show ? 'opacity-30' : 'opacity-0'
 
-  // Desktop offsets account for window chrome (traffic lights on mac)
+  // Desktop offsets account for window chrome: left hint clears the macOS
+  // traffic lights (cluster ends ~66px in), right hint mirrors its top edge so
+  // both corners share one baseline. left-[63px] overlapped the zoom button.
   const topLeftPos =
-    isDesktop && isMac ? 'top-[7px] left-[63px]' : 'top-2 left-4'
+    isDesktop && isMac ? 'top-[7px] left-[73px]' : 'top-2 left-4'
   const topRightPos = isDesktop && isMac ? 'top-[7px]' : 'top-2'
 
   const content = (
