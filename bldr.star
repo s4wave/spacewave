@@ -328,6 +328,22 @@ manifest("spacewave-cli-plugin",
     },
 )
 
+manifest("spacewave-sql",
+    builder="bldr/plugin/compiler/go",
+    rev=1,
+    config={
+        "goPkgs": ["./plugin/sql"],
+        "configSet": {
+            "spacewave-sql": config_entry("plugin/sql", 1),
+        },
+        "platformTypes": {
+            "js": {
+                "goCompiler": "GO_COMPILER_GOSCRIPT",
+            },
+        },
+    },
+)
+
 manifest("spacewave",
     builder="bldr/cli/compiler",
     config={
@@ -459,30 +475,30 @@ manifest("spacewave-cli",
 
 DEV_MANIFESTS = [
     "web", "spacewave-core", "spacewave-web",
-    "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-cli-plugin", "spacewave-debug",
+    "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql", "spacewave-cli-plugin", "spacewave-debug",
 ]
 BROWSER_RELEASE_MANIFESTS = [
     # The browser release should not even build spacewave-loader: it is a
     # native helper-window plugin, and loading it in WASM shows up as an
     # extra shared worker that exits after helper lookup fails.
     "spacewave-launcher",
-    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86",
+    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql",
     "spacewave-cli-plugin", "web",
     "spacewave-browser",
 ]
 BROWSER_RELEASE_E2E_MANIFESTS = [
     "spacewave-launcher",
-    "spacewave-core", "spacewave-web", "spacewave-app", "web",
+    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-sql", "web",
     "spacewave-browser",
 ]
 DESKTOP_RELEASE_MANIFESTS = [
     "spacewave-launcher", "spacewave-loader",
-    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "web",
+    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql", "web",
     "spacewave-dist",
 ]
 CLI_RELEASE_MANIFESTS = [
     "spacewave-launcher",
-    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "web",
+    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql", "web",
     "spacewave-cli",
 ]
 # REMOTE_WORLD_MANIFESTS are the manifests that ship in the R2-hosted plugin
@@ -490,7 +506,7 @@ CLI_RELEASE_MANIFESTS = [
 # reliable first boot; plugin-promote can replace them after launch by updating
 # the remote plugin world.
 REMOTE_WORLD_MANIFESTS = [
-    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86",
+    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql",
     "spacewave-cli-plugin", "web",
 ]
 # Browser release intentionally embeds the full startup app closure:
@@ -516,10 +532,19 @@ def browser_release_embed_manifests(go_platform_id):
     ]
 
 
+# Browser e2e embeds the startup closure plus the spacewave-sql plugin so the
+# sql plugin cold-builds under the e2e release without a populated Release World.
+def browser_e2e_embed_manifests(go_platform_id):
+    return browser_release_embed_manifests(go_platform_id) + [
+        {"manifestId": "spacewave-sql",
+         "platformId": "js"},
+    ]
+
+
 BROWSER_RELEASE_EMBED_MANIFESTS = browser_release_embed_manifests("js")
 BROWSER_RELEASE_WASM_EMBED_MANIFESTS = browser_release_embed_manifests("web/js/wasm")
-BROWSER_RELEASE_E2E_EMBED_MANIFESTS = BROWSER_RELEASE_WASM_EMBED_MANIFESTS
-BROWSER_RELEASE_E2E_GOSCRIPT_EMBED_MANIFESTS = browser_release_embed_manifests("js")
+BROWSER_RELEASE_E2E_EMBED_MANIFESTS = browser_e2e_embed_manifests("web/js/wasm")
+BROWSER_RELEASE_E2E_GOSCRIPT_EMBED_MANIFESTS = browser_e2e_embed_manifests("js")
 
 build("app",         manifests=DEV_MANIFESTS,     targets=["desktop"])
 build("web",         manifests=DEV_MANIFESTS,     targets=["browser"])
@@ -555,7 +580,7 @@ build("release-web-e2e",
 build("release-web-e2e-assets",
     manifests=[
         "spacewave-launcher",
-        "spacewave-core", "spacewave-web", "spacewave-app", "web",
+        "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-sql", "web",
     ],
     targets=["browser"],
     manifestOverrides={
@@ -584,7 +609,7 @@ build("release-web-e2e-tinygo-core",
 build("release-web-e2e-tinygo-assets",
     manifests=[
         "spacewave-launcher",
-        "spacewave-core", "spacewave-web", "spacewave-app", "web",
+        "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-sql", "web",
     ],
     targets=["browser"],
     manifestOverrides={
@@ -747,7 +772,7 @@ for host_key, platform_id in RELEASE_HOSTS:
 # manifests are built once by plugin-release-browser.
 for host_key, platform_id in RELEASE_HOSTS:
     build("plugin-release-" + host_key,
-        manifests=["spacewave-core"],
+        manifests=["spacewave-core", "spacewave-sql"],
         platform_ids=[platform_id],
     )
 
@@ -758,7 +783,7 @@ build("release-remote-web",
     platform_ids=["web/js/wasm"],
 )
 build("release-remote-js",
-    manifests=["spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86"],
+    manifests=["spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql"],
     platform_ids=["js"],
 )
 
