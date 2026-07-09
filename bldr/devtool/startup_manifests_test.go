@@ -66,7 +66,7 @@ func TestProjectOwnedStartupManifestPreflightsSelectBuilderPlatforms(t *testing.
 		{PluginID: "web", PlatformIDs: []string{"web/js/wasm"}},
 		{PluginID: "spacewave-web", PlatformIDs: []string{"js", "web/js/wasm"}},
 		{PluginID: "spacewave-app", PlatformIDs: []string{"js", "web/js/wasm"}},
-		{PluginID: "spacewave-core", PlatformIDs: []string{"web/js/wasm"}},
+		{PluginID: "spacewave-core", PlatformIDs: []string{"js", "web/js/wasm"}},
 		{PluginID: "spacewave-v86", PlatformIDs: []string{"js", "web/js/wasm"}},
 	}
 	if !reflect.DeepEqual(got, want) {

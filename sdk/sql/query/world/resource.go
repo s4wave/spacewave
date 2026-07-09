@@ -15,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/db/block"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
 	sql_rpc "github.com/s4wave/spacewave/db/sql/rpc"
 	"github.com/s4wave/spacewave/db/world"
@@ -261,26 +260,39 @@ func (r *SqlQueryResource) openRows(
 	targetKey := query.GetTargetDbObjectKey()
 	obj, err := world.MustGetObject(ctx, r.ws, targetKey)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "sql/query: open target db object")
 	}
-	var store *s4wave_sql_world.WorldBackedSql
-	if err := obj.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
-		var err error
-		store, err = s4wave_sql_world.NewWorldBackedSql(ctx, root.Clone(), r.ws, targetKey)
-		return err
-	}); err != nil {
-		return nil, nil, err
+	rootRef, _, err := obj.GetRootRef(ctx)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "sql/query: read target db root")
+	}
+	storageRoot, err := r.engine.BuildStorageCursor(ctx)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "sql/query: open target db storage cursor")
+	}
+	root, err := storageRoot.FollowRef(ctx, rootRef)
+	if err != nil {
+		storageRoot.Release()
+		return nil, nil, errors.Wrap(err, "sql/query: follow target db root")
+	}
+	store, err := s4wave_sql_world.NewWorldBackedSql(ctx, root, r.ws, targetKey)
+	if err != nil {
+		root.Release()
+		storageRoot.Release()
+		return nil, nil, errors.Wrap(err, "sql/query: open target db store")
 	}
 	tx, err := store.NewSqlTransaction(ctx, false, "")
 	if err != nil {
 		store.Close()
-		return nil, nil, err
+		storageRoot.Release()
+		return nil, nil, errors.Wrap(err, "sql/query: open target db read transaction")
 	}
 	ops, err := tx.GetSqlOps(ctx)
 	if err != nil {
 		tx.Discard()
 		store.Close()
-		return nil, nil, err
+		storageRoot.Release()
+		return nil, nil, errors.Wrap(err, "sql/query: open target db SQL ops")
 	}
 	args := sql_rpc.SqlValuesToNamedValues(query.GetParameters())
 	rows, err := ops.QueryContext(ctx, query.GetSqlText(), args)
@@ -290,17 +302,20 @@ func (r *SqlQueryResource) openRows(
 	if err != nil {
 		tx.Discard()
 		store.Close()
-		return nil, nil, err
+		storageRoot.Release()
+		return nil, nil, errors.Wrap(err, "sql/query: execute target db query")
 	}
 	if rows == nil {
 		tx.Discard()
 		store.Close()
+		storageRoot.Release()
 		return nil, nil, errors.New("sql/query: query returned nil rows")
 	}
 	cleanup := func() {
 		rows.Close()
 		tx.Discard()
 		store.Close()
+		storageRoot.Release()
 	}
 	return rows, cleanup, nil
 }

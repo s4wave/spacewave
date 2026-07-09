@@ -26,7 +26,7 @@ func waitForWebWorkerReady(ctx context.Context, docStatusCtr *ccontainer.CContai
 		}
 		docStatus = nextDocStatus
 		if docStatus.GetClosed() {
-			return errors.New("web document closed before worker became ready")
+			return webWorkerStartupRetryError("web document closed before worker became ready")
 		}
 
 		for _, worker := range docStatus.GetWebWorkers() {
@@ -39,11 +39,11 @@ func waitForWebWorkerReady(ctx context.Context, docStatusCtr *ccontainer.CContai
 			case web_document.WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_STARTUP_TIMEOUT:
 				return webWorkerFailureError(worker, "web worker startup timed out before becoming ready")
 			case web_document.WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_LIFECYCLE_HIDDEN:
-				return errors.New("web document hidden before worker became ready")
+				return webWorkerStartupRetryError("web document hidden before worker became ready")
 			case web_document.WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_CONTROLLED_STREAM_RESET:
-				return errors.New("web worker stream reset before becoming ready")
+				return webWorkerStartupRetryError("web worker stream reset before becoming ready")
 			case web_document.WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_NORMAL_STOP:
-				return errors.New("web worker stopped before becoming ready")
+				return webWorkerStartupRetryError("web worker stopped before becoming ready")
 			case web_document.WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_RUNNING,
 				web_document.WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_CAPABILITY_READY:
 				return nil
@@ -52,7 +52,7 @@ func waitForWebWorkerReady(ctx context.Context, docStatusCtr *ccontainer.CContai
 				return webWorkerFailureError(worker, "web worker failed before becoming ready")
 			}
 			if worker.GetDeleted() {
-				return errors.New("web worker was removed before becoming ready")
+				return webWorkerStartupRetryError("web worker was removed before becoming ready")
 			}
 			if worker.GetReady() {
 				return nil
@@ -73,7 +73,9 @@ func waitForCreatedWebWorkerReadyWithTimeout(ctx context.Context, docStatusCtr *
 			return false, context.Canceled
 		}
 		if err != context.DeadlineExceeded {
-			return false, err
+			if !isWebWorkerStartupRetryError(err) {
+				return false, err
+			}
 		}
 
 		removeCtx, removeCtxCancel := context.WithTimeout(ctx, time.Second*3)
@@ -105,10 +107,30 @@ func isWebWorkerFailureError(err error) bool {
 	return ok
 }
 
+func webWorkerStartupRetryError(message string) error {
+	return &webWorkerStartupRetryErr{message: message}
+}
+
+func isWebWorkerStartupRetryError(err error) bool {
+	if err == nil {
+		return false
+	}
+	_, ok := errors.Cause(err).(*webWorkerStartupRetryErr)
+	return ok
+}
+
 type webWorkerFailureErr struct {
 	message string
 }
 
 func (e *webWorkerFailureErr) Error() string {
+	return e.message
+}
+
+type webWorkerStartupRetryErr struct {
+	message string
+}
+
+func (e *webWorkerStartupRetryErr) Error() string {
 	return e.message
 }

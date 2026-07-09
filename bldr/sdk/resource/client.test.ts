@@ -327,6 +327,98 @@ describe('ResourceClient', () => {
     expect(resourceRpcCalls).toBe(1)
   })
 
+  it('marks stale ResourceRpc refs server-released before ack error rejects the request', async () => {
+    const service = buildUnusedService()
+    const staleMessage = 'resource or client was released'
+    service.ResourceRpc = async function* (request) {
+      const incoming = request[Symbol.asyncIterator]()
+      const initPacket = await readResourceRpcPacket(incoming)
+
+      expect(initPacket.body).toEqual({
+        case: 'init',
+        value: { componentId: '51' },
+      })
+
+      yield {
+        body: {
+          case: 'ack' as const,
+          value: {
+            error: staleMessage,
+          },
+        },
+      }
+
+      throw new Error(staleMessage)
+    }
+
+    const client = new Client(service, new AbortController().signal)
+    Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
+    const onResourceReleased = vi.fn()
+    client.onResourceReleased(onResourceReleased)
+    const ref = client.createResourceReference(51)
+
+    await expect(
+      ref.client
+        .request(
+          's4wave.space.SpaceResourceService',
+          'MountSpaceContents',
+          new Uint8Array(0),
+        )
+        .catch((error: unknown) => {
+          expect(ref.released).toBe(true)
+          expect(onResourceReleased).toHaveBeenCalledOnce()
+          expect(onResourceReleased).toHaveBeenCalledWith({
+            resourceId: 51,
+            reason: 'server-released',
+          })
+          throw error
+        }),
+    ).rejects.toThrow(`rpcstream: remote: ${staleMessage}`)
+
+    expect(onResourceReleased).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    {
+      name: 'resource not found',
+      message: 'resource not found: resource 51',
+    },
+    {
+      name: 'invalid resource id',
+      message: 'invalid resource id: 51',
+    },
+  ])(
+    'marks stale ResourceRpc refs server-released on $name open failure',
+    async ({ message }) => {
+      const service = buildUnusedService()
+      const openError = new Error(message)
+      service.ResourceRpc = () => {
+        throw openError
+      }
+
+      const client = new Client(service, new AbortController().signal)
+      Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
+      const onResourceReleased = vi.fn()
+      client.onResourceReleased(onResourceReleased)
+      const ref = client.createResourceReference(51)
+
+      await expect(
+        ref.client.request(
+          's4wave.space.SpaceResourceService',
+          'MountSpaceContents',
+          new Uint8Array(0),
+        ),
+      ).rejects.toBe(openError)
+
+      expect(ref.released).toBe(true)
+      expect(onResourceReleased).toHaveBeenCalledOnce()
+      expect(onResourceReleased).toHaveBeenCalledWith({
+        resourceId: 51,
+        reason: 'server-released',
+      })
+    },
+  )
+
   it('retries ResourceClient streams that close after init', async () => {
     vi.useFakeTimers()
     const service = buildUnusedService()

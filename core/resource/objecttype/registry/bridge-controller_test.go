@@ -2,6 +2,7 @@ package resource_objecttype_registry
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -106,6 +107,98 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 	}
 }
 
+func TestBridgeResolverReconnectsPluginChildAfterResourceClientClose(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+
+	firstHandler := &testReconnectObjectTypeHandler{}
+	firstPluginClient := newTestObjectTypePluginClient(t, firstHandler)
+	secondHandler := &testReconnectObjectTypeHandler{}
+	secondPluginClient := newTestObjectTypePluginClient(t, secondHandler)
+
+	pluginLoader := &testPluginLoadController{client: firstPluginClient}
+	rel, err := tb.Bus.AddController(ctx, pluginLoader, nil)
+	if err != nil {
+		t.Fatalf("AddController: %v", err)
+	}
+	defer rel()
+
+	registry := NewObjectTypeRegistryResource()
+	registry.registrations[1] = &s4wave_objecttype_registry.ObjectTypeRegistration{
+		TypeId:         "test/type",
+		RegistrationId: 1,
+		PluginId:       "test-plugin",
+	}
+	ctrl := NewBridgeController(le, tb.Bus, registry)
+	rel, err = tb.Bus.AddController(ctx, ctrl, nil)
+	if err != nil {
+		t.Fatalf("AddController bridge: %v", err)
+	}
+	defer rel()
+
+	ot, ref, err := objecttype.ExLookupObjectType(ctx, tb.Bus, "test/type")
+	if err != nil {
+		t.Fatalf("ExLookupObjectType: %v", err)
+	}
+	if ref != nil {
+		defer ref.Release()
+	}
+	if !objectTypeRegistryBridgeEnabled() {
+		if ot != nil {
+			t.Fatalf("expected disabled GoScript bridge to return no object type")
+		}
+		return
+	}
+	if ot == nil {
+		t.Fatalf("expected object type")
+	}
+
+	invoker, cleanup, err := ot.GetFactory()(ctx, le, tb.Bus, tb.Engine, nil, "test/object")
+	if err != nil {
+		t.Fatalf("object type factory: %v", err)
+	}
+	defer cleanup()
+	bridgeInvoker, ok := invoker.(*pluginObjectTypeInvoker)
+	if !ok {
+		t.Fatalf("object type factory invoker = %T, want *pluginObjectTypeInvoker", invoker)
+	}
+	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))
+
+	if err := client.ExecCall(ctx, "test.Child", "Ping", &testPingMessage{}, &testPingMessage{}); err != nil {
+		t.Fatalf("first child ping: %v", err)
+	}
+	if got := firstHandler.successfulPings(); got != 1 {
+		t.Fatalf("first plugin successful pings = %d, want 1", got)
+	}
+	if got := secondHandler.invokeObjectTypeCalls(); got != 0 {
+		t.Fatalf("second plugin InvokeObjectType calls before replacement = %d, want 0", got)
+	}
+
+	pluginLoader.SetClient(secondPluginClient)
+	bridgeInvoker.mtx.Lock()
+	firstResourceClient := bridgeInvoker.resources.Client
+	bridgeInvoker.mtx.Unlock()
+	firstResourceClient.Release()
+
+	if err := client.ExecCall(ctx, "test.Child", "Ping", &testPingMessage{}, &testPingMessage{}); err != nil {
+		t.Fatalf("second child ping after resource client reconnect: %v", err)
+	}
+	if got := firstHandler.childInvocations(); got != 1 {
+		t.Fatalf("first plugin child invocations = %d, want 1", got)
+	}
+	if got := secondHandler.invokeObjectTypeCalls(); got != 1 {
+		t.Fatalf("second plugin InvokeObjectType calls = %d, want 1", got)
+	}
+	if got := secondHandler.successfulPings(); got != 1 {
+		t.Fatalf("second plugin successful pings = %d, want 1", got)
+	}
+}
+
 type testPingMessage struct{}
 
 func (m *testPingMessage) SizeVT() int {
@@ -195,7 +288,93 @@ func (h *testObjectTypeHandler) InvokeObjectType(ctx context.Context, req *s4wav
 	return &s4wave_objecttype_registry.InvokeObjectTypeResponse{ResourceId: id}, nil
 }
 
+func newTestObjectTypePluginClient(t *testing.T, handler s4wave_objecttype_registry.SRPCObjectTypeHandlerServiceServer) srpc.Client {
+	t.Helper()
+
+	pluginRoot := srpc.NewMux()
+	if err := s4wave_objecttype_registry.SRPCRegisterObjectTypeHandlerService(pluginRoot, handler); err != nil {
+		t.Fatal(err)
+	}
+	pluginResourceMux := srpc.NewMux()
+	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+		t.Fatal(err)
+	}
+	return srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
+}
+
+type testReconnectObjectTypeHandler struct {
+	mtx                   sync.Mutex
+	invokeObjectTypeCount int
+	childPingCalls        int
+	successfulPingCount   int
+}
+
+func (h *testReconnectObjectTypeHandler) InvokeObjectType(ctx context.Context, req *s4wave_objecttype_registry.InvokeObjectTypeRequest) (*s4wave_objecttype_registry.InvokeObjectTypeResponse, error) {
+	if req.GetTypeId() != "test/type" || req.GetObjectKey() != "test/object" {
+		return nil, resource.ErrInvalidResourceID
+	}
+	if req.GetAttachedEngineResourceId() == 0 {
+		return nil, resource.ErrInvalidResourceID
+	}
+	h.mtx.Lock()
+	h.invokeObjectTypeCount++
+	h.mtx.Unlock()
+
+	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := resourceCtx.AddResource(srpc.InvokerFunc(h.invokeChild), nil)
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_objecttype_registry.InvokeObjectTypeResponse{ResourceId: id}, nil
+}
+
+func (h *testReconnectObjectTypeHandler) invokeChild(serviceID string, methodID string, strm srpc.Stream) (bool, error) {
+	if serviceID != "test.Child" || methodID != "Ping" {
+		return false, nil
+	}
+
+	h.mtx.Lock()
+	h.childPingCalls++
+	h.mtx.Unlock()
+
+	if err := strm.MsgRecv(&testPingMessage{}); err != nil {
+		return true, err
+	}
+	// Count the ping before responding: the unary caller's ExecCall returns as
+	// soon as it receives this response, so an increment after MsgSend races the
+	// caller's assertion. Send failure is surfaced through the ExecCall error.
+	h.mtx.Lock()
+	h.successfulPingCount++
+	h.mtx.Unlock()
+	if err := strm.MsgSend(&testPingMessage{}); err != nil {
+		return true, err
+	}
+	return true, nil
+}
+
+func (h *testReconnectObjectTypeHandler) invokeObjectTypeCalls() int {
+	h.mtx.Lock()
+	defer h.mtx.Unlock()
+	return h.invokeObjectTypeCount
+}
+
+func (h *testReconnectObjectTypeHandler) childInvocations() int {
+	h.mtx.Lock()
+	defer h.mtx.Unlock()
+	return h.childPingCalls
+}
+
+func (h *testReconnectObjectTypeHandler) successfulPings() int {
+	h.mtx.Lock()
+	defer h.mtx.Unlock()
+	return h.successfulPingCount
+}
+
 type testPluginLoadController struct {
+	mtx    sync.RWMutex
 	client srpc.Client
 }
 
@@ -208,12 +387,24 @@ func (c *testPluginLoadController) Execute(ctx context.Context) error {
 	return nil
 }
 
+func (c *testPluginLoadController) SetClient(client srpc.Client) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	c.client = client
+}
+
+func (c *testPluginLoadController) Client() srpc.Client {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+	return c.client
+}
+
 func (c *testPluginLoadController) HandleDirective(ctx context.Context, inst directive.Instance) ([]directive.Resolver, error) {
 	dir, ok := inst.GetDirective().(bldr_plugin.LoadPlugin)
 	if !ok || dir.LoadPluginID() != "test-plugin" {
 		return nil, nil
 	}
-	return directive.R(directive.NewValueResolver([]bldr_plugin.LoadPluginValue{bldr_plugin.NewRunningPlugin(c.client)}), nil)
+	return directive.R(directive.NewValueResolver([]bldr_plugin.LoadPluginValue{bldr_plugin.NewRunningPlugin(c.Client())}), nil)
 }
 
 func (c *testPluginLoadController) Close() error {

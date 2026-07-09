@@ -19,7 +19,7 @@ import {
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { keyToIRI, predToIRI } from '@s4wave/sdk/world/graph-utils.js'
 import { setObjectType } from '@s4wave/sdk/world/types/types.js'
-import { createWorldObject } from '@s4wave/sdk/world/utils.js'
+import { accessObject } from '@s4wave/sdk/world/utils.js'
 
 import { withTimeout } from './test-utils.js'
 
@@ -242,12 +242,12 @@ async function createSeededTypedObject(
     existing.release()
     return false
   }
+
   const worldCursor = await world.buildStorageCursor(signal)
   try {
-    const created = await createWorldObject(
-      world,
+    const objectRef = await accessObject(
       worldCursor,
-      objectKey,
+      undefined,
       (cursor) =>
         cursor.setBlock(
           { data, markDirty: true, blockType: blockTypeID },
@@ -255,10 +255,11 @@ async function createSeededTypedObject(
         ),
       signal,
     )
+    const created = await world.createObject(objectKey, objectRef, signal)
     try {
       await setObjectType(world, objectKey, typeID, signal)
     } finally {
-      created.objectState.release()
+      created.release()
     }
     return true
   } finally {

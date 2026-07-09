@@ -59,6 +59,65 @@ func setupQuickstartRegistryClient(t *testing.T) (context.Context, *resource_cli
 	return ctx, client, r
 }
 
+type testQuickstartResourceClient struct {
+	ctx        context.Context
+	nextID     uint32
+	releaseFns map[uint32]func()
+	values     map[uint32]any
+}
+
+func newTestQuickstartResourceClient(ctx context.Context) *testQuickstartResourceClient {
+	return &testQuickstartResourceClient{
+		ctx:        ctx,
+		nextID:     1,
+		releaseFns: make(map[uint32]func()),
+		values:     make(map[uint32]any),
+	}
+}
+
+func (c *testQuickstartResourceClient) Context() context.Context {
+	return c.ctx
+}
+
+func (c *testQuickstartResourceClient) AddResource(mux srpc.Invoker, releaseFn func()) (uint32, error) {
+	return c.AddResourceValue(mux, nil, releaseFn)
+}
+
+func (c *testQuickstartResourceClient) AddResourceValue(_ srpc.Invoker, value any, releaseFn func()) (uint32, error) {
+	id := c.nextID
+	c.nextID++
+	c.releaseFns[id] = releaseFn
+	c.values[id] = value
+	return id, nil
+}
+
+func (c *testQuickstartResourceClient) ReleaseResource(resourceID uint32) bool {
+	releaseFn, ok := c.releaseFns[resourceID]
+	if !ok {
+		return false
+	}
+	delete(c.releaseFns, resourceID)
+	delete(c.values, resourceID)
+	if releaseFn != nil {
+		releaseFn()
+	}
+	return true
+}
+
+func (c *testQuickstartResourceClient) GetResourceValue(resourceID uint32) (any, error) {
+	value, ok := c.values[resourceID]
+	if !ok {
+		return nil, resource.ErrResourceNotFound
+	}
+	return value, nil
+}
+
+func (c *testQuickstartResourceClient) GetAttachedResource(id uint32) (srpc.Client, error) {
+	return nil, resource.ErrResourceNotFound
+}
+
+var _ resource_server.ResourceClientContext = (*testQuickstartResourceClient)(nil)
+
 func TestNewQuickstartRegistryResource(t *testing.T) {
 	r := NewQuickstartRegistryResource(nil, nil)
 	if r == nil {
@@ -214,7 +273,54 @@ func TestRegisterQuickstartListWatchAndRelease(t *testing.T) {
 	}
 }
 
-func TestRegisterQuickstartRejectsDuplicateId(t *testing.T) {
+func TestRegisterQuickstartRejectsDuplicateIdFromDifferentPlugin(t *testing.T) {
+	r := NewQuickstartRegistryResource(nil, nil)
+	clientCtx := newTestQuickstartResourceClient(context.Background())
+	ctx := resource_server.WithResourceClientContext(context.Background(), clientCtx)
+
+	resp, err := r.RegisterQuickstart(ctx, &s4wave_quickstart_registry.RegisterQuickstartRequest{
+		Registration: &s4wave_quickstart_registry.QuickstartRegistration{
+			QuickstartId: "glados-workspace",
+			PluginId:     "glados-web",
+			Name:         "Glados Workspace",
+			Description:  "Operator workspace",
+			Category:     "tools",
+		},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if resp.GetResourceId() == 0 {
+		t.Fatal("expected registration resource id")
+	}
+
+	_, err = r.RegisterQuickstart(ctx, &s4wave_quickstart_registry.RegisterQuickstartRequest{
+		Registration: &s4wave_quickstart_registry.QuickstartRegistration{
+			QuickstartId: "glados-workspace",
+			PluginId:     "spacewave-v86",
+			Name:         "V86 Workspace",
+			Description:  "VM workspace",
+			Category:     "compute",
+		},
+	})
+	if err != ErrQuickstartIdAlreadyRegistered {
+		t.Fatalf("expected ErrQuickstartIdAlreadyRegistered, got %v", err)
+	}
+
+	list, err := r.ListQuickstarts(ctx, &s4wave_quickstart_registry.ListQuickstartsRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	regs := list.GetRegistrations()
+	if len(regs) != 1 {
+		t.Fatalf("expected duplicate rejection to leave exactly 1 registration, got %d", len(regs))
+	}
+	if regs[0].GetPluginId() != "glados-web" {
+		t.Fatalf("duplicate rejection replaced original plugin: %s", regs[0].GetPluginId())
+	}
+}
+
+func TestRegisterQuickstartReconnectsSamePluginAndReleasesLatestOnly(t *testing.T) {
 	ctx, client, _ := setupQuickstartRegistryClient(t)
 	rootRef := client.AccessRootResource()
 	t.Cleanup(rootRef.Release)
@@ -223,25 +329,119 @@ func TestRegisterQuickstartRejectsDuplicateId(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	svc := s4wave_quickstart_registry.NewSRPCQuickstartRegistryResourceServiceClient(rootClient)
-	req := &s4wave_quickstart_registry.RegisterQuickstartRequest{
+
+	firstResp, err := svc.RegisterQuickstart(ctx, &s4wave_quickstart_registry.RegisterQuickstartRequest{
 		Registration: &s4wave_quickstart_registry.QuickstartRegistration{
-			QuickstartId: "glados-workspace",
-			PluginId:     "glados-web",
-			Name:         "Glados Workspace",
-			Description:  "Operator workspace",
-			Category:     "tools",
+			QuickstartId:      "glados-workspace",
+			PluginId:          "glados-web",
+			Name:              "Glados Workspace",
+			Description:       "Operator workspace",
+			Category:          "tools",
+			IconName:          "bot",
+			SpaceName:         "Glados Workspace",
+			RequiredPluginIds: []string{"glados-core"},
 		},
-	}
-	resp, err := svc.RegisterQuickstart(ctx, req)
+	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if resp.GetResourceId() == 0 {
-		t.Fatal("expected registration resource id")
+	if firstResp.GetResourceId() == 0 {
+		t.Fatal("expected first registration resource id")
 	}
-	_, err = svc.RegisterQuickstart(ctx, req)
-	if err == nil {
-		t.Fatal("expected duplicate registration error")
+
+	firstList, err := svc.ListQuickstarts(ctx, &s4wave_quickstart_registry.ListQuickstartsRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(firstList.GetRegistrations()) != 1 {
+		t.Fatalf("expected first registration to be visible, got %d", len(firstList.GetRegistrations()))
+	}
+	firstRegistrationID := firstList.GetRegistrations()[0].GetRegistrationId()
+	if firstRegistrationID == 0 {
+		t.Fatal("expected first assigned registration id")
+	}
+
+	latestResp, err := svc.RegisterQuickstart(ctx, &s4wave_quickstart_registry.RegisterQuickstartRequest{
+		Registration: &s4wave_quickstart_registry.QuickstartRegistration{
+			QuickstartId:      "glados-workspace",
+			PluginId:          "glados-web",
+			Name:              "Glados Workspace Reconnected",
+			Description:       "Operator workspace after browser restart",
+			Category:          "browser-tools",
+			IconName:          "sparkles",
+			SpaceName:         "Reconnected Workspace",
+			RequiredPluginIds: []string{"glados-core", "glados-web", "spacewave-sql"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if latestResp.GetResourceId() == 0 {
+		t.Fatal("expected latest registration resource id")
+	}
+	if latestResp.GetResourceId() == firstResp.GetResourceId() {
+		t.Fatalf("expected reconnect to return a new resource id, got %d", latestResp.GetResourceId())
+	}
+
+	list, err := svc.ListQuickstarts(ctx, &s4wave_quickstart_registry.ListQuickstartsRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	regs := list.GetRegistrations()
+	if len(regs) != 1 {
+		t.Fatalf("expected reconnect to leave exactly 1 registration, got %d", len(regs))
+	}
+	latest := regs[0]
+	if latest.GetRegistrationId() == 0 {
+		t.Fatal("expected latest assigned registration id")
+	}
+	if latest.GetRegistrationId() == firstRegistrationID {
+		t.Fatalf("expected reconnect to assign a new registration id, got %d", latest.GetRegistrationId())
+	}
+	if latest.GetQuickstartId() != "glados-workspace" ||
+		latest.GetPluginId() != "glados-web" ||
+		latest.GetName() != "Glados Workspace Reconnected" ||
+		latest.GetDescription() != "Operator workspace after browser restart" ||
+		latest.GetCategory() != "browser-tools" ||
+		latest.GetIconName() != "sparkles" ||
+		latest.GetSpaceName() != "Reconnected Workspace" {
+		t.Fatalf("latest registration metadata did not win: %#v", latest)
+	}
+	if got := latest.GetRequiredPluginIds(); len(got) != 3 ||
+		got[0] != "glados-core" ||
+		got[1] != "glados-web" ||
+		got[2] != "spacewave-sql" {
+		t.Fatalf("latest required plugin ids did not win: %v", got)
+	}
+	latestRegistrationID := latest.GetRegistrationId()
+
+	oldRef := client.CreateResourceReference(firstResp.GetResourceId())
+	oldRef.Release()
+
+	afterOldRelease, err := svc.ListQuickstarts(ctx, &s4wave_quickstart_registry.ListQuickstartsRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	regs = afterOldRelease.GetRegistrations()
+	if len(regs) != 1 {
+		t.Fatalf("expected old release to keep latest registration, got %d", len(regs))
+	}
+	if regs[0].GetRegistrationId() != latestRegistrationID {
+		t.Fatalf("old release removed or changed latest registration: got id %d, want %d", regs[0].GetRegistrationId(), latestRegistrationID)
+	}
+	if regs[0].GetName() != "Glados Workspace Reconnected" {
+		t.Fatalf("old release changed latest registration metadata: %s", regs[0].GetName())
+	}
+
+	latestRef := client.CreateResourceReference(latestResp.GetResourceId())
+	latestRef.Release()
+
+	afterLatestRelease, err := svc.ListQuickstarts(ctx, &s4wave_quickstart_registry.ListQuickstartsRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(afterLatestRelease.GetRegistrations()) != 0 {
+		t.Fatalf("expected latest release to remove registration, got %d", len(afterLatestRelease.GetRegistrations()))
 	}
 }
 

@@ -161,6 +161,11 @@ func (c *Client) Release() {
 	c.cancel()
 }
 
+// Done returns a channel closed when the client connection is released.
+func (c *Client) Done() <-chan struct{} {
+	return c.ctx.Done()
+}
+
 // attachSession manages the single ResourceAttach stream + yamux session.
 // One session serves all attached resources.
 type attachSession struct {

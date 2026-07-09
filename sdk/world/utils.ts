@@ -29,27 +29,25 @@ export async function accessObject(
   cb: AccessObjectCallback,
   abortSignal?: AbortSignal,
 ): Promise<ObjectRef> {
-  const { transaction, cursor } = await worldState.buildTransaction(
-    {},
-    abortSignal,
-  )
+  let bucketId = ref?.bucketId ?? ''
+  if (ref?.rootRef?.hash) {
+    const refResp = await worldState.getRef(abortSignal)
+    bucketId = refResp.ref?.bucketId ?? ''
+  }
+  const built = await worldState.buildTransaction({}, abortSignal)
+  using transaction = built.transaction
+  using cursor = built.cursor
 
-  // If ref is empty, mark the cursor position as empty
   if (!ref || !ref.rootRef || !ref.rootRef.hash) {
     await cursor.markDirty(abortSignal)
   }
 
-  // Execute the callback to modify the block
   await cb(cursor)
 
-  // Write the transaction and get the updated root ref
-  const [refResp, writeResp] = await Promise.all([
-    worldState.getRef(abortSignal),
-    transaction.write({ clearTree: true }, abortSignal),
-  ])
+  const writeResp = await transaction.write({ clearTree: true }, abortSignal)
 
   return {
-    bucketId: refResp.ref?.bucketId ?? '',
+    bucketId,
     rootRef: writeResp.rootRef,
   }
 }
@@ -63,12 +61,6 @@ export async function createWorldObject(
   cb: AccessObjectCallback,
   abortSignal?: AbortSignal,
 ): Promise<{ objectState: IObjectState; objectRef: ObjectRef }> {
-  // Check if object already exists
-  const existing = await world.getObject(key, abortSignal)
-  if (existing) {
-    throw new Error(`Object already exists: ${key}`)
-  }
-
   // Create the object data
   const objectRef = await accessObject(worldState, undefined, cb, abortSignal)
 

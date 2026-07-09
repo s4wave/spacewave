@@ -51,11 +51,11 @@ func (r *SqlQueryResultResource) GetResultGrid(
 		return nil, errors.New("sql/query-result: world state is required")
 	}
 	if err := world_types.CheckObjectType(ctx, r.ws, r.objectKey, SqlQueryResultTypeID); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "sql/query-result: check object type")
 	}
 	result, err := ReadQueryResultRoot(ctx, r.ws, r.objectKey)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "sql/query-result: read result root")
 	}
 	cloned := result.CloneVT()
 	return &GetResultGridResponse{

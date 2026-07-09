@@ -79,11 +79,15 @@ func (r *QuickstartRegistryResource) RegisterQuickstart(
 
 	var regID uint32
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		for _, v := range r.registrations {
-			if v.GetQuickstartId() == reg.GetQuickstartId() {
+		for id, v := range r.registrations {
+			if v.GetQuickstartId() != reg.GetQuickstartId() {
+				continue
+			}
+			if v.GetPluginId() != reg.GetPluginId() {
 				err = ErrQuickstartIdAlreadyRegistered
 				return
 			}
+			delete(r.registrations, id)
 		}
 		regID = r.nextID
 		r.nextID++

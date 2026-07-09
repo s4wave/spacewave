@@ -336,23 +336,17 @@ func directFetchCandidateShouldRemainCurrent(current, best *directFetchCandidate
 		return true
 	}
 
-	currentRank := platformPreferenceRank(current.host.GetPlatformId())
-	bestRank := platformPreferenceRank(best.host.GetPlatformId())
-	if currentRank != bestRank {
-		return currentRank > bestRank
-	}
-
 	currentRev := current.ref.GetMeta().GetRev()
 	bestRev := best.ref.GetMeta().GetRev()
 	if currentRev != bestRev {
 		return currentRev > bestRev
 	}
 
-	if current.host.GetPlatformId() == best.host.GetPlatformId() {
-		return true
-	}
-
-	return !directFetchCandidateBetter(best, current)
+	// Preserve an already selected same-rev candidate. Late arrival of a
+	// preferred-platform manifest should not close an active plugin runtime and
+	// abort in-flight Resource RPCs; the preferred platform still wins when all
+	// candidates are present before the first selection.
+	return true
 }
 
 func platformPreferenceRank(platformID string) int {

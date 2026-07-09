@@ -27,6 +27,7 @@ export function useAccessTypedHandle<T extends SDKResource>(
     [objectKey],
     {
       retryOnReleasedResource: {
+        reasons: ['server-released', 'connection-lost'],
         getResourceIds: (handle) => [handle.id],
       },
     },

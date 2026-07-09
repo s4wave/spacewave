@@ -39,7 +39,7 @@ export function useObjectViewerSetup(
   const allViewers = useAllViewers(rootResource)
   const loadObjectState = options.loadObjectState ?? true
 
-  const objectState = useResource(
+  const rawObjectState = useResource(
     worldState,
     async (world, signal, cleanup) =>
       world && objectKey
@@ -47,6 +47,18 @@ export function useObjectViewerSetup(
         : null,
     [objectKey],
     { enabled: loadObjectState },
+  )
+
+  const rawObjectStateValue = rawObjectState.value
+  const objectStateIsCurrent =
+    rawObjectStateValue == null || rawObjectStateValue.getKey() === objectKey
+  const objectState = useMemo<Resource<IObjectState | null>>(
+    () => ({
+      ...rawObjectState,
+      value: objectStateIsCurrent ? rawObjectStateValue : null,
+      loading: rawObjectState.loading || !objectStateIsCurrent,
+    }),
+    [rawObjectState, rawObjectStateValue, objectStateIsCurrent],
   )
 
   const objectInfo = useResource(
@@ -68,7 +80,13 @@ export function useObjectViewerSetup(
     { enabled: loadObjectState },
   )
 
-  const typeID = options.typeIDHint || objectInfo.value?.typeID
+  const loadedObjectInfo = objectInfo.value
+  const currentObjectInfo =
+    loadedObjectInfo?.key === objectKey ? loadedObjectInfo : null
+  const typeID = loadObjectState
+    ? (currentObjectInfo?.typeID ??
+      (objectInfo.loading ? options.typeIDHint : undefined))
+    : options.typeIDHint
   const availableComponents = useMemo(
     () => getViewersForType(typeID ?? '', allViewers),
     [typeID, allViewers],
@@ -77,7 +95,7 @@ export function useObjectViewerSetup(
   return {
     objectState,
     typeID,
-    rootRef: objectInfo.value?.rootRef,
+    rootRef: currentObjectInfo?.rootRef,
     visibleComponents: availableComponents,
   }
 }

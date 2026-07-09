@@ -95,6 +95,15 @@ function withResourceClientInitTimeout<T>(promise: Promise<T>): Promise<T> {
   })
 }
 
+function isServerMissingResourceError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '')
+  return (
+    message.includes('resource not found') ||
+    message.includes('invalid resource id') ||
+    message.includes('resource or client was released')
+  )
+}
+
 /**
  * A reference to a remote resource that can be used to communicate with it.
  * Each resource has a unique ID and must be explicitly released when no longer needed.
@@ -205,6 +214,7 @@ function createResourceRef(
   id: number,
   client: Client,
   onRelease: (id: number, ref: InternalResourceRef) => void,
+  onServerRelease: (id: number) => void,
 ): InternalResourceRef {
   let released = false
 
@@ -223,9 +233,14 @@ function createResourceRef(
           openRpcStream(
             id.toString(),
             client.service.ResourceRpc.bind(client.service),
-            false,
+            true,
           ),
-        ),
+        ).catch((error) => {
+          if (isServerMissingResourceError(error)) {
+            onServerRelease(id)
+          }
+          throw error
+        }),
       )
     }
     return srpcClient
@@ -937,7 +952,12 @@ export class Client {
     }
 
     // Create the reference
-    const ref = createResourceRef(id, this, this.releaseRef.bind(this))
+    const ref = createResourceRef(
+      id,
+      this,
+      this.releaseRef.bind(this),
+      this.handleServerResourceRelease.bind(this),
+    )
 
     // Track this reference
     this.resources.get(id)!.add(ref)

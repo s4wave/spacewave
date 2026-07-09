@@ -28,6 +28,7 @@ import (
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
 	s4wave_quickstart_registry "github.com/s4wave/spacewave/sdk/quickstart/registry"
 	s4wave_sql_query "github.com/s4wave/spacewave/sdk/sql/query"
+	s4wave_sql_query_result "github.com/s4wave/spacewave/sdk/sql/query-result"
 	s4wave_sql_query_result_world "github.com/s4wave/spacewave/sdk/sql/query-result/world"
 	s4wave_sql_query_world "github.com/s4wave/spacewave/sdk/sql/query/world"
 	s4wave_sql_schema_world "github.com/s4wave/spacewave/sdk/sql/schema/world"
@@ -318,37 +319,15 @@ func TestSQLObjectTypeBridgeAccessTypedObjectReadsQuickstartSchema(t *testing.T)
 		t.Fatalf("seedSQLQuickstart: %v", err)
 	}
 
-	registry := resource_objecttype_registry.NewObjectTypeRegistryResource()
-	registryClient, registryRootClient, cleanupRegistry := newSQLResourceClient(t, registry.GetMux())
-	defer cleanupRegistry()
-	otRegistry := s4wave_objecttype_registry.NewSRPCObjectTypeRegistryResourceServiceClient(registryRootClient)
-	regResp, err := otRegistry.RegisterObjectType(ctx, &s4wave_objecttype_registry.RegisterObjectTypeRequest{
-		TypeId:   s4wave_sql_world.SqlDbTypeID,
-		PluginId: PluginID,
-	})
-	if err != nil {
-		t.Fatalf("RegisterObjectType(%s): %v", s4wave_sql_world.SqlDbTypeID, err)
-	}
-	regRef := registryClient.CreateResourceReference(regResp.GetResourceId())
-	defer regRef.Release()
-
-	pluginClient := newSQLPluginClient(t, handler)
-	pluginRel, err := tb.Bus.AddController(ctx, &sqlPluginLoadTestController{client: pluginClient}, nil)
-	if err != nil {
-		t.Fatalf("AddController(plugin load): %v", err)
-	}
-	defer pluginRel()
-
-	bridgeRel, err := tb.Bus.AddController(ctx, resource_objecttype_registry.NewBridgeController(le, tb.Bus, registry), nil)
-	if err != nil {
-		t.Fatalf("AddController(object type bridge): %v", err)
-	}
-	defer bridgeRel()
-
-	engineResource := resource_world.NewEngineResource(le, tb.Bus, tb.BusEngine, nil, nil)
-	engineClient, engineRootClient, cleanupEngine := newSQLResourceClient(t, engineResource.GetMux())
-	defer cleanupEngine()
-	typedObjects := s4wave_world.NewSRPCTypedObjectResourceServiceClient(engineRootClient)
+	engineClient, typedObjects, cleanupBridge := newSQLObjectTypeBridgeHarness(
+		t,
+		ctx,
+		le,
+		handler,
+		tb,
+		s4wave_sql_world.SqlDbTypeID,
+	)
+	defer cleanupBridge()
 	accessResp, err := typedObjects.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
 		ObjectKey: sqlQuickstartDBKey,
 	})
@@ -371,6 +350,107 @@ func TestSQLObjectTypeBridgeAccessTypedObjectReadsQuickstartSchema(t *testing.T)
 	schemas := queryQuickstartStringColumn(t, ctx, tx, "SHOW DATABASES")
 	if !containsString(schemas, "quickstart") {
 		t.Fatalf("SHOW DATABASES through bridged SQL resource = %v, want quickstart", schemas)
+	}
+}
+
+func TestSQLObjectTypeBridgeRunQuickstartQueryServesResultGrid(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	handler := &SQLHandler{
+		le: le,
+		b:  tb.Bus,
+	}
+	if err := handler.seedSQLQuickstart(ctx, tb.WorldState); err != nil {
+		t.Fatalf("seedSQLQuickstart: %v", err)
+	}
+
+	engineClient, typedObjects, cleanupBridge := newSQLObjectTypeBridgeHarness(
+		t,
+		ctx,
+		le,
+		handler,
+		tb,
+		s4wave_sql_world.SqlDbTypeID,
+		s4wave_sql_query.SqlQueryTypeID,
+		s4wave_sql_query_result.SqlQueryResultTypeID,
+	)
+	defer cleanupBridge()
+
+	queryAccess, err := typedObjects.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
+		ObjectKey: sqlQuickstartQueryKey,
+	})
+	if err != nil {
+		t.Fatalf("AccessTypedObject(%s): %v", sqlQuickstartQueryKey, err)
+	}
+	if queryAccess.GetTypeId() != s4wave_sql_query.SqlQueryTypeID {
+		t.Fatalf("AccessTypedObject(%s) type = %q, want %q", sqlQuickstartQueryKey, queryAccess.GetTypeId(), s4wave_sql_query.SqlQueryTypeID)
+	}
+	queryRef := engineClient.CreateResourceReference(queryAccess.GetResourceId())
+	defer queryRef.Release()
+	querySRPC, err := queryRef.GetClient()
+	if err != nil {
+		t.Fatalf("SQL query typed resource client: %v", err)
+	}
+	queryClient := s4wave_sql_query.NewSRPCSqlQueryResourceServiceClient(querySRPC)
+	runResp, err := queryClient.Run(ctx, &s4wave_sql_query.RunQueryRequest{MaxRows: 8})
+	if err != nil {
+		t.Fatalf("Run(%s): %v", sqlQuickstartQueryKey, err)
+	}
+	if runResp.GetError() != "" {
+		t.Fatalf("Run(%s) returned SQL error: %s", sqlQuickstartQueryKey, runResp.GetError())
+	}
+	resultKey := runResp.GetResultObjectKey()
+	if resultKey == "" {
+		t.Fatal("Run returned empty result object key")
+	}
+
+	resultAccess, err := typedObjects.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{
+		ObjectKey: resultKey,
+	})
+	if err != nil {
+		t.Fatalf("AccessTypedObject(%s): %v", resultKey, err)
+	}
+	if resultAccess.GetTypeId() != s4wave_sql_query_result.SqlQueryResultTypeID {
+		t.Fatalf("AccessTypedObject(%s) type = %q, want %q", resultKey, resultAccess.GetTypeId(), s4wave_sql_query_result.SqlQueryResultTypeID)
+	}
+	resultRef := engineClient.CreateResourceReference(resultAccess.GetResourceId())
+	defer resultRef.Release()
+	resultSRPC, err := resultRef.GetClient()
+	if err != nil {
+		t.Fatalf("SQL query result typed resource client: %v", err)
+	}
+	resultClient := s4wave_sql_query_result.NewSRPCSqlQueryResultResourceServiceClient(resultSRPC)
+	grid, err := resultClient.GetResultGrid(ctx, &s4wave_sql_query_result.GetResultGridRequest{})
+	if err != nil {
+		t.Fatalf("GetResultGrid(%s): %v", resultKey, err)
+	}
+	if grid.GetError() != nil {
+		t.Fatalf("GetResultGrid(%s) returned SQL error: %s", resultKey, grid.GetError().GetMessage())
+	}
+	if grid.GetSourceQueryObjectKey() != sqlQuickstartQueryKey {
+		t.Fatalf("source query key = %q, want %q", grid.GetSourceQueryObjectKey(), sqlQuickstartQueryKey)
+	}
+	if grid.GetTargetDbObjectKey() != sqlQuickstartDBKey {
+		t.Fatalf("target db key = %q, want %q", grid.GetTargetDbObjectKey(), sqlQuickstartDBKey)
+	}
+	if grid.GetRowCount() != 1 {
+		t.Fatalf("row count = %d, want 1", grid.GetRowCount())
+	}
+	if got := len(grid.GetColumns()); got != 2 {
+		t.Fatalf("columns = %d, want 2", got)
+	}
+	if grid.GetColumns()[0].GetName() != "name" || grid.GetColumns()[1].GetName() != "role" {
+		t.Fatalf("columns = [%s %s], want [name role]", grid.GetColumns()[0].GetName(), grid.GetColumns()[1].GetName())
+	}
+	row := singleQuickstartResultRow(t, grid.GetRowBatches(), 2)
+	if row[0] != "ada" || row[1] != "analyst" {
+		t.Fatalf("result row = %v, want [ada analyst]", row)
 	}
 }
 
@@ -414,6 +494,66 @@ func openQuickstartQueryClient(
 	}
 	client := s4wave_sql_query.NewSRPCSqlQueryResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(inv))))
 	return client, cleanup
+}
+
+func newSQLObjectTypeBridgeHarness(
+	t *testing.T,
+	ctx context.Context,
+	le *logrus.Entry,
+	handler *SQLHandler,
+	tb *testbed.Testbed,
+	typeIDs ...string,
+) (*resource_client.Client, s4wave_world.SRPCTypedObjectResourceServiceClient, func()) {
+	t.Helper()
+
+	var cleanupFns []func()
+	cleanup := func() {
+		for i := len(cleanupFns) - 1; i >= 0; i-- {
+			cleanupFns[i]()
+		}
+	}
+
+	registry := resource_objecttype_registry.NewObjectTypeRegistryResource()
+	registryClient, registryRootClient, cleanupRegistry := newSQLResourceClient(t, registry.GetMux())
+	cleanupFns = append(cleanupFns, cleanupRegistry)
+	otRegistry := s4wave_objecttype_registry.NewSRPCObjectTypeRegistryResourceServiceClient(registryRootClient)
+	for _, typeID := range typeIDs {
+		regResp, err := otRegistry.RegisterObjectType(ctx, &s4wave_objecttype_registry.RegisterObjectTypeRequest{
+			TypeId:   typeID,
+			PluginId: PluginID,
+		})
+		if err != nil {
+			cleanup()
+			t.Fatalf("RegisterObjectType(%s): %v", typeID, err)
+		}
+		if regResp.GetResourceId() == 0 {
+			cleanup()
+			t.Fatalf("RegisterObjectType(%s) returned zero resource id", typeID)
+		}
+		regRef := registryClient.CreateResourceReference(regResp.GetResourceId())
+		cleanupFns = append(cleanupFns, regRef.Release)
+	}
+
+	pluginClient := newSQLPluginClient(t, handler)
+	pluginRel, err := tb.Bus.AddController(ctx, &sqlPluginLoadTestController{client: pluginClient}, nil)
+	if err != nil {
+		cleanup()
+		t.Fatalf("AddController(plugin load): %v", err)
+	}
+	cleanupFns = append(cleanupFns, pluginRel)
+
+	bridgeRel, err := tb.Bus.AddController(ctx, resource_objecttype_registry.NewBridgeController(le, tb.Bus, registry), nil)
+	if err != nil {
+		cleanup()
+		t.Fatalf("AddController(object type bridge): %v", err)
+	}
+	cleanupFns = append(cleanupFns, bridgeRel)
+
+	engineResource := resource_world.NewEngineResource(le, tb.Bus, tb.BusEngine, nil, nil)
+	engineClient, engineRootClient, cleanupEngine := newSQLResourceClient(t, engineResource.GetMux())
+	cleanupFns = append(cleanupFns, cleanupEngine)
+	typedObjects := s4wave_world.NewSRPCTypedObjectResourceServiceClient(engineRootClient)
+	return engineClient, typedObjects, cleanup
 }
 
 func newSQLPluginClient(t *testing.T, handler *SQLHandler) srpc.Client {
@@ -537,6 +677,39 @@ func quickstartDriverString(t *testing.T, query string, value driver.Value) stri
 		return string(typed)
 	default:
 		t.Fatalf("%s value = %#v, want string", query, value)
+	}
+	return ""
+}
+
+func singleQuickstartResultRow(t *testing.T, batches []*hydra_sql.RowBatch, wantValues int) []string {
+	t.Helper()
+	if len(batches) != 1 {
+		t.Fatalf("row batches = %d, want 1", len(batches))
+	}
+	rows := batches[0].GetRows()
+	if len(rows) != 1 {
+		t.Fatalf("rows = %d, want 1", len(rows))
+	}
+	values := rows[0].GetValues()
+	if len(values) != wantValues {
+		t.Fatalf("values = %d, want %d", len(values), wantValues)
+	}
+	got := make([]string, len(values))
+	for idx, value := range values {
+		got[idx] = quickstartSQLValueString(t, value)
+	}
+	return got
+}
+
+func quickstartSQLValueString(t *testing.T, value *hydra_sql.SqlValue) string {
+	t.Helper()
+	switch typed := value.GetValue().(type) {
+	case *hydra_sql.SqlValue_StrValue:
+		return typed.StrValue
+	case *hydra_sql.SqlValue_BlobValue:
+		return string(typed.BlobValue)
+	default:
+		t.Fatalf("value = %#v, want string/blob", value)
 	}
 	return ""
 }

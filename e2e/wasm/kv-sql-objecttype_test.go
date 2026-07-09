@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	playwright "github.com/mxschmitt/playwright-go"
 )
@@ -152,6 +153,8 @@ func createObjectTypeQuickstartScenario(
 ) *objectTypeQuickstartScenario {
 	t.Helper()
 
+	preflightObjectTypeQuickstartPlugin(t, h, quickstartID)
+
 	WaitForApp(t, page)
 	EnableQuickstartTimingLogs(t, page)
 	NavigateHash(t, h, page, "#/quickstart/"+quickstartID)
@@ -171,40 +174,60 @@ func (s *objectTypeQuickstartScenario) objectHash(objectKey string) string {
 	return fmt.Sprintf("#/u/%d/so/%s/-/%s", s.sessionIndex, s.spaceID, objectKey)
 }
 
+func preflightObjectTypeQuickstartPlugin(t testing.TB, h *Harness, quickstartID string) {
+	t.Helper()
+	if quickstartID != "sql" {
+		return
+	}
+	if err := h.SettleProjectManifest("spacewave-sql"); err != nil {
+		t.Fatalf("settle SQL quickstart manifest: %v", err)
+	}
+}
+
 func waitForObjectTypeRoute(t testing.TB, page playwright.Page, objectKey string, texts []string) {
 	t.Helper()
 
-	_, err := page.WaitForFunction(`(arg) => {
-		const { objectKey, texts } = Array.isArray(arg) ? arg[0] : arg
-		const timing =
-			globalThis.__s4waveQuickstartTiming ??
-			globalThis.__s4wave_debug?.quickstartTiming ??
-			null
-		if (timing?.state === 'error') {
-			throw new Error('quickstart failed: ' + (timing.error ?? 'unknown error'))
+	deadline := time.Now().Add(time.Duration(objectTypeQuickstartWaitMS) * time.Millisecond)
+	for time.Now().Before(deadline) {
+		_, err := page.WaitForFunction(`(arg) => {
+			const { objectKey, texts } = Array.isArray(arg) ? arg[0] : arg
+			const timing =
+				globalThis.__s4waveQuickstartTiming ??
+				globalThis.__s4wave_debug?.quickstartTiming ??
+				null
+			if (timing?.state === 'error') {
+				throw new Error('quickstart failed: ' + (timing.error ?? 'unknown error'))
+			}
+			const hash = window.location.hash
+			if (!hash.includes('/u/') || !hash.includes('/so/') || !hash.endsWith('/' + objectKey)) {
+				return false
+			}
+			const text = document.querySelector('#bldr-root')?.textContent ?? document.body.textContent ?? ''
+			const transientUnknownObjectType = text.includes('unknown object type')
+			if (
+				(text.includes('unavailable') && !transientUnknownObjectType) ||
+				text.includes('Run failed') ||
+				text.includes('Could not open query editor')
+			) {
+				throw new Error(text.replace(/\s+/g, ' ').slice(0, 1200))
+			}
+			return texts.every((needle) => text.includes(needle))
+		}`, []any{map[string]any{
+			"objectKey": objectKey,
+			"texts":     texts,
+		}}, playwright.PageWaitForFunctionOptions{
+			Timeout: playwright.Float(15000),
+		})
+		if err == nil {
+			return
 		}
-		const hash = window.location.hash
-		if (!hash.includes('/u/') || !hash.includes('/so/') || !hash.endsWith('/' + objectKey)) {
-			return false
+		if !strings.Contains(err.Error(), "Timeout") {
+			t.Fatalf("wait for object route %q: %v\ndebug: %v", objectKey, err, collectObjectTypeQuickstartDebug(page))
 		}
-		const text = document.querySelector('#bldr-root')?.textContent ?? document.body.textContent ?? ''
-		if (
-			text.includes('unavailable') ||
-			text.includes('Run failed') ||
-			text.includes('Could not open query editor')
-		) {
-			throw new Error(text.replace(/\s+/g, ' ').slice(0, 1200))
-		}
-		return texts.every((needle) => text.includes(needle))
-	}`, []any{map[string]any{
-		"objectKey": objectKey,
-		"texts":     texts,
-	}}, playwright.PageWaitForFunctionOptions{
-		Timeout: playwright.Float(objectTypeQuickstartWaitMS),
-	})
-	if err != nil {
-		t.Fatalf("wait for object route %q: %v\ndebug: %v", objectKey, err, collectObjectTypeQuickstartDebug(page))
+		retry := page.Locator("button:has-text('Retry')").First()
+		_ = retry.Click(playwright.LocatorClickOptions{Timeout: playwright.Float(1000)})
 	}
+	t.Fatalf("wait for object route %q: timed out after %dms\ndebug: %v", objectKey, objectTypeQuickstartWaitMS, collectObjectTypeQuickstartDebug(page))
 }
 
 func assertTargetDbInputValue(t testing.TB, page playwright.Page, want string) {

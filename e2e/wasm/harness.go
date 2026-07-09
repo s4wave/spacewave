@@ -693,6 +693,80 @@ func (h *Harness) preflightStartupManifests(ctx context.Context) (map[string]str
 	return digests, nil
 }
 
+// SettleProjectManifest builds one lazy project plugin to the same fixpoint as
+// browser startup manifests before a test path requests it from PluginHost.
+func (h *Harness) SettleProjectManifest(pluginID string) error {
+	preflight, ok := devtool.ProjectOwnedStartupManifestPreflight(h.projConfig, pluginID, "web/js/wasm")
+	if !ok {
+		return errors.Errorf("project manifest %q not found", pluginID)
+	}
+	req := manifestFetchRequest{
+		pluginID:    preflight.PluginID,
+		platformIDs: preflight.PlatformIDs,
+	}
+
+	ctx, cancel := context.WithTimeout(h.ctx, h.manifestWait*8)
+	defer cancel()
+
+	const maxPasses = 8
+	var prev string
+	for pass := 1; pass <= maxPasses; pass++ {
+		digest, err := h.preflightManifestFetch(ctx, req)
+		if err != nil {
+			return err
+		}
+		if prev == digest {
+			h.le.WithFields(req.logFields()).WithField("passes", pass).Info("lazy manifest settled to build fixpoint")
+			return nil
+		}
+		h.le.WithFields(req.logFields()).WithField("pass", pass).Info("lazy manifest not yet stable, re-settling")
+		prev = digest
+	}
+	return errors.Errorf("lazy manifest %s did not reach a build fixpoint after %d passes", req.summary(), maxPasses)
+}
+
+func (h *Harness) preflightManifestFetch(ctx context.Context, req manifestFetchRequest) (string, error) {
+	if _, ok := h.projConfig.GetManifests()[req.pluginID]; !ok {
+		return "", errors.Errorf("manifest %q not found in project config", req.pluginID)
+	}
+
+	waitState := newManifestWaitState(req.pluginID)
+	h.le.WithFields(req.logFields()).Info("asserting lazy manifest fetch")
+	di, ref, err := h.devtool.GetBus().AddDirective(req.directive(), waitState.handler())
+	if err != nil {
+		return "", errors.Wrapf(err, "assert manifest fetch for %s", req.pluginID)
+	}
+	defer ref.Release()
+	di.AddIdleCallback(waitState.handleIdle)
+
+	wait := manifestWait{req: req, state: waitState}
+	if err := h.waitForManifest(ctx, wait); err != nil {
+		return "", err
+	}
+	return waitState.digest(), nil
+}
+
+func (h *Harness) waitForManifest(ctx context.Context, wait manifestWait) error {
+	waitCtx, cancel := context.WithTimeout(ctx, h.manifestWait)
+	defer cancel()
+
+	h.le.WithFields(wait.req.logFields()).Info("waiting for manifest build")
+	select {
+	case err := <-wait.state.done:
+		if err != nil {
+			return err
+		}
+		h.le.WithFields(wait.req.logFields()).Info("manifest build ready")
+		return nil
+	case <-waitCtx.Done():
+		return errors.Errorf(
+			"timed out after %s waiting for manifest callback: %s",
+			h.manifestWait,
+			wait.req.summary(),
+		)
+	}
+}
+
 func (h *Harness) releaseManifestFetches() {
 	for _, ref := range h.manifestRefs {
 		ref.Release()

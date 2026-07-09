@@ -31,6 +31,23 @@ func projectOwnedStartupPlugins(projectConfig *bldr_project.ProjectConfig) []str
 	return preflightPlugins
 }
 
+// ProjectOwnedStartupManifestPreflight returns the browser-mode startup
+// manifest request for one project-owned plugin.
+func ProjectOwnedStartupManifestPreflight(
+	projectConfig *bldr_project.ProjectConfig,
+	pluginID string,
+	wasmPlatformID string,
+) (StartupManifestPreflight, bool) {
+	manifest := projectConfig.GetManifests()[pluginID]
+	if manifest == nil {
+		return StartupManifestPreflight{}, false
+	}
+	return StartupManifestPreflight{
+		PluginID:    pluginID,
+		PlatformIDs: startupManifestPlatformIDs(pluginID, manifest, wasmPlatformID),
+	}, true
+}
+
 // ProjectOwnedStartupManifestPreflights returns the browser-mode startup
 // manifest requests owned by the project.
 func ProjectOwnedStartupManifestPreflights(projectConfig *bldr_project.ProjectConfig, wasmPlatformID string) []StartupManifestPreflight {
@@ -39,14 +56,12 @@ func ProjectOwnedStartupManifestPreflights(projectConfig *bldr_project.ProjectCo
 		return nil
 	}
 
-	manifests := projectConfig.GetManifests()
 	preflights := make([]StartupManifestPreflight, 0, len(pluginIDs))
 	for _, pluginID := range pluginIDs {
-		manifest := manifests[pluginID]
-		preflights = append(preflights, StartupManifestPreflight{
-			PluginID:    pluginID,
-			PlatformIDs: startupManifestPlatformIDs(pluginID, manifest, wasmPlatformID),
-		})
+		preflight, ok := ProjectOwnedStartupManifestPreflight(projectConfig, pluginID, wasmPlatformID)
+		if ok {
+			preflights = append(preflights, preflight)
+		}
 	}
 	return preflights
 }
@@ -58,7 +73,12 @@ func startupManifestPlatformIDs(pluginID string, manifest *bldr_project.Manifest
 			return []string{"js", wasmPlatformID}
 		}
 		return []string{"js"}
-	case bldr_plugin_compiler_go.ConfigID, web_plugin_compiler.ConfigID:
+	case bldr_plugin_compiler_go.ConfigID:
+		if wasmPlatformID != "" && wasmPlatformID != "js" {
+			return []string{"js", wasmPlatformID}
+		}
+		return []string{"js"}
+	case web_plugin_compiler.ConfigID:
 		return []string{wasmPlatformID}
 	default:
 		return []string{"js", wasmPlatformID}
