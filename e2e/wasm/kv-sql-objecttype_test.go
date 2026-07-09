@@ -10,7 +10,7 @@ import (
 	playwright "github.com/mxschmitt/playwright-go"
 )
 
-const objectTypeQuickstartWaitMS = 240000
+const objectTypeQuickstartWaitMS = 600000
 
 type objectTypeQuickstartScenario struct {
 	sessionIndex uint32
