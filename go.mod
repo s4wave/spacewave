@@ -2,7 +2,7 @@ module github.com/s4wave/spacewave
 
 go 1.26.4
 
-require github.com/s4wave/goscript v0.2.15-0.20260709000008-49e170af18a0 // master
+require github.com/s4wave/goscript v0.2.15 // master
 
 replace (
 	// aperture: use compatibility forks
@@ -34,7 +34,7 @@ require (
 	github.com/aperturerobotics/controllerbus v0.53.5-0.20260705010846-96899d3b0492 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
-	github.com/aperturerobotics/fastjson v0.1.2-0.20260619070337-5d150feb5e98
+	github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34
 	github.com/aperturerobotics/fsnotify v1.9.1-0.20260506231828-931cb4bf1761 // master
 	github.com/aperturerobotics/go-brotli-decoder v1.2.2
 	github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260329113533-333005693662 // master
@@ -44,9 +44,9 @@ require (
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260329113538-218ccd8f20e0 // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260329113540-600516012db3 // indirect
 	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.1
-	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260614231932-9ac47eecfff5
+	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260705010951-74676ff0da98
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260619192713-a096778f08c1
-	github.com/aperturerobotics/go-winjob v0.0.0-20260419024155-c5bdc0ba375d
+	github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.15.1-0.20260705010935-4becd1e3d6d3 // master
@@ -61,11 +61,11 @@ require (
 )
 
 require (
-	golang.org/x/crypto v0.53.0
+	golang.org/x/crypto v0.54.0
 	golang.org/x/mod v0.38.0 // latest
-	golang.org/x/sync v0.21.0
-	golang.org/x/sys v0.46.0
-	golang.org/x/term v0.44.0
+	golang.org/x/sync v0.22.0
+	golang.org/x/sys v0.47.0
+	golang.org/x/term v0.45.0
 	golang.org/x/tools v0.47.0 // latest
 )
 
@@ -74,7 +74,7 @@ require (
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/pion/logging v0.2.4
 	github.com/pion/transport/v4 v4.0.2
-	go.starlark.net v0.0.0-20260630144053-529d8e869a14
+	go.starlark.net v0.0.0-20260708150628-5395d018f003
 	golang.org/x/exp v0.0.0-20260611194520-c48552f49976
 	gonum.org/v1/gonum v0.17.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
@@ -86,8 +86,8 @@ require (
 require (
 	github.com/cloudflare/circl v1.6.4
 	github.com/creack/pty v1.1.24
-	github.com/dgraph-io/badger/v4 v4.9.2
-	github.com/dgraph-io/ristretto/v2 v2.4.0
+	github.com/dgraph-io/badger/v4 v4.9.4
+	github.com/dgraph-io/ristretto/v2 v2.4.2
 	github.com/dolthub/go-mysql-server v0.20.0
 	github.com/dolthub/vitess v0.0.0-20260617012411-2f308f6cdc23
 	github.com/dustin/go-humanize v1.0.1
@@ -106,7 +106,7 @@ require (
 	github.com/mattn/go-isatty v0.0.22
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mr-tron/base58 v1.3.0
-	github.com/ncruces/go-sqlite3 v0.35.1
+	github.com/ncruces/go-sqlite3 v0.35.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pierrec/lz4/v4 v4.1.27
 	github.com/pion/datachannel v1.6.2
@@ -160,7 +160,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/mxschmitt/playwright-go v0.6100.0
-	github.com/ncruces/go-sqlite3-wasm/v3 v3.1.35302 // indirect
+	github.com/ncruces/go-sqlite3-wasm/v3 v3.2.35303 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect
@@ -190,7 +190,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.41.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260625142307-59b4966ccb57 // indirect
-	golang.org/x/text v0.38.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
