@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
-	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/blocktype"
@@ -61,14 +61,15 @@ func TestUnmarshalWithBlockTypeReusesDecodedCursor(t *testing.T) {
 }
 
 func TestSetBlockWithSqlRootBlockTypesWritesBrowserSeededRoots(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	t.Cleanup(cancel)
 	le := logrus.NewEntry(logrus.New())
 	tb, err := testbed.NewTestbed(ctx, le)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(tb.Release)
-	addSpaceBlockTypeController(t, ctx, tb)
+	addSQLBlockTypeController(t, ctx, tb)
 
 	rawStore := block_mock.NewMockStore(0)
 	rawTx, rawCursor := block.NewTransaction(rawStore, nil, nil, nil)
@@ -154,9 +155,18 @@ func addExampleBlockTypeController(t *testing.T, ctx context.Context, tb *testbe
 	t.Cleanup(release)
 }
 
-func addSpaceBlockTypeController(t *testing.T, ctx context.Context, tb *testbed.Testbed) {
+func addSQLBlockTypeController(t *testing.T, ctx context.Context, tb *testbed.Testbed) {
 	t.Helper()
-	controller := blocktype_controller.NewController(space_world.LookupBlockType)
+	controller := blocktype_controller.NewController(func(_ context.Context, typeID string) (blocktype.BlockType, error) {
+		switch typeID {
+		case s4wave_sql_query.SqlQueryBlockTypeID:
+			return s4wave_sql_query.SqlQueryBlockType, nil
+		case s4wave_sql_workbench.SqlWorkbenchBlockTypeID:
+			return s4wave_sql_workbench.SqlWorkbenchBlockType, nil
+		default:
+			return nil, nil
+		}
+	})
 	release, err := tb.Bus.AddController(ctx, controller, nil)
 	if err != nil {
 		t.Fatal(err.Error())
