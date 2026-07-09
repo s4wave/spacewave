@@ -5,10 +5,16 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	bdberrors "github.com/aperturerobotics/bbolt/errors"
+	"github.com/s4wave/spacewave/db/block"
+	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
+	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 
@@ -51,6 +57,74 @@ func TestRefreshHeadFromCoordinatorEventIgnoresClosedStore(t *testing.T) {
 			t.Fatalf("closed head store error was logged: level=%s message=%q data=%v", entry.Level, entry.Message, entry.Data)
 		}
 	}
+}
+
+func TestControllerGetWorldEngineReturnsMissingInitHeadError(t *testing.T) {
+	ctx := t.Context()
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+
+	missingRootRef := controllerTestBlockRef(t, "world-engine-missing-init-head")
+	conf := NewConfig(
+		"test-world-engine-missing-init-head",
+		tb.Volume.GetID(),
+		tb.BucketId,
+		"",
+		&bucket.ObjectRef{
+			BucketId: tb.BucketId,
+			RootRef:  missingRootRef,
+		},
+		nil,
+		false,
+	)
+	ctrl, err := NewController(le, tb.Bus, conf, transform_all.BuildFactorySet())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	execCtx, execCancel := context.WithCancel(ctx)
+	defer execCancel()
+	execErrCh := make(chan error, 1)
+	go func() {
+		execErrCh <- ctrl.Execute(execCtx)
+	}()
+
+	getCtx, getCancel := context.WithTimeout(ctx, 2*time.Second)
+	defer getCancel()
+	eng, err := ctrl.GetWorldEngine(getCtx)
+	if eng != nil {
+		t.Fatalf("GetWorldEngine returned engine %T, want nil with fatal startup error", eng)
+	}
+	if !errors.Is(err, block.ErrNotFound) {
+		t.Fatalf("GetWorldEngine error = %v, want block.ErrNotFound", err)
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("GetWorldEngine waited until the guard context expired: %v", err)
+	}
+
+	select {
+	case err := <-execErrCh:
+		if err != nil {
+			t.Fatalf("Execute error = %v, want nil after publishing fatal startup error", err)
+		}
+	case <-getCtx.Done():
+		t.Fatalf("Execute did not return after publishing fatal startup error: %v", getCtx.Err())
+	}
+}
+
+func controllerTestBlockRef(t *testing.T, data string) *block.BlockRef {
+	t.Helper()
+	h, err := hash.Sum(hash.HashType_HashType_BLAKE3, []byte(data))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return block.NewBlockRef(h)
 }
 
 type fakeCoordinator struct {

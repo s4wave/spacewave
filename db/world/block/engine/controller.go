@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -29,8 +30,8 @@ type Controller struct {
 	bus bus.Bus
 	// conf is the config
 	conf *Config
-	// engineCtr contains the engine object
-	engineCtr *ccontainer.CContainer[*Engine]
+	// engineCtr contains the engine value or fatal startup error.
+	engineCtr *ccontainer.CContainer[*engineResult]
 	// engineID is the engine id we are listening on
 	engineID string
 
@@ -38,6 +39,11 @@ type Controller struct {
 	sfs *block_transform.StepFactorySet
 	// stateXfrm is the state transformer
 	stateXfrm *block_transform.Transformer
+}
+
+type engineResult struct {
+	engine Engine
+	err    error
 }
 
 // NewController constructs a new World Engine controller.
@@ -60,7 +66,7 @@ func NewController(
 		le:        le.WithField("engine-id", conf.GetEngineId()),
 		conf:      conf,
 		bus:       bus,
-		engineCtr: ccontainer.NewCContainer[*Engine](nil),
+		engineCtr: ccontainer.NewCContainer[*engineResult](nil),
 		engineID:  conf.GetEngineId(),
 
 		sfs:       sfs,
@@ -160,10 +166,20 @@ func (c *Controller) Execute(ctx context.Context) error {
 		headRef,
 		nil,
 	)
+	if isReadOnlyInitHeadNotFound(err, stateStore, initRef) {
+		c.engineCtr.SetValue(&engineResult{err: err})
+		le.WithError(err).Warn("read-only world engine init head is missing")
+		return nil
+	}
 	if err != nil {
 		return err
 	}
 	defer cursor.Release()
+	if err := validateReadOnlyInitHead(ctx, cursor, stateStore, initRef); err != nil {
+		c.engineCtr.SetValue(&engineResult{err: err})
+		le.WithError(err).Warn("read-only world engine init head is missing")
+		return nil
+	}
 
 	if headRef.GetRootRef().GetEmpty() {
 		le.Debug("no initial head reference provided, building new world")
@@ -249,6 +265,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	seqno, err := engine.GetSeqno(ctx)
+	if isReadOnlyInitHeadNotFound(err, stateStore, initRef) {
+		c.engineCtr.SetValue(&engineResult{err: err})
+		le.WithError(err).Warn("read-only world engine init head is missing")
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -258,7 +279,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if c.conf.GetVerbose() {
 		wengine = world_vlogger.NewEngine(le, wengine)
 	}
-	c.engineCtr.SetValue(&wengine)
+	c.engineCtr.SetValue(&engineResult{engine: wengine})
 
 	<-rctx.Done()
 	le.Debug("shutting down")
@@ -304,11 +325,45 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 // GetWorldEngine waits for the engine to be built.
 // Returns the Engine managed by the controller.
 func (c *Controller) GetWorldEngine(ctx context.Context) (Engine, error) {
-	val, err := c.engineCtr.WaitValue(ctx, nil)
+	result, err := c.engineCtr.WaitValue(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
-	return *val, nil
+	if result.err != nil {
+		return nil, result.err
+	}
+	return result.engine, nil
+}
+
+func validateReadOnlyInitHead(
+	ctx context.Context,
+	cursor *bucket_lookup.Cursor,
+	stateStore object.ObjectStore,
+	initRef *bucket.ObjectRef,
+) error {
+	if !isReadOnlyInitHead(stateStore, initRef) {
+		return nil
+	}
+	found, err := cursor.GetBucket().GetBlockExists(ctx, initRef.GetRootRef())
+	if err != nil {
+		return err
+	}
+	if found {
+		return nil
+	}
+	return errors.Wrap(block.ErrNotFound, initRef.GetRootRef().MarshalString())
+}
+
+func isReadOnlyInitHead(stateStore object.ObjectStore, initRef *bucket.ObjectRef) bool {
+	return stateStore == nil &&
+		initRef != nil &&
+		!initRef.GetRootRef().GetEmpty()
+}
+
+func isReadOnlyInitHeadNotFound(err error, stateStore object.ObjectStore, initRef *bucket.ObjectRef) bool {
+	return err != nil &&
+		errors.Is(err, block.ErrNotFound) &&
+		isReadOnlyInitHead(stateStore, initRef)
 }
 
 // Close releases any resources used by the controller.
