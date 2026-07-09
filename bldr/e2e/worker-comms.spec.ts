@@ -242,23 +242,16 @@ test.describe('worker communication lifecycle', () => {
   })
 
   test('full lifecycle: detect, bus, plugin, render', async ({ page }) => {
+    const startupMarks = await createStartupMarkCollector(page)
     const errors: string[] = []
     page.on('pageerror', (err) => {
       if (err.message.includes('cache disabled')) return
       errors.push(err.message)
     })
 
-    // Collect all lifecycle milestones.
-    const milestones: string[] = []
     const forbiddenBusMessages: string[] = []
     page.on('console', (msg) => {
       const text = msg.text()
-      if (
-        text.includes('worker-comms: detected config') ||
-        text.includes('starting native plugin')
-      ) {
-        milestones.push(text)
-      }
       if (
         text.includes('SAB bus') ||
         text.includes('registered on SAB bus') ||
@@ -270,21 +263,13 @@ test.describe('worker communication lifecycle', () => {
 
     await page.goto('/#/')
 
-    // Wait for the page to render content (plugin loaded).
-    const root = page.locator('#bldr-root')
-    await expect(async () => {
-      const childCount = await root.evaluate((el) => el.children.length)
-      expect(childCount).toBeGreaterThan(0)
-    }).toPass({ timeout: 120_000 })
+    const detectMark = await startupMarks.wait('worker-comms.detected')
+    expect(detectMark.detail).toMatchObject({ source: 'browser' })
+    const startMark = await startupMarks.wait('plugin.script-import-start')
+    expect(startMark.detail).toMatchObject({ plugin: true })
 
-    // Verify lifecycle milestones.
-    expect(milestones.length).toBeGreaterThanOrEqual(1)
+    await waitForBldrRootRender(page)
 
-    // Should have detected config.
-    const hasDetect = milestones.some((m) =>
-      m.includes('worker-comms: detected config'),
-    )
-    expect(hasDetect).toBe(true)
     expect(forbiddenBusMessages).toEqual([])
 
     // No uncaught errors.
@@ -340,6 +325,10 @@ async function newDedicatedRuntimeContext(browser: Browser) {
 async function waitForBldrRootRender(page: Page) {
   const root = page.locator('#bldr-root')
   await expect(root).toBeVisible()
+  await expect(page.locator('#bldr-root #bldr-initial-loading-shell')).toHaveCount(
+    0,
+    { timeout: 120_000 },
+  )
   await expect(async () => {
     const text = await root.evaluate((el) => el.textContent ?? '')
     expect(text).not.toContain('Downloading the app bundle')
