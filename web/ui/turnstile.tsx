@@ -24,7 +24,7 @@ interface TurnstileAPI {
     container: HTMLElement,
     params: {
       sitekey: string
-      size?: string
+      size?: 'flexible' | 'invisible'
       callback?: (token: string) => void
     },
   ): string | null | undefined
@@ -72,6 +72,7 @@ function ensureScript() {
 interface TurnstileProps {
   ref?: Ref<TurnstileInstance>
   siteKey: string
+  size?: 'flexible' | 'invisible'
 }
 
 interface PendingTurnstileRequest {
@@ -80,8 +81,8 @@ interface PendingTurnstileRequest {
   timer: ReturnType<typeof setTimeout>
 }
 
-// Turnstile renders a hidden Cloudflare Turnstile widget.
-export function Turnstile({ ref, siteKey }: TurnstileProps) {
+// Turnstile renders a Cloudflare Turnstile widget.
+export function Turnstile({ ref, siteKey, size = 'flexible' }: TurnstileProps) {
   const bypass = isTurnstileBypassed(siteKey)
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
@@ -100,7 +101,7 @@ export function Turnstile({ ref, siteKey }: TurnstileProps) {
         if (cancelled || !containerRef.current || !window.turnstile) return
         const id = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
-          size: 'flexible',
+          size,
           callback: (token) => {
             solvedRef.current = true
             responseRef.current = token
@@ -132,7 +133,7 @@ export function Turnstile({ ref, siteKey }: TurnstileProps) {
         reject(new Error('Turnstile unmounted'))
       })
     }
-  }, [bypass, siteKey])
+  }, [bypass, siteKey, size])
 
   useImperativeHandle(ref, () => ({
     getResponse() {

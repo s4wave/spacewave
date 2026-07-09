@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, type FormEvent } from 'react'
 import { isDesktop } from '@aptre/bldr'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { LuCheck, LuArrowRight, LuGithub } from 'react-icons/lu'
@@ -19,7 +19,7 @@ function parseErrorMessage(status: number, code?: string): string {
   if (status === 429) {
     return 'Too many requests. Please try again later.'
   }
-  if (status === 400 && code === 'invalid_email') {
+  if (status === 400 && (code === 'invalid_email' || code === 'invalid_body')) {
     return 'Please enter a valid email address.'
   }
   return 'Something went wrong. Please try again.'
@@ -31,7 +31,11 @@ export function BlogCta() {
   const [email, setEmail] = useState('')
   const [formState, setFormState] = useState<FormState>('idle')
   const [errorMessage, setErrorMessage] = useState('')
-  const turnstileRef = useRef<TurnstileInstance>(null)
+  const turnstileRef = useRef<TurnstileInstance | null>(null)
+  const [turnstileActive, setTurnstileActive] = useState(false)
+  const turnstileWaitersRef = useRef<
+    Array<(instance: TurnstileInstance) => void>
+  >([])
 
   const goToQuickstart = useCallback(() => {
     navigate({ path: '/quickstart/local' })
@@ -41,33 +45,81 @@ export function BlogCta() {
     navigate({ path: '/community' })
   }, [navigate])
 
+  const setTurnstileInstance = useCallback(
+    (instance: TurnstileInstance | null) => {
+      turnstileRef.current = instance
+      if (!instance) return
+      const waiters = turnstileWaitersRef.current
+      turnstileWaitersRef.current = []
+      waiters.forEach((resolve) => resolve(instance))
+    },
+    [],
+  )
+
+  const waitForTurnstile = useCallback(async () => {
+    if (turnstileRef.current) return turnstileRef.current
+    return await new Promise<TurnstileInstance>((resolve) => {
+      turnstileWaitersRef.current.push(resolve)
+    })
+  }, [])
+
   const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
+    async (e: FormEvent) => {
       e.preventDefault()
       if (!email || formState === 'submitting') return
 
       setFormState('submitting')
       setErrorMessage('')
+      setTurnstileActive(true)
 
       try {
-        const turnstileToken = await turnstileRef.current?.getResponsePromise()
-        if (!turnstileToken) throw new Error('Turnstile verification failed')
-
-        const response = await fetch('/api/email/capture', {
+        const captureResponse = await fetch('/api/email/capture', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email,
             source: 'blog',
-            turnstile_token: turnstileToken,
           }),
         })
 
-        if (!response.ok) {
-          const data = (await response.json().catch(() => ({}))) as {
+        if (!captureResponse.ok) {
+          const data = (await captureResponse.json().catch(() => ({}))) as {
             code?: string
+            error?: string
           }
-          setErrorMessage(parseErrorMessage(response.status, data.code))
+          setErrorMessage(
+            parseErrorMessage(captureResponse.status, data.error ?? data.code),
+          )
+          setFormState('error')
+          return
+        }
+
+        const capture = (await captureResponse.json().catch(() => ({}))) as {
+          capture_id?: string
+        }
+        if (!capture.capture_id) throw new Error('Missing capture id')
+
+        const turnstile = await waitForTurnstile()
+        const turnstileToken = await turnstile.getResponsePromise()
+        if (!turnstileToken) throw new Error('Turnstile verification failed')
+
+        const upgradeResponse = await fetch(
+          `/api/email/capture/${encodeURIComponent(capture.capture_id)}/upgrade`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ turnstile_token: turnstileToken }),
+          },
+        )
+
+        if (!upgradeResponse.ok) {
+          const data = (await upgradeResponse.json().catch(() => ({}))) as {
+            code?: string
+            error?: string
+          }
+          setErrorMessage(
+            parseErrorMessage(upgradeResponse.status, data.error ?? data.code),
+          )
           setFormState('error')
           return
         }
@@ -78,16 +130,14 @@ export function BlogCta() {
         setFormState('error')
       }
     },
-    [email, formState],
+    [email, formState, waitForTurnstile],
   )
 
   return (
     <section className="mt-16 mb-4">
-      {/* Separator line */}
       <div className="bg-brand/20 mb-10 h-px w-full" />
 
       <div className="flex flex-col gap-8 @lg:flex-row @lg:gap-12">
-        {/* Left column: CTA content */}
         <div className="flex flex-1 flex-col gap-4">
           <h2 className="text-foreground text-xl font-semibold tracking-tight">
             Join the community
@@ -113,7 +163,6 @@ export function BlogCta() {
           </div>
         </div>
 
-        {/* Right column: Email capture (hidden in Electron) */}
         {!isDesktop && (
           <div className="flex flex-1 flex-col justify-center">
             {formState === 'success' ? (
@@ -149,10 +198,13 @@ export function BlogCta() {
                 {formState === 'error' && errorMessage && (
                   <p className="text-error text-xs">{errorMessage}</p>
                 )}
-                <Turnstile
-                  ref={turnstileRef}
-                  siteKey={TURNSTILE_PROD_SITE_KEY}
-                />
+                {turnstileActive && (
+                  <Turnstile
+                    ref={setTurnstileInstance}
+                    siteKey={TURNSTILE_PROD_SITE_KEY}
+                    size="invisible"
+                  />
+                )}
               </form>
             )}
           </div>
