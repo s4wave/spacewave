@@ -12,7 +12,10 @@ import userEvent from '@testing-library/user-event'
 import { APP_DRAG_MIME, APP_DRAG_VERSION } from '@s4wave/web/dnd/app-drag.js'
 import type { DownloadDragTarget } from '@s4wave/web/dnd/download-url-drag.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
-import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
+import type {
+  FileEntry,
+  GetFileEntryDetailsCallback,
+} from '@s4wave/web/editors/file-browser/types.js'
 import type { RenderEntryCallback } from '@s4wave/web/editors/file-browser/FileListEntry.js'
 
 import { UnixFSBrowser, type UnixFSBrowserBodyProps } from './UnixFSBrowser.js'
@@ -53,11 +56,17 @@ interface MockFileViewerProps {
   }
 }
 
+interface MockDirEntry extends FileEntry {
+  modTime?: bigint
+  size?: bigint
+}
+
 interface MockFileListProps {
   entries: FileEntry[]
   placeholder?: ReactNode
   dropTargetEntryId?: string | null
   renderEntry?: RenderEntryCallback
+  getEntryDetails?: GetFileEntryDetailsCallback
   getDragEnvelope?: (
     entry: FileEntry,
     context: { selectedIds: string[] },
@@ -125,7 +134,7 @@ const h = vi.hoisted(() => ({
     { id: 'docs', name: 'docs', isDir: true },
     { id: 'file', name: 'file.txt', isDir: false },
     { id: 'logo', name: 'logo.png', isDir: false },
-  ] as FileEntry[],
+  ] as MockDirEntry[],
   mockSpaceSharingState: { canManage: true },
 }))
 
@@ -150,6 +159,7 @@ function buildDisposableHandle<T extends object>(
 }
 
 vi.mock('@s4wave/web/hooks/useUnixFSHandle.js', () => ({
+  convertDirEntriesToFileEntries: (entries: MockDirEntry[]) => entries,
   useUnixFSRootHandle: () =>
     h.mockRootHandleResource ??
     buildResource({
@@ -164,7 +174,7 @@ vi.mock('@s4wave/web/hooks/useUnixFSHandle.js', () => ({
       mknod: h.mockMknod,
       rename: h.mockRename,
     }),
-  useUnixFSHandleEntries: () =>
+  useUnixFSHandleReaddir: () =>
     h.mockEntriesResource ?? buildResource(h.mockFileEntries),
   useUnixFSHandleStat: () => h.mockStatResource ?? buildResource(h.mockStat),
 }))
@@ -598,6 +608,71 @@ describe('UnixFSBrowser drag gating', () => {
     h.mockExtractNativeUploadSelection.mockResolvedValue({
       files: [new File(['hello'], 'hello.txt')],
       directories: [],
+    })
+  })
+
+  it('exposes matching readdir metadata through file list entry details', async () => {
+    h.mockFileEntries = [
+      {
+        id: 'other.txt',
+        name: 'other.txt',
+        isDir: false,
+        size: 16n,
+        modTime: 1_700_000_000n,
+      },
+      {
+        id: 'report.pdf',
+        name: 'report.pdf',
+        isDir: false,
+        size: 4_096n,
+        modTime: 1_725_000_000n,
+      },
+      {
+        id: 'missing-time.txt',
+        name: 'missing-time.txt',
+        isDir: false,
+        size: 8n,
+      },
+      {
+        id: 'zero-time.txt',
+        name: 'zero-time.txt',
+        isDir: false,
+        size: 1n,
+        modTime: 0n,
+      },
+    ]
+    render(
+      <UnixFSBrowser
+        unixfsId="files"
+        basePath="/"
+        currentPath="/"
+        worldState={buildResource({} as IWorldState)}
+      />,
+    )
+
+    const getEntryDetails = h.latestFileListProps?.getEntryDetails
+    if (!getEntryDetails) {
+      throw new Error('file list did not provide getEntryDetails')
+    }
+    const signal = new AbortController().signal
+
+    await expect(
+      getEntryDetails(0, h.mockFileEntries[1], signal),
+    ).resolves.toEqual({
+      size: 4_096,
+      modTime: new Date(1_725_000_000_000),
+    })
+    await expect(
+      getEntryDetails(2, h.mockFileEntries[2], signal),
+    ).resolves.toEqual({
+      size: 8,
+      modTime: undefined,
+    })
+    await expect(
+      getEntryDetails(3, h.mockFileEntries[3], signal),
+    ).resolves.toEqual({
+      size: 1,
+      modTime: undefined,
     })
   })
 

@@ -1,18 +1,20 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useMappedResource } from '@aptre/bldr-sdk/hooks/useMappedResource.js'
-import {
-  getUnixFSDirEntryKind,
-  getUnixFSFileInfoKind,
-} from '@s4wave/sdk/unixfs/file-kind.js'
+import { getUnixFSFileInfoKind } from '@s4wave/sdk/unixfs/file-kind.js'
 import { normalizeUnixFSLookupPath } from '@s4wave/sdk/unixfs/path.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
-import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
+import type {
+  FileEntry,
+  FileEntryDetails,
+  GetFileEntryDetailsCallback,
+} from '@s4wave/web/editors/file-browser/types.js'
 import {
+  convertDirEntriesToFileEntries,
   useUnixFSRootHandle,
   useUnixFSHandle,
-  useUnixFSHandleEntries,
+  useUnixFSHandleReaddir,
   useUnixFSHandleStat,
 } from '@s4wave/web/hooks/useUnixFSHandle.js'
 
@@ -58,19 +60,34 @@ export function useUnixFSBrowserResources({
     [normalizedDisplayPath, isDir],
   )
 
-  const entriesResource = useUnixFSHandleEntries(directoryHandle)
-  const fileEntries = useMemo(() => {
-    if (!entriesResource.value) return []
-    return entriesResource.value.map((entry): FileEntry => {
-      const entryKind = getUnixFSDirEntryKind(entry)
-      return {
-        id: entry.id,
-        name: entry.name,
-        isDir: entryKind === 'directory',
-        isSymlink: entryKind === 'symlink',
-      }
-    })
-  }, [entriesResource.value])
+  const readdirResource = useUnixFSHandleReaddir(directoryHandle)
+  const entriesResource = useMappedResource(readdirResource, (entries) =>
+    entries ? convertDirEntriesToFileEntries(entries) : null,
+  )
+  const fileEntries = useMemo(
+    () => entriesResource.value ?? [],
+    [entriesResource.value],
+  )
+
+  // The readdir stream already carries per-entry size and mod time, so the
+  // Date/Size columns resolve from it instead of a per-row stat round trip.
+  const entryDetails = useMemo(() => {
+    const details = new Map<string, FileEntryDetails>()
+    for (const entry of readdirResource.value ?? []) {
+      if (!entry.name) continue
+      const modTimeSec = Number(entry.modTime ?? 0n)
+      details.set(entry.name, {
+        modTime: modTimeSec > 0 ? new Date(modTimeSec * 1000) : undefined,
+        size: entry.size === undefined ? undefined : Number(entry.size),
+      })
+    }
+    return details
+  }, [readdirResource.value])
+  const getEntryDetails = useCallback<GetFileEntryDetailsCallback>(
+    (_index: number, entry: FileEntry) =>
+      Promise.resolve(entryDetails.get(entry.id) ?? null),
+    [entryDetails],
+  )
 
   return {
     rootHandle,
@@ -78,6 +95,7 @@ export function useUnixFSBrowserResources({
     statResource,
     entriesResource,
     fileEntries,
+    getEntryDetails,
     isDir,
   }
 }

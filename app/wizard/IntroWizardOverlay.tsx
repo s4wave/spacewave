@@ -160,9 +160,8 @@ function calloutLayout(region: IntroWizardRegion | undefined): CalloutLayout {
   switch (region) {
     case IntroWizardRegion.TOP:
       return {
-        container:
-          'absolute left-1/2 top-12 z-30 flex -translate-x-1/2 flex-col items-center gap-1',
-        arrow: <LuArrowUp className={arrowClass} />,
+        container: 'absolute right-4 top-12 z-30 flex flex-col items-end gap-1',
+        arrow: <LuArrowUp className="text-brand mr-8 size-6 shrink-0" />,
         arrowPosition: 'before',
       }
     case IntroWizardRegion.LEFT:

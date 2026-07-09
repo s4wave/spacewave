@@ -266,6 +266,7 @@ function useUnixFSBrowserElement({
     statResource,
     entriesResource,
     fileEntries,
+    getEntryDetails,
     isDir,
   } = useUnixFSBrowserResources({
     worldState,
@@ -308,10 +309,10 @@ function useUnixFSBrowserElement({
     [],
   )
 
-  const selectedEntries = useMemo(
-    () => fileEntries.filter((entry) => selectedIds.includes(entry.id)),
-    [fileEntries, selectedIds],
-  )
+  const selectedEntries = useMemo(() => {
+    const selected = new Set(selectedIds)
+    return fileEntries.filter((entry) => selected.has(entry.id))
+  }, [fileEntries, selectedIds])
   const inlineFileURL = useMemo(() => {
     if (isDir !== false || !statResource.value || !sessionIndex || !spaceId) {
       return undefined
@@ -802,6 +803,7 @@ function useUnixFSBrowserElement({
               currentPath={displayPath}
               entries={deferredFileEntries}
               displayEntries={deferredFileEntries}
+              getEntryDetails={getEntryDetails}
               loadingId={entriesResource.loading ? pendingName : null}
               onOpen={handleOpen}
               onContextMenu={handleContextMenu}
@@ -926,6 +928,7 @@ function useUnixFSBrowserElement({
           displayEntries={displayEntries}
           DirectoryHeader={DirectoryHeader}
           renderEntry={renderEntry}
+          getEntryDetails={getEntryDetails}
           onOpen={handleOpen}
           onContextMenu={handleContextMenu}
           onStateChange={handleListStateChange}

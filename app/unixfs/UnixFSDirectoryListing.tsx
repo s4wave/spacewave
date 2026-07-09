@@ -3,7 +3,10 @@ import { LuFolderPlus, LuUpload } from 'react-icons/lu'
 
 import { FileList } from '@s4wave/web/editors/file-browser/FileList.js'
 import type { RenderEntryCallback } from '@s4wave/web/editors/file-browser/FileListEntry.js'
-import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
+import type {
+  FileEntry,
+  GetFileEntryDetailsCallback,
+} from '@s4wave/web/editors/file-browser/types.js'
 import type { AppDragEnvelope } from '@s4wave/web/dnd/app-drag.js'
 import type { DownloadDragTarget } from '@s4wave/web/dnd/download-url-drag.js'
 import type { ListItem } from '@s4wave/web/ui/list'
@@ -60,6 +63,7 @@ interface UnixFSDirectoryListingProps {
   loadingId?: string | null
   placeholder?: ReactNode
   renderEntry?: RenderEntryCallback
+  getEntryDetails?: GetFileEntryDetailsCallback
   onOpen: (entries: FileEntry[]) => void
   onContextMenu: (item: ListItem<FileEntry>, event: MouseEvent) => void
   onStateChange: (state: { selectedIds?: string[] }) => void
@@ -90,6 +94,7 @@ export function UnixFSDirectoryListing({
   loadingId,
   placeholder,
   renderEntry,
+  getEntryDetails,
   onOpen,
   onContextMenu,
   onStateChange,
@@ -128,6 +133,7 @@ export function UnixFSDirectoryListing({
           )
         }
         renderEntry={renderEntry}
+        getEntryDetails={getEntryDetails}
         currentPath={currentPath}
         getDragEnvelope={getDragEnvelope}
         getDownloadDragTarget={getDownloadDragTarget}

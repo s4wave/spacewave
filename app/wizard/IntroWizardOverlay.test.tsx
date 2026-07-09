@@ -32,24 +32,32 @@ describe('IntroWizardOverlay', () => {
     cleanup()
   })
 
-  it('shows one callout at a time in order rather than stacking them', async () => {
+  it('shows one callout at a time in order, starting at the TOP upload toolbar', async () => {
     const user = userEvent.setup()
+    const calloutTitles = (config.callouts ?? [])
+      .map((callout) => callout.title)
+      .filter((title): title is string => typeof title === 'string')
+    const renderedCallouts = () =>
+      calloutTitles.flatMap((title) => screen.queryAllByText(title))
+
     renderOverlay()
 
-    // The tour opens on the first callout only; the later callouts stay hidden
-    // until the user advances, so the first paint never stacks every pointer.
+    // The Drive tour opens by pointing "Add files" at the upload toolbar.
+    // Only that active callout is mounted, so assistive technology and sighted
+    // users encounter one instruction at each step instead of a stacked set.
+    expect(config.callouts?.[0]?.title).toBe('Add files')
+    expect(config.callouts?.[0]?.region).toBe(IntroWizardRegion.TOP)
     expect(screen.getByText('Welcome to your Drive')).toBeTruthy()
-    expect(screen.getByText('Add files')).toBeTruthy()
-    expect(screen.queryByText('Your files')).toBeNull()
-    expect(screen.queryByText('Upload progress')).toBeNull()
+    expect(renderedCallouts()).toHaveLength(1)
+    expect(renderedCallouts()[0]?.textContent).toBe('Add files')
 
     await user.click(screen.getByRole('button', { name: 'Next' }))
-    expect(screen.getByText('Your files')).toBeTruthy()
-    expect(screen.queryByText('Add files')).toBeNull()
+    expect(renderedCallouts()).toHaveLength(1)
+    expect(renderedCallouts()[0]?.textContent).toBe('Your files')
 
     await user.click(screen.getByRole('button', { name: 'Next' }))
-    expect(screen.getByText('Upload progress')).toBeTruthy()
-    expect(screen.queryByText('Your files')).toBeNull()
+    expect(renderedCallouts()).toHaveLength(1)
+    expect(renderedCallouts()[0]?.textContent).toBe('Upload progress')
   })
 
   it('walks back to an earlier callout', async () => {
