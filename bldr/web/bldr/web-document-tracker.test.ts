@@ -353,6 +353,40 @@ describe('WebDocumentTracker resume-ready gate', () => {
     secondPort.close()
   })
 
+  it('clears the preferred service worker document when resume-ready turns false', async () => {
+    const tracker = new WebDocumentTracker(
+      'service-worker',
+      WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
+      vi.fn().mockResolvedValue(undefined),
+      null,
+    )
+    const documentPort = attachWebDocument(tracker, 'document-1')
+
+    documentPort.start()
+    documentPort.postMessage({
+      from: 'document-1',
+      resumeReady: true,
+    })
+    await vi.waitFor(() => {
+      expect(Reflect.get(tracker, 'preferredRuntimeWebDocumentId')).toBe(
+        'document-1',
+      )
+    })
+
+    documentPort.postMessage({
+      from: 'document-1',
+      resumeReady: false,
+    })
+    await vi.waitFor(() => {
+      expect(
+        Reflect.get(tracker, 'preferredRuntimeWebDocumentId'),
+      ).toBeUndefined()
+    })
+
+    tracker.close()
+    documentPort.close()
+  })
+
   it('reroutes the runtime client when the active relay document closes while others remain', async () => {
     const tracker = buildTracker()
     const closeRuntime = vi.spyOn(tracker.webRuntimeClient, 'close')
@@ -624,6 +658,75 @@ describe('WebDocumentTracker resume-ready gate', () => {
 
     tracker.close()
     documentPort.close()
+    runtimeChannel.port1.close()
+  })
+
+  it('retries an already-ready replacement WebDocument after a stale pre-ack disconnect', async () => {
+    const webLock = installControllableWebLock()
+    const onWebDocumentsExhausted = vi.fn().mockResolvedValue(undefined)
+    const tracker = new WebDocumentTracker(
+      'service-worker',
+      WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
+      onWebDocumentsExhausted,
+      null,
+    )
+    const stalePort = attachWebDocument(tracker, 'document-1')
+    const { promise: staleConnectMsg, resolve: resolveStaleConnectMsg } =
+      Promise.withResolvers<ClientToWebDocument>()
+    stalePort.onmessage = (ev) => {
+      resolveStaleConnectMsg(ev.data)
+    }
+    stalePort.start()
+
+    const waitConn = tracker.waitConn()
+    const staleMsg = await staleConnectMsg
+    const staleAckPort = staleMsg.connectWebRuntime?.port
+    if (!staleAckPort) {
+      throw new Error('stale connectWebRuntime ack port missing')
+    }
+
+    const replacementPort = attachWebDocument(tracker, 'document-2')
+    const {
+      promise: replacementConnectMsg,
+      resolve: resolveReplacementConnectMsg,
+    } = Promise.withResolvers<ClientToWebDocument>()
+    replacementPort.onmessage = (ev) => {
+      resolveReplacementConnectMsg(ev.data)
+    }
+    replacementPort.start()
+    replacementPort.postMessage({
+      from: 'document-2',
+      runtimeConnected: true,
+    })
+
+    webLock.release()
+
+    const replacementMsg = await replacementConnectMsg
+    expect(Reflect.get(tracker, 'webDocuments')).not.toHaveProperty(
+      'document-1',
+    )
+    expect(Reflect.get(tracker, 'webDocuments')).toHaveProperty('document-2')
+    const replacementAckPort = replacementMsg.connectWebRuntime?.port
+    if (!replacementAckPort) {
+      throw new Error('replacement connectWebRuntime ack port missing')
+    }
+    const runtimeChannel = new MessageChannel()
+    replacementAckPort.postMessage(
+      {
+        from: 'document-2',
+        webRuntimePort: runtimeChannel.port2,
+      },
+      [runtimeChannel.port2],
+    )
+    runtimeChannel.port1.postMessage({ connected: true })
+
+    await expect(waitConn).resolves.toBeUndefined()
+    expect(onWebDocumentsExhausted).not.toHaveBeenCalled()
+
+    tracker.close()
+    stalePort.close()
+    staleAckPort.close()
+    replacementPort.close()
     runtimeChannel.port1.close()
   })
 

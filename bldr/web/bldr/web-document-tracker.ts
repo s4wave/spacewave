@@ -174,6 +174,9 @@ export class WebDocumentTracker {
       }
       if (data.resumeReady === false) {
         this.webDocumentResumeReadyIds.delete(webDocumentId)
+        if (this.preferredRuntimeWebDocumentId === webDocumentId) {
+          delete this.preferredRuntimeWebDocumentId
+        }
       }
 
       if (data.runtimeConnected === true) {
@@ -186,6 +189,9 @@ export class WebDocumentTracker {
       }
       if (data.runtimeConnected === false) {
         this.webDocumentRuntimeConnectedIds.delete(webDocumentId)
+        if (this.preferredRuntimeWebDocumentId === webDocumentId) {
+          delete this.preferredRuntimeWebDocumentId
+        }
       }
 
       if (data.openSabPairAck) {
@@ -523,11 +529,13 @@ export class WebDocumentTracker {
     const webDocumentIds = this.orderRuntimeOpenWebDocuments(
       Object.keys(this.webDocuments),
     ).filter((webDocumentId) => webDocumentId !== excludedWebDocumentId)
+    const attemptedWebDocumentIds = new Set<string>()
     for (const i of webDocumentIds.keys()) {
       const x = usePreferredOrder
         ? i
         : (i + this.lastWebDocumentIdx + 1) % webDocumentIds.length
       const webDocumentId = webDocumentIds[x]
+      attemptedWebDocumentIds.add(webDocumentId)
       const webDocumentPort = this.webDocuments[webDocumentId]
       if (!webDocumentPort) {
         delete this.webDocuments[webDocumentId]
@@ -618,6 +626,9 @@ export class WebDocumentTracker {
             err,
           )
         }
+        if (!expectedClose) {
+          this.webDocumentRuntimeConnectedIds.delete(webDocumentId)
+        }
         // A connect ack error can mean the document is alive but its runtime
         // port is not ready yet. Only forget the document when liveness or
         // postMessage proves the relay is actually gone.
@@ -632,6 +643,20 @@ export class WebDocumentTracker {
         ackChannel.port1.close()
         lockAbortController.abort()
       }
+    }
+
+    const shouldRetryExistingWebDocument = Object.keys(this.webDocuments).some(
+      (webDocumentId) =>
+        webDocumentId !== excludedWebDocumentId &&
+        (!attemptedWebDocumentIds.has(webDocumentId) ||
+          this.webDocumentRuntimeConnectedIds.has(webDocumentId)),
+    )
+    if (shouldRetryExistingWebDocument) {
+      return this.openWebRuntimeClient(
+        initMsg,
+        excludedWebDocumentId,
+        failWhenNoCandidate,
+      )
     }
 
     const hasAvailableWebDocument = Object.keys(this.webDocuments).some(
