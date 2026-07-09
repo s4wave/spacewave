@@ -2,7 +2,7 @@ module github.com/s4wave/spacewave
 
 go 1.26.4
 
-require github.com/s4wave/goscript v0.2.15-0.20260708070209-9509bf610f15 // master
+require github.com/s4wave/goscript v0.2.15-0.20260709000008-49e170af18a0 // master
 
 replace (
 	// aperture: use compatibility forks
@@ -62,7 +62,7 @@ require (
 
 require (
 	golang.org/x/crypto v0.53.0
-	golang.org/x/mod v0.37.0 // latest
+	golang.org/x/mod v0.38.0 // latest
 	golang.org/x/sync v0.21.0
 	golang.org/x/sys v0.46.0
 	golang.org/x/term v0.44.0
