@@ -5,8 +5,11 @@ import (
 	"io/fs"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
+	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	"github.com/s4wave/spacewave/db/block"
+	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	"github.com/sirupsen/logrus"
 )
 
@@ -51,7 +54,12 @@ func Run(
 	}
 
 	verbose := false // TODO
-	staticBlockStoreReaderBuilder := newStaticBlockStoreReaderBuilder(le, assetsFS, verbose)
+	staticBlockStoreReaderBuilder := newStaticBlockStoreReaderBuilder(
+		le,
+		assetsFS,
+		verbose,
+		distMeta.GetDistWorldRef().GetRootRef(),
+	)
 
 	distBus, err := BuildDistBus(
 		ctx,
@@ -82,4 +90,22 @@ func Run(
 	// wait for context to be canceled
 	<-ctx.Done()
 	return context.Canceled
+}
+
+func validateStaticBlockStoreRoot(rdr *kvfile.Reader, rootRef *block.BlockRef) error {
+	if rootRef == nil || rootRef.GetEmpty() {
+		return nil
+	}
+	rootKey, err := rootRef.MarshalKey()
+	if err != nil {
+		return err
+	}
+	found, err := rdr.Exists(store_kvkey.NewDefaultKVKey().GetBlockKey(rootKey))
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.Wrap(block.ErrNotFound, rootRef.MarshalString())
+	}
+	return nil
 }

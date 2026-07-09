@@ -1606,12 +1606,15 @@ export async function swFetch(
   const useRuntimeFetch = source.runtime
 
   if (!useRuntimeFetch) {
-    const promotedResponse =
-      await matchPromotedCurrentGenerationResponse(request)
-    if (promotedResponse) {
-      return promotedResponse
+    const skipGenerationCache =
+      request.cache === 'reload' || request.cache === 'no-cache'
+    if (!skipGenerationCache) {
+      const promotedResponse =
+        await matchPromotedCurrentGenerationResponse(request)
+      if (promotedResponse) {
+        return promotedResponse
+      }
     }
-
     // Check the cache (for e.x. index.html)
     // NOTE: We do not want this, we want the latest index.html if possible.
     /*

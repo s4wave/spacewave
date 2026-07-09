@@ -194,6 +194,18 @@ function buildFetchOnlyEvent(
   } as unknown as FetchEvent
 }
 
+function buildExplicitCacheModeFetchEvent(
+  path: string,
+  cacheMode: RequestCache,
+): FetchEvent {
+  const ev = buildFetchOnlyEvent(path)
+  Object.defineProperty(ev.request, 'cache', {
+    configurable: true,
+    value: cacheMode,
+  })
+  return ev
+}
+
 function buildClientFetchEvent(
   path: string,
   clientId: string,
@@ -509,6 +521,34 @@ describe('service worker fetch release cache routing', () => {
 
     expect(await response.text()).toBe('cached wasm')
     expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('uses native fetch for explicit cache refresh requests to promoted generation assets', async () => {
+    const release = buildRelease('gen-a')
+    const wasm = requireShellWasm(release)
+    const caches = globalThis.caches as unknown as FakeCacheStorage
+    await writeBrowserReleaseState(caches, {
+      ...createEmptyBrowserReleaseState(),
+      promotedCurrent: release,
+    })
+    await writeGenerationCacheResponse(
+      caches,
+      release.generationId,
+      wasm,
+      new Response('stale cached wasm', { status: 200 }),
+    )
+    vi.mocked(fetch).mockImplementation(() =>
+      Promise.resolve(new Response('fresh network wasm', { status: 200 })),
+    )
+
+    for (const cacheMode of ['reload', 'no-cache'] as const) {
+      const response = await swFetch(
+        buildExplicitCacheModeFetchEvent(wasm, cacheMode),
+      )
+
+      expect(await response.text()).toBe('fresh network wasm')
+    }
+    expect(fetch).toHaveBeenCalledTimes(2)
   })
 
   it('uses native fetch for non-promoted paths', async () => {
@@ -1369,7 +1409,6 @@ describe('service worker messages', () => {
     )
   })
 
-
   it('proxies attached DedicatedWorker documents to the elected runtime host relay', async () => {
     const runtimeChannel = new MessageChannel()
     const responseChannel = new MessageChannel()
@@ -1412,8 +1451,7 @@ describe('service worker messages', () => {
     expect(ackEvent.data).toMatchObject({
       from: expect.stringMatching(/^service-worker-/),
     })
-    const openedPort =
-      ackEvent.data.webRuntimePort ?? ackEvent.ports?.[0]
+    const openedPort = ackEvent.data.webRuntimePort ?? ackEvent.ports?.[0]
     expect(openedPort).toBeDefined()
     const delivered = new Promise<unknown>((resolve) => {
       runtimeChannel.port2.onmessage = (messageEvent: MessageEvent) =>

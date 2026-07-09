@@ -19,6 +19,7 @@ import (
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	"github.com/s4wave/spacewave/bldr/util/logfile"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/sirupsen/logrus"
 )
 
@@ -118,7 +119,12 @@ func Main(
 }
 
 // newStaticBlockStoreReaderBuilder creates the builder for the assets.kvfile block store reader.
-func newStaticBlockStoreReaderBuilder(_ *logrus.Entry, assetsFS fs.FS, _ bool) refcount.RefCountResolver[*kvfile.Reader] {
+func newStaticBlockStoreReaderBuilder(
+	_ *logrus.Entry,
+	assetsFS fs.FS,
+	_ bool,
+	rootRef *block.BlockRef,
+) refcount.RefCountResolver[*kvfile.Reader] {
 	return func(ctx context.Context, released func()) (*kvfile.Reader, func(), error) {
 		f, err := assetsFS.Open("assets.kvfile")
 		if err != nil {
@@ -136,6 +142,10 @@ func newStaticBlockStoreReaderBuilder(_ *logrus.Entry, assetsFS fs.FS, _ bool) r
 
 		rdr, err := kvfile.BuildReader(readerAt, fileSize)
 		if err != nil {
+			_ = f.Close()
+			return nil, nil, err
+		}
+		if err := validateStaticBlockStoreRoot(rdr, rootRef); err != nil {
 			_ = f.Close()
 			return nil, nil, err
 		}

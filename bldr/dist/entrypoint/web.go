@@ -16,6 +16,7 @@ import (
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	web_entrypoint_browser "github.com/s4wave/spacewave/bldr/web/entrypoint/browser"
 	web_runtime_bootstrap "github.com/s4wave/spacewave/bldr/web/runtime/bootstrap"
+	"github.com/s4wave/spacewave/db/block"
 	buffered_reader_at "github.com/s4wave/spacewave/db/util/buffered-reader-at"
 	fetch_range "github.com/s4wave/spacewave/db/util/http-range/fetch"
 	"github.com/sirupsen/logrus"
@@ -110,7 +111,12 @@ func Main(distMetaB58 string, logLevel logrus.Level, assetsFS fs.FS) {
 }
 
 // newStaticBlockStoreReaderBuilder creates the builder for the assets.kvfile block store reader.
-func newStaticBlockStoreReaderBuilder(le *logrus.Entry, assetsFS fs.FS, verbose bool) refcount.RefCountResolver[*kvfile.Reader] {
+func newStaticBlockStoreReaderBuilder(
+	le *logrus.Entry,
+	assetsFS fs.FS,
+	verbose bool,
+	rootRef *block.BlockRef,
+) refcount.RefCountResolver[*kvfile.Reader] {
 	return func(ctx context.Context, released func()) (*kvfile.Reader, func(), error) {
 		// read the URL to fetch from the assets fs
 		fetchUrlDat, err := fs.ReadFile(assetsFS, "assets.url")
@@ -122,31 +128,54 @@ func newStaticBlockStoreReaderBuilder(le *logrus.Entry, assetsFS fs.FS, verbose 
 			return nil, nil, errors.New("empty assets url")
 		}
 
-		// send http Range requests
-		fetchReader := fetch_range.NewFetchRangeReader(
-			le,
-			fetchUrl,
-			&fetch.Opts{
-				Method: "GET",
+		buildReader := func(cacheMode string) (*kvfile.Reader, error) {
+			// send http Range requests
+			fetchReader := fetch_range.NewFetchRangeReader(
+				le,
+				fetchUrl,
+				&fetch.Opts{
+					Method: "GET",
 
-				CommonOpts: fetch.CommonOpts{
-					// The assets file has a hash in the filename.
-					// We can force caching since the hash change will flush the cache.
-					Cache: "force-cache",
+					CommonOpts: fetch.CommonOpts{
+						// The asset path is immutable, but cache reload lets the
+						// boot path escape a stale ServiceWorker generation cache
+						// after proving the local packfile lacks the manifest root.
+						Cache: cacheMode,
+					},
 				},
-			},
-			verbose,
-		)
+				verbose,
+			)
 
-		totalSize, err := fetchReader.Size()
+			totalSize, err := fetchReader.Size()
+			if err != nil {
+				return nil, err
+			}
+
+			bufferReader := buffered_reader_at.NewBufferedReaderAt(fetchReader, httpRangeMinSize)
+			rdr, err := kvfile.BuildReader(bufferReader, uint64(totalSize))
+			if err != nil {
+				return nil, err
+			}
+			return rdr, nil
+		}
+
+		rdr, err := buildReader("force-cache")
 		if err != nil {
 			return nil, nil, err
 		}
-
-		bufferReader := buffered_reader_at.NewBufferedReaderAt(fetchReader, httpRangeMinSize)
-		rdr, err := kvfile.BuildReader(bufferReader, uint64(totalSize))
-		if err != nil {
-			return nil, nil, err
+		if err := validateStaticBlockStoreRoot(rdr, rootRef); err != nil {
+			if errors.Is(err, block.ErrNotFound) {
+				le.WithError(err).Warn("cached static block store is missing dist world root; refetching")
+				rdr, err = buildReader("reload")
+				if err != nil {
+					return nil, nil, err
+				}
+				if err := validateStaticBlockStoreRoot(rdr, rootRef); err != nil {
+					return nil, nil, err
+				}
+			} else {
+				return nil, nil, err
+			}
 		}
 
 		return rdr, nil, nil

@@ -84,7 +84,7 @@ func runCliMain(
 				root,
 				"",
 				configSetProto,
-				newStaticBlockStoreReaderBuilder(le, assetsFS, false),
+				newStaticBlockStoreReaderBuilder(le, assetsFS, false, distMeta.GetDistWorldRef().GetRootRef()),
 				nil,
 			)
 			if err != nil {
