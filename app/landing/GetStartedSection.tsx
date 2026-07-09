@@ -1,11 +1,13 @@
 import React, { useCallback } from 'react'
+
+import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
+import { useNavigate } from '@s4wave/web/router/router.js'
+import { cn } from '@s4wave/web/style/utils.js'
+
 import AnimatedLogo from './AnimatedLogo.js'
+import { ExternalLink } from './ExternalLink.js'
 import GetStarted from './GetStarted.js'
 import { NavigationLinks } from './NavigationLinks.js'
-import { cn } from '@s4wave/web/style/utils.js'
-import { useNavigate } from '@s4wave/web/router/router.js'
-import type { SessionListEntry } from '@s4wave/core/session/session.pb.js'
-import { ExternalLink } from './ExternalLink.js'
 
 interface GetStartedSectionProps {
   homeRef: React.RefObject<HTMLDivElement | null>
@@ -64,35 +66,35 @@ export function GetStartedSection({
 
       {/* Footer content pinned to bottom - fades out on short screens to avoid overlap */}
       <div className="short:opacity-0 mt-auto flex flex-shrink-0 flex-col items-center pt-4 text-center transition-opacity duration-300 @lg:pt-6">
-        <div className="text-foreground-alt flex flex-col items-center justify-center gap-y-1 text-xs @lg:gap-y-2">
-          <p>
-            Made with ❤️ by{' '}
+        <div className="text-foreground-alt/60 flex flex-wrap items-center justify-center gap-x-1 text-[10px]">
+          <span>
+            Made by{' '}
             <button
+              type="button"
               onClick={goToCommunity}
-              className="text-foreground hover:text-brand cursor-pointer underline transition-colors"
+              className="hover:text-brand cursor-pointer underline transition-colors"
             >
               the community
             </button>
-          </p>
-          <p className="text-foreground font-semibold tracking-wide">
-            Proudly free software
-          </p>
-          <p className="text-[10px]">
-            <ExternalLink
-              href="https://spacemacs.org"
-              className="text-brand underline"
-            >
-              Inspired by Spacemacs
-            </ExternalLink>
-          </p>
+          </span>
+          <span aria-hidden>·</span>
+          <span>Free software</span>
+          <span aria-hidden>·</span>
+          <ExternalLink
+            href="https://spacemacs.org"
+            className="hover:text-brand underline transition-colors"
+          >
+            Inspired by Spacemacs
+          </ExternalLink>
         </div>
 
         {/* Scroll indicator */}
-        <div
-          role="button"
+        <button
+          type="button"
           tabIndex={showScrollIndicator ? 0 : -1}
+          aria-label="Scroll down to learn more"
           className={cn(
-            'mt-2 mb-3 flex cursor-pointer flex-col items-center transition-opacity duration-300',
+            'mt-2 mb-3 flex cursor-pointer flex-col items-center gap-0.5 transition-opacity duration-300',
             showScrollIndicator
               ? 'opacity-100'
               : 'pointer-events-none opacity-0',
@@ -101,14 +103,12 @@ export function GetStartedSection({
               'animate-[pulse_8s_ease-in-out_infinite]',
           )}
           onClick={scrollDown}
-          onKeyDown={(e) => {
-            if (e.key !== 'Enter' && e.key !== ' ') return
-            e.preventDefault()
-            scrollDown()
-          }}
         >
+          <span className="text-foreground-alt/60 text-[10px] tracking-wide uppercase select-none">
+            Learn more
+          </span>
           <span className="text-foreground-alt/60 text-xs font-bold">▼</span>
-        </div>
+        </button>
       </div>
     </div>
   )
