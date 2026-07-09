@@ -17,8 +17,8 @@ declare module '*.wasm' {
   export default value
 }
 
-// WebkitAppRegion is declared in ../csstype-augment.d.ts, a module file. A
-// declare-module augmentation in this global script would replace csstype.
+// WebkitAppRegion is declared in ../global.d.ts, a module file. A declare-module
+// augmentation in this global script would replace csstype.
 
 // See: https://github.com/lukewarlow/user-agent-data-types#readme
 // WICG Spec: https://wicg.github.io/ua-client-hints

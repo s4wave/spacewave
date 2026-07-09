@@ -1,5 +1,5 @@
-// BLDR_DEBUG is set by the bldr bundler in debug builds.
-declare const BLDR_DEBUG: boolean | undefined
+import 'csstype'
+import 'react'
 
 // CSS
 declare module '*.css'
@@ -27,65 +27,86 @@ declare module '*.svg' {
   export default value
 }
 
-// WebkitAppRegion is declared in csstype-augment.d.ts, a module file. A
-// declare-module augmentation in this global script would replace csstype.
-
-// See: https://github.com/lukewarlow/user-agent-data-types#readme
-// WICG Spec: https://wicg.github.io/ua-client-hints
-
-declare interface Navigator extends NavigatorUA {}
-declare interface WorkerNavigator extends NavigatorUA {}
-
-// https://wicg.github.io/ua-client-hints/#navigatorua
-declare interface NavigatorUA {
-  readonly userAgentData?: NavigatorUAData
+// Augments csstype so React style objects accept the non-standard
+// WebkitAppRegion property used for draggable native window chrome.
+//
+// The type parameters must stay identical to csstype's own
+// StandardLonghandProperties declaration, or interface merging is rejected.
+declare module 'csstype' {
+  interface StandardLonghandProperties<TLength = (string & {}) | 0, TTime = string & {}> {
+    WebkitAppRegion?: 'drag' | 'no-drag' | string
+  }
 }
 
-// https://wicg.github.io/ua-client-hints/#dictdef-navigatoruabrandversion
-interface NavigatorUABrandVersion {
-  readonly brand: string
-  readonly version: string
+// React's CSSProperties uses closed csstype typing with no index signature, so
+// inline CSS custom properties (--foo) are rejected. Re-admit only --prefixed
+// keys; standard property typos still fail.
+declare module 'react' {
+  interface CSSProperties {
+    [customProperty: `--${string}`]: string | number | undefined
+  }
 }
 
-// https://wicg.github.io/ua-client-hints/#dictdef-uadatavalues
-interface UADataValues {
-  readonly brands?: NavigatorUABrandVersion[]
-  readonly mobile?: boolean
-  readonly platform?: string
-  readonly architecture?: string
-  readonly bitness?: string
-  readonly formFactor?: string[]
-  readonly model?: string
-  readonly platformVersion?: string
-  /** @deprecated in favour of fullVersionList */
-  readonly uaFullVersion?: string
-  readonly fullVersionList?: NavigatorUABrandVersion[]
-  readonly wow64?: boolean
-}
+declare global {
+  // BLDR_DEBUG is set by the bldr bundler in debug builds.
+  const BLDR_DEBUG: boolean | undefined
 
-// https://wicg.github.io/ua-client-hints/#dictdef-ualowentropyjson
-interface UALowEntropyJSON {
-  readonly brands: NavigatorUABrandVersion[]
-  readonly mobile: boolean
-  readonly platform: string
-}
+  // See: https://github.com/lukewarlow/user-agent-data-types#readme
+  // WICG Spec: https://wicg.github.io/ua-client-hints
 
-// https://wicg.github.io/ua-client-hints/#navigatoruadata
-interface NavigatorUAData extends UALowEntropyJSON {
-  getHighEntropyValues(hints: string[]): Promise<UADataValues>
-  toJSON(): UALowEntropyJSON
-}
+  interface Navigator extends NavigatorUA {}
+  interface WorkerNavigator extends NavigatorUA {}
 
-// Vite environment variables
-interface ImportMetaEnv {
-  readonly DEV: boolean
-  readonly VITE_E2E_SERVER_PORT?: string
-}
+  // https://wicg.github.io/ua-client-hints/#navigatorua
+  interface NavigatorUA {
+    readonly userAgentData?: NavigatorUAData
+  }
 
-interface ImportMeta {
-  readonly env: ImportMetaEnv
-  glob<T = unknown>(
-    pattern: string,
-    options?: { query?: string; eager?: boolean; import?: string },
-  ): Record<string, T>
+  // https://wicg.github.io/ua-client-hints/#dictdef-navigatoruabrandversion
+  interface NavigatorUABrandVersion {
+    readonly brand: string
+    readonly version: string
+  }
+
+  // https://wicg.github.io/ua-client-hints/#dictdef-uadatavalues
+  interface UADataValues {
+    readonly brands?: NavigatorUABrandVersion[]
+    readonly mobile?: boolean
+    readonly platform?: string
+    readonly architecture?: string
+    readonly bitness?: string
+    readonly formFactor?: string[]
+    readonly model?: string
+    readonly platformVersion?: string
+    readonly uaFullVersion?: string
+    readonly fullVersionList?: NavigatorUABrandVersion[]
+    readonly wow64?: boolean
+  }
+
+  // https://wicg.github.io/ua-client-hints/#dictdef-ualowentropyjson
+  interface UALowEntropyJSON {
+    readonly brands: NavigatorUABrandVersion[]
+    readonly mobile: boolean
+    readonly platform: string
+  }
+
+  // https://wicg.github.io/ua-client-hints/#navigatoruadata
+  interface NavigatorUAData extends UALowEntropyJSON {
+    getHighEntropyValues(hints: string[]): Promise<UADataValues>
+    toJSON(): UALowEntropyJSON
+  }
+
+  // Vite environment variables
+  interface ImportMetaEnv {
+    readonly DEV: boolean
+    readonly VITE_E2E_SERVER_PORT?: string
+  }
+
+  interface ImportMeta {
+    readonly env: ImportMetaEnv
+    glob<T = unknown>(
+      pattern: string,
+      options?: { query?: string; eager?: boolean; import?: string },
+    ): Record<string, T>
+  }
 }
