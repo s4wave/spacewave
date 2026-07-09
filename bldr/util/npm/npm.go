@@ -53,7 +53,7 @@ func BunAdd(ctx context.Context, le *logrus.Entry, stateDir string, addArgs ...s
 func bunMinimumReleaseAgeArg() []string {
 	minAge := os.Getenv("BLDR_BUN_MINIMUM_RELEASE_AGE")
 	if minAge == "" {
-		return nil
+		minAge = "0"
 	}
 	return []string{"--minimum-release-age=" + minAge}
 }
