@@ -105,10 +105,11 @@ function ShellAppPanelInner({
   const handleNavigate = useCallback(
     (to: To) => {
       if (!tabId) return
-      if (syncAppPath && tabId !== activeTabId) return
       const newPath = resolvePath(path, to)
       updateTabPath(tabId, newPath)
-      if (syncAppPath) setAppPath(newPath)
+      if (syncAppPath && tabId === activeTabId) {
+        setAppPath(newPath)
+      }
     },
     [tabId, activeTabId, path, updateTabPath, syncAppPath],
   )
