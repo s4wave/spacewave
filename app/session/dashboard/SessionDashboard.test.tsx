@@ -179,7 +179,7 @@ describe('SessionDashboard', () => {
     expectTextBefore('Alpha Space', 'Create a Drive')
   })
 
-  it('labels existing spaces by human source and copies the full space ID from the affordance', () => {
+  it('copies the full space ID from each space affordance', () => {
     const ownedSpaceId = 'space-owned-01HZY4PZQWVN9A1K4J4Y7P6C3R'
     const sharedSpaceId = 'space-shared-01HZY4Q7P4CQVWDTVR9N6DJ6ZY'
 
@@ -189,28 +189,60 @@ describe('SessionDashboard', () => {
           {
             id: ownedSpaceId,
             name: 'Alpha Space',
-            source: 'created',
           },
           {
             id: sharedSpaceId,
             name: 'Beta Space',
-            source: 'shared',
           },
         ]}
         onQuickstartClick={vi.fn()}
       />,
     )
 
-    const ownedSubtitle = screen.getByText('Owned Space')
-    const sharedSubtitle = screen.getByText('Shared Space')
-    expect(ownedSubtitle.textContent).not.toContain(ownedSpaceId)
-    expect(sharedSubtitle.textContent).not.toContain(sharedSpaceId)
-
     fireEvent.click(screen.getByRole('button', { name: 'Copy Alpha Space ID' }))
     expect(mockClipboard.writeText).toHaveBeenCalledWith(ownedSpaceId)
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy Beta Space ID' }))
     expect(mockClipboard.writeText).toHaveBeenCalledWith(sharedSpaceId)
+  })
+
+  it('shows an overflow cue and the owner-provided source for every space row', () => {
+    const spaces = [
+      {
+        id: 'space-owned-drive',
+        name: 'Drive',
+        source: 'created',
+        expectedSource: 'Owned Space',
+      },
+      {
+        id: 'space-shared-kv',
+        name: 'KV Store',
+        source: 'shared',
+        expectedSource: 'Shared Space',
+      },
+      {
+        id: 'space-owned-sql',
+        name: 'SQL Database',
+        source: 'created',
+        expectedSource: 'Owned Space',
+      },
+    ]
+
+    render(
+      <SessionDashboard
+        spaces={spaces.map(({ expectedSource: _, ...space }) => space)}
+        onQuickstartClick={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('note').textContent).toContain(
+      'Scroll to see all 3 spaces',
+    )
+    for (const { name, expectedSource } of spaces) {
+      const row = screen.getByText(name).closest('[cmdk-item]')
+      expect(row).not.toBeNull()
+      expect(row?.textContent).toContain(expectedSource)
+    }
   })
 
   it('keeps join actions available for read-only sessions without creation actions', () => {

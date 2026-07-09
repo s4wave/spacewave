@@ -8,8 +8,9 @@ import {
 } from 'react'
 import {
   LuBuilding2,
-  LuChevronRight,
   LuCheck,
+  LuChevronDown,
+  LuChevronRight,
   LuDownload,
   LuKeyRound,
   LuLayers,
@@ -685,12 +686,13 @@ function DashboardCommandPalette({
       opt.id !== primaryQuickstart?.id && opt.id !== blankSpaceQuickstart?.id,
   )
 
-  const recentSpaces = useMemo(() => {
-    if (!spaces || spaces.length === 0) return []
-    return spaces.slice(0, 8)
-  }, [spaces])
+  // Render every space so search can match all of them; the CommandList
+  // scrolls past the fixed palette height instead of truncating the list.
+  const recentSpaces = useMemo(() => spaces ?? [], [spaces])
 
   const hasSpaces = recentSpaces.length > 0
+  const [query, setQuery] = useState('')
+  const showScrollCue = recentSpaces.length > 2 && query.length === 0
 
   const handleSpaceSelect = useCallback(
     (space: DashboardSpace) => {
@@ -773,6 +775,8 @@ function DashboardCommandPalette({
         ref={inputRef}
         className="border-ui-outline placeholder:text-foreground-alt/50 h-11 border-b"
         placeholder={hasSpaces ? 'Search spaces...' : 'Get started...'}
+        value={query}
+        onValueChange={setQuery}
       />
       <CommandList className="min-h-0 flex-1 overflow-y-auto bg-transparent">
         <CommandEmpty className="text-foreground-alt py-8 text-center text-sm">
@@ -851,7 +855,10 @@ function DashboardCommandPalette({
             {hasSpaces && personalSpaces.length > 0 && (
               <CommandGroup
                 heading={
-                  <SectionHeading label={hasOrgs ? 'Personal' : 'Spaces'} />
+                  <SectionHeading
+                    label={hasOrgs ? 'Personal' : 'Spaces'}
+                    count={personalSpaces.length}
+                  />
                 }
                 className="py-1"
               >
@@ -876,6 +883,7 @@ function DashboardCommandPalette({
                 heading={
                   <SectionHeading
                     label={org.displayName}
+                    count={orgSpaces.length}
                     onLabelClick={() => navigate({ path: `./org/${org.id}` })}
                   />
                 }
@@ -922,6 +930,15 @@ function DashboardCommandPalette({
           </>
         )}
       </CommandList>
+      {showScrollCue && (
+        <div
+          role="note"
+          className="border-foreground/8 bg-background-card/80 text-foreground-alt/60 flex h-7 shrink-0 items-center justify-center gap-1 border-t text-[10px] select-none"
+        >
+          <LuChevronDown className="size-3" />
+          Scroll to see all {recentSpaces.length} spaces
+        </div>
+      )}
     </Command>
   )
 }
@@ -939,10 +956,21 @@ function getSpaceSourceLabel(source: string | undefined): string {
 
 function SectionHeading(props: {
   label: string
+  count?: number
   onLabelClick?: () => void
   actionLabel?: string
   onAction?: () => void
 }) {
+  const labelNode = (
+    <>
+      {props.label}
+      {props.count !== undefined && props.count > 0 && (
+        <span className="text-foreground-alt/40 ml-1.5 font-normal">
+          {props.count}
+        </span>
+      )}
+    </>
+  )
   return (
     <span className="flex w-full items-center justify-between">
       {props.onLabelClick ? (
@@ -953,10 +981,10 @@ function SectionHeading(props: {
           }}
           className="hover:text-foreground cursor-pointer transition-colors"
         >
-          {props.label}
+          {labelNode}
         </button>
       ) : (
-        <span>{props.label}</span>
+        <span>{labelNode}</span>
       )}
       {props.actionLabel && props.onAction && (
         <button
