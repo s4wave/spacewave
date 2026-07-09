@@ -422,6 +422,14 @@ export class WebRTCBridgeEndpoint {
   close() {
     if (this.closed) return
     this.closed = true
+    try {
+      this.port.postMessage({
+        type: 'event:bridgeclose',
+        error: 'WebRTC bridge endpoint closed',
+      } satisfies BridgeEvent)
+    } catch {
+      // The worker side may already be gone.
+    }
     for (const [, pc] of this.pcs) {
       pc.close()
     }

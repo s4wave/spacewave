@@ -35,10 +35,11 @@ export interface BridgeResponse {
 // takes the standard code path.
 export interface BridgeEvent {
   type: string
-  pcId: string
+  pcId?: string
   candidate?: RTCIceCandidateInit & Record<string, unknown>
   dc?: RTCDataChannel
   label?: string
+  error?: string
   snapshot?: PeerConnectionSnapshot
 }
 
@@ -52,7 +53,7 @@ export interface PeerConnectionSnapshot {
   remoteDescription: RTCSessionDescriptionInit | null
 }
 
-type BridgeMessage = BridgeResponse | BridgeEvent
+export type BridgeMessage = BridgeResponse | BridgeEvent
 type IceCandidateLike = RTCIceCandidateInit & Record<string, unknown>
 
 function sendRtcDataChannelPayload(
@@ -251,13 +252,17 @@ export class DataChannelWrapper {
   }
 
   // bridgeDied is called when the bridge port closes before the DC arrives.
-  bridgeDied() {
+  bridgeDied(reason = 'WebRTC bridge closed') {
     if (this._realDC) return
+    this._closed = true
     this._readyState = 'closed'
     this.sendQueue.length = 0
     this._bufferedAmount = 0
     if (this._onerror) {
-      this._onerror(new Event('error'))
+      this._onerror({
+        type: 'error',
+        error: new Error(reason),
+      } as unknown as Event)
     }
     if (this._onclose) {
       this._onclose(new Event('close'))
@@ -348,6 +353,7 @@ class BridgeDispatcher {
   constructor(private port: MessagePort) {
     this.port.onmessage = (e: MessageEvent<BridgeMessage>) =>
       this.handleMessage(e.data)
+    this.port.onmessageerror = () => this.handleBridgeClosed()
     this.port.start()
   }
 
@@ -395,7 +401,24 @@ class BridgeDispatcher {
     this.pcs.delete(pcId)
   }
 
+
+  private handleBridgeClosed(reason = 'WebRTC bridge closed') {
+    const err = new Error(reason)
+    for (const [, entry] of this.pending) {
+      entry.reject(err)
+    }
+    this.pending.clear()
+    for (const pc of this.pcs.values()) {
+      pc.handleBridgeClosed(reason)
+    }
+    this.pcs.clear()
+  }
   private handleMessage(data: BridgeMessage) {
+    if (data.type === 'event:bridgeclose') {
+      this.handleBridgeClosed(data.error)
+      return
+    }
+
     // Command response (has cmdId)
     if ('cmdId' in data && data.cmdId != null) {
       const entry = this.pending.get(data.cmdId)
@@ -413,7 +436,7 @@ class BridgeDispatcher {
     // Event (type starts with "event:") - route by pcId
     if (data.type?.startsWith('event:') && (data as BridgeEvent).pcId) {
       const event = data as BridgeEvent
-      const pc = this.pcs.get(event.pcId)
+      const pc = this.pcs.get(event.pcId!)
       if (pc) {
         pc.handleBridgeEvent(event)
       }
@@ -441,6 +464,8 @@ export class ProxyRTCPeerConnection {
 
   // DC wrappers awaiting the real transferred DC, keyed by cmdId
   private pendingDCs = new Map<number, DataChannelWrapper>()
+  private readonly sctpTransport = new StubRTCSctpTransport()
+  private sctpEnabled = false
 
   // Event handlers
   onicecandidate:
@@ -531,6 +556,7 @@ export class ProxyRTCPeerConnection {
         break
       case 'datachannel':
         if (this.ondatachannel && event.dc) {
+          this.sctpEnabled = true
           this.ondatachannel({ channel: event.dc })
         }
         break
@@ -594,6 +620,7 @@ export class ProxyRTCPeerConnection {
     options?: RTCDataChannelInit,
   ): DataChannelWrapper {
     const wrapper = new DataChannelWrapper(label, options)
+    this.sctpEnabled = true
     const cmdId = this.dispatcher.allocCmdId()
 
     this.pendingDCs.set(cmdId, wrapper)
@@ -603,8 +630,10 @@ export class ProxyRTCPeerConnection {
         if (r.dc) wrapper.attach(r.dc)
         this.pendingDCs.delete(cmdId)
       },
-      reject: () => {
-        this.pendingDCs.delete(cmdId)
+      reject: (err: Error) => {
+        if (this.pendingDCs.delete(cmdId)) {
+          wrapper.bridgeDied(err.message)
+        }
       },
     })
 
@@ -690,17 +719,11 @@ export class ProxyRTCPeerConnection {
     return true
   }
 
-  // Supporting object accessors
-
   get sctp(): StubRTCSctpTransport | null {
-    // Return sctp only after connection is established
-    if (
-      this._snapshot.connectionState === 'connected' ||
-      this._snapshot.connectionState === 'connecting'
-    ) {
-      return new StubRTCSctpTransport()
+    if (!this.sctpEnabled) {
+      return null
     }
-    return null
+    return this.sctpTransport
   }
 
   // pion-webrtc calls these but they're not critical for the bridge
@@ -727,9 +750,20 @@ export class ProxyRTCPeerConnection {
     // no-op
   }
 
-  private teardownPendingDCs() {
+  handleBridgeClosed(reason = 'WebRTC bridge closed') {
+    if (this._closed) return
+    this._closed = true
+    this._snapshot.connectionState = 'closed'
+    this._snapshot.signalingState = 'closed'
+    this._snapshot.iceConnectionState = 'closed'
+    this.teardownPendingDCs(reason)
+    this.onconnectionstatechange?.()
+    this.oniceconnectionstatechange?.()
+  }
+
+  private teardownPendingDCs(reason = 'WebRTC bridge closed') {
     for (const wrapper of this.pendingDCs.values()) {
-      wrapper.bridgeDied()
+      wrapper.bridgeDied(reason)
     }
     this.pendingDCs.clear()
   }
