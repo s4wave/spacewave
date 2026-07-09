@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/controllerbus/directive"
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/starpc/srpc"
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
@@ -292,26 +293,6 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	}
 	defer relRpcServer()
 
-	// trigger FetchManifest for the startup plugins in advance
-	// if this is commented out, the plugin build begins once the browser asks for it.
-	if devMode {
-		for _, preflight := range startupManifestPreflights {
-			_, dir, err := d.GetBus().AddDirective(
-				bldr_manifest.NewFetchManifest(
-					preflight.PluginID,
-					nil,
-					preflight.PlatformIDs,
-					0,
-				),
-				nil,
-			)
-			if err != nil {
-				return err
-			}
-			defer dir.Release()
-		}
-	}
-
 	// build the wasm entrypooints concurrently with the plugins for speedup
 	if err := entrypoint_browser_build.BuildWasmRuntimeEntrypoint(
 		ctx,
@@ -403,7 +384,35 @@ func (d *DevtoolBus) ExecuteWebWasm(
 
 	le.Infof("listening on: %s", listenAddr)
 	server := &http.Server{Addr: listenAddr, Handler: http.HandlerFunc(serveFn), ReadHeaderTimeout: time.Second * 30}
-	return listenAndServeDevtoolHTTP(ctx, server)
+	// Manifest preflights start after listening so they cannot gate shell
+	// delivery.
+	var startupManifestRefs []directive.Reference
+	defer func() {
+		for _, ref := range startupManifestRefs {
+			ref.Release()
+		}
+	}()
+	return listenAndServeDevtoolHTTP(ctx, server, func(_ string) error {
+		if !devMode {
+			return nil
+		}
+		for _, preflight := range startupManifestPreflights {
+			_, ref, err := d.GetBus().AddDirective(
+				bldr_manifest.NewFetchManifest(
+					preflight.PluginID,
+					nil,
+					preflight.PlatformIDs,
+					0,
+				),
+				nil,
+			)
+			if err != nil {
+				return err
+			}
+			startupManifestRefs = append(startupManifestRefs, ref)
+		}
+		return nil
+	})
 }
 
 func (d *DevtoolBus) startCachedManifestFetchController(ctx context.Context) (func(), error) {

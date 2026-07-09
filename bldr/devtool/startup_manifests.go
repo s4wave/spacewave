@@ -9,8 +9,7 @@ import (
 	web_plugin_compiler "github.com/s4wave/spacewave/bldr/web/plugin/compiler"
 )
 
-// StartupManifestPreflight describes one startup manifest request that should
-// be built before opening the browser.
+// StartupManifestPreflight describes one project-owned startup manifest request.
 type StartupManifestPreflight struct {
 	PluginID    string
 	PlatformIDs []string

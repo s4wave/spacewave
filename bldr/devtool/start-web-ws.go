@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -284,7 +285,7 @@ func (d *DevtoolBus) ExecuteWebWs(
 
 	le.Infof("listening on: %s", listenAddr)
 	server := &http.Server{Addr: listenAddr, Handler: http.HandlerFunc(serveFn), ReadHeaderTimeout: time.Second * 30}
-	return listenAndServeDevtoolHTTP(ctx, server)
+	return listenAndServeDevtoolHTTP(ctx, server, nil)
 }
 
 func writeWebWsBuildManifest(entrypointDir string, bundleResult *entrypoint_browser_bundle.BrowserBundleResult) error {
@@ -338,17 +339,44 @@ func buildWsWebRuntime(le *logrus.Entry, b bus.Bus, runtimeID string, nch *webso
 	)
 }
 
-func listenAndServeDevtoolHTTP(ctx context.Context, server *http.Server) error {
+func listenAndServeDevtoolHTTP(ctx context.Context, server *http.Server, onListening func(string) error) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	listener, err := net.Listen("tcp", server.Addr)
+	if err != nil {
+		return err
+	}
+
+	serveErrCh := make(chan error, 1)
 	go func() {
-		<-ctx.Done()
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
-		defer shutdownCancel()
-		_ = server.Shutdown(shutdownCtx)
+		serveErrCh <- server.Serve(listener)
 	}()
-	err := server.ListenAndServe()
+	stopShutdownCh := make(chan struct{})
+	shutdownDoneCh := make(chan struct{})
+	defer func() {
+		close(stopShutdownCh)
+		<-shutdownDoneCh
+	}()
+	go func() {
+		defer close(shutdownDoneCh)
+		select {
+		case <-ctx.Done():
+			shutdownCtx, shutdownCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+			defer shutdownCancel()
+			_ = server.Shutdown(shutdownCtx)
+		case <-stopShutdownCh:
+		}
+	}()
+
+	if onListening != nil {
+		if err := onListening(listener.Addr().String()); err != nil {
+			_ = server.Close()
+			<-serveErrCh
+			return err
+		}
+	}
+	err = <-serveErrCh
 	if err == http.ErrServerClosed {
 		return nil
 	}
