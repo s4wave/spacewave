@@ -481,6 +481,8 @@ type ObjectWizard struct {
 	RegistrationId uint32 `protobuf:"varint,11,opt,name=registration_id,json=registrationId,proto3" json:"registrationId,omitempty"`
 	// PluginId is the registering plugin's ID.
 	PluginId string `protobuf:"bytes,12,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
+	// Description is an optional one-line description shown under the display name.
+	Description string `protobuf:"bytes,13,opt,name=description,proto3" json:"description,omitempty"`
 }
 
 func (x *ObjectWizard) Reset() {
@@ -569,6 +571,13 @@ func (x *ObjectWizard) GetRegistrationId() uint32 {
 func (x *ObjectWizard) GetPluginId() string {
 	if x != nil {
 		return x.PluginId
+	}
+	return ""
+}
+
+func (x *ObjectWizard) GetDescription() string {
+	if x != nil {
+		return x.Description
 	}
 	return ""
 }
@@ -1062,6 +1071,7 @@ func (m *ObjectWizard) CloneVT() *ObjectWizard {
 	r.Experimental = m.Experimental
 	r.RegistrationId = m.RegistrationId
 	r.PluginId = m.PluginId
+	r.Description = m.Description
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1507,6 +1517,9 @@ func (this *ObjectWizard) EqualVT(that *ObjectWizard) bool {
 		return false
 	}
 	if this.PluginId != that.PluginId {
+		return false
+	}
+	if this.Description != that.Description {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2512,6 +2525,11 @@ func (x *ObjectWizard) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("pluginId")
 		s.WriteString(x.PluginId)
 	}
+	if x.Description != "" || s.HasField("description") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("description")
+		s.WriteString(x.Description)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2565,6 +2583,9 @@ func (x *ObjectWizard) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "plugin_id", "pluginId":
 			s.AddField("plugin_id")
 			x.PluginId = s.ReadString()
+		case "description":
+			s.AddField("description")
+			x.Description = s.ReadString()
 		}
 	})
 }
@@ -3543,6 +3564,11 @@ func (m *ObjectWizard) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Description) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Description)
+		i--
+		dAtA[i] = 0x6a
+	}
 	if len(m.PluginId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.PluginId)
 		i--
@@ -4055,6 +4081,7 @@ func (m *ObjectWizard) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Experimental)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.RegistrationId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PluginId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Description)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4429,6 +4456,10 @@ func (x *ObjectWizard) MarshalProtoText() string {
 	if x.PluginId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "plugin_id")
 		protobuf_go_lite.TextWriteString(&sb, x.PluginId)
+	}
+	if x.Description != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "description")
+		protobuf_go_lite.TextWriteString(&sb, x.Description)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -5575,6 +5606,16 @@ func (m *ObjectWizard) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PluginId = v
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Description", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Description = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

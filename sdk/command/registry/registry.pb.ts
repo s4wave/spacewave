@@ -268,6 +268,12 @@ export interface CommandSubItem {
    * @generated from field: string description = 3;
    */
   description?: string
+  /**
+   * IconName is an optional react-icons icon identifier (e.g., "LuLayoutGrid").
+   *
+   * @generated from field: string icon_name = 4;
+   */
+  iconName?: string
 }
 
 export const CommandSubItem: MessageType<CommandSubItem> =
@@ -277,6 +283,7 @@ export const CommandSubItem: MessageType<CommandSubItem> =
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'icon_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

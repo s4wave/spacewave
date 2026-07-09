@@ -711,13 +711,13 @@ func TestWizardRegistryStaticWizardsWinTypeDedupe(t *testing.T) {
 
 func TestWizardRegistryStaticAppWizardsAreReleaseVisible(t *testing.T) {
 	expected := map[string]string{
-		"spacewave-chat/channel":      "Chat Channel",
-		"forge/worker":                "Forge Worker",
-		"spacewave/forge/dashboard":   "Forge Dashboard",
-		"forge/cluster":               "Forge Cluster",
-		"forge/job":                   "Forge Job",
-		"forge/task":                  "Forge Task",
-		"vm/v86":                      "V86 VM",
+		"spacewave-chat/channel":    "Chat Channel",
+		"forge/worker":              "Forge Worker",
+		"spacewave/forge/dashboard": "Forge Dashboard",
+		"forge/cluster":             "Forge Cluster",
+		"forge/job":                 "Forge Job",
+		"forge/task":                "Forge Task",
+		"vm/v86":                    "V86 VM",
 	}
 	seen := make(map[string]struct{}, len(expected))
 	for _, wizard := range s4wave_wizard.ObjectWizards {

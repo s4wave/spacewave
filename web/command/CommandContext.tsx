@@ -27,6 +27,8 @@ export interface SubItem {
   id: string
   label: string
   description?: string
+  // iconName is a react-icons icon identifier (e.g. "LuLayoutGrid").
+  iconName?: string
 }
 
 // SubItemsCallback provides sub-items for a command's palette sub-list.
@@ -187,6 +189,7 @@ export function CommandProvider({
                 id: item.id,
                 label: item.label ?? '',
                 description: item.description || undefined,
+                iconName: item.iconName || undefined,
               },
             ]
           : [],

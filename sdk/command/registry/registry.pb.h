@@ -1851,6 +1851,7 @@ class CommandSubItem final : public ::google::protobuf::Message
     kIdFieldNumber = 1,
     kLabelFieldNumber = 2,
     kDescriptionFieldNumber = 3,
+    kIconNameFieldNumber = 4,
   };
   // string id = 1;
   void clear_id() ;
@@ -1897,12 +1898,27 @@ class CommandSubItem final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_description();
 
   public:
+  // string icon_name = 4;
+  void clear_icon_name() ;
+  const ::std::string& icon_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_icon_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_icon_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_icon_name();
+  void set_allocated_icon_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_icon_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_icon_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_icon_name();
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.command.registry.CommandSubItem)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   0, 65,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   0, 74,
                                    2>
       _table_;
 
@@ -1926,6 +1942,7 @@ class CommandSubItem final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr id_;
     ::google::protobuf::internal::ArenaStringPtr label_;
     ::google::protobuf::internal::ArenaStringPtr description_;
+    ::google::protobuf::internal::ArenaStringPtr icon_name_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1933,213 +1950,6 @@ class CommandSubItem final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull CommandSubItem_class_data_;
-// -------------------------------------------------------------------
-
-class RegisterCommandRequest final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:s4wave.command.registry.RegisterCommandRequest) */ {
- public:
-  inline RegisterCommandRequest() : RegisterCommandRequest(nullptr) {}
-  ~RegisterCommandRequest() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(RegisterCommandRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(RegisterCommandRequest));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR RegisterCommandRequest(::google::protobuf::internal::ConstantInitialized);
-
-  inline RegisterCommandRequest(const RegisterCommandRequest& from) : RegisterCommandRequest(nullptr, from) {}
-  inline RegisterCommandRequest(RegisterCommandRequest&& from) noexcept
-      : RegisterCommandRequest(nullptr, ::std::move(from)) {}
-  inline RegisterCommandRequest& operator=(const RegisterCommandRequest& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline RegisterCommandRequest& operator=(RegisterCommandRequest&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const RegisterCommandRequest& default_instance() {
-    return *reinterpret_cast<const RegisterCommandRequest*>(
-        &_RegisterCommandRequest_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 0;
-  friend void swap(RegisterCommandRequest& a, RegisterCommandRequest& b) { a.Swap(&b); }
-  inline void Swap(RegisterCommandRequest* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(RegisterCommandRequest* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  RegisterCommandRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<RegisterCommandRequest>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const RegisterCommandRequest& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const RegisterCommandRequest& from) { RegisterCommandRequest::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(RegisterCommandRequest* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.command.registry.RegisterCommandRequest"; }
-
-  explicit RegisterCommandRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  RegisterCommandRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RegisterCommandRequest& from);
-  RegisterCommandRequest(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RegisterCommandRequest&& from) noexcept
-      : RegisterCommandRequest(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kCommandFieldNumber = 1,
-    kHandlerResourceIdFieldNumber = 2,
-  };
-  // .s4wave.command.Command command = 1;
-  bool has_command() const;
-  void clear_command() ;
-  const ::s4wave::command::Command& command() const;
-  [[nodiscard]] ::s4wave::command::Command* PROTOBUF_NULLABLE release_command();
-  ::s4wave::command::Command* PROTOBUF_NONNULL mutable_command();
-  void set_allocated_command(::s4wave::command::Command* PROTOBUF_NULLABLE value);
-  void unsafe_arena_set_allocated_command(::s4wave::command::Command* PROTOBUF_NULLABLE value);
-  ::s4wave::command::Command* PROTOBUF_NULLABLE unsafe_arena_release_command();
-
-  private:
-  const ::s4wave::command::Command& _internal_command() const;
-  ::s4wave::command::Command* PROTOBUF_NONNULL _internal_mutable_command();
-
-  public:
-  // uint32 handler_resource_id = 2;
-  void clear_handler_resource_id() ;
-  ::uint32_t handler_resource_id() const;
-  void set_handler_resource_id(::uint32_t value);
-
-  private:
-  ::uint32_t _internal_handler_resource_id() const;
-  void _internal_set_handler_resource_id(::uint32_t value);
-
-  public:
-  // @@protoc_insertion_point(class_scope:s4wave.command.registry.RegisterCommandRequest)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   1, 0,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const RegisterCommandRequest& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::s4wave::command::Command* PROTOBUF_NULLABLE command_;
-    ::uint32_t handler_resource_id_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fregistry_2fregistry_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull RegisterCommandRequest_class_data_;
 // -------------------------------------------------------------------
 
 class InvokeCommandRequest final : public ::google::protobuf::Message
@@ -2767,6 +2577,213 @@ class GetSubItemsResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull GetSubItemsResponse_class_data_;
+// -------------------------------------------------------------------
+
+class RegisterCommandRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.command.registry.RegisterCommandRequest) */ {
+ public:
+  inline RegisterCommandRequest() : RegisterCommandRequest(nullptr) {}
+  ~RegisterCommandRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RegisterCommandRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RegisterCommandRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RegisterCommandRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline RegisterCommandRequest(const RegisterCommandRequest& from) : RegisterCommandRequest(nullptr, from) {}
+  inline RegisterCommandRequest(RegisterCommandRequest&& from) noexcept
+      : RegisterCommandRequest(nullptr, ::std::move(from)) {}
+  inline RegisterCommandRequest& operator=(const RegisterCommandRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RegisterCommandRequest& operator=(RegisterCommandRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RegisterCommandRequest& default_instance() {
+    return *reinterpret_cast<const RegisterCommandRequest*>(
+        &_RegisterCommandRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 0;
+  friend void swap(RegisterCommandRequest& a, RegisterCommandRequest& b) { a.Swap(&b); }
+  inline void Swap(RegisterCommandRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RegisterCommandRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RegisterCommandRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<RegisterCommandRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const RegisterCommandRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const RegisterCommandRequest& from) { RegisterCommandRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(RegisterCommandRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.command.registry.RegisterCommandRequest"; }
+
+  explicit RegisterCommandRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RegisterCommandRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RegisterCommandRequest& from);
+  RegisterCommandRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RegisterCommandRequest&& from) noexcept
+      : RegisterCommandRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kCommandFieldNumber = 1,
+    kHandlerResourceIdFieldNumber = 2,
+  };
+  // .s4wave.command.Command command = 1;
+  bool has_command() const;
+  void clear_command() ;
+  const ::s4wave::command::Command& command() const;
+  [[nodiscard]] ::s4wave::command::Command* PROTOBUF_NULLABLE release_command();
+  ::s4wave::command::Command* PROTOBUF_NONNULL mutable_command();
+  void set_allocated_command(::s4wave::command::Command* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_command(::s4wave::command::Command* PROTOBUF_NULLABLE value);
+  ::s4wave::command::Command* PROTOBUF_NULLABLE unsafe_arena_release_command();
+
+  private:
+  const ::s4wave::command::Command& _internal_command() const;
+  ::s4wave::command::Command* PROTOBUF_NONNULL _internal_mutable_command();
+
+  public:
+  // uint32 handler_resource_id = 2;
+  void clear_handler_resource_id() ;
+  ::uint32_t handler_resource_id() const;
+  void set_handler_resource_id(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_handler_resource_id() const;
+  void _internal_set_handler_resource_id(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.command.registry.RegisterCommandRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const RegisterCommandRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::s4wave::command::Command* PROTOBUF_NULLABLE command_;
+    ::uint32_t handler_resource_id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fregistry_2fregistry_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RegisterCommandRequest_class_data_;
 // -------------------------------------------------------------------
 
 class CommandState final : public ::google::protobuf::Message
@@ -3908,6 +3925,71 @@ inline void CommandSubItem::set_allocated_description(::std::string* PROTOBUF_NU
     _impl_.description_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:s4wave.command.registry.CommandSubItem.description)
+}
+
+// string icon_name = 4;
+inline void CommandSubItem::clear_icon_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.icon_name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& CommandSubItem::icon_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.command.registry.CommandSubItem.icon_name)
+  return _internal_icon_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void CommandSubItem::set_icon_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.icon_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.command.registry.CommandSubItem.icon_name)
+}
+inline ::std::string* PROTOBUF_NONNULL CommandSubItem::mutable_icon_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_icon_name();
+  // @@protoc_insertion_point(field_mutable:s4wave.command.registry.CommandSubItem.icon_name)
+  return _s;
+}
+inline const ::std::string& CommandSubItem::_internal_icon_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.icon_name_.Get();
+}
+inline void CommandSubItem::_internal_set_icon_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.icon_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL CommandSubItem::_internal_mutable_icon_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.icon_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE CommandSubItem::release_icon_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.command.registry.CommandSubItem.icon_name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.icon_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.icon_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void CommandSubItem::set_allocated_icon_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.icon_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.icon_name_.IsDefault()) {
+    _impl_.icon_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.command.registry.CommandSubItem.icon_name)
 }
 
 // -------------------------------------------------------------------

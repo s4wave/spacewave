@@ -512,6 +512,12 @@ export interface ObjectWizard {
    * @generated from field: string plugin_id = 12;
    */
   pluginId?: string
+  /**
+   * Description is an optional one-line description shown under the display name.
+   *
+   * @generated from field: string description = 13;
+   */
+  description?: string
 }
 
 export const ObjectWizard: MessageType<ObjectWizard> =
@@ -535,6 +541,7 @@ export const ObjectWizard: MessageType<ObjectWizard> =
       { no: 10, name: 'experimental', kind: 'scalar', T: ScalarType.BOOL },
       { no: 11, name: 'registration_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 12, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 13, name: 'description', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -87,6 +87,8 @@ message CommandSubItem {
   string label = 2;
   // Description is an optional longer description.
   string description = 3;
+  // IconName is an optional react-icons icon identifier (e.g., "LuLayoutGrid").
+  string icon_name = 4;
 }
 
 // GetSubItemsRequest is the request for GetSubItems.

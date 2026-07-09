@@ -243,6 +243,9 @@ inline constexpr ObjectWizard::Impl_::Impl_(
         plugin_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        description_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         persistent_{false},
         experimental_{false},
         registration_id_{0u} {}
@@ -690,7 +693,7 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_._has_bits_),
-        15, // hasbit index offset
+        16, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_.type_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_.display_name_),
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_.category_),
@@ -703,18 +706,20 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_.experimental_),
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_.registration_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_.plugin_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::wizard::ObjectWizard, _impl_.description_),
         0,
         1,
         2,
         3,
         4,
         5,
-        9,
+        10,
         6,
         7,
-        10,
         11,
+        12,
         8,
+        9,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::wizard::WizardState, _impl_._has_bits_),
         8, // hasbit index offset
@@ -787,10 +792,10 @@ static const ::_pbi::MigrationSchema
         {71, sizeof(::s4wave::wizard::WatchWizardsRequest)},
         {72, sizeof(::s4wave::wizard::WatchWizardsResponse)},
         {77, sizeof(::s4wave::wizard::ObjectWizard)},
-        {104, sizeof(::s4wave::wizard::WizardState)},
-        {117, sizeof(::s4wave::wizard::CreateWizardObjectOp)},
-        {136, sizeof(::s4wave::wizard::IntroWizardConfig)},
-        {147, sizeof(::s4wave::wizard::IntroWizardCallout)},
+        {106, sizeof(::s4wave::wizard::WizardState)},
+        {119, sizeof(::s4wave::wizard::CreateWizardObjectOp)},
+        {138, sizeof(::s4wave::wizard::IntroWizardConfig)},
+        {149, sizeof(::s4wave::wizard::IntroWizardCallout)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::wizard::_WatchWizardStateRequest_default_instance_._instance,
@@ -843,58 +848,58 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fw
     "wizards\030\001 \003(\0132\033.s4wave.wizard.ObjectWiza"
     "rd\"\025\n\023WatchWizardsRequest\"D\n\024WatchWizard"
     "sResponse\022,\n\007wizards\030\001 \003(\0132\033.s4wave.wiza"
-    "rd.ObjectWizard\"\220\002\n\014ObjectWizard\022\017\n\007type"
+    "rd.ObjectWizard\"\245\002\n\014ObjectWizard\022\017\n\007type"
     "_id\030\001 \001(\t\022\024\n\014display_name\030\002 \001(\t\022\020\n\010categ"
     "ory\030\003 \001(\t\022\021\n\ticon_name\030\004 \001(\t\022\024\n\014create_o"
     "p_id\030\005 \001(\t\022\034\n\024default_name_pattern\030\006 \001(\t"
     "\022\022\n\npersistent\030\007 \001(\010\022\026\n\016wizard_type_id\030\010"
     " \001(\t\022\022\n\nkey_prefix\030\t \001(\t\022\024\n\014experimental"
     "\030\n \001(\010\022\027\n\017registration_id\030\013 \001(\r\022\021\n\tplugi"
-    "n_id\030\014 \001(\t\"q\n\013WizardState\022\014\n\004step\030\001 \001(\005\022"
-    "\026\n\016target_type_id\030\002 \001(\t\022\031\n\021target_key_pr"
-    "efix\030\003 \001(\t\022\014\n\004name\030\004 \001(\t\022\023\n\013config_data\030"
-    "\005 \001(\014\"\345\001\n\024CreateWizardObjectOp\022\022\n\nobject"
-    "_key\030\001 \001(\t\022\026\n\016wizard_type_id\030\002 \001(\t\022\026\n\016ta"
-    "rget_type_id\030\003 \001(\t\022\031\n\021target_key_prefix\030"
-    "\004 \001(\t\022\014\n\004name\030\005 \001(\t\022-\n\ttimestamp\030\006 \001(\0132\032"
-    ".google.protobuf.Timestamp\022\024\n\014initial_st"
-    "ep\030\007 \001(\005\022\033\n\023initial_config_data\030\010 \001(\014\"\201\001"
-    "\n\021IntroWizardConfig\022\020\n\010headline\030\001 \001(\t\022\017\n"
-    "\007subhead\030\002 \001(\t\0223\n\010callouts\030\003 \003(\0132!.s4wav"
-    "e.wizard.IntroWizardCallout\022\024\n\014finish_la"
-    "bel\030\004 \001(\t\"e\n\022IntroWizardCallout\0220\n\006regio"
-    "n\030\001 \001(\0162 .s4wave.wizard.IntroWizardRegio"
-    "n\022\r\n\005title\030\002 \001(\t\022\016\n\006detail\030\003 \001(\t*\250\001\n\025Git"
-    "CloneProgressState\022!\n\035GIT_CLONE_PROGRESS"
-    "_STATE_IDLE\020\000\022$\n GIT_CLONE_PROGRESS_STAT"
-    "E_RUNNING\020\001\022!\n\035GIT_CLONE_PROGRESS_STATE_"
-    "DONE\020\002\022#\n\037GIT_CLONE_PROGRESS_STATE_FAILE"
-    "D\020\003*\271\001\n\021IntroWizardRegion\022#\n\037INTRO_WIZAR"
-    "D_REGION_UNSPECIFIED\020\000\022\033\n\027INTRO_WIZARD_R"
-    "EGION_TOP\020\001\022\036\n\032INTRO_WIZARD_REGION_CENTE"
-    "R\020\002\022$\n INTRO_WIZARD_REGION_BOTTOM_RIGHT\020"
-    "\003\022\034\n\030INTRO_WIZARD_REGION_LEFT\020\0042\265\002\n#Obje"
-    "ctWizardRegistryResourceService\022]\n\016Regis"
-    "terWizard\022$.s4wave.wizard.RegisterWizard"
-    "Request\032%.s4wave.wizard.RegisterWizardRe"
-    "sponse\022T\n\013ListWizards\022!.s4wave.wizard.Li"
-    "stWizardsRequest\032\".s4wave.wizard.ListWiz"
-    "ardsResponse\022Y\n\014WatchWizards\022\".s4wave.wi"
-    "zard.WatchWizardsRequest\032#.s4wave.wizard"
-    ".WatchWizardsResponse0\0012\270\003\n\025WizardResour"
-    "ceService\022e\n\020WatchWizardState\022&.s4wave.w"
-    "izard.WatchWizardStateRequest\032\'.s4wave.w"
-    "izard.WatchWizardStateResponse0\001\022f\n\021Upda"
-    "teWizardState\022\'.s4wave.wizard.UpdateWiza"
-    "rdStateRequest\032(.s4wave.wizard.UpdateWiz"
-    "ardStateResponse\022Z\n\rStartGitClone\022#.s4wa"
-    "ve.wizard.StartGitCloneRequest\032$.s4wave."
-    "wizard.StartGitCloneResponse\022t\n\025WatchGit"
-    "CloneProgress\022+.s4wave.wizard.WatchGitCl"
-    "oneProgressRequest\032,.s4wave.wizard.Watch"
-    "GitCloneProgressResponse0\001B<Z:github.com"
-    "/s4wave/spacewave/sdk/world/wizard;s4wav"
-    "e_wizardb\006proto3"
+    "n_id\030\014 \001(\t\022\023\n\013description\030\r \001(\t\"q\n\013Wizar"
+    "dState\022\014\n\004step\030\001 \001(\005\022\026\n\016target_type_id\030\002"
+    " \001(\t\022\031\n\021target_key_prefix\030\003 \001(\t\022\014\n\004name\030"
+    "\004 \001(\t\022\023\n\013config_data\030\005 \001(\014\"\345\001\n\024CreateWiz"
+    "ardObjectOp\022\022\n\nobject_key\030\001 \001(\t\022\026\n\016wizar"
+    "d_type_id\030\002 \001(\t\022\026\n\016target_type_id\030\003 \001(\t\022"
+    "\031\n\021target_key_prefix\030\004 \001(\t\022\014\n\004name\030\005 \001(\t"
+    "\022-\n\ttimestamp\030\006 \001(\0132\032.google.protobuf.Ti"
+    "mestamp\022\024\n\014initial_step\030\007 \001(\005\022\033\n\023initial"
+    "_config_data\030\010 \001(\014\"\201\001\n\021IntroWizardConfig"
+    "\022\020\n\010headline\030\001 \001(\t\022\017\n\007subhead\030\002 \001(\t\0223\n\010c"
+    "allouts\030\003 \003(\0132!.s4wave.wizard.IntroWizar"
+    "dCallout\022\024\n\014finish_label\030\004 \001(\t\"e\n\022IntroW"
+    "izardCallout\0220\n\006region\030\001 \001(\0162 .s4wave.wi"
+    "zard.IntroWizardRegion\022\r\n\005title\030\002 \001(\t\022\016\n"
+    "\006detail\030\003 \001(\t*\250\001\n\025GitCloneProgressState\022"
+    "!\n\035GIT_CLONE_PROGRESS_STATE_IDLE\020\000\022$\n GI"
+    "T_CLONE_PROGRESS_STATE_RUNNING\020\001\022!\n\035GIT_"
+    "CLONE_PROGRESS_STATE_DONE\020\002\022#\n\037GIT_CLONE"
+    "_PROGRESS_STATE_FAILED\020\003*\271\001\n\021IntroWizard"
+    "Region\022#\n\037INTRO_WIZARD_REGION_UNSPECIFIE"
+    "D\020\000\022\033\n\027INTRO_WIZARD_REGION_TOP\020\001\022\036\n\032INTR"
+    "O_WIZARD_REGION_CENTER\020\002\022$\n INTRO_WIZARD"
+    "_REGION_BOTTOM_RIGHT\020\003\022\034\n\030INTRO_WIZARD_R"
+    "EGION_LEFT\020\0042\265\002\n#ObjectWizardRegistryRes"
+    "ourceService\022]\n\016RegisterWizard\022$.s4wave."
+    "wizard.RegisterWizardRequest\032%.s4wave.wi"
+    "zard.RegisterWizardResponse\022T\n\013ListWizar"
+    "ds\022!.s4wave.wizard.ListWizardsRequest\032\"."
+    "s4wave.wizard.ListWizardsResponse\022Y\n\014Wat"
+    "chWizards\022\".s4wave.wizard.WatchWizardsRe"
+    "quest\032#.s4wave.wizard.WatchWizardsRespon"
+    "se0\0012\270\003\n\025WizardResourceService\022e\n\020WatchW"
+    "izardState\022&.s4wave.wizard.WatchWizardSt"
+    "ateRequest\032\'.s4wave.wizard.WatchWizardSt"
+    "ateResponse0\001\022f\n\021UpdateWizardState\022\'.s4w"
+    "ave.wizard.UpdateWizardStateRequest\032(.s4"
+    "wave.wizard.UpdateWizardStateResponse\022Z\n"
+    "\rStartGitClone\022#.s4wave.wizard.StartGitC"
+    "loneRequest\032$.s4wave.wizard.StartGitClon"
+    "eResponse\022t\n\025WatchGitCloneProgress\022+.s4w"
+    "ave.wizard.WatchGitCloneProgressRequest\032"
+    ",.s4wave.wizard.WatchGitCloneProgressRes"
+    "ponse0\001B<Z:github.com/s4wave/spacewave/s"
+    "dk/world/wizard;s4wave_wizardb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto_deps[1] = {
@@ -904,7 +909,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto = {
     false,
     false,
-    3136,
+    3157,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto,
     "github.com/s4wave/spacewave/sdk/world/wizard/wizard.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fwizard_2fwizard_2eproto_once,
@@ -4753,7 +4758,8 @@ PROTOBUF_NDEBUG_INLINE ObjectWizard::Impl_::Impl_(
         default_name_pattern_(arena, from.default_name_pattern_),
         wizard_type_id_(arena, from.wizard_type_id_),
         key_prefix_(arena, from.key_prefix_),
-        plugin_id_(arena, from.plugin_id_) {}
+        plugin_id_(arena, from.plugin_id_),
+        description_(arena, from.description_) {}
 
 ObjectWizard::ObjectWizard(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -4790,7 +4796,8 @@ PROTOBUF_NDEBUG_INLINE ObjectWizard::Impl_::Impl_(
         default_name_pattern_(arena),
         wizard_type_id_(arena),
         key_prefix_(arena),
-        plugin_id_(arena) {}
+        plugin_id_(arena),
+        description_(arena) {}
 
 inline void ObjectWizard::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -4821,6 +4828,7 @@ inline void ObjectWizard::SharedDtor(MessageLite& self) {
   this_._impl_.wizard_type_id_.Destroy();
   this_._impl_.key_prefix_.Destroy();
   this_._impl_.plugin_id_.Destroy();
+  this_._impl_.description_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -4867,16 +4875,16 @@ ObjectWizard::GetClassData() const {
   return ObjectWizard_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 12, 0, 144, 2>
+const ::_pbi::TcParseTable<4, 13, 0, 155, 2>
 ObjectWizard::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_._has_bits_),
     0, // no _extensions_
-    12, 120,  // max_field_number, fast_idx_mask
+    13, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294963200,  // skipmap
+    4294959104,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    12,  // num_field_entries
+    13,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     ObjectWizard_class_data_.base(),
@@ -4912,8 +4920,8 @@ ObjectWizard::_table_ = {
      {50, 5, 0,
       PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.default_name_pattern_)}},
     // bool persistent = 7;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ObjectWizard, _impl_.persistent_), 9>(),
-     {56, 9, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ObjectWizard, _impl_.persistent_), 10>(),
+     {56, 10, 0,
       PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.persistent_)}},
     // string wizard_type_id = 8;
     {::_pbi::TcParser::FastUS1,
@@ -4924,18 +4932,21 @@ ObjectWizard::_table_ = {
      {74, 7, 0,
       PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.key_prefix_)}},
     // bool experimental = 10;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ObjectWizard, _impl_.experimental_), 10>(),
-     {80, 10, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ObjectWizard, _impl_.experimental_), 11>(),
+     {80, 11, 0,
       PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.experimental_)}},
     // uint32 registration_id = 11;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ObjectWizard, _impl_.registration_id_), 11>(),
-     {88, 11, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ObjectWizard, _impl_.registration_id_), 12>(),
+     {88, 12, 0,
       PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.registration_id_)}},
     // string plugin_id = 12;
     {::_pbi::TcParser::FastUS1,
      {98, 8, 0,
       PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.plugin_id_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // string description = 13;
+    {::_pbi::TcParser::FastUS1,
+     {106, 9, 0,
+      PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.description_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
@@ -4954,21 +4965,23 @@ ObjectWizard::_table_ = {
     // string default_name_pattern = 6;
     {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.default_name_pattern_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // bool persistent = 7;
-    {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.persistent_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.persistent_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string wizard_type_id = 8;
     {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.wizard_type_id_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string key_prefix = 9;
     {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.key_prefix_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // bool experimental = 10;
-    {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.experimental_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.experimental_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // uint32 registration_id = 11;
-    {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.registration_id_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.registration_id_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // string plugin_id = 12;
     {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.plugin_id_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string description = 13;
+    {PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.description_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\32\7\14\10\11\14\24\0\16\12\0\0\11\0\0\0"
+    "\32\7\14\10\11\14\24\0\16\12\0\0\11\13\0\0"
     "s4wave.wizard.ObjectWizard"
     "type_id"
     "display_name"
@@ -4979,6 +4992,7 @@ ObjectWizard::_table_ = {
     "wizard_type_id"
     "key_prefix"
     "plugin_id"
+    "description"
   }},
 };
 PROTOBUF_NOINLINE void ObjectWizard::Clear() {
@@ -5015,10 +5029,15 @@ PROTOBUF_NOINLINE void ObjectWizard::Clear() {
       _impl_.key_prefix_.ClearNonDefaultToEmpty();
     }
   }
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    _impl_.plugin_id_.ClearNonDefaultToEmpty();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      _impl_.plugin_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      _impl_.description_.ClearNonDefaultToEmpty();
+    }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000e00U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00001c00U)) {
     ::memset(&_impl_.persistent_, 0, static_cast<::size_t>(
         reinterpret_cast<char*>(&_impl_.registration_id_) -
         reinterpret_cast<char*>(&_impl_.persistent_)) + sizeof(_impl_.registration_id_));
@@ -5107,7 +5126,7 @@ PROTOBUF_NOINLINE void ObjectWizard::Clear() {
   }
 
   // bool persistent = 7;
-  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
     if (this_._internal_persistent() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -5136,7 +5155,7 @@ PROTOBUF_NOINLINE void ObjectWizard::Clear() {
   }
 
   // bool experimental = 10;
-  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
     if (this_._internal_experimental() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -5145,7 +5164,7 @@ PROTOBUF_NOINLINE void ObjectWizard::Clear() {
   }
 
   // uint32 registration_id = 11;
-  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
     if (this_._internal_registration_id() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -5160,6 +5179,16 @@ PROTOBUF_NOINLINE void ObjectWizard::Clear() {
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
           _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.wizard.ObjectWizard.plugin_id");
       target = stream->WriteStringMaybeAliased(12, _s, target);
+    }
+  }
+
+  // string description = 13;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (!this_._internal_description().empty()) {
+      const ::std::string& _s = this_._internal_description();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.wizard.ObjectWizard.description");
+      target = stream->WriteStringMaybeAliased(13, _s, target);
     }
   }
 
@@ -5246,7 +5275,7 @@ PROTOBUF_NOINLINE void ObjectWizard::Clear() {
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00001f00U)) {
     // string plugin_id = 12;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (!this_._internal_plugin_id().empty()) {
@@ -5254,20 +5283,27 @@ PROTOBUF_NOINLINE void ObjectWizard::Clear() {
                                         this_._internal_plugin_id());
       }
     }
-    // bool persistent = 7;
+    // string description = 13;
     if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (!this_._internal_description().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_description());
+      }
+    }
+    // bool persistent = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (this_._internal_persistent() != 0) {
         total_size += 2;
       }
     }
     // bool experimental = 10;
-    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (this_._internal_experimental() != 0) {
         total_size += 2;
       }
     }
     // uint32 registration_id = 11;
-    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (this_._internal_registration_id() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_registration_id());
@@ -5366,7 +5402,7 @@ void ObjectWizard::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00000f00U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00001f00U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (!from._internal_plugin_id().empty()) {
         _this->_internal_set_plugin_id(from._internal_plugin_id());
@@ -5377,16 +5413,25 @@ void ObjectWizard::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (!from._internal_description().empty()) {
+        _this->_internal_set_description(from._internal_description());
+      } else {
+        if (_this->_impl_.description_.IsDefault()) {
+          _this->_internal_set_description("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (from._internal_persistent() != 0) {
         _this->_impl_.persistent_ = from._impl_.persistent_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (from._internal_experimental() != 0) {
         _this->_impl_.experimental_ = from._impl_.experimental_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (from._internal_registration_id() != 0) {
         _this->_impl_.registration_id_ = from._impl_.registration_id_;
       }
@@ -5420,6 +5465,7 @@ void ObjectWizard::InternalSwap(ObjectWizard* PROTOBUF_RESTRICT PROTOBUF_NONNULL
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.wizard_type_id_, &other->_impl_.wizard_type_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.key_prefix_, &other->_impl_.key_prefix_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.plugin_id_, &other->_impl_.plugin_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.description_, &other->_impl_.description_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(ObjectWizard, _impl_.registration_id_)
       + sizeof(ObjectWizard::_impl_.registration_id_)

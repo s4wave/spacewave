@@ -16,6 +16,7 @@ var ObjectWizards = []*ObjectWizard{
 	{
 		TypeId:             "alpha/object-layout",
 		DisplayName:        "Object Layout",
+		Description:        "Arrange space objects in a grid layout",
 		Category:           "Layout",
 		IconName:           "LuLayoutGrid",
 		CreateOpId:         "space/world/init-object-layout",
@@ -25,6 +26,7 @@ var ObjectWizards = []*ObjectWizard{
 	{
 		TypeId:             "canvas",
 		DisplayName:        "Canvas",
+		Description:        "Freeform canvas for drawing and layout",
 		Category:           "Layout",
 		IconName:           "LuLayoutGrid",
 		CreateOpId:         "space/world/init-canvas",
@@ -34,6 +36,7 @@ var ObjectWizards = []*ObjectWizard{
 	{
 		TypeId:             "unixfs/fs-node",
 		DisplayName:        "Filesystem",
+		Description:        "Shared filesystem for files and folders",
 		Category:           "Files",
 		IconName:           "LuHardDrive",
 		CreateOpId:         "space/world/init-unixfs",
@@ -43,6 +46,7 @@ var ObjectWizards = []*ObjectWizard{
 	{
 		TypeId:             "spacewave-chat/channel",
 		DisplayName:        "Chat Channel",
+		Description:        "Real-time chat channel for this space",
 		Category:           "Chat",
 		IconName:           "LuMessageSquare",
 		CreateOpId:         "spacewave-chat/channel/create",
@@ -52,6 +56,7 @@ var ObjectWizards = []*ObjectWizard{
 	{
 		TypeId:             "git/repo",
 		DisplayName:        "Git Repository",
+		Description:        "Git repository hosted in this space",
 		Category:           "Files",
 		IconName:           "LuGitBranch",
 		CreateOpId:         "spacewave/git/repo/create",
@@ -63,6 +68,7 @@ var ObjectWizards = []*ObjectWizard{
 	{
 		TypeId:             "forge/worker",
 		DisplayName:        "Forge Worker",
+		Description:        "Worker that executes Forge tasks",
 		Category:           "Forge",
 		IconName:           "LuCpu",
 		CreateOpId:         "forge/worker/create",
@@ -74,6 +80,7 @@ var ObjectWizards = []*ObjectWizard{
 	{
 		TypeId:             "spacewave/forge/dashboard",
 		DisplayName:        "Forge Dashboard",
+		Description:        "Dashboard overview of Forge activity",
 		Category:           "Forge",
 		IconName:           "LuHammer",
 		CreateOpId:         "spacewave/forge/dashboard/create",
@@ -85,6 +92,7 @@ var ObjectWizards = []*ObjectWizard{
 	{
 		TypeId:             "spacewave/computers",
 		DisplayName:        "Computers",
+		Description:        "Dashboard of enrolled devices",
 		Category:           "Devices",
 		IconName:           "LuMonitor",
 		CreateOpId:         "spacewave/computers/create",
@@ -95,6 +103,7 @@ var ObjectWizards = []*ObjectWizard{
 	{
 		TypeId:             "spacewave/device",
 		DisplayName:        "Add Device",
+		Description:        "Enroll a device into this space",
 		Category:           "Devices",
 		IconName:           "LuHardDrive",
 		CreateOpId:         "spacewave/wizard/create",
@@ -106,6 +115,7 @@ var ObjectWizards = []*ObjectWizard{
 	{
 		TypeId:             "forge/cluster",
 		DisplayName:        "Forge Cluster",
+		Description:        "Cluster grouping Forge workers",
 		Category:           "Forge",
 		IconName:           "LuServer",
 		CreateOpId:         "forge/cluster/create",
@@ -117,6 +127,7 @@ var ObjectWizards = []*ObjectWizard{
 	{
 		TypeId:             "forge/job",
 		DisplayName:        "Forge Job",
+		Description:        "Job that schedules Forge tasks",
 		Category:           "Forge",
 		IconName:           "LuBriefcase",
 		CreateOpId:         "spacewave/forge/job/create",
@@ -128,6 +139,7 @@ var ObjectWizards = []*ObjectWizard{
 	{
 		TypeId:             "forge/task",
 		DisplayName:        "Forge Task",
+		Description:        "Single task executed by a Forge worker",
 		Category:           "Forge",
 		IconName:           "LuListTodo",
 		CreateOpId:         "spacewave/forge/task/create",
@@ -139,6 +151,7 @@ var ObjectWizards = []*ObjectWizard{
 	{
 		TypeId:             "vm/v86",
 		DisplayName:        "V86 VM",
+		Description:        "x86 virtual machine running in the browser",
 		Category:           "VM",
 		IconName:           "LuMonitor",
 		CreateOpId:         "vm/v86/create",

@@ -4,9 +4,28 @@ import {
   useMemo,
   useRef,
   useState,
+  type ComponentType,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from 'react'
+
+import {
+  LuBookOpen,
+  LuBox,
+  LuBriefcase,
+  LuCpu,
+  LuGitBranch,
+  LuHammer,
+  LuHardDrive,
+  LuLayoutGrid,
+  LuListTodo,
+  LuMessageSquare,
+  LuMonitor,
+  LuNotebookPen,
+  LuPanelTop,
+  LuPenLine,
+  LuServer,
+} from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import {
@@ -246,6 +265,34 @@ interface ChordContinuation {
   commandId?: string
   conflict: boolean
   node: KeybindingSequenceNode
+}
+
+// subItemIcons maps SubItem.iconName react-icons identifiers (the same
+// vocabulary as ObjectWizard.IconName) to icon components.
+const subItemIcons: Record<string, ComponentType<{ className?: string }>> = {
+  LuBookOpen,
+  LuBox,
+  LuBriefcase,
+  LuCpu,
+  LuGitBranch,
+  LuHammer,
+  LuHardDrive,
+  LuLayoutGrid,
+  LuListTodo,
+  LuMessageSquare,
+  LuMonitor,
+  LuNotebookPen,
+  LuPanelTop,
+  LuPenLine,
+  LuServer,
+}
+
+// SubItemIcon renders the icon slot for a palette sub-item. Unknown icon
+// names fall back to a generic box so icon-bearing lists stay aligned.
+function SubItemIcon({ iconName }: { iconName?: string }) {
+  if (!iconName) return null
+  const Icon = subItemIcons[iconName] ?? LuBox
+  return <Icon className="text-foreground-alt size-4 shrink-0" />
 }
 
 function dedupeSubItems(items: SubItem[]): SubItem[] {
@@ -768,6 +815,7 @@ export function CommandPalette() {
                     value={`${item.label} ${item.id}`}
                     onSelect={() => handleSubItemSelect(item.id)}
                   >
+                    <SubItemIcon iconName={item.iconName} />
                     <span className="flex flex-col">
                       <span>{item.label}</span>
                       {item.description && (

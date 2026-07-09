@@ -160,6 +160,9 @@ pub struct ObjectWizard {
     /// PluginId is the registering plugin's ID.
     #[prost(string, tag="12")]
     pub plugin_id: ::prost::alloc::string::String,
+    /// Description is an optional one-line description shown under the display name.
+    #[prost(string, tag="13")]
+    pub description: ::prost::alloc::string::String,
 }
 /// WizardState is the block state for a persistent wizard object.
 /// Stored as the world object block for wizard/* type objects.

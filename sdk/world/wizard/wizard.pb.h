@@ -1724,6 +1724,7 @@ class ObjectWizard final : public ::google::protobuf::Message
     kWizardTypeIdFieldNumber = 8,
     kKeyPrefixFieldNumber = 9,
     kPluginIdFieldNumber = 12,
+    kDescriptionFieldNumber = 13,
     kPersistentFieldNumber = 7,
     kExperimentalFieldNumber = 10,
     kRegistrationIdFieldNumber = 11,
@@ -1863,6 +1864,21 @@ class ObjectWizard final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_plugin_id();
 
   public:
+  // string description = 13;
+  void clear_description() ;
+  const ::std::string& description() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_description(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_description();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_description();
+  void set_allocated_description(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_description() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_description(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_description();
+
+  public:
   // bool persistent = 7;
   void clear_persistent() ;
   bool persistent() const;
@@ -1897,8 +1913,8 @@ class ObjectWizard final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 12,
-                                   0, 144,
+  static const ::google::protobuf::internal::TcParseTable<4, 13,
+                                   0, 155,
                                    2>
       _table_;
 
@@ -1928,6 +1944,7 @@ class ObjectWizard final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr wizard_type_id_;
     ::google::protobuf::internal::ArenaStringPtr key_prefix_;
     ::google::protobuf::internal::ArenaStringPtr plugin_id_;
+    ::google::protobuf::internal::ArenaStringPtr description_;
     bool persistent_;
     bool experimental_;
     ::uint32_t registration_id_;
@@ -6227,7 +6244,7 @@ inline void ObjectWizard::clear_persistent() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.persistent_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000200U);
+                  0x00000400U);
 }
 inline bool ObjectWizard::persistent() const {
   // @@protoc_insertion_point(field_get:s4wave.wizard.ObjectWizard.persistent)
@@ -6235,7 +6252,7 @@ inline bool ObjectWizard::persistent() const {
 }
 inline void ObjectWizard::set_persistent(bool value) {
   _internal_set_persistent(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
   // @@protoc_insertion_point(field_set:s4wave.wizard.ObjectWizard.persistent)
 }
 inline bool ObjectWizard::_internal_persistent() const {
@@ -6382,7 +6399,7 @@ inline void ObjectWizard::clear_experimental() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.experimental_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000400U);
+                  0x00000800U);
 }
 inline bool ObjectWizard::experimental() const {
   // @@protoc_insertion_point(field_get:s4wave.wizard.ObjectWizard.experimental)
@@ -6390,7 +6407,7 @@ inline bool ObjectWizard::experimental() const {
 }
 inline void ObjectWizard::set_experimental(bool value) {
   _internal_set_experimental(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
   // @@protoc_insertion_point(field_set:s4wave.wizard.ObjectWizard.experimental)
 }
 inline bool ObjectWizard::_internal_experimental() const {
@@ -6407,7 +6424,7 @@ inline void ObjectWizard::clear_registration_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.registration_id_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000800U);
+                  0x00001000U);
 }
 inline ::uint32_t ObjectWizard::registration_id() const {
   // @@protoc_insertion_point(field_get:s4wave.wizard.ObjectWizard.registration_id)
@@ -6415,7 +6432,7 @@ inline ::uint32_t ObjectWizard::registration_id() const {
 }
 inline void ObjectWizard::set_registration_id(::uint32_t value) {
   _internal_set_registration_id(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
   // @@protoc_insertion_point(field_set:s4wave.wizard.ObjectWizard.registration_id)
 }
 inline ::uint32_t ObjectWizard::_internal_registration_id() const {
@@ -6490,6 +6507,71 @@ inline void ObjectWizard::set_allocated_plugin_id(::std::string* PROTOBUF_NULLAB
     _impl_.plugin_id_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:s4wave.wizard.ObjectWizard.plugin_id)
+}
+
+// string description = 13;
+inline void ObjectWizard::clear_description() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.description_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline const ::std::string& ObjectWizard::description() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.wizard.ObjectWizard.description)
+  return _internal_description();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ObjectWizard::set_description(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  _impl_.description_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.wizard.ObjectWizard.description)
+}
+inline ::std::string* PROTOBUF_NONNULL ObjectWizard::mutable_description()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  ::std::string* _s = _internal_mutable_description();
+  // @@protoc_insertion_point(field_mutable:s4wave.wizard.ObjectWizard.description)
+  return _s;
+}
+inline const ::std::string& ObjectWizard::_internal_description() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.description_.Get();
+}
+inline void ObjectWizard::_internal_set_description(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.description_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ObjectWizard::_internal_mutable_description() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.description_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ObjectWizard::release_description() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.wizard.ObjectWizard.description)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000200U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  auto* released = _impl_.description_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.description_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ObjectWizard::set_allocated_description(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  }
+  _impl_.description_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.description_.IsDefault()) {
+    _impl_.description_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.wizard.ObjectWizard.description)
 }
 
 // -------------------------------------------------------------------

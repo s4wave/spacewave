@@ -497,6 +497,7 @@ describe('SpaceCommands', () => {
         id: DeviceTypeID,
         label: 'Add Device',
         description: 'Devices',
+        iconName: undefined,
       },
     ])
 
@@ -516,6 +517,52 @@ describe('SpaceCommands', () => {
     expect(decoded.targetKeyPrefix).toBe(AddDeviceWizardTargetKeyPrefix)
     expect(decoded.name).toBe(AddDeviceDefaultName)
     expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
+  })
+
+  it('maps wizard descriptions and icons into create-object sub-items', async () => {
+    h.wizards = [
+      {
+        typeId: 'canvas',
+        displayName: 'Canvas',
+        description: 'Freeform canvas for drawing and layout',
+        category: 'Layout',
+        iconName: 'LuLayoutGrid',
+        createOpId: 'space/world/init-canvas',
+        keyPrefix: 'canvas/',
+        defaultNamePattern: 'Canvas',
+      },
+      {
+        typeId: 'notes/blog',
+        displayName: 'Blog',
+        category: 'Content',
+        createOpId: 'notes/blog/create',
+        keyPrefix: 'blog/',
+        persistent: true,
+        wizardTypeId: 'wizard/notes/blog',
+        defaultNamePattern: 'Blog',
+      },
+    ]
+    renderCommands()
+
+    const { subItems } = getCreateObjectCommandHandlers()
+    const items = await subItems('', new AbortController().signal)
+    expect(items).toEqual([
+      {
+        id: 'canvas',
+        label: 'Canvas',
+        description: 'Freeform canvas for drawing and layout',
+        iconName: 'LuLayoutGrid',
+      },
+      {
+        id: 'notes/blog',
+        label: 'Blog',
+        description: 'Content',
+        iconName: undefined,
+      },
+    ])
+
+    const filtered = await subItems('freeform', new AbortController().signal)
+    expect(filtered.map((item) => item.id)).toEqual(['canvas'])
   })
 
   it('launches a dynamic persistent wizard with an exact wizard type id', async () => {

@@ -347,6 +347,51 @@ describe('CommandPalette', () => {
     })
   })
 
+  it('renders sub-item icons and descriptions', async () => {
+    mockCommands = [
+      {
+        command: {
+          commandId: 'spacewave.create-object',
+          label: 'Create Object',
+          menuPath: 'File/Create Object',
+          hasSubItems: true,
+        },
+        active: true,
+        enabled: true,
+      },
+    ]
+    mockGetSubItems.mockResolvedValue([
+      {
+        id: 'canvas',
+        label: 'Canvas',
+        description: 'Freeform canvas for drawing and layout',
+        iconName: 'LuLayoutGrid',
+      },
+      {
+        id: 'notes/blog',
+        label: 'Blog',
+        description: 'Content',
+      },
+    ])
+
+    const view = render(<CommandPalette />)
+    act(() => paletteHandler?.())
+    fireEvent.click(view.getByText('Create Object'))
+
+    await waitFor(() => {
+      expect(view.getByText('Canvas')).toBeTruthy()
+    })
+    expect(
+      view.getByText('Freeform canvas for drawing and layout'),
+    ).toBeTruthy()
+    expect(
+      view.getByText('Canvas').closest('button')?.querySelector('svg'),
+    ).toBeTruthy()
+    expect(
+      view.getByText('Blog').closest('button')?.querySelector('svg'),
+    ).toBeNull()
+  })
+
   it('keeps f as a chord step at the root instead of starting a filter', () => {
     mockCommands = [
       {

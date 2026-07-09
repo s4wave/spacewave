@@ -159,7 +159,8 @@ export function SpaceCommands({
         if (
           q &&
           !w.displayName?.toLowerCase().includes(q) &&
-          !w.category?.toLowerCase().includes(q)
+          !w.category?.toLowerCase().includes(q) &&
+          !w.description?.toLowerCase().includes(q)
         ) {
           return []
         }
@@ -167,7 +168,8 @@ export function SpaceCommands({
           {
             id: w.typeId ?? '',
             label: w.displayName ?? '',
-            description: w.category,
+            description: w.description || w.category,
+            iconName: w.iconName,
           },
         ]
       })

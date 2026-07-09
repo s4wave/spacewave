@@ -153,6 +153,8 @@ message ObjectWizard {
   uint32 registration_id = 11;
   // PluginId is the registering plugin's ID.
   string plugin_id = 12;
+  // Description is an optional one-line description shown under the display name.
+  string description = 13;
 }
 
 // WizardState is the block state for a persistent wizard object.
