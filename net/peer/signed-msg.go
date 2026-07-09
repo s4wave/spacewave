@@ -6,8 +6,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/s4wave/spacewave/net/hash"
+	"github.com/zeebo/blake3"
 )
 
 // NewSignedMsg constructs/signs/encodes a new signed message.

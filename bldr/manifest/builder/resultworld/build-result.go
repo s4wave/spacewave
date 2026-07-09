@@ -27,7 +27,7 @@ func SetManifestBuildResult(
 	manifestObjKey string,
 	result *bldr_manifest_builder.BuilderResult,
 ) (*bucket.ObjectRef, error) {
-	if err := result.ValidateBuildCache(); err != nil {
+	if err := result.Validate(); err != nil {
 		return nil, err
 	}
 
@@ -80,7 +80,7 @@ func LookupManifestBuildResult(
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := result.ValidateBuildCache(); err != nil {
+	if err := result.Validate(); err != nil {
 		return nil, ref, err
 	}
 	return result, ref, nil

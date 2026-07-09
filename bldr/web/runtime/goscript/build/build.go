@@ -29,8 +29,6 @@ const (
 	GoScriptSharedWebPkgID       = "@s4wave/goscript-shared"
 	goScriptBundleReportFilename = "plugin-goscript-bundle-report.json"
 	rolldownCLIRelPath           = "node_modules/rolldown/dist/cli.mjs"
-
-	goScriptSidecarOutputDir = "sidecars"
 )
 
 // GoScriptSharedImportMap maps a local @goscript import to the provider URL
@@ -143,13 +141,13 @@ func BuildWebGoScriptPluginScriptWithOptions(
 	mainImport := "@goscript/" + strings.Trim(mainPackagePath, "/") + "/plugin.gs.js"
 	entrypoint := "import runGoScriptPlugin from " + strconv.Quote(runtimeImport) + "\n" +
 		"import { main as pluginMain } from " + strconv.Quote(mainImport) + "\n\n" +
-		"export default async function main(api, _abortSignal, runtimeEnv) {\n" +
-		"  await runGoScriptPlugin(api, () => Promise.resolve(pluginMain), runtimeEnv)\n" +
+		"export default async function main(api) {\n" +
+		"  await runGoScriptPlugin(api, () => Promise.resolve(pluginMain))\n" +
 		"}\n"
 	if codeSplitting {
 		entrypoint = "import runGoScriptPlugin from " + strconv.Quote(runtimeImport) + "\n\n" +
-			"export default async function main(api, _abortSignal, runtimeEnv) {\n" +
-			"  await runGoScriptPlugin(api, async () => (await import(" + strconv.Quote(mainImport) + ")).main, runtimeEnv)\n" +
+			"export default async function main(api) {\n" +
+			"  await runGoScriptPlugin(api, async () => (await import(" + strconv.Quote(mainImport) + ")).main)\n" +
 			"}\n"
 	}
 	if err := os.WriteFile(entrypointPath, []byte(entrypoint), 0o644); err != nil {
@@ -301,12 +299,6 @@ func runRolldownGoScriptBundle(
 	if err != nil {
 		return nil, err
 	}
-	sidecarInputs, err := deployGoScriptSidecars(bldrDistRoot, filepath.Dir(outPath))
-	if err != nil {
-		return nil, err
-	}
-	inputPaths = append(inputPaths, sidecarInputs...)
-	slices.Sort(inputPaths)
 	if err := writeGoScriptBundleReport(GoScriptBundleReportPath(workDir), outPath, inputPaths, minify, sourcemaps, codeSplitting); err != nil {
 		return nil, err
 	}
@@ -451,11 +443,8 @@ func newRolldownCommand(
 	bldrDistRoot,
 	configPath string,
 ) (*oexec.Cmd, error) {
-	rolldownCLIPath, installRoot, err := ensureRolldownRuntimeDeps(ctx, le, stateDir, bldrDistRoot)
+	rolldownCLIPath, err := ensureRolldownCLIPath(ctx, le, stateDir, bldrDistRoot)
 	if err != nil {
-		return nil, err
-	}
-	if err := npm.EnsureNodeModulesLink(filepath.Dir(configPath), installRoot); err != nil {
 		return nil, err
 	}
 	bunPath, err := npm.ResolveBunPath(ctx, le, stateDir)
@@ -465,21 +454,21 @@ func newRolldownCommand(
 	return bldr_exec.NewCmd(ctx, bunPath, rolldownCLIPath, "--config", configPath), nil
 }
 
-func ensureRolldownRuntimeDeps(ctx context.Context, le *logrus.Entry, stateDir, bldrDistRoot string) (string, string, error) {
+func ensureRolldownCLIPath(ctx context.Context, le *logrus.Entry, stateDir, bldrDistRoot string) (string, error) {
 	depsRoot := filepath.Join(bldrDistRoot, "dist", "deps")
 	if cliPath := installedRolldownCLIPath(depsRoot); cliPath != "" {
-		return cliPath, depsRoot, nil
+		return cliPath, nil
 	}
 
 	srcPackageJSON := filepath.Join(depsRoot, "package.json")
 	installDir := filepath.Join(stateDir, "goscript-rolldown")
 	if err := npm.EnsureBunInstall(ctx, le, stateDir, srcPackageJSON, installDir); err != nil {
-		return "", "", errors.Wrap(err, "install bldr rolldown tool dependencies")
+		return "", errors.Wrap(err, "install bldr rolldown tool dependencies")
 	}
 	if cliPath := installedRolldownCLIPath(installDir); cliPath != "" {
-		return cliPath, installDir, nil
+		return cliPath, nil
 	}
-	return "", "", errors.Errorf("rolldown CLI missing after installing %s", srcPackageJSON)
+	return "", errors.Errorf("rolldown CLI missing after installing %s", srcPackageJSON)
 }
 
 func installedRolldownCLIPath(root string) string {
@@ -502,90 +491,6 @@ func resolveGoScriptSourceRoot(bldrDistRoot string) string {
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			return bldrDistRoot
-		}
-		dir = parent
-	}
-}
-
-type goScriptSidecar struct {
-	Name      string
-	SourceRel string
-	OutputRel string
-}
-
-var goScriptSidecars = []goScriptSidecar{
-	{
-		Name:      "blake3",
-		SourceRel: filepath.Join("rs", "blake3", "blake3.wasm"),
-		OutputRel: filepath.Join(goScriptSidecarOutputDir, "blake3.wasm"),
-	},
-}
-
-func deployGoScriptSidecars(bldrDistRoot, outDir string) ([]string, error) {
-	inputs := make([]string, 0, len(goScriptSidecars))
-	for _, sidecar := range goScriptSidecars {
-		src, err := resolveGoScriptSidecarSource(bldrDistRoot, sidecar)
-		if err != nil {
-			return nil, err
-		}
-		if src == "" {
-			continue
-		}
-		dst := filepath.Join(outDir, sidecar.OutputRel)
-		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-			return nil, errors.Wrapf(err, "create goscript sidecar output dir for %s", sidecar.Name)
-		}
-		data, err := os.ReadFile(src)
-		if err != nil {
-			return nil, errors.Wrapf(err, "read goscript sidecar %s", sidecar.Name)
-		}
-		if err := os.WriteFile(dst, data, 0o644); err != nil {
-			return nil, errors.Wrapf(err, "write goscript sidecar %s", sidecar.Name)
-		}
-		// Match the rolldown input normalization: report the symlink-resolved
-		// source path so macOS /var vs /private/var aliases compare equal.
-		if realPath, err := filepath.EvalSymlinks(src); err == nil {
-			src = realPath
-		}
-		inputs = append(inputs, filepath.Clean(src))
-	}
-	return inputs, nil
-}
-
-func resolveGoScriptSidecarSource(bldrDistRoot string, sidecar goScriptSidecar) (string, error) {
-	sourceRoot, sourceRootHasModule := resolveGoScriptSourceRootWithModule(bldrDistRoot)
-	candidates := []string{
-		filepath.Join(sourceRoot, sidecar.SourceRel),
-		filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, sidecar.OutputRel),
-	}
-	for _, candidate := range candidates {
-		info, err := os.Stat(candidate)
-		switch {
-		case err == nil && !info.IsDir():
-			return candidate, nil
-		case err == nil:
-			return "", errors.Errorf("goscript sidecar %s path is a directory: %s", sidecar.Name, candidate)
-		case os.IsNotExist(err):
-			continue
-		default:
-			return "", errors.Wrapf(err, "stat goscript sidecar %s", sidecar.Name)
-		}
-	}
-	if !sourceRootHasModule {
-		return "", nil
-	}
-	return "", errors.Errorf("goscript sidecar %s missing; rebuild %s", sidecar.Name, sidecar.SourceRel)
-}
-
-func resolveGoScriptSourceRootWithModule(bldrDistRoot string) (string, bool) {
-	dir := bldrDistRoot
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir, true
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return bldrDistRoot, false
 		}
 		dir = parent
 	}
@@ -969,7 +874,7 @@ func renderRolldownGoScriptOutputConfig(codeSplitting bool) string {
       groups: [
         {
           name: "shared",
-          test: (id) => !isEntrypointModule(id) && !id.startsWith("\0") && !isGoScriptModule(id, "github.com/s4wave/"),
+          test: (id) => isGoScriptModule(id, "") && !isGoScriptModule(id, "github.com/s4wave/"),
           priority: 1,
         },
         {
@@ -1029,18 +934,6 @@ function existingTypeScriptSibling(filePath) {
   }
   if (existingFile(filePath)) return filePath
   return null
-}
-
-function realFilePath(filePath) {
-  try {
-    return fs.realpathSync(filePath)
-  } catch {
-    return path.normalize(filePath)
-  }
-}
-
-function isEntrypointModule(id) {
-  return realFilePath(id) === realFilePath(opts.entrypointPath)
 }
 
 function existingSourcePath(filePath) {
@@ -1134,40 +1027,6 @@ function resolveGoImport(source) {
   return existingSourcePath(path.join(opts.bldrDistRoot, "vendor", importPath))
 }
 
-function barePackageParts(source) {
-  if (!source || source.startsWith(".") || source.startsWith("/") || source.startsWith("\0")) return null
-  const parts = source.split("/")
-  if (source.startsWith("@")) {
-    if (parts.length < 2) return null
-    return {
-      packageParts: parts.slice(0, 2),
-      subpathParts: parts.slice(2),
-    }
-  }
-  return {
-    packageParts: parts.slice(0, 1),
-    subpathParts: parts.slice(1),
-  }
-}
-
-function resolveNodeModuleImport(source) {
-  const parts = barePackageParts(source)
-  if (!parts) return null
-  const packageRoot = path.join(process.cwd(), "node_modules", ...parts.packageParts)
-  if (parts.subpathParts.length !== 0) {
-    return existingSourcePath(path.join(packageRoot, ...parts.subpathParts))
-  }
-  try {
-    const pkg = JSON.parse(fs.readFileSync(path.join(packageRoot, "package.json"), "utf8"))
-    const entry = pkg.module || pkg.browser || pkg.main || "index.js"
-    if (typeof entry === "string") {
-      return existingSourcePath(path.join(packageRoot, entry))
-    }
-  } catch {
-  }
-  return existingSourcePath(path.join(packageRoot, "index.js"))
-}
-
 function resolveDistSourceImport(source) {
   if (!source.endsWith(".js")) return null
   if (!bldrDistSourcePrefixes.some((prefix) => source.startsWith(prefix))) return null
@@ -1210,11 +1069,6 @@ const plugin = {
     if (distSourceImport) {
       trackInput(distSourceImport)
       return distSourceImport
-    }
-    const nodeModuleImport = resolveNodeModuleImport(source)
-    if (nodeModuleImport) {
-      trackInput(nodeModuleImport)
-      return nodeModuleImport
     }
     if (source.startsWith("@goscript/")) {
       const sharedImport = resolveSharedGoScriptImport(source, importer)

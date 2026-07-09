@@ -2,12 +2,9 @@
 
 package cdn
 
-import "os"
-
-// BaseURL returns the CDN origin used for anonymous read artifacts.
+// BaseURL returns the CDN origin used for anonymous read artifacts. Prod
+// builds always return =DefaultBaseURL=; the env-var override ships only
+// with dev builds (see =base-url-dev.go=).
 func BaseURL() string {
-	if env := os.Getenv("SPACEWAVE_CDN_BASE_URL"); env != "" {
-		return env
-	}
 	return DefaultBaseURL
 }

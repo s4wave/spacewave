@@ -22,20 +22,6 @@ describe('buildStableEntryFileName', () => {
       'frontend.mjs',
     )
   })
-
-  it('uses the basename for modules outside the root dir', () => {
-    const rootDir = path.join(path.sep, 'repo', 'game')
-    const external = path.join(
-      path.sep,
-      'tmp',
-      'bd-app',
-      'app',
-      'web',
-      'App.mjs',
-    )
-
-    expect(buildStableEntryFileName(rootDir, external, 'App')).toBe('App.mjs')
-  })
 })
 
 describe('buildWebPkgImportSpecifier', () => {

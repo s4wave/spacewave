@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"slices"
 
-	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/protocol"
+	"github.com/zeebo/blake3"
 )
 
 // HashSize is the size of a BLAKE3 hash in bytes.

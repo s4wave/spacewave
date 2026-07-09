@@ -4,6 +4,7 @@ import type { Root } from '@s4wave/sdk/root'
 import type { Session } from '@s4wave/sdk/session'
 import type { CreateSpaceResponse } from '@s4wave/sdk/session/session.pb.js'
 import type { CreateAccountResponse } from '@s4wave/sdk/provider/local/local.pb.js'
+import type { WatchQuickstartsResponse } from '@s4wave/sdk/quickstart/registry/registry.pb.js'
 import { QuickstartRegistryResourceServiceClient } from '@s4wave/sdk/quickstart/registry/registry_srpc.pb.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { LocalProvider } from '@s4wave/sdk/provider/local/local.js'
@@ -92,23 +93,13 @@ import {
   AddDeviceWizardTypeID,
 } from '@s4wave/app/device/add-device-wizard.js'
 
-import {
-  buildNotebookUnixfsObjectKey,
-  createDocsClientSide,
-  createNotebookClientSide,
-} from '../../plugin/notes/content-seed.js'
-import { createBlogClientSide } from '../../plugin/notes/blog-seed.js'
-import { NotebookTypeID } from '../../plugin/notes/sdk/notebook.js'
-import { DocsTypeID } from '../../plugin/notes/sdk/docs.js'
-import { BlogTypeID } from '../../plugin/notes/sdk/blog.js'
-import { NOTEBOOK_OBJECT_KEY } from '../../plugin/notes/proto/init-notebook.js'
-import { BLOG_OBJECT_KEY } from '../../plugin/notes/proto/create-blog.js'
 import { type QuickstartSpaceCreateId } from './options.js'
 import { markQuickstartStartupBoundary } from './startup-boundary.js'
 
 const NOTES_PLUGIN_ID = 'spacewave-notes'
 const V86_PLUGIN_ID = 'spacewave-v86'
 const SET_V86_STATE_OP_ID = 'vm/v86/set-state'
+const QUICKSTART_REGISTRATION_TIMEOUT_MS = import.meta.env?.DEV ? 240000 : 30000
 const QUICKSTART_LOCAL_PROVIDER_READY_TIMEOUT_MS = 120000
 const QUICKSTART_CREATE_LOCAL_ACCOUNT_TIMEOUT_MS = import.meta.env?.DEV
   ? 240000
@@ -576,21 +567,6 @@ export interface QuickstartSetup {
   spaceWorld: EngineWorldState
 }
 
-function getQuickstartRequiredPluginIds(
-  quickstartId: QuickstartSpaceCreateId,
-): string[] {
-  switch (quickstartId) {
-    case 'notebook':
-    case 'docs':
-    case 'blog':
-      return [NOTES_PLUGIN_ID]
-    case 'v86':
-      return [V86_PLUGIN_ID]
-    default:
-      return []
-  }
-}
-
 // QuickstartSetupParams contains the parameters for creating a quickstart setup.
 export interface QuickstartSetupParams {
   session: Session
@@ -600,7 +576,6 @@ export interface QuickstartSetupParams {
   timing?: QuickstartSetupTiming
   progress?: QuickstartProgressReporter
   mountContents?: boolean
-  initialPluginIds?: string[]
 }
 
 // createQuickstartSetupFromSession creates a quickstart setup from an existing session and space response.
@@ -620,7 +595,6 @@ export async function createQuickstartSetupFromSession(
     timing,
     progress,
     mountContents = true,
-    initialPluginIds = [],
   } = params
 
   // Mount the space from the response.
@@ -650,18 +624,6 @@ export async function createQuickstartSetupFromSession(
       return await space.accessWorldState(true, abortSignal)
     }),
   )
-  if (initialPluginIds.length) {
-    await timeQuickstartPhase(timing, 'install-space-plugins', () =>
-      ensureSpacePlugins(
-        space,
-        spaceWorld,
-        initialPluginIds,
-        undefined,
-        abortSignal,
-      ),
-    )
-  }
-
   let spaceContents: SpaceContents | undefined
   if (mountContents) {
     reportQuickstartProgress(progress, 'frame', 'Mounting space contents')
@@ -721,7 +683,6 @@ export async function createQuickstartSetup(
       timing,
       progress,
       mountContents: quickstartId !== 'drive',
-      initialPluginIds: getQuickstartRequiredPluginIds(quickstartId),
     })
 
     // Construct the result
@@ -774,14 +735,11 @@ export function getQuickstartInitialObjectKey(
       return ''
     case 'space':
     case 'git':
+    case 'notebook':
+    case 'docs':
+    case 'blog':
     case 'v86':
       return ''
-    case 'notebook':
-      return NOTEBOOK_OBJECT_KEY
-    case 'docs':
-      return DOCS_QUICKSTART_OBJECT_KEY
-    case 'blog':
-      return BLOG_OBJECT_KEY
     default: {
       const _exhaustive: never = quickstartId
       return _exhaustive
@@ -805,16 +763,13 @@ export function getQuickstartInitialObjectType(
       return ObjectLayoutTypeID
     case 'space':
     case 'git':
+    case 'notebook':
+    case 'docs':
+    case 'blog':
     case 'chat':
     case 'v86':
     case 'device':
       return ''
-    case 'notebook':
-      return NotebookTypeID
-    case 'docs':
-      return DocsTypeID
-    case 'blog':
-      return BlogTypeID
     default: {
       const _exhaustive: never = quickstartId
       return _exhaustive
@@ -929,15 +884,11 @@ export async function createSpaceSettingsObject(
 }
 
 export async function ensureSpacePlugins(
-  space: Space,
   spaceWorld: IWorldState,
   pluginIds: string[],
   indexPath?: string,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  await Promise.all(
-    pluginIds.map((pluginId) => space.addSpacePlugin(pluginId, abortSignal)),
-  )
   await createSpaceSettingsObject(spaceWorld, abortSignal, indexPath, pluginIds)
 }
 
@@ -958,13 +909,56 @@ export async function executeDynamicQuickstart(
   const pluginIds = resp.pluginIds ?? []
   if (resp.indexPath || pluginIds.length) {
     await ensureSpacePlugins(
-      setup.space,
       setup.spaceWorld,
       pluginIds,
       resp.indexPath || undefined,
       abortSignal,
     )
   }
+}
+
+function hasQuickstartRegistration(
+  resp: { registrations?: WatchQuickstartsResponse['registrations'] },
+  quickstartId: string,
+  pluginId: string,
+): boolean {
+  return (resp.registrations ?? []).some(
+    (reg) =>
+      reg.quickstartId === quickstartId && (reg.pluginId ?? '') === pluginId,
+  )
+}
+
+async function waitForQuickstartRegistration(
+  root: Root,
+  quickstartId: string,
+  pluginId: string,
+  abortSignal?: AbortSignal,
+): Promise<void> {
+  const registry = new QuickstartRegistryResourceServiceClient(root.client)
+  const list = await registry.ListQuickstarts({}, abortSignal)
+  if (hasQuickstartRegistration(list, quickstartId, pluginId)) return
+
+  const timeoutSignal = AbortSignal.timeout(QUICKSTART_REGISTRATION_TIMEOUT_MS)
+  const signal = abortSignal
+    ? AbortSignal.any([abortSignal, timeoutSignal])
+    : timeoutSignal
+  try {
+    const stream = registry.WatchQuickstarts({}, signal)
+    for await (const resp of stream) {
+      if (hasQuickstartRegistration(resp, quickstartId, pluginId)) return
+    }
+  } catch (err) {
+    if (timeoutSignal.aborted && !abortSignal?.aborted) {
+      throw new Error(
+        'Timed out waiting for quickstart registration: ' + quickstartId,
+        { cause: err },
+      )
+    }
+    throw err
+  }
+  throw new Error(
+    'Quickstart registration stream ended before registration: ' + quickstartId,
+  )
 }
 
 // initUnixFS initializes an empty UnixFS filesystem.
@@ -1327,8 +1321,6 @@ async function initSqlQuickstart(
   )
 }
 
-const DOCS_QUICKSTART_OBJECT_KEY = 'documentation'
-
 function isNotesQuickstartId(
   quickstartId: QuickstartSpaceCreateId,
 ): quickstartId is NotesQuickstartId {
@@ -1339,58 +1331,6 @@ function isNotesQuickstartId(
   )
 }
 
-function getNotesQuickstartIndexPath(quickstartId: NotesQuickstartId): string {
-  switch (quickstartId) {
-    case 'notebook':
-      return NOTEBOOK_OBJECT_KEY
-    case 'docs':
-      return DOCS_QUICKSTART_OBJECT_KEY
-    case 'blog':
-      return BLOG_OBJECT_KEY
-  }
-}
-
-async function seedNotesQuickstartContent(
-  setup: QuickstartSetup,
-  quickstartId: NotesQuickstartId,
-  abortSignal?: AbortSignal,
-): Promise<void> {
-  const timestamp = new Date()
-  switch (quickstartId) {
-    case 'notebook':
-      await createNotebookClientSide(
-        setup.spaceWorld,
-        NOTEBOOK_OBJECT_KEY,
-        buildNotebookUnixfsObjectKey(NOTEBOOK_OBJECT_KEY),
-        'Notes',
-        timestamp,
-        abortSignal,
-      )
-      return
-    case 'docs':
-      await createDocsClientSide(
-        setup.spaceWorld,
-        DOCS_QUICKSTART_OBJECT_KEY,
-        'Documentation',
-        '',
-        timestamp,
-        abortSignal,
-      )
-      return
-    case 'blog':
-      await createBlogClientSide(
-        setup.spaceWorld,
-        BLOG_OBJECT_KEY,
-        'Blog',
-        '',
-        '',
-        timestamp,
-        abortSignal,
-      )
-      return
-  }
-}
-
 async function initNotesQuickstart(
   setup: QuickstartSetup,
   quickstartId: QuickstartSpaceCreateId,
@@ -1399,20 +1339,30 @@ async function initNotesQuickstart(
   if (!isNotesQuickstartId(quickstartId)) {
     throw new Error('Unknown notes quickstart ID: ' + quickstartId)
   }
-  // eslint-disable-next-line react-doctor/async-parallel -- plugin settings must persist before client-side seed errors surface.
+  if (!setup.root) {
+    throw new Error('Root resource is required for Notes quickstart seeding')
+  }
+  await prepareNotesQuickstart(setup.root, setup, quickstartId, abortSignal)
+  await executeDynamicQuickstart(setup.root, quickstartId, setup, abortSignal)
+}
+
+async function prepareNotesQuickstart(
+  root: Root,
+  setup: QuickstartSetup,
+  quickstartId: NotesQuickstartId,
+  abortSignal?: AbortSignal,
+): Promise<void> {
   await ensureSpacePlugins(
-    setup.space,
     setup.spaceWorld,
     [NOTES_PLUGIN_ID],
     undefined,
     abortSignal,
   )
-  await seedNotesQuickstartContent(setup, quickstartId, abortSignal)
-  await createSpaceSettingsObject(
-    setup.spaceWorld,
+  await waitForQuickstartRegistration(
+    root,
+    quickstartId,
+    NOTES_PLUGIN_ID,
     abortSignal,
-    getNotesQuickstartIndexPath(quickstartId),
-    [NOTES_PLUGIN_ID],
   )
 }
 

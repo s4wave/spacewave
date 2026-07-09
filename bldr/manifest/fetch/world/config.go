@@ -2,10 +2,8 @@ package manifest_fetch_world
 
 import (
 	"regexp"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/pkg/errors"
 	manifest_fetch "github.com/s4wave/spacewave/bldr/manifest/fetch"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/util/confparse"
@@ -36,15 +34,6 @@ func (c *Config) Validate() error {
 	if _, err := c.ParseFetchManifestIdRe(); err != nil {
 		return err
 	}
-	if _, err := c.ParsePointerTTLDur(); err != nil {
-		return errors.Wrap(err, "pointer_ttl_dur")
-	}
-	if c.GetCdnSpaceId() != "" && c.GetCdnBaseUrl() == "" {
-		return errors.New("cdn_base_url cannot be empty when cdn_space_id is set")
-	}
-	if c.GetCdnBaseUrl() != "" && c.GetCdnSpaceId() == "" {
-		return errors.New("cdn_space_id cannot be empty when cdn_base_url is set")
-	}
 	return nil
 }
 
@@ -57,11 +46,6 @@ func (c *Config) SetFetchManifestIdRe(re string) {
 // Returns nil if the field was empty.
 func (c *Config) ParseFetchManifestIdRe() (*regexp.Regexp, error) {
 	return confparse.ParseRegexp(c.GetFetchManifestIdRe())
-}
-
-// ParsePointerTTLDur parses the root pointer TTL field.
-func (c *Config) ParsePointerTTLDur() (time.Duration, error) {
-	return confparse.ParseDuration(c.GetPointerTtlDur())
 }
 
 // _ is a type assertion

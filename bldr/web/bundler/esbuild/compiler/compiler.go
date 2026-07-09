@@ -22,7 +22,6 @@ import (
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
-	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	web_pkg_vite "github.com/s4wave/spacewave/bldr/web/pkg/vite"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
@@ -333,7 +332,6 @@ func (c *Controller) BuildManifest(
 					isRelease,
 					jsMinification,
 					jsSourcemaps,
-					web_pkg_external.BldrExternal,
 					client,
 					filepath.Join(viteWorkingPath, "cache"),
 				)

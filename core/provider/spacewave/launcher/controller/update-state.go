@@ -12,6 +12,16 @@ func (c *Controller) setUpdateError(err error) {
 	})
 }
 
+func (c *Controller) clearMatchingUpdateError() {
+	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
+		if info.GetUpdateState().GetPhase() != spacewave_launcher.UpdatePhase_UpdatePhase_ERROR {
+			return false, nil
+		}
+		info.UpdateState = nil
+		return true, nil
+	})
+}
+
 func (c *Controller) clearUpdateState() {
 	_, _, _ = c.modifyLauncherInfo(func(info *spacewave_launcher.LauncherInfo) (bool, error) {
 		if info.UpdateState == nil {

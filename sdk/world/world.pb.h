@@ -400,18 +400,10 @@ class TrackedWorldStateSnapshot;
 struct TrackedWorldStateSnapshotDefaultTypeInternal;
 extern TrackedWorldStateSnapshotDefaultTypeInternal _TrackedWorldStateSnapshot_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull TrackedWorldStateSnapshot_class_data_;
-class TrackedWorldStateSnapshot_GraphAccess;
-struct TrackedWorldStateSnapshot_GraphAccessDefaultTypeInternal;
-extern TrackedWorldStateSnapshot_GraphAccessDefaultTypeInternal _TrackedWorldStateSnapshot_GraphAccess_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull TrackedWorldStateSnapshot_GraphAccess_class_data_;
 class TrackedWorldStateSnapshot_ObjectAccess;
 struct TrackedWorldStateSnapshot_ObjectAccessDefaultTypeInternal;
 extern TrackedWorldStateSnapshot_ObjectAccessDefaultTypeInternal _TrackedWorldStateSnapshot_ObjectAccess_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull TrackedWorldStateSnapshot_ObjectAccess_class_data_;
-class TrackedWorldStateSnapshot_ObjectPrefixAccess;
-struct TrackedWorldStateSnapshot_ObjectPrefixAccessDefaultTypeInternal;
-extern TrackedWorldStateSnapshot_ObjectPrefixAccessDefaultTypeInternal _TrackedWorldStateSnapshot_ObjectPrefixAccess_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull TrackedWorldStateSnapshot_ObjectPrefixAccess_class_data_;
 class ValidRequest;
 struct ValidRequestDefaultTypeInternal;
 extern ValidRequestDefaultTypeInternal _ValidRequest_default_instance_;
@@ -1442,7 +1434,7 @@ class WaitRevResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WaitRevResponse*>(
         &_WaitRevResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 94;
+  static constexpr int kIndexInFileMessages = 92;
   friend void swap(WaitRevResponse& a, WaitRevResponse& b) { a.Swap(&b); }
   inline void Swap(WaitRevResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1632,7 +1624,7 @@ class WaitRevRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const WaitRevRequest*>(
         &_WaitRevRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 93;
+  static constexpr int kIndexInFileMessages = 91;
   friend void swap(WaitRevRequest& a, WaitRevRequest& b) { a.Swap(&b); }
   inline void Swap(WaitRevRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1834,7 +1826,7 @@ class ValidResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ValidResponse*>(
         &_ValidResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 70;
+  static constexpr int kIndexInFileMessages = 68;
   friend void swap(ValidResponse& a, ValidResponse& b) { a.Swap(&b); }
   inline void Swap(ValidResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2023,7 +2015,7 @@ class ValidRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const ValidRequest*>(
         &_ValidRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 69;
+  static constexpr int kIndexInFileMessages = 67;
   friend void swap(ValidRequest& a, ValidRequest& b) { a.Swap(&b); }
   inline void Swap(ValidRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2101,201 +2093,6 @@ class ValidRequest final : public ::google::protobuf::internal::ZeroFieldsBase
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ValidRequest_class_data_;
-// -------------------------------------------------------------------
-
-class TrackedWorldStateSnapshot_ObjectPrefixAccess final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess) */ {
- public:
-  inline TrackedWorldStateSnapshot_ObjectPrefixAccess() : TrackedWorldStateSnapshot_ObjectPrefixAccess(nullptr) {}
-  ~TrackedWorldStateSnapshot_ObjectPrefixAccess() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(TrackedWorldStateSnapshot_ObjectPrefixAccess* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(TrackedWorldStateSnapshot_ObjectPrefixAccess));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR TrackedWorldStateSnapshot_ObjectPrefixAccess(::google::protobuf::internal::ConstantInitialized);
-
-  inline TrackedWorldStateSnapshot_ObjectPrefixAccess(const TrackedWorldStateSnapshot_ObjectPrefixAccess& from) : TrackedWorldStateSnapshot_ObjectPrefixAccess(nullptr, from) {}
-  inline TrackedWorldStateSnapshot_ObjectPrefixAccess(TrackedWorldStateSnapshot_ObjectPrefixAccess&& from) noexcept
-      : TrackedWorldStateSnapshot_ObjectPrefixAccess(nullptr, ::std::move(from)) {}
-  inline TrackedWorldStateSnapshot_ObjectPrefixAccess& operator=(const TrackedWorldStateSnapshot_ObjectPrefixAccess& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline TrackedWorldStateSnapshot_ObjectPrefixAccess& operator=(TrackedWorldStateSnapshot_ObjectPrefixAccess&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const TrackedWorldStateSnapshot_ObjectPrefixAccess& default_instance() {
-    return *reinterpret_cast<const TrackedWorldStateSnapshot_ObjectPrefixAccess*>(
-        &_TrackedWorldStateSnapshot_ObjectPrefixAccess_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 64;
-  friend void swap(TrackedWorldStateSnapshot_ObjectPrefixAccess& a, TrackedWorldStateSnapshot_ObjectPrefixAccess& b) { a.Swap(&b); }
-  inline void Swap(TrackedWorldStateSnapshot_ObjectPrefixAccess* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(TrackedWorldStateSnapshot_ObjectPrefixAccess* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  TrackedWorldStateSnapshot_ObjectPrefixAccess* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<TrackedWorldStateSnapshot_ObjectPrefixAccess>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const TrackedWorldStateSnapshot_ObjectPrefixAccess& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const TrackedWorldStateSnapshot_ObjectPrefixAccess& from) { TrackedWorldStateSnapshot_ObjectPrefixAccess::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(TrackedWorldStateSnapshot_ObjectPrefixAccess* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess"; }
-
-  explicit TrackedWorldStateSnapshot_ObjectPrefixAccess(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  TrackedWorldStateSnapshot_ObjectPrefixAccess(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const TrackedWorldStateSnapshot_ObjectPrefixAccess& from);
-  TrackedWorldStateSnapshot_ObjectPrefixAccess(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, TrackedWorldStateSnapshot_ObjectPrefixAccess&& from) noexcept
-      : TrackedWorldStateSnapshot_ObjectPrefixAccess(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kPrefixFieldNumber = 1,
-  };
-  // string prefix = 1;
-  void clear_prefix() ;
-  const ::std::string& prefix() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_prefix(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_prefix();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_prefix();
-  void set_allocated_prefix(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_prefix() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_prefix(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_prefix();
-
-  public:
-  // @@protoc_insertion_point(class_scope:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
-                                   0, 72,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const TrackedWorldStateSnapshot_ObjectPrefixAccess& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr prefix_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull TrackedWorldStateSnapshot_ObjectPrefixAccess_class_data_;
 // -------------------------------------------------------------------
 
 class TrackedWorldStateSnapshot_ObjectAccess final : public ::google::protobuf::Message
@@ -2503,252 +2300,6 @@ class TrackedWorldStateSnapshot_ObjectAccess final : public ::google::protobuf::
 };
 
 extern const ::google::protobuf::internal::ClassDataFull TrackedWorldStateSnapshot_ObjectAccess_class_data_;
-// -------------------------------------------------------------------
-
-class TrackedWorldStateSnapshot_GraphAccess final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:s4wave.world.TrackedWorldStateSnapshot.GraphAccess) */ {
- public:
-  inline TrackedWorldStateSnapshot_GraphAccess() : TrackedWorldStateSnapshot_GraphAccess(nullptr) {}
-  ~TrackedWorldStateSnapshot_GraphAccess() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(TrackedWorldStateSnapshot_GraphAccess* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(TrackedWorldStateSnapshot_GraphAccess));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR TrackedWorldStateSnapshot_GraphAccess(::google::protobuf::internal::ConstantInitialized);
-
-  inline TrackedWorldStateSnapshot_GraphAccess(const TrackedWorldStateSnapshot_GraphAccess& from) : TrackedWorldStateSnapshot_GraphAccess(nullptr, from) {}
-  inline TrackedWorldStateSnapshot_GraphAccess(TrackedWorldStateSnapshot_GraphAccess&& from) noexcept
-      : TrackedWorldStateSnapshot_GraphAccess(nullptr, ::std::move(from)) {}
-  inline TrackedWorldStateSnapshot_GraphAccess& operator=(const TrackedWorldStateSnapshot_GraphAccess& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline TrackedWorldStateSnapshot_GraphAccess& operator=(TrackedWorldStateSnapshot_GraphAccess&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const TrackedWorldStateSnapshot_GraphAccess& default_instance() {
-    return *reinterpret_cast<const TrackedWorldStateSnapshot_GraphAccess*>(
-        &_TrackedWorldStateSnapshot_GraphAccess_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 65;
-  friend void swap(TrackedWorldStateSnapshot_GraphAccess& a, TrackedWorldStateSnapshot_GraphAccess& b) { a.Swap(&b); }
-  inline void Swap(TrackedWorldStateSnapshot_GraphAccess* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(TrackedWorldStateSnapshot_GraphAccess* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  TrackedWorldStateSnapshot_GraphAccess* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<TrackedWorldStateSnapshot_GraphAccess>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const TrackedWorldStateSnapshot_GraphAccess& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const TrackedWorldStateSnapshot_GraphAccess& from) { TrackedWorldStateSnapshot_GraphAccess::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(TrackedWorldStateSnapshot_GraphAccess* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.world.TrackedWorldStateSnapshot.GraphAccess"; }
-
-  explicit TrackedWorldStateSnapshot_GraphAccess(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  TrackedWorldStateSnapshot_GraphAccess(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const TrackedWorldStateSnapshot_GraphAccess& from);
-  TrackedWorldStateSnapshot_GraphAccess(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, TrackedWorldStateSnapshot_GraphAccess&& from) noexcept
-      : TrackedWorldStateSnapshot_GraphAccess(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kSubjectFieldNumber = 1,
-    kPredicateFieldNumber = 2,
-    kObjFieldNumber = 3,
-    kLabelFieldNumber = 4,
-  };
-  // string subject = 1;
-  void clear_subject() ;
-  const ::std::string& subject() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_subject(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_subject();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_subject();
-  void set_allocated_subject(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_subject() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_subject(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_subject();
-
-  public:
-  // string predicate = 2;
-  void clear_predicate() ;
-  const ::std::string& predicate() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_predicate(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_predicate();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_predicate();
-  void set_allocated_predicate(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_predicate() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_predicate(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_predicate();
-
-  public:
-  // string obj = 3;
-  void clear_obj() ;
-  const ::std::string& obj() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_obj(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_obj();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_obj();
-  void set_allocated_obj(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_obj() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_obj(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_obj();
-
-  public:
-  // string label = 4;
-  void clear_label() ;
-  const ::std::string& label() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_label(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_label();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_label();
-  void set_allocated_label(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_label() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_label(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_label();
-
-  public:
-  // @@protoc_insertion_point(class_scope:s4wave.world.TrackedWorldStateSnapshot.GraphAccess)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 4,
-                                   0, 83,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const TrackedWorldStateSnapshot_GraphAccess& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::google::protobuf::internal::ArenaStringPtr subject_;
-    ::google::protobuf::internal::ArenaStringPtr predicate_;
-    ::google::protobuf::internal::ArenaStringPtr obj_;
-    ::google::protobuf::internal::ArenaStringPtr label_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull TrackedWorldStateSnapshot_GraphAccess_class_data_;
 // -------------------------------------------------------------------
 
 class SyncResponse final : public ::google::protobuf::Message
@@ -3130,7 +2681,7 @@ class SetRootRefResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetRootRefResponse*>(
         &_SetRootRefResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 88;
+  static constexpr int kIndexInFileMessages = 86;
   friend void swap(SetRootRefResponse& a, SetRootRefResponse& b) { a.Swap(&b); }
   inline void Swap(SetRootRefResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3453,7 +3004,7 @@ class SeekResponse final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const SeekResponse*>(
         &_SeekResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 76;
+  static constexpr int kIndexInFileMessages = 74;
   friend void swap(SeekResponse& a, SeekResponse& b) { a.Swap(&b); }
   inline void Swap(SeekResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3588,7 +3139,7 @@ class SeekRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SeekRequest*>(
         &_SeekRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 75;
+  static constexpr int kIndexInFileMessages = 73;
   friend void swap(SeekRequest& a, SeekRequest& b) { a.Swap(&b); }
   inline void Swap(SeekRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4633,7 +4184,7 @@ class NextResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const NextResponse*>(
         &_NextResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 74;
+  static constexpr int kIndexInFileMessages = 72;
   friend void swap(NextResponse& a, NextResponse& b) { a.Swap(&b); }
   inline void Swap(NextResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4822,7 +4373,7 @@ class NextRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const NextRequest*>(
         &_NextRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 73;
+  static constexpr int kIndexInFileMessages = 71;
   friend void swap(NextRequest& a, NextRequest& b) { a.Swap(&b); }
   inline void Swap(NextRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4956,7 +4507,7 @@ class NextGraphPathQueryRequest final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const NextGraphPathQueryRequest*>(
         &_NextGraphPathQueryRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 79;
+  static constexpr int kIndexInFileMessages = 77;
   friend void swap(NextGraphPathQueryRequest& a, NextGraphPathQueryRequest& b) { a.Swap(&b); }
   inline void Swap(NextGraphPathQueryRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6123,7 +5674,7 @@ class KeyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const KeyResponse*>(
         &_KeyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 72;
+  static constexpr int kIndexInFileMessages = 70;
   friend void swap(KeyResponse& a, KeyResponse& b) { a.Swap(&b); }
   inline void Swap(KeyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6317,7 +5868,7 @@ class KeyRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const KeyRequest*>(
         &_KeyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 71;
+  static constexpr int kIndexInFileMessages = 69;
   friend void swap(KeyRequest& a, KeyRequest& b) { a.Swap(&b); }
   inline void Swap(KeyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6849,7 +6400,7 @@ class IncrementRevResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const IncrementRevResponse*>(
         &_IncrementRevResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 92;
+  static constexpr int kIndexInFileMessages = 90;
   friend void swap(IncrementRevResponse& a, IncrementRevResponse& b) { a.Swap(&b); }
   inline void Swap(IncrementRevResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7038,7 +6589,7 @@ class IncrementRevRequest final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const IncrementRevRequest*>(
         &_IncrementRevRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 91;
+  static constexpr int kIndexInFileMessages = 89;
   friend void swap(IncrementRevRequest& a, IncrementRevRequest& b) { a.Swap(&b); }
   inline void Swap(IncrementRevRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7849,7 +7400,7 @@ class GetRootRefRequest final : public ::google::protobuf::internal::ZeroFieldsB
     return *reinterpret_cast<const GetRootRefRequest*>(
         &_GetRootRefRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 85;
+  static constexpr int kIndexInFileMessages = 83;
   friend void swap(GetRootRefRequest& a, GetRootRefRequest& b) { a.Swap(&b); }
   inline void Swap(GetRootRefRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9126,7 +8677,7 @@ class GetKeyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetKeyResponse*>(
         &_GetKeyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 84;
+  static constexpr int kIndexInFileMessages = 82;
   friend void swap(GetKeyResponse& a, GetKeyResponse& b) { a.Swap(&b); }
   inline void Swap(GetKeyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9320,7 +8871,7 @@ class GetKeyRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const GetKeyRequest*>(
         &_GetKeyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 83;
+  static constexpr int kIndexInFileMessages = 81;
   friend void swap(GetKeyRequest& a, GetKeyRequest& b) { a.Swap(&b); }
   inline void Swap(GetKeyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9589,7 +9140,7 @@ class ErrResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ErrResponse*>(
         &_ErrResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 68;
+  static constexpr int kIndexInFileMessages = 66;
   friend void swap(ErrResponse& a, ErrResponse& b) { a.Swap(&b); }
   inline void Swap(ErrResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9783,7 +9334,7 @@ class ErrRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const ErrRequest*>(
         &_ErrRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 67;
+  static constexpr int kIndexInFileMessages = 65;
   friend void swap(ErrRequest& a, ErrRequest& b) { a.Swap(&b); }
   inline void Swap(ErrRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11720,7 +11271,7 @@ class CloseResponse final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const CloseResponse*>(
         &_CloseResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 78;
+  static constexpr int kIndexInFileMessages = 76;
   friend void swap(CloseResponse& a, CloseResponse& b) { a.Swap(&b); }
   inline void Swap(CloseResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11854,7 +11405,7 @@ class CloseRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const CloseRequest*>(
         &_CloseRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 77;
+  static constexpr int kIndexInFileMessages = 75;
   friend void swap(CloseRequest& a, CloseRequest& b) { a.Swap(&b); }
   inline void Swap(CloseRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11988,7 +11539,7 @@ class CloseGraphPathQueryResponse final : public ::google::protobuf::internal::Z
     return *reinterpret_cast<const CloseGraphPathQueryResponse*>(
         &_CloseGraphPathQueryResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 82;
+  static constexpr int kIndexInFileMessages = 80;
   friend void swap(CloseGraphPathQueryResponse& a, CloseGraphPathQueryResponse& b) { a.Swap(&b); }
   inline void Swap(CloseGraphPathQueryResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12122,7 +11673,7 @@ class CloseGraphPathQueryRequest final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const CloseGraphPathQueryRequest*>(
         &_CloseGraphPathQueryRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 81;
+  static constexpr int kIndexInFileMessages = 79;
   friend void swap(CloseGraphPathQueryRequest& a, CloseGraphPathQueryRequest& b) { a.Swap(&b); }
   inline void Swap(CloseGraphPathQueryRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13012,7 +12563,7 @@ class ApplyObjectOpResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyObjectOpResponse*>(
         &_ApplyObjectOpResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 90;
+  static constexpr int kIndexInFileMessages = 88;
   friend void swap(ApplyObjectOpResponse& a, ApplyObjectOpResponse& b) { a.Swap(&b); }
   inline void Swap(ApplyObjectOpResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13214,7 +12765,7 @@ class ApplyObjectOpRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyObjectOpRequest*>(
         &_ApplyObjectOpRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 89;
+  static constexpr int kIndexInFileMessages = 87;
   friend void swap(ApplyObjectOpRequest& a, ApplyObjectOpRequest& b) { a.Swap(&b); }
   inline void Swap(ApplyObjectOpRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13633,7 +13184,7 @@ class AccessTypedObjectResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessTypedObjectResponse*>(
         &_AccessTypedObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 96;
+  static constexpr int kIndexInFileMessages = 94;
   friend void swap(AccessTypedObjectResponse& a, AccessTypedObjectResponse& b) { a.Swap(&b); }
   inline void Swap(AccessTypedObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13840,7 +13391,7 @@ class AccessTypedObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessTypedObjectRequest*>(
         &_AccessTypedObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 95;
+  static constexpr int kIndexInFileMessages = 93;
   friend void swap(AccessTypedObjectRequest& a, AccessTypedObjectRequest& b) { a.Swap(&b); }
   inline void Swap(AccessTypedObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14035,7 +13586,7 @@ class TrackedWorldStateSnapshot final : public ::google::protobuf::Message
     return *reinterpret_cast<const TrackedWorldStateSnapshot*>(
         &_TrackedWorldStateSnapshot_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 66;
+  static constexpr int kIndexInFileMessages = 64;
   friend void swap(TrackedWorldStateSnapshot& a, TrackedWorldStateSnapshot& b) { a.Swap(&b); }
   inline void Swap(TrackedWorldStateSnapshot* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14120,14 +13671,10 @@ class TrackedWorldStateSnapshot final : public ::google::protobuf::Message
   ::google::protobuf::Metadata GetMetadata() const;
   // nested types ----------------------------------------------------
   using ObjectAccess = TrackedWorldStateSnapshot_ObjectAccess;
-  using ObjectPrefixAccess = TrackedWorldStateSnapshot_ObjectPrefixAccess;
-  using GraphAccess = TrackedWorldStateSnapshot_GraphAccess;
 
   // accessors -------------------------------------------------------
   enum : int {
     kObjectAccessesFieldNumber = 1,
-    kObjectPrefixAccessesFieldNumber = 4,
-    kGraphAccessesFieldNumber = 5,
     kInitialSeqnoFieldNumber = 3,
     kHasQuadAccessFieldNumber = 2,
   };
@@ -14148,40 +13695,6 @@ class TrackedWorldStateSnapshot final : public ::google::protobuf::Message
   const ::s4wave::world::TrackedWorldStateSnapshot_ObjectAccess& object_accesses(int index) const;
   ::s4wave::world::TrackedWorldStateSnapshot_ObjectAccess* PROTOBUF_NONNULL add_object_accesses();
   const ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_ObjectAccess>& object_accesses() const;
-  // repeated .s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess object_prefix_accesses = 4;
-  int object_prefix_accesses_size() const;
-  private:
-  int _internal_object_prefix_accesses_size() const;
-
-  public:
-  void clear_object_prefix_accesses() ;
-  ::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess* PROTOBUF_NONNULL mutable_object_prefix_accesses(int index);
-  ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess>* PROTOBUF_NONNULL mutable_object_prefix_accesses();
-
-  private:
-  const ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess>& _internal_object_prefix_accesses() const;
-  ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess>* PROTOBUF_NONNULL _internal_mutable_object_prefix_accesses();
-  public:
-  const ::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess& object_prefix_accesses(int index) const;
-  ::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess* PROTOBUF_NONNULL add_object_prefix_accesses();
-  const ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess>& object_prefix_accesses() const;
-  // repeated .s4wave.world.TrackedWorldStateSnapshot.GraphAccess graph_accesses = 5;
-  int graph_accesses_size() const;
-  private:
-  int _internal_graph_accesses_size() const;
-
-  public:
-  void clear_graph_accesses() ;
-  ::s4wave::world::TrackedWorldStateSnapshot_GraphAccess* PROTOBUF_NONNULL mutable_graph_accesses(int index);
-  ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_GraphAccess>* PROTOBUF_NONNULL mutable_graph_accesses();
-
-  private:
-  const ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_GraphAccess>& _internal_graph_accesses() const;
-  ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_GraphAccess>* PROTOBUF_NONNULL _internal_mutable_graph_accesses();
-  public:
-  const ::s4wave::world::TrackedWorldStateSnapshot_GraphAccess& graph_accesses(int index) const;
-  ::s4wave::world::TrackedWorldStateSnapshot_GraphAccess* PROTOBUF_NONNULL add_graph_accesses();
-  const ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_GraphAccess>& graph_accesses() const;
   // uint64 initial_seqno = 3;
   void clear_initial_seqno() ;
   ::uint64_t initial_seqno() const;
@@ -14206,8 +13719,8 @@ class TrackedWorldStateSnapshot final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 5,
-                                   3, 0,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   1, 0,
                                    2>
       _table_;
 
@@ -14229,8 +13742,6 @@ class TrackedWorldStateSnapshot final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::RepeatedPtrField< ::s4wave::world::TrackedWorldStateSnapshot_ObjectAccess > object_accesses_;
-    ::google::protobuf::RepeatedPtrField< ::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess > object_prefix_accesses_;
-    ::google::protobuf::RepeatedPtrField< ::s4wave::world::TrackedWorldStateSnapshot_GraphAccess > graph_accesses_;
     ::uint64_t initial_seqno_;
     bool has_quad_access_;
     PROTOBUF_TSAN_DECLARE_MEMBER
@@ -14749,7 +14260,7 @@ class NextGraphPathQueryResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const NextGraphPathQueryResponse*>(
         &_NextGraphPathQueryResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 80;
+  static constexpr int kIndexInFileMessages = 78;
   friend void swap(NextGraphPathQueryResponse& a, NextGraphPathQueryResponse& b) { a.Swap(&b); }
   inline void Swap(NextGraphPathQueryResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -17271,7 +16782,7 @@ class SetRootRefRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetRootRefRequest*>(
         &_SetRootRefRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 87;
+  static constexpr int kIndexInFileMessages = 85;
   friend void swap(SetRootRefRequest& a, SetRootRefRequest& b) { a.Swap(&b); }
   inline void Swap(SetRootRefRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -17702,7 +17213,7 @@ class GetRootRefResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetRootRefResponse*>(
         &_GetRootRefResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 86;
+  static constexpr int kIndexInFileMessages = 84;
   friend void swap(GetRootRefResponse& a, GetRootRefResponse& b) { a.Swap(&b); }
   inline void Swap(GetRootRefResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -23016,339 +22527,6 @@ inline void TrackedWorldStateSnapshot_ObjectAccess::_internal_set_rev(::uint64_t
 
 // -------------------------------------------------------------------
 
-// TrackedWorldStateSnapshot_ObjectPrefixAccess
-
-// string prefix = 1;
-inline void TrackedWorldStateSnapshot_ObjectPrefixAccess::clear_prefix() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.prefix_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline const ::std::string& TrackedWorldStateSnapshot_ObjectPrefixAccess::prefix() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess.prefix)
-  return _internal_prefix();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void TrackedWorldStateSnapshot_ObjectPrefixAccess::set_prefix(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  _impl_.prefix_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess.prefix)
-}
-inline ::std::string* PROTOBUF_NONNULL TrackedWorldStateSnapshot_ObjectPrefixAccess::mutable_prefix()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::std::string* _s = _internal_mutable_prefix();
-  // @@protoc_insertion_point(field_mutable:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess.prefix)
-  return _s;
-}
-inline const ::std::string& TrackedWorldStateSnapshot_ObjectPrefixAccess::_internal_prefix() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.prefix_.Get();
-}
-inline void TrackedWorldStateSnapshot_ObjectPrefixAccess::_internal_set_prefix(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.prefix_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL TrackedWorldStateSnapshot_ObjectPrefixAccess::_internal_mutable_prefix() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.prefix_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE TrackedWorldStateSnapshot_ObjectPrefixAccess::release_prefix() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess.prefix)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  auto* released = _impl_.prefix_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.prefix_.Set("", GetArena());
-  }
-  return released;
-}
-inline void TrackedWorldStateSnapshot_ObjectPrefixAccess::set_allocated_prefix(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.prefix_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.prefix_.IsDefault()) {
-    _impl_.prefix_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess.prefix)
-}
-
-// -------------------------------------------------------------------
-
-// TrackedWorldStateSnapshot_GraphAccess
-
-// string subject = 1;
-inline void TrackedWorldStateSnapshot_GraphAccess::clear_subject() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.subject_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
-}
-inline const ::std::string& TrackedWorldStateSnapshot_GraphAccess::subject() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.subject)
-  return _internal_subject();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void TrackedWorldStateSnapshot_GraphAccess::set_subject(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  _impl_.subject_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.subject)
-}
-inline ::std::string* PROTOBUF_NONNULL TrackedWorldStateSnapshot_GraphAccess::mutable_subject()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  ::std::string* _s = _internal_mutable_subject();
-  // @@protoc_insertion_point(field_mutable:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.subject)
-  return _s;
-}
-inline const ::std::string& TrackedWorldStateSnapshot_GraphAccess::_internal_subject() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.subject_.Get();
-}
-inline void TrackedWorldStateSnapshot_GraphAccess::_internal_set_subject(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.subject_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL TrackedWorldStateSnapshot_GraphAccess::_internal_mutable_subject() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.subject_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE TrackedWorldStateSnapshot_GraphAccess::release_subject() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.subject)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  auto* released = _impl_.subject_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.subject_.Set("", GetArena());
-  }
-  return released;
-}
-inline void TrackedWorldStateSnapshot_GraphAccess::set_allocated_subject(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
-  }
-  _impl_.subject_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.subject_.IsDefault()) {
-    _impl_.subject_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.subject)
-}
-
-// string predicate = 2;
-inline void TrackedWorldStateSnapshot_GraphAccess::clear_predicate() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.predicate_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
-}
-inline const ::std::string& TrackedWorldStateSnapshot_GraphAccess::predicate() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.predicate)
-  return _internal_predicate();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void TrackedWorldStateSnapshot_GraphAccess::set_predicate(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  _impl_.predicate_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.predicate)
-}
-inline ::std::string* PROTOBUF_NONNULL TrackedWorldStateSnapshot_GraphAccess::mutable_predicate()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  ::std::string* _s = _internal_mutable_predicate();
-  // @@protoc_insertion_point(field_mutable:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.predicate)
-  return _s;
-}
-inline const ::std::string& TrackedWorldStateSnapshot_GraphAccess::_internal_predicate() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.predicate_.Get();
-}
-inline void TrackedWorldStateSnapshot_GraphAccess::_internal_set_predicate(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.predicate_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL TrackedWorldStateSnapshot_GraphAccess::_internal_mutable_predicate() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.predicate_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE TrackedWorldStateSnapshot_GraphAccess::release_predicate() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.predicate)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  auto* released = _impl_.predicate_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.predicate_.Set("", GetArena());
-  }
-  return released;
-}
-inline void TrackedWorldStateSnapshot_GraphAccess::set_allocated_predicate(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
-  }
-  _impl_.predicate_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.predicate_.IsDefault()) {
-    _impl_.predicate_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.predicate)
-}
-
-// string obj = 3;
-inline void TrackedWorldStateSnapshot_GraphAccess::clear_obj() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.obj_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
-}
-inline const ::std::string& TrackedWorldStateSnapshot_GraphAccess::obj() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.obj)
-  return _internal_obj();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void TrackedWorldStateSnapshot_GraphAccess::set_obj(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  _impl_.obj_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.obj)
-}
-inline ::std::string* PROTOBUF_NONNULL TrackedWorldStateSnapshot_GraphAccess::mutable_obj()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  ::std::string* _s = _internal_mutable_obj();
-  // @@protoc_insertion_point(field_mutable:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.obj)
-  return _s;
-}
-inline const ::std::string& TrackedWorldStateSnapshot_GraphAccess::_internal_obj() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.obj_.Get();
-}
-inline void TrackedWorldStateSnapshot_GraphAccess::_internal_set_obj(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.obj_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL TrackedWorldStateSnapshot_GraphAccess::_internal_mutable_obj() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.obj_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE TrackedWorldStateSnapshot_GraphAccess::release_obj() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.obj)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  auto* released = _impl_.obj_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.obj_.Set("", GetArena());
-  }
-  return released;
-}
-inline void TrackedWorldStateSnapshot_GraphAccess::set_allocated_obj(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
-  }
-  _impl_.obj_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.obj_.IsDefault()) {
-    _impl_.obj_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.obj)
-}
-
-// string label = 4;
-inline void TrackedWorldStateSnapshot_GraphAccess::clear_label() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.label_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
-}
-inline const ::std::string& TrackedWorldStateSnapshot_GraphAccess::label() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.label)
-  return _internal_label();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void TrackedWorldStateSnapshot_GraphAccess::set_label(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  _impl_.label_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.label)
-}
-inline ::std::string* PROTOBUF_NONNULL TrackedWorldStateSnapshot_GraphAccess::mutable_label()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  ::std::string* _s = _internal_mutable_label();
-  // @@protoc_insertion_point(field_mutable:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.label)
-  return _s;
-}
-inline const ::std::string& TrackedWorldStateSnapshot_GraphAccess::_internal_label() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.label_.Get();
-}
-inline void TrackedWorldStateSnapshot_GraphAccess::_internal_set_label(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.label_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL TrackedWorldStateSnapshot_GraphAccess::_internal_mutable_label() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.label_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE TrackedWorldStateSnapshot_GraphAccess::release_label() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.label)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
-  auto* released = _impl_.label_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.label_.Set("", GetArena());
-  }
-  return released;
-}
-inline void TrackedWorldStateSnapshot_GraphAccess::set_allocated_label(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
-  }
-  _impl_.label_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.label_.IsDefault()) {
-    _impl_.label_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:s4wave.world.TrackedWorldStateSnapshot.GraphAccess.label)
-}
-
-// -------------------------------------------------------------------
-
 // TrackedWorldStateSnapshot
 
 // repeated .s4wave.world.TrackedWorldStateSnapshot.ObjectAccess object_accesses = 1;
@@ -23412,7 +22590,7 @@ inline void TrackedWorldStateSnapshot::clear_has_quad_access() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.has_quad_access_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000004U);
 }
 inline bool TrackedWorldStateSnapshot::has_quad_access() const {
   // @@protoc_insertion_point(field_get:s4wave.world.TrackedWorldStateSnapshot.has_quad_access)
@@ -23420,7 +22598,7 @@ inline bool TrackedWorldStateSnapshot::has_quad_access() const {
 }
 inline void TrackedWorldStateSnapshot::set_has_quad_access(bool value) {
   _internal_set_has_quad_access(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   // @@protoc_insertion_point(field_set:s4wave.world.TrackedWorldStateSnapshot.has_quad_access)
 }
 inline bool TrackedWorldStateSnapshot::_internal_has_quad_access() const {
@@ -23432,124 +22610,12 @@ inline void TrackedWorldStateSnapshot::_internal_set_has_quad_access(bool value)
   _impl_.has_quad_access_ = value;
 }
 
-// repeated .s4wave.world.TrackedWorldStateSnapshot.ObjectPrefixAccess object_prefix_accesses = 4;
-inline int TrackedWorldStateSnapshot::_internal_object_prefix_accesses_size() const {
-  return _internal_object_prefix_accesses().size();
-}
-inline int TrackedWorldStateSnapshot::object_prefix_accesses_size() const {
-  return _internal_object_prefix_accesses_size();
-}
-inline void TrackedWorldStateSnapshot::clear_object_prefix_accesses() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.object_prefix_accesses_.Clear();
-  ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000002U);
-}
-inline ::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess* PROTOBUF_NONNULL TrackedWorldStateSnapshot::mutable_object_prefix_accesses(int index)
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_mutable:s4wave.world.TrackedWorldStateSnapshot.object_prefix_accesses)
-  return _internal_mutable_object_prefix_accesses()->Mutable(index);
-}
-inline ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess>* PROTOBUF_NONNULL TrackedWorldStateSnapshot::mutable_object_prefix_accesses()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
-  // @@protoc_insertion_point(field_mutable_list:s4wave.world.TrackedWorldStateSnapshot.object_prefix_accesses)
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _internal_mutable_object_prefix_accesses();
-}
-inline const ::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess& TrackedWorldStateSnapshot::object_prefix_accesses(int index) const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.world.TrackedWorldStateSnapshot.object_prefix_accesses)
-  return _internal_object_prefix_accesses().Get(index);
-}
-inline ::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess* PROTOBUF_NONNULL TrackedWorldStateSnapshot::add_object_prefix_accesses()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess* _add =
-      _internal_mutable_object_prefix_accesses()->InternalAddWithArena(
-          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
-  // @@protoc_insertion_point(field_add:s4wave.world.TrackedWorldStateSnapshot.object_prefix_accesses)
-  return _add;
-}
-inline const ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess>& TrackedWorldStateSnapshot::object_prefix_accesses() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_list:s4wave.world.TrackedWorldStateSnapshot.object_prefix_accesses)
-  return _internal_object_prefix_accesses();
-}
-inline const ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess>&
-TrackedWorldStateSnapshot::_internal_object_prefix_accesses() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.object_prefix_accesses_;
-}
-inline ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_ObjectPrefixAccess>* PROTOBUF_NONNULL
-TrackedWorldStateSnapshot::_internal_mutable_object_prefix_accesses() {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return &_impl_.object_prefix_accesses_;
-}
-
-// repeated .s4wave.world.TrackedWorldStateSnapshot.GraphAccess graph_accesses = 5;
-inline int TrackedWorldStateSnapshot::_internal_graph_accesses_size() const {
-  return _internal_graph_accesses().size();
-}
-inline int TrackedWorldStateSnapshot::graph_accesses_size() const {
-  return _internal_graph_accesses_size();
-}
-inline void TrackedWorldStateSnapshot::clear_graph_accesses() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.graph_accesses_.Clear();
-  ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000004U);
-}
-inline ::s4wave::world::TrackedWorldStateSnapshot_GraphAccess* PROTOBUF_NONNULL TrackedWorldStateSnapshot::mutable_graph_accesses(int index)
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_mutable:s4wave.world.TrackedWorldStateSnapshot.graph_accesses)
-  return _internal_mutable_graph_accesses()->Mutable(index);
-}
-inline ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_GraphAccess>* PROTOBUF_NONNULL TrackedWorldStateSnapshot::mutable_graph_accesses()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_mutable_list:s4wave.world.TrackedWorldStateSnapshot.graph_accesses)
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _internal_mutable_graph_accesses();
-}
-inline const ::s4wave::world::TrackedWorldStateSnapshot_GraphAccess& TrackedWorldStateSnapshot::graph_accesses(int index) const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:s4wave.world.TrackedWorldStateSnapshot.graph_accesses)
-  return _internal_graph_accesses().Get(index);
-}
-inline ::s4wave::world::TrackedWorldStateSnapshot_GraphAccess* PROTOBUF_NONNULL TrackedWorldStateSnapshot::add_graph_accesses()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::s4wave::world::TrackedWorldStateSnapshot_GraphAccess* _add =
-      _internal_mutable_graph_accesses()->InternalAddWithArena(
-          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
-  // @@protoc_insertion_point(field_add:s4wave.world.TrackedWorldStateSnapshot.graph_accesses)
-  return _add;
-}
-inline const ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_GraphAccess>& TrackedWorldStateSnapshot::graph_accesses() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_list:s4wave.world.TrackedWorldStateSnapshot.graph_accesses)
-  return _internal_graph_accesses();
-}
-inline const ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_GraphAccess>&
-TrackedWorldStateSnapshot::_internal_graph_accesses() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.graph_accesses_;
-}
-inline ::google::protobuf::RepeatedPtrField<::s4wave::world::TrackedWorldStateSnapshot_GraphAccess>* PROTOBUF_NONNULL
-TrackedWorldStateSnapshot::_internal_mutable_graph_accesses() {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return &_impl_.graph_accesses_;
-}
-
 // uint64 initial_seqno = 3;
 inline void TrackedWorldStateSnapshot::clear_initial_seqno() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.initial_seqno_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000002U);
 }
 inline ::uint64_t TrackedWorldStateSnapshot::initial_seqno() const {
   // @@protoc_insertion_point(field_get:s4wave.world.TrackedWorldStateSnapshot.initial_seqno)
@@ -23557,7 +22623,7 @@ inline ::uint64_t TrackedWorldStateSnapshot::initial_seqno() const {
 }
 inline void TrackedWorldStateSnapshot::set_initial_seqno(::uint64_t value) {
   _internal_set_initial_seqno(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   // @@protoc_insertion_point(field_set:s4wave.world.TrackedWorldStateSnapshot.initial_seqno)
 }
 inline ::uint64_t TrackedWorldStateSnapshot::_internal_initial_seqno() const {

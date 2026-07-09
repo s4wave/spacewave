@@ -15,8 +15,6 @@ pub trait TestbedResourceServiceClient: Send + Sync {
     async fn create_world(&self, request: &CreateWorldRequest) -> starpc::Result<CreateWorldResponse>;
     /// MarkTestResult.
     async fn mark_test_result(&self, request: &MarkTestResultRequest) -> starpc::Result<MarkTestResultResponse>;
-    /// ClaimTest.
-    async fn claim_test(&self, request: &ClaimTestRequest) -> starpc::Result<ClaimTestResponse>;
     /// AccessStateAtom.
     async fn access_state_atom(&self, request: &AccessStateAtomRequest) -> starpc::Result<AccessStateAtomResponse>;
 }
@@ -41,9 +39,6 @@ impl<C: starpc::Client + 'static> TestbedResourceServiceClient for TestbedResour
     async fn mark_test_result(&self, request: &MarkTestResultRequest) -> starpc::Result<MarkTestResultResponse> {
         self.client.exec_call("s4wave.testbed.TestbedResourceService", "MarkTestResult", request).await
     }
-    async fn claim_test(&self, request: &ClaimTestRequest) -> starpc::Result<ClaimTestResponse> {
-        self.client.exec_call("s4wave.testbed.TestbedResourceService", "ClaimTest", request).await
-    }
     async fn access_state_atom(&self, request: &AccessStateAtomRequest) -> starpc::Result<AccessStateAtomResponse> {
         self.client.exec_call("s4wave.testbed.TestbedResourceService", "AccessStateAtom", request).await
     }
@@ -56,8 +51,6 @@ pub trait TestbedResourceServiceServer: Send + Sync {
     async fn create_world(&self, request: CreateWorldRequest) -> starpc::Result<CreateWorldResponse>;
     /// MarkTestResult.
     async fn mark_test_result(&self, request: MarkTestResultRequest) -> starpc::Result<MarkTestResultResponse>;
-    /// ClaimTest.
-    async fn claim_test(&self, request: ClaimTestRequest) -> starpc::Result<ClaimTestResponse>;
     /// AccessStateAtom.
     async fn access_state_atom(&self, request: AccessStateAtomRequest) -> starpc::Result<AccessStateAtomResponse>;
 }
@@ -65,7 +58,6 @@ pub trait TestbedResourceServiceServer: Send + Sync {
 const TESTBED_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "CreateWorld",
     "MarkTestResult",
-    "ClaimTest",
     "AccessStateAtom",
 ];
 
@@ -116,21 +108,6 @@ impl<S: TestbedResourceServiceServer + 'static> starpc::Invoker for TestbedResou
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.mark_test_result(request).await {
-                    Ok(response) => {
-                        if let Err(e) = stream.msg_send(&response).await {
-                            return (true, Err(e));
-                        }
-                        (true, Ok(()))
-                    }
-                    Err(e) => (true, Err(e)),
-                }
-            }
-            "ClaimTest" => {
-                let request: ClaimTestRequest = match stream.msg_recv().await {
-                    Ok(r) => r,
-                    Err(e) => return (true, Err(e)),
-                };
-                match self.server.claim_test(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

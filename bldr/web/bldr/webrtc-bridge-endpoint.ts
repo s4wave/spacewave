@@ -1,15 +1,13 @@
 // WebRTC bridge endpoint for the main thread (WebDocument side).
 //
-// Receives signaling commands from the worker's ProxyRTCPeerConnection via a
-// bridge MessagePort, drives real RTCPeerConnection instances, and proxies
-// RTCDataChannel data/events back to the worker.
+// Receives signaling commands from the worker's ProxyRTCPeerConnection via
+// a bridge MessagePort, drives real RTCPeerConnection instances, and
+// transfers RTCDataChannels back to the worker.
 
 import type {
   BridgeCommand,
   BridgeResponse,
   BridgeEvent,
-  DataChannelBridgePayload,
-  DataChannelSnapshot,
   PeerConnectionSnapshot,
 } from '../runtime/wasm/webrtc-bridge.js'
 
@@ -20,73 +18,21 @@ type IceCandidateStats = RTCStats & {
   candidateType?: string
 }
 
-type TrackedDataChannel = {
-  pcId: string
-  dc: RTCDataChannel
-}
-
-type PionCompatibleErrorEvent = Event & { error?: { message?: string } }
-
 function isIceCandidateStats(stat: RTCStats): stat is IceCandidateStats {
   return stat.type === 'local-candidate' || stat.type === 'remote-candidate'
 }
 
-function copyArrayBufferView(data: ArrayBufferView): ArrayBuffer {
-  const copy = new Uint8Array(data.byteLength)
-  copy.set(new Uint8Array(data.buffer, data.byteOffset, data.byteLength))
-  return copy.buffer
+function toTransferable(dc: RTCDataChannel): Transferable {
+  return dc
 }
 
-function normalizeBridgePayload(
-  data: string | ArrayBuffer | ArrayBufferView,
-): DataChannelBridgePayload {
-  if (typeof data === 'string') return data
-  if (data instanceof ArrayBuffer) return data
-  return copyArrayBufferView(data)
-}
-
-function sendRtcDataChannelPayload(
-  dc: RTCDataChannel,
-  data: string | ArrayBuffer | ArrayBufferView,
-) {
-  const payload = normalizeBridgePayload(data)
-  if (typeof payload === 'string') {
-    dc.send(payload)
-    return
-  }
-  dc.send(payload)
-}
-
-function dataChannelErrorMessage(ev: Event): string {
-  const error = (ev as PionCompatibleErrorEvent).error
-  return error?.message ?? 'RTCDataChannel error'
-}
-
-async function toBridgePayload(
-  data: unknown,
-): Promise<{ data: DataChannelBridgePayload; transfer: Transferable[] }> {
-  if (typeof data === 'string') return { data, transfer: [] }
-  if (data instanceof ArrayBuffer) return { data, transfer: [data] }
-  if (ArrayBuffer.isView(data)) {
-    const copied = copyArrayBufferView(data)
-    return { data: copied, transfer: [copied] }
-  }
-  if (typeof Blob !== 'undefined' && data instanceof Blob) {
-    const copied = await data.arrayBuffer()
-    return { data: copied, transfer: [copied] }
-  }
-  return { data: String(data), transfer: [] }
-}
-
-// WebRTCBridgeEndpoint handles a single bridge MessagePort connection from a
-// worker. It manages real RTCPeerConnection and RTCDataChannel objects on the
-// main thread and forwards browser-shaped events to the worker.
+// WebRTCBridgeEndpoint handles a single bridge MessagePort connection from
+// a worker. It manages real RTCPeerConnection instances on the main thread
+// and forwards events and DC transfers back to the worker.
 export class WebRTCBridgeEndpoint {
   private port: MessagePort
   private pcs = new Map<string, RTCPeerConnection>()
-  private dataChannels = new Map<string, TrackedDataChannel>()
   private closed = false
-  private nextDataChannelNumber = 1
   // Pending stats promises keyed by pcId, awaited before close to avoid
   // collecting stats on an already-closed PC.
   private pendingStats = new Map<string, Promise<void>>()
@@ -95,7 +41,6 @@ export class WebRTCBridgeEndpoint {
     this.port = port
     this.port.onmessage = (e: MessageEvent<BridgeCommand>) =>
       this.handleCommand(e.data)
-    this.port.onmessageerror = () => this.close()
     this.port.start()
   }
 
@@ -114,42 +59,6 @@ export class WebRTCBridgeEndpoint {
     }
   }
 
-  private getDataChannelSnapshot(dc: RTCDataChannel): DataChannelSnapshot {
-    return {
-      label: dc.label,
-      ordered: dc.ordered,
-      protocol: dc.protocol,
-      negotiated: dc.negotiated,
-      id: dc.id,
-      maxPacketLifeTime: dc.maxPacketLifeTime,
-      maxRetransmits: dc.maxRetransmits,
-      readyState: dc.readyState,
-      bufferedAmount: dc.bufferedAmount,
-      bufferedAmountLowThreshold: dc.bufferedAmountLowThreshold,
-    }
-  }
-
-  private getPcSnapshot(pcId: string): PeerConnectionSnapshot | undefined {
-    const pc = this.pcs.get(pcId)
-    return pc ? this.getSnapshot(pc) : undefined
-  }
-
-  private safePostMessage(
-    message: BridgeResponse | BridgeEvent,
-    transfer: Transferable[] = [],
-  ) {
-    if (this.closed) return false
-    try {
-      this.port.postMessage(message, transfer)
-      return true
-    } catch (err) {
-      console.warn(
-        `WebRTCBridgeEndpoint: failed to post bridge message: ${err instanceof Error ? err.message : String(err)}`,
-      )
-      return false
-    }
-  }
-
   private async logIceFailureStats(pc: RTCPeerConnection, pcId: string) {
     try {
       const report = await pc.getStats()
@@ -159,8 +68,12 @@ export class WebRTCBridgeEndpoint {
 
       report.forEach((stat) => {
         if (isIceCandidateStats(stat)) {
-          if (stat.type === 'local-candidate') local.set(stat.id, stat)
-          if (stat.type === 'remote-candidate') remote.set(stat.id, stat)
+          if (stat.type === 'local-candidate') {
+            local.set(stat.id, stat)
+          }
+          if (stat.type === 'remote-candidate') {
+            remote.set(stat.id, stat)
+          }
         }
       })
 
@@ -219,6 +132,8 @@ export class WebRTCBridgeEndpoint {
     }
   }
 
+  // logIceStats logs local/remote candidates and candidate pairs for
+  // diagnostic purposes at any connection state.
   private async logIceStats(
     pc: RTCPeerConnection,
     pcId: string,
@@ -249,13 +164,16 @@ export class WebRTCBridgeEndpoint {
         `WebRTCBridgeEndpoint: ice stats [${label}] pc=${pcId} local=[${locals.join(', ')}] remote=[${remotes.join(', ')}] pairs=[${pairs.join(', ')}]`,
       )
     } catch {
-      // Stats are diagnostic only.
+      // ignore
     }
   }
 
   private wireEvents(pc: RTCPeerConnection, pcId: string) {
     pc.onicecandidate = (e) => {
       if (this.closed) return
+      // Include full RTCIceCandidate properties (not just RTCIceCandidateInit)
+      // so that pion/webrtc's valueToICECandidate takes the standard path
+      // instead of the "Firefox/missing-fields" fallback that drops sdpMid.
       const event: BridgeEvent = {
         type: 'event:icecandidate',
         pcId,
@@ -279,7 +197,7 @@ export class WebRTCBridgeEndpoint {
           : undefined,
         snapshot: this.getSnapshot(pc),
       }
-      this.safePostMessage(event)
+      this.port.postMessage(event)
     }
 
     pc.onconnectionstatechange = () => {
@@ -289,7 +207,7 @@ export class WebRTCBridgeEndpoint {
         this.pendingStats.set(pcId, p)
         p.finally(() => this.pendingStats.delete(pcId))
       }
-      this.safePostMessage({
+      this.port.postMessage({
         type: 'event:connectionstatechange',
         pcId,
         snapshot: this.getSnapshot(pc),
@@ -298,7 +216,7 @@ export class WebRTCBridgeEndpoint {
 
     pc.onsignalingstatechange = () => {
       if (this.closed) return
-      this.safePostMessage({
+      this.port.postMessage({
         type: 'event:signalingstatechange',
         pcId,
         snapshot: this.getSnapshot(pc),
@@ -307,10 +225,11 @@ export class WebRTCBridgeEndpoint {
 
     pc.oniceconnectionstatechange = () => {
       if (this.closed) return
+      // Log candidate pair stats when entering checking to diagnose ICE
       if (pc.iceConnectionState === 'checking') {
         void this.logIceStats(pc, pcId, 'checking')
       }
-      this.safePostMessage({
+      this.port.postMessage({
         type: 'event:iceconnectionstatechange',
         pcId,
         snapshot: this.getSnapshot(pc),
@@ -319,7 +238,7 @@ export class WebRTCBridgeEndpoint {
 
     pc.onicegatheringstatechange = () => {
       if (this.closed) return
-      this.safePostMessage({
+      this.port.postMessage({
         type: 'event:icegatheringstatechange',
         pcId,
         snapshot: this.getSnapshot(pc),
@@ -335,7 +254,7 @@ export class WebRTCBridgeEndpoint {
 
     pc.onnegotiationneeded = () => {
       if (this.closed) return
-      this.safePostMessage({
+      this.port.postMessage({
         type: 'event:negotiationneeded',
         pcId,
         snapshot: this.getSnapshot(pc),
@@ -345,209 +264,25 @@ export class WebRTCBridgeEndpoint {
     pc.ondatachannel = (e) => {
       if (this.closed) return
       const dc = e.channel
-      const dcId = this.registerDataChannel(pcId, dc)
-      this.safePostMessage({
+      const event: BridgeEvent = {
         type: 'event:datachannel',
         pcId,
-        dcId,
+        dc,
         label: dc.label,
-        channel: this.getDataChannelSnapshot(dc),
         snapshot: this.getSnapshot(pc),
-      } satisfies BridgeEvent)
-    }
-  }
-
-  private registerDataChannel(pcId: string, dc: RTCDataChannel): string {
-    dc.binaryType = 'arraybuffer'
-    const dcId = `${pcId}-dc-${this.nextDataChannelNumber++}`
-    this.dataChannels.set(dcId, { pcId, dc })
-    this.wireDataChannel(pcId, dcId, dc)
-    return dcId
-  }
-
-  private wireDataChannel(pcId: string, dcId: string, dc: RTCDataChannel) {
-    dc.onopen = () => {
-      if (this.closed || !this.dataChannels.has(dcId)) return
-      this.safePostMessage({
-        type: 'event:dcopen',
-        pcId,
-        dcId,
-        channel: this.getDataChannelSnapshot(dc),
-        snapshot: this.getPcSnapshot(pcId),
-      } satisfies BridgeEvent)
-    }
-
-    dc.onmessage = (e) => {
-      if (this.closed || !this.dataChannels.has(dcId)) return
-      void this.postDataChannelMessage(pcId, dcId, dc, e.data)
-    }
-
-    dc.onclose = () => {
-      if (this.closed || !this.dataChannels.has(dcId)) return
-      this.dataChannels.delete(dcId)
-      this.safePostMessage({
-        type: 'event:dcclose',
-        pcId,
-        dcId,
-        channel: {
-          ...this.getDataChannelSnapshot(dc),
-          readyState: 'closed',
-        },
-        snapshot: this.getPcSnapshot(pcId),
-      } satisfies BridgeEvent)
-    }
-
-    dc.onerror = (e) => {
-      if (this.closed || !this.dataChannels.has(dcId)) return
-      this.safePostMessage({
-        type: 'event:dcerror',
-        pcId,
-        dcId,
-        error: dataChannelErrorMessage(e),
-        channel: this.getDataChannelSnapshot(dc),
-        snapshot: this.getPcSnapshot(pcId),
-      } satisfies BridgeEvent)
-    }
-
-    ;(
-      dc as RTCDataChannel & { onclosing: ((ev: Event) => void) | null }
-    ).onclosing = () => {
-      if (this.closed || !this.dataChannels.has(dcId)) return
-      this.safePostMessage({
-        type: 'event:dcclosing',
-        pcId,
-        dcId,
-        channel: this.getDataChannelSnapshot(dc),
-        snapshot: this.getPcSnapshot(pcId),
-      } satisfies BridgeEvent)
-    }
-
-    dc.onbufferedamountlow = () => {
-      if (this.closed || !this.dataChannels.has(dcId)) return
-      this.safePostMessage({
-        type: 'event:dcbufferedamountlow',
-        pcId,
-        dcId,
-        channel: this.getDataChannelSnapshot(dc),
-        snapshot: this.getPcSnapshot(pcId),
-      } satisfies BridgeEvent)
-    }
-  }
-
-  private async postDataChannelMessage(
-    pcId: string,
-    dcId: string,
-    dc: RTCDataChannel,
-    data: unknown,
-  ) {
-    try {
-      const bridgePayload = await toBridgePayload(data)
-      this.safePostMessage(
-        {
-          type: 'event:dcmessage',
-          pcId,
-          dcId,
-          data: bridgePayload.data,
-          channel: this.getDataChannelSnapshot(dc),
-          snapshot: this.getPcSnapshot(pcId),
-        } satisfies BridgeEvent,
-        bridgePayload.transfer,
-      )
-    } catch (err) {
-      this.safePostMessage({
-        type: 'event:dcerror',
-        pcId,
-        dcId,
-        error: err instanceof Error ? err.message : String(err),
-        channel: this.getDataChannelSnapshot(dc),
-        snapshot: this.getPcSnapshot(pcId),
-      } satisfies BridgeEvent)
-    }
-  }
-
-  private releaseDataChannel(dcId: string) {
-    const tracked = this.dataChannels.get(dcId)
-    if (!tracked) return
-    this.dataChannels.delete(dcId)
-    const { pcId, dc } = tracked
-    const channel = {
-      ...this.getDataChannelSnapshot(dc),
-      readyState: 'closed' as RTCDataChannelState,
-    }
-    try {
-      if (dc.readyState !== 'closed') dc.close()
-    } catch {
-      // The channel is already unusable; the worker still needs closure.
-    }
-    this.safePostMessage({
-      type: 'event:dcclose',
-      pcId,
-      dcId,
-      channel,
-      snapshot: this.getPcSnapshot(pcId),
-    } satisfies BridgeEvent)
-  }
-
-  private releaseDataChannelsForPc(pcId: string) {
-    for (const [dcId, tracked] of Array.from(this.dataChannels)) {
-      if (tracked.pcId === pcId) this.releaseDataChannel(dcId)
-    }
-  }
-
-  private handleDataChannelCommand(cmd: BridgeCommand): boolean {
-    if (!cmd.type.startsWith('dc:')) return false
-
-    const dcId = cmd.dcId
-    const tracked = dcId ? this.dataChannels.get(dcId) : undefined
-    if (!dcId || !tracked) {
-      this.safePostMessage({
-        type: 'event:dcerror',
-        pcId: cmd.pcId,
-        dcId,
-        error: 'unknown dcId: ' + dcId,
-      } satisfies BridgeEvent)
-      return true
-    }
-
-    try {
-      switch (cmd.type) {
-        case 'dc:send':
-          if (cmd.data === undefined) {
-            throw new Error('dc:send missing data')
-          }
-          sendRtcDataChannelPayload(tracked.dc, cmd.data)
-          break
-        case 'dc:close':
-          this.releaseDataChannel(dcId)
-          break
-        case 'dc:setBufferedAmountLowThreshold':
-          tracked.dc.bufferedAmountLowThreshold =
-            cmd.bufferedAmountLowThreshold ?? 0
-          break
-        default:
-          throw new Error('unknown datachannel command: ' + cmd.type)
       }
-    } catch (err) {
-      this.safePostMessage({
-        type: 'event:dcerror',
-        pcId: tracked.pcId,
-        dcId,
-        error: err instanceof Error ? err.message : String(err),
-        channel: this.getDataChannelSnapshot(tracked.dc),
-        snapshot: this.getPcSnapshot(tracked.pcId),
-      } satisfies BridgeEvent)
+      this.port.postMessage(event, [toTransferable(dc)])
     }
-    return true
   }
 
   private async handleCommand(cmd: BridgeCommand) {
     if (this.closed) return
 
     try {
-      if (this.handleDataChannelCommand(cmd)) return
-
       if (cmd.type === 'createPC') {
         const pcId = 'pc-' + Math.random().toString(36).slice(2, 10)
+        // Sanitize config: only allow safe fields, strip iceServers to
+        // prevent a compromised worker from injecting malicious TURN servers.
         const safeConfig: RTCConfiguration = {
           bundlePolicy: cmd.config?.bundlePolicy,
           iceTransportPolicy: cmd.config?.iceTransportPolicy,
@@ -555,20 +290,21 @@ export class WebRTCBridgeEndpoint {
         const pc = new RTCPeerConnection(safeConfig)
         this.pcs.set(pcId, pc)
         this.wireEvents(pc, pcId)
-        this.safePostMessage({
+        const response: BridgeResponse = {
           type: 'createPC',
-          cmdId: cmd.cmdId!,
+          cmdId: cmd.cmdId,
           pcId,
           snapshot: this.getSnapshot(pc),
-        } satisfies BridgeResponse)
+        }
+        this.port.postMessage(response)
         return
       }
 
       const pc = cmd.pcId ? this.pcs.get(cmd.pcId) : undefined
       if (!pc && cmd.type !== 'close') {
-        this.safePostMessage({
+        this.port.postMessage({
           type: cmd.type,
-          cmdId: cmd.cmdId!,
+          cmdId: cmd.cmdId,
           error: 'unknown pcId: ' + cmd.pcId,
         } satisfies BridgeResponse)
         return
@@ -583,7 +319,7 @@ export class WebRTCBridgeEndpoint {
           )
           response = {
             type: 'createOffer',
-            cmdId: cmd.cmdId!,
+            cmdId: cmd.cmdId,
             pcId: cmd.pcId,
             sdp: { type: offer.type, sdp: offer.sdp },
             snapshot: this.getSnapshot(pc!),
@@ -591,12 +327,10 @@ export class WebRTCBridgeEndpoint {
           break
         }
         case 'createAnswer': {
-          const answer = await pc!.createAnswer(
-            cmd.options as RTCAnswerOptions | undefined,
-          )
+          const answer = await pc!.createAnswer(cmd.options)
           response = {
             type: 'createAnswer',
-            cmdId: cmd.cmdId!,
+            cmdId: cmd.cmdId,
             pcId: cmd.pcId,
             sdp: { type: answer.type, sdp: answer.sdp },
             snapshot: this.getSnapshot(pc!),
@@ -607,7 +341,7 @@ export class WebRTCBridgeEndpoint {
           await pc!.setLocalDescription(cmd.sdp)
           response = {
             type: 'setLocalDescription',
-            cmdId: cmd.cmdId!,
+            cmdId: cmd.cmdId,
             pcId: cmd.pcId,
             snapshot: this.getSnapshot(pc!),
           }
@@ -617,7 +351,7 @@ export class WebRTCBridgeEndpoint {
           await pc!.setRemoteDescription(cmd.sdp as RTCSessionDescriptionInit)
           response = {
             type: 'setRemoteDescription',
-            cmdId: cmd.cmdId!,
+            cmdId: cmd.cmdId,
             pcId: cmd.pcId,
             snapshot: this.getSnapshot(pc!),
           }
@@ -627,7 +361,7 @@ export class WebRTCBridgeEndpoint {
           await pc!.addIceCandidate(cmd.candidate)
           response = {
             type: 'addIceCandidate',
-            cmdId: cmd.cmdId!,
+            cmdId: cmd.cmdId,
             pcId: cmd.pcId,
             snapshot: this.getSnapshot(pc!),
           }
@@ -638,28 +372,29 @@ export class WebRTCBridgeEndpoint {
             cmd.label!,
             cmd.options as RTCDataChannelInit | undefined,
           )
-          const dcId = this.registerDataChannel(cmd.pcId!, dc)
           response = {
             type: 'createDataChannel',
-            cmdId: cmd.cmdId!,
+            cmdId: cmd.cmdId,
             pcId: cmd.pcId,
-            dcId,
-            channel: this.getDataChannelSnapshot(dc),
+            dc,
             snapshot: this.getSnapshot(pc!),
           }
-          break
+          // Transfer the DC to the worker before signaling/open
+          this.port.postMessage(response, [toTransferable(dc)])
+          return // skip normal postMessage below
         }
         case 'close': {
+          // Await any in-flight stats collection before closing so that
+          // getStats() runs on a live PC rather than a closed one.
           const statsP = this.pendingStats.get(cmd.pcId!)
           if (statsP) await statsP
           if (pc) {
-            this.releaseDataChannelsForPc(cmd.pcId!)
             pc.close()
             this.pcs.delete(cmd.pcId!)
           }
           response = {
             type: 'close',
-            cmdId: cmd.cmdId!,
+            cmdId: cmd.cmdId,
             pcId: cmd.pcId,
           }
           break
@@ -667,48 +402,30 @@ export class WebRTCBridgeEndpoint {
         default:
           response = {
             type: cmd.type,
-            cmdId: cmd.cmdId!,
+            cmdId: cmd.cmdId,
             error: 'unknown command: ' + cmd.type,
           }
       }
 
-      this.safePostMessage(response)
+      this.port.postMessage(response)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      if (cmd.cmdId != null) {
-        this.safePostMessage({
-          type: cmd.type,
-          cmdId: cmd.cmdId,
-          error: message,
-        } satisfies BridgeResponse)
-        return
-      }
-      this.safePostMessage({
-        type: 'event:dcerror',
-        pcId: cmd.pcId,
-        dcId: cmd.dcId,
+      this.port.postMessage({
+        type: cmd.type,
+        cmdId: cmd.cmdId,
         error: message,
-      } satisfies BridgeEvent)
+      } satisfies BridgeResponse)
     }
   }
 
-  // close tears down all PCs/channels and closes the bridge port.
+  // close tears down all PCs and closes the bridge port.
   close() {
     if (this.closed) return
-
-    for (const dcId of Array.from(this.dataChannels.keys())) {
-      this.releaseDataChannel(dcId)
-    }
+    this.closed = true
     for (const [, pc] of this.pcs) {
       pc.close()
     }
     this.pcs.clear()
-    this.pendingStats.clear()
-    this.safePostMessage({
-      type: 'event:bridgeclose',
-      error: 'WebRTC bridge endpoint closed',
-    } satisfies BridgeEvent)
-    this.closed = true
     this.port.close()
   }
 }

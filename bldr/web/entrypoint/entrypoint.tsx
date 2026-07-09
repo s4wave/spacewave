@@ -28,22 +28,7 @@ declare global {
   var __swPrerenderRoot: Root | undefined
   var __swPrerenderContainer: HTMLElement | undefined
   var __swReadyResolve: (() => void) | undefined
-  var BLDR_RUNTIME_WASM_ENV: Record<string, string> | undefined
 }
-
-function installBrowserRuntimeEnv(): void {
-  if (location.hostname !== 'staging.spacewave.app') {
-    return
-  }
-  globalThis.BLDR_RUNTIME_WASM_ENV = {
-    ...globalThis.BLDR_RUNTIME_WASM_ENV,
-    SPACEWAVE_CDN_BASE_URL:
-      globalThis.BLDR_RUNTIME_WASM_ENV?.SPACEWAVE_CDN_BASE_URL ??
-      'https://cdn-staging.spacewave.app',
-  }
-}
-
-installBrowserRuntimeEnv()
 
 const webDocumentOpts: WebDocumentOptions = {}
 

@@ -94,7 +94,7 @@ type DevtoolBus struct {
 }
 
 // BuildDevtoolBus builds the storage and bus for the devtool.
-// The startup state lock is released once the coordinated world is ready.
+// The returned bus owns the shared state lock until Release.
 func BuildDevtoolBus(
 	rctx context.Context,
 	le *logrus.Entry,
@@ -179,7 +179,7 @@ func BuildDevtoolBus(
 	// ensure there is at least one storage method
 	storageMethods := storageCtrl.GetStorage()
 	if len(storageMethods) == 0 {
-		rel()
+		ctxCancel()
 		return nil, errors.New("no available storage methods")
 	}
 
@@ -335,13 +335,6 @@ func BuildDevtoolBus(
 			Info("keeping cached devtool manifests for startup validation")
 	}
 	inspectTx.Discard()
-
-	if stateLock != nil {
-		stateLock.release()
-		stateLock = nil
-	}
-
-	rels = append(rels, ctxCancel)
 
 	// distSrcDir is the path to the dist sources dir
 	distSrcDir := filepath.Join(stateRoot, "src")

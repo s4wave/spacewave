@@ -14,7 +14,7 @@ export const IntroWizardTypeID = 'wizard/intro'
 export function driveIntroConfig(): IntroWizardConfig {
   return {
     headline: 'Welcome to your Drive',
-    subhead: 'The Drive securely stores your files.',
+    subhead: 'This Space stores your files. Here is the lay of the land.',
     finishLabel: 'Got it, start exploring',
     callouts: [
       {

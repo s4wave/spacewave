@@ -5,19 +5,12 @@ package s4wave_core_e2e_test
 import (
 	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
-	"slices"
-	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/util/fsutil"
-	"github.com/pkg/errors"
 	bldr_manifest_builder_controller "github.com/s4wave/spacewave/bldr/manifest/builder/controller"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	bldr_plugin_compiler_js "github.com/s4wave/spacewave/bldr/plugin/compiler/js"
@@ -28,7 +21,6 @@ import (
 	"github.com/s4wave/spacewave/bldr/testbed"
 	bldr_web_bundler_vite_compiler "github.com/s4wave/spacewave/bldr/web/bundler/vite/compiler"
 	s4wave_core_e2e "github.com/s4wave/spacewave/core/e2e"
-	s4wave_core_e2e_browser "github.com/s4wave/spacewave/core/e2e/browser"
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	space_world_objecttypes "github.com/s4wave/spacewave/core/space/world/objecttypes"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
@@ -38,259 +30,54 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	coreE2ETestProviderQuickstartDrive    = "provider"
-	coreE2ETestHashObjectRefAndValidation = "hash"
-	coreE2ETestTypedObjectLayoutAccess    = "typedObject"
-)
-
-const coreE2EBrowserSuiteName = "Resources SDK with Real Backend E2E"
-
-var coreE2E *coreE2EFixture
-
-type coreE2EFixture struct {
-	cancel                context.CancelFunc
-	repoRoot              string
-	browserPort           int
-	browserServer         *s4wave_core_e2e_browser.BrowserTestServer
-	testbedResourceServer *resource_testbed.TestbedResourceServer
-	release               []func()
-}
-
-func TestMain(m *testing.M) {
+// TIER: pr
+func TestSpacewaveCoreE2E(t *testing.T) {
 	if os.Getenv("RUN_CORE_E2E") == "" {
-		os.Exit(m.Run())
+		t.Skip("set RUN_CORE_E2E=1 to run the core E2E test")
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	fixture, err := newCoreE2EFixture(ctx, cancel, le)
-	if err != nil {
-		os.Stderr.WriteString("core e2e setup failed: " + err.Error() + "\n")
-		os.Exit(1)
-	}
-	coreE2E = fixture
-
-	code := m.Run()
-	fixture.Close()
-	os.Exit(code)
-}
-
-// TIER: pr
-func TestSpacewaveCoreE2EProviderQuickstartDrive(t *testing.T) {
-	runCoreE2ETest(t, coreE2ETestProviderQuickstartDrive)
-}
-
-// TIER: pr
-func TestSpacewaveCoreE2EHashObjectRefAndValidation(t *testing.T) {
-	runCoreE2ETest(t, coreE2ETestHashObjectRefAndValidation)
-}
-
-// TIER: pr
-func TestSpacewaveCoreE2ETypedObjectLayoutAccess(t *testing.T) {
-	runCoreE2ETest(t, coreE2ETestTypedObjectLayoutAccess)
-}
-
-// TIER: pr
-func TestSpacewaveCoreE2EBrowserProviderAndSession(t *testing.T) {
-	runCoreE2EBrowserShard(t,
-		"provider-and-session",
-		"connects to the backend via WebSocket",
-		"accesses root resource and creates Root",
-		"looks up the local provider",
-		"creates a local provider account",
-		"mounts a session and gets session info",
-	)
-}
-
-// TIER: pr
-func TestSpacewaveCoreE2EBrowserObjectLifecycle(t *testing.T) {
-	runCoreE2EBrowserShard(t,
-		"object-lifecycle",
-		"creates a space within a session",
-		"mounts a shared object",
-		"mounts a shared object body",
-		"accesses space world state",
-	)
-}
-
-// TIER: pr
-func TestSpacewaveCoreE2EBrowserStateLayoutAndHash(t *testing.T) {
-	runCoreE2EBrowserShard(t,
-		"state-layout-and-hash",
-		"accesses state atom from root",
-		"runs repeated ObjectLayout NavigateTab ops through the real backend critical path",
-		"computes and validates hashes",
-	)
-}
-
-func runCoreE2ETest(t *testing.T, testName string) {
-	if os.Getenv("RUN_CORE_E2E") == "" {
-		t.Skip("set RUN_CORE_E2E=1 to run the core E2E test")
-	}
-
-	t.Parallel()
-
-	if coreE2E == nil {
-		t.Fatal("core e2e fixture was not initialized")
-	}
-
-	success, errorMsg, err := coreE2E.testbedResourceServer.RunTest(t.Context(), testName)
-	if err != nil {
-		t.Fatalf("error waiting for %s test result: %v", testName, err)
-	}
-	if !success {
-		t.Fatalf("%s test failed: %s", testName, errorMsg)
-	}
-}
-
-func runCoreE2EBrowserShard(t *testing.T, shardName string, tests ...string) {
-	if os.Getenv("RUN_CORE_E2E") == "" {
-		t.Skip("set RUN_CORE_E2E=1 to run the core E2E test")
-	}
-	if coreE2E == nil {
-		t.Fatal("core e2e fixture was not initialized")
-	}
-	if coreE2E.browserPort == 0 {
-		t.Fatal("core e2e browser server was not initialized")
-	}
-
-	patterns := make([]string, 0, len(tests))
-	for _, test := range tests {
-		patterns = append(patterns, regexp.QuoteMeta(coreE2EBrowserSuiteName+" "+test))
-	}
-	pattern := "^(" + strings.Join(patterns, "|") + ")$"
-	reportFile := filepath.Join(t.TempDir(), shardName+"-vitest.json")
-	args := []string{
-		"run",
-		"vitest",
-		"--config=vitest.browser.config.ts",
-		"--run",
-		"app/App.backend.e2e.test.tsx",
-		"--testNamePattern",
-		pattern,
-		"--reporter=default",
-		"--reporter=json",
-		"--outputFile",
-		reportFile,
-	}
-	cmd := exec.CommandContext(t.Context(), "bun", args...)
-	cmd.Dir = coreE2E.repoRoot
-	cmd.Env = append(os.Environ(), "VITE_E2E_SERVER_PORT="+strconv.Itoa(coreE2E.browserPort))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	t.Logf("running browser shard %s with %d App.backend.e2e scenarios", shardName, len(tests))
-	runErr := cmd.Run()
-	assertCoreE2EBrowserShardPassedTests(t, shardName, tests, reportFile)
-	if runErr != nil {
-		t.Fatalf("browser shard %s failed: %v", shardName, runErr)
-	}
-}
-
-func assertCoreE2EBrowserShardPassedTests(t *testing.T, shardName string, expected []string, reportFile string) {
-	t.Helper()
-
-	data, err := os.ReadFile(reportFile)
-	if err != nil {
-		t.Fatalf("read browser shard %s vitest JSON report: %v", shardName, err)
-	}
-
-	var parser fastjson.Parser
-	report, err := parser.ParseBytes(data)
-	if err != nil {
-		t.Fatalf("parse browser shard %s vitest JSON report: %v", shardName, err)
-	}
-
-	expectedSet := make(map[string]struct{}, len(expected))
-	for _, name := range expected {
-		expectedSet[name] = struct{}{}
-	}
-
-	passedSet := make(map[string]struct{}, len(expected))
-	for _, file := range report.GetArray("testResults") {
-		for _, assertion := range file.GetArray("assertionResults") {
-			if string(assertion.GetStringBytes("status")) == "passed" {
-				passedSet[string(assertion.GetStringBytes("title"))] = struct{}{}
-			}
-		}
-	}
-
-	missing := make([]string, 0)
-	for _, name := range expected {
-		if _, ok := passedSet[name]; !ok {
-			missing = append(missing, name)
-		}
-	}
-
-	extra := make([]string, 0)
-	for name := range passedSet {
-		if _, ok := expectedSet[name]; !ok {
-			extra = append(extra, name)
-		}
-	}
-	slices.Sort(extra)
-
-	if len(missing) != 0 || len(extra) != 0 {
-		t.Fatalf(
-			"browser shard %s passed scenario coverage mismatch: missing [%s], extra [%s]",
-			shardName,
-			strings.Join(missing, ", "),
-			strings.Join(extra, ", "),
-		)
-	}
-}
-
-func newCoreE2EFixture(
-	ctx context.Context,
-	cancel context.CancelFunc,
-	le *logrus.Entry,
-) (_ *coreE2EFixture, retErr error) {
-	var fixture *coreE2EFixture
-	defer func() {
-		if retErr != nil && fixture != nil {
-			fixture.Close()
-		}
-	}()
-
+	// get path to repo root
 	wd, err := os.Getwd()
 	if err != nil {
-		return nil, errors.Wrap(err, "get working directory")
+		t.Fatal(err.Error())
 	}
 	repoRoot := filepath.Join(wd, "../..")
-	fixture = &coreE2EFixture{
-		cancel:   cancel,
-		repoRoot: repoRoot,
-	}
 	workDir := filepath.Join(wd, ".bldr")
 	buildDir := filepath.Join(workDir, "build")
 	distDir := filepath.Join(workDir, "src")
 	pluginStateDir := filepath.Join(workDir, "plugin", "state")
 	pluginDistDir := filepath.Join(workDir, "plugin", "dist")
 
+	// cleanup the build dir if it exists
 	if err := fsutil.CleanCreateDir(buildDir); err != nil {
-		return nil, errors.Wrap(err, "clean build directory")
+		t.Fatal(err.Error())
 	}
 	if err := fsutil.CleanCreateDir(pluginStateDir); err != nil {
-		return nil, errors.Wrap(err, "clean plugin state directory")
+		t.Fatal(err.Error())
 	}
 	if err := fsutil.CleanCreateDir(pluginDistDir); err != nil {
-		return nil, errors.Wrap(err, "clean plugin dist directory")
+		t.Fatal(err.Error())
 	}
 
-	if err := s4wave_core_e2e.CheckoutWebDistSources(ctx, le, repoRoot, distDir); err != nil {
-		return nil, errors.Wrap(err, "checkout web dist sources")
+	// check out the web dist sources
+	err = s4wave_core_e2e.CheckoutWebDistSources(ctx, le, repoRoot, distDir)
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
+	// build the bldr testbed
 	tb, err := testbed.BuildTestbed(ctx, le)
 	if err != nil {
-		return nil, errors.Wrap(err, "build bldr testbed")
+		t.Fatal(err.Error())
 	}
-	fixture.release = append(fixture.release, tb.Release)
+	defer tb.Release()
 
+	// add the controllers we will need
 	b, sr := tb.GetBus(), tb.GetStaticResolver()
 	sr.AddFactory(plugin_host_process.NewFactory(b))
 	sr.AddFactory(plugin_host_wazero_quickjs.NewFactory(b))
@@ -302,69 +89,83 @@ func newCoreE2EFixture(
 	sr.AddFactory(volume_rpc_server.NewFactory(b))
 	sr.AddFactory(world_block_engine.NewFactory(b))
 
+	// create testbed resource server
+	volumeID := tb.GetVolume().GetID()
+	bucketID := "e2e-testbed-bucket"
 	testbedResourceServer := resource_testbed.NewTestbedResourceServer(
 		ctx,
 		le,
 		b,
-		tb.GetVolume().GetID(),
-		"e2e-testbed-bucket",
+		volumeID,
+		bucketID,
 	)
-	fixture.testbedResourceServer = testbedResourceServer
 
-	// The JS plugin reaches this via bus fallback: hostMux has its own
-	// ResourceServer, so wrapping in ResourceServer here would be shadowed.
+	// register testbed resource service directly on testbed mux
+	// the JS plugin reaches this via bus fallback: hostMux has its own
+	// ResourceServer (from scheduler), so wrapping in ResourceServer here
+	// would be shadowed. Direct registration is reachable because hostMux
+	// falls through to LookupRpcService for unknown services.
 	if err := testbedResourceServer.Register(tb.GetMux()); err != nil {
-		return nil, errors.Wrap(err, "register testbed resource server")
+		t.Fatal(err.Error())
 	}
 
+	// start a peer controller to serve GetPeer directives
 	volPeer, err := tb.GetVolume().GetPeer(ctx, true)
 	if err != nil {
-		return nil, errors.Wrap(err, "get volume peer")
+		t.Fatal(err.Error())
 	}
 	peerCtrl := peer_controller.NewController(le, volPeer)
 	relPeerCtrl, err := tb.GetBus().AddController(ctx, peerCtrl, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "add peer controller")
+		t.Fatal(err.Error())
 	}
-	fixture.release = append(fixture.release, relPeerCtrl)
+	defer relPeerCtrl()
 
+	// start objecttype controller to resolve LookupObjectType directives
 	objectTypeCtrl := objecttype_controller.NewController(space_world_objecttypes.LookupObjectType)
 	relObjectTypeCtrl, err := tb.GetBus().AddController(ctx, objectTypeCtrl, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "add object type controller")
+		t.Fatal(err.Error())
 	}
-	fixture.release = append(fixture.release, relObjectTypeCtrl)
+	defer relObjectTypeCtrl()
 
-	_, _, processRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_process.Controller](
+	// load the go plugin host
+	processHost, _, processRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_process.Controller](
 		ctx,
 		tb.GetBus(),
 		resolver.NewLoadControllerWithConfig(plugin_host_process.NewConfig(pluginStateDir, pluginDistDir)),
 		nil,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "start process plugin host")
+		t.Fatal(err.Error())
 	}
-	fixture.release = append(fixture.release, processRef.Release)
+	defer processRef.Release()
+	_ = processHost
 
-	_, _, quickjsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_wazero_quickjs.Controller](
+	// load the js plugin host
+	quickjsHost, _, quickjsHostRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_wazero_quickjs.Controller](
 		ctx,
 		tb.GetBus(),
 		resolver.NewLoadControllerWithConfig(plugin_host_wazero_quickjs.NewConfig()),
 		nil,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "start quickjs plugin host")
+		t.Fatal(err.Error())
 	}
-	fixture.release = append(fixture.release, quickjsHostRef.Release)
+	defer quickjsHostRef.Release()
+	_ = quickjsHost
 
+	// load the merged project config
 	projectConfig, err := s4wave_core_e2e.LoadProjectConfig(repoRoot)
-	if err != nil {
-		return nil, errors.Wrap(err, "load project config")
+	if err == nil {
+		err = projectConfig.Validate()
 	}
-	if err := projectConfig.Validate(); err != nil {
-		return nil, errors.Wrap(err, "validate project config")
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
+	// apply the devtool remote for building manifests
+	// see devtool/bus.go in bldr
 	projectConfig.Remotes = map[string]*bldr_project.RemoteConfig{
 		"devtool": {
 			EngineId:       tb.GetWorldEngineID(),
@@ -374,58 +175,68 @@ func newCoreE2EFixture(
 		},
 	}
 
+	// configure the project controller
 	projCtrlConf := bldr_project_controller.NewConfig(repoRoot, workDir, projectConfig, false, true)
 	projCtrlConf.FetchManifestRemote = "devtool"
 
-	_, _, projCtrlRef, err := loader.WaitExecControllerRunningTyped[*bldr_project_controller.Controller](
+	// run the project controller, which also compiles and starts the plugins
+	projCtrl, _, projCtrlRef, err := loader.WaitExecControllerRunningTyped[*bldr_project_controller.Controller](
 		ctx,
 		tb.GetBus(),
 		resolver.NewLoadControllerWithConfig(projCtrlConf),
 		nil,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "start project controller")
+		t.Fatal(err.Error())
 	}
-	fixture.release = append(fixture.release, projCtrlRef.Release)
+	defer projCtrlRef.Release()
+	_ = projCtrl
 
-	browserServer := s4wave_core_e2e_browser.NewBrowserTestServer(le, b)
-	browserPort, err := browserServer.Start(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "start browser test server")
+	type testResult struct {
+		success  bool
+		errorMsg string
+		err      error
 	}
-	fixture.browserServer = browserServer
-	fixture.browserPort = browserPort
-
+	waitCtx, waitCancel := context.WithCancel(ctx)
+	defer waitCancel()
+	startupErrCh := make(chan error, 1)
 	go func() {
-		err := tb.GetScheduler().WaitPluginsRunning(ctx, projectConfig.GetStart().GetPlugins())
-		if err != nil {
-			if ctx.Err() == nil {
-				testbedResourceServer.FailQueuedTests(false, "error waiting for startup plugins: "+err.Error())
-			}
-			return
-		}
-		le.Info("startup plugins running")
+		startupErrCh <- tb.GetScheduler().WaitPluginsRunning(waitCtx, projectConfig.GetStart().GetPlugins())
+	}()
+	testResultCh := make(chan testResult, 1)
+	go func() {
+		success, errorMsg, err := testbedResourceServer.WaitForTestResult(waitCtx)
+		testResultCh <- testResult{success: success, errorMsg: errorMsg, err: err}
 	}()
 
-	return fixture, nil
-}
-
-func (f *coreE2EFixture) Close() {
-	if f.testbedResourceServer != nil {
-		f.testbedResourceServer.CloseTestQueue()
-	}
-	if f.browserServer != nil {
-		if err := f.browserServer.Stop(context.Background()); err != nil {
-			_, _ = os.Stderr.WriteString("core e2e browser server stop failed: " + err.Error() + "\n")
+	le.Info("waiting for test to complete...")
+	for startupErrCh != nil {
+		select {
+		case err := <-startupErrCh:
+			startupErrCh = nil
+			if err != nil {
+				t.Fatalf("error waiting for startup plugins: %v", err)
+			}
+		case result := <-testResultCh:
+			waitCancel()
+			if result.err != nil {
+				t.Fatalf("error waiting for test result: %v", result.err)
+			}
+			if !result.success {
+				t.Fatalf("test failed: %s", result.errorMsg)
+			}
+			le.Info("test completed successfully")
+			return
 		}
-		f.browserServer = nil
 	}
-	for i := len(f.release) - 1; i >= 0; i-- {
-		f.release[i]()
+
+	result := <-testResultCh
+	if result.err != nil {
+		t.Fatalf("error waiting for test result: %v", result.err)
 	}
-	f.release = nil
-	if f.cancel != nil {
-		f.cancel()
-		f.cancel = nil
+	if !result.success {
+		t.Fatalf("test failed: %s", result.errorMsg)
 	}
+
+	le.Info("test completed successfully")
 }

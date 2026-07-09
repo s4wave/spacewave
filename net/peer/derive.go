@@ -7,8 +7,8 @@ import (
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/s4wave/spacewave/net/util/extra25519"
+	"github.com/zeebo/blake3"
 )
 
 // DeriveKey derives a secret using a private key.

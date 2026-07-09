@@ -1,6 +1,6 @@
 import { dirname, isAbsolute, resolve } from 'path'
 import { access } from 'node:fs/promises'
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { type Alias, type Plugin } from 'vite'
 
 // readLocalModuleSync reads the module path from projectRoot/go.mod so the
@@ -27,32 +27,6 @@ function vendorRoots(projectRoot: string, distRoot: string): string[] {
   return [appVendorRoot, distVendorRoot]
 }
 
-function resolveMaterializedScopedPackagePaths(
-  projectRoot: string,
-  distRoot: string,
-  source: string,
-): string[] | null {
-  if (!source.startsWith('@')) {
-    return null
-  }
-  const parts = source.split('/')
-  if (parts.length < 3) {
-    return null
-  }
-  const scope = parts[0].slice(1)
-  const name = parts[1]
-  if (!scope || !name) {
-    return null
-  }
-  const rel = parts.slice(2).join('/')
-  const roots = [resolve(projectRoot, `.${scope}`, name)]
-  const distRootCandidate = resolve(distRoot, `.${scope}`, name)
-  if (distRootCandidate !== roots[0]) {
-    roots.push(distRootCandidate)
-  }
-  return roots.map((root) => resolve(root, rel))
-}
-
 function resolveGoImportPaths(
   projectRoot: string,
   distRoot: string,
@@ -68,41 +42,7 @@ function resolveGoImportPaths(
     return [resolve(projectRoot, importPath.slice(localModule.length + 1))]
   }
 
-  return vendorRoots(projectRoot, distRoot).map((root) =>
-    resolve(root, importPath),
-  )
-}
-
-function buildMaterializedScopedPackageAliases(projectRoot: string): Alias[] {
-  const aliases: Alias[] = []
-  let entries: string[]
-  try {
-    entries = readdirSync(projectRoot)
-  } catch {
-    return aliases
-  }
-  for (const entry of entries) {
-    if (!entry.startsWith('.') || entry === '.' || entry === '..') {
-      continue
-    }
-    const scope = entry.slice(1)
-    if (!scope) {
-      continue
-    }
-    let packages: string[]
-    try {
-      packages = readdirSync(resolve(projectRoot, entry))
-    } catch {
-      continue
-    }
-    for (const pkg of packages) {
-      aliases.push({
-        find: `@${scope}/${pkg}`,
-        replacement: resolve(projectRoot, entry, pkg),
-      })
-    }
-  }
-  return aliases
+  return vendorRoots(projectRoot, distRoot).map((root) => resolve(root, importPath))
 }
 
 function resolveSourcePaths(
@@ -116,17 +56,7 @@ function resolveSourcePaths(
   }
   if (source.startsWith('vendor/')) {
     const importPath = source.slice('vendor/'.length)
-    return vendorRoots(projectRoot, distRoot).map((root) =>
-      resolve(root, importPath),
-    )
-  }
-  const materializedPackagePaths = resolveMaterializedScopedPackagePaths(
-    projectRoot,
-    distRoot,
-    source,
-  )
-  if (materializedPackagePaths) {
-    return materializedPackagePaths
+    return vendorRoots(projectRoot, distRoot).map((root) => resolve(root, importPath))
   }
   if (isAbsolute(source)) {
     return [source]
@@ -141,10 +71,10 @@ function resolveSourcePaths(
   return [resolve(dirname(importer), source)]
 }
 
-// buildGoAliases builds Vite aliases for monorepo-local @go imports that do
-// not go through the generated .js-to-.ts resolver. Vendored @go imports are
-// resolved by goTsResolver so external apps can fall back to the Bldr dist
-// vendor tree when they do not materialize an app-root vendor mirror.
+// buildGoAliases builds Vite aliases for vendored and monorepo-local @go
+// imports. The local module path is read from projectRoot/go.mod so the same
+// helper works for any repo consuming bldr; @go/<module>/* maps to project
+// source while every other @go/* resolves through the app root vendor tree.
 export function buildGoAliases(
   projectRoot: string,
   _distRoot = projectRoot,
@@ -158,13 +88,16 @@ export function buildGoAliases(
       replacement: resolve(projectRoot, '$1'),
     })
   }
-  aliases.push(...buildMaterializedScopedPackageAliases(projectRoot))
+  aliases.push({
+    find: /^@go\/(.*)$/,
+    replacement: resolve(projectRoot, 'vendor', '$1'),
+  })
   return aliases
 }
 
 /**
- * Creates a Vite plugin that resolves @go/ paths ending in .js to existing
- * generated .ts/.tsx siblings or checked-in .js files.
+ * Creates a Vite plugin that resolves @go/ paths that end in .js to their .ts equivalents
+ * when the .ts file exists but the .js file doesn't
  */
 export function goTsResolver(
   projectRoot: string,
@@ -195,25 +128,19 @@ export function goTsResolver(
       }
 
       for (const sourcePath of sourcePaths) {
-        const candidates = [
-          sourcePath.replace(/\.js$/, '.ts'),
-          sourcePath.replace(/\.js$/, '.tsx'),
-          sourcePath,
-        ]
-        for (const candidatePath of candidates) {
-          const resolvedPath = resolve(candidatePath)
-          let cached = tsPathCache.get(resolvedPath)
-          if (!cached) {
-            cached = access(resolvedPath).then(
-              () => resolvedPath,
-              () => null,
-            )
-            tsPathCache.set(resolvedPath, cached)
-          }
-          const resolved = await cached
-          if (resolved) {
-            return resolved
-          }
+        const tsPath = resolve(projectRoot, sourcePath).replace(/\.js$/, '.ts')
+
+        let cached = tsPathCache.get(tsPath)
+        if (!cached) {
+          cached = access(tsPath).then(
+            () => tsPath,
+            () => null,
+          )
+          tsPathCache.set(tsPath, cached)
+        }
+        const resolved = await cached
+        if (resolved) {
+          return resolved
         }
       }
       return null

@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/net/crypto/blake3"
+	"github.com/zeebo/blake3"
 )
 
 // HashFileWithBlake3 hashes a file using blake3 and returns the first 8 characters of the base32-encoded hash.

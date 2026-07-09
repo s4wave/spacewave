@@ -76,12 +76,6 @@ export interface MarkTestResultRequest {
    * @generated from field: string error_message = 2;
    */
   errorMessage?: string
-  /**
-   * TestName identifies the queued test case when multiple results share one fixture.
-   *
-   * @generated from field: string test_name = 3;
-   */
-  testName?: string
 }
 
 export const MarkTestResultRequest: MessageType<MarkTestResultRequest> =
@@ -90,7 +84,6 @@ export const MarkTestResultRequest: MessageType<MarkTestResultRequest> =
     fields: [
       { no: 1, name: 'success', kind: 'scalar', T: ScalarType.BOOL },
       { no: 2, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'test_name', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -107,49 +100,6 @@ export const MarkTestResultResponse: MessageType<MarkTestResultResponse> =
     's4wave.testbed.MarkTestResultResponse',
     true,
   )
-
-/**
- * ClaimTestRequest is the request type for ClaimTest.
- *
- * @generated from message s4wave.testbed.ClaimTestRequest
- */
-export interface ClaimTestRequest {}
-
-export const ClaimTestRequest: MessageType<ClaimTestRequest> =
-  /* @__PURE__ */ createEmptyMessageType<ClaimTestRequest>(
-    's4wave.testbed.ClaimTestRequest',
-    true,
-  )
-
-/**
- * ClaimTestResponse is the response type for ClaimTest.
- *
- * @generated from message s4wave.testbed.ClaimTestResponse
- */
-export interface ClaimTestResponse {
-  /**
-   * TestName is the next queued test case name.
-   *
-   * @generated from field: string test_name = 1;
-   */
-  testName?: string
-  /**
-   * Closed is true when the queue has no more tests to run.
-   *
-   * @generated from field: bool closed = 2;
-   */
-  closed?: boolean
-}
-
-export const ClaimTestResponse: MessageType<ClaimTestResponse> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.testbed.ClaimTestResponse',
-    fields: [
-      { no: 1, name: 'test_name', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'closed', kind: 'scalar', T: ScalarType.BOOL },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
 
 /**
  * AccessStateAtomRequest is the request for AccessStateAtom.

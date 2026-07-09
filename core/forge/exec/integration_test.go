@@ -18,10 +18,10 @@ import (
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
+	"github.com/zeebo/blake3"
 )
 
 // generateTestPeerID creates a random Ed25519 peer ID for testing.

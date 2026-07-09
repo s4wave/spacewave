@@ -20,13 +20,10 @@ type bulkEntry struct {
 // Called from setBlockTransaction.
 func (r *Store) initBulkMode() {
 	storeOps, _ := r.bcs.GetBlockStore()
-	if storeOps != nil {
-		storeOps = block.NewBufferedStore(r.ctx, storeOps)
-	}
 	r.storeOps = storeOps
 	r.objIndex = make(map[plumbing.Hash]*block.BlockRef)
-	// Capture the transformer and putOpts from the cursor's transaction so bulk
-	// transactions use the same encryption config.
+	// Capture the transformer and putOpts from the cursor's transaction
+	// so mini-transactions use the same encryption config.
 	if tx := r.bcs.GetTransaction(); tx != nil {
 		r.bulkXfrm = tx.GetTransformer()
 		r.bulkPutOpts = tx.GetPutOpts()
@@ -34,13 +31,13 @@ func (r *Store) initBulkMode() {
 }
 
 // lookupBulkObject looks up an object by hash in the bulk index.
-// Returns the cursor for reading from buffered bulk writes or nil if not found.
+// Returns the cursor for reading (in a temporary transaction) or nil if not found.
 func (r *Store) lookupBulkObject(h plumbing.Hash) *block.Cursor {
 	ref := r.objIndex[h]
 	if ref == nil {
 		return nil
 	}
-	// Create a lightweight read-only transaction to follow the buffered object.
+	// Create a lightweight read-only transaction to follow the persisted object.
 	_, cs := block.NewTransaction(r.storeOps, r.bulkXfrm, ref, r.bulkPutOpts)
 	return cs
 }
@@ -71,8 +68,8 @@ func (r *Store) bulkBuildTree(entries []bulkEntry) (*kvtx_block_iavl.Node, error
 		return nil, err
 	}
 
-	// Write tree nodes through the bulk store. Keep tree in memory
-	// (clearTree=false) so we can extract the root Node with child refs applied.
+	// Write tree nodes to KV. Keep tree in memory (clearTree=false)
+	// so we can extract the root Node with child BlockRefs applied.
 	_, _, err = tx.Write(r.ctx, false)
 	if err != nil {
 		return nil, err
@@ -125,19 +122,6 @@ func (r *Store) bulkObjectEntries() ([]bulkEntry, error) {
 	return entries, nil
 }
 
-func (r *Store) flushBulkStore() error {
-	if r.storeOps == nil {
-		return nil
-	}
-	block.BeginDeferFlush(r.storeOps)
-	_, syncErr := r.storeOps.Sync(r.ctx)
-	flushErr := block.EndDeferFlush(r.ctx, r.storeOps)
-	if syncErr != nil {
-		return syncErr
-	}
-	return flushErr
-}
-
 // bulkCommit builds IAVL trees from accumulated entries and updates the Repo block.
 func (r *Store) bulkCommit() error {
 	// Commit sub-stores first (they update their Repo cursors in btx).
@@ -168,7 +152,8 @@ func (r *Store) bulkCommit() error {
 		iavlRootCs.SetBlock(objRoot, true)
 	}
 
-	// Flush bulk object and tree blocks before the root Repo transaction writes
-	// references to them.
-	return r.flushBulkStore()
+	// Ref and mod trees are unchanged — they used the existing IAVL per-insert
+	// path and are already in btx. Nothing to do for them here.
+
+	return nil
 }

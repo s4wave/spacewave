@@ -10,8 +10,8 @@ import (
 	"github.com/klauspost/compress/s2"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/s4wave/spacewave/net/util/extra25519"
+	"github.com/zeebo/blake3"
 	"golang.org/x/crypto/chacha20poly1305"
 )
 

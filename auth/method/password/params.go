@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	auth_method "github.com/s4wave/spacewave/auth/method"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/crypto/blake3"
+	"github.com/zeebo/blake3"
 	"golang.org/x/crypto/scrypt"
 )
 

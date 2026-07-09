@@ -301,7 +301,7 @@ func (c *Controller) HandleDirective(
 				if curr == nil {
 					continue
 				}
-				vid, accepted := handler.AddValue(curr)
+				vid, accepted := handler.AddValue(spacewave_launcher.WatchLauncherFetchStatusValue(curr))
 				if !accepted {
 					curr = nil
 					continue

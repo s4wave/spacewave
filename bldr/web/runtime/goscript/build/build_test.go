@@ -108,80 +108,6 @@ export const Present = 1
 	}
 }
 
-func TestBuildWebGoScriptPluginScriptDeploysBlake3Sidecar(t *testing.T) {
-	t.Run("source root artifact wins over bundled fixture", func(t *testing.T) {
-		root := t.TempDir()
-		bldrDistRoot := filepath.Join(root, "bldr")
-		sidecarSourcePath := filepath.Join(root, "rs", "blake3", "blake3.wasm")
-		buildPluginWithBlake3Sidecar(t, root, bldrDistRoot, sidecarSourcePath, "source-root-wasm", func() {
-			writeTestFile(t, filepath.Join(root, "go.mod"), "module github.com/s4wave/spacewave\n")
-			writeTestFile(t, sidecarSourcePath, "source-root-wasm")
-		})
-	})
-
-	t.Run("dist fixture is used outside a source checkout", func(t *testing.T) {
-		root := t.TempDir()
-		bldrDistRoot := filepath.Join(root, "dist")
-		sidecarSourcePath := filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, goScriptSidecarOutputDir, "blake3.wasm")
-		buildPluginWithBlake3Sidecar(t, root, bldrDistRoot, sidecarSourcePath, "fixture", nil)
-	})
-}
-
-func TestBuildWebGoScriptPluginScriptBundlesNodeModuleImports(t *testing.T) {
-	root := t.TempDir()
-	bldrDistRoot := filepath.Join(root, "dist")
-	writeRolldownToolFixture(t, bldrDistRoot)
-	workDir := filepath.Join(root, "work")
-	goScriptOutputRoot := filepath.Join(root, "goscript")
-	outPath := filepath.Join(root, "out", "plugin.mjs")
-	aesPath := filepath.Join(bldrDistRoot, "dist", "deps", "node_modules", "@noble", "ciphers", "aes.js")
-
-	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"), `
-export default async function runGoScriptPlugin(_api, pluginMain) {
-  await pluginMain()
-}
-`)
-	writeTestFile(t, filepath.Join(goScriptOutputRoot, "@goscript", "example", "main", "plugin.gs.ts"), `
-import { aesProof } from "@noble/ciphers/aes.js"
-
-export async function main() {
-  return aesProof
-}
-`)
-	writeTestFile(t, aesPath, `
-export const aesProof = "noble-aes-proof"
-`)
-
-	inputs, err := BuildWebGoScriptPluginScript(
-		context.Background(),
-		logrus.NewEntry(logrus.New()),
-		bldrDistRoot,
-		workDir,
-		goScriptOutputRoot,
-		outPath,
-		"example/main",
-		false,
-		false,
-		false,
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	assertInputsContainPaths(t, inputs, aesPath)
-	out, err := os.ReadFile(outPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	outString := string(out)
-	if !strings.Contains(outString, "noble-aes-proof") {
-		t.Fatalf("bundle missing node module payload:\n%s", outString)
-	}
-	if strings.Contains(outString, `from"@noble/ciphers/aes.js"`) ||
-		strings.Contains(outString, `from "@noble/ciphers/aes.js"`) {
-		t.Fatalf("bundle kept bare node module import:\n%s", outString)
-	}
-}
-
 func TestBuildWebGoScriptPluginScriptExternalizesSharedGoScriptImports(t *testing.T) {
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")
@@ -761,22 +687,18 @@ func TestBuildWebGoScriptPluginScriptCodeSplittingUsesLazyMainLoader(t *testing.
 	goScriptOutputRoot := filepath.Join(root, "goscript")
 	outPath := filepath.Join(root, "out", "plugin.mjs")
 	runtimePath := filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts")
-	mainPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "s4wave", "example", "main", "plugin.gs.ts")
-	lazyPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "s4wave", "example", "lazy", "index.ts")
+	mainPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "main", "plugin.gs.ts")
+	lazyPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "lazy", "index.ts")
 
 	writeTestFile(t, runtimePath, `
-export default async function runGoScriptPlugin(api, loadPluginMain, runtimeEnv) {
+export default async function runGoScriptPlugin(api, loadPluginMain) {
   if (typeof loadPluginMain !== "function") {
     throw new Error("plugin main loader was not a function")
-  }
-  if (runtimeEnv?.SPACEWAVE_CDN_BASE_URL !== "https://staging-cdn.example.test") {
-    throw new Error("plugin runtime env was not forwarded into runGoScriptPlugin")
   }
   if (globalThis.__pluginMainModuleEvaluated) {
     throw new Error("plugin main module loaded before wrapper invoked the lazy loader")
   }
   globalThis.__pluginLoaderWasFunction = true
-  globalThis.__pluginRuntimeEnvWasForwarded = true
   const pluginMain = await loadPluginMain()
   globalThis.__pluginMainLoadedAfterLoader = globalThis.__pluginMainModuleEvaluated === true
   await pluginMain(api)
@@ -801,7 +723,7 @@ export const LazyValue = "loaded from public plugin split chunk"
 		workDir,
 		goScriptOutputRoot,
 		outPath,
-		"github.com/s4wave/example/main",
+		"example/main",
 		false,
 		true,
 		true,
@@ -838,13 +760,10 @@ func TestBuildWebGoScriptRuntimeScriptCodeSplittingDefersMainChunkUntilMessage(t
 	goScriptOutputRoot := filepath.Join(root, "goscript")
 	outPath := filepath.Join(root, "out", "runtime.mjs")
 	runtimePath := filepath.Join(bldrDistRoot, "web", "entrypoint", "browser", "runtime-goscript.ts")
-	mainPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "s4wave", "example", "runtime", "main.gs.ts")
-	lazyPath := filepath.Join(goScriptOutputRoot, "@goscript", "github.com", "s4wave", "example", "lazy", "index.ts")
-	sharedPkgRoot := filepath.Join(workDir, "node_modules", "shared-runtime-helper")
+	mainPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "runtime", "main.gs.ts")
+	lazyPath := filepath.Join(goScriptOutputRoot, "@goscript", "example", "lazy", "index.ts")
 
 	writeTestFile(t, runtimePath, `
-import { sharedValue } from "shared-runtime-helper"
-
 export default function runGoScriptRuntime(loadDistMain) {
   if (typeof loadDistMain !== "function") {
     throw new Error("runtime main loader was not a function")
@@ -852,7 +771,6 @@ export default function runGoScriptRuntime(loadDistMain) {
   if (globalThis.__runtimeMainModuleEvaluated) {
     throw new Error("runtime main module loaded before listener setup")
   }
-  globalThis.__runtimeSharedValue = sharedValue
   globalThis.__runtimeLoaderInstalled = true
   self.onmessage = async (event) => {
     if (globalThis.__runtimeMainModuleEvaluated) {
@@ -864,21 +782,15 @@ export default function runGoScriptRuntime(loadDistMain) {
 }
 `)
 	writeTestFile(t, mainPath, `
-import { sharedValue } from "shared-runtime-helper"
-
 globalThis.__runtimeMainModuleEvaluated = true
 
 export async function main(init) {
   const lazy = await import("../lazy/index.js")
-  globalThis.__runtimeMainResult = init.prefix + ":" + sharedValue + ":" + lazy.LazyValue
+  globalThis.__runtimeMainResult = init.prefix + ":" + lazy.LazyValue
 }
 `)
 	writeTestFile(t, lazyPath, `
 export const LazyValue = "loaded from public runtime split chunk"
-`)
-	writeTestFile(t, filepath.Join(sharedPkgRoot, "package.json"), `{"module":"index.js"}`)
-	writeTestFile(t, filepath.Join(sharedPkgRoot, "index.ts"), `
-export const sharedValue = "shared dependency"
 `)
 
 	inputs, err := BuildWebGoScriptRuntimeScript(
@@ -888,7 +800,7 @@ export const sharedValue = "shared dependency"
 		workDir,
 		goScriptOutputRoot,
 		outPath,
-		"github.com/s4wave/example/runtime",
+		"example/runtime",
 		false,
 		false,
 		true,
@@ -899,7 +811,7 @@ export const sharedValue = "shared dependency"
 	assertInputsContainPaths(t, inputs, mainPath, lazyPath)
 	assertSplitOutputLoadsPayloadFromChunk(t, outPath, "loaded from public runtime split chunk")
 
-	runBundledRuntimeEntryModule(t, filepath.Join(workDir, "..", "..", "bun"), outPath, "shared dependency:loaded from public runtime split chunk")
+	runBundledRuntimeEntryModule(t, filepath.Join(workDir, "..", "..", "bun"), outPath, "loaded from public runtime split chunk")
 }
 
 func TestRenderRolldownGoScriptConfigCodeSplittingWritesManualGroups(t *testing.T) {
@@ -930,8 +842,8 @@ func TestRenderRolldownGoScriptConfigCodeSplittingWritesManualGroups(t *testing.
 	if sharedIndex > appIndex {
 		t.Fatalf("shared codeSplitting group must be rendered before app group:\n%s", config)
 	}
-	if !strings.Contains(config, `name:"shared",test:(id)=>!isEntrypointModule(id)&&!id.startsWith("\0")&&!isGoScriptModule(id,"github.com/s4wave/"),priority:1`) {
-		t.Fatalf("rendered config missing prioritized shared dependency group with app exclusion:\n%s", config)
+	if !strings.Contains(config, `name:"shared",test:(id)=>isGoScriptModule(id,"")&&!isGoScriptModule(id,"github.com/s4wave/"),priority:1`) {
+		t.Fatalf("rendered config missing prioritized shared GoScript group with app exclusion:\n%s", config)
 	}
 	if !strings.Contains(config, `name:"app",test:(id)=>isGoScriptModule(id,"github.com/s4wave/")`) {
 		t.Fatalf("rendered config missing app GoScript group:\n%s", config)
@@ -1096,54 +1008,6 @@ export const Unused = 2
 		t.Fatal(err)
 	}
 	assertInlineAndExternalSourceMap(t, readableMapOutPath)
-}
-
-func buildPluginWithBlake3Sidecar(t *testing.T, root, bldrDistRoot, sidecarSourcePath, wantSidecar string, arrange func()) {
-	t.Helper()
-	writeRolldownToolFixture(t, bldrDistRoot)
-	if arrange != nil {
-		arrange()
-	}
-	workDir := filepath.Join(root, "work")
-	goScriptOutputRoot := filepath.Join(root, "goscript")
-	outPath := filepath.Join(root, "out", "plugin.mjs")
-
-	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, "plugin-goscript.ts"), `
-export default async function runGoScriptPlugin(_api, pluginMain) {
-  await pluginMain()
-}
-`)
-	writeTestFile(t, filepath.Join(goScriptOutputRoot, "@goscript", "example", "main", "plugin.gs.ts"), `
-export async function main() {
-  return "ok"
-}
-`)
-
-	inputs, err := BuildWebGoScriptPluginScript(
-		context.Background(),
-		logrus.NewEntry(logrus.New()),
-		bldrDistRoot,
-		workDir,
-		goScriptOutputRoot,
-		outPath,
-		"example/main",
-		false,
-		false,
-		false,
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	assertInputsContainPaths(t, inputs, sidecarSourcePath)
-	outSidecarPath := filepath.Join(filepath.Dir(outPath), goScriptSidecarOutputDir, "blake3.wasm")
-	gotSidecar, err := os.ReadFile(outSidecarPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(gotSidecar) != wantSidecar {
-		t.Fatalf("deployed sidecar = %q, want %q", gotSidecar, wantSidecar)
-	}
-	assertBundleReport(t, GoScriptBundleReportPath(workDir), outPath, false, false, false, inputs)
 }
 
 func assertBundleReport(t *testing.T, reportPath, outPath string, minify, sourcemaps, codeSplitting bool, inputs []string) {
@@ -1380,12 +1244,9 @@ const mod = await import(pathToFileURL(process.argv[2]).href)
 if (globalThis.__pluginMainModuleEvaluated) {
   throw new Error("plugin main chunk loaded during entry import")
 }
-await mod.default({ prefix: "plugin-api" }, undefined, { SPACEWAVE_CDN_BASE_URL: "https://staging-cdn.example.test" })
+await mod.default({ prefix: "plugin-api" })
 if (globalThis.__pluginLoaderWasFunction !== true) {
   throw new Error("plugin wrapper did not receive a loader function")
-}
-if (globalThis.__pluginRuntimeEnvWasForwarded !== true) {
-  throw new Error("plugin wrapper did not forward runtime env")
 }
 if (globalThis.__pluginMainLoadedAfterLoader !== true) {
   throw new Error("plugin main was not loaded through the lazy loader")
@@ -1451,7 +1312,6 @@ func writeRolldownToolFixture(t *testing.T, bldrDistRoot string) {
 	if err := os.Symlink(cliPath, targetPath); err != nil {
 		t.Fatal(err)
 	}
-	writeTestFile(t, filepath.Join(bldrDistRoot, webRuntimeGoScriptDir, goScriptSidecarOutputDir, "blake3.wasm"), "fixture")
 }
 
 func findTestRolldownCLIPath(t *testing.T) string {

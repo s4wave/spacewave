@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/s4wave/spacewave/bldr/util/exec"
@@ -16,13 +15,6 @@ import (
 
 // installHashFile is the filename used to cache the install hash.
 const installHashFile = ".bldr-install-hash"
-
-var bunInstallLocks = struct {
-	mtx    sync.Mutex
-	byPath map[string]*sync.Mutex
-}{
-	byPath: make(map[string]*sync.Mutex),
-}
 
 // EnsureBunInstall copies srcPackageJson and its sibling bun.lock, when
 // present, to targetDir and runs bun install, skipping the install if the
@@ -38,9 +30,6 @@ func EnsureBunInstall(ctx context.Context, le *logrus.Entry, stateDir, srcPackag
 	}
 
 	hash := bunInstallHash(data, lockData)
-	unlock := lockBunInstallTarget(targetDir)
-	defer unlock()
-
 	if installCurrent(targetDir, hash) {
 		le.Debug("bun install cached, skipping")
 		return nil
@@ -73,70 +62,6 @@ func EnsureBunInstall(ctx context.Context, le *logrus.Entry, stateDir, srcPackag
 	}
 
 	return writeInstallHash(targetDir, hash)
-}
-
-func lockBunInstallTarget(targetDir string) func() {
-	key, err := filepath.Abs(targetDir)
-	if err != nil {
-		key = filepath.Clean(targetDir)
-	}
-
-	bunInstallLocks.mtx.Lock()
-	targetLock := bunInstallLocks.byPath[key]
-	if targetLock == nil {
-		targetLock = &sync.Mutex{}
-		bunInstallLocks.byPath[key] = targetLock
-	}
-	bunInstallLocks.mtx.Unlock()
-
-	targetLock.Lock()
-	return targetLock.Unlock
-}
-
-// EnsureNodeModulesLink links parentDir/node_modules to installDir/node_modules.
-func EnsureNodeModulesLink(parentDir, installDir string) error {
-	target, err := filepath.Abs(filepath.Join(installDir, "node_modules"))
-	if err != nil {
-		return err
-	}
-	if _, err := os.Stat(target); err != nil {
-		return err
-	}
-	linkPath := filepath.Join(parentDir, "node_modules")
-	info, err := os.Lstat(linkPath)
-	if err == nil {
-		if info.Mode()&os.ModeSymlink == 0 {
-			return nil
-		}
-		existing, err := os.Readlink(linkPath)
-		if err != nil {
-			return err
-		}
-		if !filepath.IsAbs(existing) {
-			existing = filepath.Join(parentDir, existing)
-		}
-		existing, err = filepath.Abs(existing)
-		if err != nil {
-			return err
-		}
-		if _, err := os.Stat(existing); err == nil {
-			return nil
-		}
-		if err := os.Remove(linkPath); err != nil && !os.IsNotExist(err) {
-			return err
-		}
-	} else if !os.IsNotExist(err) {
-		return err
-	}
-	if err := os.Symlink(target, linkPath); err != nil {
-		if !os.IsExist(err) {
-			return err
-		}
-		if _, err := os.Lstat(linkPath); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func readSiblingBunLock(srcPackageJson string) ([]byte, bool, error) {

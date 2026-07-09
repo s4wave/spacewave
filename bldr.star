@@ -30,6 +30,8 @@ def core_go_pkgs(include_export=True):
 LAUNCHER_GO_PKGS = [
     "./core/provider/spacewave/launcher/controller",
     "github.com/s4wave/spacewave/bldr/manifest/fetch/world",
+    "github.com/s4wave/spacewave/core/cdn/world/controller",
+    "github.com/s4wave/spacewave/core/space/world/optypes",
     "github.com/s4wave/spacewave/db/block/store/overlay",
     "github.com/s4wave/spacewave/db/block/store/rpc/server",
     "github.com/s4wave/spacewave/db/object/peer",
@@ -165,19 +167,6 @@ def spacewave_launcher_controller_config(
         conf["initDistConfig"] = init_dist_config
     return conf
 
-def release_world_host_config_set(
-        space_id="01kqjmfxd44r7ggrq78efad3d2",
-        cdn_base_url="https://cdn.spacewave.app"):
-    return {
-        "release-world-fetch": config_entry("bldr/manifest/fetch/world", 1, {
-            "engineId": "spacewave-release-world",
-            "objectKeys": ["spacewave/release/manifests"],
-            "cdnSpaceId": space_id,
-            "cdnBaseUrl": cdn_base_url,
-            "releaseMetadataChannelKey": "stable",
-        }),
-    }
-
 def spacewave_launcher_config(
         launcher_controller_config=spacewave_launcher_controller_config(),
         web_go_compiler=None,
@@ -193,7 +182,20 @@ def spacewave_launcher_config(
         }),
     }
     if include_release_world:
-        config_set.update(release_world_host_config_set())
+        config_set.update({
+            "release-world": config_entry("spacewave/cdn/world", 1, {
+                "engineId": "spacewave-release-world",
+                "spaceId": "01kqjmfxd44r7ggrq78efad3d2",
+                "cdnBaseUrl": "https://cdn.spacewave.app",
+            }),
+            "release-world-ops": config_entry("space/world/ops", 1, {
+                "engineId": "spacewave-release-world",
+            }),
+            "release-world-fetch": config_entry("bldr/manifest/fetch/world", 1, {
+                "engineId": "spacewave-release-world",
+                "objectKeys": ["spacewave/release/manifests"],
+            }),
+        })
     conf = {
         "goPkgs": LAUNCHER_GO_PKGS if include_release_world else LAUNCHER_BROWSER_GO_PKGS,
         "configSet": config_set,
@@ -416,12 +418,7 @@ BROWSER_RELEASE_E2E_LOAD_PLUGINS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "web",
 ]
 
-def dist_release_config(
-        embed_manifests,
-        load_plugins,
-        entrypoint_role="desktop",
-        go_compiler=None,
-        host_config_set=None):
+def dist_release_config(embed_manifests, load_plugins, entrypoint_role="desktop", go_compiler=None):
     conf = dist_compiler_config(
         cliPkgs=["./cmd/spacewave/cli"],
         embedManifests=embed_manifests,
@@ -432,8 +429,6 @@ def dist_release_config(
     )
     if go_compiler:
         conf["goCompiler"] = go_compiler
-    if host_config_set:
-        conf["hostConfigSet"] = host_config_set
     return conf
 
 manifest("spacewave-dist",
@@ -498,13 +493,15 @@ REMOTE_WORLD_MANIFESTS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86",
     "spacewave-cli-plugin", "web",
 ]
-# Browser release embeds the startup app closure plus dynamic quickstart plugin
-# manifests. The embedded Manifest world is the first FetchManifest source
-# available to the dist host, so startup plugins must be resolvable before the
-# launcher has mounted the Release World, and hidden quickstart plugins must be
-# resolvable on staging/browser-only deploys where the plugin Release World may
-# lag the entrypoint generation.
-def browser_startup_embed_manifests(go_platform_id):
+# Browser release intentionally embeds the full startup app closure:
+# spacewave-launcher, spacewave-core, web, spacewave-web, and spacewave-app.
+# The embedded Manifest world is the first FetchManifest source available to the
+# dist host, so these startup plugins must be resolvable before the launcher has
+# mounted the Release World. Launcher-only embedding can replace this list only
+# after a non-circular Release World FetchManifest path is owned by the host or
+# launcher and release preflight proves the Release World contains those
+# non-launcher startup tuples.
+def browser_release_embed_manifests(go_platform_id):
     return [
         {"manifestId": "spacewave-launcher",
          "platformId": go_platform_id},
@@ -519,19 +516,10 @@ def browser_startup_embed_manifests(go_platform_id):
     ]
 
 
-def browser_release_embed_manifests(go_platform_id):
-    return browser_startup_embed_manifests(go_platform_id) + [
-        {"manifestId": "spacewave-notes",
-         "platformId": "js"},
-        {"manifestId": "spacewave-v86",
-         "platformId": "js"},
-    ]
-
-
 BROWSER_RELEASE_EMBED_MANIFESTS = browser_release_embed_manifests("js")
 BROWSER_RELEASE_WASM_EMBED_MANIFESTS = browser_release_embed_manifests("web/js/wasm")
-BROWSER_RELEASE_E2E_EMBED_MANIFESTS = browser_startup_embed_manifests("web/js/wasm")
-BROWSER_RELEASE_E2E_GOSCRIPT_EMBED_MANIFESTS = browser_startup_embed_manifests("js")
+BROWSER_RELEASE_E2E_EMBED_MANIFESTS = BROWSER_RELEASE_WASM_EMBED_MANIFESTS
+BROWSER_RELEASE_E2E_GOSCRIPT_EMBED_MANIFESTS = browser_release_embed_manifests("js")
 
 build("app",         manifests=DEV_MANIFESTS,     targets=["desktop"])
 build("web",         manifests=DEV_MANIFESTS,     targets=["browser"])
@@ -546,7 +534,6 @@ build("release-web",
             BROWSER_RELEASE_LOAD_PLUGINS,
             entrypoint_role="browser",
             go_compiler="GO_COMPILER_GOSCRIPT",
-            host_config_set=release_world_host_config_set(),
         ),
     },
 )

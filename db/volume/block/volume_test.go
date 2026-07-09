@@ -20,8 +20,8 @@ import (
 	volume_block "github.com/s4wave/spacewave/db/volume/block"
 	volume_test "github.com/s4wave/spacewave/db/volume/test"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/sirupsen/logrus"
+	"github.com/zeebo/blake3"
 )
 
 // TestBlockVolume tests the block graph backed volume.

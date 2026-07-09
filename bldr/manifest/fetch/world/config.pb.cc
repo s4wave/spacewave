@@ -40,18 +40,6 @@ inline constexpr Config::Impl_::Impl_(
         fetch_manifest_id_re_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        cdn_space_id_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        cdn_base_url_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        pointer_ttl_dur_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        release_metadata_channel_key_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
         override_manifest_rev_{::uint64_t{0u}},
         disable_watch_{false} {}
 
@@ -86,25 +74,17 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::manifest::fetch::world::Config, _impl_._has_bits_),
-        12, // hasbit index offset
+        8, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::manifest::fetch::world::Config, _impl_.engine_id_),
         PROTOBUF_FIELD_OFFSET(::manifest::fetch::world::Config, _impl_.object_keys_),
         PROTOBUF_FIELD_OFFSET(::manifest::fetch::world::Config, _impl_.fetch_manifest_id_re_),
         PROTOBUF_FIELD_OFFSET(::manifest::fetch::world::Config, _impl_.disable_watch_),
         PROTOBUF_FIELD_OFFSET(::manifest::fetch::world::Config, _impl_.override_manifest_rev_),
-        PROTOBUF_FIELD_OFFSET(::manifest::fetch::world::Config, _impl_.cdn_space_id_),
-        PROTOBUF_FIELD_OFFSET(::manifest::fetch::world::Config, _impl_.cdn_base_url_),
-        PROTOBUF_FIELD_OFFSET(::manifest::fetch::world::Config, _impl_.pointer_ttl_dur_),
-        PROTOBUF_FIELD_OFFSET(::manifest::fetch::world::Config, _impl_.release_metadata_channel_key_),
         1,
         0,
         2,
-        8,
-        7,
-        3,
         4,
-        5,
-        6,
+        3,
 };
 
 static const ::_pbi::MigrationSchema
@@ -118,19 +98,16 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     protodesc_cold) = {
     "\nBgithub.com/s4wave/spacewave/bldr/manif"
     "est/fetch/world/config.proto\022\024manifest.f"
-    "etch.world\"\357\001\n\006Config\022\021\n\tengine_id\030\001 \001(\t"
+    "etch.world\"\204\001\n\006Config\022\021\n\tengine_id\030\001 \001(\t"
     "\022\023\n\013object_keys\030\002 \003(\t\022\034\n\024fetch_manifest_"
     "id_re\030\003 \001(\t\022\025\n\rdisable_watch\030\004 \001(\010\022\035\n\025ov"
-    "erride_manifest_rev\030\005 \001(\004\022\024\n\014cdn_space_i"
-    "d\030\006 \001(\t\022\024\n\014cdn_base_url\030\007 \001(\t\022\027\n\017pointer"
-    "_ttl_dur\030\010 \001(\t\022$\n\034release_metadata_chann"
-    "el_key\030\t \001(\tb\006proto3"
+    "erride_manifest_rev\030\005 \001(\004b\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2ffetch_2fworld_2fconfig_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2ffetch_2fworld_2fconfig_2eproto = {
     false,
     false,
-    340,
+    233,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2ffetch_2fworld_2fconfig_2eproto,
     "github.com/s4wave/spacewave/bldr/manifest/fetch/world/config.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2ffetch_2fworld_2fconfig_2eproto_once,
@@ -173,11 +150,7 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         _cached_size_{0},
         object_keys_{visibility, arena, from.object_keys_},
         engine_id_(arena, from.engine_id_),
-        fetch_manifest_id_re_(arena, from.fetch_manifest_id_re_),
-        cdn_space_id_(arena, from.cdn_space_id_),
-        cdn_base_url_(arena, from.cdn_base_url_),
-        pointer_ttl_dur_(arena, from.pointer_ttl_dur_),
-        release_metadata_channel_key_(arena, from.release_metadata_channel_key_) {}
+        fetch_manifest_id_re_(arena, from.fetch_manifest_id_re_) {}
 
 Config::Config(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -208,11 +181,7 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
       : _cached_size_{0},
         object_keys_{visibility, arena},
         engine_id_(arena),
-        fetch_manifest_id_re_(arena),
-        cdn_space_id_(arena),
-        cdn_base_url_(arena),
-        pointer_ttl_dur_(arena),
-        release_metadata_channel_key_(arena) {}
+        fetch_manifest_id_re_(arena) {}
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -236,10 +205,6 @@ inline void Config::SharedDtor(MessageLite& self) {
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.engine_id_.Destroy();
   this_._impl_.fetch_manifest_id_re_.Destroy();
-  this_._impl_.cdn_space_id_.Destroy();
-  this_._impl_.cdn_base_url_.Destroy();
-  this_._impl_.pointer_ttl_dur_.Destroy();
-  this_._impl_.release_metadata_channel_key_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -298,16 +263,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 9, 0, 151, 2>
+const ::_pbi::TcParseTable<3, 5, 0, 76, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    9, 120,  // max_field_number, fast_idx_mask
+    5, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966784,  // skipmap
+    4294967264,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    9,  // num_field_entries
+    5,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     Config_class_data_.base(),
@@ -331,33 +296,13 @@ Config::_table_ = {
      {26, 2, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.fetch_manifest_id_re_)}},
     // bool disable_watch = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_watch_), 8>(),
-     {32, 8, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_watch_), 4>(),
+     {32, 4, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_watch_)}},
     // uint64 override_manifest_rev = 5;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(Config, _impl_.override_manifest_rev_), 7>(),
-     {40, 7, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(Config, _impl_.override_manifest_rev_), 3>(),
+     {40, 3, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.override_manifest_rev_)}},
-    // string cdn_space_id = 6;
-    {::_pbi::TcParser::FastUS1,
-     {50, 3, 0,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.cdn_space_id_)}},
-    // string cdn_base_url = 7;
-    {::_pbi::TcParser::FastUS1,
-     {58, 4, 0,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.cdn_base_url_)}},
-    // string pointer_ttl_dur = 8;
-    {::_pbi::TcParser::FastUS1,
-     {66, 5, 0,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.pointer_ttl_dur_)}},
-    // string release_metadata_channel_key = 9;
-    {::_pbi::TcParser::FastUS1,
-     {74, 6, 0,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.release_metadata_channel_key_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
@@ -370,29 +315,17 @@ Config::_table_ = {
     // string fetch_manifest_id_re = 3;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.fetch_manifest_id_re_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // bool disable_watch = 4;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_watch_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_watch_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // uint64 override_manifest_rev = 5;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.override_manifest_rev_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
-    // string cdn_space_id = 6;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.cdn_space_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // string cdn_base_url = 7;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.cdn_base_url_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // string pointer_ttl_dur = 8;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.pointer_ttl_dur_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // string release_metadata_channel_key = 9;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.release_metadata_channel_key_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.override_manifest_rev_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
   }},
   // no aux_entries
   {{
-    "\33\11\13\24\0\0\14\14\17\34\0\0\0\0\0\0"
+    "\33\11\13\24\0\0\0\0"
     "manifest.fetch.world.Config"
     "engine_id"
     "object_keys"
     "fetch_manifest_id_re"
-    "cdn_space_id"
-    "cdn_base_url"
-    "pointer_ttl_dur"
-    "release_metadata_channel_key"
   }},
 };
 PROTOBUF_NOINLINE void Config::Clear() {
@@ -403,7 +336,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _impl_.object_keys_.Clear();
     }
@@ -413,21 +346,12 @@ PROTOBUF_NOINLINE void Config::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       _impl_.fetch_manifest_id_re_.ClearNonDefaultToEmpty();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      _impl_.cdn_space_id_.ClearNonDefaultToEmpty();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      _impl_.cdn_base_url_.ClearNonDefaultToEmpty();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
-      _impl_.pointer_ttl_dur_.ClearNonDefaultToEmpty();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-      _impl_.release_metadata_channel_key_.ClearNonDefaultToEmpty();
-    }
   }
-  _impl_.override_manifest_rev_ = ::uint64_t{0u};
-  _impl_.disable_watch_ = false;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000018U)) {
+    ::memset(&_impl_.override_manifest_rev_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.disable_watch_) -
+        reinterpret_cast<char*>(&_impl_.override_manifest_rev_)) + sizeof(_impl_.disable_watch_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -482,7 +406,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // bool disable_watch = 4;
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_disable_watch() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -491,51 +415,11 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // uint64 override_manifest_rev = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     if (this_._internal_override_manifest_rev() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
           5, this_._internal_override_manifest_rev(), target);
-    }
-  }
-
-  // string cdn_space_id = 6;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-    if (!this_._internal_cdn_space_id().empty()) {
-      const ::std::string& _s = this_._internal_cdn_space_id();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "manifest.fetch.world.Config.cdn_space_id");
-      target = stream->WriteStringMaybeAliased(6, _s, target);
-    }
-  }
-
-  // string cdn_base_url = 7;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-    if (!this_._internal_cdn_base_url().empty()) {
-      const ::std::string& _s = this_._internal_cdn_base_url();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "manifest.fetch.world.Config.cdn_base_url");
-      target = stream->WriteStringMaybeAliased(7, _s, target);
-    }
-  }
-
-  // string pointer_ttl_dur = 8;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
-    if (!this_._internal_pointer_ttl_dur().empty()) {
-      const ::std::string& _s = this_._internal_pointer_ttl_dur();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "manifest.fetch.world.Config.pointer_ttl_dur");
-      target = stream->WriteStringMaybeAliased(8, _s, target);
-    }
-  }
-
-  // string release_metadata_channel_key = 9;
-  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-    if (!this_._internal_release_metadata_channel_key().empty()) {
-      const ::std::string& _s = this_._internal_release_metadata_channel_key();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "manifest.fetch.world.Config.release_metadata_channel_key");
-      target = stream->WriteStringMaybeAliased(9, _s, target);
     }
   }
 
@@ -564,7 +448,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     // repeated string object_keys = 2;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size +=
@@ -588,45 +472,15 @@ PROTOBUF_NOINLINE void Config::Clear() {
                                         this_._internal_fetch_manifest_id_re());
       }
     }
-    // string cdn_space_id = 6;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      if (!this_._internal_cdn_space_id().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_cdn_space_id());
-      }
-    }
-    // string cdn_base_url = 7;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      if (!this_._internal_cdn_base_url().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_cdn_base_url());
-      }
-    }
-    // string pointer_ttl_dur = 8;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
-      if (!this_._internal_pointer_ttl_dur().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_pointer_ttl_dur());
-      }
-    }
-    // string release_metadata_channel_key = 9;
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-      if (!this_._internal_release_metadata_channel_key().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_release_metadata_channel_key());
-      }
-    }
     // uint64 override_manifest_rev = 5;
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (this_._internal_override_manifest_rev() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
             this_._internal_override_manifest_rev());
       }
     }
-  }
-   {
     // bool disable_watch = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_disable_watch() != 0) {
         total_size += 2;
       }
@@ -651,7 +505,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_object_keys()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
@@ -676,50 +530,14 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
-      if (!from._internal_cdn_space_id().empty()) {
-        _this->_internal_set_cdn_space_id(from._internal_cdn_space_id());
-      } else {
-        if (_this->_impl_.cdn_space_id_.IsDefault()) {
-          _this->_internal_set_cdn_space_id("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
-      if (!from._internal_cdn_base_url().empty()) {
-        _this->_internal_set_cdn_base_url(from._internal_cdn_base_url());
-      } else {
-        if (_this->_impl_.cdn_base_url_.IsDefault()) {
-          _this->_internal_set_cdn_base_url("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
-      if (!from._internal_pointer_ttl_dur().empty()) {
-        _this->_internal_set_pointer_ttl_dur(from._internal_pointer_ttl_dur());
-      } else {
-        if (_this->_impl_.pointer_ttl_dur_.IsDefault()) {
-          _this->_internal_set_pointer_ttl_dur("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
-      if (!from._internal_release_metadata_channel_key().empty()) {
-        _this->_internal_set_release_metadata_channel_key(from._internal_release_metadata_channel_key());
-      } else {
-        if (_this->_impl_.release_metadata_channel_key_.IsDefault()) {
-          _this->_internal_set_release_metadata_channel_key("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (from._internal_override_manifest_rev() != 0) {
         _this->_impl_.override_manifest_rev_ = from._impl_.override_manifest_rev_;
       }
     }
-  }
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    if (from._internal_disable_watch() != 0) {
-      _this->_impl_.disable_watch_ = from._impl_.disable_watch_;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_disable_watch() != 0) {
+        _this->_impl_.disable_watch_ = from._impl_.disable_watch_;
+      }
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -744,10 +562,6 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   _impl_.object_keys_.InternalSwap(&other->_impl_.object_keys_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.engine_id_, &other->_impl_.engine_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.fetch_manifest_id_re_, &other->_impl_.fetch_manifest_id_re_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.cdn_space_id_, &other->_impl_.cdn_space_id_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.cdn_base_url_, &other->_impl_.cdn_base_url_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.pointer_ttl_dur_, &other->_impl_.pointer_ttl_dur_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.release_metadata_channel_key_, &other->_impl_.release_metadata_channel_key_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_watch_)
       + sizeof(Config::_impl_.disable_watch_)

@@ -8,9 +8,7 @@ import (
 	"strconv"
 
 	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
-	bldr "github.com/s4wave/spacewave/bldr"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
-	"github.com/s4wave/spacewave/bldr/util/npm"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 	"github.com/sirupsen/logrus"
@@ -48,16 +46,8 @@ func BuildWasmRuntimeEntrypoint(
 	// Build runtime wasm entrypoint
 	entrypointJsDir := filepath.Join(bldrDistRoot, webEntrypointBrowserDir)
 	runtimeJsOut := filepath.Join(buildDir, "runtime-wasm.mjs")
-	depsDir := filepath.Join(buildDir, "runtime-deps")
-	if err := npm.EnsureBunInstall(ctx, le, buildDir, bldr.ResolveDistSourcePath(bldrDistRoot, "dist", "deps", "package.json"), depsDir); err != nil {
-		return err
-	}
-	if err := npm.EnsureNodeModulesLink(bldrDistRoot, depsDir); err != nil {
-		return err
-	}
 
 	opts := entrypoint_browser_bundle.BrowserBuildOpts(entrypointJsDir, minify, sourcemaps)
-	opts.NodePaths = append(opts.NodePaths, filepath.Join(depsDir, "node_modules"))
 	opts.EntryPoints = []string{"runtime-wasm.ts"}
 	opts.Outfile = runtimeJsOut
 	opts.Write = true

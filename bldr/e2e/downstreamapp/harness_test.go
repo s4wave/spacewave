@@ -142,7 +142,7 @@ func TestFixtureProjectConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("find repo root: %v", err)
 	}
-	conf, err := loadFixtureProjectConfig(filepath.Join(repoRoot, fixtureTemplatePath), fixtureConfigPath)
+	conf, err := loadFixtureProjectConfig(repoRoot)
 	if err != nil {
 		t.Fatalf("load fixture project config: %v", err)
 	}
@@ -213,73 +213,21 @@ func TestEnableBrowserReleaseAutoStartPreservesGeneratedDescriptor(t *testing.T)
 	}
 }
 
-func TestDownstreamExternalAppAgainstSpacewaveHead(t *testing.T) {
+func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 	if os.Getenv(RunEnv) != "1" {
-		t.Skip("set RUN_DOWNSTREAM_APP_E2E=1 to run downstream external app e2e")
+		t.Skipf("set %s=1 to run downstream browser e2e", RunEnv)
 	}
 
 	started := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
-	spacewaveRoot, err := gitroot.FindRepoRoot()
+	le := logrus.New().WithField("package", "bldr/e2e/downstreamapp")
+	h, err := Boot(ctx, le)
 	if err != nil {
-		t.Fatalf("find spacewave root: %v", err)
-	}
-	projectParent, err := os.MkdirTemp("", "bd-app-*")
-	if err != nil {
-		t.Fatalf("create external fixture parent: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := os.RemoveAll(projectParent); err != nil {
-			t.Logf("remove fixture parent %s: %v", projectParent, err)
-		}
-	})
-	fixture, err := MaterializeExternalFixture(filepath.Join(projectParent, "app"), spacewaveRoot)
-	if err != nil {
-		t.Fatalf("materialize external fixture: %v", err)
-	}
-	for _, rel := range []string{
-		"go.mod",
-		"go.sum",
-		"bldr.yaml",
-		"vite.config.ts",
-		"core/core.go",
-		"web/App.tsx",
-		"web/startup.tsx",
-		"web/fixtures/non-index-root-pkg/package.json",
-		"web/fixtures/non-index-root-pkg/build/foo.module.js",
-		"web/fixtures/non-index-root-pkg/examples/extra.js",
-	} {
-		assertPathExists(t, filepath.Join(fixture.ProjectRoot, rel))
-	}
-
-	logger := logrus.New()
-	if os.Getenv("BLDR_DOWNSTREAM_APP_DEBUG") == "1" {
-		logger.SetLevel(logrus.DebugLevel)
-	}
-	le := logger.WithField("package", "bldr/e2e/downstreamapp")
-	h, err := BootProject(ctx, le, BootOptions{
-		ProjectRoot:   fixture.ProjectRoot,
-		SpacewaveRoot: fixture.SpacewaveRoot,
-		StateRoot:     fixture.StateRoot,
-		ConfigPath:    fixture.ConfigPath,
-	})
-	if err != nil {
-		t.Fatalf("boot downstream project: %v", err)
+		t.Fatalf("boot downstream harness: %v", err)
 	}
 	defer h.Release()
-	assertPathExists(t, fixture.StateRoot)
-	assertPathExists(t, fixture.DistSourceRoot())
-	assertPathExists(t, filepath.Join(
-		fixture.DistSourceRoot(),
-		"vendor",
-		"github.com",
-		"aperturerobotics",
-		"starpc",
-		"rpcstream",
-		"rpcstream.pb.ts",
-	))
 
 	if err := h.LaunchBrowser(); err != nil {
 		t.Fatalf("launch chromium: %v", err)
@@ -303,12 +251,7 @@ func TestDownstreamExternalAppAgainstSpacewaveHead(t *testing.T) {
 	if err := page.GetByText("Downstream Sonner loaded through Bldr").First().WaitFor(playwright.LocatorWaitForOptions{
 		Timeout: playwright.Float(180000),
 	}); err != nil {
-		t.Fatalf("wait for app readiness text: %v\n%s\n%s", err, describePage(page), diag.String())
-	}
-	if err := page.GetByText("ResourceService proof ready").First().WaitFor(playwright.LocatorWaitForOptions{
-		Timeout: playwright.Float(180000),
-	}); err != nil {
-		t.Fatalf("wait for ResourceService readiness text: %v\n%s\n%s", err, describePage(page), diag.String())
+		t.Fatalf("wait for sonner toast text: %v\n%s\n%s", err, describePage(page), diag.String())
 	}
 	if err := page.GetByText("Can't open this object yet").First().WaitFor(playwright.LocatorWaitForOptions{
 		Timeout: playwright.Float(180000),
@@ -342,11 +285,10 @@ func TestDownstreamExternalAppAgainstSpacewaveHead(t *testing.T) {
 	if sdkProbe.NonIndexRootMarker != "non-index-root-package" {
 		t.Fatalf("non-index-root package bare import marker = %q, want fixture marker\n%s", sdkProbe.NonIndexRootMarker, diag.String())
 	}
-	if !slices.Contains(sdkProbe.CatalogComponentIDs, "mercury.note.viewer") {
+	if !slices.Contains(sdkProbe.CatalogComponentIDs, "spacewave.object-layout.viewer") ||
+		!slices.Contains(sdkProbe.CatalogComponentIDs, "spacewave.debug.viewer") ||
+		!slices.Contains(sdkProbe.CatalogComponentIDs, "mercury.note.viewer") {
 		t.Fatalf("downstream catalog missing expected viewers: %+v\n%s", sdkProbe, diag.String())
-	}
-	if !slices.Contains(sdkProbe.CatalogComponentIDs, "spacewave.debug.viewer") {
-		t.Fatalf("downstream catalog missing base viewer: %+v\n%s", sdkProbe, diag.String())
 	}
 	for _, label := range []string{"Configured", "Loading", "Loaded", "Failed", "Retrying", "Removed", "Upgraded"} {
 		if !slices.Contains(sdkProbe.LifecycleLabels, label) {
@@ -356,9 +298,8 @@ func TestDownstreamExternalAppAgainstSpacewaveHead(t *testing.T) {
 	if !sdkProbe.FallbackRendered {
 		t.Fatalf("missing-viewer fallback did not render: %+v\n%s", sdkProbe, diag.String())
 	}
-	assertResourceProof(t, sdkProbe.ResourceProof, sdkProbe.ResourceProofPublished, diag)
-	diag.AssertNoHTTPFailures(t)
 	diag.LogHTTP(t)
+	diag.AssertNoHTTPFailures(t)
 
 	t.Logf(
 		"downstream harness timings: package_wall=%s boot_ready=%s scenario_ready=%s sonner_bytes=%d sonner_url=%s",
@@ -370,33 +311,13 @@ func TestDownstreamExternalAppAgainstSpacewaveHead(t *testing.T) {
 	)
 }
 
-func assertPathExists(t *testing.T, path string) {
-	t.Helper()
-
-	if _, err := os.Stat(path); err != nil {
-		t.Fatalf("expected path %s to exist: %v", path, err)
-	}
-}
-
 type sdkAppProbe struct {
-	SDKAppImport           bool
-	CatalogComponentIDs    []string
-	ProductViewerImplicit  bool
-	NonIndexRootMarker     string
-	LifecycleLabels        []string
-	FallbackRendered       bool
-	ResourceProof          resourceProof
-	ResourceProofPublished bool
-}
-
-type resourceProof struct {
-	GeneratedResourceService bool
-	RootResource             bool
-	RegisteredViewer         bool
-	ReleasedViewerResource   bool
-	ReleaseRemovedViewer     bool
-	ReleasedRootResource     bool
-	FailureReason            string
+	SDKAppImport          bool
+	CatalogComponentIDs   []string
+	ProductViewerImplicit bool
+	NonIndexRootMarker    string
+	LifecycleLabels       []string
+	FallbackRendered      bool
 }
 
 func collectSDKAppProbe(page playwright.Page) (sdkAppProbe, error) {
@@ -423,57 +344,14 @@ func parseSDKAppProbe(data []byte) (sdkAppProbe, error) {
 	if err != nil {
 		return sdkAppProbe{}, err
 	}
-	rp := v.Get("resourceProof")
-	probe := sdkAppProbe{
-		SDKAppImport:           v.GetBool("sdkAppImport"),
-		CatalogComponentIDs:    fastjsonStringSlice(v.GetArray("catalogComponentIDs")),
-		ProductViewerImplicit:  v.GetBool("productViewerImplicit"),
-		NonIndexRootMarker:     string(v.GetStringBytes("nonIndexRootMarker")),
-		LifecycleLabels:        fastjsonStringSlice(v.GetArray("lifecycleLabels")),
-		FallbackRendered:       v.GetBool("fallbackRendered"),
-		ResourceProofPublished: rp != nil,
-	}
-	if rp != nil {
-		probe.ResourceProof = resourceProof{
-			GeneratedResourceService: rp.GetBool("generatedResourceService"),
-			RootResource:             rp.GetBool("rootResource"),
-			RegisteredViewer:         rp.GetBool("registeredViewer"),
-			ReleasedViewerResource:   rp.GetBool("releasedViewerResource"),
-			ReleaseRemovedViewer:     rp.GetBool("releaseRemovedViewer"),
-			ReleasedRootResource:     rp.GetBool("releasedRootResource"),
-			FailureReason:            string(rp.GetStringBytes("failureReason")),
-		}
-	}
-	return probe, nil
-}
-
-func assertResourceProof(t *testing.T, proof resourceProof, published bool, diag *browserDiagnostics) {
-	t.Helper()
-
-	if !published {
-		t.Fatalf("ResourceService proof was not published\n%s", diag.String())
-	}
-	if proof.FailureReason != "" {
-		t.Fatalf("ResourceService proof failure reason = %q\n%s", proof.FailureReason, diag.String())
-	}
-	if !proof.GeneratedResourceService {
-		t.Fatalf("generated ResourceService client proof was false: %+v\n%s", proof, diag.String())
-	}
-	if !proof.RootResource {
-		t.Fatalf("root ResourceService proof was false: %+v\n%s", proof, diag.String())
-	}
-	if !proof.RegisteredViewer {
-		t.Fatalf("viewer registry register proof was false: %+v\n%s", proof, diag.String())
-	}
-	if !proof.ReleasedViewerResource {
-		t.Fatalf("viewer registry release proof was false: %+v\n%s", proof, diag.String())
-	}
-	if !proof.ReleaseRemovedViewer {
-		t.Fatalf("viewer registry removal proof was false: %+v\n%s", proof, diag.String())
-	}
-	if !proof.ReleasedRootResource {
-		t.Fatalf("root ResourceService release proof was false: %+v\n%s", proof, diag.String())
-	}
+	return sdkAppProbe{
+		SDKAppImport:          v.GetBool("sdkAppImport"),
+		CatalogComponentIDs:   fastjsonStringSlice(v.GetArray("catalogComponentIDs")),
+		ProductViewerImplicit: v.GetBool("productViewerImplicit"),
+		NonIndexRootMarker:    string(v.GetStringBytes("nonIndexRootMarker")),
+		LifecycleLabels:       fastjsonStringSlice(v.GetArray("lifecycleLabels")),
+		FallbackRendered:      v.GetBool("fallbackRendered"),
+	}, nil
 }
 
 func fastjsonStringSlice(values []*fastjson.Value) []string {

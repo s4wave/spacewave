@@ -15,7 +15,7 @@ import {
   getViewersForType,
 } from '@s4wave/web/hooks/useViewerRegistry.js'
 import { RootContext } from '@s4wave/web/contexts/contexts.js'
-import { debugViewerComponentID, type ObjectViewerComponent } from './object.js'
+import type { ObjectViewerComponent } from './object.js'
 import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'
 import { ComponentSelector } from './ComponentSelector.js'
 import { ObjectViewerDetails } from './ObjectViewerDetails.js'
@@ -76,6 +76,8 @@ export interface ObjectViewerSelection {
   selectedComponent: ObjectViewerComponent | undefined
   missingComponentID: string | undefined
 }
+
+export const debugViewerComponentID = 'spacewave.debug.viewer'
 
 export function isDebugViewerComponent(
   component: ObjectViewerComponent | undefined,

@@ -24,24 +24,21 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	bldr_project_controller "github.com/s4wave/spacewave/bldr/project/controller"
+	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/mod/modfile"
 )
 
 const (
-	RunEnv              = "RUN_DOWNSTREAM_APP_E2E"
-	CompilerEnv         = "BLDR_DOWNSTREAM_APP_COMPILER"
-	WorkerModeEnv       = "BLDR_DOWNSTREAM_APP_WORKER_MODE"
-	legacyCompilerEnv   = "BLDR_GO_PLUGIN_COMPILER_MODE"
-	fixtureTemplatePath = "bldr/e2e/downstreamapp/testdata/app"
-	fixtureConfigPath   = "bldr.yaml"
-	fixtureModulePath   = "example.com/spacewave/downstream-fixture"
+	RunEnv             = "RUN_DOWNSTREAM_APP_E2E"
+	CompilerEnv        = "BLDR_DOWNSTREAM_APP_COMPILER"
+	WorkerModeEnv      = "BLDR_DOWNSTREAM_APP_WORKER_MODE"
+	legacyCompilerEnv  = "BLDR_GO_PLUGIN_COMPILER_MODE"
+	fixtureProjectPath = "bldr/e2e/downstreamapp/testdata/app/bldr.star"
 
 	defaultManifestBuildTimeout = 5 * time.Minute
 )
 
-// BrowserCompiler selects the Go compiler for browser plugin builds.
 type BrowserCompiler string
 
 const (
@@ -49,7 +46,6 @@ const (
 	BrowserCompilerGoScript BrowserCompiler = "goscript"
 )
 
-// WorkerMode selects the browser worker transport used by the fixture.
 type WorkerMode string
 
 const (
@@ -57,28 +53,6 @@ const (
 	WorkerModeShared    WorkerMode = "shared"
 )
 
-// BootOptions configures a downstream fixture boot.
-type BootOptions struct {
-	ProjectRoot   string
-	SpacewaveRoot string
-	StateRoot     string
-	ConfigPath    string
-}
-
-// ExternalFixture describes a materialized standalone downstream app fixture.
-type ExternalFixture struct {
-	ProjectRoot   string
-	SpacewaveRoot string
-	StateRoot     string
-	ConfigPath    string
-}
-
-// DistSourceRoot returns the Bldr dist source checkout for the fixture.
-func (f *ExternalFixture) DistSourceRoot() string {
-	return filepath.Join(f.StateRoot, "src")
-}
-
-// Harness owns a running downstream browser fixture.
 type Harness struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
@@ -101,7 +75,6 @@ type Harness struct {
 	workerMode   WorkerMode
 }
 
-// ResolveBrowserCompiler reads the downstream browser compiler selection.
 func ResolveBrowserCompiler() (BrowserCompiler, error) {
 	if raw := strings.TrimSpace(os.Getenv(legacyCompilerEnv)); raw != "" {
 		return "", errors.Errorf("%s is no longer supported; use %s=goscript", legacyCompilerEnv, CompilerEnv)
@@ -118,7 +91,6 @@ func ResolveBrowserCompiler() (BrowserCompiler, error) {
 	}
 }
 
-// ResolveWorkerMode reads the downstream browser worker mode selection.
 func ResolveWorkerMode() (WorkerMode, error) {
 	raw := strings.ToLower(strings.TrimSpace(os.Getenv(WorkerModeEnv)))
 	switch raw {
@@ -131,165 +103,17 @@ func ResolveWorkerMode() (WorkerMode, error) {
 	}
 }
 
-// MaterializeExternalFixture copies the standalone downstream app fixture into projectRoot.
-func MaterializeExternalFixture(projectRoot, spacewaveRoot string) (*ExternalFixture, error) {
-	if projectRoot == "" {
-		return nil, errors.New("project root is required")
-	}
-	if spacewaveRoot == "" {
-		return nil, errors.New("spacewave root is required")
-	}
-	projectRoot, err := filepath.Abs(projectRoot)
-	if err != nil {
-		return nil, errors.Wrap(err, "resolve project root")
-	}
-	spacewaveRoot, err = filepath.Abs(spacewaveRoot)
-	if err != nil {
-		return nil, errors.Wrap(err, "resolve spacewave root")
-	}
-	templateRoot := filepath.Join(spacewaveRoot, fixtureTemplatePath)
-	if err := os.MkdirAll(filepath.Dir(projectRoot), 0o755); err != nil {
-		return nil, errors.Wrap(err, "create fixture parent")
-	}
-	if err := os.CopyFS(projectRoot, os.DirFS(templateRoot)); err != nil {
-		return nil, errors.Wrap(err, "copy external fixture")
-	}
-	if err := writeFixtureModule(projectRoot, spacewaveRoot); err != nil {
-		return nil, err
-	}
-	if err := materializePackageSources(projectRoot, spacewaveRoot); err != nil {
-		return nil, err
-	}
-	return &ExternalFixture{
-		ProjectRoot:   projectRoot,
-		SpacewaveRoot: spacewaveRoot,
-		StateRoot:     filepath.Join(projectRoot, ".bldr"),
-		ConfigPath:    fixtureConfigPath,
-	}, nil
-}
-
-func writeFixtureModule(projectRoot, spacewaveRoot string) error {
-	rootGoModPath := filepath.Join(spacewaveRoot, "go.mod")
-	rootGoModData, err := os.ReadFile(rootGoModPath)
-	if err != nil {
-		return errors.Wrap(err, "read spacewave go.mod")
-	}
-	rootGoMod, err := modfile.Parse(rootGoModPath, rootGoModData, nil)
-	if err != nil {
-		return errors.Wrap(err, "parse spacewave go.mod")
-	}
-	if rootGoMod.Go == nil {
-		return errors.New("spacewave go.mod missing go directive")
-	}
-
-	fixtureGoMod := new(modfile.File)
-	if err := fixtureGoMod.AddModuleStmt(fixtureModulePath); err != nil {
-		return err
-	}
-	if err := fixtureGoMod.AddGoStmt(rootGoMod.Go.Version); err != nil {
-		return err
-	}
-	for _, req := range rootGoMod.Require {
-		fixtureGoMod.AddNewRequire(req.Mod.Path, req.Mod.Version, req.Indirect)
-	}
-	fixtureGoMod.AddNewRequire("github.com/s4wave/spacewave", "v0.0.0", false)
-	for _, rep := range rootGoMod.Replace {
-		newPath := rep.New.Path
-		if rep.New.Version == "" && newPath != "" && !filepath.IsAbs(newPath) {
-			newPath = filepath.Join(spacewaveRoot, newPath)
-		}
-		if err := fixtureGoMod.AddReplace(rep.Old.Path, rep.Old.Version, filepath.ToSlash(newPath), rep.New.Version); err != nil {
-			return err
-		}
-	}
-	if err := fixtureGoMod.AddReplace("github.com/s4wave/spacewave", "", filepath.ToSlash(spacewaveRoot), ""); err != nil {
-		return err
-	}
-	fixtureGoModData, err := fixtureGoMod.Format()
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(filepath.Join(projectRoot, "go.mod"), fixtureGoModData, 0o644); err != nil {
-		return errors.Wrap(err, "write fixture go.mod")
-	}
-
-	rootGoSumPath := filepath.Join(spacewaveRoot, "go.sum")
-	rootGoSumData, err := os.ReadFile(rootGoSumPath)
-	if err != nil {
-		return errors.Wrap(err, "read spacewave go.sum")
-	}
-	if err := os.WriteFile(filepath.Join(projectRoot, "go.sum"), rootGoSumData, 0o644); err != nil {
-		return errors.Wrap(err, "write fixture go.sum")
-	}
-	return nil
-}
-
-func materializePackageSources(projectRoot, spacewaveRoot string) error {
-	for _, src := range []struct {
-		from string
-		to   string
-	}{
-		{from: "web", to: filepath.Join(".s4wave", "web")},
-		{from: "sdk", to: filepath.Join(".s4wave", "sdk")},
-		{from: "core", to: filepath.Join(".s4wave", "core")},
-		{from: "db", to: filepath.Join(".s4wave", "db")},
-		{from: "net", to: filepath.Join(".s4wave", "net")},
-		{from: filepath.Join("bldr", "sdk"), to: filepath.Join(".aptre", "bldr-sdk")},
-	} {
-		if err := os.MkdirAll(filepath.Dir(filepath.Join(projectRoot, src.to)), 0o755); err != nil {
-			return errors.Wrapf(err, "create materialized source parent for %s", src.to)
-		}
-		if err := os.CopyFS(filepath.Join(projectRoot, src.to), os.DirFS(filepath.Join(spacewaveRoot, src.from))); err != nil {
-			return errors.Wrapf(err, "materialize %s", src.from)
-		}
-	}
-	return nil
-}
-
-// Boot materializes and starts the default external downstream fixture.
 func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
-	spacewaveRoot, err := gitroot.FindRepoRoot()
+	repoRoot, err := gitroot.FindRepoRoot()
 	if err != nil {
-		return nil, errors.Wrap(err, "find spacewave root")
+		return nil, errors.Wrap(err, "find repo root")
 	}
-	workRoot := filepath.Join(spacewaveRoot, ".tmp", "bldr-downstreamapp-e2e")
-	if err := os.RemoveAll(workRoot); err != nil {
-		return nil, errors.Wrap(err, "clear work root")
-	}
-	fixture, err := MaterializeExternalFixture(filepath.Join(workRoot, "app"), spacewaveRoot)
-	if err != nil {
-		return nil, err
-	}
-	return BootProject(ctx, le, BootOptions{
-		ProjectRoot:   fixture.ProjectRoot,
-		SpacewaveRoot: fixture.SpacewaveRoot,
-		StateRoot:     fixture.StateRoot,
-		ConfigPath:    fixture.ConfigPath,
-	})
-}
-
-// BootProject starts an external downstream project through the Bldr devtool browser path.
-func BootProject(ctx context.Context, le *logrus.Entry, opts BootOptions) (_ *Harness, retErr error) {
-	if opts.ProjectRoot == "" {
-		return nil, errors.New("project root is required")
-	}
-	projectRoot, err := filepath.Abs(opts.ProjectRoot)
-	if err != nil {
-		return nil, errors.Wrap(err, "resolve project root")
-	}
-	stateRoot := opts.StateRoot
-	if stateRoot == "" {
-		stateRoot = filepath.Join(projectRoot, ".bldr")
-	}
+	stateRoot := filepath.Join(repoRoot, ".tmp", "bldr-downstreamapp-e2e")
 	if err := os.RemoveAll(stateRoot); err != nil {
 		return nil, errors.Wrap(err, "clear state root")
 	}
 	if err := os.MkdirAll(stateRoot, 0o755); err != nil {
 		return nil, errors.Wrap(err, "create state root")
-	}
-	configPath := opts.ConfigPath
-	if configPath == "" {
-		configPath = fixtureConfigPath
 	}
 
 	compiler, err := ResolveBrowserCompiler()
@@ -302,7 +126,6 @@ func BootProject(ctx context.Context, le *logrus.Entry, opts BootOptions) (_ *Ha
 	}
 	workerMode, err := ResolveWorkerMode()
 	if err != nil {
-		restore()
 		return nil, err
 	}
 
@@ -323,20 +146,16 @@ func BootProject(ctx context.Context, le *logrus.Entry, opts BootOptions) (_ *Ha
 		}
 	}()
 
-	d, err := devtool.BuildDevtoolBus(hctx, le, projectRoot, stateRoot, false)
+	d, err := devtool.BuildDevtoolBus(hctx, le, repoRoot, stateRoot, false)
 	if err != nil {
 		return nil, errors.Wrap(err, "build devtool bus")
 	}
 	h.devtool = d
-	bldrSrcPath, err := filepath.Rel(d.GetDistSrcDir(), projectRoot)
-	if err != nil {
-		return nil, errors.Wrap(err, "resolve fixture module replacement")
-	}
-	if err := d.SyncDistSources("", "", filepath.ToSlash(bldrSrcPath)); err != nil {
+	if err := d.SyncDistSources("", "", repoRoot); err != nil {
 		return nil, errors.Wrap(err, "sync dist sources")
 	}
 
-	projConfig, err := loadFixtureProjectConfig(projectRoot, configPath)
+	projConfig, err := loadFixtureProjectConfig(repoRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -354,7 +173,7 @@ func BootProject(ctx context.Context, le *logrus.Entry, opts BootOptions) (_ *Ha
 	}
 	h.projConfig = projConfig
 
-	projCtrlConf := bldr_project_controller.NewConfig(projectRoot, stateRoot, projConfig, false, false)
+	projCtrlConf := bldr_project_controller.NewConfig(repoRoot, stateRoot, projConfig, false, false)
 	projCtrlConf.FetchManifestRemote = "devtool"
 	_, _, ref, err := loader.WaitExecControllerRunning(
 		hctx,
@@ -378,7 +197,7 @@ func BootProject(ctx context.Context, le *logrus.Entry, opts BootOptions) (_ *Ha
 	go func() {
 		h.runErr = d.ExecuteWebWasm(
 			hctx,
-			projectRoot,
+			repoRoot,
 			false,
 			true,
 			addr,
@@ -406,16 +225,12 @@ func BootProject(ctx context.Context, le *logrus.Entry, opts BootOptions) (_ *Ha
 	return h, nil
 }
 
-func loadFixtureProjectConfig(projectRoot, configPath string) (*bldr_project.ProjectConfig, error) {
-	data, err := os.ReadFile(filepath.Join(projectRoot, configPath))
+func loadFixtureProjectConfig(repoRoot string) (*bldr_project.ProjectConfig, error) {
+	result, err := bldr_project_starlark.Evaluate(filepath.Join(repoRoot, fixtureProjectPath))
 	if err != nil {
-		return nil, errors.Wrap(err, "read fixture project config")
+		return nil, errors.Wrap(err, "evaluate fixture bldr.star")
 	}
-	projConfig := &bldr_project.ProjectConfig{}
-	if err := bldr_project.UnmarshalProjectConfig(data, projConfig); err != nil {
-		return nil, errors.Wrap(err, "unmarshal fixture project config")
-	}
-	return projConfig, nil
+	return result.Config, nil
 }
 
 func applyCompilerEnv(compiler BrowserCompiler) (func(), error) {

@@ -5,8 +5,6 @@ import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { ObjectInfo } from './object.pb.js'
 import type { SpaceContents } from '@s4wave/sdk/space/contents.js'
 
-// debugViewerComponentID is the stable component ID for the fallback debug object viewer.
-export const debugViewerComponentID = 'spacewave.debug.viewer'
 // ObjectViewerComponentProps are the props passed to object viewer components.
 export interface ObjectViewerComponentProps {
   // objectInfo contains metadata about the object being viewed.

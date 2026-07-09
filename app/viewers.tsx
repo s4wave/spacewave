@@ -119,11 +119,6 @@ import {
 } from '@s4wave/app/wizard/VmV86WizardViewer.js'
 import { getViewersForType } from '@s4wave/web/hooks/useViewerRegistry.js'
 
-import { NotebookViewer } from '../plugin/notes/NotebookViewer.js'
-import { NotebookTypeID } from '../plugin/notes/sdk/notebook.js'
-import { BlogViewer, BlogTypeID } from '../plugin/notes/BlogViewer.js'
-import { DocsViewer, DocsTypeID } from '../plugin/notes/DocsViewer.js'
-
 const productObjectViewers: ObjectViewerComponent[] = [
   {
     componentID: 'spacewave.unixfs.viewer',
@@ -326,27 +321,6 @@ const productObjectViewers: ObjectViewerComponent[] = [
     component: AddDeviceWizardViewer,
   },
   {
-    componentID: 'notes.notebook.viewer',
-    typeID: NotebookTypeID,
-    name: 'Notebook',
-    category: 'Content',
-    component: NotebookViewer,
-  },
-  {
-    componentID: 'notes.blog.viewer',
-    typeID: BlogTypeID,
-    name: 'Blog',
-    category: 'Content',
-    component: BlogViewer,
-  },
-  {
-    componentID: 'notes.docs.viewer',
-    typeID: DocsTypeID,
-    name: 'Documentation',
-    category: 'Content',
-    component: DocsViewer,
-  },
-  {
     componentID: 'spacewave.wizard.forge-job',
     typeID: ForgeJobWizardTypeID,
     name: 'Job Wizard',
@@ -411,15 +385,9 @@ export function getObjectViewersForType(
 export function getAllObjectViewers(
   dynamicViewers?: ObjectViewerComponent[],
 ): ObjectViewerComponent[] {
-  const downstream = dynamicViewers ?? []
-  const downstreamComponentIDs = new Set(
-    downstream.map((viewer) => viewer.componentID),
-  )
   return createViewerCatalog({
     base: getBaseObjectViewers(),
-    product: getProductObjectViewers().filter(
-      (viewer) => !downstreamComponentIDs.has(viewer.componentID),
-    ),
-    downstream,
+    product: getProductObjectViewers(),
+    downstream: dynamicViewers ?? [],
   })
 }

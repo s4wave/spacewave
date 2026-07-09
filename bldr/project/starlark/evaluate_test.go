@@ -48,9 +48,6 @@ build("app", manifests=["test-manifest"], targets=["desktop"])
 	if mc.GetBuilder().GetRev() != 1 {
 		t.Fatalf("expected builder rev 1, got %d", mc.GetBuilder().GetRev())
 	}
-	if mc.GetRev() != 1 {
-		t.Fatalf("expected manifest rev 1, got %d", mc.GetRev())
-	}
 	if len(result.Config.GetBuild()) != 1 {
 		t.Fatalf("expected 1 build target, got %d", len(result.Config.GetBuild()))
 	}
@@ -467,18 +464,6 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if browserOverride == nil {
 		t.Fatal("override for browser 'spacewave-browser' not found")
 	}
-	browserDistCfg := string(browserOverride.GetConfig())
-	for _, want := range []string{
-		`"release-world-fetch"`,
-		`"spacewave-release-world"`,
-		`"cdnSpaceId":"01kqjmfxd44r7ggrq78efad3d2"`,
-		`"https://cdn.spacewave.app"`,
-		`"releaseMetadataChannelKey":"stable"`,
-	} {
-		if !strings.Contains(browserDistCfg, want) {
-			t.Fatalf("production browser release dist config missing %s: %s", want, browserDistCfg)
-		}
-	}
 	for name, override := range map[string]string{
 		"spacewave-launcher": string(browserLauncherOverride.GetConfig()),
 		"spacewave-core":     string(browserCoreOverride.GetConfig()),
@@ -516,7 +501,13 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		}
 	}
 	browserDistConf := mustDistConfig(t, browserOverride.GetConfig())
-	assertDistBrowserReleaseEmbeddedManifests(t, "release-web", browserDistConf, "js")
+	assertDistBrowserStartupClosure(t, "release-web", browserDistConf, "js")
+
+	for _, coldPlugin := range []string{`"spacewave-notes"`, `"spacewave-v86"`} {
+		if strings.Contains(browserCfg, coldPlugin) {
+			t.Fatalf("browser release embed/load config unexpectedly includes cold plugin %s: %s", coldPlugin, browserCfg)
+		}
+	}
 
 	e2eBrowserRelease := result.Config.GetBuild()["release-web-e2e"]
 	if e2eBrowserRelease == nil {
@@ -757,7 +748,7 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 		t.Fatal("spacewave-browser TinyGo release-web override not found")
 	}
 	tinygoReleaseDistConf := mustDistConfig(t, tinygoReleaseBrowserOverride.GetConfig())
-	assertDistBrowserReleaseEmbeddedManifests(t, "release-web-tinygo", tinygoReleaseDistConf, "web/js/wasm")
+	assertDistBrowserStartupClosure(t, "release-web-tinygo", tinygoReleaseDistConf, "web/js/wasm")
 
 	goscriptE2EReleaseBuild := result.Config.GetBuild()["release-web-e2e-goscript"]
 	if goscriptE2EReleaseBuild == nil {
@@ -857,40 +848,6 @@ func assertDistBrowserStartupClosure(
 	assertDistEmbedManifests(t, label, conf, wantEmbedManifests)
 }
 
-func assertDistBrowserReleaseEmbeddedManifests(
-	t *testing.T,
-	label string,
-	conf *bldr_dist_compiler.Config,
-	goPlatformID string,
-) {
-	t.Helper()
-
-	wantLoadPlugins := []string{
-		"spacewave-launcher",
-		"spacewave-core",
-		"spacewave-web",
-		"spacewave-app",
-		"web",
-	}
-	if got := conf.GetLoadPlugins(); !slices.Equal(got, wantLoadPlugins) {
-		t.Fatalf("%s load plugins: got %v, want %v", label, got, wantLoadPlugins)
-	}
-
-	wantEmbedManifests := []distEmbedManifestWant{
-		{manifestID: "spacewave-launcher", platformID: goPlatformID},
-		{manifestID: "spacewave-core", platformID: goPlatformID},
-		{manifestID: "web", platformID: "web/js/wasm"},
-		{manifestID: "spacewave-web", platformID: "js"},
-		{manifestID: "spacewave-app", platformID: "js"},
-		{manifestID: "spacewave-notes", platformID: "js"},
-		{manifestID: "spacewave-v86", platformID: "js"},
-	}
-	for _, want := range wantEmbedManifests {
-		assertDistEmbedPlatform(t, label, conf, want.manifestID, want.platformID)
-	}
-	assertDistEmbedManifests(t, label, conf, wantEmbedManifests)
-}
-
 func assertDistEmbedManifests(
 	t *testing.T,
 	label string,
@@ -940,7 +897,7 @@ func mustGoPluginConfig(t *testing.T, data []byte) *bldr_plugin_compiler_go.Conf
 
 func assertBrowserLauncherOmitsReleaseWorld(t *testing.T, label string, conf *bldr_plugin_compiler_go.Config) {
 	t.Helper()
-	for _, key := range []string{"release-world", "release-world-fetch"} {
+	for _, key := range []string{"release-world", "release-world-fetch", "release-world-ops"} {
 		if conf.GetConfigSet()[key] != nil {
 			t.Fatalf("%s launcher configSet includes %s", label, key)
 		}

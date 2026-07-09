@@ -13,9 +13,9 @@ import (
 	session_lock "github.com/s4wave/spacewave/core/session/lock"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/util/blockenc"
-	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/testbed"
+	"github.com/zeebo/blake3"
 	"golang.org/x/crypto/scrypt"
 )
 

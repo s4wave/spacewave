@@ -14,7 +14,6 @@ import (
 	bldr_plugin_load "github.com/s4wave/spacewave/bldr/plugin/load"
 	storage_default "github.com/s4wave/spacewave/bldr/storage/default"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
-	cdn_bstore_controller "github.com/s4wave/spacewave/core/cdn/bstore/controller"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
 	block_store_rpc_lookup "github.com/s4wave/spacewave/db/block/store/rpc/lookup"
@@ -67,7 +66,6 @@ func AddFactories(b bus.Bus, sr *static.Resolver) {
 
 	sr.AddFactory(manifest_fetch_viaplugin.NewFactory(b))
 	sr.AddFactory(manifest_fetch_viaworld.NewFactory(b))
-	sr.AddFactory(cdn_bstore_controller.NewFactory(b))
 
 	sr.AddFactory(block_store_bucket.NewFactory(b))
 	sr.AddFactory(block_store_rpc.NewFactory(b))

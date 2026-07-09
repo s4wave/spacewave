@@ -223,10 +223,6 @@ class Config final : public ::google::protobuf::Message
     kObjectKeysFieldNumber = 2,
     kEngineIdFieldNumber = 1,
     kFetchManifestIdReFieldNumber = 3,
-    kCdnSpaceIdFieldNumber = 6,
-    kCdnBaseUrlFieldNumber = 7,
-    kPointerTtlDurFieldNumber = 8,
-    kReleaseMetadataChannelKeyFieldNumber = 9,
     kOverrideManifestRevFieldNumber = 5,
     kDisableWatchFieldNumber = 4,
   };
@@ -282,66 +278,6 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_fetch_manifest_id_re();
 
   public:
-  // string cdn_space_id = 6;
-  void clear_cdn_space_id() ;
-  const ::std::string& cdn_space_id() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_cdn_space_id(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_cdn_space_id();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_cdn_space_id();
-  void set_allocated_cdn_space_id(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_cdn_space_id() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_cdn_space_id(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_cdn_space_id();
-
-  public:
-  // string cdn_base_url = 7;
-  void clear_cdn_base_url() ;
-  const ::std::string& cdn_base_url() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_cdn_base_url(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_cdn_base_url();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_cdn_base_url();
-  void set_allocated_cdn_base_url(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_cdn_base_url() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_cdn_base_url(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_cdn_base_url();
-
-  public:
-  // string pointer_ttl_dur = 8;
-  void clear_pointer_ttl_dur() ;
-  const ::std::string& pointer_ttl_dur() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_pointer_ttl_dur(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_pointer_ttl_dur();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_pointer_ttl_dur();
-  void set_allocated_pointer_ttl_dur(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_pointer_ttl_dur() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_pointer_ttl_dur(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_pointer_ttl_dur();
-
-  public:
-  // string release_metadata_channel_key = 9;
-  void clear_release_metadata_channel_key() ;
-  const ::std::string& release_metadata_channel_key() const;
-  template <typename Arg_ = const ::std::string&, typename... Args_>
-  void set_release_metadata_channel_key(Arg_&& arg, Args_... args);
-  ::std::string* PROTOBUF_NONNULL mutable_release_metadata_channel_key();
-  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_release_metadata_channel_key();
-  void set_allocated_release_metadata_channel_key(::std::string* PROTOBUF_NULLABLE value);
-
-  private:
-  const ::std::string& _internal_release_metadata_channel_key() const;
-  PROTOBUF_ALWAYS_INLINE void _internal_set_release_metadata_channel_key(const ::std::string& value);
-  ::std::string* PROTOBUF_NONNULL _internal_mutable_release_metadata_channel_key();
-
-  public:
   // uint64 override_manifest_rev = 5;
   void clear_override_manifest_rev() ;
   ::uint64_t override_manifest_rev() const;
@@ -366,8 +302,8 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 9,
-                                   0, 151,
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   0, 76,
                                    2>
       _table_;
 
@@ -391,10 +327,6 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::RepeatedPtrField<::std::string> object_keys_;
     ::google::protobuf::internal::ArenaStringPtr engine_id_;
     ::google::protobuf::internal::ArenaStringPtr fetch_manifest_id_re_;
-    ::google::protobuf::internal::ArenaStringPtr cdn_space_id_;
-    ::google::protobuf::internal::ArenaStringPtr cdn_base_url_;
-    ::google::protobuf::internal::ArenaStringPtr pointer_ttl_dur_;
-    ::google::protobuf::internal::ArenaStringPtr release_metadata_channel_key_;
     ::uint64_t override_manifest_rev_;
     bool disable_watch_;
     PROTOBUF_TSAN_DECLARE_MEMBER
@@ -628,7 +560,7 @@ inline void Config::clear_disable_watch() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_watch_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000100U);
+                  0x00000010U);
 }
 inline bool Config::disable_watch() const {
   // @@protoc_insertion_point(field_get:manifest.fetch.world.Config.disable_watch)
@@ -636,7 +568,7 @@ inline bool Config::disable_watch() const {
 }
 inline void Config::set_disable_watch(bool value) {
   _internal_set_disable_watch(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   // @@protoc_insertion_point(field_set:manifest.fetch.world.Config.disable_watch)
 }
 inline bool Config::_internal_disable_watch() const {
@@ -653,7 +585,7 @@ inline void Config::clear_override_manifest_rev() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.override_manifest_rev_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000008U);
 }
 inline ::uint64_t Config::override_manifest_rev() const {
   // @@protoc_insertion_point(field_get:manifest.fetch.world.Config.override_manifest_rev)
@@ -661,7 +593,7 @@ inline ::uint64_t Config::override_manifest_rev() const {
 }
 inline void Config::set_override_manifest_rev(::uint64_t value) {
   _internal_set_override_manifest_rev(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   // @@protoc_insertion_point(field_set:manifest.fetch.world.Config.override_manifest_rev)
 }
 inline ::uint64_t Config::_internal_override_manifest_rev() const {
@@ -671,266 +603,6 @@ inline ::uint64_t Config::_internal_override_manifest_rev() const {
 inline void Config::_internal_set_override_manifest_rev(::uint64_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.override_manifest_rev_ = value;
-}
-
-// string cdn_space_id = 6;
-inline void Config::clear_cdn_space_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.cdn_space_id_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
-}
-inline const ::std::string& Config::cdn_space_id() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:manifest.fetch.world.Config.cdn_space_id)
-  return _internal_cdn_space_id();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void Config::set_cdn_space_id(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  _impl_.cdn_space_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:manifest.fetch.world.Config.cdn_space_id)
-}
-inline ::std::string* PROTOBUF_NONNULL Config::mutable_cdn_space_id()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  ::std::string* _s = _internal_mutable_cdn_space_id();
-  // @@protoc_insertion_point(field_mutable:manifest.fetch.world.Config.cdn_space_id)
-  return _s;
-}
-inline const ::std::string& Config::_internal_cdn_space_id() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.cdn_space_id_.Get();
-}
-inline void Config::_internal_set_cdn_space_id(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.cdn_space_id_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_cdn_space_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.cdn_space_id_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE Config::release_cdn_space_id() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:manifest.fetch.world.Config.cdn_space_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
-  auto* released = _impl_.cdn_space_id_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.cdn_space_id_.Set("", GetArena());
-  }
-  return released;
-}
-inline void Config::set_allocated_cdn_space_id(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
-  }
-  _impl_.cdn_space_id_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.cdn_space_id_.IsDefault()) {
-    _impl_.cdn_space_id_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:manifest.fetch.world.Config.cdn_space_id)
-}
-
-// string cdn_base_url = 7;
-inline void Config::clear_cdn_base_url() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.cdn_base_url_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
-}
-inline const ::std::string& Config::cdn_base_url() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:manifest.fetch.world.Config.cdn_base_url)
-  return _internal_cdn_base_url();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void Config::set_cdn_base_url(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  _impl_.cdn_base_url_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:manifest.fetch.world.Config.cdn_base_url)
-}
-inline ::std::string* PROTOBUF_NONNULL Config::mutable_cdn_base_url()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  ::std::string* _s = _internal_mutable_cdn_base_url();
-  // @@protoc_insertion_point(field_mutable:manifest.fetch.world.Config.cdn_base_url)
-  return _s;
-}
-inline const ::std::string& Config::_internal_cdn_base_url() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.cdn_base_url_.Get();
-}
-inline void Config::_internal_set_cdn_base_url(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.cdn_base_url_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_cdn_base_url() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.cdn_base_url_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE Config::release_cdn_base_url() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:manifest.fetch.world.Config.cdn_base_url)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
-  auto* released = _impl_.cdn_base_url_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.cdn_base_url_.Set("", GetArena());
-  }
-  return released;
-}
-inline void Config::set_allocated_cdn_base_url(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
-  }
-  _impl_.cdn_base_url_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.cdn_base_url_.IsDefault()) {
-    _impl_.cdn_base_url_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:manifest.fetch.world.Config.cdn_base_url)
-}
-
-// string pointer_ttl_dur = 8;
-inline void Config::clear_pointer_ttl_dur() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.pointer_ttl_dur_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
-}
-inline const ::std::string& Config::pointer_ttl_dur() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:manifest.fetch.world.Config.pointer_ttl_dur)
-  return _internal_pointer_ttl_dur();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void Config::set_pointer_ttl_dur(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
-  _impl_.pointer_ttl_dur_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:manifest.fetch.world.Config.pointer_ttl_dur)
-}
-inline ::std::string* PROTOBUF_NONNULL Config::mutable_pointer_ttl_dur()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
-  ::std::string* _s = _internal_mutable_pointer_ttl_dur();
-  // @@protoc_insertion_point(field_mutable:manifest.fetch.world.Config.pointer_ttl_dur)
-  return _s;
-}
-inline const ::std::string& Config::_internal_pointer_ttl_dur() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.pointer_ttl_dur_.Get();
-}
-inline void Config::_internal_set_pointer_ttl_dur(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.pointer_ttl_dur_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_pointer_ttl_dur() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.pointer_ttl_dur_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE Config::release_pointer_ttl_dur() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:manifest.fetch.world.Config.pointer_ttl_dur)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
-  auto* released = _impl_.pointer_ttl_dur_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.pointer_ttl_dur_.Set("", GetArena());
-  }
-  return released;
-}
-inline void Config::set_allocated_pointer_ttl_dur(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
-  }
-  _impl_.pointer_ttl_dur_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.pointer_ttl_dur_.IsDefault()) {
-    _impl_.pointer_ttl_dur_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:manifest.fetch.world.Config.pointer_ttl_dur)
-}
-
-// string release_metadata_channel_key = 9;
-inline void Config::clear_release_metadata_channel_key() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.release_metadata_channel_key_.ClearToEmpty();
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
-}
-inline const ::std::string& Config::release_metadata_channel_key() const
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  // @@protoc_insertion_point(field_get:manifest.fetch.world.Config.release_metadata_channel_key)
-  return _internal_release_metadata_channel_key();
-}
-template <typename Arg_, typename... Args_>
-PROTOBUF_ALWAYS_INLINE void Config::set_release_metadata_channel_key(Arg_&& arg, Args_... args) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
-  _impl_.release_metadata_channel_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
-  // @@protoc_insertion_point(field_set:manifest.fetch.world.Config.release_metadata_channel_key)
-}
-inline ::std::string* PROTOBUF_NONNULL Config::mutable_release_metadata_channel_key()
-    ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
-  ::std::string* _s = _internal_mutable_release_metadata_channel_key();
-  // @@protoc_insertion_point(field_mutable:manifest.fetch.world.Config.release_metadata_channel_key)
-  return _s;
-}
-inline const ::std::string& Config::_internal_release_metadata_channel_key() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.release_metadata_channel_key_.Get();
-}
-inline void Config::_internal_set_release_metadata_channel_key(const ::std::string& value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.release_metadata_channel_key_.Set(value, GetArena());
-}
-inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_release_metadata_channel_key() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  return _impl_.release_metadata_channel_key_.Mutable( GetArena());
-}
-inline ::std::string* PROTOBUF_NULLABLE Config::release_release_metadata_channel_key() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  // @@protoc_insertion_point(field_release:manifest.fetch.world.Config.release_metadata_channel_key)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
-    return nullptr;
-  }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
-  auto* released = _impl_.release_metadata_channel_key_.Release();
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
-    _impl_.release_metadata_channel_key_.Set("", GetArena());
-  }
-  return released;
-}
-inline void Config::set_allocated_release_metadata_channel_key(::std::string* PROTOBUF_NULLABLE value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
-  } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
-  }
-  _impl_.release_metadata_channel_key_.SetAllocated(value, GetArena());
-  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.release_metadata_channel_key_.IsDefault()) {
-    _impl_.release_metadata_channel_key_.Set("", GetArena());
-  }
-  // @@protoc_insertion_point(field_set_allocated:manifest.fetch.world.Config.release_metadata_channel_key)
 }
 
 #ifdef __GNUC__

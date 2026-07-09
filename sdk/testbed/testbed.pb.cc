@@ -53,9 +53,6 @@ inline constexpr MarkTestResultRequest::Impl_::Impl_(
         error_message_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        test_name_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
         success_{false} {}
 
 template <typename>
@@ -130,52 +127,6 @@ struct CreateWorldRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CreateWorldRequestDefaultTypeInternal _CreateWorldRequest_default_instance_;
 
-inline constexpr ClaimTestResponse::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        test_name_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        closed_{false} {}
-
-template <typename>
-PROTOBUF_CONSTEXPR ClaimTestResponse::ClaimTestResponse(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(ClaimTestResponse_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct ClaimTestResponseDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR ClaimTestResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~ClaimTestResponseDefaultTypeInternal() {}
-  union {
-    ClaimTestResponse _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ClaimTestResponseDefaultTypeInternal _ClaimTestResponse_default_instance_;
-template <typename>
-PROTOBUF_CONSTEXPR ClaimTestRequest::ClaimTestRequest(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(ClaimTestRequest_class_data_.base()){}
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase() {
-}
-#endif  // PROTOBUF_CUSTOM_VTABLE
-struct ClaimTestRequestDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR ClaimTestRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~ClaimTestRequestDefaultTypeInternal() {}
-  union {
-    ClaimTestRequest _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ClaimTestRequestDefaultTypeInternal _ClaimTestRequest_default_instance_;
-
 inline constexpr AccessStateAtomResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -248,22 +199,12 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::testbed::MarkTestResultRequest, _impl_._has_bits_),
-        6, // hasbit index offset
+        5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::testbed::MarkTestResultRequest, _impl_.success_),
         PROTOBUF_FIELD_OFFSET(::s4wave::testbed::MarkTestResultRequest, _impl_.error_message_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::testbed::MarkTestResultRequest, _impl_.test_name_),
-        2,
-        0,
         1,
-        0x000, // bitmap
-        0x000, // bitmap
-        0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::s4wave::testbed::ClaimTestResponse, _impl_._has_bits_),
-        5, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::s4wave::testbed::ClaimTestResponse, _impl_.test_name_),
-        PROTOBUF_FIELD_OFFSET(::s4wave::testbed::ClaimTestResponse, _impl_.closed_),
         0,
-        1,
+        0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::testbed::AccessStateAtomRequest, _impl_._has_bits_),
         4, // hasbit index offset
@@ -281,19 +222,15 @@ static const ::_pbi::MigrationSchema
         {0, sizeof(::s4wave::testbed::CreateWorldRequest)},
         {5, sizeof(::s4wave::testbed::CreateWorldResponse)},
         {10, sizeof(::s4wave::testbed::MarkTestResultRequest)},
-        {19, sizeof(::s4wave::testbed::MarkTestResultResponse)},
-        {20, sizeof(::s4wave::testbed::ClaimTestRequest)},
-        {21, sizeof(::s4wave::testbed::ClaimTestResponse)},
-        {28, sizeof(::s4wave::testbed::AccessStateAtomRequest)},
-        {33, sizeof(::s4wave::testbed::AccessStateAtomResponse)},
+        {17, sizeof(::s4wave::testbed::MarkTestResultResponse)},
+        {18, sizeof(::s4wave::testbed::AccessStateAtomRequest)},
+        {23, sizeof(::s4wave::testbed::AccessStateAtomResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::testbed::_CreateWorldRequest_default_instance_._instance,
     &::s4wave::testbed::_CreateWorldResponse_default_instance_._instance,
     &::s4wave::testbed::_MarkTestResultRequest_default_instance_._instance,
     &::s4wave::testbed::_MarkTestResultResponse_default_instance_._instance,
-    &::s4wave::testbed::_ClaimTestRequest_default_instance_._instance,
-    &::s4wave::testbed::_ClaimTestResponse_default_instance_._instance,
     &::s4wave::testbed::_AccessStateAtomRequest_default_instance_._instance,
     &::s4wave::testbed::_AccessStateAtomResponse_default_instance_._instance,
 };
@@ -302,36 +239,32 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2ft
     "\n5github.com/s4wave/spacewave/sdk/testbe"
     "d/testbed.proto\022\016s4wave.testbed\"\'\n\022Creat"
     "eWorldRequest\022\021\n\tengine_id\030\001 \001(\t\"*\n\023Crea"
-    "teWorldResponse\022\023\n\013resource_id\030\001 \001(\r\"R\n\025"
+    "teWorldResponse\022\023\n\013resource_id\030\001 \001(\r\"\?\n\025"
     "MarkTestResultRequest\022\017\n\007success\030\001 \001(\010\022\025"
-    "\n\rerror_message\030\002 \001(\t\022\021\n\ttest_name\030\003 \001(\t"
-    "\"\030\n\026MarkTestResultResponse\"\022\n\020ClaimTestR"
-    "equest\"6\n\021ClaimTestResponse\022\021\n\ttest_name"
-    "\030\001 \001(\t\022\016\n\006closed\030\002 \001(\010\"*\n\026AccessStateAto"
-    "mRequest\022\020\n\010store_id\030\001 \001(\t\".\n\027AccessStat"
-    "eAtomResponse\022\023\n\013resource_id\030\001 \001(\r2\207\003\n\026T"
-    "estbedResourceService\022V\n\013CreateWorld\022\".s"
-    "4wave.testbed.CreateWorldRequest\032#.s4wav"
-    "e.testbed.CreateWorldResponse\022_\n\016MarkTes"
-    "tResult\022%.s4wave.testbed.MarkTestResultR"
-    "equest\032&.s4wave.testbed.MarkTestResultRe"
-    "sponse\022P\n\tClaimTest\022 .s4wave.testbed.Cla"
-    "imTestRequest\032!.s4wave.testbed.ClaimTest"
-    "Response\022b\n\017AccessStateAtom\022&.s4wave.tes"
-    "tbed.AccessStateAtomRequest\032\'.s4wave.tes"
-    "tbed.AccessStateAtomResponseb\006proto3"
+    "\n\rerror_message\030\002 \001(\t\"\030\n\026MarkTestResultR"
+    "esponse\"*\n\026AccessStateAtomRequest\022\020\n\010sto"
+    "re_id\030\001 \001(\t\".\n\027AccessStateAtomResponse\022\023"
+    "\n\013resource_id\030\001 \001(\r2\265\002\n\026TestbedResourceS"
+    "ervice\022V\n\013CreateWorld\022\".s4wave.testbed.C"
+    "reateWorldRequest\032#.s4wave.testbed.Creat"
+    "eWorldResponse\022_\n\016MarkTestResult\022%.s4wav"
+    "e.testbed.MarkTestResultRequest\032&.s4wave"
+    ".testbed.MarkTestResultResponse\022b\n\017Acces"
+    "sStateAtom\022&.s4wave.testbed.AccessStateA"
+    "tomRequest\032\'.s4wave.testbed.AccessStateA"
+    "tomResponseb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2ftestbed_2ftestbed_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2ftestbed_2ftestbed_2eproto = {
     false,
     false,
-    836,
+    659,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2ftestbed_2ftestbed_2eproto,
     "github.com/s4wave/spacewave/sdk/testbed/testbed.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2ftestbed_2ftestbed_2eproto_once,
     nullptr,
     0,
-    8,
+    6,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2ftestbed_2ftestbed_2eproto::offsets,
@@ -888,8 +821,7 @@ PROTOBUF_NDEBUG_INLINE MarkTestResultRequest::Impl_::Impl_(
     [[maybe_unused]] const ::s4wave::testbed::MarkTestResultRequest& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        error_message_(arena, from.error_message_),
-        test_name_(arena, from.test_name_) {}
+        error_message_(arena, from.error_message_) {}
 
 MarkTestResultRequest::MarkTestResultRequest(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -912,8 +844,7 @@ PROTOBUF_NDEBUG_INLINE MarkTestResultRequest::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
-        error_message_(arena),
-        test_name_(arena) {}
+        error_message_(arena) {}
 
 inline void MarkTestResultRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -931,7 +862,6 @@ inline void MarkTestResultRequest::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.error_message_.Destroy();
-  this_._impl_.test_name_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -978,16 +908,16 @@ MarkTestResultRequest::GetClassData() const {
   return MarkTestResultRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 3, 0, 67, 2>
+const ::_pbi::TcParseTable<1, 2, 0, 58, 2>
 MarkTestResultRequest::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(MarkTestResultRequest, _impl_._has_bits_),
     0, // no _extensions_
-    3, 24,  // max_field_number, fast_idx_mask
+    2, 8,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967288,  // skipmap
+    4294967292,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    3,  // num_field_entries
+    2,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     MarkTestResultRequest_class_data_.base(),
@@ -997,35 +927,27 @@ MarkTestResultRequest::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::testbed::MarkTestResultRequest>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    {::_pbi::TcParser::MiniParse, {}},
-    // bool success = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(MarkTestResultRequest, _impl_.success_), 2>(),
-     {8, 2, 0,
-      PROTOBUF_FIELD_OFFSET(MarkTestResultRequest, _impl_.success_)}},
     // string error_message = 2;
     {::_pbi::TcParser::FastUS1,
      {18, 0, 0,
       PROTOBUF_FIELD_OFFSET(MarkTestResultRequest, _impl_.error_message_)}},
-    // string test_name = 3;
-    {::_pbi::TcParser::FastUS1,
-     {26, 1, 0,
-      PROTOBUF_FIELD_OFFSET(MarkTestResultRequest, _impl_.test_name_)}},
+    // bool success = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(MarkTestResultRequest, _impl_.success_), 1>(),
+     {8, 1, 0,
+      PROTOBUF_FIELD_OFFSET(MarkTestResultRequest, _impl_.success_)}},
   }}, {{
     65535, 65535
   }}, {{
     // bool success = 1;
-    {PROTOBUF_FIELD_OFFSET(MarkTestResultRequest, _impl_.success_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(MarkTestResultRequest, _impl_.success_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string error_message = 2;
     {PROTOBUF_FIELD_OFFSET(MarkTestResultRequest, _impl_.error_message_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // string test_name = 3;
-    {PROTOBUF_FIELD_OFFSET(MarkTestResultRequest, _impl_.test_name_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\44\0\15\11\0\0\0\0"
+    "\44\0\15\0\0\0\0\0"
     "s4wave.testbed.MarkTestResultRequest"
     "error_message"
-    "test_name"
   }},
 };
 PROTOBUF_NOINLINE void MarkTestResultRequest::Clear() {
@@ -1036,13 +958,8 @@ PROTOBUF_NOINLINE void MarkTestResultRequest::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      _impl_.error_message_.ClearNonDefaultToEmpty();
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      _impl_.test_name_.ClearNonDefaultToEmpty();
-    }
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.error_message_.ClearNonDefaultToEmpty();
   }
   _impl_.success_ = false;
   _impl_._has_bits_.Clear();
@@ -1069,7 +986,7 @@ PROTOBUF_NOINLINE void MarkTestResultRequest::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // bool success = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     if (this_._internal_success() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -1084,16 +1001,6 @@ PROTOBUF_NOINLINE void MarkTestResultRequest::Clear() {
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
           _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.testbed.MarkTestResultRequest.error_message");
       target = stream->WriteStringMaybeAliased(2, _s, target);
-    }
-  }
-
-  // string test_name = 3;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-    if (!this_._internal_test_name().empty()) {
-      const ::std::string& _s = this_._internal_test_name();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.testbed.MarkTestResultRequest.test_name");
-      target = stream->WriteStringMaybeAliased(3, _s, target);
     }
   }
 
@@ -1122,7 +1029,7 @@ PROTOBUF_NOINLINE void MarkTestResultRequest::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
     // string error_message = 2;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_error_message().empty()) {
@@ -1130,15 +1037,8 @@ PROTOBUF_NOINLINE void MarkTestResultRequest::Clear() {
                                         this_._internal_error_message());
       }
     }
-    // string test_name = 3;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (!this_._internal_test_name().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_test_name());
-      }
-    }
     // bool success = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (this_._internal_success() != 0) {
         total_size += 2;
       }
@@ -1162,7 +1062,7 @@ void MarkTestResultRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_error_message().empty()) {
         _this->_internal_set_error_message(from._internal_error_message());
@@ -1173,15 +1073,6 @@ void MarkTestResultRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (!from._internal_test_name().empty()) {
-        _this->_internal_set_test_name(from._internal_test_name());
-      } else {
-        if (_this->_impl_.test_name_.IsDefault()) {
-          _this->_internal_set_test_name("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (from._internal_success() != 0) {
         _this->_impl_.success_ = from._impl_.success_;
       }
@@ -1207,7 +1098,6 @@ void MarkTestResultRequest::InternalSwap(MarkTestResultRequest* PROTOBUF_RESTRIC
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_message_, &other->_impl_.error_message_, arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.test_name_, &other->_impl_.test_name_, arena);
   swap(_impl_.success_, other->_impl_.success_);
 }
 
@@ -1322,423 +1212,6 @@ MarkTestResultResponse::_table_ = {
 
 ::google::protobuf::Metadata MarkTestResultResponse::GetMetadata() const {
   return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
-}
-// ===================================================================
-
-class ClaimTestRequest::_Internal {
- public:
-};
-
-ClaimTestRequest::ClaimTestRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, ClaimTestRequest_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(arena_constructor:s4wave.testbed.ClaimTestRequest)
-}
-ClaimTestRequest::ClaimTestRequest(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const ClaimTestRequest& from)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, ClaimTestRequest_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  ClaimTestRequest* const _this = this;
-  (void)_this;
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-
-  // @@protoc_insertion_point(copy_constructor:s4wave.testbed.ClaimTestRequest)
-}
-
-inline void* PROTOBUF_NONNULL ClaimTestRequest::PlacementNew_(
-    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) ClaimTestRequest(arena);
-}
-constexpr auto ClaimTestRequest::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(ClaimTestRequest),
-                                            alignof(ClaimTestRequest));
-}
-constexpr auto ClaimTestRequest::InternalGenerateClassData_() {
-  return ::google::protobuf::internal::ClassDataFull{
-      ::google::protobuf::internal::ClassData{
-          &_ClaimTestRequest_default_instance_._instance,
-          &_table_.header,
-          nullptr,  // OnDemandRegisterArenaDtor
-          nullptr,  // IsInitialized
-          &ClaimTestRequest::MergeImpl,
-          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<ClaimTestRequest>(),
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-          &ClaimTestRequest::SharedDtor,
-          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<ClaimTestRequest>(), &ClaimTestRequest::ByteSizeLong,
-              &ClaimTestRequest::_InternalSerialize,
-#endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(ClaimTestRequest, _impl_._cached_size_),
-          false,
-      },
-      &ClaimTestRequest::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2ftestbed_2ftestbed_2eproto,
-      nullptr,  // tracker
-  };
-}
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull ClaimTestRequest_class_data_ =
-        ClaimTestRequest::InternalGenerateClassData_();
-
-PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-ClaimTestRequest::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&ClaimTestRequest_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(ClaimTestRequest_class_data_.tc_table);
-  return ClaimTestRequest_class_data_.base();
-}
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
-ClaimTestRequest::_table_ = {
-  {
-    0,  // no _has_bits_
-    0, // no _extensions_
-    0, 0,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967295,  // skipmap
-    offsetof(decltype(_table_), field_names),  // no field_entries
-    0,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
-    ClaimTestRequest_class_data_.base(),
-    nullptr,  // post_loop_handler
-    ::_pbi::TcParser::GenericFallback,  // fallback
-    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::s4wave::testbed::ClaimTestRequest>(),  // to_prefetch
-    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
-  }, {{
-    {::_pbi::TcParser::MiniParse, {}},
-  }}, {{
-    65535, 65535
-  }}, // no field_entries, or aux_entries
-  {{
-  }},
-};
-
-
-
-
-
-
-
-::google::protobuf::Metadata ClaimTestRequest::GetMetadata() const {
-  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
-}
-// ===================================================================
-
-class ClaimTestResponse::_Internal {
- public:
-  using HasBits =
-      decltype(::std::declval<ClaimTestResponse>()._impl_._has_bits_);
-  static constexpr ::int32_t kHasBitsOffset =
-      8 * PROTOBUF_FIELD_OFFSET(ClaimTestResponse, _impl_._has_bits_);
-};
-
-ClaimTestResponse::ClaimTestResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, ClaimTestResponse_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:s4wave.testbed.ClaimTestResponse)
-}
-PROTOBUF_NDEBUG_INLINE ClaimTestResponse::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-    [[maybe_unused]] const ::s4wave::testbed::ClaimTestResponse& from_msg)
-      : _has_bits_{from._has_bits_},
-        _cached_size_{0},
-        test_name_(arena, from.test_name_) {}
-
-ClaimTestResponse::ClaimTestResponse(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const ClaimTestResponse& from)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(arena, ClaimTestResponse_class_data_.base()) {
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(arena) {
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  ClaimTestResponse* const _this = this;
-  (void)_this;
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  _impl_.closed_ = from._impl_.closed_;
-
-  // @@protoc_insertion_point(copy_constructor:s4wave.testbed.ClaimTestResponse)
-}
-PROTOBUF_NDEBUG_INLINE ClaimTestResponse::Impl_::Impl_(
-    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
-    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0},
-        test_name_(arena) {}
-
-inline void ClaimTestResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
-  new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.closed_ = {};
-}
-ClaimTestResponse::~ClaimTestResponse() {
-  // @@protoc_insertion_point(destructor:s4wave.testbed.ClaimTestResponse)
-  SharedDtor(*this);
-}
-inline void ClaimTestResponse::SharedDtor(MessageLite& self) {
-  ClaimTestResponse& this_ = static_cast<ClaimTestResponse&>(self);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  ABSL_DCHECK(this_.GetArena() == nullptr);
-  this_._impl_.test_name_.Destroy();
-  this_._impl_.~Impl_();
-}
-
-inline void* PROTOBUF_NONNULL ClaimTestResponse::PlacementNew_(
-    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
-  return ::new (mem) ClaimTestResponse(arena);
-}
-constexpr auto ClaimTestResponse::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ClaimTestResponse),
-                                            alignof(ClaimTestResponse));
-}
-constexpr auto ClaimTestResponse::InternalGenerateClassData_() {
-  return ::google::protobuf::internal::ClassDataFull{
-      ::google::protobuf::internal::ClassData{
-          &_ClaimTestResponse_default_instance_._instance,
-          &_table_.header,
-          nullptr,  // OnDemandRegisterArenaDtor
-          nullptr,  // IsInitialized
-          &ClaimTestResponse::MergeImpl,
-          ::google::protobuf::Message::GetNewImpl<ClaimTestResponse>(),
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-          &ClaimTestResponse::SharedDtor,
-          ::google::protobuf::Message::GetClearImpl<ClaimTestResponse>(), &ClaimTestResponse::ByteSizeLong,
-              &ClaimTestResponse::_InternalSerialize,
-#endif  // PROTOBUF_CUSTOM_VTABLE
-          PROTOBUF_FIELD_OFFSET(ClaimTestResponse, _impl_._cached_size_),
-          false,
-      },
-      &ClaimTestResponse::kDescriptorMethods,
-      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2ftestbed_2ftestbed_2eproto,
-      nullptr,  // tracker
-  };
-}
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
-    ::google::protobuf::internal::ClassDataFull ClaimTestResponse_class_data_ =
-        ClaimTestResponse::InternalGenerateClassData_();
-
-PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
-ClaimTestResponse::GetClassData() const {
-  ::google::protobuf::internal::PrefetchToLocalCache(&ClaimTestResponse_class_data_);
-  ::google::protobuf::internal::PrefetchToLocalCache(ClaimTestResponse_class_data_.tc_table);
-  return ClaimTestResponse_class_data_.base();
-}
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 0, 50, 2>
-ClaimTestResponse::_table_ = {
-  {
-    PROTOBUF_FIELD_OFFSET(ClaimTestResponse, _impl_._has_bits_),
-    0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
-    ClaimTestResponse_class_data_.base(),
-    nullptr,  // post_loop_handler
-    ::_pbi::TcParser::GenericFallback,  // fallback
-    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
-    ::_pbi::TcParser::GetTable<::s4wave::testbed::ClaimTestResponse>(),  // to_prefetch
-    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
-  }, {{
-    // bool closed = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ClaimTestResponse, _impl_.closed_), 1>(),
-     {16, 1, 0,
-      PROTOBUF_FIELD_OFFSET(ClaimTestResponse, _impl_.closed_)}},
-    // string test_name = 1;
-    {::_pbi::TcParser::FastUS1,
-     {10, 0, 0,
-      PROTOBUF_FIELD_OFFSET(ClaimTestResponse, _impl_.test_name_)}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // string test_name = 1;
-    {PROTOBUF_FIELD_OFFSET(ClaimTestResponse, _impl_.test_name_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // bool closed = 2;
-    {PROTOBUF_FIELD_OFFSET(ClaimTestResponse, _impl_.closed_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
-  }},
-  // no aux_entries
-  {{
-    "\40\11\0\0\0\0\0\0"
-    "s4wave.testbed.ClaimTestResponse"
-    "test_name"
-  }},
-};
-PROTOBUF_NOINLINE void ClaimTestResponse::Clear() {
-// @@protoc_insertion_point(message_clear_start:s4wave.testbed.ClaimTestResponse)
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    _impl_.test_name_.ClearNonDefaultToEmpty();
-  }
-  _impl_.closed_ = false;
-  _impl_._has_bits_.Clear();
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::uint8_t* PROTOBUF_NONNULL ClaimTestResponse::_InternalSerialize(
-    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
-  const ClaimTestResponse& this_ = static_cast<const ClaimTestResponse&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::uint8_t* PROTOBUF_NONNULL ClaimTestResponse::_InternalSerialize(
-    ::uint8_t* PROTOBUF_NONNULL target,
-    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-  const ClaimTestResponse& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    this_.CheckHasBitConsistency();
-  }
-  // @@protoc_insertion_point(serialize_to_array_start:s4wave.testbed.ClaimTestResponse)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = this_._impl_._has_bits_[0];
-  // string test_name = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (!this_._internal_test_name().empty()) {
-      const ::std::string& _s = this_._internal_test_name();
-      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.testbed.ClaimTestResponse.test_name");
-      target = stream->WriteStringMaybeAliased(1, _s, target);
-    }
-  }
-
-  // bool closed = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-    if (this_._internal_closed() != 0) {
-      target = stream->EnsureSpace(target);
-      target = ::_pbi::WireFormatLite::WriteBoolToArray(
-          2, this_._internal_closed(), target);
-    }
-  }
-
-  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:s4wave.testbed.ClaimTestResponse)
-  return target;
-}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-::size_t ClaimTestResponse::ByteSizeLong(const MessageLite& base) {
-  const ClaimTestResponse& this_ = static_cast<const ClaimTestResponse&>(base);
-#else   // PROTOBUF_CUSTOM_VTABLE
-::size_t ClaimTestResponse::ByteSizeLong() const {
-  const ClaimTestResponse& this_ = *this;
-#endif  // PROTOBUF_CUSTOM_VTABLE
-  // @@protoc_insertion_point(message_byte_size_start:s4wave.testbed.ClaimTestResponse)
-  ::size_t total_size = 0;
-
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void)cached_has_bits;
-
-  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
-  cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
-    // string test_name = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      if (!this_._internal_test_name().empty()) {
-        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                        this_._internal_test_name());
-      }
-    }
-    // bool closed = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (this_._internal_closed() != 0) {
-        total_size += 2;
-      }
-    }
-  }
-  return this_.MaybeComputeUnknownFieldsSize(total_size,
-                                             &this_._impl_._cached_size_);
-}
-
-void ClaimTestResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
-                            const ::google::protobuf::MessageLite& from_msg) {
-   auto* const _this =
-      static_cast<ClaimTestResponse*>(&to_msg);
-  auto& from = static_cast<const ClaimTestResponse&>(from_msg);
-  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
-    from.CheckHasBitConsistency();
-  }
-  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.testbed.ClaimTestResponse)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
-
-  cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      if (!from._internal_test_name().empty()) {
-        _this->_internal_set_test_name(from._internal_test_name());
-      } else {
-        if (_this->_impl_.test_name_.IsDefault()) {
-          _this->_internal_set_test_name("");
-        }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (from._internal_closed() != 0) {
-        _this->_impl_.closed_ = from._impl_.closed_;
-      }
-    }
-  }
-  _this->_impl_._has_bits_[0] |= cached_has_bits;
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-}
-
-void ClaimTestResponse::CopyFrom(const ClaimTestResponse& from) {
-  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.testbed.ClaimTestResponse)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-
-void ClaimTestResponse::InternalSwap(ClaimTestResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
-  using ::std::swap;
-  auto* arena = GetArena();
-  ABSL_DCHECK_EQ(arena, other->GetArena());
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.test_name_, &other->_impl_.test_name_, arena);
-  swap(_impl_.closed_, other->_impl_.closed_);
-}
-
-::google::protobuf::Metadata ClaimTestResponse::GetMetadata() const {
-  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 

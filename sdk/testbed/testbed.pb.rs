@@ -23,27 +23,10 @@ pub struct MarkTestResultRequest {
     /// ErrorMessage contains the error message if the test failed.
     #[prost(string, tag="2")]
     pub error_message: ::prost::alloc::string::String,
-    /// TestName identifies the queued test case when multiple results share one fixture.
-    #[prost(string, tag="3")]
-    pub test_name: ::prost::alloc::string::String,
 }
 /// MarkTestResultResponse is the response type for MarkTestResult.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct MarkTestResultResponse {
-}
-/// ClaimTestRequest is the request type for ClaimTest.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ClaimTestRequest {
-}
-/// ClaimTestResponse is the response type for ClaimTest.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ClaimTestResponse {
-    /// TestName is the next queued test case name.
-    #[prost(string, tag="1")]
-    pub test_name: ::prost::alloc::string::String,
-    /// Closed is true when the queue has no more tests to run.
-    #[prost(bool, tag="2")]
-    pub closed: bool,
 }
 /// AccessStateAtomRequest is the request for AccessStateAtom.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

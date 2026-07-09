@@ -97,7 +97,7 @@ describe('ShellAppPanel', () => {
     window.history.replaceState({}, '', '/')
   })
 
-  it('updates inactive panel path without syncing the global app path', async () => {
+  it('ignores inactive panel navigation', () => {
     seedTabs('tab-2')
 
     render(
@@ -113,9 +113,7 @@ describe('ShellAppPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Docs' }))
 
-    await waitFor(() => {
-      expect(screen.getByTestId('path').textContent).toBe('/docs')
-    })
+    expect(screen.getByTestId('path').textContent).toBe('/')
     expect(getAppPath()).toBe('/')
   })
 

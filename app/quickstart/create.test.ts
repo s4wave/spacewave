@@ -76,13 +76,6 @@ const spaceMocks = vi.hoisted(() => ({
   mountSpace: vi.fn(),
 }))
 
-const notesSeedMocks = vi.hoisted(() => ({
-  buildNotebookUnixfsObjectKey: vi.fn((objectKey: string) => objectKey + '-fs'),
-  createNotebookClientSide: vi.fn().mockResolvedValue(undefined),
-  createDocsClientSide: vi.fn().mockResolvedValue(undefined),
-  createBlogClientSide: vi.fn().mockResolvedValue(undefined),
-}))
-
 const fsHandleMocks = vi.hoisted(() => ({
   mknod: vi.fn(),
   lookup: vi.fn(),
@@ -145,16 +138,6 @@ vi.mock('@s4wave/sdk/provider/local/local.js', () => ({
 
 vi.mock('@s4wave/app/space/space.js', () => ({
   mountSpace: spaceMocks.mountSpace,
-}))
-
-vi.mock('../../plugin/notes/content-seed.js', () => ({
-  buildNotebookUnixfsObjectKey: notesSeedMocks.buildNotebookUnixfsObjectKey,
-  createNotebookClientSide: notesSeedMocks.createNotebookClientSide,
-  createDocsClientSide: notesSeedMocks.createDocsClientSide,
-}))
-
-vi.mock('../../plugin/notes/blog-seed.js', () => ({
-  createBlogClientSide: notesSeedMocks.createBlogClientSide,
 }))
 
 vi.mock('@s4wave/sdk/unixfs/index.js', () => ({
@@ -295,15 +278,23 @@ function getSettingsCalls(applyWorldOp: ReturnType<typeof vi.fn>) {
   return calls
 }
 
-function notesQuickstartSetup(world: unknown, spaceResourceId: number) {
+function notesQuickstartSetup(
+  world: unknown,
+  spaceResourceId: number,
+): {
+  root: { client: Record<string, never> }
+  space: { id: number }
+  spaceWorld: unknown
+} {
   return {
     root: { client: {} },
-    space: {
-      id: spaceResourceId,
-      addSpacePlugin: vi.fn().mockResolvedValue(undefined),
-    },
+    space: { id: spaceResourceId },
     spaceWorld: world,
   }
+}
+
+function registeredNotesQuickstart(id: string) {
+  return { quickstartId: id, pluginId: 'spacewave-notes' }
 }
 
 function watchQuickstartRegistrations(
@@ -336,15 +327,21 @@ function watchQuickstartRegistrations(
   }
 }
 
+function mockNotesQuickstart(quickstartId: string, indexPath: string): void {
+  quickstartRegistryMocks.ListQuickstarts.mockResolvedValue({
+    registrations: [registeredNotesQuickstart(quickstartId)],
+  })
+  quickstartRegistryMocks.ExecuteQuickstart.mockResolvedValue({
+    indexPath,
+    pluginIds: ['spacewave-notes'],
+  })
+}
+
 describe('quickstart create', () => {
   beforeEach(() => {
     vi.unstubAllGlobals()
     localProviderMocks.createAccount.mockReset()
     spaceMocks.mountSpace.mockReset()
-    notesSeedMocks.buildNotebookUnixfsObjectKey.mockClear()
-    notesSeedMocks.createNotebookClientSide.mockClear()
-    notesSeedMocks.createDocsClientSide.mockClear()
-    notesSeedMocks.createBlogClientSide.mockClear()
     fsHandleMocks.mknod.mockReset()
     fsHandleMocks.lookup.mockReset()
     fsHandleMocks.writeAt.mockReset()
@@ -529,27 +526,18 @@ describe('quickstart create', () => {
       pluginIds: ['glados-core', 'glados-web'],
     })
     const { world, applyWorldOp } = buildQuickstartWorld()
-    const setup = {
-      space: { id: 42, addSpacePlugin: vi.fn().mockResolvedValue(undefined) },
-      spaceWorld: world,
-      spaceContents: {},
-    }
     await executeDynamicQuickstart(
       { client: {} } as never,
       'glados-workspace',
-      setup as never,
+      {
+        space: { id: 42 },
+        spaceWorld: world,
+        spaceContents: {},
+      } as never,
     )
 
     expect(quickstartRegistryMocks.ExecuteQuickstart).toHaveBeenCalledWith(
       { quickstartId: 'glados-workspace', spaceResourceId: 42 },
-      undefined,
-    )
-    expect(setup.space.addSpacePlugin).toHaveBeenCalledWith(
-      'glados-core',
-      undefined,
-    )
-    expect(setup.space.addSpacePlugin).toHaveBeenCalledWith(
-      'glados-web',
       undefined,
     )
     expect(getSettingsIndexPath(applyWorldOp)).toBe('glados/operator-home')
@@ -561,47 +549,30 @@ describe('quickstart create', () => {
     expect(settings?.pluginIds).toEqual(['glados-core', 'glados-web'])
   })
 
-  it('seeds public Notes launchers client-side after installing the plugin', async () => {
+  it('waits for the Notes plugin quickstart before executing public Notes launchers', async () => {
+    quickstartRegistryMocks.ListQuickstarts.mockResolvedValue({
+      registrations: [],
+    })
+    quickstartRegistryMocks.WatchQuickstarts.mockReturnValue(
+      watchQuickstartRegistrations([], [registeredNotesQuickstart('notebook')]),
+    )
+    quickstartRegistryMocks.ExecuteQuickstart.mockResolvedValue({
+      indexPath: 'notebook',
+      pluginIds: ['spacewave-notes'],
+    })
     const { world, applyWorldOp } = buildQuickstartWorld()
-    const setup = notesQuickstartSetup(world, 55)
 
-    await populateSpace('notebook', setup as never)
+    await populateSpace('notebook', notesQuickstartSetup(world, 55) as never)
 
-    expect(setup.space.addSpacePlugin).toHaveBeenCalledWith(
-      'spacewave-notes',
+    expect(quickstartRegistryMocks.WatchQuickstarts).toHaveBeenCalledWith(
+      {},
+      expect.any(AbortSignal),
+    )
+    expect(quickstartRegistryMocks.ExecuteQuickstart).toHaveBeenCalledWith(
+      { quickstartId: 'notebook', spaceResourceId: 55 },
       undefined,
     )
-    expect(notesSeedMocks.buildNotebookUnixfsObjectKey).toHaveBeenCalledWith(
-      'notebook',
-    )
-    expect(notesSeedMocks.createNotebookClientSide).toHaveBeenCalledWith(
-      world,
-      'notebook',
-      'notebook-fs',
-      'Notes',
-      expect.any(Date),
-      undefined,
-    )
-    expect(quickstartRegistryMocks.ListQuickstarts).not.toHaveBeenCalled()
-    expect(quickstartRegistryMocks.WatchQuickstarts).not.toHaveBeenCalled()
-    expect(quickstartRegistryMocks.ExecuteQuickstart).not.toHaveBeenCalled()
     expect(getSettingsIndexPath(applyWorldOp)).toBe('notebook')
-    expect(getLastSettings(applyWorldOp).pluginIds).toEqual(['spacewave-notes'])
-  })
-
-  it('keeps the Notes plugin configured when client-side seeding fails', async () => {
-    notesSeedMocks.createNotebookClientSide.mockRejectedValueOnce(
-      new Error('seed failed'),
-    )
-    const { world, applyWorldOp } = buildQuickstartWorld()
-    const setup = notesQuickstartSetup(world, 56)
-
-    await expect(populateSpace('notebook', setup as never)).rejects.toThrow(
-      'seed failed',
-    )
-
-    expect(quickstartRegistryMocks.ExecuteQuickstart).not.toHaveBeenCalled()
-    expect(getLastSettings(applyWorldOp).pluginIds).toEqual(['spacewave-notes'])
   })
 
   it('maps quickstarts to friendly seeded space names', () => {
@@ -626,32 +597,14 @@ describe('quickstart create', () => {
     }
   })
 
-  it('routes object-backed quickstarts through their initial object paths', () => {
+  it('routes Drive quickstart through the Space default route', () => {
     expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'drive')).toBe(
       '/u/2/so/space-1',
     )
     expect(getQuickstartInitialObjectRouteHandoff('drive')).toBeUndefined()
-    expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'notebook')).toBe(
-      '/u/2/so/space-1/-/notebook',
-    )
-    expect(getQuickstartInitialObjectRouteHandoff('notebook')).toEqual({
-      objectKey: 'notebook',
-      objectType: 'notes/notebook',
-    })
-    expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'docs')).toBe(
-      '/u/2/so/space-1/-/documentation',
-    )
-    expect(getQuickstartInitialObjectRouteHandoff('docs')).toEqual({
-      objectKey: 'documentation',
-      objectType: 'notes/docs',
-    })
-    expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1', 'blog')).toBe(
-      '/u/2/so/space-1/-/blog/site',
-    )
-    expect(getQuickstartInitialObjectRouteHandoff('blog')).toEqual({
-      objectKey: 'blog/site',
-      objectType: 'notes/blog',
-    })
+    expect(getQuickstartInitialObjectRouteHandoff('notebook')).toBeUndefined()
+    expect(getQuickstartInitialObjectRouteHandoff('docs')).toBeUndefined()
+    expect(getQuickstartInitialObjectRouteHandoff('blog')).toBeUndefined()
     expect(getQuickstartInitialObjectRouteHandoff('git')).toBeUndefined()
     expect(buildQuickstartSpaceRoutePath('/u/2/so/space-1/', 'canvas')).toBe(
       '/u/2/so/space-1/-/canvas-1',
@@ -997,36 +950,6 @@ to try first.
     expect(setup.spaceWorld.getEngine()).toBe(engine)
   })
 
-  it('installs required plugins before mounting space contents', async () => {
-    const abortSignal = new AbortController().signal
-    const cleanup: RegisterCleanup = (value) => value
-    const { world, applyWorldOp } = buildQuickstartWorld()
-    const addSpacePlugin = vi.fn().mockResolvedValue(undefined)
-    const mountSpaceContents = vi.fn().mockResolvedValue({
-      release: vi.fn(),
-      [Symbol.dispose]: vi.fn(),
-    })
-    spaceMocks.mountSpace.mockResolvedValue({
-      addSpacePlugin,
-      accessWorldState: vi.fn().mockResolvedValue(world),
-      mountSpaceContents,
-    })
-
-    await createQuickstartSetupFromSession({
-      session: {} as never,
-      spaceResp: {},
-      abortSignal,
-      cleanup,
-      initialPluginIds: ['spacewave-notes'],
-    })
-
-    expect(addSpacePlugin).toHaveBeenCalledWith('spacewave-notes', abortSignal)
-    expect(getLastSettings(applyWorldOp).pluginIds).toEqual(['spacewave-notes'])
-    expect(addSpacePlugin.mock.invocationCallOrder[0]).toBeLessThan(
-      mountSpaceContents.mock.invocationCallOrder[0] ?? 0,
-    )
-  })
-
   it('records Drive UnixFS transaction subphases when timing is available', async () => {
     const txApplyWorldOp = vi.fn<ApplyWorldOp>().mockResolvedValue({
       seqno: 1n,
@@ -1283,17 +1206,18 @@ to try first.
     }
     {
       const { world, applyWorldOp } = buildQuickstartWorld()
+      mockNotesQuickstart('notebook', 'notebook')
       await populateSpace('notebook', notesQuickstartSetup(world, 101) as never)
       expect(getSettingsIndexPath(applyWorldOp)).toBe('notebook')
       expect(getLastSettings(applyWorldOp).pluginIds).toEqual([
         'spacewave-notes',
       ])
-      expect(notesSeedMocks.createNotebookClientSide).toHaveBeenCalledWith(
-        world,
-        'notebook',
-        'notebook-fs',
-        'Notes',
-        expect.any(Date),
+      expect(quickstartRegistryMocks.ListQuickstarts).toHaveBeenCalledWith(
+        {},
+        undefined,
+      )
+      expect(quickstartRegistryMocks.ExecuteQuickstart).toHaveBeenCalledWith(
+        { quickstartId: 'notebook', spaceResourceId: 101 },
         undefined,
       )
       const settings = getSettingsCalls(applyWorldOp).map((op) => op.settings)
@@ -1355,34 +1279,27 @@ to try first.
     }
     {
       const { world, applyWorldOp } = buildQuickstartWorld()
+      mockNotesQuickstart('docs', 'documentation')
       await populateSpace('docs', notesQuickstartSetup(world, 102) as never)
       expect(getSettingsIndexPath(applyWorldOp)).toBe('documentation')
       expect(getLastSettings(applyWorldOp).pluginIds).toEqual([
         'spacewave-notes',
       ])
-      expect(notesSeedMocks.createDocsClientSide).toHaveBeenCalledWith(
-        world,
-        'documentation',
-        'Documentation',
-        '',
-        expect.any(Date),
+      expect(quickstartRegistryMocks.ExecuteQuickstart).toHaveBeenCalledWith(
+        { quickstartId: 'docs', spaceResourceId: 102 },
         undefined,
       )
     }
     {
       const { world, applyWorldOp } = buildQuickstartWorld()
+      mockNotesQuickstart('blog', 'blog/site')
       await populateSpace('blog', notesQuickstartSetup(world, 103) as never)
       expect(getSettingsIndexPath(applyWorldOp)).toBe('blog/site')
       expect(getLastSettings(applyWorldOp).pluginIds).toEqual([
         'spacewave-notes',
       ])
-      expect(notesSeedMocks.createBlogClientSide).toHaveBeenCalledWith(
-        world,
-        'blog/site',
-        'Blog',
-        '',
-        '',
-        expect.any(Date),
+      expect(quickstartRegistryMocks.ExecuteQuickstart).toHaveBeenCalledWith(
+        { quickstartId: 'blog', spaceResourceId: 103 },
         undefined,
       )
     }

@@ -80,7 +80,7 @@ func TestApplyDistConfigSetSwapsAndReleasesSignedLauncherConfigSet(t *testing.T)
 	waitActiveControllerCount(t, ctx, stopped, &factory.active, 0)
 }
 
-func TestFilterBrowserLauncherConfigSetKeepsReleaseWorldFetchPlane(t *testing.T) {
+func TestFilterBrowserLauncherConfigSetDropsReleaseWorldCDNControllers(t *testing.T) {
 	input := configset_proto.ConfigSetMap{
 		"release-world": {
 			Id:  "spacewave/cdn/world",
@@ -88,15 +88,7 @@ func TestFilterBrowserLauncherConfigSetKeepsReleaseWorldFetchPlane(t *testing.T)
 		},
 		"release-world-cdn-store": {
 			Id:  "spacewave/cdn/bstore",
-			Rev: 2,
-		},
-		"release-world-engine": {
-			Id:  "hydra/world/block/engine",
-			Rev: 2,
-		},
-		"release-world-fetch": {
-			Id:  "bldr/manifest/fetch/world",
-			Rev: 2,
+			Rev: 1,
 		},
 		"download": {
 			Id:  "download",
@@ -110,15 +102,13 @@ func TestFilterBrowserLauncherConfigSetKeepsReleaseWorldFetchPlane(t *testing.T)
 
 	filtered := filterBrowserLauncherConfigSet(input)
 	if _, ok := filtered["release-world"]; ok {
-		t.Fatal("browser launcher configset kept legacy CDN world controller")
+		t.Fatal("browser launcher configset kept release-world CDN world controller")
+	}
+	if _, ok := filtered["release-world-cdn-store"]; ok {
+		t.Fatal("browser launcher configset kept release-world CDN block-store controller")
 	}
 	if _, ok := filtered["miskeyed-cdn-world"]; ok {
-		t.Fatal("browser launcher configset kept legacy CDN world controller under a non-release key")
-	}
-	for _, key := range []string{"release-world-cdn-store", "release-world-engine", "release-world-fetch"} {
-		if got := filtered[key]; got == nil || got.GetRev() != 2 {
-			t.Fatalf("browser launcher configset dropped %s: %#v", key, got)
-		}
+		t.Fatal("browser launcher configset kept CDN world controller under a non-release key")
 	}
 	if got := filtered["download"]; got == nil || got.GetId() != "download" {
 		t.Fatalf("browser launcher configset dropped non-CDN controller: %#v", got)

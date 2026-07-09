@@ -4,7 +4,7 @@ import os from 'os'
 import fs from 'fs'
 import type { ResolvedConfig } from 'vite'
 
-import { createWebPkgRemapPlugin, readPackageRootServedName } from './plugin.js'
+import { createWebPkgRemapPlugin } from './plugin.js'
 
 describe('createWebPkgRemapPlugin', () => {
   it('preserves runtime externals and rewrites sibling web packages in rendered chunks', () => {
@@ -188,145 +188,6 @@ describe('createWebPkgRemapPlugin', () => {
     })
   })
 
-  it('maps a dist mjs package root export to the served index URL', async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-pkg-dist-mjs-'))
-    try {
-      const pkgRoot = path.join(root, 'node_modules', 'root-output-pkg')
-      fs.mkdirSync(path.join(pkgRoot, 'dist'), { recursive: true })
-      fs.writeFileSync(
-        path.join(pkgRoot, 'package.json'),
-        JSON.stringify({
-          name: 'root-output-pkg',
-          type: 'module',
-          exports: { '.': { import: './dist/index.mjs' } },
-        }),
-      )
-      fs.writeFileSync(
-        path.join(pkgRoot, 'dist', 'index.mjs'),
-        'export const root = true\n',
-      )
-
-      expect(readPackageRootServedName(pkgRoot)).toBe('index')
-
-      const reportedRoots: Array<[string, string]> = []
-      const plugin = createWebPkgRemapPlugin({
-        webPkgIDs: ['root-output-pkg'],
-        webPkgBasePath: '/entrypoint/pkgs',
-        addWebPkgRoot: (webPkgID, webPkgRoot) => {
-          reportedRoots.push([webPkgID, webPkgRoot])
-        },
-      })
-
-      const configResolved = plugin.configResolved
-      if (typeof configResolved !== 'function') {
-        throw new Error('missing configResolved hook')
-      }
-      configResolved.call(
-        {} as never,
-        {
-          root,
-          resolve: {
-            alias: [{ find: 'root-output-pkg', replacement: pkgRoot }],
-          },
-        } as ResolvedConfig,
-      )
-      expect(reportedRoots).toEqual([['root-output-pkg', pkgRoot]])
-
-      const renderChunk = plugin.renderChunk
-      if (typeof renderChunk !== 'function') {
-        throw new Error('missing renderChunk hook')
-      }
-      const rendered = renderChunk.call(
-        {} as never,
-        'import { root as pkgRoot } from "root-output-pkg";',
-        {} as never,
-        {} as never,
-        {} as never,
-      )
-      expect(rendered).toContain('"/entrypoint/pkgs/root-output-pkg/index.mjs"')
-      expect(rendered).not.toContain('/dist/')
-
-      const resolveId = plugin.resolveId
-      if (typeof resolveId !== 'function') {
-        throw new Error('missing resolveId hook')
-      }
-      const resolved = await resolveId.call(
-        {
-          resolve: async () => {
-            throw new Error(
-              'root export served map must not hit on-disk resolution',
-            )
-          },
-        } as never,
-        'root-output-pkg',
-        path.join(root, 'src', 'entry.js'),
-        { isEntry: false },
-      )
-      expect(resolved).toEqual({
-        id: '/entrypoint/pkgs/root-output-pkg/index.mjs',
-        external: true,
-      })
-    } finally {
-      fs.rmSync(root, { recursive: true, force: true })
-    }
-  })
-
-  it('reports alias entry-file replacements as package roots', () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-pkg-alias-file-'))
-    try {
-      const existingPkgRoot = path.join(root, 'packages', 'entry-file-pkg')
-      const bldrPkgRoot = path.join(root, 'bldr', 'web', 'bldr')
-      fs.mkdirSync(existingPkgRoot, { recursive: true })
-      fs.mkdirSync(bldrPkgRoot, { recursive: true })
-      fs.writeFileSync(
-        path.join(existingPkgRoot, 'index.js'),
-        'export const root = true\n',
-      )
-      fs.writeFileSync(
-        path.join(bldrPkgRoot, 'index.ts'),
-        'export const root = true\n',
-      )
-
-      const reportedRoots: Array<[string, string]> = []
-      const plugin = createWebPkgRemapPlugin({
-        webPkgIDs: ['entry-file-pkg', '@aptre/bldr'],
-        addWebPkgRoot: (webPkgID, webPkgRoot) => {
-          reportedRoots.push([webPkgID, webPkgRoot])
-        },
-      })
-
-      const configResolved = plugin.configResolved
-      if (typeof configResolved !== 'function') {
-        throw new Error('missing configResolved hook')
-      }
-      configResolved.call(
-        {} as never,
-        {
-          root,
-          resolve: {
-            alias: [
-              {
-                find: 'entry-file-pkg',
-                replacement: path.join(existingPkgRoot, 'index.js'),
-              },
-              {
-                find: '@aptre/bldr',
-                replacement: path.join(bldrPkgRoot, 'index.js'),
-              },
-            ],
-          },
-        } as ResolvedConfig,
-      )
-
-      expect(reportedRoots).toEqual([
-        ['entry-file-pkg', existingPkgRoot],
-        ['@aptre/bldr', bldrPkgRoot],
-      ])
-    } finally {
-      fs.rmSync(root, { recursive: true, force: true })
-    }
-  })
-
   it('maps a dist root export to the served index URL without declared imports', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-pkg-dist-'))
     try {
@@ -413,12 +274,11 @@ describe('createWebPkgRemapPlugin', () => {
     }
   })
 
-  it('maps a bare package import to a non-index package root without clobbering declared imports', async () => {
+  it('maps a bare package import to a non-index package root served name', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-pkg-root-'))
     try {
-      const pkgRoot = path.join(root, 'packages', 'non-index-root')
+      const pkgRoot = path.join(root, 'node_modules', 'non-index-root')
       fs.mkdirSync(path.join(pkgRoot, 'build'), { recursive: true })
-      fs.mkdirSync(path.join(pkgRoot, 'examples'), { recursive: true })
       fs.writeFileSync(
         path.join(pkgRoot, 'package.json'),
         JSON.stringify({
@@ -436,16 +296,9 @@ describe('createWebPkgRemapPlugin', () => {
         path.join(pkgRoot, 'build', 'foo.module.js'),
         'export const root = true\n',
       )
-      fs.writeFileSync(
-        path.join(pkgRoot, 'examples', 'extra.js'),
-        'export const extra = true\n',
-      )
 
       const plugin = createWebPkgRemapPlugin({
         webPkgIDs: ['non-index-root'],
-        webPkgImports: {
-          'non-index-root': ['examples/extra.js'],
-        },
       })
 
       const configResolved = plugin.configResolved
@@ -468,124 +321,19 @@ describe('createWebPkgRemapPlugin', () => {
       }
       const rendered = renderChunk.call(
         {} as never,
-        [
-          'import * as root from "non-index-root";',
-          'import { extra } from "non-index-root/examples/extra.js";',
-        ].join('\n'),
+        'import * as root from "non-index-root";',
         {} as never,
         {} as never,
         {} as never,
       )
 
       expect(rendered).toContain('"/b/pkg/non-index-root/build/foo.module.mjs"')
-      expect(rendered).toContain('"/b/pkg/non-index-root/examples/extra.mjs"')
       expect(rendered).not.toContain('"/b/pkg/non-index-root/index.mjs"')
-
-      const resolveId = plugin.resolveId
-      if (typeof resolveId !== 'function') {
-        throw new Error('missing resolveId hook')
-      }
-      const resolvedRoot = await resolveId.call(
-        {
-          resolve: async () => {
-            throw new Error(
-              'root export served map must not hit on-disk resolution',
-            )
-          },
-        } as never,
-        'non-index-root',
-        path.join(root, 'src', 'entry.js'),
-        { isEntry: false },
-      )
-      expect(resolvedRoot).toEqual({
-        id: '/b/pkg/non-index-root/build/foo.module.mjs',
-        external: true,
-      })
-
-      const resolvedExtra = await resolveId.call(
-        {
-          resolve: async () => {
-            throw new Error('declared import must not hit on-disk resolution')
-          },
-        } as never,
-        'non-index-root/examples/extra.js',
-        path.join(root, 'src', 'entry.js'),
-        { isEntry: false },
-      )
-      expect(resolvedExtra).toEqual({
-        id: '/b/pkg/non-index-root/examples/extra.mjs',
-        external: true,
-      })
     } finally {
       fs.rmSync(root, { recursive: true, force: true })
     }
   })
 
-  it('reports file aliases as web package root directories', async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'web-pkg-file-root-'))
-    try {
-      const pkgRoot = path.join(root, 'web', 'bldr')
-      fs.mkdirSync(pkgRoot, { recursive: true })
-      fs.writeFileSync(
-        path.join(pkgRoot, 'index.ts'),
-        'export const root = true\n',
-      )
-
-      const reportedRoots: Array<[string, string]> = []
-      const plugin = createWebPkgRemapPlugin({
-        webPkgIDs: ['@aptre/bldr'],
-        addWebPkgRoot: (webPkgID, webPkgRoot) => {
-          reportedRoots.push([webPkgID, webPkgRoot])
-        },
-      })
-
-      const configResolved = plugin.configResolved
-      if (typeof configResolved !== 'function') {
-        throw new Error('missing configResolved hook')
-      }
-      configResolved.call(
-        {} as never,
-        {
-          root,
-          resolve: {
-            alias: [
-              {
-                find: '@aptre/bldr',
-                replacement: path.join(pkgRoot, 'index.js'),
-              },
-            ],
-          },
-        } as ResolvedConfig,
-      )
-
-      expect(reportedRoots).toEqual([['@aptre/bldr', pkgRoot]])
-
-      const resolveId = plugin.resolveId
-      if (typeof resolveId !== 'function') {
-        throw new Error('missing resolveId hook')
-      }
-      const resolved = await resolveId.call(
-        {
-          resolve: async () => ({
-            id: path.join(pkgRoot, 'index.ts'),
-            external: false,
-            meta: {},
-            moduleSideEffects: true,
-          }),
-        } as never,
-        '@aptre/bldr',
-        path.join(root, 'src', 'entry.ts'),
-        { isEntry: false },
-      )
-
-      expect(resolved).toEqual({
-        id: '/b/pkg/@aptre/bldr/index.mjs',
-        external: true,
-      })
-    } finally {
-      fs.rmSync(root, { recursive: true, force: true })
-    }
-  })
   it('falls back to the import specifier when a resolved file only shares the package root prefix', async () => {
     const root = path.join(path.sep, 'repo')
     const pkgRoot = path.join(root, 'node_modules', 'pkg')

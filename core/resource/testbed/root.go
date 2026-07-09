@@ -25,11 +25,6 @@ var nextTestbedEngineID atomic.Int64
 // StateAtomObjectStoreID is the object store ID for testbed state atoms.
 const StateAtomObjectStoreID = "testbed-state-atoms"
 
-type queuedTestResult struct {
-	success  bool
-	errorMsg string
-}
-
 // TestbedResourceServer implements the TestbedResourceService.
 // It acts as the root resource for creating world engine resources.
 type TestbedResourceServer struct {
@@ -43,20 +38,14 @@ type TestbedResourceServer struct {
 	bucketID string
 	// ctx is the context for long-lived resources
 	ctx context.Context
-	// testResult broadcasts legacy and queued test result state.
+	// testResult handles test result broadcasting
 	testResult broadcast.Broadcast
-	// testSuccess stores whether the legacy test passed.
+	// testSuccess stores whether the test passed
 	testSuccess bool
-	// testError stores the legacy test error message.
+	// testError stores the test error message
 	testError string
-	// testCompleted is true when MarkTestResult has been called without a test name.
+	// testCompleted is true when MarkTestResult has been called
 	testCompleted bool
-	// queuedTestNames contains test names waiting for a plugin worker.
-	queuedTestNames []string
-	// queuedTestResults stores completed named test results.
-	queuedTestResults map[string]queuedTestResult
-	// queuedTestsClosed is true when no more named tests will be queued.
-	queuedTestsClosed bool
 	// stateAtomMgr manages state atom stores
 	stateAtomMgr *resource_state.StateAtomManager
 }
@@ -147,129 +136,27 @@ func (s *TestbedResourceServer) CreateWorld(ctx context.Context, req *s4wave_tes
 	return &s4wave_testbed.CreateWorldResponse{ResourceId: id}, nil
 }
 
-// MarkTestResult marks a legacy or named queued test result.
+// MarkTestResult marks the test result (success or failure).
 func (s *TestbedResourceServer) MarkTestResult(ctx context.Context, req *s4wave_testbed.MarkTestResultRequest) (*s4wave_testbed.MarkTestResultResponse, error) {
-	if req.TestName != "" {
-		s.markQueuedTestResult(req.TestName, req.Success, req.ErrorMessage)
-		return &s4wave_testbed.MarkTestResultResponse{}, nil
-	}
+	s.testResult.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		s.testCompleted = true
+		s.testSuccess = req.Success
+		s.testError = req.ErrorMessage
 
-	s.FailQueuedTests(req.Success, req.ErrorMessage)
+		if req.Success {
+			s.le.Info("test marked as successful")
+		} else {
+			s.le.Errorf("test marked as failed: %s", req.ErrorMessage)
+		}
+
+		// Signal any waiters
+		broadcast()
+	})
 
 	return &s4wave_testbed.MarkTestResultResponse{}, nil
 }
 
-// ClaimTest waits for the next queued test name.
-func (s *TestbedResourceServer) ClaimTest(ctx context.Context, req *s4wave_testbed.ClaimTestRequest) (*s4wave_testbed.ClaimTestResponse, error) {
-	for {
-		err := s.testResult.Wait(ctx, func(broadcast func(), getWaitCh func() <-chan struct{}) (bool, error) {
-			return len(s.queuedTestNames) != 0 || s.queuedTestsClosed, nil
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		var testName string
-		var closed bool
-		s.testResult.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			if len(s.queuedTestNames) != 0 {
-				testName = s.queuedTestNames[0]
-				s.queuedTestNames = s.queuedTestNames[1:]
-				return
-			}
-			closed = s.queuedTestsClosed
-		})
-		if testName != "" || closed {
-			return &s4wave_testbed.ClaimTestResponse{
-				TestName: testName,
-				Closed:   closed,
-			}, nil
-		}
-	}
-}
-
-// RunTest queues a named test and waits for its result.
-func (s *TestbedResourceServer) RunTest(ctx context.Context, testName string) (success bool, errorMsg string, err error) {
-	s.testResult.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		if s.queuedTestResults == nil {
-			s.queuedTestResults = make(map[string]queuedTestResult)
-		}
-		if _, ok := s.queuedTestResults[testName]; !ok {
-			s.queuedTestNames = append(s.queuedTestNames, testName)
-			broadcast()
-		}
-	})
-
-	err = s.testResult.Wait(ctx, func(broadcast func(), getWaitCh func() <-chan struct{}) (bool, error) {
-		if s.testCompleted && !s.testSuccess {
-			return true, nil
-		}
-		_, ok := s.queuedTestResults[testName]
-		return ok, nil
-	})
-	if err != nil {
-		return false, "", err
-	}
-
-	s.testResult.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		if result, ok := s.queuedTestResults[testName]; ok {
-			success = result.success
-			errorMsg = result.errorMsg
-			return
-		}
-		success = s.testSuccess
-		errorMsg = s.testError
-	})
-
-	return success, errorMsg, nil
-}
-
-// CloseTestQueue releases plugin workers waiting for queued tests.
-func (s *TestbedResourceServer) CloseTestQueue() {
-	s.testResult.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		s.queuedTestsClosed = true
-		broadcast()
-	})
-}
-
-// FailQueuedTests records a global failure for all queued test waiters.
-func (s *TestbedResourceServer) FailQueuedTests(success bool, errorMsg string) {
-	s.testResult.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		s.testCompleted = true
-		s.testSuccess = success
-		s.testError = errorMsg
-
-		if success {
-			s.le.Info("test marked as successful")
-		} else {
-			s.le.Errorf("test marked as failed: %s", errorMsg)
-		}
-
-		broadcast()
-	})
-}
-
-func (s *TestbedResourceServer) markQueuedTestResult(testName string, success bool, errorMsg string) {
-	s.testResult.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		if s.queuedTestResults == nil {
-			s.queuedTestResults = make(map[string]queuedTestResult)
-		}
-		s.queuedTestResults[testName] = queuedTestResult{
-			success:  success,
-			errorMsg: errorMsg,
-		}
-
-		if success {
-			s.le.Infof("test %s marked as successful", testName)
-		} else {
-			s.le.Errorf("test %s marked as failed: %s", testName, errorMsg)
-		}
-
-		broadcast()
-	})
-}
-
-// WaitForTestResult waits for the legacy test result.
+// WaitForTestResult waits for the test to complete and returns the result.
 // This is useful for the Go test harness to wait for the TypeScript test to finish.
 func (s *TestbedResourceServer) WaitForTestResult(ctx context.Context) (success bool, errorMsg string, err error) {
 	err = s.testResult.Wait(ctx, func(broadcast func(), getWaitCh func() <-chan struct{}) (bool, error) {
@@ -282,6 +169,7 @@ func (s *TestbedResourceServer) WaitForTestResult(ctx context.Context) (success 
 		return false, "", err
 	}
 
+	// Read the result while holding the lock
 	s.testResult.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		success = s.testSuccess
 		errorMsg = s.testError

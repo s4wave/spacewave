@@ -3,26 +3,11 @@ import { HandleStreamCtr, type PacketStream } from 'starpc'
 import type { BackendAPI } from '@aptre/bldr-sdk'
 
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
-import { resolveGoScriptBlake3SidecarURLs } from './blake3-sidecar.js'
 import main from './plugin-goscript.js'
 
 const originalMessageChannel = globalThis.MessageChannel
 const originalConsoleWarn = console.warn
 let reportedFailures: unknown[]
-
-type PluginMain = () => void | Promise<void>
-type PluginMainLoader = () => Promise<PluginMain>
-type GoScriptRuntimeMain = (
-  api: BackendAPI,
-  loadPluginMain: PluginMainLoader,
-  runtimeEnv?: Record<string, string>,
-) => Promise<void>
-type ProcessEnvGlobal = typeof globalThis & {
-  process: {
-    env: Record<string, string | undefined>
-    [key: string]: unknown
-  }
-}
 
 describe('plugin-goscript generation lifecycle', () => {
   beforeEach(() => {
@@ -30,7 +15,6 @@ describe('plugin-goscript generation lifecycle', () => {
     console.warn = vi.fn()
     reportedFailures = []
     delete globalThis.BLDR_PLUGIN_START_INFO
-    globalThis.BLDR_BLAKE3 = buildInstalledBlake3Sidecar()
     globalThis.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE = (err: unknown) => {
       reportedFailures.push(err)
     }
@@ -39,9 +23,6 @@ describe('plugin-goscript generation lifecycle', () => {
   afterEach(() => {
     globalThis.MessageChannel = originalMessageChannel
     console.warn = originalConsoleWarn
-    delete globalThis.BLDR_BLAKE3
-    vi.unstubAllGlobals()
-    vi.restoreAllMocks()
   })
 
   it('publishes start info and reports plugin main failure', async () => {
@@ -65,131 +46,6 @@ describe('plugin-goscript generation lifecycle', () => {
       btoa(PluginStartInfo.toJsonString(api.startInfo)),
     )
     expect(reportedFailures).toEqual([err])
-  })
-
-  it('installs runtime env for plugin main and restores only its entries after exit', async () => {
-    const api = buildBackendAPI()
-    const runtimeEnv = {
-      SPACEWAVE_CDN_BASE_URL: 'https://staging-cdn.example.test',
-      SPACEWAVE_CDN_SPACE: 'staging-space',
-      OVERRIDDEN_BY_RUNTIME: 'runtime-value',
-    }
-    const originalProcess = globalThis.process
-    vi.stubGlobal(
-      'process',
-      Object.assign({}, originalProcess, {
-        env: {
-          UNRELATED_PRE_EXISTING: 'keep-me',
-          OVERRIDDEN_BY_RUNTIME: 'original-value',
-        },
-      }),
-    )
-    let rejectPluginMain!: (err: unknown) => void
-    const pluginMainExited = new Promise<void>((_resolve, reject) => {
-      rejectPluginMain = reject
-    })
-    let resolvePluginMainRan!: () => void
-    const pluginMainRan = new Promise<void>((resolve) => {
-      resolvePluginMainRan = resolve
-    })
-    const failureReported = new Promise<void>((resolve) => {
-      globalThis.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE = (
-        reportedErr: unknown,
-      ) => {
-        reportedFailures.push(reportedErr)
-        resolve()
-      }
-    })
-    let envWhilePluginMainRan:
-      | Record<string, string | undefined>
-      | undefined
-    let startInfoWhilePluginMainRan: string | undefined
-
-    await (main as GoScriptRuntimeMain)(
-      api,
-      async () => () => {
-        envWhilePluginMainRan = {
-          ...(globalThis as ProcessEnvGlobal).process.env,
-        }
-        startInfoWhilePluginMainRan = globalThis.BLDR_PLUGIN_START_INFO
-        resolvePluginMainRan()
-        return pluginMainExited
-      },
-      runtimeEnv,
-    )
-    await pluginMainRan
-
-    expect(startInfoWhilePluginMainRan).toBe(
-      btoa(PluginStartInfo.toJsonString(api.startInfo)),
-    )
-    expect(envWhilePluginMainRan).toMatchObject({
-      SPACEWAVE_CDN_BASE_URL: 'https://staging-cdn.example.test',
-      SPACEWAVE_CDN_SPACE: 'staging-space',
-      OVERRIDDEN_BY_RUNTIME: 'runtime-value',
-      UNRELATED_PRE_EXISTING: 'keep-me',
-    })
-
-    rejectPluginMain(new Error('runtime env cleanup trigger'))
-    await failureReported
-
-    expect((globalThis as ProcessEnvGlobal).process.env).toMatchObject({
-      UNRELATED_PRE_EXISTING: 'keep-me',
-      OVERRIDDEN_BY_RUNTIME: 'original-value',
-    })
-    expect(
-      (globalThis as ProcessEnvGlobal).process.env.SPACEWAVE_CDN_BASE_URL,
-    ).toBeUndefined()
-    expect(
-      (globalThis as ProcessEnvGlobal).process.env.SPACEWAVE_CDN_SPACE,
-    ).toBeUndefined()
-  })
-
-  it('installs the BLAKE3 sidecar before loading GoScript plugin main', async () => {
-    const api = buildBackendAPI()
-    delete globalThis.BLDR_BLAKE3
-    const fetchBlake3 = vi.fn(async () => {
-      return new Response(new Uint8Array([0, 1, 2]), { status: 200 })
-    })
-    vi.stubGlobal('fetch', fetchBlake3)
-    const instantiateBlake3 = vi
-      .spyOn(WebAssembly, 'instantiate')
-      .mockResolvedValue(
-        buildBlake3Instantiation() as unknown as WebAssembly.Instance,
-      )
-    const lifecycle: string[] = []
-    let resolvePluginStarted!: () => void
-    const pluginStarted = new Promise<void>((resolve) => {
-      resolvePluginStarted = resolve
-    })
-
-    await main(api, async () => {
-      lifecycle.push(
-        globalThis.BLDR_BLAKE3 ? 'loader:installed' : 'loader:missing',
-      )
-      return () => {
-        lifecycle.push(
-          globalThis.BLDR_BLAKE3 ? 'main:installed' : 'main:missing',
-        )
-        resolvePluginStarted()
-        return new Promise<void>(() => {})
-      }
-    })
-    await pluginStarted
-
-    expect(lifecycle).toEqual(['loader:installed', 'main:installed'])
-    expect(fetchBlake3).toHaveBeenCalledTimes(1)
-    expect(instantiateBlake3).toHaveBeenCalledTimes(1)
-  })
-
-  it('resolves BLAKE3 sidecars beside chunked runtime helpers', () => {
-    const urls = resolveGoScriptBlake3SidecarURLs(
-      'https://example.test/entrypoint/rev/chunks/shared-abc.mjs',
-    ).map((url) => url.pathname)
-
-    expect(urls).toEqual([
-      '/entrypoint/rev/sidecars/blake3.wasm',
-      '/entrypoint/rev/chunks/sidecars/blake3.wasm',
-    ])
   })
 
   it('turns accept-stream into a terminal error after the GoScript plugin exits', async () => {
@@ -220,14 +76,6 @@ describe('plugin-goscript generation lifecycle', () => {
       rejectPluginMain = reject
     })
     const api = buildBackendAPI()
-    const failureReported = new Promise<void>((resolve) => {
-      globalThis.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE = (
-        reportedErr: unknown,
-      ) => {
-        reportedFailures.push(reportedErr)
-        resolve()
-      }
-    })
     await main(api, async () => () => pluginMainExited)
     await Promise.resolve()
     await Promise.resolve()
@@ -251,7 +99,10 @@ describe('plugin-goscript generation lifecycle', () => {
     expect(acceptedChannel.port2.close).not.toHaveBeenCalled()
 
     rejectPluginMain(new Error('fatal goscript exit'))
-    await failureReported
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
 
     expect(acceptedChannel.port2.close).toHaveBeenCalledTimes(1)
     await expect(
@@ -259,7 +110,6 @@ describe('plugin-goscript generation lifecycle', () => {
     ).rejects.toThrow('fatal goscript exit')
   })
 })
-
 
 function buildBackendAPI(): BackendAPI {
   return {
@@ -307,28 +157,5 @@ function buildMessageChannel(): MessageChannel {
   return {
     port1: buildMessagePort(),
     port2: buildMessagePort(),
-  }
-}
-
-function buildInstalledBlake3Sidecar() {
-  return {
-    hash: () => new Uint8Array(),
-    keyedHash: () => new Uint8Array(),
-    deriveKey: () => new Uint8Array(),
-  }
-}
-
-function buildBlake3Instantiation(): WebAssembly.WebAssemblyInstantiatedSource {
-  return {
-    instance: {
-      exports: {
-        memory: new WebAssembly.Memory({ initial: 1 }),
-        blake3_workspace: vi.fn(() => 32),
-        blake3_hash: vi.fn(),
-        blake3_keyed_hash: vi.fn(),
-        blake3_derive_key: vi.fn(),
-      },
-    } as unknown as WebAssembly.Instance,
-    module: {} as WebAssembly.Module,
   }
 }

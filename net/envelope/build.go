@@ -9,9 +9,9 @@ import (
 	"github.com/cloudflare/circl/group"
 	"github.com/cloudflare/circl/secretsharing"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/zeebo/blake3"
 	"golang.org/x/crypto/chacha20poly1305"
 )
 

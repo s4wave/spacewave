@@ -6,7 +6,7 @@ import (
 	"crypto/sha1" //nolint:gosec // Git object storage requires SHA-1.
 	"crypto/sha256"
 
-	"github.com/s4wave/spacewave/net/crypto/blake3"
+	"github.com/zeebo/blake3"
 )
 
 func sumHashType(h HashType, data []byte) ([]byte, error) {

@@ -68,66 +68,6 @@ func TestManifestBuildResultRoundTrip(t *testing.T) {
 	}
 }
 
-func TestManifestBuildResultRoundTripAllowsAssetOnlyManifest(t *testing.T) {
-	ctx := context.Background()
-	le := logrus.NewEntry(logrus.New())
-
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
-
-	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	const manifestKey = "asset-only-vite-child"
-	ref := createTestManifestRef(t, ctx, tb, manifestKey, "js", 8)
-	if _, _, err := bldr_manifest_world.SetManifest(ctx, ws, peer.ID("test"), manifestKey, ref.GetManifestRef()); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	storedManifest, storedManifestRef, err := bldr_manifest_world.LookupManifest(ctx, ws, manifestKey)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	assetOnlyManifest := storedManifest.CloneVT()
-	assetOnlyManifest.Entrypoint = ""
-	result := bldr_manifest_builder.NewBuilderResult(
-		assetOnlyManifest,
-		storedManifestRef,
-		bldr_manifest_builder.NewInputManifest([]string{"dist/assets.json"}, nil),
-	)
-	if _, err := SetManifestBuildResult(ctx, ws, manifestKey, result); err != nil {
-		t.Fatalf("SetManifestBuildResult rejected asset-only manifest: %v", err)
-	}
-
-	got, gotRef, err := LookupManifestBuildResult(ctx, ws, manifestKey)
-	if err != nil {
-		t.Fatalf("LookupManifestBuildResult rejected asset-only manifest: %v", err)
-	}
-	if gotRef == nil {
-		t.Fatal("build result ref missing")
-	}
-	if got.GetManifest().GetEntrypoint() != "" {
-		t.Fatalf("entrypoint = %q, want empty", got.GetManifest().GetEntrypoint())
-	}
-	if !got.GetManifest().EqualVT(assetOnlyManifest) {
-		t.Fatal("asset-only manifest was not preserved")
-	}
-	if got.GetInputManifest().GetFiles()[0].GetPath() != "dist/assets.json" {
-		t.Fatalf("input path = %q", got.GetInputManifest().GetFiles()[0].GetPath())
-	}
-}
-
 func createTestManifestRef(
 	t *testing.T,
 	ctx context.Context,

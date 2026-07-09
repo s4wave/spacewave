@@ -297,35 +297,10 @@ jobs:
             needs_playwright: true
             playwright_browsers: chromium firefox webkit
             timeout_minutes: 10
-          - name: alpha-core-provider
-            script: test:go:e2e:core:provider
+          - name: alpha-core
+            script: test:go:e2e:core
             needs_playwright: false
             playwright_browsers: ''
-            timeout_minutes: 30
-          - name: alpha-core-hash
-            script: test:go:e2e:core:hash
-            needs_playwright: false
-            playwright_browsers: ''
-            timeout_minutes: 30
-          - name: alpha-core-typed-object
-            script: test:go:e2e:core:typed-object
-            needs_playwright: false
-            playwright_browsers: ''
-            timeout_minutes: 30
-          - name: alpha-core-browser-provider-session
-            script: test:go:e2e:core:browser-provider-session
-            needs_playwright: true
-            playwright_browsers: chromium
-            timeout_minutes: 40
-          - name: alpha-core-browser-object-lifecycle
-            script: test:go:e2e:core:browser-object-lifecycle
-            needs_playwright: true
-            playwright_browsers: chromium
-            timeout_minutes: 40
-          - name: alpha-core-browser-state-layout-hash
-            script: test:go:e2e:core:browser-state-layout-hash
-            needs_playwright: true
-            playwright_browsers: chromium
             timeout_minutes: 40
           - name: alpha-browser
             script: test:go:e2e:browser

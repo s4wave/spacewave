@@ -1,6 +1,7 @@
-import { defineConfig, type Plugin } from 'vite'
-import { dirname, resolve } from 'node:path'
+import { defineConfig } from 'vite'
+import { resolve } from 'path'
 import { existsSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import react from '@vitejs/plugin-react'
@@ -46,33 +47,6 @@ function resolveBldrSourcePath(...segments: string[]) {
     : resolve(__dirname, 'bldr', ...segments)
 }
 
-// canonicalReactOptimizedDep keeps React's optimized entry canonical when Vite
-// serves both /react.js and /react.js?v=... during dependency optimization.
-// ReactDOM's optimized chunks import /react.js without the query; source
-// modules import /react.js?v=..., and those must share one dispatcher.
-function canonicalReactOptimizedDep(): Plugin {
-  return {
-    name: 'spacewave-canonical-react-optimized-dep',
-    apply: 'serve',
-    transform(_code, id) {
-      const queryStart = id.indexOf('?')
-      if (queryStart === -1) return null
-      const file = id.slice(0, queryStart).replaceAll('\\', '/')
-      if (
-        !file.includes('/node_modules/.vite/') ||
-        !file.includes('/deps/') ||
-        !file.endsWith('/react.js')
-      ) {
-        return null
-      }
-      return {
-        code: 'export { default } from "./react.js"\nexport * from "./react.js"\n',
-        map: null,
-      }
-    },
-  }
-}
-
 export default defineConfig({
   build: {
     assetsInlineLimit: 2048,
@@ -89,7 +63,6 @@ export default defineConfig({
   },
 
   resolve: {
-    dedupe: ['react', 'react-dom'],
     alias: [
       ...buildGoAliases(__dirname),
       {
@@ -139,10 +112,5 @@ export default defineConfig({
     ],
   },
 
-  plugins: [
-    canonicalReactOptimizedDep(),
-    react(),
-    tailwindcss(),
-    goTsResolver(__dirname),
-  ],
+  plugins: [react(), tailwindcss(), goTsResolver(__dirname)],
 })

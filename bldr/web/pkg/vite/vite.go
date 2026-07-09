@@ -39,7 +39,6 @@ func BuildWebPkgsVite(
 	isRelease bool,
 	jsMinification bool,
 	jsSourcemaps bool,
-	externalPkgs []string,
 	viteBundler bldr_vite.SRPCViteBundlerClient,
 	cacheDir string,
 ) (webPkgIDs, sourcePaths []string, importMapEntries []ImportMapEntry, err error) {
@@ -81,7 +80,6 @@ func BuildWebPkgsVite(
 			PkgRoot:        pkgRoot,
 			Imports:        imports,
 			SiblingPkgIds:  siblingIDs,
-			ExternalPkgs:   slices.DeleteFunc(slices.Clone(externalPkgs), func(id string) bool { return id == webPkgID }),
 			OutDir:         pkgOutputPath,
 			WebPkgBasePath: webPkgBasePath,
 			IsRelease:      isRelease,

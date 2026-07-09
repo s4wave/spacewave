@@ -16,7 +16,7 @@ import (
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
-	"github.com/s4wave/spacewave/net/crypto/blake3"
+	"github.com/zeebo/blake3"
 )
 
 // Directory names within the graph root.

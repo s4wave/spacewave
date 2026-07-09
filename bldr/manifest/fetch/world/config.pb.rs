@@ -23,22 +23,5 @@ pub struct Config {
     /// Ignored if unset or zero.
     #[prost(uint64, tag="5")]
     pub override_manifest_rev: u64,
-    /// CdnSpaceId optionally mounts a read-only CDN Release World under EngineId.
-    /// When set, CdnBaseUrl is required and the controller resolves EngineId
-    /// without needing a separate World engine controller.
-    #[prost(string, tag="6")]
-    pub cdn_space_id: ::prost::alloc::string::String,
-    /// CdnBaseUrl is the public CDN base URL for CdnSpaceId.
-    #[prost(string, tag="7")]
-    pub cdn_base_url: ::prost::alloc::string::String,
-    /// PointerTtlDur is the cached CDN root pointer TTL.
-    /// Empty uses the CDN block store default. Negative disables expiry.
-    #[prost(string, tag="8")]
-    pub pointer_ttl_dur: ::prost::alloc::string::String,
-    /// ReleaseMetadataChannelKey reads ReleaseMetadata.ManifestRefs for this
-    /// channel when ordinary manifest graph links are absent. Empty disables the
-    /// release-metadata fallback.
-    #[prost(string, tag="9")]
-    pub release_metadata_channel_key: ::prost::alloc::string::String,
 }
 // @@protoc_insertion_point(module)

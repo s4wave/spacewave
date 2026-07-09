@@ -3,7 +3,6 @@ import { pushable } from 'it-pushable'
 import type { PacketStream } from 'starpc'
 import { BackendAPI } from '@aptre/bldr-sdk'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
-import { installGoScriptBlake3Sidecar } from './blake3-sidecar.js'
 
 type GoPushableSink = {
   push: (message: Uint8Array) => void
@@ -12,18 +11,6 @@ type GoPushableSink = {
 
 export type GoScriptPluginMain = () => void | Promise<void>
 export type GoScriptPluginMainLoader = () => Promise<GoScriptPluginMain>
-
-type RuntimeEnv = Record<string, string>
-
-type ProcessEnv = Record<string, string | undefined>
-
-interface ProcessLike {
-  env?: ProcessEnv
-}
-
-interface ProcessEnvGlobal {
-  process?: ProcessLike
-}
 
 declare global {
   var BLDR_BASE_URL: string
@@ -50,23 +37,16 @@ class GoScriptPluginGeneration {
   private readonly activeAcceptedStreams = new Set<BrowserMessagePortDuplex>()
   private terminalError?: Error
 
-  private restoreRuntimeEnv?: () => void
-
-  public constructor(
-    private readonly api: BackendAPI,
-    private readonly runtimeEnv?: RuntimeEnv,
-  ) {}
+  public constructor(private readonly api: BackendAPI) {}
 
   public start(
     startInfo: PluginStartInfo,
     loadPluginMain: GoScriptPluginMainLoader,
   ) {
-    this.restoreRuntimeEnv = installRuntimeEnv(this.runtimeEnv)
     const pluginStartInfoJsonB64 = btoa(PluginStartInfo.toJsonString(startInfo))
     globalScope.BLDR_PLUGIN_START_INFO = pluginStartInfoJsonB64
 
     void Promise.resolve()
-      .then(() => installGoScriptBlake3Sidecar())
       .then(() => loadPluginMain())
       .then((pluginMain) => pluginMain())
       .then(
@@ -119,8 +99,6 @@ class GoScriptPluginGeneration {
     }
 
     const terminalError = castToError(err, 'GoScript plugin process failed')
-    this.restoreRuntimeEnv?.()
-    this.restoreRuntimeEnv = undefined
     this.terminalError = terminalError
     console.warn(
       'plugin-goscript: GoScript plugin process exited',
@@ -148,9 +126,8 @@ class GoScriptPluginGeneration {
 export default async function main(
   api: BackendAPI,
   loadPluginMain: GoScriptPluginMainLoader,
-  runtimeEnv?: RuntimeEnv,
 ): Promise<void> {
-  const generation = new GoScriptPluginGeneration(api, runtimeEnv)
+  const generation = new GoScriptPluginGeneration(api)
 
   globalScope.BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME = (
     onMessage,
@@ -221,45 +198,6 @@ export default async function main(
   }
 
   generation.start(api.startInfo, loadPluginMain)
-}
-
-function installRuntimeEnv(runtimeEnv?: RuntimeEnv): () => void {
-  if (!runtimeEnv || Object.keys(runtimeEnv).length === 0) {
-    return () => {}
-  }
-
-  // Do not intersect with typeof globalThis: node typings declare process
-  // non-optional there, which forbids the delete below.
-  const scope = globalScope as unknown as ProcessEnvGlobal
-  const proc = scope.process ?? {}
-  const env = proc.env ?? {}
-  const createdProcess = !scope.process
-  const createdEnv = !proc.env
-  const previous = new Map<string, string | undefined>()
-
-  for (const [key, value] of Object.entries(runtimeEnv)) {
-    previous.set(key, env[key])
-    env[key] = value
-  }
-
-  proc.env = env
-  scope.process = proc
-
-  return () => {
-    for (const [key, value] of previous) {
-      if (value === undefined) {
-        delete env[key]
-        continue
-      }
-      env[key] = value
-    }
-    if (createdEnv && Object.keys(env).length === 0) {
-      delete proc.env
-    }
-    if (createdProcess && Object.keys(proc).length === 0) {
-      delete scope.process
-    }
-  }
 }
 
 class BrowserMessagePortDuplex {

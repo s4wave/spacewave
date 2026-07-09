@@ -126,28 +126,7 @@ func readPluginManifestRefs(path string) (string, error) {
 	if v.Type() != fastjson.TypeArray {
 		return "", errors.New("manifest refs must be a JSON array")
 	}
-	if err := validatePluginManifestRefs(v.GetArray()); err != nil {
-		return "", err
-	}
 	return strings.TrimSpace(string(data)), nil
-}
-
-func validatePluginManifestRefs(refs []*fastjson.Value) error {
-	if len(refs) == 0 {
-		return errors.New("manifest refs are required")
-	}
-	for _, ref := range refs {
-		manifestID := string(ref.GetStringBytes("manifest_id"))
-		platformID := string(ref.GetStringBytes("platform_id"))
-		refString := string(ref.GetStringBytes("ref"))
-		if manifestID == "" || platformID == "" || refString == "" {
-			return errors.New("manifest refs must include manifest_id, platform_id, rev, and ref")
-		}
-		if ref.GetUint("rev") == 0 {
-			return errors.New("manifest ref rev must be non-zero: " + manifestID + "/" + platformID)
-		}
-	}
-	return nil
 }
 
 func collectPluginHandoffArtifacts(nativeDir string) ([]*pluginHandoffEntry, error) {

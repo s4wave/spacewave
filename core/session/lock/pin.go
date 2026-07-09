@@ -6,7 +6,7 @@ import (
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/util/blockenc"
-	"github.com/s4wave/spacewave/net/crypto/blake3"
+	"github.com/zeebo/blake3"
 	"golang.org/x/crypto/scrypt"
 )
 

@@ -56,7 +56,7 @@ func (e *evaluator) manifestBuiltin(thread *starlark.Thread, fn *starlark.Builti
 				return nil, errExpectedInt("manifest", "rev")
 			}
 			v, ok := i.Int64()
-			if !ok || v < 0 {
+			if !ok {
 				return nil, errors.New("manifest(): rev value out of range")
 			}
 			rev = int(v)
@@ -83,9 +83,9 @@ func (e *evaluator) manifestBuiltin(thread *starlark.Thread, fn *starlark.Builti
 		return nil, errors.New("manifest(): builder is required")
 	}
 
-	// Build the ControllerConfig for the builder. The rev seeds both the
-	// builder config revision and the minimum manifest revision, so first builds
-	// publish a declared manifest revision instead of rev 0.
+	// Build the ControllerConfig for the builder.
+	// The rev goes on the ControllerConfig (builder cache buster),
+	// not on ManifestConfig.Rev (minimum manifest revision).
 	ctrlConf := &configset_proto.ControllerConfig{
 		Id:  builder,
 		Rev: uint64(rev),
@@ -100,7 +100,6 @@ func (e *evaluator) manifestBuiltin(thread *starlark.Thread, fn *starlark.Builti
 
 	mc := &bldr_project.ManifestConfig{
 		Builder:     ctrlConf,
-		Rev:         uint64(rev),
 		Description: description,
 	}
 

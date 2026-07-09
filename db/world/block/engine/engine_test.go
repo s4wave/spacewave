@@ -28,8 +28,8 @@ import (
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
-	"github.com/s4wave/spacewave/net/crypto/blake3"
 	"github.com/sirupsen/logrus"
+	"github.com/zeebo/blake3"
 )
 
 // TestWorldEngineController tests constructing the engine controller, looking up
