@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -84,7 +84,10 @@ import {
 } from './CommandLineSetupPage.js'
 
 describe('DesktopCLIInstallCard', () => {
-  afterEach(() => cleanup())
+  afterEach(() => {
+    cleanup()
+    vi.useRealTimers()
+  })
   beforeEach(() => {
     commandLinePageMocks.isDesktop = false
     commandLinePageMocks.activeTabId = 'tab-settings'
@@ -135,6 +138,49 @@ describe('DesktopCLIInstallCard', () => {
       ),
     ).toBeDefined()
     expect(screen.queryByText('unimplemented')).toBeNull()
+  })
+
+  it('changes an unresolved install check to the timeout presentation at 15 seconds', () => {
+    vi.useFakeTimers()
+    render(<DesktopCLIInstallCard loading />)
+
+    expect(screen.getByText('Checking command line tool')).toBeDefined()
+
+    act(() => vi.advanceTimersByTime(14_999))
+    expect(screen.getByText('Checking command line tool')).toBeDefined()
+    expect(screen.queryByText('Install state check timed out')).toBeNull()
+
+    act(() => vi.advanceTimersByTime(1))
+    expect(screen.getByText('Install state check timed out')).toBeDefined()
+    expect(
+      screen.getByText(
+        'The desktop runtime did not report CLI install state. Use the in-app terminal above, or restart the desktop app and reopen this page.',
+      ),
+    ).toBeDefined()
+  })
+
+  it('cancels the pending timeout when state arrives before starting a fresh check', () => {
+    vi.useFakeTimers()
+    const { rerender } = render(<DesktopCLIInstallCard loading />)
+
+    act(() => vi.advanceTimersByTime(10_000))
+    rerender(
+      <DesktopCLIInstallCard
+        state={state({
+          status: DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_INSTALLED,
+          label: 'Command line tool installed',
+        })}
+      />,
+    )
+    expect(screen.getByText('Command line tool installed')).toBeDefined()
+
+    rerender(<DesktopCLIInstallCard loading />)
+    act(() => vi.advanceTimersByTime(5_000))
+    expect(screen.getByText('Checking command line tool')).toBeDefined()
+    expect(screen.queryByText('Install state check timed out')).toBeNull()
+
+    act(() => vi.advanceTimersByTime(10_000))
+    expect(screen.getByText('Install state check timed out')).toBeDefined()
   })
 
   it('renders update, conflict, failure, and progress states without local PATH reconstruction', () => {

@@ -1,7 +1,8 @@
 /* eslint-disable react-doctor/no-giant-component */
-import { useCallback, useEffect, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   LuCloud,
+  LuChevronDown,
   LuKeyboard,
   LuLock,
   LuLogOut,
@@ -107,6 +108,8 @@ export function SessionDetails({
   const [displayNameError, setDisplayNameError] = useState<string | null>(null)
   const [editingDisplayName, setEditingDisplayName] = useState(false)
   const [savingDisplayName, setSavingDisplayName] = useState(false)
+  const settingsScrollRef = useRef<HTMLDivElement>(null)
+  const [showSettingsScrollCue, setShowSettingsScrollCue] = useState(false)
 
   const sessionIdx = useSessionIndex() || null
   const ns = useStateNamespace(['session-settings'])
@@ -197,6 +200,18 @@ export function SessionDetails({
       setDetailsPath('/')
     }
   }, [setDetailsPath])
+
+  const updateSettingsScrollCue = useCallback(() => {
+    const viewport = settingsScrollRef.current
+    if (!viewport) return
+    setShowSettingsScrollCue(
+      viewport.scrollTop + viewport.clientHeight < viewport.scrollHeight - 1,
+    )
+  }, [])
+
+  useEffect(() => {
+    updateSettingsScrollCue()
+  }, [openSection, updateSettingsScrollCue])
 
   const handleLogout = useCallback(async () => {
     if (!account || !peerId || peerId === 'Unknown') return
@@ -328,6 +343,13 @@ export function SessionDetails({
     [handleCloseDetails, navigateSession],
   )
 
+  const handleScrollMoreSettings = useCallback(() => {
+    settingsScrollRef.current?.scrollBy({
+      top: 160,
+      behavior: 'smooth',
+    })
+  }, [])
+
   if (loading) {
     return (
       <div className="bg-background-primary flex h-full w-full flex-1 items-center justify-center">
@@ -355,7 +377,7 @@ export function SessionDetails({
           <LinkDeviceWizard exitPath="/" />
         </Route>
         <Route path="/">
-          <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
+          <div className="bg-background-primary relative flex h-full w-full flex-col overflow-hidden">
             <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between gap-3 border-b px-4 py-2">
               <div className="text-foreground group/header flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold select-none">
                 <RxPerson className="size-4 shrink-0" />
@@ -444,7 +466,11 @@ export function SessionDetails({
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
+            <div
+              ref={settingsScrollRef}
+              className="min-h-0 flex-1 overflow-auto px-4 pt-3 pb-10"
+              onScroll={updateSettingsScrollCue}
+            >
               <div className="space-y-3">
                 <SessionSyncStatusSummary />
 
@@ -801,6 +827,17 @@ export function SessionDetails({
                 </section>
               </div>
             </div>
+            {showSettingsScrollCue && (
+              <button
+                type="button"
+                aria-label="Scroll down for more settings"
+                onClick={handleScrollMoreSettings}
+                className="border-foreground/10 bg-background-card/90 text-foreground-alt hover:text-foreground absolute right-3 bottom-2 z-10 flex h-7 items-center gap-1 rounded-full border px-2.5 text-[10px] shadow-md transition-colors"
+              >
+                More settings
+                <LuChevronDown className="size-3" />
+              </button>
+            )}
           </div>
         </Route>
       </Routes>

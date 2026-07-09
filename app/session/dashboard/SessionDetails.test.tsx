@@ -375,6 +375,40 @@ describe('SessionDetails', () => {
         screen.queryByRole('button', { name: 'Copy session ID' }),
       ).toBeNull()
     })
+
+    it('scrolls overflowing settings and hides the cue at the end', () => {
+      const scrollBy = vi.fn()
+      const { container } = renderWithContext(<SessionDetails />)
+      const viewport = container.querySelector<HTMLDivElement>('.overflow-auto')
+      if (!viewport) {
+        throw new Error('settings scroll viewport not found')
+      }
+      Object.defineProperties(viewport, {
+        clientHeight: { value: 400, configurable: true },
+        scrollHeight: { value: 1_000, configurable: true },
+        scrollTop: { value: 0, writable: true, configurable: true },
+        scrollBy: { value: scrollBy, configurable: true },
+      })
+
+      fireEvent.scroll(viewport)
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Scroll down for more settings',
+        }),
+      )
+      expect(scrollBy).toHaveBeenCalledWith({
+        top: 160,
+        behavior: 'smooth',
+      })
+
+      viewport.scrollTop = 600
+      fireEvent.scroll(viewport)
+      expect(
+        screen.queryByRole('button', {
+          name: 'Scroll down for more settings',
+        }),
+      ).toBeNull()
+    })
   })
 
   describe('Close Button', () => {

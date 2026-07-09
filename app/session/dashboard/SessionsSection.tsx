@@ -236,19 +236,22 @@ function SessionRow({ row, pending, onAction }: SessionRowProps) {
   const isLocalRow =
     kind ===
     AccountSessionKind.AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION
-  const details = [row.clientName, row.os, row.location]
+  // The local provider stamps deviceType "linked", which the Linked badge
+  // already conveys; cloud sessions carry a real platform ("web", "desktop").
+  const platform = row.deviceType === 'linked' ? '' : row.deviceType
+  const details = [platform, row.clientName, row.os, row.location]
     .filter(Boolean)
     .join(' · ')
   const createdAt = row.createdAt ?? null
   const lastSeenAt = row.lastSeenAt ?? null
   const status = row.currentSession
     ? 'Current session'
-    : isLocalRow
-      ? createdAt
-        ? `Paired ${createdAt.toLocaleDateString()}`
-        : 'Linked device'
-      : lastSeenAt
-        ? `Last seen ${lastSeenAt.toLocaleDateString()}`
+    : lastSeenAt
+      ? `Last seen ${lastSeenAt.toLocaleDateString()}`
+      : isLocalRow
+        ? createdAt
+          ? `Paired ${createdAt.toLocaleDateString()}`
+          : 'Linked device'
         : createdAt
           ? `Created ${createdAt.toLocaleDateString()}`
           : 'Cloud session'

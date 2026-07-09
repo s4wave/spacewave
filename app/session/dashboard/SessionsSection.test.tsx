@@ -160,36 +160,51 @@ describe('SessionsSection', () => {
     expect(screen.queryByText('Loading sessions...')).toBeNull()
   })
 
-  it('renders current and other session rows with metadata', () => {
+  it('renders owner-exposed platform and activity metadata without placeholders', () => {
+    const lastSeenAt = new Date('2026-04-16T00:00:00Z')
+    const createdAt = new Date('2026-04-15T00:00:00Z')
     mockUseStreamingResource.mockReturnValue(
       sessionsResult({
         sessions: [
           {
-            peerId: 'peer-current',
-            currentSession: true,
+            peerId: 'peer-browser',
+            currentSession: false,
             kind: AccountSessionKind.AccountSessionKind_ACCOUNT_SESSION_KIND_CLOUD_AUTH_SESSION,
-            label: 'Chrome on macOS (Portland, OR)',
+            label: 'Browser session',
+            deviceType: 'web',
             clientName: 'Chrome',
             os: 'macOS',
             location: 'Portland, OR',
-            lastSeenAt: new Date('2026-04-16T00:00:00Z'),
+            lastSeenAt,
           },
           {
-            peerId: 'peer-other',
+            peerId: 'peer-desktop',
             currentSession: false,
-            kind: AccountSessionKind.AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION,
-            label: 'Laptop',
-            createdAt: new Date('2026-04-15T00:00:00Z'),
+            kind: AccountSessionKind.AccountSessionKind_ACCOUNT_SESSION_KIND_CLOUD_AUTH_SESSION,
+            label: 'Desktop session',
+            deviceType: 'desktop',
+            clientName: 'Spacewave Desktop',
+            os: 'Linux',
+            location: 'Berlin, DE',
+            createdAt,
           },
         ],
       }),
     )
-    render(<SessionsSection account={mockAccountResource} isLocal />)
+    render(<SessionsSection account={mockAccountResource} isLocal={false} />)
 
-    expect(screen.getByText('Chrome on macOS (Portland, OR)')).toBeDefined()
-    expect(screen.getByText('This device')).toBeDefined()
-    expect(screen.getByText('Laptop')).toBeDefined()
-    expect(screen.getByText('Linked')).toBeDefined()
+    expect(
+      screen.getByText(
+        `Last seen ${lastSeenAt.toLocaleDateString()} · web · Chrome · macOS · Portland, OR`,
+      ),
+    ).toBeDefined()
+    expect(
+      screen.getByText(
+        `Created ${createdAt.toLocaleDateString()} · desktop · Spacewave Desktop · Linux · Berlin, DE`,
+      ),
+    ).toBeDefined()
+    expect(screen.queryByText('Cloud session')).toBeNull()
+    expect(screen.queryByText('Linked device')).toBeNull()
   })
 
   it('renders Link Another Device as a carded icon row for local sessions', () => {

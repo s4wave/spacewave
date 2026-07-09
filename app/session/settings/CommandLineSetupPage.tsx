@@ -223,6 +223,11 @@ async function* watchDesktopCLIInstallState(
   }
 }
 
+// DESKTOP_CLI_CHECK_TIMEOUT_MS bounds the "Checking command line tool" state:
+// past this the card reports the check as failed instead of pending forever
+// when the desktop runtime never yields an install state.
+const DESKTOP_CLI_CHECK_TIMEOUT_MS = 15000
+
 export function DesktopCLIInstallCard({
   state,
   loading,
@@ -234,7 +239,25 @@ export function DesktopCLIInstallCard({
   error?: Error | null
   onInvokeAction?: (action: DesktopCLIInstallActionItem) => void | Promise<void>
 }) {
-  const presentation = desktopCLIInstallPresentation(state, loading, error)
+  const checking = !error && (loading || !state)
+  const [checkTimedOut, setCheckTimedOut] = useState(false)
+  useEffect(() => {
+    if (!checking) {
+      setCheckTimedOut(false)
+      return
+    }
+    const timer = setTimeout(
+      () => setCheckTimedOut(true),
+      DESKTOP_CLI_CHECK_TIMEOUT_MS,
+    )
+    return () => clearTimeout(timer)
+  }, [checking])
+  const presentation = desktopCLIInstallPresentation(
+    state,
+    loading,
+    error,
+    checkTimedOut,
+  )
   const selectedTarget = state?.targets?.find((target) => target.selected)
   const actions = state?.actions ?? []
   const errorMessage = (state?.errorMessage ?? '')
@@ -434,6 +457,7 @@ function desktopCLIInstallPresentation(
   state: DesktopCLIInstallState | undefined,
   loading: boolean | undefined,
   error: Error | null | undefined,
+  checkTimedOut?: boolean,
 ): {
   tone: 'ready' | 'warning' | 'muted' | 'active' | 'error'
   label: string
@@ -456,6 +480,14 @@ function desktopCLIInstallPresentation(
     }
   }
   if (loading || !state) {
+    if (checkTimedOut) {
+      return {
+        tone: 'error',
+        label: 'Install state check timed out',
+        detail:
+          'The desktop runtime did not report CLI install state. Use the in-app terminal above, or restart the desktop app and reopen this page.',
+      }
+    }
     return {
       tone: 'muted',
       label: 'Checking command line tool',
