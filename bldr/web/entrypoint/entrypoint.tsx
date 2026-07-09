@@ -11,7 +11,10 @@ import type { WebDocumentOptions } from '@aptre/bldr'
 import { initBrowserReleaseAutoReload } from '../bldr/browser-release-update.js'
 import { markStartupBoundary } from '../bldr/startup-marks.js'
 import { setAppPath } from './app-path.js'
-import { writeBrowserBootStatus } from './boot-status.js'
+import {
+  bindBrowserBootStatusToStartupMarks,
+  writeBrowserBootStatus,
+} from './boot-status.js'
 
 declare global {
   var __swDeferBoot: boolean | undefined
@@ -88,6 +91,7 @@ const bldrRootProps: IBldrRootProps = { webDocumentOpts }
 if (!isDesktop) {
   initBrowserReleaseAutoReload()
 }
+bindBrowserBootStatusToStartupMarks()
 markStartupBoundary('shell.entrypoint-loaded', { source: 'browser' })
 
 type StartupModule = {

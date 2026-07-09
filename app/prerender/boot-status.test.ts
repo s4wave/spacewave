@@ -78,23 +78,22 @@ describe('writeBrowserBootStatus', () => {
       phase: 'wasm',
       detail: 'Preparing runtime...',
       state: 'loading',
-      progress: 0.38,
     })
     expect(document.querySelector('[data-sw-boot-status]')?.textContent).toBe(
-      'Connect: Connecting the app shell.',
+      'Connect: Fetching the runtime.',
     )
     const progress = document.querySelector('[data-sw-boot-progress]')
     if (!(progress instanceof HTMLElement)) {
       throw new Error('missing boot progress target')
     }
-    expect(progress.style.width).toBe('30%')
-    expect(progress.getAttribute('aria-valuenow')).toBe('30')
+    expect(progress.style.width).toBe('7%')
+    expect(progress.getAttribute('aria-valuenow')).toBe('7')
     expect(
       document.querySelector('[data-sw-boot-progress-label]')?.textContent,
-    ).toBe('30%')
+    ).toBe('7%')
   })
 
-  it('uses indeterminate static progress while the app bundle is downloading', () => {
+  it('advances determinate static progress from startup marks', () => {
     document.body.innerHTML = `
       <p data-sw-boot-status>Loading application...</p>
       <div data-sw-boot-progress aria-valuemin="0" aria-valuemax="100"></div>
@@ -109,21 +108,17 @@ describe('writeBrowserBootStatus', () => {
     })
 
     expect(document.querySelector('[data-sw-boot-status]')?.textContent).toBe(
-      'App: Downloading the app bundle. This can take a while the first time.',
+      'App: Opening the application.',
     )
     const progress = document.querySelector('[data-sw-boot-progress]')
     if (!(progress instanceof HTMLElement)) {
       throw new Error('missing boot progress target')
     }
-    expect(progress.classList.contains('animate-progress-indeterminate')).toBe(
-      true,
-    )
-    expect(progress.style.width).toBe('33%')
-    expect(progress.getAttribute('aria-valuenow')).toBeNull()
-    expect(progress.getAttribute('aria-valuetext')).toBe('Loading')
+    expect(progress.style.width).toBe('80%')
+    expect(progress.getAttribute('aria-valuenow')).toBe('80')
     expect(
       document.querySelector('[data-sw-boot-progress-label]')?.textContent,
-    ).toBe('')
+    ).toBe('80%')
   })
 
   it('updates static shell phase state from the projected startup rail', () => {
@@ -173,6 +168,7 @@ describe('writeBrowserBootStatus', () => {
     document.body.innerHTML = `
       <div id="sw-loading">
         <p data-sw-boot-status>Loading application...</p>
+        <div data-sw-boot-progress data-sw-boot-progress-stalled></div>
         <p data-sw-boot-error style="display:none"></p>
         <div data-sw-boot-error-actions style="display:none">
           <button data-sw-boot-retry type="button">Retry</button>
@@ -203,6 +199,11 @@ describe('writeBrowserBootStatus', () => {
     )
     expect(error.style.display).toBe('')
     expect(actions.style.display).toBe('flex')
+    expect(
+      document
+        .querySelector('[data-sw-boot-progress]')
+        ?.hasAttribute('data-sw-boot-progress-stalled'),
+    ).toBe(false)
     ;(
       document.querySelector('[data-sw-boot-retry]') as HTMLButtonElement
     ).click()
@@ -233,7 +234,6 @@ describe('writeBrowserBootStatus', () => {
           source: 'browser',
           phase: 'entrypoint',
           state: 'loading',
-          progress: 0.54,
         },
       },
     )
@@ -249,7 +249,6 @@ describe('writeBrowserBootStatus', () => {
           source: 'browser',
           phase: 'entrypoint',
           state: 'loading',
-          progress: 0.54,
         },
       },
     ])

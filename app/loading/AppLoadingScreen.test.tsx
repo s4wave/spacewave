@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen } from '@testing-library/react'
+import {
+  advanceBootDownload,
+  beginBootDownload,
+  bootProgressStallDelayMs,
+  completeBootDownload,
+  failBootDownload,
+  resetBootDownloadsForTest,
+} from '@aptre/bldr'
 
 import { AppLoadingScreen } from './AppLoadingScreen.js'
 import type { BrowserStartupProjection } from './status/browser-startup-model.js'
@@ -18,46 +26,13 @@ const mockProjection = vi.hoisted<{
     phase: {
       id: 'runtime',
       label: 'Runtime',
-      detail: 'Starting the Spacewave runtime.',
-      progress: 0.58,
     },
     phases: [
-      {
-        id: 'prepare',
-        label: 'Prepare',
-        detail: 'Preparing browser files.',
-        progress: 0.08,
-        state: 'complete',
-      },
-      {
-        id: 'connect',
-        label: 'Connect',
-        detail: 'Connecting the app shell.',
-        progress: 0.3,
-        state: 'complete',
-      },
-      {
-        id: 'runtime',
-        label: 'Runtime',
-        detail: 'Starting the Spacewave runtime.',
-        progress: 0.58,
-        state: 'current',
-      },
-      {
-        id: 'frame',
-        label: 'App',
-        detail:
-          'Downloading the app bundle. This can take a while the first time.',
-        progress: 0.84,
-        state: 'pending',
-      },
-      {
-        id: 'done',
-        label: 'Done',
-        detail: 'Spacewave is ready.',
-        progress: 1,
-        state: 'pending',
-      },
+      { id: 'prepare', label: 'Prepare', state: 'complete' },
+      { id: 'connect', label: 'Connect', state: 'complete' },
+      { id: 'runtime', label: 'Runtime', state: 'current' },
+      { id: 'frame', label: 'App', state: 'pending' },
+      { id: 'done', label: 'Done', state: 'pending' },
     ],
     evidence: {
       status: {
@@ -98,7 +73,9 @@ vi.mock('@s4wave/app/loading/status/browser-startup.js', () => ({
 
 afterEach(() => {
   cleanup()
+  resetBootDownloadsForTest()
   mockProjection.current = structuredClone(mockProjection.initial)
+  vi.useRealTimers()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
@@ -173,9 +150,6 @@ describe('AppLoadingScreen', () => {
       phase: {
         id: 'frame',
         label: 'App',
-        detail:
-          'Downloading the app bundle. This can take a while the first time.',
-        progress: 0.84,
       },
       phases: mockProjection.current.phases.map((phase) => ({
         ...phase,
@@ -208,6 +182,125 @@ describe('AppLoadingScreen', () => {
     })
   })
 
+  it('shimmers only after a markless gap and returns to determinate progress on the next mark', () => {
+    vi.useFakeTimers()
+    const { container, rerender } = render(<AppLoadingScreen />)
+    const progress = screen.getByRole('progressbar')
+
+    act(() => {
+      vi.advanceTimersByTime(bootProgressStallDelayMs - 1)
+    })
+    expect(container.querySelector('.swb-bar-fill--stalled')).toBeNull()
+
+    act(() => {
+      vi.advanceTimersByTime(1)
+    })
+    const stalled = container.querySelector('.swb-bar-fill--stalled')
+    if (!(stalled instanceof HTMLElement)) {
+      throw new Error(
+        'Expected the stalled progress bar fill to be an HTMLElement',
+      )
+    }
+    expect(stalled.style.width).toBe('58%')
+    expect(progress.getAttribute('aria-valuenow')).toBe('58')
+    expect(screen.getByText('58%')).toBeDefined()
+    expect(container.querySelector('.swb-bar-fill--indeterminate')).toBeNull()
+
+    mockProjection.current = {
+      ...mockProjection.current,
+      view: {
+        ...mockProjection.current.view,
+        detail: 'Runtime: Runtime channel connected.',
+        progress: 0.64,
+      },
+      evidence: {
+        ...mockProjection.current.evidence,
+        marks: [
+          {
+            name: 'spacewave.startup.runtime.client-channel-acked',
+            label: 'runtime.client-channel-acked',
+            sequence: 1,
+            detail: {
+              label: 'runtime.client-channel-acked',
+              sequence: 1,
+            },
+          },
+        ],
+      },
+    }
+    rerender(<AppLoadingScreen />)
+
+    expect(container.querySelector('.swb-bar-fill--stalled')).toBeNull()
+    expect(progress.getAttribute('aria-valuenow')).toBe('64')
+    expect(screen.getByText('64%')).toBeDefined()
+    act(() => {
+      vi.advanceTimersByTime(bootProgressStallDelayMs - 1)
+    })
+    expect(container.querySelector('.swb-bar-fill--stalled')).toBeNull()
+    act(() => {
+      vi.advanceTimersByTime(1)
+    })
+    expect(container.querySelector('.swb-bar-fill--stalled')).not.toBeNull()
+  })
+
+  it('clears a stalled shimmer on error and never restarts it in a terminal state', () => {
+    vi.useFakeTimers()
+    const loading = render(<AppLoadingScreen />)
+    act(() => {
+      vi.advanceTimersByTime(bootProgressStallDelayMs)
+    })
+    expect(
+      loading.container.querySelector('.swb-bar-fill--stalled'),
+    ).not.toBeNull()
+
+    mockProjection.current = {
+      ...mockProjection.current,
+      view: {
+        state: 'error',
+        title: 'Spacewave',
+        detail: 'Runtime: Connecting the Spacewave runtime.',
+        progress: 0.31,
+        error:
+          'Startup did not finish. Check the browser console or startup marks for details.',
+      },
+    }
+    loading.rerender(<AppLoadingScreen />)
+
+    expect(loading.container.querySelector('.swb-bar-fill--stalled')).toBeNull()
+    act(() => {
+      vi.advanceTimersByTime(bootProgressStallDelayMs)
+    })
+    expect(loading.container.querySelector('.swb-bar-fill--stalled')).toBeNull()
+  })
+
+  it('retires a download when it completes while active and failed rows remain', () => {
+    beginBootDownload('app', 'Application', 100)
+    beginBootDownload('plugin', 'Plugin', 200)
+    advanceBootDownload('plugin', 50, 200)
+    beginBootDownload('styles', 'Styles', 10)
+
+    const { container } = render(<AppLoadingScreen />)
+    expect(
+      container.querySelector('[data-sw-startup-download="app"]'),
+    ).not.toBeNull()
+
+    act(() => {
+      completeBootDownload('app')
+      failBootDownload('styles', 'network error')
+    })
+
+    expect(
+      container.querySelector('[data-sw-startup-download="app"]'),
+    ).toBeNull()
+    expect(
+      container.querySelector('[data-sw-startup-download="plugin"]'),
+    ).not.toBeNull()
+    expect(
+      container.querySelector('[data-sw-startup-download="styles"]'),
+    ).not.toBeNull()
+    expect(screen.getByText('network error')).toBeDefined()
+  })
+
   it('renders retry and back affordances for startup errors', () => {
     mockProjection.current = {
       ...mockProjection.current,
@@ -222,8 +315,6 @@ describe('AppLoadingScreen', () => {
       phase: {
         id: 'connect',
         label: 'Connect',
-        detail: 'Connecting the app shell.',
-        progress: 0.3,
       },
       phases: mockProjection.current.phases.map((phase) => ({
         ...phase,

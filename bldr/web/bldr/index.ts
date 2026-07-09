@@ -66,3 +66,12 @@ export {
   resetBootDownloadsForTest,
 } from './boot-downloads.js'
 export type { BootDownload, BootDownloadState } from './boot-downloads.js'
+export {
+  bootProgressStallDelayMs,
+  projectBootProgress,
+} from './boot-progress.js'
+export type {
+  BootProgressMark,
+  BootProgressStatus,
+  BootProgressStep,
+} from './boot-progress.js'

@@ -177,13 +177,27 @@ let bootLastResetDecision='unknown';
 let releasePromise;
 let primePromise;
 let nextStartupMarkSequence=1;
-const phaseProgress={loading:.04,manifest:.12,'manifest-ready':.22,wasm:.38,entrypoint:.54,runtime:.76,ready:.9};
+let bootProgressStallTimer;
+const bootProgressStallDelay=2000;
+// phaseDisplay positions and labels must match the bldr boot-progress ladder
+// (web/bldr/boot-progress.ts) so the bar is continuous across the inline boot
+// script, the entrypoint bundle, and the React loading screen. The entrypoint
+// download fraction maps into the [.08,.26] ladder window.
+const phaseDisplay={
+  loading:{progress:.02,label:'Loading the app shell.'},
+  manifest:{progress:.04,label:'Loading the browser release.'},
+  'manifest-error':{progress:.04,label:'Loading the browser release.'},
+  'manifest-ready':{progress:.06,label:'Browser release found.'},
+  wasm:{progress:.07,label:'Fetching the runtime.'},
+  entrypoint:{progress:.08,label:'Downloading the application.'},
+  'entrypoint-error':{progress:.08,label:'Downloading the application.'}
+};
 const startupPhaseInfo={
-  prepare:{label:'Prepare',detail:'Preparing browser files.',progress:.08},
-  connect:{label:'Connect',detail:'Connecting the app shell.',progress:.3},
-  runtime:{label:'Runtime',detail:'Starting the Spacewave runtime.',progress:.58},
-  frame:{label:'App',detail:'Downloading the app bundle. This can take a while the first time.',progress:.84},
-  done:{label:'Done',detail:'Spacewave is ready.',progress:1}
+  prepare:{label:'Prepare',detail:'Preparing browser files.'},
+  connect:{label:'Connect',detail:'Connecting the app shell.'},
+  runtime:{label:'Runtime',detail:'Starting the Spacewave runtime.'},
+  frame:{label:'App',detail:'Downloading the app bundle. This can take a while the first time.'},
+  done:{label:'Done',detail:'Spacewave is ready.'}
 };
 const startupPhaseOrder=['prepare','connect','runtime','frame','done'];
 const bootPhaseStartupPhase={loading:'prepare',manifest:'prepare','manifest-ready':'prepare','manifest-error':'prepare',wasm:'connect',entrypoint:'connect','entrypoint-error':'connect',runtime:'runtime',ready:'runtime','runtime-error':'runtime',app:'frame'};
@@ -200,8 +214,10 @@ function parsePositiveByteLength(value){
 function startupDisplayForBootStatus(status){
   const id=bootPhaseStartupPhase[status.phase]||'prepare';
   const info=startupPhaseInfo[id];
-  const progress=id==='frame'?status.progress:info.progress;
-  return {id:id,detail:info.label+': '+info.detail,progress:progress,indeterminate:id==='frame'&&progress===undefined&&status.state!=='error',error:status.state==='error'};
+  const entry=phaseDisplay[status.phase]||{progress:.02,label:info.detail};
+  let progress=entry.progress;
+  if((status.phase==='entrypoint'||status.phase==='entrypoint-error')&&status.progress!==undefined)progress=Math.max(progress,.08+status.progress*.18);
+  return {id:id,detail:info.label+': '+entry.label,progress:progress,error:status.state==='error'};
 }
 function markStartupBoundary(label,detail){
   const name=startupMarkPrefix+label;
@@ -216,9 +232,32 @@ function markStartupBoundary(label,detail){
   window.dispatchEvent(new CustomEvent(startupMarkEvent,{detail:{name:name,detail:markDetail}}));
   return name;
 }
+function scheduleBootProgressStall(){
+  if(bootProgressStallTimer!==undefined){
+    window.clearTimeout(bootProgressStallTimer);
+    bootProgressStallTimer=undefined;
+  }
+  const target=document.querySelector('[data-sw-boot-progress]');
+  if(canMutateBootStatusTarget(target))target.removeAttribute('data-sw-boot-progress-stalled');
+  const status=g.__swBootStatus;
+  if(!status||status.state!=='loading')return;
+  if(startupDisplayForBootStatus(status).progress>=1)return;
+  bootProgressStallTimer=window.setTimeout(function(){
+    bootProgressStallTimer=undefined;
+    const current=g.__swBootStatus;
+    if(!current||current.state!=='loading')return;
+    if(startupDisplayForBootStatus(current).progress>=1)return;
+    const currentTarget=document.querySelector('[data-sw-boot-progress]');
+    if(canMutateBootStatusTarget(currentTarget))currentTarget.setAttribute('data-sw-boot-progress-stalled','');
+  },bootProgressStallDelay);
+}
+g.__swBootProgressActivity=scheduleBootProgressStall;
+window.addEventListener(startupMarkEvent,scheduleBootProgressStall);
 function setBootStatus(phase,detail,state,progress){
+  // status.progress carries the raw 0..1 download fraction for the phase, not
+  // a bar position; startupDisplayForBootStatus maps it into the ladder.
   const status={phase,detail:detail||phase,state:state||'loading',compatibilityVersion:bootStateVersion,lastResetDecision:bootLastResetDecision};
-  const clampedProgress=clampBootProgress(progress!==undefined?progress:phaseProgress[phase]);
+  const clampedProgress=clampBootProgress(progress);
   if(clampedProgress!==undefined)status.progress=clampedProgress;
   const display=startupDisplayForBootStatus(status);
   g.__swBootStatus=status;
@@ -226,24 +265,16 @@ function setBootStatus(phase,detail,state,progress){
   if(canMutateBootStatusTarget(target))target.textContent=display.detail;
   const stateTarget=document.querySelector('[data-sw-boot-state]');
   if(canMutateBootStatusTarget(stateTarget))stateTarget.setAttribute('data-sw-boot-state',status.state);
-  if(display.progress!==undefined||display.indeterminate){
-    const pct=Math.round((display.progress??0)*100);
-    const progressTarget=document.querySelector('[data-sw-boot-progress]');
-    if(canMutateBootStatusTarget(progressTarget)){
-      progressTarget.style.width=display.indeterminate?'33%':pct+'%';
-      progressTarget.style.transition=display.indeterminate?'none':'width 200ms';
-      progressTarget.classList.toggle('animate-progress-indeterminate',!!display.indeterminate);
-      if(display.indeterminate){
-        progressTarget.removeAttribute('aria-valuenow');
-        progressTarget.setAttribute('aria-valuetext','Loading');
-      }else{
-        progressTarget.removeAttribute('aria-valuetext');
-        progressTarget.setAttribute('aria-valuenow',String(pct));
-      }
-    }
-    const progressLabel=document.querySelector('[data-sw-boot-progress-label]');
-    if(canMutateBootStatusTarget(progressLabel))progressLabel.textContent=display.indeterminate?'':pct+'%';
+  const pct=Math.round(display.progress*100);
+  const progressTarget=document.querySelector('[data-sw-boot-progress]');
+  if(canMutateBootStatusTarget(progressTarget)){
+    progressTarget.style.width=pct+'%';
+    progressTarget.style.transition='width 200ms';
+    progressTarget.setAttribute('aria-valuenow',String(pct));
+    progressTarget.removeAttribute('data-sw-boot-progress-stalled');
   }
+  const progressLabel=document.querySelector('[data-sw-boot-progress-label]');
+  if(canMutateBootStatusTarget(progressLabel))progressLabel.textContent=pct+'%';
   updateStaticPhaseRail(display.id,status.state);
   markStartupBoundary('boot-status.'+phase,{source:'boot',phase:phase,state:status.state,progress:status.progress});
   window.dispatchEvent(new CustomEvent(bootStatusEvent,{detail:status}));
@@ -284,7 +315,7 @@ function rewriteStaticHandoffLinks(){
 }
 function setBootError(phase,err){
   const msg=err&&err.message?err.message:String(err);
-  setBootStatus(phase,msg,'error');
+  setBootStatus(phase,msg,'error',g.__swBootStatus&&g.__swBootStatus.progress);
 }
 function storageGet(storage,key){
   try{return storage&&storage.getItem?storage.getItem(key):null}catch(_){return null}
@@ -479,7 +510,9 @@ function renderBootDownloads(){
   if(typeof document==='undefined'||!document.querySelector)return;
   const container=document.querySelector('[data-sw-boot-downloads]');
   if(!canMutateBootStatusTarget(container)||typeof document.createElement!=='function')return;
-  const downloads=readBootDownloads();
+  // Completed downloads retire from the list so a finished byte counter never
+  // lingers under later boot phases; failed rows stay visible as evidence.
+  const downloads=readBootDownloads().filter(function(d){return d.state!=='complete'});
   container.style.display=downloads.length?'flex':'none';
   const seen={};
   for(const d of downloads){
@@ -548,12 +581,16 @@ async function streamEntrypointModule(release){
   const response=await fetch(release.entrypoint,{credentials:'same-origin'});
   if(!response.ok)throw new Error('failed to load entrypoint bundle: '+response.status);
   const total=release.entrypointDecompressedSize||parsePositiveByteLength(response.headers&&response.headers.get?response.headers.get('content-length'):undefined);
-  if(total!==undefined)setBootStatus('app',startupPhaseInfo.frame.detail,'loading',0);
-  else setBootStatus('app',startupPhaseInfo.frame.detail);
+  // The app shell bundle download is part of the connect phase (entrypoint),
+  // not the later app frame phase; its byte fraction advances the entrypoint
+  // ladder window.
+  const dlDetail=phaseDisplay.entrypoint.label;
+  if(total!==undefined)setBootStatus('entrypoint',dlDetail,'loading',0);
+  else setBootStatus('entrypoint',dlDetail);
   await streamBootDownload('app','Application',response,total,function(loaded,streamTotal){
-    if(streamTotal!==undefined)setBootStatus('app',startupPhaseInfo.frame.detail,'loading',loaded/streamTotal);
+    if(streamTotal!==undefined)setBootStatus('entrypoint',dlDetail,'loading',loaded/streamTotal);
   });
-  if(total!==undefined)setBootStatus('app',startupPhaseInfo.frame.detail,'loading',1);
+  if(total!==undefined)setBootStatus('entrypoint',dlDetail,'loading',1);
 }
 function primeEntrypoint(release){
   if(!entrypointStreamPromise)entrypointStreamPromise=streamEntrypointModule(release);

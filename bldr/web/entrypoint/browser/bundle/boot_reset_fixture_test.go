@@ -493,11 +493,18 @@ async function waitFor(predicate, label) {
   throw new Error('timeout waiting for ' + label + ': ' + (globalThis.__fixtureEvents ?? []).join(','))
 }
 
-function streamChunks(chunks) {
+function streamChunks(chunks, streamError) {
+  let index = 0
   return new ReadableStream({
-    start(controller) {
-      for (const size of chunks) {
-        controller.enqueue(new Uint8Array(size))
+    pull(controller) {
+      if (index < chunks.length) {
+        controller.enqueue(new Uint8Array(chunks[index]))
+        index += 1
+        return
+      }
+      if (streamError) {
+        controller.error(new Error(streamError))
+        return
       }
       controller.close()
     },
@@ -508,6 +515,7 @@ async function runCase(testCase) {
   const events = []
   const progress = new ElementFixture()
   const progressLabel = new ElementFixture()
+  const status = new ElementFixture()
   const localStorage = new StorageFixture({
     'spacewave-browser-app-state-version': '1000000',
   })
@@ -581,6 +589,7 @@ async function runCase(testCase) {
   }
   globalThis.document = {
     querySelector(selector) {
+      if (selector === '[data-sw-boot-status]') return status
       if (selector === '[data-sw-boot-progress]') return progress
       if (selector === '[data-sw-boot-progress-label]') return progressLabel
       return null
@@ -634,7 +643,7 @@ async function runCase(testCase) {
       return new Response('wasm')
     }
     if (url === entrypointPath) {
-      return new Response(streamChunks(testCase.chunks), {
+      return new Response(streamChunks(testCase.chunks, testCase.streamError), {
         status: 200,
         headers: testCase.contentLength
           ? { 'content-length': String(testCase.contentLength) }
@@ -646,33 +655,57 @@ async function runCase(testCase) {
 
   try {
     new Function(script)()
-    await waitFor(
-      () => events.includes('import:direct:' + testCase.name),
-      testCase.name + ' canonical entrypoint import completion',
-    )
+    if (testCase.streamError) {
+      await waitFor(
+        () => events.some((event) => event.startsWith('status:entrypoint-error:')),
+        testCase.name + ' entrypoint error status',
+      )
+    } else {
+      await waitFor(
+        () => events.includes('import:direct:' + testCase.name),
+        testCase.name + ' canonical entrypoint import completion',
+      )
+    }
 
     const manifestIndex = events.indexOf('fetch:/browser-release.json')
     const entrypointFetchIndex = events.indexOf('fetch:' + entrypointPath)
     const importIndex = events.indexOf('import:direct:' + testCase.name)
     assert(manifestIndex !== -1, testCase.name + ' did not fetch release manifest: ' + events.join(','))
     assert(entrypointFetchIndex > manifestIndex, testCase.name + ' did not fetch entrypoint after manifest: ' + events.join(','))
-    assert(importIndex > entrypointFetchIndex, testCase.name + ' did not import the canonical entrypoint URL after progress stream: ' + events.join(','))
+    if (testCase.streamError) {
+      assert(importIndex === -1, testCase.name + ' imported the entrypoint after its stream failed: ' + events.join(','))
+    } else {
+      assert(importIndex > entrypointFetchIndex, testCase.name + ' did not import the canonical entrypoint URL after progress stream: ' + events.join(','))
+    }
 
-    const progressEvents = events.filter((event) => event.startsWith('status:app:'))
-    if (testCase.expectedProgressEvents) {
+    const progressEvents = events.filter((event) => event.startsWith('status:entrypoint:'))
+    assert(!events.some((event) => event.startsWith('status:app:')), testCase.name + ' emitted removed app-phase progress: ' + events.join(','))
+    if (testCase.streamError) {
+      const errorEvents = events.filter((event) => event.startsWith('status:entrypoint-error:'))
+      assert(progressEvents.includes(testCase.expectedPartialProgressEvent), testCase.name + ' did not report the partial raw entrypoint fraction before failure: ' + events.join(','))
+      assert(errorEvents.length === 1 && errorEvents[0] === testCase.expectedErrorStatusEvent, testCase.name + ' error status did not retain the partial raw entrypoint fraction: ' + events.join(','))
+      assert(globalThis.__swBootStatus.phase === 'entrypoint-error', testCase.name + ' did not retain the entrypoint error phase')
+      assert(globalThis.__swBootStatus.state === 'error', testCase.name + ' did not retain the entrypoint error state')
+      assert(globalThis.__swBootStatus.progress === testCase.expectedRawProgress, testCase.name + ' error status did not retain raw phase-local progress')
+      assert(status.textContent === 'Connect: Downloading the application.', testCase.name + ' error status lost the entrypoint download label')
+      assert(progress.style.width === testCase.expectedRenderedProgress, testCase.name + ' rendered progress fell from the partial entrypoint high-water')
+      assert(progress.getAttribute('aria-valuenow') === testCase.expectedRenderedAriaValue, testCase.name + ' rendered aria-valuenow fell from the partial entrypoint high-water')
+      assert(progressLabel.textContent === testCase.expectedRenderedProgress, testCase.name + ' rendered progress label fell from the partial entrypoint high-water')
+    } else if (testCase.expectedProgressEvents) {
       for (const expected of testCase.expectedProgressEvents) {
         assert(progressEvents.includes(expected), testCase.name + ' missing progress event ' + expected + ': ' + events.join(','))
       }
-      assert(progress.style.width === '100%', testCase.name + ' did not finish progress at 100%')
-      assert(progress.getAttribute('aria-valuenow') === '100', testCase.name + ' aria-valuenow did not finish at 100')
-      assert(progressLabel.textContent === '100%', testCase.name + ' progress label did not finish at 100%')
+      assert(progress.style.width === '26%', testCase.name + ' did not finish rendered progress at the 26% entrypoint ladder mark')
+      assert(progress.getAttribute('aria-valuenow') === '26', testCase.name + ' aria-valuenow did not finish at the 26% entrypoint ladder mark')
+      assert(progressLabel.textContent === '26%', testCase.name + ' progress label did not finish at the 26% entrypoint ladder mark')
     } else {
-      assert(progressEvents.includes('status:app:indeterminate'), testCase.name + ' did not report indeterminate app progress: ' + events.join(','))
-      assert(!progressEvents.some((event) => event !== 'status:app:indeterminate'), testCase.name + ' reported determinate app progress without a positive total: ' + events.join(','))
-      assert(progress.classList.contains('animate-progress-indeterminate'), testCase.name + ' progress bar is not indeterminate')
-      assert(progress.getAttribute('aria-valuenow') === null, testCase.name + ' indeterminate progress exposed aria-valuenow')
-      assert(progress.getAttribute('aria-valuetext') === 'Loading', testCase.name + ' indeterminate progress missing aria-valuetext')
-      assert(progressLabel.textContent === '', testCase.name + ' indeterminate progress showed a percent label')
+      assert(progressEvents.includes('status:entrypoint:indeterminate'), testCase.name + ' did not report unknown-total entrypoint progress: ' + events.join(','))
+      assert(!progressEvents.some((event) => event !== 'status:entrypoint:indeterminate'), testCase.name + ' reported a raw fraction without a positive total: ' + events.join(','))
+      assert(!progress.classList.contains('animate-progress-indeterminate'), testCase.name + ' rendered overall progress as indeterminate')
+      assert(progress.style.width === '8%', testCase.name + ' did not remain at the 8% entrypoint ladder floor')
+      assert(progress.getAttribute('aria-valuenow') === '8', testCase.name + ' unknown-total aria-valuenow did not remain at the 8% entrypoint ladder floor')
+      assert(progress.getAttribute('aria-valuetext') === null, testCase.name + ' unknown-total progress exposed stale indeterminate aria-valuetext')
+      assert(progressLabel.textContent === '8%', testCase.name + ' unknown-total progress label did not remain at the 8% entrypoint ladder floor')
     }
   } finally {
     Object.defineProperty(URL, 'createObjectURL', {
@@ -690,17 +723,28 @@ await runCase({
   name: 'manifest-size',
   sizeHint: 10,
   chunks: [4, 6],
-  expectedProgressEvents: ['status:app:40', 'status:app:100'],
+  expectedProgressEvents: ['status:entrypoint:40', 'status:entrypoint:100'],
 })
 await runCase({
   name: 'content-length',
   contentLength: 8,
   chunks: [2, 6],
-  expectedProgressEvents: ['status:app:25', 'status:app:100'],
+  expectedProgressEvents: ['status:entrypoint:25', 'status:entrypoint:100'],
 })
 await runCase({
-  name: 'indeterminate',
+  name: 'unknown-total',
   chunks: [3, 5],
+})
+await runCase({
+  name: 'partial-error',
+  sizeHint: 10,
+  chunks: [4],
+  streamError: 'fixture stream failed',
+  expectedPartialProgressEvent: 'status:entrypoint:40',
+  expectedErrorStatusEvent: 'status:entrypoint-error:40',
+  expectedRawProgress: 0.4,
+  expectedRenderedProgress: '15%',
+  expectedRenderedAriaValue: '15',
 })
 
 console.log('boot-entrypoint-stream-progress-fixture=passed')

@@ -1,6 +1,8 @@
 import React, { act, type ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { writeBrowserBootStatus } from './boot-status.js'
+import { bootProgressStallDelayMs } from '../bldr/boot-progress.js'
+import { markStartupBoundary } from '../bldr/startup-marks.js'
 
 const renderedRootElements = vi.hoisted<unknown[]>(() => [])
 
@@ -155,10 +157,12 @@ describe('browser entrypoint boot readiness', () => {
     globalThis.__swReadyResolve = undefined
     globalThis.__swStartupMarks = undefined
     globalThis.__swStartupMarkSequence = undefined
+    globalThis.__swBootProgressActivity = undefined
     globalThis.__swStartupModuleImportedFrom = undefined
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     bldrRuntimeMock.isDesktop = false
     initBrowserReleaseAutoReloadMock.mockClear()
@@ -172,6 +176,7 @@ describe('browser entrypoint boot readiness', () => {
     globalThis.__swReadyResolve = undefined
     globalThis.__swStartupMarks = undefined
     globalThis.__swStartupMarkSequence = undefined
+    globalThis.__swBootProgressActivity = undefined
     globalThis.__swStartupModuleImportedFrom = undefined
     globalThis.IS_REACT_ACT_ENVIRONMENT = undefined
   })
@@ -347,7 +352,7 @@ describe('browser entrypoint boot readiness', () => {
     }
   })
 
-  it('clamps determinate app progress UI between 0 and 100', () => {
+  it('clamps the app download fraction and maps it into the frame ladder window', () => {
     document.body.innerHTML = `
       <div id="bldr-root"></div>
       <div data-sw-boot-progress role="progressbar" aria-valuemin="0" aria-valuemax="100"></div>
@@ -366,11 +371,11 @@ describe('browser entrypoint boot readiness', () => {
     if (!(progress instanceof HTMLElement)) {
       throw new Error('missing boot progress target')
     }
-    expect(progress.style.width).toBe('0%')
-    expect(progress.getAttribute('aria-valuenow')).toBe('0')
+    expect(progress.style.width).toBe('80%')
+    expect(progress.getAttribute('aria-valuenow')).toBe('80')
     expect(
       document.querySelector('[data-sw-boot-progress-label]')?.textContent,
-    ).toBe('0%')
+    ).toBe('80%')
     expect(globalThis.__swBootStatus?.progress).toBe(0)
 
     writeBrowserBootStatus({
@@ -381,15 +386,15 @@ describe('browser entrypoint boot readiness', () => {
       progress: 1.25,
     })
 
-    expect(progress.style.width).toBe('100%')
-    expect(progress.getAttribute('aria-valuenow')).toBe('100')
+    expect(progress.style.width).toBe('98%')
+    expect(progress.getAttribute('aria-valuenow')).toBe('98')
     expect(
       document.querySelector('[data-sw-boot-progress-label]')?.textContent,
-    ).toBe('100%')
+    ).toBe('98%')
     expect(globalThis.__swBootStatus?.progress).toBe(1)
   })
 
-  it('keeps app progress indeterminate with no percent label until a positive total is known', () => {
+  it('shows determinate mark-weighted app progress without a byte total', () => {
     document.body.innerHTML = `
       <div id="bldr-root"></div>
       <div data-sw-boot-progress role="progressbar" aria-valuemin="0" aria-valuemax="100"></div>
@@ -413,14 +418,79 @@ describe('browser entrypoint boot readiness', () => {
     if (!(progress instanceof HTMLElement)) {
       throw new Error('missing boot progress target')
     }
-    expect(progress.classList.contains('animate-progress-indeterminate')).toBe(
-      true,
-    )
-    expect(progress.style.width).toBe('33%')
-    expect(progress.getAttribute('aria-valuenow')).toBeNull()
-    expect(progress.getAttribute('aria-valuetext')).toBe('Loading')
+    expect(progress.style.width).toBe('80%')
+    expect(progress.getAttribute('aria-valuenow')).toBe('80')
+    expect(progress.hasAttribute('data-sw-boot-progress-stalled')).toBe(false)
     expect(
       document.querySelector('[data-sw-boot-progress-label]')?.textContent,
-    ).toBe('')
+    ).toBe('80%')
+  })
+
+  it('keeps the automatically bound static projection moving between coarse phase writes', async () => {
+    vi.useFakeTimers()
+    document.body.innerHTML = `
+      <div id="bldr-root" data-prerendered="true">
+        <div id="sw-loading">
+          <p data-sw-boot-status></p>
+          <div data-sw-boot-state></div>
+          <div data-sw-boot-progress role="progressbar" aria-valuemin="0" aria-valuemax="100"></div>
+          <span data-sw-boot-progress-label></span>
+        </div>
+      </div>
+    `
+    let rejectRuntime = (_reason: unknown) => {}
+    const runtimeReady = new Promise<void>((_resolve, reject) => {
+      rejectRuntime = reject
+    })
+    waitConnMock.mockReturnValueOnce(runtimeReady)
+    globalThis.__swDeferBoot = true
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await importEntrypoint()
+    await drainMicrotasks()
+
+    const progress = document.querySelector('[data-sw-boot-progress]')
+    if (!(progress instanceof HTMLElement)) {
+      throw new Error('missing boot progress target')
+    }
+    expect(progress.style.width).toBe('31%')
+    expect(progress.getAttribute('aria-valuenow')).toBe('31')
+    expect(document.querySelector('[data-sw-boot-status]')?.textContent).toBe(
+      'Runtime: Connecting the Spacewave runtime.',
+    )
+
+    vi.advanceTimersByTime(bootProgressStallDelayMs - 1)
+    expect(progress.hasAttribute('data-sw-boot-progress-stalled')).toBe(false)
+    vi.advanceTimersByTime(1)
+    expect(progress.hasAttribute('data-sw-boot-progress-stalled')).toBe(true)
+    expect(progress.style.width).toBe('31%')
+    expect(progress.getAttribute('aria-valuenow')).toBe('31')
+    expect(
+      document.querySelector('[data-sw-boot-progress-label]')?.textContent,
+    ).toBe('31%')
+
+    markStartupBoundary('runtime.opfs-bridge-ready', { source: 'test' })
+
+    expect(progress.hasAttribute('data-sw-boot-progress-stalled')).toBe(false)
+    expect(progress.style.width).toBe('52%')
+    expect(progress.getAttribute('aria-valuenow')).toBe('52')
+    expect(document.querySelector('[data-sw-boot-status]')?.textContent).toBe(
+      'Runtime: Preparing browser storage.',
+    )
+
+    vi.advanceTimersByTime(bootProgressStallDelayMs)
+    expect(progress.hasAttribute('data-sw-boot-progress-stalled')).toBe(true)
+
+    rejectRuntime(new Error('runtime unavailable'))
+    await drainMicrotasks()
+
+    expect(
+      document
+        .querySelector('[data-sw-boot-state]')
+        ?.getAttribute('data-sw-boot-state'),
+    ).toBe('error')
+    expect(progress.hasAttribute('data-sw-boot-progress-stalled')).toBe(false)
+    vi.advanceTimersByTime(bootProgressStallDelayMs)
+    expect(progress.hasAttribute('data-sw-boot-progress-stalled')).toBe(false)
   })
 })

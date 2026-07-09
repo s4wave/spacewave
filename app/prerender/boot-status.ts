@@ -17,7 +17,6 @@ const defaultStatus: BrowserBootStatus = {
   phase: 'loading',
   detail: 'Loading application...',
   state: 'loading',
-  progress: 0.04,
 }
 
 declare global {
@@ -78,6 +77,7 @@ function updateProgressTarget(
         : `${Math.round(progress * 100)}%`
     target.classList.toggle('animate-progress-indeterminate', !!indeterminate)
     target.style.transition = indeterminate ? 'none' : 'width 200ms'
+    target.removeAttribute('data-sw-boot-progress-stalled')
   }
   if (indeterminate) {
     target.removeAttribute('aria-valuenow')

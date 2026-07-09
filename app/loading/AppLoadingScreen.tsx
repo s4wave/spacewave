@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 import {
   bootDownloadFraction,
+  bootProgressStallDelayMs,
   formatBytes,
   type BootDownload,
 } from '@aptre/bldr'
@@ -13,6 +14,7 @@ import type { BrowserStartupPhaseView } from '@s4wave/app/loading/status/browser
 import { markBrowserStartupBoundary } from '@s4wave/app/prerender/boot-status.js'
 import { useReducedMotion } from '@s4wave/web/ui/loading/index.js'
 import type { LoadingView } from '@s4wave/web/ui/loading/types.js'
+import { cn } from '@s4wave/web/style/utils.js'
 
 import { BootLoadingCriticalStyle } from './boot-loading-critical.js'
 
@@ -49,6 +51,8 @@ export function AppLoadingScreen() {
                   view.progress === undefined ? undefined : view.progress * 100
                 }
                 indeterminate={view.progressIndeterminate}
+                active={view.state === 'loading'}
+                activitySequence={startup.evidence.marks.at(-1)?.sequence}
               />
             ) : null}
             {view.error ? <p className="swb-error">{view.error}</p> : null}
@@ -137,16 +141,35 @@ function BrowserStartupRevealProbe({
 
 // BrowserStartupProgress renders the determinate boot progress bar with a mono
 // percent readout, or a sweeping indeterminate bar while byte totals are
-// unknown.
+// unknown. A determinate bar keeps its accumulated value but starts shimmering
+// after the startup mark stream has been quiet for two seconds.
 function BrowserStartupProgress({
   value,
   indeterminate,
+  active,
+  activitySequence,
 }: {
   value?: number
   indeterminate?: boolean
+  active?: boolean
+  activitySequence?: number
 }) {
   const pct =
     value === undefined ? 0 : Math.max(0, Math.min(100, Math.round(value)))
+  const activityKey = `${value ?? 'unknown'}:${activitySequence ?? 0}`
+  const [stalledActivity, setStalledActivity] = useState<string>()
+
+  useEffect(() => {
+    if (!active || indeterminate || pct >= 100) return
+    const timer = window.setTimeout(
+      () => setStalledActivity(activityKey),
+      bootProgressStallDelayMs,
+    )
+    return () => window.clearTimeout(timer)
+  }, [active, activityKey, indeterminate, pct])
+
+  const stalled =
+    active && !indeterminate && pct < 100 && stalledActivity === activityKey
   return (
     <div className="swb-progress-wrap">
       <div
@@ -159,7 +182,10 @@ function BrowserStartupProgress({
         {indeterminate ? (
           <div className="swb-bar-fill swb-bar-fill--indeterminate" />
         ) : (
-          <div className="swb-bar-fill" style={{ width: `${pct}%` }} />
+          <div
+            className={cn('swb-bar-fill', stalled && 'swb-bar-fill--stalled')}
+            style={{ width: `${pct}%` }}
+          />
         )}
       </div>
       {indeterminate ? null : (
@@ -216,9 +242,13 @@ export function BrowserStartupPhaseRail({
 // the boot download registry: one labeled progress bar per boot asset (runtime,
 // app bundle, and any plugin modules) with streamed bytes and percent. It
 // renders nothing until a producer registers a download, so screens that never
-// stream bytes stay unchanged.
+// stream bytes stay unchanged. Completed downloads retire from the list so a
+// finished byte counter never lingers under later boot phases; failed rows
+// stay visible as evidence.
 export function BrowserStartupDownloadList() {
-  const downloads = useBootDownloads()
+  const downloads = useBootDownloads().filter(
+    (download) => download.state !== 'complete',
+  )
   if (downloads.length === 0) return null
   return (
     <ul

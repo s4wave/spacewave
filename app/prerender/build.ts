@@ -464,6 +464,7 @@ async function buildRootTemplate(ctx: PrerenderContext) {
   // Bootstrap inline script (in bootstrapScript) handles visibility
   // based on hasSession/hash. No separate inline script needed.
   const body = `<div id="sw-landing" class="${ROOT_LANDING_SHELL_CLASS}">${landingHtml}</div>
+      <style>@keyframes sw-boot-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}[data-sw-boot-progress][data-sw-boot-progress-stalled]{position:relative;overflow:hidden}[data-sw-boot-progress][data-sw-boot-progress-stalled]::after{content:"";position:absolute;top:0;bottom:0;left:0;width:35%;border-radius:inherit;background:color-mix(in srgb,var(--color-foreground,#fafafa) 45%,transparent);animation:sw-boot-shimmer 1.1s ease-in-out infinite}@media (prefers-reduced-motion:reduce){[data-sw-boot-progress][data-sw-boot-progress-stalled]::after{display:none;animation:none}}</style>
       <div id="sw-loading" data-sw-boot-state="loading" style="${ROOT_LOADING_STYLE}">
         <div style="display:flex;align-items:center;justify-content:center;flex:1 1 0%;height:100%;min-height:0;width:100%;background:var(--color-background,#0a0a0a);color:var(--color-foreground,#fafafa);overflow:hidden">
           <div style="display:flex;width:min(30rem,calc(100vw - 2rem));flex-direction:column;align-items:center;gap:1.25rem;text-align:center">
@@ -472,12 +473,12 @@ async function buildRootTemplate(ctx: PrerenderContext) {
             </div>
             <div style="display:flex;flex-direction:column;align-items:center;gap:0.5rem">
               <h1 style="margin:0;font-size:1.5rem;font-weight:600;letter-spacing:0;color:var(--color-foreground,#fafafa)">Spacewave</h1>
-              <p data-sw-boot-status style="margin:0;font-size:0.875rem;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 70%,transparent)">Prepare: Preparing browser files.</p>
+              <p data-sw-boot-status style="margin:0;font-size:0.875rem;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 70%,transparent)">Prepare: Loading the app shell.</p>
               <div style="margin-top:0.5rem;display:flex;width:min(16rem,calc(100vw - 4rem));align-items:center;gap:0.75rem">
                 <div style="height:0.375rem;flex:1;overflow:hidden;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 8%,transparent)">
-                  <div data-sw-boot-progress role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="8" style="height:100%;width:8%;border-radius:9999px;background:var(--color-brand,var(--color-logo-blue,#4f8cff));transition:width 200ms"></div>
+                  <div data-sw-boot-progress role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="2" style="height:100%;width:2%;border-radius:9999px;background:var(--color-brand,var(--color-logo-blue,#4f8cff));transition:width 200ms"></div>
                 </div>
-                <span data-sw-boot-progress-label style="width:2rem;text-align:right;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:0.65rem;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 70%,transparent);font-variant-numeric:tabular-nums">8%</span>
+                <span data-sw-boot-progress-label style="width:2rem;text-align:right;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:0.65rem;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 70%,transparent);font-variant-numeric:tabular-nums">2%</span>
               </div>
               <p data-sw-boot-error style="display:none;margin:0.5rem 0 0;max-width:20rem;border:1px solid color-mix(in srgb,var(--color-destructive,#ef4444) 15%,transparent);border-radius:0.375rem;background:color-mix(in srgb,var(--color-destructive,#ef4444) 5%,transparent);padding:0.5rem 0.75rem;font-size:0.75rem;line-height:1.5;color:var(--color-destructive,#ef4444)"></p>
               <div data-sw-boot-error-actions style="display:none;align-items:center;justify-content:center;gap:0.5rem;margin-top:0.25rem">

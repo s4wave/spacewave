@@ -1,4 +1,12 @@
-import { markStartupBoundary } from '../bldr/startup-marks.js'
+import {
+  bootProgressStallDelayMs,
+  projectBootProgress,
+} from '../bldr/boot-progress.js'
+import {
+  markStartupBoundary,
+  readStartupMarks,
+  startupMarkEvent,
+} from '../bldr/startup-marks.js'
 
 export interface BrowserBootStatus {
   phase: string
@@ -11,16 +19,7 @@ export const bootStatusEvent = 'spacewave:boot-status'
 
 declare global {
   var __swBootStatus: BrowserBootStatus | undefined
-}
-
-const phaseProgress: Record<string, number> = {
-  loading: 0.04,
-  manifest: 0.12,
-  'manifest-ready': 0.22,
-  wasm: 0.38,
-  entrypoint: 0.54,
-  runtime: 0.76,
-  ready: 0.9,
+  var __swBootProgressActivity: (() => void) | undefined
 }
 
 function clampProgress(progress: number | undefined): number | undefined {
@@ -29,31 +28,11 @@ function clampProgress(progress: number | undefined): number | undefined {
 }
 
 const startupPhaseInfo = {
-  prepare: {
-    label: 'Prepare',
-    detail: 'Preparing browser files.',
-    progress: 0.08,
-  },
-  connect: {
-    label: 'Connect',
-    detail: 'Connecting the app shell.',
-    progress: 0.3,
-  },
-  runtime: {
-    label: 'Runtime',
-    detail: 'Starting the Spacewave runtime.',
-    progress: 0.58,
-  },
-  frame: {
-    label: 'App',
-    detail: 'Downloading the app bundle. This can take a while the first time.',
-    progress: 0.84,
-  },
-  done: {
-    label: 'Done',
-    detail: 'Spacewave is ready.',
-    progress: 1,
-  },
+  prepare: { label: 'Prepare' },
+  connect: { label: 'Connect' },
+  runtime: { label: 'Runtime' },
+  frame: { label: 'App' },
+  done: { label: 'Done' },
 } as const
 
 type StartupPhase = keyof typeof startupPhaseInfo
@@ -89,20 +68,17 @@ function canMutateBootStatusTarget(target: Element | null): target is Element {
 
 function startupDisplayForBootStatus(status: BrowserBootStatus) {
   const id = bootPhaseStartupPhase[status.phase] ?? 'prepare'
-  const info = startupPhaseInfo[id]
-  const progress = id === 'frame' ? status.progress : info.progress
+  const step = projectBootProgress(status, readStartupMarks())
   return {
     id,
-    detail: `${info.label}: ${info.detail}`,
-    progress,
-    indeterminate:
-      id === 'frame' && progress === undefined && status.state !== 'error',
+    detail: `${startupPhaseInfo[id].label}: ${step.label}`,
+    progress: step.progress,
     error: status.state === 'error',
   }
 }
 
 function withBootProgress(status: BrowserBootStatus): BrowserBootStatus {
-  const progress = clampProgress(status.progress ?? phaseProgress[status.phase])
+  const progress = clampProgress(status.progress)
   if (progress === undefined) {
     return {
       phase: status.phase,
@@ -113,41 +89,20 @@ function withBootProgress(status: BrowserBootStatus): BrowserBootStatus {
   return { ...status, progress }
 }
 
-function updateProgressTarget(
-  target: Element | null,
-  progress: number | undefined,
-  indeterminate?: boolean,
-) {
+function updateProgressTarget(target: Element | null, progress: number) {
   if (!canMutateBootStatusTarget(target)) return
+  const pct = Math.round(progress * 100)
   if (target instanceof HTMLElement) {
-    target.style.width =
-      indeterminate || progress === undefined
-        ? '33%'
-        : `${Math.round(progress * 100)}%`
-    target.style.transition = indeterminate ? 'none' : 'width 200ms'
-    target.classList.toggle('animate-progress-indeterminate', !!indeterminate)
+    target.style.width = `${pct}%`
+    target.style.transition = 'width 200ms'
+    target.removeAttribute('data-sw-boot-progress-stalled')
   }
-  if (indeterminate) {
-    target.removeAttribute('aria-valuenow')
-    target.setAttribute('aria-valuetext', 'Loading')
-    return
-  }
-  target.removeAttribute('aria-valuetext')
-  target.setAttribute(
-    'aria-valuenow',
-    String(Math.round((progress ?? 0) * 100)),
-  )
+  target.setAttribute('aria-valuenow', String(pct))
 }
 
-function updateProgressLabel(
-  target: Element | null,
-  progress: number | undefined,
-  indeterminate?: boolean,
-) {
+function updateProgressLabel(target: Element | null, progress: number) {
   if (!canMutateBootStatusTarget(target)) return
-  target.replaceChildren(
-    indeterminate ? '' : `${Math.round((progress ?? 0) * 100)}%`,
-  )
+  target.replaceChildren(`${Math.round(progress * 100)}%`)
 }
 
 function updateStaticPhaseRail(currentID: StartupPhase, bootState: string) {
@@ -239,10 +194,8 @@ function updateStaticErrorState(status: BrowserBootStatus) {
   }
 }
 
-export function writeBrowserBootStatus(status: BrowserBootStatus): void {
-  const next = withBootProgress(status)
-  const display = startupDisplayForBootStatus(next)
-  globalThis.__swBootStatus = next
+function renderBrowserBootStatus(status: BrowserBootStatus): void {
+  const display = startupDisplayForBootStatus(status)
 
   const detailTarget = document.querySelector('[data-sw-boot-status]')
   if (canMutateBootStatusTarget(detailTarget)) {
@@ -251,23 +204,25 @@ export function writeBrowserBootStatus(status: BrowserBootStatus): void {
 
   const stateTarget = document.querySelector('[data-sw-boot-state]')
   if (canMutateBootStatusTarget(stateTarget)) {
-    stateTarget.setAttribute('data-sw-boot-state', next.state)
+    stateTarget.setAttribute('data-sw-boot-state', status.state)
   }
 
-  if (display.progress !== undefined || display.indeterminate) {
-    updateProgressTarget(
-      document.querySelector('[data-sw-boot-progress]'),
-      display.progress,
-      display.indeterminate,
-    )
-    updateProgressLabel(
-      document.querySelector('[data-sw-boot-progress-label]'),
-      display.progress,
-      display.indeterminate,
-    )
-  }
-  updateStaticPhaseRail(display.id, next.state)
-  updateStaticErrorState(next)
+  updateProgressTarget(
+    document.querySelector('[data-sw-boot-progress]'),
+    display.progress,
+  )
+  updateProgressLabel(
+    document.querySelector('[data-sw-boot-progress-label]'),
+    display.progress,
+  )
+  updateStaticPhaseRail(display.id, status.state)
+  updateStaticErrorState(status)
+}
+
+export function writeBrowserBootStatus(status: BrowserBootStatus): void {
+  const next = withBootProgress(status)
+  globalThis.__swBootStatus = next
+  renderBrowserBootStatus(next)
 
   markStartupBoundary(`boot-status.${next.phase}`, {
     source: 'browser',
@@ -276,4 +231,52 @@ export function writeBrowserBootStatus(status: BrowserBootStatus): void {
     progress: next.progress,
   })
   window.dispatchEvent(new CustomEvent(bootStatusEvent, { detail: next }))
+}
+
+// bindBrowserBootStatusToStartupMarks re-renders the static boot shell on
+// every startup mark and starts a one-shot quiet-window timer. Marks advance
+// the bar and label immediately; a gap keeps the accumulated percentage but
+// adds the indeterminate shimmer until the next mark. Returns the unsubscribe
+// function.
+export function bindBrowserBootStatusToStartupMarks(): () => void {
+  let stallTimer: number | undefined
+  const inlineActivity = globalThis.__swBootProgressActivity
+  const clearLocalStall = () => {
+    if (stallTimer !== undefined) {
+      window.clearTimeout(stallTimer)
+      stallTimer = undefined
+    }
+    const target = document.querySelector('[data-sw-boot-progress]')
+    if (canMutateBootStatusTarget(target)) {
+      target.removeAttribute('data-sw-boot-progress-stalled')
+    }
+  }
+  const scheduleLocalStall = () => {
+    clearLocalStall()
+    const status = globalThis.__swBootStatus
+    if (!status || status.state !== 'loading') return
+    if (projectBootProgress(status, readStartupMarks()).progress >= 1) return
+    stallTimer = window.setTimeout(() => {
+      stallTimer = undefined
+      const current = globalThis.__swBootStatus
+      if (!current || current.state !== 'loading') return
+      if (projectBootProgress(current, readStartupMarks()).progress >= 1) return
+      const target = document.querySelector('[data-sw-boot-progress]')
+      if (canMutateBootStatusTarget(target)) {
+        target.setAttribute('data-sw-boot-progress-stalled', '')
+      }
+    }, bootProgressStallDelayMs)
+  }
+  const refreshActivity = inlineActivity ?? scheduleLocalStall
+  const handleMark = () => {
+    const status = globalThis.__swBootStatus
+    if (status) renderBrowserBootStatus(status)
+    refreshActivity()
+  }
+  window.addEventListener(startupMarkEvent, handleMark)
+  handleMark()
+  return () => {
+    window.removeEventListener(startupMarkEvent, handleMark)
+    if (!inlineActivity) clearLocalStall()
+  }
 }

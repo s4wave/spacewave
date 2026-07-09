@@ -25,6 +25,8 @@ export const BOOT_LOADING_CRITICAL_CSS = `
 .swb-bar{position:relative;height:0.375rem;flex:1;overflow:hidden;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 8%,transparent)}
 .swb-bar-fill{height:100%;border-radius:9999px;background:var(--color-brand,#4f8cff);transition:width 200ms ease}
 .swb-bar-fill--indeterminate{position:absolute;top:0;bottom:0;left:0;width:33%;animation:swb-indeterminate 1.1s ease-in-out infinite}
+.swb-bar-fill--stalled{position:relative;overflow:hidden}
+.swb-bar-fill--stalled::after{content:"";position:absolute;top:0;bottom:0;left:0;width:35%;border-radius:inherit;background:color-mix(in srgb,var(--color-foreground,#fafafa) 45%,transparent);animation:swb-shimmer 1.1s ease-in-out infinite}
 .swb-mono{font-family:${MONO_STACK};font-variant-numeric:tabular-nums}
 .swb-progress-label{width:2.75rem;text-align:right;font-size:0.7rem;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 70%,transparent)}
 .swb-rail{position:relative;width:100%}
@@ -57,7 +59,8 @@ export const BOOT_LOADING_CRITICAL_CSS = `
 .swb-btn--ghost{border:0;background:transparent;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 80%,transparent)}
 @keyframes swb-spin{to{transform:rotate(360deg)}}
 @keyframes swb-indeterminate{0%{left:-33%}100%{left:100%}}
-@media (prefers-reduced-motion:reduce){.swb-spinner,.swb-bar-fill--indeterminate{animation:none}.swb-bar-fill--indeterminate{left:0;width:100%}.swb-dot,.swb-step-label,.swb-bar-fill,.swb-rail-fill,.swb-btn{transition:none}}
+@keyframes swb-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+@media (prefers-reduced-motion:reduce){.swb-spinner,.swb-bar-fill--indeterminate,.swb-bar-fill--stalled::after{animation:none}.swb-bar-fill--indeterminate{left:0;width:100%}.swb-bar-fill--stalled::after{display:none}.swb-dot,.swb-step-label,.swb-bar-fill,.swb-rail-fill,.swb-btn{transition:none}}
 `.trim()
 
 // BootLoadingCriticalStyle inlines the boot critical CSS into the document.

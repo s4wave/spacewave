@@ -80,6 +80,17 @@ export function markStartupBoundary(
   return name
 }
 
+// readStartupMarks returns every startup mark recorded so far in this
+// document, across all mark producers sharing the global store.
+export function readStartupMarks(): Array<{
+  name: string
+  label: string
+  sequence: number
+  detail: Record<string, unknown>
+}> {
+  return globalThis.__swStartupMarks ?? []
+}
+
 export function resetStartupMarksForTest(): void {
   nextStartupMarkSequence = 1
   globalThis.__swStartupMarkSequence = undefined

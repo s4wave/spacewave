@@ -14,9 +14,44 @@ describe('projectBrowserStartupView', () => {
     ).toEqual({
       state: 'loading',
       title: 'Spacewave',
-      detail: 'Runtime: Starting the Spacewave runtime.',
-      progress: 0.58,
+      detail: 'Runtime: Connecting the Spacewave runtime.',
+      progress: 0.3,
     })
+  })
+
+  it('advances progress and the stage label on runtime startup marks', () => {
+    const before = projectBrowserStartupView(
+      { phase: 'runtime', detail: 'Starting...', state: 'loading' },
+      [
+        {
+          name: 'spacewave.startup.runtime.worker-created',
+          label: 'runtime.worker-created',
+          sequence: 1,
+          detail: { label: 'runtime.worker-created', sequence: 1 },
+        },
+      ],
+    )
+    const after = projectBrowserStartupView(
+      { phase: 'runtime', detail: 'Starting...', state: 'loading' },
+      [
+        {
+          name: 'spacewave.startup.runtime.worker-created',
+          label: 'runtime.worker-created',
+          sequence: 1,
+          detail: { label: 'runtime.worker-created', sequence: 1 },
+        },
+        {
+          name: 'spacewave.startup.runtime.client-channel-acked',
+          label: 'runtime.client-channel-acked',
+          sequence: 2,
+          detail: { label: 'runtime.client-channel-acked', sequence: 2 },
+        },
+      ],
+    )
+
+    expect(before.detail).toBe('Runtime: Runtime worker started.')
+    expect(after.detail).toBe('Runtime: Runtime channel connected.')
+    expect(after.progress ?? 0).toBeGreaterThan(before.progress ?? 0)
   })
 
   it('uses selected startup marks to advance the projection', () => {
@@ -39,51 +74,34 @@ describe('projectBrowserStartupView', () => {
     ).toEqual({
       state: 'loading',
       title: 'Spacewave',
-      detail:
-        'App: Downloading the app bundle. This can take a while the first time.',
-      progressIndeterminate: true,
+      detail: 'App: Opening the application.',
+      progress: 0.8,
     })
   })
 
-  it('uses app bundle download progress as determinate frame progress', () => {
+  it('maps app bundle download progress into the frame ladder window', () => {
     const view = projectBrowserStartupView({
       phase: 'app',
       detail: 'Downloading app bundle...',
       state: 'loading',
-      progress: 0.42,
+      progress: 0.5,
     })
 
-    expect(view).toEqual({
-      state: 'loading',
-      title: 'Spacewave',
-      detail:
-        'App: Downloading the app bundle. This can take a while the first time.',
-      progress: 0.42,
-    })
-    expect(view).not.toHaveProperty('progressIndeterminate')
+    expect(view.state).toBe('loading')
+    expect(view.detail).toBe('App: Opening the application.')
+    expect(view.progress).toBeCloseTo(0.89)
   })
 
-  it('keeps app frame progress indeterminate without a valid download progress value', () => {
-    const statuses = [
-      {
-        phase: 'app',
-        detail: 'Downloading app bundle...',
-        state: 'loading' as const,
-      },
-      {
-        phase: 'app',
-        detail: 'Downloading app bundle...',
-        state: 'loading' as const,
-        progress: Number.NaN,
-      },
-    ]
+  it('keeps mark-accumulated progress when the download fraction is invalid', () => {
+    const view = projectBrowserStartupView({
+      phase: 'app',
+      detail: 'Downloading app bundle...',
+      state: 'loading',
+      progress: Number.NaN,
+    })
 
-    for (const status of statuses) {
-      const view = projectBrowserStartupView(status)
-
-      expect(view.progress).toBeUndefined()
-      expect(view.progressIndeterminate).toBe(true)
-    }
+    expect(view.progress).toBeCloseTo(0.8)
+    expect(view).not.toHaveProperty('progressIndeterminate')
   })
 
   it('uses only startup-relevant WebView marks to advance the projection', () => {
@@ -156,8 +174,8 @@ describe('projectBrowserStartupView', () => {
     ).toEqual({
       state: 'loading',
       title: 'Spacewave',
-      detail: 'Runtime: Starting the Spacewave runtime.',
-      progress: 0.58,
+      detail: 'Runtime: Connecting the Spacewave runtime.',
+      progress: 0.3,
     })
   })
 
@@ -171,8 +189,8 @@ describe('projectBrowserStartupView', () => {
     ).toEqual({
       state: 'error',
       title: 'Spacewave',
-      detail: 'Prepare: Preparing browser files.',
-      progress: 0.08,
+      detail: 'Prepare: Loading the app shell.',
+      progress: 0.02,
       error:
         'Startup did not finish. Check the browser console or startup marks for details.',
     })
@@ -202,8 +220,8 @@ describe('projectBrowserStartupView', () => {
     ).toEqual({
       state: 'error',
       title: 'Spacewave',
-      detail: 'Runtime: Starting the Spacewave runtime.',
-      progress: 0.58,
+      detail: 'Runtime: Loading the application interface.',
+      progress: 0.82,
       error:
         'Startup did not finish. Check the browser console or startup marks for details.',
     })

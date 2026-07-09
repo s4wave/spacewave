@@ -1,7 +1,7 @@
+import { projectBootProgress } from '@aptre/bldr'
 import type { LoadingView } from '@s4wave/web/ui/loading/types.js'
 
 import {
-  browserBootStatusStartupPhase,
   buildBrowserRuntimeState,
   projectBrowserRuntimeStartupPhase,
   type BrowserRuntimeState,
@@ -31,8 +31,6 @@ export type BrowserStartupPhaseID =
 export interface BrowserStartupPhase {
   id: BrowserStartupPhaseID
   label: string
-  detail: string
-  progress: number
 }
 
 export interface BrowserStartupPhaseView extends BrowserStartupPhase {
@@ -51,36 +49,11 @@ export interface BrowserStartupProjection {
 }
 
 export const browserStartupPhaseRail: readonly BrowserStartupPhase[] = [
-  {
-    id: 'prepare',
-    label: 'Prepare',
-    detail: 'Preparing browser files.',
-    progress: 0.08,
-  },
-  {
-    id: 'connect',
-    label: 'Connect',
-    detail: 'Connecting the app shell.',
-    progress: 0.3,
-  },
-  {
-    id: 'runtime',
-    label: 'Runtime',
-    detail: 'Starting the Spacewave runtime.',
-    progress: 0.58,
-  },
-  {
-    id: 'frame',
-    label: 'App',
-    detail: 'Downloading the app bundle. This can take a while the first time.',
-    progress: 0.84,
-  },
-  {
-    id: 'done',
-    label: 'Done',
-    detail: 'Spacewave is ready.',
-    progress: 1,
-  },
+  { id: 'prepare', label: 'Prepare' },
+  { id: 'connect', label: 'Connect' },
+  { id: 'runtime', label: 'Runtime' },
+  { id: 'frame', label: 'App' },
+  { id: 'done', label: 'Done' },
 ]
 
 const browserStartupPhaseIndex: Record<BrowserStartupPhaseID, number> = {
@@ -91,31 +64,17 @@ const browserStartupPhaseIndex: Record<BrowserStartupPhaseID, number> = {
   done: 4,
 }
 
-const phaseProgress: Record<string, number> = {
-  loading: 0.04,
-  manifest: 0.12,
-  'manifest-ready': 0.22,
-  wasm: 0.38,
-  entrypoint: 0.54,
-  runtime: 0.76,
-  ready: 0.9,
-}
-
 function clampProgress(progress: number | undefined): number | undefined {
   if (progress === undefined || !Number.isFinite(progress)) return undefined
   return Math.max(0, Math.min(1, progress))
 }
 
-export function browserBootPhaseProgress(phase: string): number | undefined {
-  return phaseProgress[phase]
-}
-
+// withBrowserBootProgress normalizes the raw status: progress carries a 0..1
+// within-step download fraction (never a bar position); invalid values drop.
 export function withBrowserBootProgress(
   status: BrowserBootStatus,
 ): BrowserBootStatus {
-  const progress = clampProgress(
-    status.progress ?? browserBootPhaseProgress(status.phase),
-  )
+  const progress = clampProgress(status.progress)
   if (progress === undefined) {
     return {
       phase: status.phase,
@@ -141,19 +100,12 @@ export function projectBrowserStartup(
       phaseIndex(projectBrowserRuntimeStartupPhase(runtime))
     ]
   const failed = boot.state === 'error' || !!runtime.terminalFailure
-  const frameHasBootProgress =
-    phase.id === 'frame' &&
-    browserBootStatusStartupPhase(boot.phase) === 'frame'
-  const progress =
-    phase.id === 'frame'
-      ? frameHasBootProgress
-        ? boot.progress
-        : undefined
-      : phase.progress
+  const step = projectBootProgress(boot, marks)
+  const progress = phase.id === 'done' ? 1 : step.progress
   const baseView = {
     title: 'Spacewave',
-    detail: `${phase.label}: ${phase.detail}`,
-    ...(progress === undefined ? {} : { progress }),
+    detail: `${phase.label}: ${step.label}`,
+    progress,
   }
   const view: LoadingView = failed
     ? {
@@ -165,9 +117,6 @@ export function projectBrowserStartup(
     : {
         state: phase.id === 'done' ? 'synced' : 'loading',
         ...baseView,
-        ...(phase.id === 'frame' && progress === undefined
-          ? { progressIndeterminate: true }
-          : {}),
       }
 
   return {
