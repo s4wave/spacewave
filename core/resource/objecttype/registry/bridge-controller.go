@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
+	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
 	s4wave_plugin "github.com/s4wave/spacewave/sdk/plugin"
@@ -134,10 +135,13 @@ func (r *bridgeResolver) invokePlugin(
 		return nil, nil, err
 	}
 
-	// Attach world engine as a resource if available.
+	// Attach world engine as a resource if available. Plugin ObjectTypes commit
+	// through the attached engine, so their transactions need the same Space
+	// world-op lookup chain as plugin WorldOp handlers.
 	var engineResourceID uint32
 	if engine != nil {
-		engineRes := resource_world.NewEngineResource(r.le, r.b, engine, nil, nil)
+		lookupOp := space_world_optypes.BuildSpaceLookupOp(r.b, r.le, "")
+		engineRes := resource_world.NewEngineResource(r.le, r.b, engine, lookupOp, nil)
 		engineResourceID, err = resources.Client.AttachResource(ctx, "world-engine", engineRes.GetMux())
 		if err != nil {
 			resources.Release()

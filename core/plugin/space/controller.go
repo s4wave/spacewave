@@ -488,8 +488,12 @@ func (c *Controller) runProcess(ctx context.Context, ws world.WorldState, object
 			ctx = objecttype.WithSessionPeerID(ctx, pid)
 		}
 	}
+	var engine world.Engine
 	if eid := conf.GetEngineId(); eid != "" {
 		ctx = objecttype.WithEngineID(ctx, eid)
+		busEngine := world.NewBusEngine(ctx, b, eid)
+		defer busEngine.ClearContext()
+		engine = busEngine
 	}
 
 	ot, otRef, err := objecttype.ExLookupObjectType(ctx, b, typeID)
@@ -503,7 +507,7 @@ func (c *Controller) runProcess(ctx context.Context, ws world.WorldState, object
 
 	le := c.GetLogger()
 	factory := ot.GetFactory()
-	invoker, cleanup, err := factory(ctx, le, b, nil, ws, objectKey)
+	invoker, cleanup, err := factory(ctx, le, b, engine, ws, objectKey)
 	if err != nil {
 		return errors.Wrap(err, "object type factory")
 	}

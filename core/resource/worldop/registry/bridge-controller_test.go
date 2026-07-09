@@ -133,6 +133,80 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 	assertObjectSettingsIndexPath(t, ctx, tb.Engine, "test/object-op-target", "/object-op")
 }
 
+func TestWorldOpRegistryBridgeControllerValidatesBeforeMutation(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+
+	pluginRoot := srpc.NewMux()
+	if err := s4wave_worldop_registry.SRPCRegisterWorldOpHandlerService(pluginRoot, &testWorldOpHandler{
+		validateError: "plugin validation failed",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	pluginResourceMux := srpc.NewMux()
+	if err := resource_server.NewResourceServer(pluginRoot).Register(pluginResourceMux); err != nil {
+		t.Fatal(err)
+	}
+	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginResourceMux)))
+
+	rel, err := tb.Bus.AddController(ctx, &testWorldOpPluginLoadController{client: pluginClient}, nil)
+	if err != nil {
+		t.Fatalf("AddController plugin load: %v", err)
+	}
+	defer rel()
+
+	registry := NewWorldOpRegistryResource()
+	registry.registrations[1] = &s4wave_worldop_registry.WorldOpRegistration{
+		OperationTypeId: "test/plugin-op",
+		RegistrationId:  1,
+		PluginId:        "test-plugin",
+	}
+	ctrl := NewWorldOpRegistryBridgeController(le, tb.Bus, registry)
+	rel, err = tb.Bus.AddController(ctx, ctrl, nil)
+	if err != nil {
+		t.Fatalf("AddController bridge: %v", err)
+	}
+	defer rel()
+
+	vs, _, ref, err := world.ExLookupWorldOp(
+		ctx,
+		tb.Bus,
+		le,
+		"test/plugin-op",
+		tb.EngineID,
+	)
+	if err != nil {
+		t.Fatalf("ExLookupWorldOp: %v", err)
+	}
+	defer ref.Release()
+	op, err := vs[0](ctx, "test/plugin-op")
+	if err != nil {
+		t.Fatalf("lookup op: %v", err)
+	}
+	if err := op.UnmarshalBlock([]byte("op-data")); err != nil {
+		t.Fatalf("UnmarshalBlock: %v", err)
+	}
+
+	worldTx, err := tb.Engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sysErr, err := op.ApplyWorldOp(ctx, le, worldTx, tb.Volume.GetPeerID())
+	worldTx.Discard()
+	if err == nil || err.Error() != "plugin validation failed" {
+		t.Fatalf("ApplyWorldOp error = %v, want plugin validation failed", err)
+	}
+	if sysErr {
+		t.Fatal("validation error should not be reported as a system error")
+	}
+	assertWorldObjectMissing(t, ctx, tb.Engine, "test/world-op-created")
+}
+
 func assertWorldObjectExists(t *testing.T, ctx context.Context, engine world.Engine, key string) {
 	t.Helper()
 	readTx, err := engine.NewTransaction(ctx, false)
@@ -142,6 +216,18 @@ func assertWorldObjectExists(t *testing.T, ctx context.Context, engine world.Eng
 	defer readTx.Discard()
 	if _, err := world.MustGetObject(ctx, readTx, key); err != nil {
 		t.Fatalf("object %q was not committed through attached world state: %v", key, err)
+	}
+}
+
+func assertWorldObjectMissing(t *testing.T, ctx context.Context, engine world.Engine, key string) {
+	t.Helper()
+	readTx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer readTx.Discard()
+	if _, err := world.MustGetObject(ctx, readTx, key); err == nil {
+		t.Fatalf("object %q exists after failed validation", key)
 	}
 }
 
@@ -187,7 +273,8 @@ func assertObjectSettingsIndexPath(t *testing.T, ctx context.Context, engine wor
 }
 
 type testWorldOpHandler struct {
-	sender peer.ID
+	sender        peer.ID
+	validateError string
 }
 
 func (h *testWorldOpHandler) ApplyWorldOp(
@@ -282,10 +369,13 @@ func (h *testWorldOpHandler) ApplyWorldObjectOp(
 }
 
 func (h *testWorldOpHandler) ValidateOp(
-	context.Context,
-	*s4wave_worldop_registry.ValidateOpRequest,
+	_ context.Context,
+	req *s4wave_worldop_registry.ValidateOpRequest,
 ) (*s4wave_worldop_registry.ValidateOpResponse, error) {
-	return &s4wave_worldop_registry.ValidateOpResponse{}, nil
+	if req.GetOperationTypeId() != "test/plugin-op" || string(req.GetOpData()) != "op-data" {
+		return nil, resource.ErrInvalidResourceID
+	}
+	return &s4wave_worldop_registry.ValidateOpResponse{Error: h.validateError}, nil
 }
 
 type testWorldOpPluginLoadController struct {

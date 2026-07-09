@@ -23,7 +23,7 @@ const bridgeControllerID = "resource/worldop-registry-bridge"
 var bridgeControllerVersion = controller.MustParseVersion("0.0.1")
 
 // WorldOpRegistryBridgeController resolves LookupWorldOp directives for
-// registry-registered types by proxying to the source TS plugin.
+// registry-registered operation types by proxying to the owning plugin.
 type WorldOpRegistryBridgeController struct {
 	le       *logrus.Entry
 	b        bus.Bus
@@ -79,7 +79,7 @@ func (c *WorldOpRegistryBridgeController) Close() error {
 	return nil
 }
 
-// bridgeOperation implements world.Operation by proxying to a TS plugin.
+// bridgeOperation implements world.Operation by proxying to the owning plugin.
 type bridgeOperation struct {
 	le       *logrus.Entry
 	b        bus.Bus
@@ -119,7 +119,8 @@ func bridgeOperationEngineID(op world.Operation) (string, bool) {
 	return bridgeOp.engineID, true
 }
 
-// Validate validates the operation by calling the TS plugin.
+// Validate accepts bridge operations after local block decoding. Plugin
+// validation needs the request context used by ApplyWorldOp or ApplyWorldObjectOp.
 func (o *bridgeOperation) Validate() error {
 	return nil
 }
@@ -155,6 +156,21 @@ func (o *bridgeOperation) ApplyWorldOp(
 	}
 	defer resources.Release()
 
+	svc, cleanup, err := o.getHandlerService(resources)
+	if err != nil {
+		return true, errors.Wrapf(
+			err,
+			"apply world op plugin_id=%s capability=world_state path=ApplyWorldOp operation_type_id=%s",
+			o.reg.GetPluginId(),
+			o.opTypeID,
+		)
+	}
+	defer cleanup()
+
+	if sysErr, err := o.validateWithService(ctx, svc); err != nil {
+		return sysErr, err
+	}
+
 	// Attach a WorldStateResource so the TS handler can mutate world state.
 	// Include built-in Space ops before the bus-backed dynamic registry so TS
 	// handlers can call applyWorldOp recursively (e.g. to init UnixFS objects).
@@ -167,18 +183,6 @@ func (o *bridgeOperation) ApplyWorldOp(
 	defer func() {
 		_ = resources.Client.DetachResource(ctx, worldStateResourceID)
 	}()
-
-	svc, cleanup, err := o.getHandlerService(resources)
-	if err != nil {
-		return true, errors.Wrapf(
-			err,
-			"apply world op plugin_id=%s capability=world_state attached_root_id=%d path=ApplyWorldOp operation_type_id=%s",
-			o.reg.GetPluginId(),
-			worldStateResourceID,
-			o.opTypeID,
-		)
-	}
-	defer cleanup()
 
 	resp, err := svc.ApplyWorldOp(ctx, &s4wave_worldop_registry.ApplyWorldOpRequest{
 		OperationTypeId:              o.opTypeID,
@@ -204,6 +208,16 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 	}
 	defer resources.Release()
 
+	svc, cleanup, err := o.getHandlerService(resources)
+	if err != nil {
+		return true, err
+	}
+	defer cleanup()
+
+	if sysErr, err := o.validateWithService(ctx, svc); err != nil {
+		return sysErr, err
+	}
+
 	// Attach an ObjectStateResource so the TS handler can mutate the object and
 	// apply nested object operations through the same lookup chain as world ops.
 	lookupOp := space_world_optypes.BuildSpaceLookupOp(o.b, o.le, o.engineID)
@@ -216,12 +230,6 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 		_ = resources.Client.DetachResource(ctx, objectStateResourceID)
 	}()
 
-	svc, cleanup, err := o.getHandlerService(resources)
-	if err != nil {
-		return true, err
-	}
-	defer cleanup()
-
 	resp, err := svc.ApplyWorldObjectOp(ctx, &s4wave_worldop_registry.ApplyWorldObjectOpRequest{
 		OperationTypeId:               o.opTypeID,
 		OpData:                        o.opData,
@@ -232,6 +240,23 @@ func (o *bridgeOperation) ApplyWorldObjectOp(
 		return true, err
 	}
 	return resp.GetSystemError(), nil
+}
+
+func (o *bridgeOperation) validateWithService(
+	ctx context.Context,
+	svc s4wave_worldop_registry.SRPCWorldOpHandlerServiceClient,
+) (bool, error) {
+	resp, err := svc.ValidateOp(ctx, &s4wave_worldop_registry.ValidateOpRequest{
+		OperationTypeId: o.opTypeID,
+		OpData:          o.opData,
+	})
+	if err != nil {
+		return true, err
+	}
+	if msg := resp.GetError(); msg != "" {
+		return false, errors.New(msg)
+	}
+	return false, nil
 }
 
 // connectPlugin connects to the TS plugin's resource service.

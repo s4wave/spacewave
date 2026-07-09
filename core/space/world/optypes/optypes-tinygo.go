@@ -37,10 +37,6 @@ func LookupWorldOp(ctx context.Context, opTypeID string) (world.Operation, error
 		space_world_ops.LookupCanvasAddEdgeOp,
 		space_world_ops.LookupCanvasRemoveEdgeOp,
 		s4wave_kv_world.LookupKvSetRootOp,
-		// TODO: move SQL operations into a separate spacewave-sql plugin.
-		// SQL stays out of spacewave-core so go-mysql-server is not in the core bundle.
-		// When wiring that plugin, pass the sql_lite build tag so go-mysql-server
-		// omits heavy features like collation maps.
 		s4wave_device.LookupCreateComputersDashboardOp,
 		s4wave_sshhost.LookupCreateSshHostOp,
 		s4wave_terminal.LookupCreateTerminalOp,
