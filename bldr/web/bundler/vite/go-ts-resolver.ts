@@ -42,7 +42,9 @@ function resolveGoImportPaths(
     return [resolve(projectRoot, importPath.slice(localModule.length + 1))]
   }
 
-  return vendorRoots(projectRoot, distRoot).map((root) => resolve(root, importPath))
+  return vendorRoots(projectRoot, distRoot).map((root) =>
+    resolve(root, importPath),
+  )
 }
 
 function resolveSourcePaths(
@@ -56,7 +58,9 @@ function resolveSourcePaths(
   }
   if (source.startsWith('vendor/')) {
     const importPath = source.slice('vendor/'.length)
-    return vendorRoots(projectRoot, distRoot).map((root) => resolve(root, importPath))
+    return vendorRoots(projectRoot, distRoot).map((root) =>
+      resolve(root, importPath),
+    )
   }
   if (isAbsolute(source)) {
     return [source]
@@ -71,10 +75,10 @@ function resolveSourcePaths(
   return [resolve(dirname(importer), source)]
 }
 
-// buildGoAliases builds Vite aliases for vendored and monorepo-local @go
-// imports. The local module path is read from projectRoot/go.mod so the same
-// helper works for any repo consuming bldr; @go/<module>/* maps to project
-// source while every other @go/* resolves through the app root vendor tree.
+// buildGoAliases builds Vite aliases for monorepo-local @go imports that do
+// not go through the generated .js-to-.ts resolver. Vendored @go imports are
+// resolved by goTsResolver so external apps can fall back to the Bldr dist
+// vendor tree when they do not materialize an app-root vendor mirror.
 export function buildGoAliases(
   projectRoot: string,
   _distRoot = projectRoot,
@@ -88,10 +92,6 @@ export function buildGoAliases(
       replacement: resolve(projectRoot, '$1'),
     })
   }
-  aliases.push({
-    find: /^@go\/(.*)$/,
-    replacement: resolve(projectRoot, 'vendor', '$1'),
-  })
   return aliases
 }
 

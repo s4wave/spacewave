@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { build } from 'vite'
 import { buildGoAliases, goTsResolver } from './go-ts-resolver.js'
 
 describe('goTsResolver', () => {
@@ -104,6 +105,52 @@ describe('goTsResolver', () => {
     )
   })
 
+  it('resolves dist vendor @go proto imports through Vite aliases', async () => {
+    const sourceRoot = await mkdtemp(join(tmpdir(), 'go-ts-vite-source-'))
+    const distRoot = await mkdtemp(join(tmpdir(), 'go-ts-vite-dist-'))
+    try {
+      await writeFile(
+        join(sourceRoot, 'go.mod'),
+        'module github.com/example/app\n\ngo 1.26\n',
+      )
+      const protoDir = join(
+        distRoot,
+        'vendor',
+        'github.com/aperturerobotics/starpc/rpcstream',
+      )
+      await mkdir(protoDir, { recursive: true })
+      await writeFile(
+        join(protoDir, 'rpcstream.pb.ts'),
+        'export const rpcstreamPacket = 1',
+      )
+      const entry = join(sourceRoot, 'entry.ts')
+      await writeFile(
+        entry,
+        [
+          "import { rpcstreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'",
+          'export const value = rpcstreamPacket',
+        ].join('\n'),
+      )
+
+      await expect(
+        build({
+          configFile: false,
+          root: sourceRoot,
+          logLevel: 'silent',
+          plugins: [goTsResolver(sourceRoot, distRoot)],
+          resolve: { alias: buildGoAliases(sourceRoot, distRoot) },
+          build: {
+            write: false,
+            rollupOptions: { input: entry },
+          },
+        }),
+      ).resolves.toBeTruthy()
+    } finally {
+      await rm(sourceRoot, { recursive: true, force: true })
+      await rm(distRoot, { recursive: true, force: true })
+    }
+  })
+
   it('prefers app root vendor and falls back to the Bldr dist vendor tree', async () => {
     const sourceRoot = await mkdtemp(join(tmpdir(), 'go-ts-source-'))
     const distRoot = await mkdtemp(join(tmpdir(), 'go-ts-dist-'))
@@ -151,9 +198,11 @@ describe('goTsResolver', () => {
       expect(vendorRelativeResult).toBe(join(appVendorDir, 'projection.pb.ts'))
 
       const aliases = buildGoAliases(sourceRoot, distRoot)
-      const vendorAlias = aliases[aliases.length - 1]
-      expect(String(vendorAlias.find)).toBe(String(/^@go\/(.*)$/))
-      expect(vendorAlias.replacement).toBe(join(sourceRoot, 'vendor', '$1'))
+      expect(aliases).toHaveLength(1)
+      expect(String(aliases[0].find)).toBe(
+        String(/^@go\/github\.com\/example\/app\/(.*)$/),
+      )
+      expect(aliases[0].replacement).toBe(join(sourceRoot, '$1'))
     } finally {
       await rm(sourceRoot, { recursive: true, force: true })
       await rm(distRoot, { recursive: true, force: true })
