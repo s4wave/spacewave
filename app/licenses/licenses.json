@@ -697,28 +697,28 @@
     },
     {
       "name": "@videojs/core",
-      "version": "10.0.0-beta.24",
+      "version": "10.0.0-beta.25",
       "spdx": "Apache-2.0",
       "source": "js",
       "fullText": "Copyright 2025-present Video.js contributors\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\n------------------------------------------------------------------\n\nTrademark Notice:\n“Video.js” is a registered trademark of Brightcove Inc.\nThe project is maintained independently by the open-source community,\ngoverned by the Video.js Technical Steering Committee."
     },
     {
       "name": "@videojs/react",
-      "version": "10.0.0-beta.24",
+      "version": "10.0.0-beta.25",
       "spdx": "Apache-2.0",
       "source": "js",
       "fullText": "Copyright 2025-present Video.js contributors\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\n------------------------------------------------------------------\n\nTrademark Notice:\n“Video.js” is a registered trademark of Brightcove Inc.\nThe project is maintained independently by the open-source community,\ngoverned by the Video.js Technical Steering Committee."
     },
     {
       "name": "@videojs/store",
-      "version": "10.0.0-beta.24",
+      "version": "10.0.0-beta.25",
       "spdx": "Apache-2.0",
       "source": "js",
       "fullText": "Copyright 2025-present Video.js contributors\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\n------------------------------------------------------------------\n\nTrademark Notice:\n“Video.js” is a registered trademark of Brightcove Inc.\nThe project is maintained independently by the open-source community,\ngoverned by the Video.js Technical Steering Committee."
     },
     {
       "name": "@videojs/utils",
-      "version": "10.0.0-beta.24",
+      "version": "10.0.0-beta.25",
       "spdx": "Apache-2.0",
       "source": "js",
       "fullText": "Copyright 2025-present Video.js contributors\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\n------------------------------------------------------------------\n\nTrademark Notice:\n“Video.js” is a registered trademark of Brightcove Inc.\nThe project is maintained independently by the open-source community,\ngoverned by the Video.js Technical Steering Committee."
@@ -952,7 +952,7 @@
     },
     {
       "name": "github.com/aperturerobotics/fastjson",
-      "version": "v0.1.2-0.20260619070337-5d150feb5e98",
+      "version": "v0.1.2-0.20260705010846-94f343f5bb34",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/fastjson",
@@ -1015,7 +1015,7 @@
     },
     {
       "name": "github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs",
-      "version": "v0.0.0-20260614231932-9ac47eecfff5",
+      "version": "v0.0.0-20260705010951-74676ff0da98",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/go-quickjs-wasi-reactor",
@@ -1031,7 +1031,7 @@
     },
     {
       "name": "github.com/aperturerobotics/go-winjob",
-      "version": "v0.0.0-20260419024155-c5bdc0ba375d",
+      "version": "v0.0.0-20260705010911-656e088d1b05",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/go-winjob",
@@ -1432,7 +1432,7 @@
     },
     {
       "name": "github.com/ncruces/go-sqlite3",
-      "version": "v0.35.1",
+      "version": "v0.35.2",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/ncruces/go-sqlite3",
@@ -1440,7 +1440,7 @@
     },
     {
       "name": "github.com/ncruces/go-sqlite3-wasm/v3",
-      "version": "v3.1.35302",
+      "version": "v3.2.35303",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/ncruces/go-sqlite3-wasm",
@@ -1648,7 +1648,7 @@
     },
     {
       "name": "github.com/s4wave/goscript",
-      "version": "v0.2.15-0.20260709000008-49e170af18a0",
+      "version": "v0.2.15",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/s4wave/goscript",
@@ -1799,14 +1799,14 @@
     },
     {
       "name": "go.starlark.net",
-      "version": "v0.0.0-20260630144053-529d8e869a14",
+      "version": "v0.0.0-20260708150628-5395d018f003",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "fullText": "Copyright (c) 2017 The Bazel Authors.  All rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are\nmet:\n\n1. Redistributions of source code must retain the above copyright\n   notice, this list of conditions and the following disclaimer.\n\n2. Redistributions in binary form must reproduce the above copyright\n   notice, this list of conditions and the following disclaimer in the\n   documentation and/or other materials provided with the\n   distribution.\n\n3. Neither the name of the copyright holder nor the names of its\n   contributors may be used to endorse or promote products derived\n   from this software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n\"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\nLIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR\nA PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT\nHOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,\nSPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT\nLIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,\nDATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY\nTHEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n"
     },
     {
       "name": "golang.org/x/crypto",
-      "version": "v0.53.0",
+      "version": "v0.54.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/crypto",
@@ -1838,7 +1838,7 @@
     },
     {
       "name": "golang.org/x/sync",
-      "version": "v0.21.0",
+      "version": "v0.22.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/sync",
@@ -1846,7 +1846,7 @@
     },
     {
       "name": "golang.org/x/sys",
-      "version": "v0.46.0",
+      "version": "v0.47.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/sys",
@@ -1854,7 +1854,7 @@
     },
     {
       "name": "golang.org/x/term",
-      "version": "v0.44.0",
+      "version": "v0.45.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/term",
@@ -1862,7 +1862,7 @@
     },
     {
       "name": "golang.org/x/text",
-      "version": "v0.38.0",
+      "version": "v0.40.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/text",
