@@ -5,4 +5,8 @@ package resource.listener;
 message Config {
   // ListenerSocketPath is the path to the Unix socket to listen on.
   string listener_socket_path = 1;
+  // StorageProjectId derives the socket path as
+  // DetermineStorageRoot(project_id)/project_id.sock when ListenerSocketPath is
+  // empty. An explicit ListenerSocketPath always takes precedence.
+  string storage_project_id = 2;
 }

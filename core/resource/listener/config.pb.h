@@ -218,6 +218,7 @@ class Config final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kListenerSocketPathFieldNumber = 1,
+    kStorageProjectIdFieldNumber = 2,
   };
   // string listener_socket_path = 1;
   void clear_listener_socket_path() ;
@@ -234,12 +235,27 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_listener_socket_path();
 
   public:
+  // string storage_project_id = 2;
+  void clear_storage_project_id() ;
+  const ::std::string& storage_project_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_storage_project_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_storage_project_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_storage_project_id();
+  void set_allocated_storage_project_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_storage_project_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_storage_project_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_storage_project_id();
+
+  public:
   // @@protoc_insertion_point(class_scope:resource.listener.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
-                                   0, 53,
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 71,
                                    2>
       _table_;
 
@@ -261,6 +277,7 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr listener_socket_path_;
+    ::google::protobuf::internal::ArenaStringPtr storage_project_id_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -348,6 +365,71 @@ inline void Config::set_allocated_listener_socket_path(::std::string* PROTOBUF_N
     _impl_.listener_socket_path_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:resource.listener.Config.listener_socket_path)
+}
+
+// string storage_project_id = 2;
+inline void Config::clear_storage_project_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.storage_project_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& Config::storage_project_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:resource.listener.Config.storage_project_id)
+  return _internal_storage_project_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_storage_project_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.storage_project_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:resource.listener.Config.storage_project_id)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_storage_project_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_storage_project_id();
+  // @@protoc_insertion_point(field_mutable:resource.listener.Config.storage_project_id)
+  return _s;
+}
+inline const ::std::string& Config::_internal_storage_project_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.storage_project_id_.Get();
+}
+inline void Config::_internal_set_storage_project_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.storage_project_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_storage_project_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.storage_project_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_storage_project_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:resource.listener.Config.storage_project_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.storage_project_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.storage_project_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_storage_project_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.storage_project_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.storage_project_id_.IsDefault()) {
+    _impl_.storage_project_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:resource.listener.Config.storage_project_id)
 }
 
 #ifdef __GNUC__

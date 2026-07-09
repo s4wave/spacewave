@@ -34,6 +34,9 @@ inline constexpr Config::Impl_::Impl_(
       : _cached_size_{0},
         listener_socket_path_(
             &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        storage_project_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()) {}
 
 template <typename>
@@ -66,9 +69,11 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::resource::listener::Config, _impl_._has_bits_),
-        4, // hasbit index offset
+        5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::resource::listener::Config, _impl_.listener_socket_path_),
+        PROTOBUF_FIELD_OFFSET(::resource::listener::Config, _impl_.storage_project_id_),
         0,
+        1,
 };
 
 static const ::_pbi::MigrationSchema
@@ -82,14 +87,14 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     protodesc_cold) = {
     "\n\?github.com/s4wave/spacewave/core/resou"
     "rce/listener/config.proto\022\021resource.list"
-    "ener\"&\n\006Config\022\034\n\024listener_socket_path\030\001"
-    " \001(\tb\006proto3"
+    "ener\"B\n\006Config\022\034\n\024listener_socket_path\030\001"
+    " \001(\t\022\032\n\022storage_project_id\030\002 \001(\tb\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fresource_2flistener_2fconfig_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fresource_2flistener_2fconfig_2eproto = {
     false,
     false,
-    132,
+    160,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fresource_2flistener_2fconfig_2eproto,
     "github.com/s4wave/spacewave/core/resource/listener/config.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fresource_2flistener_2fconfig_2eproto_once,
@@ -129,7 +134,8 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
     [[maybe_unused]] const ::resource::listener::Config& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        listener_socket_path_(arena, from.listener_socket_path_) {}
+        listener_socket_path_(arena, from.listener_socket_path_),
+        storage_project_id_(arena, from.storage_project_id_) {}
 
 Config::Config(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -151,7 +157,8 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
-        listener_socket_path_(arena) {}
+        listener_socket_path_(arena),
+        storage_project_id_(arena) {}
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -168,6 +175,7 @@ inline void Config::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.listener_socket_path_.Destroy();
+  this_._impl_.storage_project_id_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -214,16 +222,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 0, 53, 2>
+const ::_pbi::TcParseTable<1, 2, 0, 71, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
+    2, 8,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
+    4294967292,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
+    2,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     Config_class_data_.base(),
@@ -233,6 +241,10 @@ Config::_table_ = {
     ::_pbi::TcParser::GetTable<::resource::listener::Config>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    // string storage_project_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.storage_project_id_)}},
     // string listener_socket_path = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -242,12 +254,15 @@ Config::_table_ = {
   }}, {{
     // string listener_socket_path = 1;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.listener_socket_path_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string storage_project_id = 2;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.storage_project_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\30\24\0\0\0\0\0\0"
+    "\30\24\22\0\0\0\0\0"
     "resource.listener.Config"
     "listener_socket_path"
+    "storage_project_id"
   }},
 };
 PROTOBUF_NOINLINE void Config::Clear() {
@@ -258,8 +273,13 @@ PROTOBUF_NOINLINE void Config::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    _impl_.listener_socket_path_.ClearNonDefaultToEmpty();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.listener_socket_path_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.storage_project_id_.ClearNonDefaultToEmpty();
+    }
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -294,6 +314,16 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
+  // string storage_project_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_storage_project_id().empty()) {
+      const ::std::string& _s = this_._internal_storage_project_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "resource.listener.Config.storage_project_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -317,13 +347,21 @@ PROTOBUF_NOINLINE void Config::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void)cached_has_bits;
 
-   {
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
     // string listener_socket_path = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_listener_socket_path().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_listener_socket_path());
+      }
+    }
+    // string storage_project_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_storage_project_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_storage_project_id());
       }
     }
   }
@@ -345,12 +383,23 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (!from._internal_listener_socket_path().empty()) {
-      _this->_internal_set_listener_socket_path(from._internal_listener_socket_path());
-    } else {
-      if (_this->_impl_.listener_socket_path_.IsDefault()) {
-        _this->_internal_set_listener_socket_path("");
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_listener_socket_path().empty()) {
+        _this->_internal_set_listener_socket_path(from._internal_listener_socket_path());
+      } else {
+        if (_this->_impl_.listener_socket_path_.IsDefault()) {
+          _this->_internal_set_listener_socket_path("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_storage_project_id().empty()) {
+        _this->_internal_set_storage_project_id(from._internal_storage_project_id());
+      } else {
+        if (_this->_impl_.storage_project_id_.IsDefault()) {
+          _this->_internal_set_storage_project_id("");
+        }
       }
     }
   }
@@ -374,6 +423,7 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.listener_socket_path_, &other->_impl_.listener_socket_path_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.storage_project_id_, &other->_impl_.storage_project_id_, arena);
 }
 
 ::google::protobuf::Metadata Config::GetMetadata() const {

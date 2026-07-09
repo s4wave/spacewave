@@ -56,10 +56,9 @@ E2E_RELEASE_WASM_INIT_DIST_CONFIG = "QnF9fgszS28jFAQYB2t0Nx0lOx8KM1VoPCAjKShHamY
 E2E_RELEASE_WASM_DIST_PEER_ID = "12D3KooWJPNip1SbsUG7SjteoegGjfq22D4WThuctPvCwJzHesD5"
 
 # Core configSet shared between Go plugin and CLI manifests.
-# Local dev and native builds intentionally fall back to production cloud
-# endpoints unless a caller or dev env override supplies another endpoint.
+# Native listeners derive their socket from the project storage root so data,
+# logs, and the runtime socket honor SPACEWAVE_DATA_DIR as one owner.
 def core_config_set(
-        listener_path="git:.spacewave/spacewave.sock",
         include_export=True,
         cloud_api_endpoint=PRODUCTION_CLOUD_API_ENDPOINT,
         account_endpoint=PRODUCTION_ACCOUNT_ENDPOINT):
@@ -81,7 +80,7 @@ def core_config_set(
         "blocktype": config_entry("db/blocktype", 1),
         "download": config_entry("space/http/download", 1),
         "resource-listener": config_entry("resource/listener", 1, {
-            "listenerSocketPath": listener_path,
+            "storageProjectId": "spacewave",
         }),
     }
     if include_export:
@@ -120,13 +119,6 @@ def spacewave_core_config(
                 "goPkgs": ["./core/debug/trace"],
                 "configSet": {
                     "debug-trace": config_entry("debug/trace", 1),
-                },
-            },
-            "release": {
-                "configSet": {
-                    "resource-listener": config_entry("resource/listener", 1, {
-                        "listenerSocketPath": "~/.spacewave/spacewave.sock",
-                    }),
                 },
             },
         },

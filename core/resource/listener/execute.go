@@ -38,7 +38,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 	le := c.GetLogger()
 	b := c.GetBus()
 
-	sockPath := c.GetConfig().GetListenerSocketPath()
+	sockPath, err := c.GetConfig().DetermineSocketPath()
+	if err != nil {
+		return errors.Wrap(err, "determine socket path")
+	}
 	if sockPath == "" {
 		le.Warn("listener socket path not configured, skipping")
 		return nil

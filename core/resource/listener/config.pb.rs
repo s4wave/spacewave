@@ -6,5 +6,10 @@ pub struct Config {
     /// ListenerSocketPath is the path to the Unix socket to listen on.
     #[prost(string, tag="1")]
     pub listener_socket_path: ::prost::alloc::string::String,
+    /// StorageProjectId derives the socket path as
+    /// DetermineStorageRoot(project_id)/project_id.sock when ListenerSocketPath is
+    /// empty. An explicit ListenerSocketPath always takes precedence.
+    #[prost(string, tag="2")]
+    pub storage_project_id: ::prost::alloc::string::String,
 }
 // @@protoc_insertion_point(module)

@@ -21,6 +21,14 @@ export interface Config {
    * @generated from field: string listener_socket_path = 1;
    */
   listenerSocketPath?: string
+  /**
+   * StorageProjectId derives the socket path as
+   * DetermineStorageRoot(project_id)/project_id.sock when ListenerSocketPath is
+   * empty. An explicit ListenerSocketPath always takes precedence.
+   *
+   * @generated from field: string storage_project_id = 2;
+   */
+  storageProjectId?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -32,6 +40,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       kind: 'scalar',
       T: ScalarType.STRING,
     },
+    { no: 2, name: 'storage_project_id', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
