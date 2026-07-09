@@ -125,14 +125,15 @@ func (o *bridgeOperation) Validate() error {
 	return nil
 }
 
-// MarshalBlock marshals the block to binary.
-// Stub: bridge operations are never serialized.
+// MarshalBlock marshals the block to binary. The bridge holds the encoded op
+// bytes opaquely; the owning plugin defines the payload format.
 func (o *bridgeOperation) MarshalBlock() ([]byte, error) {
 	return o.opData, nil
 }
 
-// UnmarshalBlock unmarshals the block from binary.
-// Stub: bridge operations are never deserialized from block storage.
+// UnmarshalBlock unmarshals the block from binary. The engine decodes ops
+// from block storage through this path; the bytes stay opaque until the
+// plugin handler parses them.
 func (o *bridgeOperation) UnmarshalBlock(data []byte) error {
 	o.opData = data
 	return nil

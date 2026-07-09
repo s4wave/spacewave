@@ -69,13 +69,6 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 	if ref != nil {
 		defer ref.Release()
 	}
-	if !objectTypeRegistryBridgeEnabled() {
-		if ot != nil {
-			t.Fatalf("expected disabled GoScript bridge to return no object type")
-		}
-		requestCancel()
-		return
-	}
 	if ot == nil {
 		t.Fatalf("expected object type")
 	}
@@ -147,12 +140,6 @@ func TestBridgeResolverReconnectsPluginChildAfterResourceClientClose(t *testing.
 	}
 	if ref != nil {
 		defer ref.Release()
-	}
-	if !objectTypeRegistryBridgeEnabled() {
-		if ot != nil {
-			t.Fatalf("expected disabled GoScript bridge to return no object type")
-		}
-		return
 	}
 	if ot == nil {
 		t.Fatalf("expected object type")
