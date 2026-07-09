@@ -1,0 +1,7 @@
+syntax = "proto3";
+package s4wave.plugin.sql;
+
+option go_package = "github.com/s4wave/spacewave/plugin/sql;sql_plugin";
+
+// Config carries the SQL plugin controller configuration.
+message Config {}

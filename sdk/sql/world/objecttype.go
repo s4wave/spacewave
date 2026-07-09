@@ -7,7 +7,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/pkg/errors"
 	sql_rpc "github.com/s4wave/spacewave/db/sql/rpc"
 	sql_rpc_server "github.com/s4wave/spacewave/db/sql/rpc/server"
 	"github.com/s4wave/spacewave/db/world"
@@ -38,22 +37,35 @@ func SqlDbFactory(
 	if err != nil {
 		return nil, nil, err
 	}
-
-	var store *WorldBackedSql
-	if err := obj.AccessWorldState(ctx, nil, func(root worldCursor) error {
-		store, err = NewWorldBackedSql(ctx, root.Clone(), ws, objectKey)
-		return err
-	}); err != nil {
+	rootRef, _, err := obj.GetRootRef(ctx)
+	if err != nil {
 		return nil, nil, err
 	}
-	if store == nil {
-		return nil, nil, errors.New("sql/db: failed to open world-backed database")
+	storageRoot, err := ws.BuildStorageCursor(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	root, err := storageRoot.FollowRef(ctx, rootRef)
+	if err != nil {
+		storageRoot.Release()
+		return nil, nil, err
+	}
+
+	store, err := NewWorldBackedSql(ctx, root, ws, objectKey)
+	if err != nil {
+		root.Release()
+		storageRoot.Release()
+		return nil, nil, err
 	}
 
 	mux := srpc.NewMux()
 	if err := sql_rpc.SRPCRegisterSql(mux, sql_rpc_server.NewStore(store)); err != nil {
 		store.Close()
+		storageRoot.Release()
 		return nil, nil, err
 	}
-	return mux, store.Close, nil
+	return mux, func() {
+		store.Close()
+		storageRoot.Release()
+	}, nil
 }
