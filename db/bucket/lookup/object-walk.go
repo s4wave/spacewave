@@ -301,8 +301,10 @@ func (e *WalkObjectBlocksEntry) decodeBlock(alwaysDecode bool, readXfrm block.Tr
 		}
 	}
 
-	// transform data
-	dat, err := readXfrm.DecodeBlock(e.Data)
+	dat, err := e.Data, error(nil)
+	if readXfrm != nil {
+		dat, err = readXfrm.DecodeBlock(e.Data)
+	}
 	if err != nil {
 		if err != context.Canceled {
 			err = errors.Wrapf(err, "decode block: %s", e.Ref.MarshalString())

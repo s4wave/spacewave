@@ -171,7 +171,7 @@ func BundleManifestsKvfile(
 		}
 		defer kvtxTx.Discard()
 
-		return kvtxTx.ScanPrefix(ctx, kvtxVolBlockPrefix, func(key, value []byte) error {
+		if err := kvtxTx.ScanPrefix(ctx, kvtxVolBlockPrefix, func(key, value []byte) error {
 			blockKey := key[len(kvtxVolBlockPrefix):]
 			ref, err := block.UnmarshalBlockRefB58(string(blockKey))
 			if err != nil {
@@ -191,6 +191,17 @@ func BundleManifestsKvfile(
 			le.Debugf("copying block that was not part of the world state or any manifest: %v", refStr)
 			kvfileBlockKey := bytes.Join([][]byte{kvfileBlockPrefix, []byte(refStr)}, nil)
 			return kvfileWriter.WriteValue(kvfileBlockKey, bytes.NewReader(value))
-		})
+		}); err != nil {
+			return err
+		}
+		rootRef := nextRootRef.GetRootRef()
+		if rootRef == nil || rootRef.GetEmpty() {
+			return nil
+		}
+		rootRefStr := rootRef.MarshalString()
+		if _, seen := seenBlocks.Load(rootRefStr); !seen {
+			return errors.Wrap(block.ErrNotFound, rootRefStr)
+		}
+		return nil
 	})
 }

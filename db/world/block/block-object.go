@@ -76,7 +76,7 @@ func (o *Object) ApplySubBlock(id uint32, next block.SubBlock) error {
 func (o *Object) GetSubBlocks() map[uint32]block.SubBlock {
 	m := make(map[uint32]block.SubBlock)
 	m[2] = o.GetRootRef()
-	return nil
+	return m
 }
 
 // GetSubBlockCtor returns a function which creates or returns the existing

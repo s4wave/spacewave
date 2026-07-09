@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/filters"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
@@ -23,6 +24,7 @@ import (
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 
@@ -107,6 +109,45 @@ func TestWorldEngineCloseReleasesReadState(t *testing.T) {
 	if _, err := eng.GetSeqno(ctx); err == nil {
 		t.Fatal("expected closed engine to reject seqno read")
 	}
+}
+
+func TestObjectGetSubBlocksExposesRootRefForExtraction(t *testing.T) {
+	rootRef := worldTestBlockRef(t, "world-object-root-ref")
+	objRoot := &bucket.ObjectRef{RootRef: rootRef}
+	obj := world_block.NewObject("object-with-root", objRoot)
+
+	subBlocks := obj.GetSubBlocks()
+	sub, ok := subBlocks[2]
+	if !ok {
+		t.Fatal("expected object root ref to be exposed as sub-block field 2")
+	}
+	gotRoot, ok := sub.(*bucket.ObjectRef)
+	if !ok {
+		t.Fatalf("object sub-block field 2 = %T, want *bucket.ObjectRef", sub)
+	}
+	if !gotRoot.GetRootRef().EqualsRef(rootRef) {
+		t.Fatalf("object sub-block root = %s, want %s", gotRoot.GetRootRef().MarshalString(), rootRef.MarshalString())
+	}
+
+	refs, err := block.ExtractBlockRefs(obj)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(refs) != 1 {
+		t.Fatalf("ExtractBlockRefs returned %d refs, want 1", len(refs))
+	}
+	if !refs[0].EqualsRef(rootRef) {
+		t.Fatalf("ExtractBlockRefs root = %s, want %s", refs[0].MarshalString(), rootRef.MarshalString())
+	}
+}
+
+func worldTestBlockRef(t *testing.T, data string) *block.BlockRef {
+	t.Helper()
+	h, err := hash.Sum(hash.HashType_HashType_BLAKE3, []byte(data))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return block.NewBlockRef(h)
 }
 
 // TestWorldState_GetObjectMetadataBatch checks batched parent+type lookup behavior.
