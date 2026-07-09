@@ -326,10 +326,17 @@ func (s *ResourceServer) ResourceAttach(
 	attachCtx, attachCancel := context.WithCancel(ctx)
 	defer attachCancel()
 
-	// Track attached resources for cleanup.
+	// Track attached resources for cleanup. onControl mutates attachedIDs on
+	// the mux rx-pump goroutine while this cleanup runs on the RPC goroutine
+	// after attachCtx is canceled, so the mutex is required for the sync edge.
+	var attachedMtx sync.Mutex
 	var attachedIDs []uint32
 	defer func() {
-		for _, id := range attachedIDs {
+		attachedMtx.Lock()
+		ids := attachedIDs
+		attachedIDs = nil
+		attachedMtx.Unlock()
+		for _, id := range ids {
 			client.removeAttachedResource(id, false)
 		}
 	}()
@@ -397,7 +404,9 @@ func (s *ResourceServer) ResourceAttach(
 				})
 				return
 			}
+			attachedMtx.Lock()
 			attachedIDs = append(attachedIDs, resourceID)
+			attachedMtx.Unlock()
 
 			_ = send(&resource.ResourceAttachResponse{
 				Body: &resource.ResourceAttachResponse_AddAck{
@@ -412,12 +421,14 @@ func (s *ResourceServer) ResourceAttach(
 			resourceID := body.Detach.GetResourceId()
 			client.removeAttachedResource(resourceID, false)
 			// Remove from our cleanup list.
+			attachedMtx.Lock()
 			for i, id := range attachedIDs {
 				if id == resourceID {
 					attachedIDs = append(attachedIDs[:i], attachedIDs[i+1:]...)
 					break
 				}
 			}
+			attachedMtx.Unlock()
 			_ = send(&resource.ResourceAttachResponse{
 				Body: &resource.ResourceAttachResponse_DetachAck{
 					DetachAck: &resource.ResourceAttachDetachAck{
