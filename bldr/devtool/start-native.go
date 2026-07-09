@@ -5,11 +5,14 @@ package devtool
 import (
 	"context"
 	"os"
+	"slices"
 
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	bldr_plugin_compiler_js "github.com/s4wave/spacewave/bldr/plugin/compiler/js"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 )
@@ -112,7 +115,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	}
 
 	// build the plugin scheduler
-	sched, relSched, err := plugin_host_default.StartPluginScheduler(
+	sched, relSched, err := plugin_host_default.StartNativeDesktopPluginScheduler(
 		ctx,
 		b.GetBus(),
 		b.GetWorldEngineID(),
@@ -122,6 +125,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 		true,
 		true,
 		true,
+		nativeDesktopQuickJSPluginIDs(projCtrl.GetConfig().GetProjectConfig()),
 	)
 	if err != nil {
 		return err
@@ -149,4 +153,16 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 
 	<-b.GetContext().Done()
 	return nil
+}
+
+func nativeDesktopQuickJSPluginIDs(projectConfig *bldr_project.ProjectConfig) []string {
+	pluginIDs := make([]string, 0)
+	for pluginID, manifest := range projectConfig.GetManifests() {
+		if manifest.GetBuilder().GetId() != bldr_plugin_compiler_js.ConfigID {
+			continue
+		}
+		pluginIDs = append(pluginIDs, pluginID)
+	}
+	slices.Sort(pluginIDs)
+	return pluginIDs
 }

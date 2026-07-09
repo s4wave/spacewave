@@ -72,13 +72,13 @@ func distSDKEmbedPatterns(t *testing.T, distGo string) ([]string, []string) {
 	coveredDirs := make(map[string]bool)
 	var patterns []string
 	var dirs []string
-	for _, line := range strings.Split(distGo, "\n") {
+	for line := range strings.SplitSeq(distGo, "\n") {
 		line = strings.TrimSpace(line)
 		if !strings.HasPrefix(line, "//go:embed") {
 			continue
 		}
 
-		for _, pattern := range strings.Fields(strings.TrimPrefix(line, "//go:embed")) {
+		for pattern := range strings.FieldsSeq(strings.TrimPrefix(line, "//go:embed")) {
 			if !strings.HasPrefix(pattern, "sdk/") {
 				continue
 			}

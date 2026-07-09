@@ -73,3 +73,28 @@ func TestProjectOwnedStartupManifestPreflightsSelectBuilderPlatforms(t *testing.
 		t.Fatalf("ProjectOwnedStartupManifestPreflights() = %#v, want %#v", got, want)
 	}
 }
+
+func TestNativeDesktopQuickJSPluginIDsSelectsJSBuilders(t *testing.T) {
+	projectConfig := &bldr_project.ProjectConfig{
+		Manifests: map[string]*bldr_project.ManifestConfig{
+			"spacewave-core": {
+				Builder: &configset_proto.ControllerConfig{Id: bldr_plugin_compiler_go.ConfigID},
+			},
+			"spacewave-app": {
+				Builder: &configset_proto.ControllerConfig{Id: bldr_plugin_compiler_js.ConfigID},
+			},
+			"spacewave-web": {
+				Builder: &configset_proto.ControllerConfig{Id: bldr_plugin_compiler_js.ConfigID},
+			},
+			"web": {
+				Builder: &configset_proto.ControllerConfig{Id: web_plugin_compiler.ConfigID},
+			},
+		},
+	}
+
+	got := nativeDesktopQuickJSPluginIDs(projectConfig)
+	want := []string{"spacewave-app", "spacewave-web"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("nativeDesktopQuickJSPluginIDs() = %v, want %v", got, want)
+	}
+}
