@@ -1648,7 +1648,7 @@
     },
     {
       "name": "github.com/s4wave/goscript",
-      "version": "v0.2.15-0.20260708070209-9509bf610f15",
+      "version": "v0.2.15-0.20260709000008-49e170af18a0",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/s4wave/goscript",
@@ -1822,7 +1822,7 @@
     },
     {
       "name": "golang.org/x/mod",
-      "version": "v0.37.0",
+      "version": "v0.38.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/mod",
