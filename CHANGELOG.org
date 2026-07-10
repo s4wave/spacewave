@@ -1,5 +1,39 @@
 #+TITLE: Spacewave Changelog
 
+* v0.55.0
+<2026-07-10 Fri>
+
+Spacewave 0.55.0 completes the on-demand SQL Database tools work behind the
+smaller browser startup download. It also restores the desktop Command Line
+terminal, serves the app shell before browser development startup checks
+finish, adds Space type glyphs to session lists, and makes developer builds
+more reliable under load.
+
+** Features
+- Session Space lists now show each Space's registered type glyph, making Drive,
+  Git Spaces, and other Space types easier to identify.
+
+** Fixes
+- Browser development builds now serve the Spacewave app shell before plugin
+  startup checks finish, so the page can show useful status and errors instead
+  of remaining blocked.
+- Fixed File → Open CLI Terminal in desktop builds so the Command Line prompt
+  appears and commands run instead of leaving a blank Terminal.
+- Fixed Command Palette searches so selecting all filter text and deleting it
+  clears the entire search instead of a single character.
+- Fixed local CLI connections for custom data directories so Command Line tools
+  select the running Spacewave instance from the active data location.
+- Fixed public blog pages so author avatars and complete styling load reliably,
+  and corrected the launch post's closing-text formatting.
+
+** Improvements
+- Completed the on-demand SQL Database tools work, preserving the smaller
+  browser startup download while keeping SQL tools reliable when loaded.
+- Spacewave code generation now works with TypeScript 7 in fresh developer
+  installs.
+- Plugin builds now limit concurrent work, making Spacewave builds more reliable
+  under heavy load and on memory-constrained machines.
+
 * v0.54.0
 <2026-07-09 Thu>
 
