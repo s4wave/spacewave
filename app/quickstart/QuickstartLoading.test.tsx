@@ -32,8 +32,8 @@ describe('QuickstartLoading', () => {
 
     renderQuickstartLoading()
 
-    expect(screen.getByText('Connect: Connecting the app shell.')).toBeTruthy()
-    expect(screen.getByText('30%')).toBeTruthy()
+    expect(screen.getByText('Connect: Fetching the runtime.')).toBeTruthy()
+    expect(screen.getByText('7%')).toBeTruthy()
     expect(screen.getByText('Create a Drive')).toBeTruthy()
     expect(screen.getByLabelText('Startup phases')).toBeTruthy()
     for (const phase of browserStartupPhaseRail) {
@@ -44,7 +44,7 @@ describe('QuickstartLoading', () => {
   it('renders the default startup projection before boot progress arrives', () => {
     renderQuickstartLoading()
 
-    expect(screen.getByText('Prepare: Preparing browser files.')).toBeTruthy()
+    expect(screen.getByText('Prepare: Loading the app shell.')).toBeTruthy()
   })
 
   it('treats unavailable quickstart ids as not-available public routes', () => {
