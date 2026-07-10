@@ -214,6 +214,7 @@ function waitForV86Boot(): Promise<void> {
 describe('v86 backend registration', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.restoreAllMocks()
   })
 
   beforeEach(() => {
@@ -289,8 +290,9 @@ describe('v86 backend registration', () => {
     expect(h.rootRef[Symbol.dispose]).toHaveBeenCalledTimes(1)
   })
 
-  it('reports runtime boot failures back to the VmV86 object state', async () => {
+  it('propagates runtime boot failures after cleaning up the V86 bridge', async () => {
     vi.stubGlobal('BroadcastChannel', undefined)
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     await expect(
       main(
@@ -304,6 +306,10 @@ describe('v86 backend registration', () => {
       'vm/v86-runtime/v86fs/vm/v86/test/unixfs.v86fs.V86fsService',
     )
     expect(h.v86fsBridges[0]?.close).toHaveBeenCalledTimes(1)
+    expect(errorSpy).toHaveBeenCalledWith(
+      '[spacewave-v86] runtime failed:',
+      'spacewave-v86 browser runner requires BroadcastChannel for the viewer serial bridge',
+    )
   })
 
   it('registers the clean v86 viewer with the startInfo plugin id and retained lifetime', async () => {
