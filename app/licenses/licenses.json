@@ -25,7 +25,7 @@
     },
     {
       "name": "@aptre/protobuf-es-lite",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "spdx": "Apache-2.0",
       "source": "js",
       "repo": "https://github.com/aperturerobotics/protobuf-es-lite",
