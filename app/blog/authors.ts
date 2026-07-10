@@ -1,3 +1,5 @@
+import christianStewartAvatar from '@s4wave/web/images/christian-stewart.png'
+
 // Author represents the display data for a blog post author.
 export interface Author {
   name: string
@@ -10,7 +12,7 @@ export interface Author {
 export const authors: Record<string, Author> = {
   paralin: {
     name: 'Christian Stewart',
-    avatar: 'https://github.com/paralin.png',
+    avatar: christianStewartAvatar,
     url: 'https://github.com/paralin',
     bio: 'Founder, Aperture Robotics',
   },

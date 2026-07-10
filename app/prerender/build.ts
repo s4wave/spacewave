@@ -32,6 +32,7 @@ import { buildPageHtml } from './html-template.js'
 import {
   collectRequiredStaticAssetUrls,
   selectAppCssFile,
+  selectViteEntryAssets,
   type ViteManifest,
 } from './static-assets.js'
 import { StaticProvider } from './StaticContext.js'
@@ -73,6 +74,7 @@ export interface PrerenderContext {
   bldrManifest: BldrManifest
   browserGenerationId: string
   mainCssUrl: string
+  hydrateCssUrls: string[]
   iconUrl: string
   importMap: string
   bootstrapScript: string
@@ -135,10 +137,9 @@ const VITE_ASSET_PREFIX = '/b/pa/spacewave-app/v/b/fe/'
 // STATIC_ASSET_PREFIX is where we serve these assets from R2.
 const STATIC_ASSET_PREFIX = '/static/assets/'
 
-// extractViteCss finds the processed CSS from the spacewave-app Vite build,
-// rewrites asset URLs to the static serving path, copies CSS and referenced
-// assets (fonts, images) to the prerender output dir, and returns the URL
-// path to reference in prerendered HTML.
+// extractViteCss finds the processed app stylesheet, rewrites asset URLs to
+// the static serving path, copies its referenced assets, and returns the URL
+// to link from prerendered HTML.
 function extractViteCss(log: (msg: string) => void): {
   cssUrl: string
   iconUrl: string
@@ -178,8 +179,14 @@ function extractViteCss(log: (msg: string) => void): {
   }
 
   // Read CSS and rewrite asset URLs from bldr plugin paths to static paths.
-  let cssContent = readFileSync(viteCssPath, 'utf-8')
-  cssContent = cssContent.replaceAll(VITE_ASSET_PREFIX, STATIC_ASSET_PREFIX)
+  const cssContent = readFileSync(viteCssPath, 'utf-8').replaceAll(
+    VITE_ASSET_PREFIX,
+    STATIC_ASSET_PREFIX,
+  )
+  const outputCssPath = join(OUTPUT_DIR, cssFile)
+  mkdirSync(dirname(outputCssPath), { recursive: true })
+  writeFileSync(outputCssPath, cssContent)
+  log(`Wrote CSS to ${outputCssPath} (${cssContent.length} bytes)`)
 
   // Copy referenced assets (fonts, images) to the output dir.
   const assetsOutDir = join(OUTPUT_DIR, 'assets')
@@ -216,12 +223,6 @@ function extractViteCss(log: (msg: string) => void): {
     console.error('spacewave-icon PNG not found in Vite assets')
     process.exit(1)
   }
-
-  // Write rewritten CSS to output dir.
-  mkdirSync(OUTPUT_DIR, { recursive: true })
-  const outputCssPath = join(OUTPUT_DIR, cssFile)
-  writeFileSync(outputCssPath, cssContent)
-  log(`Wrote CSS to ${outputCssPath} (${cssContent.length} bytes)`)
 
   return {
     cssUrl: '/static/' + cssFile,
@@ -277,21 +278,40 @@ export function buildPrerenderContext(
   // Extract processed CSS from the Vite build (spacewave-app plugin).
   const { cssUrl: mainCssUrl, iconUrl } = extractViteCss(log)
 
-  // Find the hydration script built by vite.hydrate.config.ts.
-  mkdirSync(OUTPUT_DIR, { recursive: true })
-  const hydrateFile = readdirSync(OUTPUT_DIR).find(
-    (f) => f.startsWith('hydrate-') && f.endsWith('.js'),
-  )
-  if (!hydrateFile) {
+  // Resolve the hydration entry and its component styles from the manifest
+  // emitted by vite.hydrate.config.ts. The hydration bundle directly imports
+  // every prerendered route component, so this CSS is part of the HTML contract.
+  const hydrateManifestPath = join(OUTPUT_DIR, '.vite/manifest.json')
+  if (!existsSync(hydrateManifestPath)) {
     console.error(
-      'hydrate-*.js not found in ' +
-        OUTPUT_DIR +
-        '. Run vite build --config app/prerender/vite.hydrate.config.ts first.',
+      `Hydration manifest not found at ${hydrateManifestPath}. ` +
+        'Run vite build --config app/prerender/vite.hydrate.config.ts first.',
     )
     process.exit(1)
   }
-  const hydrateScriptTag = `<script type="module" src="/static/${hydrateFile}"></script>`
-  log(`Hydration script: ${hydrateFile}`)
+  const hydrateManifest = JSON.parse(
+    readFileSync(hydrateManifestPath, 'utf-8'),
+  ) as ViteManifest
+  const hydrateAssets = selectViteEntryAssets(
+    hydrateManifest,
+    'app/prerender/hydrate.tsx',
+  )
+  if (!hydrateAssets) {
+    console.error(
+      `Hydration entry app/prerender/hydrate.tsx not found in ${hydrateManifestPath}`,
+    )
+    process.exit(1)
+  }
+  for (const file of [hydrateAssets.file, ...hydrateAssets.css]) {
+    if (!existsSync(join(OUTPUT_DIR, file))) {
+      console.error(`Hydration asset not found at ${join(OUTPUT_DIR, file)}`)
+      process.exit(1)
+    }
+  }
+  const hydrateScriptTag = `<script type="module" src="/static/${hydrateAssets.file}"></script>`
+  const hydrateCssUrls = hydrateAssets.css.map((file) => '/static/' + file)
+  log(`Hydration script: ${hydrateAssets.file}`)
+  log(`Hydration styles: ${hydrateAssets.css.join(', ') || '(none)'}`)
 
   const browserRelease = buildBrowserReleaseDescriptor(
     {
@@ -319,6 +339,7 @@ export function buildPrerenderContext(
     bldrManifest: manifest,
     browserGenerationId: browserRelease.generationId,
     mainCssUrl,
+    hydrateCssUrls,
     iconUrl,
     importMap,
     bootstrapScript,
@@ -372,6 +393,7 @@ async function main() {
       hydrateScript: ctx.hydrateScriptTag,
       criticalCss: '',
       mainCssUrl: ctx.mainCssUrl,
+      additionalCssUrls: ctx.hydrateCssUrls,
       iconUrl: ctx.iconUrl,
       importMap: ctx.importMap,
     })
@@ -542,6 +564,7 @@ async function buildRootTemplate(ctx: PrerenderContext) {
     hydrateScript: ctx.hydrateScriptTag,
     criticalCss: '',
     mainCssUrl: ctx.mainCssUrl,
+    additionalCssUrls: ctx.hydrateCssUrls,
     iconUrl: ctx.iconUrl,
     importMap: ctx.importMap,
   })

@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   collectRequiredStaticAssetUrls,
   selectAppCssFile,
+  selectViteEntryAssets,
   type ViteManifest,
 } from './static-assets.js'
 
@@ -102,5 +103,36 @@ describe('selectAppCssFile', () => {
     }
 
     expect(selectAppCssFile(manifest)).toBeUndefined()
+  })
+})
+
+describe('selectViteEntryAssets', () => {
+  it('keeps the hydration script and CSS emitted with its component graph', () => {
+    const manifest: ViteManifest = {
+      '_shared-abc.js': {
+        file: 'assets/shared-abc.js',
+        css: ['assets/shared-abc.css'],
+      },
+      'app/prerender/hydrate.tsx': {
+        file: 'hydrate-abc.js',
+        src: 'app/prerender/hydrate.tsx',
+        isEntry: true,
+        imports: ['_shared-abc.js'],
+        css: ['assets/hydrate-abc.css'],
+      },
+    }
+
+    expect(
+      selectViteEntryAssets(manifest, 'app/prerender/hydrate.tsx'),
+    ).toEqual({
+      file: 'hydrate-abc.js',
+      css: ['assets/hydrate-abc.css', 'assets/shared-abc.css'],
+    })
+  })
+
+  it('reports a missing hydration entry instead of omitting its CSS', () => {
+    expect(
+      selectViteEntryAssets({}, 'app/prerender/hydrate.tsx'),
+    ).toBeUndefined()
   })
 })

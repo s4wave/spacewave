@@ -19,4 +19,24 @@ describe('buildPageHtml', () => {
       html.indexOf('<title>Spacewave</title>'),
     )
   })
+
+  it('links route stylesheets after the app stylesheet', () => {
+    const html = buildPageHtml({
+      body: '<article>Post</article>',
+      title: 'Post',
+      description: 'Blog post',
+      bootstrapScript: '<script type="module" src="/boot.mjs"></script>',
+      criticalCss: '',
+      mainCssUrl: '/static/App-abc.css',
+      additionalCssUrls: ['/static/BlogRoutes-def.css'],
+      iconUrl: '/static/assets/icon.png',
+    })
+
+    expect(html).toContain(
+      '<link rel="stylesheet" href="/static/BlogRoutes-def.css"/>',
+    )
+    expect(html.indexOf('/static/App-abc.css')).toBeLessThan(
+      html.indexOf('/static/BlogRoutes-def.css'),
+    )
+  })
 })

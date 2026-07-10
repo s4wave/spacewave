@@ -1,9 +1,17 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import Markdown from 'markdown-to-jsx'
 
 import { blogMarkdownOptions } from './BlogMarkdown.js'
+
+const launchPostSource = readFileSync(
+  join(process.cwd(), 'app/blog/posts/2026-04-20-launch.md'),
+  'utf8',
+)
 
 declare global {
   interface Window {
@@ -82,6 +90,19 @@ describe('blogMarkdownOptions', () => {
       window.HTMLIFrameElement.prototype,
       'credentialless',
       iframeCredentiallessDescriptor,
+    )
+  })
+
+  it('preserves the launch post sign-off hard breaks', () => {
+    const signoff = launchPostSource.slice(
+      launchPostSource.lastIndexOf('Thanks for checking out Spacewave!'),
+    )
+    const html = renderToStaticMarkup(
+      <Markdown options={blogMarkdownOptions}>{signoff}</Markdown>,
+    )
+
+    expect(html).toContain(
+      'Thanks for checking out Spacewave!<br/>~ Christian Stewart<br/><a href="https://cjs.zip">cjs.zip</a>',
     )
   })
 

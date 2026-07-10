@@ -64,6 +64,44 @@ export function selectAppCssFile(manifest: ViteManifest): string | undefined {
   }
   return undefined
 }
+
+export interface ViteEntryAssets {
+  file: string
+  css: string[]
+}
+
+// selectViteEntryAssets returns an entry's emitted script and every stylesheet
+// on its static import graph. Prerender hydration owns route component CSS, so
+// its generated HTML must link the styles emitted with that entry.
+export function selectViteEntryAssets(
+  manifest: ViteManifest,
+  entrySource: string,
+): ViteEntryAssets | undefined {
+  const entryKey = Object.keys(manifest).find(
+    (key) => key === entrySource || manifest[key].src === entrySource,
+  )
+  if (!entryKey) return undefined
+
+  const entryFile = manifest[entryKey].file
+  if (!entryFile) return undefined
+
+  const seenEntries = new Set<string>()
+  const cssFiles = new Set<string>()
+  const queue = [entryKey]
+  while (queue.length) {
+    const key = queue.shift()
+    if (key === undefined || seenEntries.has(key)) continue
+    seenEntries.add(key)
+
+    const entry = manifest[key]
+    if (!entry) continue
+    for (const cssFile of entry.css ?? []) cssFiles.add(cssFile)
+    for (const importKey of entry.imports ?? []) queue.push(importKey)
+  }
+
+  return { file: entryFile, css: Array.from(cssFiles) }
+}
+
 const requiredStaticExtensions = new Set([
   '.css',
   '.woff2',

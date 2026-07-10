@@ -42,6 +42,7 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, 'dist'),
     emptyOutDir: true,
+    manifest: true,
     // Externalize React packages so they resolve via the importmap
     // shared with the bldr entrypoint. This keeps the hydration bundle
     // small and avoids duplicate React instances.

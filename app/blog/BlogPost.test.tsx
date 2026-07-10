@@ -2,6 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RouterProvider } from '@s4wave/web/router/router.js'
 
+import { authors } from './authors.js'
 import { BlogPostPage } from './BlogPost.js'
 import type { BlogPost } from './types.js'
 
@@ -48,5 +49,19 @@ describe('BlogPostPage', () => {
 
     expect(screen.getByText('trusted markdown').tagName).toBe('STRONG')
     expect(container.innerHTML).not.toContain('dangerouslySetInnerHTML')
+  })
+
+  it('uses the bundled same-origin author avatar', () => {
+    renderPost({
+      ...post,
+      author: authors.paralin,
+    })
+
+    const src = screen
+      .getByRole('img', { name: 'Christian Stewart' })
+      .getAttribute('src')
+    expect(src).toBe(authors.paralin.avatar)
+    expect(src).toMatch(/christian-stewart\.png$/)
+    expect(src).not.toMatch(/^https?:/)
   })
 })

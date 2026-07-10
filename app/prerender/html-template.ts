@@ -15,6 +15,7 @@ interface PageHtmlOptions {
   hydrateScript?: string
   criticalCss: string
   mainCssUrl: string
+  additionalCssUrls?: string[]
   iconUrl: string
   importMap?: string
   // When false, omits data-prerendered from bldr-root so the bldr
@@ -49,6 +50,12 @@ export function buildPageHtml(opts: PageHtmlOptions): string {
   const importMapTag = opts.importMap
     ? `\n  <script type="importmap">${opts.importMap}</script>`
     : ''
+  const stylesheetTags = [opts.mainCssUrl, ...(opts.additionalCssUrls ?? [])]
+    .map(
+      (cssUrl) =>
+        `\n  <link rel="preload" href="${cssUrl}" as="style"/>\n  <link rel="stylesheet" href="${cssUrl}"/>`,
+    )
+    .join('')
 
   return `<!doctype html>
 <html lang="en">
@@ -68,9 +75,7 @@ export function buildPageHtml(opts: PageHtmlOptions): string {
   <meta property="og:description" content="${opts.description}"/>${ogUrlTag}${ogImageTag}
   <meta name="twitter:card" content="${twitterCard}"/>
   <meta name="twitter:title" content="${opts.title}"/>
-  <meta name="twitter:description" content="${opts.description}"/>${twitterImageTag}${jsonLdTag}${criticalStyle}${importMapTag}
-  <link rel="preload" href="${opts.mainCssUrl}" as="style"/>
-  <link rel="stylesheet" href="${opts.mainCssUrl}"/>
+  <meta name="twitter:description" content="${opts.description}"/>${twitterImageTag}${jsonLdTag}${criticalStyle}${importMapTag}${stylesheetTags}
 </head>
 <body>
   <div id="bldr-root"${opts.prerendered !== false ? ' data-prerendered="true"' : ''} role="main">${opts.body}</div>

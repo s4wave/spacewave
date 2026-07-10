@@ -89,6 +89,79 @@ func TestBrowserReleaseDescriptorIncludesPrerenderedWasmShell(t *testing.T) {
 	}
 }
 
+func TestLaunchPostPrerenderAssets(t *testing.T) {
+	page := testHarness.newPage(t)
+	if _, err := page.Goto(testHarness.getBaseURL() + "/blog/2026/04/launch"); err != nil {
+		t.Fatalf("goto launch post: %v", err)
+	}
+
+	raw, err := page.Evaluate(`async () => {
+		const heading = document.querySelector('.blog-prose h2')
+		const list = document.querySelector('.blog-prose ul')
+		const paragraph = document.querySelector('.blog-prose p')
+		const avatar = document.querySelector('img[alt="Christian Stewart"]')
+		const signoff = [...document.querySelectorAll('.blog-prose p')].find(
+			(element) => element.textContent?.includes('Thanks for checking out Spacewave!'),
+		)
+		if (!heading || !list || !paragraph || !avatar || !signoff) {
+			throw new Error('launch post contract elements are missing')
+		}
+		if (!avatar.complete) {
+			await new Promise((resolve) => {
+				avatar.addEventListener('load', resolve, { once: true })
+				avatar.addEventListener('error', resolve, { once: true })
+			})
+		}
+
+		const headingStyle = getComputedStyle(heading)
+		const listStyle = getComputedStyle(list)
+		const paragraphStyle = getComputedStyle(paragraph)
+		return {
+			linkedHydrateCss: [...document.querySelectorAll('link[rel="stylesheet"]')].some(
+				(link) => new URL(link.href).pathname.startsWith('/static/assets/hydrate-'),
+			),
+			headingFontSize: headingStyle.fontSize,
+			headingFontWeight: headingStyle.fontWeight,
+			headingMarginTop: headingStyle.marginTop,
+			headingMarginBottom: headingStyle.marginBottom,
+			listStyleType: listStyle.listStyleType,
+			listPaddingLeft: listStyle.paddingLeft,
+			paragraphLineHeight: paragraphStyle.lineHeight,
+			paragraphMarginBottom: paragraphStyle.marginBottom,
+			avatarLoaded: avatar.complete && avatar.naturalWidth > 0 && avatar.naturalHeight > 0,
+			avatarSameOrigin: new URL(avatar.currentSrc || avatar.src).origin === location.origin,
+			signoffHasHardBreaks: signoff.querySelectorAll('br').length === 2,
+		}
+	}`)
+	if err != nil {
+		t.Fatalf("inspect launch post: %v", err)
+	}
+	state, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected launch post state %T: %#v", raw, raw)
+	}
+
+	for _, key := range []string{"linkedHydrateCss", "avatarLoaded", "avatarSameOrigin", "signoffHasHardBreaks"} {
+		if !releaseBoolField(state, key) {
+			t.Errorf("expected %s: %#v", key, state)
+		}
+	}
+	for key, want := range map[string]string{
+		"headingFontSize":       "24px",
+		"headingFontWeight":     "600",
+		"headingMarginTop":      "32px",
+		"headingMarginBottom":   "12px",
+		"listStyleType":         "disc",
+		"listPaddingLeft":       "24px",
+		"paragraphLineHeight":   "28px",
+		"paragraphMarginBottom": "20px",
+	} {
+		if got := releaseStringField(state, key); got != want {
+			t.Errorf("%s = %q, want %q", key, got, want)
+		}
+	}
+}
+
 func TestRootPrerenderLoadsProductionWasmBundle(t *testing.T) {
 	page := testHarness.newPage(t)
 	if _, err := page.Goto(testHarness.getBaseURL() + "/"); err != nil {

@@ -251,6 +251,7 @@ export async function buildBlog(
     hydrateScript: ctx.hydrateScriptTag,
     criticalCss: '',
     mainCssUrl: ctx.mainCssUrl,
+    additionalCssUrls: ctx.hydrateCssUrls,
     iconUrl: ctx.iconUrl,
     importMap: ctx.importMap,
   })
@@ -301,6 +302,7 @@ export async function buildBlog(
       hydrateScript: ctx.hydrateScriptTag,
       criticalCss: '',
       mainCssUrl: ctx.mainCssUrl,
+      additionalCssUrls: ctx.hydrateCssUrls,
       iconUrl: ctx.iconUrl,
       importMap: ctx.importMap,
     })
@@ -339,6 +341,7 @@ export async function buildBlog(
       hydrateScript: ctx.hydrateScriptTag,
       criticalCss: '',
       mainCssUrl: ctx.mainCssUrl,
+      additionalCssUrls: ctx.hydrateCssUrls,
       iconUrl: ctx.iconUrl,
       importMap: ctx.importMap,
     })
