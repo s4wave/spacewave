@@ -242,7 +242,7 @@
     "rimraf": "^6.1.3",
     "tailwindcss": "^4.3.1",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vite": "^8.0.16",
     "vitest": "^4.1.9",
     "vitest-browser-react": "^2.2.0"
@@ -250,7 +250,7 @@
   "dependencies": {
     "@aptre/flex-layout": "^0.6.4",
     "@aptre/pragmasevka": "^1.0.5",
-    "@aptre/protobuf-es-lite": "1.1.0",
+    "@aptre/protobuf-es-lite": "1.1.1",
     "@aptre/v86": "^0.6.8",
     "@fontsource-variable/manrope": "^5.2.8",
     "@fontsource/commit-mono": "^5.1.2",
@@ -314,10 +314,10 @@
     "yaml": "^2.9.0"
   },
   "resolutions": {
-    "@aptre/protobuf-es-lite": "1.1.0"
+    "@aptre/protobuf-es-lite": "1.1.1"
   },
   "overrides": {
-    "@aptre/protobuf-es-lite": "1.1.0"
+    "@aptre/protobuf-es-lite": "1.1.1"
   },
   "patchedDependencies": {
     "orga@4.7.1": "patches/orga@4.7.1.patch"
