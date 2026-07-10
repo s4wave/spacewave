@@ -311,6 +311,105 @@ func TestGoScriptDownstreamAppLoadsSonner(t *testing.T) {
 	)
 }
 
+func TestReleaseShapedEntrypointInteractiveBeforeIrrelevantManifestCompletes(t *testing.T) {
+	if os.Getenv(RunEnv) != "1" {
+		t.Skipf("set %s=1 to run downstream browser e2e", RunEnv)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	t.Cleanup(cancel)
+
+	const irrelevantPluginID = "downstream-e2e-irrelevant-manifest"
+	blockedManifest := newBlockingManifestPreflight(irrelevantPluginID, []string{"web/js/wasm"})
+	le := logrus.New().WithField("package", "bldr/e2e/downstreamapp")
+	h, err := boot(ctx, le, bootConfig{
+		minifyEntrypoint:         true,
+		blockedManifestPreflight: blockedManifest,
+	})
+	if err != nil {
+		t.Fatalf("boot release-shaped downstream harness: %v", err)
+	}
+	t.Cleanup(h.Release)
+	if slices.Contains(h.projConfig.GetStart().GetPlugins(), irrelevantPluginID) {
+		t.Fatalf("synthetic manifest %q unexpectedly appears in startPlugins", irrelevantPluginID)
+	}
+	for _, req := range h.startupManifestRequests() {
+		if req.pluginID == irrelevantPluginID {
+			t.Fatalf("synthetic manifest %q unexpectedly appears in required settle requests", irrelevantPluginID)
+		}
+	}
+	t.Log("boot_shape=cold_release_shaped execute_web_wasm=true minify_entrypoint=true root_entry_build_type=RELEASE browser_release_auto_start=true dev_mode=true synthetic_not_in_start_plugins=true synthetic_not_in_required_settle=true")
+
+	startedCtx, cancelStarted := context.WithTimeout(ctx, 30*time.Second)
+	select {
+	case <-blockedManifest.started:
+		t.Logf("event_order=1 irrelevant_manifest_started plugin=%s", irrelevantPluginID)
+	case <-startedCtx.Done():
+		cancelStarted()
+		t.Fatalf("wait for irrelevant manifest resolver start: %v", startedCtx.Err())
+	}
+	cancelStarted()
+	select {
+	case err := <-blockedManifest.completed:
+		t.Fatalf("irrelevant Manifest completed before browser interaction: %v", err)
+	default:
+	}
+
+	if err := h.LaunchBrowser(); err != nil {
+		t.Fatalf("launch chromium: %v", err)
+	}
+	browserCtx, page, err := h.NewPage()
+	if err != nil {
+		t.Fatalf("new page: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = browserCtx.Close()
+	})
+
+	diag := &browserDiagnostics{}
+	wireDiagnostics(browserCtx, page, diag)
+	if _, err := page.Goto(h.BaseURL(), playwright.PageGotoOptions{
+		WaitUntil: playwright.WaitUntilStateDomcontentloaded,
+	}); err != nil {
+		t.Fatalf("load downstream app: %v\n%s", err, diag.String())
+	}
+	interaction := page.GetByTestId("downstream-startup-interaction").First()
+	if err := interaction.WaitFor(playwright.LocatorWaitForOptions{
+		Timeout: playwright.Float(180000),
+	}); err != nil {
+		t.Fatalf("wait for downstream interaction control: %v\n%s\n%s", err, describePage(page), diag.String())
+	}
+	if err := interaction.Click(); err != nil {
+		t.Fatalf("click downstream interaction control: %v\n%s\n%s", err, describePage(page), diag.String())
+	}
+	if err := page.GetByText("Startup interactions: 1").First().WaitFor(playwright.LocatorWaitForOptions{
+		Timeout: playwright.Float(30000),
+	}); err != nil {
+		t.Fatalf("wait for interaction state change: %v\n%s\n%s", err, describePage(page), diag.String())
+	}
+	select {
+	case err := <-blockedManifest.completed:
+		t.Fatalf("irrelevant Manifest completed before interaction state changed: %v", err)
+	default:
+		t.Log("event_order=2 interactive_click_state_changed state=\"Startup interactions: 1\" irrelevant_manifest_completed=false")
+	}
+
+	blockedManifest.Release()
+	t.Logf("event_order=3 irrelevant_manifest_released plugin=%s", irrelevantPluginID)
+	completedCtx, cancelCompleted := context.WithTimeout(ctx, 30*time.Second)
+	select {
+	case err := <-blockedManifest.completed:
+		if err != nil {
+			t.Fatalf("irrelevant Manifest completed with error: %v", err)
+		}
+		t.Logf("event_order=4 irrelevant_manifest_completed plugin=%s", irrelevantPluginID)
+	case <-completedCtx.Done():
+		cancelCompleted()
+		t.Fatalf("wait for irrelevant manifest resolver completion: %v", completedCtx.Err())
+	}
+	cancelCompleted()
+}
+
 type sdkAppProbe struct {
 	SDKAppImport          bool
 	CatalogComponentIDs   []string

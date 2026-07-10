@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	cb_controller "github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -60,9 +61,11 @@ type Harness struct {
 	devtool *devtool.DevtoolBus
 	ref     directive.Reference
 
-	projConfig    *bldr_project.ProjectConfig
-	manifestRefs  []directive.Reference
-	manifestWaits []manifestWait
+	projConfig                       *bldr_project.ProjectConfig
+	manifestRefs                     []directive.Reference
+	manifestWaits                    []manifestWait
+	blockedManifestPreflight         *blockingManifestPreflight
+	blockedManifestControllerRelease func()
 
 	baseURL      string
 	done         chan struct{}
@@ -73,6 +76,11 @@ type Harness struct {
 	bootTime     time.Duration
 	manifestWait time.Duration
 	workerMode   WorkerMode
+}
+
+type bootConfig struct {
+	minifyEntrypoint         bool
+	blockedManifestPreflight *blockingManifestPreflight
 }
 
 func ResolveBrowserCompiler() (BrowserCompiler, error) {
@@ -103,7 +111,11 @@ func ResolveWorkerMode() (WorkerMode, error) {
 	}
 }
 
-func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
+func Boot(ctx context.Context, le *logrus.Entry) (*Harness, error) {
+	return boot(ctx, le, bootConfig{})
+}
+
+func boot(ctx context.Context, le *logrus.Entry, config bootConfig) (_ *Harness, retErr error) {
 	repoRoot, err := gitroot.FindRepoRoot()
 	if err != nil {
 		return nil, errors.Wrap(err, "find repo root")
@@ -132,13 +144,13 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 	started := time.Now()
 	hctx, cancel := context.WithCancel(ctx)
 	h := &Harness{
-		ctx:          hctx,
-		cancel:       cancel,
-		le:           le,
-		done:         make(chan struct{}),
-		restore:      restore,
-		manifestWait: defaultManifestBuildTimeout,
-		workerMode:   workerMode,
+		ctx:                      hctx,
+		cancel:                   cancel,
+		le:                       le,
+		restore:                  restore,
+		manifestWait:             defaultManifestBuildTimeout,
+		workerMode:               workerMode,
+		blockedManifestPreflight: config.blockedManifestPreflight,
 	}
 	defer func() {
 		if retErr != nil {
@@ -186,6 +198,14 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 	}
 	h.ref = ref
 
+	if config.blockedManifestPreflight != nil {
+		releaseController, err := d.GetBus().AddController(hctx, config.blockedManifestPreflight, nil)
+		if err != nil {
+			return nil, errors.Wrap(err, "start blocking manifest controller")
+		}
+		h.blockedManifestControllerRelease = releaseController
+	}
+
 	port, err := findFreePort()
 	if err != nil {
 		return nil, errors.Wrap(err, "find free port")
@@ -194,16 +214,22 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 	h.baseURL = "http://" + addr
 
 	webStartupSrcPath, _ := projConfig.GetStart().ParseWebStartupPath()
+	startupManifestPreflights := devtool.ProjectOwnedStartupManifestPreflights(projConfig, "web/js/wasm")
+	if config.blockedManifestPreflight != nil {
+		startupManifestPreflights = append(startupManifestPreflights, config.blockedManifestPreflight.preflight())
+	}
+
+	h.done = make(chan struct{})
 	go func() {
 		h.runErr = d.ExecuteWebWasm(
 			hctx,
 			repoRoot,
-			false,
+			config.minifyEntrypoint,
 			true,
 			addr,
 			projConfig.GetId(),
 			projConfig.GetStart().GetPlugins(),
-			devtool.ProjectOwnedStartupManifestPreflights(projConfig, "web/js/wasm"),
+			startupManifestPreflights,
 			webStartupSrcPath,
 			workerMode == WorkerModeDedicated,
 		)
@@ -311,6 +337,107 @@ func enableBrowserReleaseAutoStart(entryDir string) error {
 	data = descriptor.MarshalTo(nil)
 	data = append(data, '\n')
 	return os.WriteFile(descriptorPath, data, 0o644)
+}
+
+type blockingManifestPreflight struct {
+	pluginID    string
+	platformIDs []string
+	started     chan struct{}
+	release     chan struct{}
+	completed   chan error
+
+	startOnce    sync.Once
+	releaseOnce  sync.Once
+	completeOnce sync.Once
+}
+
+func newBlockingManifestPreflight(pluginID string, platformIDs []string) *blockingManifestPreflight {
+	return &blockingManifestPreflight{
+		pluginID:    pluginID,
+		platformIDs: platformIDs,
+		started:     make(chan struct{}),
+		release:     make(chan struct{}),
+		completed:   make(chan error, 1),
+	}
+}
+
+func (p *blockingManifestPreflight) preflight() devtool.StartupManifestPreflight {
+	return devtool.StartupManifestPreflight{
+		PluginID:    p.pluginID,
+		PlatformIDs: p.platformIDs,
+	}
+}
+
+func (p *blockingManifestPreflight) GetControllerInfo() *cb_controller.Info {
+	return cb_controller.NewInfo(
+		"bldr/e2e/downstreamapp/blocking-manifest-preflight",
+		cb_controller.MustParseVersion("0.0.1"),
+		"blocks one synthetic manifest preflight",
+	)
+}
+
+func (p *blockingManifestPreflight) Execute(context.Context) error {
+	return nil
+}
+
+func (p *blockingManifestPreflight) HandleDirective(
+	_ context.Context,
+	di directive.Instance,
+) ([]directive.Resolver, error) {
+	fetch, ok := di.GetDirective().(bldr_manifest.FetchManifest)
+	if !ok || fetch.GetManifestId() != p.pluginID {
+		return nil, nil
+	}
+	di.AddIdleCallback(p.handleIdle)
+	return directive.R(directive.NewFuncResolver(p.resolve), nil)
+}
+
+func (p *blockingManifestPreflight) resolve(
+	ctx context.Context,
+	_ directive.ResolverHandler,
+) error {
+	p.startOnce.Do(func() {
+		close(p.started)
+	})
+	select {
+	case <-p.release:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (p *blockingManifestPreflight) handleIdle(isIdle bool, errs []error) {
+	if !isIdle {
+		return
+	}
+	select {
+	case <-p.release:
+	default:
+		return
+	}
+
+	var completionErr error
+	for _, err := range errs {
+		if err != nil {
+			completionErr = err
+			break
+		}
+	}
+	p.completeOnce.Do(func() {
+		p.completed <- completionErr
+		close(p.completed)
+	})
+}
+
+func (p *blockingManifestPreflight) Release() {
+	p.releaseOnce.Do(func() {
+		close(p.release)
+	})
+}
+
+func (p *blockingManifestPreflight) Close() error {
+	return nil
 }
 
 type manifestFetchRequest struct {
@@ -546,6 +673,9 @@ func (h *Harness) BaseURL() string { return h.baseURL }
 func (h *Harness) BootTime() time.Duration { return h.bootTime }
 
 func (h *Harness) Release() {
+	if h.blockedManifestPreflight != nil {
+		h.blockedManifestPreflight.Release()
+	}
 	if h.browser != nil {
 		_ = h.browser.Close()
 	}
@@ -559,6 +689,9 @@ func (h *Harness) Release() {
 		<-h.done
 	}
 	h.releaseManifestFetches()
+	if h.blockedManifestControllerRelease != nil {
+		h.blockedManifestControllerRelease()
+	}
 	if h.ref != nil {
 		h.ref.Release()
 	}
@@ -569,3 +702,6 @@ func (h *Harness) Release() {
 		h.restore()
 	}
 }
+
+// _ is a type assertion
+var _ cb_controller.Controller = (*blockingManifestPreflight)(nil)
