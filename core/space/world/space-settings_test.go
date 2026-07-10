@@ -8,7 +8,10 @@ import (
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	world_types "github.com/s4wave/spacewave/db/world/types"
+	s4wave_canvas_world "github.com/s4wave/spacewave/sdk/canvas/world"
 	s4wave_command "github.com/s4wave/spacewave/sdk/command"
+	s4wave_layout_world "github.com/s4wave/spacewave/sdk/layout/world"
 )
 
 // TestLookupSpaceSettingsMissing checks missing settings return nil without error.
@@ -116,5 +119,104 @@ func TestSetSpaceSettingsKeybindingOverridesPreservesSettingsFields(t *testing.T
 	}
 	if bindings := overrides[0].GetBindings(); len(bindings) != 1 || bindings[0].GetId() != "palette-space" {
 		t.Fatalf("bindings = %#v", bindings)
+	}
+}
+
+// TestLookupSpaceIndexObjectTypeFollowsDurableObjectMetadata verifies index_path
+// resolves the selected root object's type, including through an object subpath.
+func TestLookupSpaceIndexObjectTypeFollowsDurableObjectMetadata(t *testing.T) {
+	ctx := context.Background()
+
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	indexObjects := []struct {
+		objectPath string
+		indexPath  string
+		typeID     string
+	}{
+		{objectPath: "canvas", indexPath: "canvas/-/nested/path", typeID: s4wave_canvas_world.CanvasTypeID},
+		{objectPath: "layout", indexPath: "layout", typeID: s4wave_layout_world.ObjectLayoutTypeID},
+	}
+	for _, indexObject := range indexObjects {
+		if _, err := tb.WorldState.CreateObject(ctx, indexObject.objectPath, nil); err != nil {
+			t.Fatalf("CreateObject(%q) failed: %v", indexObject.objectPath, err)
+		}
+		if err := world_types.SetObjectType(ctx, tb.WorldState, indexObject.objectPath, indexObject.typeID); err != nil {
+			t.Fatalf("SetObjectType(%q) failed: %v", indexObject.objectPath, err)
+		}
+	}
+
+	for i, indexObject := range indexObjects {
+		_, _, err := space_world_ops.SetSpaceSettings(
+			ctx,
+			tb.WorldState,
+			"",
+			"",
+			&space_world.SpaceSettings{IndexPath: indexObject.indexPath},
+			true,
+			time.Unix(int64(i+1), 0),
+		)
+		if err != nil {
+			t.Fatalf("SetSpaceSettings(%q) failed: %v", indexObject.indexPath, err)
+		}
+
+		got, err := space_world.LookupSpaceIndexObjectType(ctx, tb.WorldState)
+		if err != nil {
+			t.Fatalf("LookupSpaceIndexObjectType(%q) failed: %v", indexObject.indexPath, err)
+		}
+		if got != indexObject.typeID {
+			t.Fatalf("LookupSpaceIndexObjectType(%q) = %q, want %q", indexObject.indexPath, got, indexObject.typeID)
+		}
+	}
+}
+
+// TestLookupSpaceIndexObjectTypeReturnsEmptyWithoutDurableIndexMetadata verifies
+// incomplete or stale Space settings do not invent a semantic object type.
+func TestLookupSpaceIndexObjectTypeReturnsEmptyWithoutDurableIndexMetadata(t *testing.T) {
+	tests := []struct {
+		name     string
+		settings *space_world.SpaceSettings
+	}{
+		{name: "missing settings"},
+		{name: "empty index path", settings: &space_world.SpaceSettings{}},
+		{name: "stale index path", settings: &space_world.SpaceSettings{IndexPath: "/missing"}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			tb, err := world_testbed.Default(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tb.Release()
+
+			if test.settings != nil {
+				_, _, err := space_world_ops.SetSpaceSettings(
+					ctx,
+					tb.WorldState,
+					"",
+					"",
+					test.settings,
+					true,
+					time.Unix(1, 0),
+				)
+				if err != nil {
+					t.Fatalf("SetSpaceSettings failed: %v", err)
+				}
+			}
+
+			got, err := space_world.LookupSpaceIndexObjectType(ctx, tb.WorldState)
+			if err != nil {
+				t.Fatalf("LookupSpaceIndexObjectType failed: %v", err)
+			}
+			if got != "" {
+				t.Fatalf("LookupSpaceIndexObjectType = %q, want empty", got)
+			}
+		})
 	}
 }

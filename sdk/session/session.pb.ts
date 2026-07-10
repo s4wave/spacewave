@@ -523,13 +523,28 @@ export const GetSessionInfoResponse: MessageType<GetSessionInfoResponse> =
  *
  * @generated from message s4wave.session.WatchResourcesListRequest
  */
-export interface WatchResourcesListRequest {}
+export interface WatchResourcesListRequest {
+  /**
+   * IncludeIndexObjectTypes enables durable Space index ObjectType projection.
+   *
+   * @generated from field: bool include_index_object_types = 1;
+   */
+  includeIndexObjectTypes?: boolean
+}
 
 export const WatchResourcesListRequest: MessageType<WatchResourcesListRequest> =
-  /* @__PURE__ */ createEmptyMessageType<WatchResourcesListRequest>(
-    's4wave.session.WatchResourcesListRequest',
-    true,
-  )
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.WatchResourcesListRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'include_index_object_types',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WatchResourcesListResponse is the response type for WatchResourcesList.

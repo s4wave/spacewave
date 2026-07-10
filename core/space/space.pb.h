@@ -414,9 +414,25 @@ class SpaceSoListEntry final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
+    kIndexObjectTypeFieldNumber = 3,
     kEntryFieldNumber = 1,
     kSpaceMetaFieldNumber = 2,
   };
+  // string index_object_type = 3;
+  void clear_index_object_type() ;
+  const ::std::string& index_object_type() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_index_object_type(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_index_object_type();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_index_object_type();
+  void set_allocated_index_object_type(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_index_object_type() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_index_object_type(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_index_object_type();
+
+  public:
   // .sobject.SharedObjectListEntry entry = 1;
   bool has_entry() const;
   void clear_entry() ;
@@ -451,8 +467,8 @@ class SpaceSoListEntry final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   2, 0,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   2, 48,
                                    2>
       _table_;
 
@@ -473,6 +489,7 @@ class SpaceSoListEntry final : public ::google::protobuf::Message
         const SpaceSoListEntry& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr index_object_type_;
     ::sobject::SharedObjectListEntry* PROTOBUF_NULLABLE entry_;
     ::space::SpaceSoMeta* PROTOBUF_NULLABLE space_meta_;
     PROTOBUF_TSAN_DECLARE_MEMBER
@@ -570,7 +587,7 @@ inline void SpaceSoMeta::set_allocated_name(::std::string* PROTOBUF_NULLABLE val
 
 // .sobject.SharedObjectListEntry entry = 1;
 inline bool SpaceSoListEntry::has_entry() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
   PROTOBUF_ASSUME(!value || _impl_.entry_ != nullptr);
   return value;
 }
@@ -591,16 +608,16 @@ inline void SpaceSoListEntry::unsafe_arena_set_allocated_entry(
   }
   _impl_.entry_ = reinterpret_cast<::sobject::SharedObjectListEntry*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:space.SpaceSoListEntry.entry)
 }
 inline ::sobject::SharedObjectListEntry* PROTOBUF_NULLABLE SpaceSoListEntry::release_entry() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::sobject::SharedObjectListEntry* released = _impl_.entry_;
   _impl_.entry_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -620,7 +637,7 @@ inline ::sobject::SharedObjectListEntry* PROTOBUF_NULLABLE SpaceSoListEntry::uns
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:space.SpaceSoListEntry.entry)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::sobject::SharedObjectListEntry* temp = _impl_.entry_;
   _impl_.entry_ = nullptr;
   return temp;
@@ -635,7 +652,7 @@ inline ::sobject::SharedObjectListEntry* PROTOBUF_NONNULL SpaceSoListEntry::_int
 }
 inline ::sobject::SharedObjectListEntry* PROTOBUF_NONNULL SpaceSoListEntry::mutable_entry()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::sobject::SharedObjectListEntry* _msg = _internal_mutable_entry();
   // @@protoc_insertion_point(field_mutable:space.SpaceSoListEntry.entry)
   return _msg;
@@ -652,9 +669,9 @@ inline void SpaceSoListEntry::set_allocated_entry(::sobject::SharedObjectListEnt
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
 
   _impl_.entry_ = reinterpret_cast<::sobject::SharedObjectListEntry*>(value);
@@ -663,7 +680,7 @@ inline void SpaceSoListEntry::set_allocated_entry(::sobject::SharedObjectListEnt
 
 // .space.SpaceSoMeta space_meta = 2;
 inline bool SpaceSoListEntry::has_space_meta() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
   PROTOBUF_ASSUME(!value || _impl_.space_meta_ != nullptr);
   return value;
 }
@@ -671,7 +688,7 @@ inline void SpaceSoListEntry::clear_space_meta() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.space_meta_ != nullptr) _impl_.space_meta_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 inline const ::space::SpaceSoMeta& SpaceSoListEntry::_internal_space_meta() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -690,16 +707,16 @@ inline void SpaceSoListEntry::unsafe_arena_set_allocated_space_meta(
   }
   _impl_.space_meta_ = reinterpret_cast<::space::SpaceSoMeta*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:space.SpaceSoListEntry.space_meta)
 }
 inline ::space::SpaceSoMeta* PROTOBUF_NULLABLE SpaceSoListEntry::release_space_meta() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::space::SpaceSoMeta* released = _impl_.space_meta_;
   _impl_.space_meta_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -719,7 +736,7 @@ inline ::space::SpaceSoMeta* PROTOBUF_NULLABLE SpaceSoListEntry::unsafe_arena_re
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:space.SpaceSoListEntry.space_meta)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::space::SpaceSoMeta* temp = _impl_.space_meta_;
   _impl_.space_meta_ = nullptr;
   return temp;
@@ -734,7 +751,7 @@ inline ::space::SpaceSoMeta* PROTOBUF_NONNULL SpaceSoListEntry::_internal_mutabl
 }
 inline ::space::SpaceSoMeta* PROTOBUF_NONNULL SpaceSoListEntry::mutable_space_meta()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::space::SpaceSoMeta* _msg = _internal_mutable_space_meta();
   // @@protoc_insertion_point(field_mutable:space.SpaceSoListEntry.space_meta)
   return _msg;
@@ -751,13 +768,78 @@ inline void SpaceSoListEntry::set_allocated_space_meta(::space::SpaceSoMeta* PRO
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
 
   _impl_.space_meta_ = reinterpret_cast<::space::SpaceSoMeta*>(value);
   // @@protoc_insertion_point(field_set_allocated:space.SpaceSoListEntry.space_meta)
+}
+
+// string index_object_type = 3;
+inline void SpaceSoListEntry::clear_index_object_type() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.index_object_type_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SpaceSoListEntry::index_object_type() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:space.SpaceSoListEntry.index_object_type)
+  return _internal_index_object_type();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SpaceSoListEntry::set_index_object_type(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.index_object_type_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:space.SpaceSoListEntry.index_object_type)
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceSoListEntry::mutable_index_object_type()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_index_object_type();
+  // @@protoc_insertion_point(field_mutable:space.SpaceSoListEntry.index_object_type)
+  return _s;
+}
+inline const ::std::string& SpaceSoListEntry::_internal_index_object_type() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.index_object_type_.Get();
+}
+inline void SpaceSoListEntry::_internal_set_index_object_type(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.index_object_type_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SpaceSoListEntry::_internal_mutable_index_object_type() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.index_object_type_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SpaceSoListEntry::release_index_object_type() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:space.SpaceSoListEntry.index_object_type)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.index_object_type_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.index_object_type_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SpaceSoListEntry::set_allocated_index_object_type(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.index_object_type_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.index_object_type_.IsDefault()) {
+    _impl_.index_object_type_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:space.SpaceSoListEntry.index_object_type)
 }
 
 #ifdef __GNUC__

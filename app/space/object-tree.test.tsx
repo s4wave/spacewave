@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
+import { LuBot, LuBox, LuGitBranch, LuPaintbrush } from 'react-icons/lu'
 import type { WorldContentsObject } from '@s4wave/core/space/world/world.pb.js'
 import {
   ObjectTypeVisibility,
@@ -11,6 +12,7 @@ import {
   HIDDEN_OBJECT_TYPES,
   getObjectTypeLabel,
   getObjectTypeIcon,
+  getObjectTypeIconComponent,
   getObjectDisplayName,
   isHiddenSpaceObject,
 } from '@s4wave/web/space/object-tree.js'
@@ -105,6 +107,23 @@ describe('getObjectTypeLabel', () => {
 
   it('returns Object for empty string', () => {
     expect(getObjectTypeLabel('')).toBe('Object')
+  })
+})
+
+describe('getObjectTypeIconComponent', () => {
+  it('prefers registered glyphs and keeps built-in and fallback glyphs distinct', () => {
+    const metadata = buildObjectTypeMetadataMap([
+      {
+        typeId: 'canvas',
+        registrationId: 1,
+        metadata: { iconName: 'bot' },
+      },
+    ])
+
+    expect(getObjectTypeIconComponent('canvas', metadata)).toBe(LuBot)
+    expect(getObjectTypeIconComponent('canvas')).toBe(LuPaintbrush)
+    expect(getObjectTypeIconComponent('git/repo')).toBe(LuGitBranch)
+    expect(getObjectTypeIconComponent('unknown/type')).toBe(LuBox)
   })
 })
 

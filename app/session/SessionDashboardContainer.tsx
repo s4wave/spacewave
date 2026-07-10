@@ -1,38 +1,38 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useWatchStateRpc } from '@aptre/bldr-react'
-import { toast } from '@s4wave/web/ui/toaster.js'
+import {
+  useResource,
+  useResourceValue,
+} from '@aptre/bldr-sdk/hooks/useResource.js'
+import { LuTriangleAlert } from 'react-icons/lu'
 
+import { useVisibleQuickstartOptions } from '@s4wave/app/quickstart/useQuickstartOptions.js'
+import { SelfEnrollmentGateState } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import {
   WatchResourcesListRequest,
   WatchResourcesListResponse,
 } from '@s4wave/sdk/session/session.pb.js'
-import { useNavigate } from '@s4wave/web/router/router.js'
-import { SessionContext } from '@s4wave/web/contexts/contexts.js'
+import {
+  SessionContext,
+  useSessionIndex,
+  useSessionNavigate,
+} from '@s4wave/web/contexts/contexts.js'
+import { SpacewaveOnboardingContext } from '@s4wave/web/contexts/SpacewaveOnboardingContext.js'
+import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListContext.js'
 import { useMountAccount } from '@s4wave/web/hooks/useMountAccount.js'
+import { useObjectTypeMetadata } from '@s4wave/web/hooks/useObjectTypeMetadata.js'
+import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
-import { SelfEnrollmentGateState } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
-import { useVisibleQuickstartOptions } from '@s4wave/app/quickstart/useQuickstartOptions.js'
+import { useNavigate } from '@s4wave/web/router/router.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
 
 import {
   type DashboardSpace,
   type DashboardOrg,
   SessionDashboard,
 } from './dashboard/SessionDashboard.js'
-import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListContext.js'
-import { SessionFrame } from './SessionFrame.js'
-import {
-  useResource,
-  useResourceValue,
-} from '@aptre/bldr-sdk/hooks/useResource.js'
-import { SpacewaveOnboardingContext } from '@s4wave/web/contexts/SpacewaveOnboardingContext.js'
-import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
-import {
-  useSessionIndex,
-  useSessionNavigate,
-} from '@s4wave/web/contexts/contexts.js'
-import { LuTriangleAlert } from 'react-icons/lu'
-
 import { LogoutConfirmDialog } from './LogoutConfirmDialog.js'
+import { SessionFrame } from './SessionFrame.js'
 
 // CDN_SPACE_DISPLAY_NAME is the label shown for the process-scoped CDN Space
 // on the session dashboard. The CDN SharedObject has no user-facing name;
@@ -58,10 +58,8 @@ export function SessionDashboardContainer() {
         session?.watchResourcesList(req, signal) ?? null,
       [session],
     ),
-    {},
-
+    { includeIndexObjectTypes: true },
     WatchResourcesListRequest.equals,
-
     WatchResourcesListResponse.equals,
   )
 
@@ -98,6 +96,7 @@ export function SessionDashboardContainer() {
   const accountResource = useMountAccount(providerId, accountId)
   const onboarding = SpacewaveOnboardingContext.useContextSafe()
   const rootResource = useRootResource()
+  const objectTypeMetadataById = useObjectTypeMetadata(rootResource)
 
   // cdnSpaceIdResource resolves the process-scoped default CDN Space ULID.
   // The Cdn handle is released on unmount via the cleanup register; the
@@ -128,6 +127,7 @@ export function SessionDashboardContainer() {
                 name: entry.spaceMeta?.name ?? 'Untitled',
                 orgId: spaceToOrg.get(id),
                 source: entry.entry?.source,
+                objectType: entry.indexObjectType || undefined,
               },
             ]
           : []
@@ -253,6 +253,7 @@ export function SessionDashboardContainer() {
         session={session ?? undefined}
         readOnly={isReadOnly}
         topStatus={selfEnrollmentStatus}
+        objectTypeMetadataById={objectTypeMetadataById}
       />
     </SessionFrame>
   )

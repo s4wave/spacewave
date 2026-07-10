@@ -39,6 +39,9 @@ pub struct SessionCryptoInfo {
 /// WatchResourcesListRequest is the request type for WatchResourcesList.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchResourcesListRequest {
+    /// IncludeIndexObjectTypes enables durable Space index ObjectType projection.
+    #[prost(bool, tag="1")]
+    pub include_index_object_types: bool,
 }
 /// WatchResourcesListResponse is the response type for WatchResourcesList.
 #[derive(Clone, PartialEq, ::prost::Message)]

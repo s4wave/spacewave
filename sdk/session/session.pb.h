@@ -1824,10 +1824,11 @@ class WatchSessionStateAtomsRequest final : public ::google::protobuf::internal:
 extern const ::google::protobuf::internal::ClassDataFull WatchSessionStateAtomsRequest_class_data_;
 // -------------------------------------------------------------------
 
-class WatchResourcesListRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+class WatchResourcesListRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.session.WatchResourcesListRequest) */ {
  public:
   inline WatchResourcesListRequest() : WatchResourcesListRequest(nullptr) {}
+  ~WatchResourcesListRequest() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
   void operator delete(WatchResourcesListRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
@@ -1897,21 +1898,48 @@ class WatchResourcesListRequest final : public ::google::protobuf::internal::Zer
   // implements Message ----------------------------------------------
 
   WatchResourcesListRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<WatchResourcesListRequest>(arena);
+    return ::google::protobuf::Message::DefaultConstruct<WatchResourcesListRequest>(arena);
   }
-  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
-  inline void CopyFrom(const WatchResourcesListRequest& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
-  }
-  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
-  void MergeFrom(const WatchResourcesListRequest& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
-  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const WatchResourcesListRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const WatchResourcesListRequest& from) { WatchResourcesListRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
 
   public:
   bool IsInitialized() const {
     return true;
   }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(WatchResourcesListRequest* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
@@ -1937,11 +1965,24 @@ class WatchResourcesListRequest final : public ::google::protobuf::internal::Zer
   // nested types ----------------------------------------------------
 
   // accessors -------------------------------------------------------
+  enum : int {
+    kIncludeIndexObjectTypesFieldNumber = 1,
+  };
+  // bool include_index_object_types = 1;
+  void clear_include_index_object_types() ;
+  bool include_index_object_types() const;
+  void set_include_index_object_types(bool value);
+
+  private:
+  bool _internal_include_index_object_types() const;
+  void _internal_set_include_index_object_types(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.session.WatchResourcesListRequest)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 0,
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
                                    0, 0,
                                    2>
       _table_;
@@ -1952,6 +1993,21 @@ class WatchResourcesListRequest final : public ::google::protobuf::internal::Zer
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const WatchResourcesListRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    bool include_index_object_types_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto;
 };
 
@@ -16328,6 +16384,31 @@ inline void SessionCryptoInfo::set_allocated_public_key_pem(::std::string* PROTO
 // -------------------------------------------------------------------
 
 // WatchResourcesListRequest
+
+// bool include_index_object_types = 1;
+inline void WatchResourcesListRequest::clear_include_index_object_types() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.include_index_object_types_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline bool WatchResourcesListRequest::include_index_object_types() const {
+  // @@protoc_insertion_point(field_get:s4wave.session.WatchResourcesListRequest.include_index_object_types)
+  return _internal_include_index_object_types();
+}
+inline void WatchResourcesListRequest::set_include_index_object_types(bool value) {
+  _internal_set_include_index_object_types(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:s4wave.session.WatchResourcesListRequest.include_index_object_types)
+}
+inline bool WatchResourcesListRequest::_internal_include_index_object_types() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.include_index_object_types_;
+}
+inline void WatchResourcesListRequest::_internal_set_include_index_object_types(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.include_index_object_types_ = value;
+}
 
 // -------------------------------------------------------------------
 

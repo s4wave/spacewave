@@ -29,9 +29,11 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
 	"github.com/s4wave/spacewave/core/space"
+	space_world "github.com/s4wave/spacewave/core/space/world"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/volume"
 	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	"github.com/s4wave/spacewave/db/world"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/util/confparse"
 	s4wave_session "github.com/s4wave/spacewave/sdk/session"
@@ -407,7 +409,6 @@ func (r *SessionResource) WatchResourcesList(
 	req *s4wave_session.WatchResourcesListRequest,
 	strm s4wave_session.SRPCSessionResourceService_WatchResourcesListStream,
 ) error {
-	// get the shared object list container
 	ctx, ctxCancel := context.WithCancel(strm.Context())
 	defer ctxCancel()
 
@@ -429,34 +430,136 @@ func (r *SessionResource) WatchResourcesList(
 		}
 	}
 
-	// watch the shared object list, find the matching value, write the response.
-	return ccontainer.WatchChanges(
-		ctx,
-		nil,
-		soListWatchable,
-		func(soList *sobject.SharedObjectList) error {
-			// wait for list to be present
-			if soList == nil {
-				return nil
-			}
+	listCh := make(chan *sobject.SharedObjectList)
+	listErrCh := make(chan error, 1)
+	projectionCh := make(chan resourcesListProjectionEvent)
+	workers := make(map[string]resourcesListProjectionWorker)
+	objectTypes := make(map[string]string)
+	var workerGeneration uint64
+	var wg sync.WaitGroup
 
-			// match spaces
+	wg.Go(func() {
+		var current *sobject.SharedObjectList
+		for {
+			next, err := soListWatchable.WaitValueChange(ctx, current, nil)
+			if err != nil {
+				select {
+				case listErrCh <- err:
+				case <-ctx.Done():
+				}
+				return
+			}
+			current = next
+			select {
+			case listCh <- next:
+			case <-ctx.Done():
+				return
+			}
+		}
+	})
+	defer func() {
+		ctxCancel()
+		for _, worker := range workers {
+			worker.cancel()
+		}
+		wg.Wait()
+	}()
+
+	var currentList []*space.SpaceSoListEntry
+	pendingInitial := make(map[string]uint64)
+	initialProjectionChanged := false
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-listErrCh:
+			return err
+		case soList := <-listCh:
 			list, err := space.FilterSharedObjectList(soList.GetSharedObjects(), func(ent *sobject.SharedObjectListEntry, err error) error {
 				return nil
 			})
 			if err != nil {
 				return err
 			}
+			currentList = filterOutCdnSpace(list)
 
-			// Drop the well-known CDN Space from the resource list; it is
-			// mounted by ID via MountSharedObject(cdn.SpaceID()) and must not
-			// appear as an ordinary Space in the UI.
-			list = filterOutCdnSpace(list)
+			for _, worker := range workers {
+				worker.cancel()
+			}
+			clear(workers)
+			clear(pendingInitial)
+			initialProjectionChanged = false
 
-			return strm.Send(&s4wave_session.WatchResourcesListResponse{SpacesList: list})
-		},
-		nil,
-	)
+			if req.GetIncludeIndexObjectTypes() {
+				present := make(map[string]struct{}, len(currentList))
+				for _, entry := range currentList {
+					ref := entry.GetEntry().GetRef()
+					id := ref.GetProviderResourceRef().GetId()
+					if id == "" || ref == nil {
+						continue
+					}
+					present[id] = struct{}{}
+					workerGeneration++
+					workerCtx, workerCancel := context.WithCancel(ctx)
+					workers[id] = resourcesListProjectionWorker{
+						cancel:     workerCancel,
+						generation: workerGeneration,
+					}
+					pendingInitial[id] = workerGeneration
+					wg.Add(1)
+					go r.watchSpaceIndexObjectType(
+						workerCtx,
+						ref.CloneVT(),
+						id,
+						workerGeneration,
+						projectionCh,
+						&wg,
+					)
+				}
+				for id := range objectTypes {
+					if _, ok := present[id]; !ok {
+						delete(objectTypes, id)
+					}
+				}
+			}
+
+			if err := sendResourcesList(strm, currentList, objectTypes); err != nil {
+				return err
+			}
+		case projection := <-projectionCh:
+			worker, ok := workers[projection.id]
+			if !ok || worker.generation != projection.generation {
+				continue
+			}
+			changed := objectTypes[projection.id] != projection.objectType
+			if projection.initial {
+				if pendingInitial[projection.id] != projection.generation {
+					continue
+				}
+				delete(pendingInitial, projection.id)
+				if changed {
+					objectTypes[projection.id] = projection.objectType
+					initialProjectionChanged = true
+				}
+				if len(pendingInitial) != 0 || !initialProjectionChanged {
+					continue
+				}
+				initialProjectionChanged = false
+			} else {
+				if !changed {
+					continue
+				}
+				objectTypes[projection.id] = projection.objectType
+				if len(pendingInitial) != 0 {
+					initialProjectionChanged = true
+					continue
+				}
+			}
+			if err := sendResourcesList(strm, currentList, objectTypes); err != nil {
+				return err
+			}
+		}
+	}
 }
 
 // filterOutCdnSpace removes any SpaceSoListEntry whose block_store_id matches
@@ -473,6 +576,129 @@ func filterOutCdnSpace(list []*space.SpaceSoListEntry) []*space.SpaceSoListEntry
 		out = append(out, ent)
 	}
 	return out
+}
+
+type resourcesListProjectionEvent struct {
+	id         string
+	generation uint64
+	objectType string
+	initial    bool
+}
+
+type resourcesListProjectionWorker struct {
+	cancel     context.CancelFunc
+	generation uint64
+}
+
+func (r *SessionResource) watchSpaceIndexObjectType(
+	ctx context.Context,
+	ref *sobject.SharedObjectRef,
+	id string,
+	generation uint64,
+	events chan<- resourcesListProjectionEvent,
+	wg *sync.WaitGroup,
+) {
+	defer wg.Done()
+
+	sendProjection := func(initial bool, objectType string) bool {
+		select {
+		case events <- resourcesListProjectionEvent{
+			id:         id,
+			generation: generation,
+			objectType: objectType,
+			initial:    initial,
+		}:
+			return true
+		case <-ctx.Done():
+			return false
+		}
+	}
+
+	mountedSpace, mountedSpaceRef, err := space.ExMountSpaceSoBody(ctx, r.b, ref, true, nil)
+	if err != nil {
+		if !errors.Is(err, context.Canceled) {
+			r.le.WithError(err).WithField("space-id", id).Warn("failed to project Space index ObjectType")
+			sendProjection(true, "")
+		}
+		return
+	}
+	// A returnIfIdle miss is generic in the prompt batch; the blocking mount
+	// below reports the durable type as a later live update.
+	initialPending := true
+	if mountedSpace == nil {
+		if !sendProjection(true, "") {
+			return
+		}
+		initialPending = false
+		mountedSpace, mountedSpaceRef, err = space.ExMountSpaceSoBody(ctx, r.b, ref, false, nil)
+		if err != nil {
+			if !errors.Is(err, context.Canceled) {
+				r.le.WithError(err).WithField("space-id", id).Warn("failed to project Space index ObjectType")
+			}
+			return
+		}
+	}
+	defer mountedSpaceRef.Release()
+
+	engine := mountedSpace.GetSharedObjectBody().GetWorldEngine()
+	var previous string
+	first := true
+	for {
+		objectType, seqno, err := readSpaceIndexObjectType(ctx, engine)
+		if err != nil {
+			if !errors.Is(err, context.Canceled) {
+				r.le.WithError(err).WithField("space-id", id).Warn("failed to read Space index ObjectType")
+				if initialPending {
+					sendProjection(true, "")
+				}
+			}
+			return
+		}
+		if first || objectType != previous {
+			if !sendProjection(initialPending, objectType) {
+				return
+			}
+			initialPending = false
+			first = false
+			previous = objectType
+		}
+		if _, err := engine.WaitSeqno(ctx, seqno+1); err != nil {
+			if !errors.Is(err, context.Canceled) {
+				r.le.WithError(err).WithField("space-id", id).Warn("failed to watch Space index ObjectType")
+			}
+			return
+		}
+	}
+}
+
+func readSpaceIndexObjectType(ctx context.Context, engine world.Engine) (string, uint64, error) {
+	tx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		return "", 0, err
+	}
+	defer tx.Discard()
+
+	seqno, err := tx.GetSeqno(ctx)
+	if err != nil {
+		return "", 0, err
+	}
+	objectType, err := space_world.LookupSpaceIndexObjectType(ctx, tx)
+	if err != nil {
+		return "", 0, err
+	}
+	return objectType, seqno, nil
+}
+
+func sendResourcesList(
+	strm s4wave_session.SRPCSessionResourceService_WatchResourcesListStream,
+	list []*space.SpaceSoListEntry,
+	objectTypes map[string]string,
+) error {
+	for _, entry := range list {
+		id := entry.GetEntry().GetRef().GetProviderResourceRef().GetId()
+		entry.IndexObjectType = objectTypes[id]
+	}
+	return strm.Send(&s4wave_session.WatchResourcesListResponse{SpacesList: list})
 }
 
 // MountSharedObject mounts a shared object within the session by ID.

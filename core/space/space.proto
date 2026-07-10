@@ -15,4 +15,6 @@ message SpaceSoListEntry {
   .sobject.SharedObjectListEntry entry = 1;
   // SpaceMeta is the space shared object meta.
   SpaceSoMeta space_meta = 2;
+  // IndexObjectType is the semantic ObjectType of the object selected by SpaceSettings.index_path.
+  string index_object_type = 3;
 }

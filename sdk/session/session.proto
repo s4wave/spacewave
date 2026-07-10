@@ -78,7 +78,10 @@ message SessionCryptoInfo {
 }
 
 // WatchResourcesListRequest is the request type for WatchResourcesList.
-message WatchResourcesListRequest {}
+message WatchResourcesListRequest {
+  // IncludeIndexObjectTypes enables durable Space index ObjectType projection.
+  bool include_index_object_types = 1;
+}
 
 // WatchResourcesListResponse is the response type for WatchResourcesList.
 message WatchResourcesListResponse {

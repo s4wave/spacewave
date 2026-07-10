@@ -51,6 +51,12 @@ export interface SpaceSoListEntry {
    * @generated from field: space.SpaceSoMeta space_meta = 2;
    */
   spaceMeta?: SpaceSoMeta
+  /**
+   * IndexObjectType is the semantic ObjectType of the object selected by SpaceSettings.index_path.
+   *
+   * @generated from field: string index_object_type = 3;
+   */
+  indexObjectType?: string
 }
 
 export const SpaceSoListEntry: MessageType<SpaceSoListEntry> =
@@ -59,6 +65,12 @@ export const SpaceSoListEntry: MessageType<SpaceSoListEntry> =
     fields: [
       { no: 1, name: 'entry', kind: 'message', T: () => SharedObjectListEntry },
       { no: 2, name: 'space_meta', kind: 'message', T: () => SpaceSoMeta },
+      {
+        no: 3,
+        name: 'index_object_type',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

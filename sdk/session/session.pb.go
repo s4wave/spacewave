@@ -444,6 +444,8 @@ func (x *SessionCryptoInfo) GetPublicKeyPem() string {
 // WatchResourcesListRequest is the request type for WatchResourcesList.
 type WatchResourcesListRequest struct {
 	unknownFields []byte
+	// IncludeIndexObjectTypes enables durable Space index ObjectType projection.
+	IncludeIndexObjectTypes bool `protobuf:"varint,1,opt,name=include_index_object_types,json=includeIndexObjectTypes,proto3" json:"includeIndexObjectTypes,omitempty"`
 }
 
 func (x *WatchResourcesListRequest) Reset() {
@@ -451,6 +453,13 @@ func (x *WatchResourcesListRequest) Reset() {
 }
 
 func (*WatchResourcesListRequest) ProtoMessage() {}
+
+func (x *WatchResourcesListRequest) GetIncludeIndexObjectTypes() bool {
+	if x != nil {
+		return x.IncludeIndexObjectTypes
+	}
+	return false
+}
 
 // WatchResourcesListResponse is the response type for WatchResourcesList.
 type WatchResourcesListResponse struct {
@@ -2640,6 +2649,7 @@ func (m *WatchResourcesListRequest) CloneVT() *WatchResourcesListRequest {
 		return (*WatchResourcesListRequest)(nil)
 	}
 	r := new(WatchResourcesListRequest)
+	r.IncludeIndexObjectTypes = m.IncludeIndexObjectTypes
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3997,6 +4007,9 @@ func (this *WatchResourcesListRequest) EqualVT(that *WatchResourcesListRequest) 
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
+		return false
+	}
+	if this.IncludeIndexObjectTypes != that.IncludeIndexObjectTypes {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6131,6 +6144,12 @@ func (x *WatchResourcesListRequest) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.IncludeIndexObjectTypes || s.HasField("includeIndexObjectTypes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("includeIndexObjectTypes")
+		s.WriteBool(x.IncludeIndexObjectTypes)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -6145,7 +6164,13 @@ func (x *WatchResourcesListRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "include_index_object_types", "includeIndexObjectTypes":
+			s.AddField("include_index_object_types")
+			x.IncludeIndexObjectTypes = s.ReadBool()
+		}
 	})
 }
 
@@ -10096,6 +10121,11 @@ func (m *WatchResourcesListRequest) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.IncludeIndexObjectTypes {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.IncludeIndexObjectTypes)
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -13442,6 +13472,7 @@ func (m *WatchResourcesListRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.IncludeIndexObjectTypes)
 	n += len(m.unknownFields)
 	return n
 }
@@ -14475,7 +14506,11 @@ func (x *SessionCryptoInfo) String() string {
 
 func (x *WatchResourcesListRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "WatchResourcesListRequest")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchResourcesListRequest")
+	if x.IncludeIndexObjectTypes != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "include_index_object_types")
+		protobuf_go_lite.TextWriteBool(&sb, x.IncludeIndexObjectTypes)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -16102,6 +16137,16 @@ func (m *WatchResourcesListRequest) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: WatchResourcesListRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IncludeIndexObjectTypes", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.IncludeIndexObjectTypes = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

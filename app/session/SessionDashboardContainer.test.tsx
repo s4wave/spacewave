@@ -117,7 +117,13 @@ function getRenderedSpaces() {
 function getRenderedDashboardProps() {
   return renderedDashboard.mock.calls[0]?.[0] as
     | {
-        spaces?: Array<{ id: string; name: string; orgId?: string }>
+        spaces?: Array<{
+          id: string
+          name: string
+          orgId?: string
+          source?: string
+          objectType?: string
+        }>
         topStatus?: string
       }
     | undefined
@@ -223,6 +229,66 @@ describe('SessionDashboardContainer', () => {
     )
     expect(mockNavigate).not.toHaveBeenCalled()
     expect(mockUseSessionNavigate).not.toHaveBeenCalled()
+  })
+
+  it('maps each watched space index ObjectType into its dashboard row', () => {
+    mockUseWatchStateRpc.mockReturnValue({
+      spacesList: [
+        {
+          entry: {
+            ref: { providerResourceRef: { id: 'space-canvas' } },
+            source: 'created',
+          },
+          spaceMeta: { name: 'Canvas Space' },
+          indexObjectType: 'canvas',
+        },
+        {
+          entry: {
+            ref: { providerResourceRef: { id: 'space-repo' } },
+            source: 'shared',
+          },
+          spaceMeta: { name: 'Repository Space' },
+          indexObjectType: 'git/repo',
+        },
+        {
+          entry: {
+            ref: { providerResourceRef: { id: 'space-generic' } },
+            source: 'created',
+          },
+          spaceMeta: { name: 'Generic Space' },
+        },
+      ],
+    })
+
+    render(<SessionDashboardContainer />)
+
+    expect(
+      getRenderedSpaces().map(({ id, name, source, objectType }) => ({
+        id,
+        name,
+        source,
+        objectType,
+      })),
+    ).toEqual([
+      {
+        id: 'space-canvas',
+        name: 'Canvas Space',
+        source: 'created',
+        objectType: 'canvas',
+      },
+      {
+        id: 'space-repo',
+        name: 'Repository Space',
+        source: 'shared',
+        objectType: 'git/repo',
+      },
+      {
+        id: 'space-generic',
+        name: 'Generic Space',
+        source: 'created',
+        objectType: undefined,
+      },
+    ])
   })
 
   it('injects the CDN space under the owning org group', () => {

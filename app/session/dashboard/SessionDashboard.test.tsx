@@ -1,11 +1,19 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ObjectTypeRegistration } from '@s4wave/sdk/objecttype/registry/registry.pb.js'
 
 const mockNavigate = vi.hoisted(() => vi.fn())
 const mockUseVisibleQuickstartOptions = vi.hoisted(() => vi.fn())
 const mockSetOpenMenu = vi.hoisted(() => vi.fn())
 const mockSetStateAtom = vi.hoisted(() => vi.fn())
 const mockOpenPathInNewTab = vi.hoisted(() => vi.fn())
+const mockGetObjectTypeIconComponent = vi.hoisted(() => vi.fn())
 const mockClipboard = {
   writeText: vi.fn().mockResolvedValue(undefined),
 }
@@ -72,6 +80,26 @@ vi.mock('@s4wave/app/landing/AnimatedLogo.js', () => ({
 vi.mock('@s4wave/web/ui/loading/LoadingInline.js', () => ({
   LoadingInline: ({ label }: { label: string }) => <span>{label}</span>,
 }))
+vi.mock('react-icons/lu', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>()
+  return {
+    ...actual,
+    LuLayers: ({ className }: { className?: string }) => (
+      <svg className={className} role="img" aria-label="generic Space glyph" />
+    ),
+  }
+})
+
+vi.mock('@s4wave/web/space/object-tree.js', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>()
+  return {
+    ...actual,
+    getObjectTypeIconComponent: mockGetObjectTypeIconComponent,
+  }
+})
+
+import { buildObjectTypeMetadataMap } from '@s4wave/web/space/object-tree.js'
+import type { ObjectTypeMetadataById } from '@s4wave/web/space/object-tree.js'
 
 import { SessionDashboard } from './SessionDashboard.js'
 
@@ -93,6 +121,7 @@ describe('SessionDashboard', () => {
     mockSetStateAtom.mockReset()
     mockOpenPathInNewTab.mockReset()
     mockUseVisibleQuickstartOptions.mockReset()
+    mockGetObjectTypeIconComponent.mockReset()
     Object.defineProperty(navigator, 'clipboard', {
       value: mockClipboard,
       writable: true,
@@ -243,6 +272,84 @@ describe('SessionDashboard', () => {
       expect(row).not.toBeNull()
       expect(row?.textContent).toContain(expectedSource)
     }
+  })
+
+  it('renders registered ObjectType glyphs and the generic Space fallback per row', () => {
+    const objectTypes: ObjectTypeRegistration[] = [
+      {
+        typeId: 'canvas',
+        registrationId: 1,
+        metadata: { iconName: 'paintbrush' },
+      },
+      {
+        typeId: 'git/repo',
+        registrationId: 2,
+        metadata: { iconName: 'git-branch' },
+      },
+    ]
+    const objectTypeMetadataById = buildObjectTypeMetadataMap(objectTypes)
+    mockGetObjectTypeIconComponent.mockImplementation(
+      (typeId: string, metadataById?: ObjectTypeMetadataById) => {
+        const glyphName = metadataById?.get(typeId)?.iconName ?? typeId
+        return function RegisteredObjectTypeGlyph({
+          className,
+        }: {
+          className?: string
+        }) {
+          return (
+            <svg
+              className={className}
+              role="img"
+              aria-label={`${glyphName} glyph`}
+            />
+          )
+        }
+      },
+    )
+
+    render(
+      <SessionDashboard
+        spaces={[
+          {
+            id: 'space-canvas',
+            name: 'Canvas Space',
+            source: 'created',
+            objectType: 'canvas',
+          },
+          {
+            id: 'space-repo',
+            name: 'Repository Space',
+            source: 'shared',
+            objectType: 'git/repo',
+          },
+          {
+            id: 'space-generic',
+            name: 'Generic Space',
+            source: 'created',
+          },
+        ]}
+        objectTypeMetadataById={objectTypeMetadataById}
+        onQuickstartClick={vi.fn()}
+      />,
+    )
+
+    const canvasRow = screen.getByText('Canvas Space').closest('[cmdk-item]')
+    const repositoryRow = screen
+      .getByText('Repository Space')
+      .closest('[cmdk-item]')
+    const genericRow = screen.getByText('Generic Space').closest('[cmdk-item]')
+    expect(canvasRow).not.toBeNull()
+    expect(repositoryRow).not.toBeNull()
+    expect(genericRow).not.toBeNull()
+    expect(
+      within(canvasRow!).getByRole('img', { name: 'paintbrush glyph' }),
+    ).toBeDefined()
+    expect(
+      within(repositoryRow!).getByRole('img', { name: 'git-branch glyph' }),
+    ).toBeDefined()
+    expect(
+      within(genericRow!).getByRole('img', { name: 'generic Space glyph' }),
+    ).toBeDefined()
   })
 
   it('keeps join actions available for read-only sessions without creation actions', () => {

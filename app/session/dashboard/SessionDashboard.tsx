@@ -20,9 +20,13 @@ import {
   LuLogIn,
   LuShieldCheck,
 } from 'react-icons/lu'
-import { toast } from '@s4wave/web/ui/toaster.js'
 import { isDesktop } from '@aptre/bldr'
+import {
+  useResourceValue,
+  type Resource,
+} from '@aptre/bldr-sdk/hooks/useResource.js'
 
+import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useNavLinks } from '@s4wave/app/nav-links.js'
 import { QuickstartCommands } from '@s4wave/app/quickstart/QuickstartCommands.js'
 import { useShellTabs } from '@s4wave/app/ShellTabContext.js'
@@ -31,8 +35,22 @@ import {
   type QuickstartOption,
 } from '@s4wave/app/quickstart/options.js'
 import { useVisibleQuickstartOptions } from '@s4wave/app/quickstart/useQuickstartOptions.js'
+import { useSessionOnboardingState } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
+import { SessionLockMode } from '@s4wave/core/session/session.pb.js'
+import type { Account } from '@s4wave/sdk/account/account.js'
+import type { Session } from '@s4wave/sdk/session/session.js'
 import { downloadPemFile } from '@s4wave/web/download.js'
+import { SessionContext } from '@s4wave/web/contexts/contexts.js'
+import { useBottomBarSetOpenMenu } from '@s4wave/web/frame/bottom-bar-context.js'
+import { useNavigate } from '@s4wave/web/router/router.js'
+import {
+  getObjectTypeIconComponent,
+  type ObjectTypeMetadataById,
+} from '@s4wave/web/space/object-tree.js'
+import { useStateAtom, useStateNamespace } from '@s4wave/web/state/persist.js'
 import { cn } from '@s4wave/web/style/utils.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
+import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 import {
   Command,
   CommandEmpty,
@@ -42,28 +60,15 @@ import {
   CommandList,
   CommandSeparator,
 } from '@s4wave/web/ui/command.js'
-import { useNavigate } from '@s4wave/web/router/router.js'
-import { SessionContext } from '@s4wave/web/contexts/contexts.js'
-import { useBottomBarSetOpenMenu } from '@s4wave/web/frame/bottom-bar-context.js'
-import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { RadioOption } from '@s4wave/web/ui/RadioOption.js'
-import { useSessionOnboardingState } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
-import { useStateAtom, useStateNamespace } from '@s4wave/web/state/persist.js'
-import { SessionLockMode } from '@s4wave/core/session/session.pb.js'
-import {
-  useResourceValue,
-  type Resource,
-} from '@aptre/bldr-sdk/hooks/useResource.js'
-import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
-import type { Account } from '@s4wave/sdk/account/account.js'
-import type { Session } from '@s4wave/sdk/session/session.js'
 
 export interface DashboardSpace {
   id: string
   name: string
   orgId?: string
   source?: string
+  objectType?: string
 }
 
 export interface DashboardOrg {
@@ -81,6 +86,7 @@ export interface SessionDashboardProps {
   accountResource?: Resource<Account | null>
   session?: Session
   topStatus?: string
+  objectTypeMetadataById?: ObjectTypeMetadataById
 }
 
 // SessionDashboard displays the main session dashboard page.
@@ -99,6 +105,7 @@ export function SessionDashboard({
   accountResource,
   session,
   topStatus,
+  objectTypeMetadataById,
 }: SessionDashboardProps) {
   const navigate = useNavigate()
   const isLoading = spaces === undefined
@@ -144,6 +151,7 @@ export function SessionDashboard({
             onSpaceClick={onSpaceClick}
             onQuickstartClick={onQuickstartClick}
             quickstartOptions={quickstartOptions}
+            objectTypeMetadataById={objectTypeMetadataById}
             isLoading={isLoading}
             isEmpty={isEmpty}
             canCreate={!readOnly}
@@ -641,6 +649,7 @@ function CreateOrgSection() {
 interface DashboardCommandPaletteProps {
   spaces: DashboardSpace[] | undefined
   orgs?: DashboardOrg[]
+  objectTypeMetadataById?: ObjectTypeMetadataById
   onSpaceClick?: (space: DashboardSpace) => void
   onQuickstartClick?: (quickstartId: string) => void
   quickstartOptions: QuickstartOption[]
@@ -652,6 +661,7 @@ interface DashboardCommandPaletteProps {
 function DashboardCommandPalette({
   spaces,
   orgs,
+  objectTypeMetadataById,
   onSpaceClick,
   onQuickstartClick,
   quickstartOptions,
@@ -866,7 +876,15 @@ function DashboardCommandPalette({
                   <DashboardItem
                     key={space.id}
                     value={`space-${space.name}-${space.id}`}
-                    icon={LuLayers}
+                    icon={
+                      space.objectType
+                        ? getObjectTypeIconComponent(
+                            space.objectType,
+                            objectTypeMetadataById,
+                            LuLayers,
+                          )
+                        : LuLayers
+                    }
                     iconTone="brand"
                     label={space.name}
                     sublabel={getSpaceSourceLabel(space.source)}
@@ -898,7 +916,15 @@ function DashboardCommandPalette({
                     <DashboardItem
                       key={space.id}
                       value={`space-${space.name}-${space.id}`}
-                      icon={LuLayers}
+                      icon={
+                        space.objectType
+                          ? getObjectTypeIconComponent(
+                              space.objectType,
+                              objectTypeMetadataById,
+                              LuLayers,
+                            )
+                          : LuLayers
+                      }
                       iconTone="brand"
                       label={space.name}
                       sublabel={getSpaceSourceLabel(space.source)}

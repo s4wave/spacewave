@@ -16,5 +16,8 @@ pub struct SpaceSoListEntry {
     /// SpaceMeta is the space shared object meta.
     #[prost(message, optional, tag="2")]
     pub space_meta: ::core::option::Option<SpaceSoMeta>,
+    /// IndexObjectType is the semantic ObjectType of the object selected by SpaceSettings.index_path.
+    #[prost(string, tag="3")]
+    pub index_object_type: ::prost::alloc::string::String,
 }
 // @@protoc_insertion_point(module)

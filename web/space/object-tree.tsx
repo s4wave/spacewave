@@ -23,6 +23,7 @@ import {
   LuTable,
   LuWrench,
 } from 'react-icons/lu'
+
 import {
   SPACE_SETTINGS_BLOCK_TYPE,
   SPACE_SETTINGS_OBJECT_KEY,
@@ -116,40 +117,49 @@ export function buildObjectTypeMetadataMap(
   return map
 }
 
+// getObjectTypeIconComponent returns the icon component for an ObjectType.
+export function getObjectTypeIconComponent(
+  typeId: string,
+  metadataById?: ObjectTypeMetadataById,
+  fallback: React.ComponentType<{ className?: string }> = LuBox,
+): React.ComponentType<{ className?: string }> {
+  const iconName = metadataById?.get(typeId)?.iconName?.trim()
+  if (iconName) return metadataIcons[iconName] ?? fallback
+
+  switch (typeId) {
+    case 'alpha/object-layout':
+      return LuLayoutGrid
+    case 'unixfs/fs-node':
+      return LuFile
+    case 'git/repo':
+    case 'git/worktree':
+      return LuGitBranch
+    case 'canvas':
+      return LuPaintbrush
+    case 'kv/store':
+    case 'sql/db':
+      return LuDatabase
+    case 'sql/query':
+      return LuFileText
+    case 'sql/schema':
+    case 'sql/query-result':
+      return LuTable
+    case 'sql/table-view':
+      return LuListFilter
+    case 'sql/workbench':
+      return LuLayoutGrid
+    default:
+      return fallback
+  }
+}
+
 // getObjectTypeIcon returns the icon element for a given object type ID.
 export function getObjectTypeIcon(
   typeId: string,
   metadataById?: ObjectTypeMetadataById,
 ): React.ReactNode {
-  const iconName = metadataById?.get(typeId)?.iconName?.trim()
-  const Icon = iconName ? metadataIcons[iconName] : undefined
-  if (Icon) return <Icon className={iconSize} />
-
-  switch (typeId) {
-    case 'alpha/object-layout':
-      return <LuLayoutGrid className={iconSize} />
-    case 'unixfs/fs-node':
-      return <LuFile className={iconSize} />
-    case 'git/repo':
-    case 'git/worktree':
-      return <LuGitBranch className={iconSize} />
-    case 'canvas':
-      return <LuPaintbrush className={iconSize} />
-    case 'kv/store':
-    case 'sql/db':
-      return <LuDatabase className={iconSize} />
-    case 'sql/query':
-      return <LuFileText className={iconSize} />
-    case 'sql/schema':
-    case 'sql/query-result':
-      return <LuTable className={iconSize} />
-    case 'sql/table-view':
-      return <LuListFilter className={iconSize} />
-    case 'sql/workbench':
-      return <LuLayoutGrid className={iconSize} />
-    default:
-      return <LuBox className={iconSize} />
-  }
+  const Icon = getObjectTypeIconComponent(typeId, metadataById)
+  return <Icon className={iconSize} />
 }
 
 // getObjectTypeLabel returns a human-readable label for a given object type ID.

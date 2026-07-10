@@ -58,6 +58,9 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 inline constexpr SpaceSoListEntry::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
+        index_object_type_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         entry_{nullptr},
         space_meta_{nullptr} {}
 
@@ -95,11 +98,13 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::space::SpaceSoListEntry, _impl_._has_bits_),
-        5, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::space::SpaceSoListEntry, _impl_.entry_),
         PROTOBUF_FIELD_OFFSET(::space::SpaceSoListEntry, _impl_.space_meta_),
-        0,
+        PROTOBUF_FIELD_OFFSET(::space::SpaceSoListEntry, _impl_.index_object_type_),
         1,
+        2,
+        0,
 };
 
 static const ::_pbi::MigrationSchema
@@ -116,10 +121,11 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     "\n2github.com/s4wave/spacewave/core/space"
     "/space.proto\022\005space\0326github.com/s4wave/s"
     "pacewave/core/sobject/sobject.proto\"\033\n\013S"
-    "paceSoMeta\022\014\n\004name\030\001 \001(\t\"i\n\020SpaceSoListE"
-    "ntry\022-\n\005entry\030\001 \001(\0132\036.sobject.SharedObje"
-    "ctListEntry\022&\n\nspace_meta\030\002 \001(\0132\022.space."
-    "SpaceSoMetab\006proto3"
+    "paceSoMeta\022\014\n\004name\030\001 \001(\t\"\204\001\n\020SpaceSoList"
+    "Entry\022-\n\005entry\030\001 \001(\0132\036.sobject.SharedObj"
+    "ectListEntry\022&\n\nspace_meta\030\002 \001(\0132\022.space"
+    ".SpaceSoMeta\022\031\n\021index_object_type\030\003 \001(\tb"
+    "\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fspace_2fspace_2eproto_deps[1] = {
@@ -129,7 +135,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fco
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fspace_2fspace_2eproto = {
     false,
     false,
-    259,
+    287,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fspace_2fspace_2eproto,
     "github.com/s4wave/spacewave/core/space/space.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fspace_2fspace_2eproto_once,
@@ -432,7 +438,7 @@ void SpaceSoListEntry::clear_entry() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.entry_ != nullptr) _impl_.entry_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
+                  0x00000002U);
 }
 SpaceSoListEntry::SpaceSoListEntry(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -448,7 +454,8 @@ PROTOBUF_NDEBUG_INLINE SpaceSoListEntry::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
     [[maybe_unused]] const ::space::SpaceSoListEntry& from_msg)
       : _has_bits_{from._has_bits_},
-        _cached_size_{0} {}
+        _cached_size_{0},
+        index_object_type_(arena, from.index_object_type_) {}
 
 SpaceSoListEntry::SpaceSoListEntry(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -464,10 +471,10 @@ SpaceSoListEntry::SpaceSoListEntry(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.entry_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+  _impl_.entry_ = (CheckHasBit(cached_has_bits, 0x00000002U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.entry_)
                 : nullptr;
-  _impl_.space_meta_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+  _impl_.space_meta_ = (CheckHasBit(cached_has_bits, 0x00000004U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.space_meta_)
                 : nullptr;
 
@@ -476,7 +483,8 @@ SpaceSoListEntry::SpaceSoListEntry(
 PROTOBUF_NDEBUG_INLINE SpaceSoListEntry::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0} {}
+      : _cached_size_{0},
+        index_object_type_(arena) {}
 
 inline void SpaceSoListEntry::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -498,6 +506,7 @@ inline void SpaceSoListEntry::SharedDtor(MessageLite& self) {
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.index_object_type_.Destroy();
   delete this_._impl_.entry_;
   delete this_._impl_.space_meta_;
   this_._impl_.~Impl_();
@@ -509,7 +518,7 @@ inline void* PROTOBUF_NONNULL SpaceSoListEntry::PlacementNew_(
   return ::new (mem) SpaceSoListEntry(arena);
 }
 constexpr auto SpaceSoListEntry::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(SpaceSoListEntry),
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SpaceSoListEntry),
                                             alignof(SpaceSoListEntry));
 }
 constexpr auto SpaceSoListEntry::InternalGenerateClassData_() {
@@ -546,16 +555,16 @@ SpaceSoListEntry::GetClassData() const {
   return SpaceSoListEntry_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 2, 0, 2>
+const ::_pbi::TcParseTable<2, 3, 2, 48, 2>
 SpaceSoListEntry::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(SpaceSoListEntry, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
+    3,  // num_field_entries
     2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     SpaceSoListEntry_class_data_.base(),
@@ -565,27 +574,37 @@ SpaceSoListEntry::_table_ = {
     ::_pbi::TcParser::GetTable<::space::SpaceSoListEntry>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // .space.SpaceSoMeta space_meta = 2;
-    {::_pbi::TcParser::FastMtS1,
-     {18, 1, 1,
-      PROTOBUF_FIELD_OFFSET(SpaceSoListEntry, _impl_.space_meta_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // .sobject.SharedObjectListEntry entry = 1;
     {::_pbi::TcParser::FastMtS1,
-     {10, 0, 0,
+     {10, 1, 0,
       PROTOBUF_FIELD_OFFSET(SpaceSoListEntry, _impl_.entry_)}},
+    // .space.SpaceSoMeta space_meta = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 2, 1,
+      PROTOBUF_FIELD_OFFSET(SpaceSoListEntry, _impl_.space_meta_)}},
+    // string index_object_type = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SpaceSoListEntry, _impl_.index_object_type_)}},
   }}, {{
     65535, 65535
   }}, {{
     // .sobject.SharedObjectListEntry entry = 1;
-    {PROTOBUF_FIELD_OFFSET(SpaceSoListEntry, _impl_.entry_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(SpaceSoListEntry, _impl_.entry_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .space.SpaceSoMeta space_meta = 2;
-    {PROTOBUF_FIELD_OFFSET(SpaceSoListEntry, _impl_.space_meta_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(SpaceSoListEntry, _impl_.space_meta_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // string index_object_type = 3;
+    {PROTOBUF_FIELD_OFFSET(SpaceSoListEntry, _impl_.index_object_type_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::sobject::SharedObjectListEntry>()},
       {::_pbi::TcParser::GetTable<::space::SpaceSoMeta>()},
   }},
   {{
+    "\26\0\0\21\0\0\0\0"
+    "space.SpaceSoListEntry"
+    "index_object_type"
   }},
 };
 PROTOBUF_NOINLINE void SpaceSoListEntry::Clear() {
@@ -596,12 +615,15 @@ PROTOBUF_NOINLINE void SpaceSoListEntry::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.index_object_type_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       ABSL_DCHECK(_impl_.entry_ != nullptr);
       _impl_.entry_->Clear();
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(_impl_.space_meta_ != nullptr);
       _impl_.space_meta_->Clear();
     }
@@ -630,17 +652,27 @@ PROTOBUF_NOINLINE void SpaceSoListEntry::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .sobject.SharedObjectListEntry entry = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         1, *this_._impl_.entry_, this_._impl_.entry_->GetCachedSize(), target,
         stream);
   }
 
   // .space.SpaceSoMeta space_meta = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         2, *this_._impl_.space_meta_, this_._impl_.space_meta_->GetCachedSize(), target,
         stream);
+  }
+
+  // string index_object_type = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_index_object_type().empty()) {
+      const ::std::string& _s = this_._internal_index_object_type();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "space.SpaceSoListEntry.index_object_type");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
   }
 
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
@@ -668,14 +700,21 @@ PROTOBUF_NOINLINE void SpaceSoListEntry::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
-    // .sobject.SharedObjectListEntry entry = 1;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // string index_object_type = 3;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_index_object_type().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_index_object_type());
+      }
+    }
+    // .sobject.SharedObjectListEntry entry = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.entry_);
     }
     // .space.SpaceSoMeta space_meta = 2;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.space_meta_);
     }
@@ -699,8 +738,17 @@ void SpaceSoListEntry::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_index_object_type().empty()) {
+        _this->_internal_set_index_object_type(from._internal_index_object_type());
+      } else {
+        if (_this->_impl_.index_object_type_.IsDefault()) {
+          _this->_internal_set_index_object_type("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       ABSL_DCHECK(from._impl_.entry_ != nullptr);
       if (_this->_impl_.entry_ == nullptr) {
         _this->_impl_.entry_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.entry_);
@@ -708,7 +756,7 @@ void SpaceSoListEntry::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.entry_->MergeFrom(*from._impl_.entry_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(from._impl_.space_meta_ != nullptr);
       if (_this->_impl_.space_meta_ == nullptr) {
         _this->_impl_.space_meta_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.space_meta_);
@@ -732,8 +780,11 @@ void SpaceSoListEntry::CopyFrom(const SpaceSoListEntry& from) {
 
 void SpaceSoListEntry::InternalSwap(SpaceSoListEntry* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.index_object_type_, &other->_impl_.index_object_type_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(SpaceSoListEntry, _impl_.space_meta_)
       + sizeof(SpaceSoListEntry::_impl_.space_meta_)
