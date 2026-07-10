@@ -485,7 +485,7 @@ BROWSER_RELEASE_E2E_MANIFESTS = [
 ]
 DESKTOP_RELEASE_MANIFESTS = [
     "spacewave-launcher", "spacewave-loader",
-    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql", "web",
+    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql", "spacewave-cli-plugin", "web",
     "spacewave-dist",
 ]
 CLI_RELEASE_MANIFESTS = [
@@ -713,6 +713,8 @@ def define_release_build(host_key, platform_id):
          "platformId": "js"},
         {"manifestId": "spacewave-app",
          "platformId": "js"},
+        {"manifestId": "spacewave-cli-plugin",
+         "platformId": platform_id},
     ]
     build("release-" + host_key,
         manifests=DESKTOP_RELEASE_MANIFESTS,
