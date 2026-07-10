@@ -480,7 +480,7 @@ BROWSER_RELEASE_MANIFESTS = [
 ]
 BROWSER_RELEASE_E2E_MANIFESTS = [
     "spacewave-launcher",
-    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-sql", "web",
+    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-sql", "spacewave-cli-plugin", "web",
     "spacewave-browser",
 ]
 DESKTOP_RELEASE_MANIFESTS = [
@@ -520,6 +520,8 @@ def browser_release_embed_manifests(go_platform_id):
         {"manifestId": "spacewave-web",
          "platformId": "js"},
         {"manifestId": "spacewave-app",
+         "platformId": "js"},
+        {"manifestId": "spacewave-cli-plugin",
          "platformId": "js"},
     ]
 
@@ -572,7 +574,7 @@ build("release-web-e2e",
 build("release-web-e2e-assets",
     manifests=[
         "spacewave-launcher",
-        "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-sql", "web",
+        "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-sql", "spacewave-cli-plugin", "web",
     ],
     targets=["browser"],
     manifestOverrides={
@@ -601,7 +603,7 @@ build("release-web-e2e-tinygo-core",
 build("release-web-e2e-tinygo-assets",
     manifests=[
         "spacewave-launcher",
-        "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-sql", "web",
+        "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-sql", "spacewave-cli-plugin", "web",
     ],
     targets=["browser"],
     manifestOverrides={
