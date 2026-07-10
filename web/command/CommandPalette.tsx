@@ -678,18 +678,11 @@ export function CommandPalette() {
           else handleOpenChange(false)
           return
         }
-        if (event.key === 'Backspace') {
-          if (query.length > 1) {
-            event.preventDefault()
-            setQuery(query.slice(0, -1))
-            return
-          }
-          if (query.length === 1) {
-            event.preventDefault()
-            resetChord()
-          }
-          return
-        }
+        // The focused native input owns text editing in filter mode, including
+        // selection deletes after select-all. Intercepting Backspace here to
+        // slice one character broke select-all + delete; let the input edit its
+        // own value and rely on handlePaletteQueryChange to restore chord mode
+        // when onValueChange reports an empty query.
         return
       }
 

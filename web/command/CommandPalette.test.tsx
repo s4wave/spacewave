@@ -508,9 +508,45 @@ describe('CommandPalette', () => {
     expect(view.getByText('Filter mode')).toBeTruthy()
 
     act(() => {
-      fireEvent.keyDown(input, { key: 'Backspace' })
+      fireEvent.change(input, { target: { value: '' } })
     })
 
+    expect(view.getByText('Chord mode')).toBeTruthy()
+  })
+
+  it('lets native select-all delete clear the whole filter query', () => {
+    const view = render(<CommandPalette />)
+    act(() => paletteHandler?.())
+    const input = view.getByLabelText('Command search') as HTMLInputElement
+
+    act(() => {
+      fireEvent.keyDown(input, { key: 'a' })
+    })
+    act(() => {
+      fireEvent.change(input, { target: { value: 'abc' } })
+    })
+    expect(input.value).toBe('abc')
+    expect(view.getByText('Filter mode')).toBeTruthy()
+
+    // Select-all must not be intercepted by the palette, so the native input
+    // performs the selection.
+    const selectAllNotPrevented = fireEvent.keyDown(input, {
+      key: 'a',
+      metaKey: true,
+    })
+    expect(selectAllNotPrevented).toBe(true)
+
+    // Backspace after select-all must not be intercepted; the old handler
+    // preventDefaulted it and sliced one character, so the selection delete
+    // removed only a single char instead of clearing the query.
+    const backspaceNotPrevented = fireEvent.keyDown(input, { key: 'Backspace' })
+    expect(backspaceNotPrevented).toBe(true)
+
+    // The native selection delete empties the input.
+    act(() => {
+      fireEvent.change(input, { target: { value: '' } })
+    })
+    expect(input.value).toBe('')
     expect(view.getByText('Chord mode')).toBeTruthy()
   })
 
