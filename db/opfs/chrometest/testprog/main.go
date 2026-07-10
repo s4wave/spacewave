@@ -39,7 +39,6 @@ import (
 	block_gc_wal "github.com/s4wave/spacewave/db/block/gc/wal"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
-	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -3219,11 +3218,10 @@ func runCopyWalkWrapperConcurrency(ctx context.Context, c *config) (retErr error
 
 	sfs := transform_all.BuildFactorySet()
 
-	// Shared transform conf (chksum+gzip) so stored bytes hash consistently with
+	// Shared gzip transform so stored bytes hash consistently with
 	// their object refs across both buckets; CopyObjectToBucket's forced-ref
 	// writes require the source stored representation to match its ref.
 	transformConf, err := block_transform.NewConfig([]cbconfig.Config{
-		&transform_chksum.Config{},
 		&transform_gzip.Config{},
 	})
 	if err != nil {

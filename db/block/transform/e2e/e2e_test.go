@@ -5,10 +5,8 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/aperturerobotics/controllerbus/config"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
-	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -55,9 +53,9 @@ func TestEncodeDecode(t *testing.T) {
 		}
 	*/
 
-	tconf, err := block_transform.NewConfig(append([]config.Config{
-		&transform_chksum.Config{},
-	}, transform_blockenc.NewStepFactory().ConstructMockConfig()...))
+	tconf, err := block_transform.NewConfig(
+		transform_blockenc.NewStepFactory().ConstructMockConfig(),
+	)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

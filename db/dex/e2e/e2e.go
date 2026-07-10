@@ -15,7 +15,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
-	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -55,7 +54,6 @@ func TestMultiNodeDEX(
 
 	transformSet := transform_all.BuildFactorySet()
 	tconf, err := block_transform.NewConfig([]config.Config{
-		&transform_chksum.Config{},
 		&transform_gzip.Config{},
 	})
 	if err != nil {

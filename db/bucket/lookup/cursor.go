@@ -15,6 +15,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	transformConfEnvelopeMagic      = "SWTC"
+	transformConfEnvelopeVersion    = byte(1)
+	transformConfEnvelopeHeaderSize = len(transformConfEnvelopeMagic) + 1
+)
+
 // Cursor contains and manages state for interfacing with objects and references
 // across multiple buckets and transformation configurations.
 type Cursor struct {
@@ -190,23 +196,46 @@ func BuildEmptyCursor(
 	return c, c.ref, nil
 }
 
-// MarshalTransformConf marshals a transform configuration with a checksum.
+// MarshalTransformConf marshals a transform configuration in the
+// content-addressed envelope format.
 func MarshalTransformConf(transformConf *block_transform.Config) ([]byte, error) {
-	dat, err := transformConf.MarshalVT()
+	data, err := transformConf.MarshalVT()
 	if err != nil {
 		return nil, err
 	}
-	return transform_chksum.EncodeCRC32(dat)
+	envelope := make([]byte, transformConfEnvelopeHeaderSize+len(data))
+	copy(envelope, transformConfEnvelopeMagic)
+	envelope[len(transformConfEnvelopeMagic)] = transformConfEnvelopeVersion
+	copy(envelope[transformConfEnvelopeHeaderSize:], data)
+	return envelope, nil
 }
 
-// UnmarshalTransformConf unmarshals a transform configuration checking the checksum.
+// UnmarshalTransformConf unmarshals the content-addressed envelope format and
+// the legacy CRC32-appended format.
 func UnmarshalTransformConf(data []byte) (*block_transform.Config, error) {
-	conf := &block_transform.Config{}
-	tdat, err := transform_chksum.DecodeCRC32(data)
-	if err != nil {
-		return nil, err
+	var payload []byte
+	if len(data) >= len(transformConfEnvelopeMagic) &&
+		data[0] == transformConfEnvelopeMagic[0] &&
+		data[1] == transformConfEnvelopeMagic[1] &&
+		data[2] == transformConfEnvelopeMagic[2] &&
+		data[3] == transformConfEnvelopeMagic[3] {
+		if len(data) < transformConfEnvelopeHeaderSize {
+			return nil, errors.New("transform config envelope too short")
+		}
+		if data[len(transformConfEnvelopeMagic)] != transformConfEnvelopeVersion {
+			return nil, errors.New("unsupported transform config envelope version")
+		}
+		payload = data[transformConfEnvelopeHeaderSize:]
+	} else {
+		var err error
+		payload, err = transform_chksum.DecodeCRC32(data)
+		if err != nil {
+			return nil, err
+		}
 	}
-	if err := conf.UnmarshalVT(tdat); err != nil {
+
+	conf := &block_transform.Config{}
+	if err := conf.UnmarshalVT(payload); err != nil {
 		return nil, err
 	}
 	return conf, nil

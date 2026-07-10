@@ -8,7 +8,6 @@ import (
 	billy_util "github.com/go-git/go-billy/v6/util"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
-	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -46,7 +45,6 @@ func TestInitUnixFSDemo(t *testing.T) {
 	blake3.DeriveKey("hydra/test/unixfs: init_unixfs_demo_test.go", []byte(objectStoreID), encKey)
 
 	xfrmConf, err := block_transform.NewConfig([]config.Config{
-		&transform_chksum.Config{},
 		&transform_gzip.Config{},
 		&transform_blockenc.Config{
 			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,

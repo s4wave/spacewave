@@ -7,7 +7,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	transform_lz4 "github.com/s4wave/spacewave/db/block/transform/lz4"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -29,7 +28,6 @@ func TestCopyObjectToBucket(t *testing.T) {
 	}
 
 	transformConf, err := block_transform.NewConfig([]config.Config{
-		&transform_chksum.Config{},
 		&transform_gzip.Config{},
 	})
 	if err != nil {
@@ -68,7 +66,6 @@ func TestCopyObjectToBucket(t *testing.T) {
 
 	// Set a destination transform conf
 	destTransformConf, err := block_transform.NewConfig([]config.Config{
-		&transform_chksum.Config{},
 		&transform_lz4.Config{},
 	})
 	if err != nil {

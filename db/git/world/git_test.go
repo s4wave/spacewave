@@ -13,7 +13,6 @@ import (
 	"github.com/go-git/go-git/v6"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
-	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 	git_block "github.com/s4wave/spacewave/db/git/block"
@@ -50,7 +49,6 @@ func TestGitClone(t *testing.T) {
 	blake3.DeriveKey("hydra/test/git: git_test.go", []byte(objectStoreID), encKey)
 
 	xfrmConf, err := block_transform.NewConfig([]config.Config{
-		&transform_chksum.Config{},
 		&transform_gzip.Config{},
 		&transform_blockenc.Config{
 			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,

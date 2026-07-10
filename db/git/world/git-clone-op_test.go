@@ -11,7 +11,6 @@ import (
 	"github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing/object"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 	git_block "github.com/s4wave/spacewave/db/git/block"
@@ -45,7 +44,6 @@ func TestGitCloneOp(t *testing.T) {
 	blake3.DeriveKey("hydra/test/git: git-clone-op_test.go", []byte(objectStoreID), encKey)
 
 	xfrmConf, err := block_transform.NewConfig([]config.Config{
-		&transform_chksum.Config{},
 		&transform_gzip.Config{},
 	})
 	if err != nil {
