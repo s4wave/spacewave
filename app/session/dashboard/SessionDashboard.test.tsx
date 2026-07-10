@@ -333,11 +333,15 @@ describe('SessionDashboard', () => {
       />,
     )
 
-    const canvasRow = screen.getByText('Canvas Space').closest('[cmdk-item]')
+    const canvasRow = screen
+      .getByText('Canvas Space')
+      .closest<HTMLElement>('[cmdk-item]')
     const repositoryRow = screen
       .getByText('Repository Space')
-      .closest('[cmdk-item]')
-    const genericRow = screen.getByText('Generic Space').closest('[cmdk-item]')
+      .closest<HTMLElement>('[cmdk-item]')
+    const genericRow = screen
+      .getByText('Generic Space')
+      .closest<HTMLElement>('[cmdk-item]')
     expect(canvasRow).not.toBeNull()
     expect(repositoryRow).not.toBeNull()
     expect(genericRow).not.toBeNull()
