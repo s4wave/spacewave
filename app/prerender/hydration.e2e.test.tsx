@@ -120,7 +120,9 @@ describe('Hydration', () => {
 
     setDocumentVisibility('visible')
     container.innerHTML = renderToString(tree)
-    const serverButton = container.querySelector('[role="button"]')
+    const serverButton = container.querySelector(
+      'button[aria-label="Scroll down to learn more"]',
+    )
     expect(serverButton?.getAttribute('class')).toContain(
       'animate-[pulse_8s_ease-in-out_infinite]',
     )
@@ -130,7 +132,9 @@ describe('Hydration', () => {
     await waitForHydration()
 
     expect(getHydrationErrors()).toHaveLength(0)
-    const hydratedButton = container.querySelector('[role="button"]')
+    const hydratedButton = container.querySelector(
+      'button[aria-label="Scroll down to learn more"]',
+    )
     expect(hydratedButton?.getAttribute('class')).toContain(
       'animate-[pulse_8s_ease-in-out_infinite]',
     )
