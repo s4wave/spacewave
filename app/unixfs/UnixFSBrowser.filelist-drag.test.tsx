@@ -100,7 +100,9 @@ vi.mock('@s4wave/web/hooks/useUnixFSHandle.js', () => ({
       mknod: h.mockMknod,
       rename: h.mockPathRename,
     }),
-  useUnixFSHandleEntries: () => buildResource(h.mockFileEntries),
+  convertDirEntriesToFileEntries: (entries: typeof h.mockFileEntries) =>
+    entries,
+  useUnixFSHandleReaddir: () => buildResource(h.mockFileEntries),
   useUnixFSHandleStat: () => buildResource(h.mockStat),
 }))
 
