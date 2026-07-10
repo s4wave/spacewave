@@ -74,27 +74,7 @@ func CreateLocalOnboardingScenario(t testing.TB, h *Harness, session *TestSessio
 func CompleteDriveIntroWizard(t testing.TB, page playwright.Page) {
 	t.Helper()
 
-	_, err := page.Evaluate(`async () => {
-		const deadline = Date.now() + 120000
-		for (;;) {
-			const buttons = Array.from(document.querySelectorAll('button'))
-			const finish = buttons.find((button) =>
-				button.textContent?.includes('Got it, start exploring') ||
-				button.textContent?.includes('Open files')
-			)
-			if (finish instanceof HTMLButtonElement) {
-				finish.click()
-				await new Promise((resolve) => requestAnimationFrame(resolve))
-				continue
-			}
-			const browser = document.querySelector('[data-testid="unixfs-browser"]')
-			if (browser && !window.location.hash.includes('/wizard/')) return null
-			if (Date.now() > deadline) {
-				throw new Error('Drive file browser did not appear')
-			}
-			await new Promise((resolve) => requestAnimationFrame(resolve))
-		}
-	}`)
+	_, err := page.Evaluate(completeDriveIntroWizardScript)
 	if err != nil {
 		failWithPageBody(t, page, "open drive files", err)
 	}

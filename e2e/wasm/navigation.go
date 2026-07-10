@@ -361,32 +361,37 @@ func WaitForEmptySpaceReady(t testing.TB, page playwright.Page) {
 	}
 }
 
+const completeDriveIntroWizardScript = `async () => {
+	const deadline = Date.now() + 120000
+	const actionLabels = ['Next', 'Got it, start exploring', 'Open files']
+	for (;;) {
+		let action = null
+		for (const button of document.querySelectorAll('button')) {
+			if (!button.disabled && actionLabels.includes(button.textContent?.trim() ?? '')) {
+				action = button
+				break
+			}
+		}
+		if (action) {
+			action.click()
+			await new Promise((resolve) => requestAnimationFrame(resolve))
+			continue
+		}
+		const browser = document.querySelector('[data-testid="unixfs-browser"]')
+		if (browser && !window.location.hash.includes('/wizard/')) return null
+		if (Date.now() > deadline) {
+			throw new Error('Drive intro or file browser did not appear')
+		}
+		await new Promise((resolve) => requestAnimationFrame(resolve))
+	}
+}`
+
 // CompleteDriveIntroWizardIfPresent completes the first-run Drive intro when
 // the current route opens it before the raw files browser.
 func CompleteDriveIntroWizardIfPresent(t testing.TB, page playwright.Page) {
 	t.Helper()
 
-	_, err := page.Evaluate(`async () => {
-		const deadline = Date.now() + 120000
-		for (;;) {
-			const buttons = Array.from(document.querySelectorAll('button'))
-			const finish = buttons.find((button) =>
-				button.textContent?.includes('Got it, start exploring') ||
-				button.textContent?.includes('Open files')
-			)
-			if (finish instanceof HTMLButtonElement) {
-				finish.click()
-				await new Promise((resolve) => requestAnimationFrame(resolve))
-				continue
-			}
-			const browser = document.querySelector('[data-testid="unixfs-browser"]')
-			if (browser && !window.location.hash.includes('/wizard/')) return null
-			if (Date.now() > deadline) {
-				throw new Error('Drive intro or file browser did not appear')
-			}
-			await new Promise((resolve) => requestAnimationFrame(resolve))
-		}
-	}`)
+	_, err := page.Evaluate(completeDriveIntroWizardScript)
 	if err != nil {
 		body, bodyErr := page.Locator("body").TextContent()
 		if bodyErr != nil {
