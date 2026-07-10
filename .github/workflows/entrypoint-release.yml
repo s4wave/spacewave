@@ -400,6 +400,13 @@ jobs:
     env:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
       BLDR_WASM_OPT_DIAGNOSTICS_DIR: ${{ github.workspace }}/.tmp/wasm-opt-diagnostics
+      # The v0.54.0 sql plugin split added a parallel GoScript plugin
+      # compile; unbounded parallelism now exceeds hosted-runner memory
+      # and the runner service dies mid-build ("shutdown signal", 3x on
+      # 2026-07-09). Bound Go compile parallelism to keep peak RSS under
+      # the ubuntu-latest ceiling.
+      GOMAXPROCS: '3'
+      GOFLAGS: '-p=2'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
