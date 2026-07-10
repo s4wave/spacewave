@@ -25,6 +25,14 @@ import (
 // is set by ProviderAccount.OnDirectPairingConnected once the WebRTC data
 // channel is open and the bifrost link is wired up.
 func TestNoCloudPairingDirect(t *testing.T) {
+	compiler, err := ResolveE2EWasmCompiler()
+	if err != nil {
+		t.Fatalf("resolve wasm compiler: %v", err)
+	}
+	if !e2eWasmBrowserWebRTCEnabled(compiler) {
+		t.Skipf("requires the native Go browser WebRTC transport; compiler=%s", compiler)
+	}
+
 	sessA := harness(t).NewCleanSession(t)
 	sessB := harness(t).NewCleanSession(t)
 

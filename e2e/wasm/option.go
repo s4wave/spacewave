@@ -186,6 +186,10 @@ func ResolveE2EWasmCompiler() (E2EWasmCompiler, error) {
 	}
 }
 
+func e2eWasmBrowserWebRTCEnabled(compiler E2EWasmCompiler) bool {
+	return compiler == E2EWasmCompilerGo
+}
+
 // E2EWasmTraceServiceEnabled reports whether the trace service should be
 // injected into the app harness config. Native Go always carries it; GoScript
 // opts in via E2E_WASM_GOSCRIPT_RUNTIME_TRACE so routine GoScript e2e does not

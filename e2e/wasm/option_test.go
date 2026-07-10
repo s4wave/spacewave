@@ -313,6 +313,20 @@ func TestConfigureGoScriptForManifestRemovesSeedRuntimeConfig(t *testing.T) {
 	}
 }
 
+func TestE2EWasmBrowserWebRTCEnabled(t *testing.T) {
+	if !e2eWasmBrowserWebRTCEnabled(E2EWasmCompilerGo) {
+		t.Fatal("expected native Go browser WebRTC enabled")
+	}
+	for _, compiler := range []E2EWasmCompiler{
+		E2EWasmCompilerTinyGo,
+		E2EWasmCompilerGoScript,
+	} {
+		if e2eWasmBrowserWebRTCEnabled(compiler) {
+			t.Fatalf("expected browser WebRTC disabled for %s", compiler)
+		}
+	}
+}
+
 // TestE2EWasmTraceServiceEnabled pins the trace-service injection gate that
 // bootSharedHarness uses to drive InjectTraceConfig: native Go always injects,
 // GoScript injects only under the E2E_WASM_GOSCRIPT_RUNTIME_TRACE opt-in, and

@@ -331,6 +331,14 @@ func TestSignalRelayCrossConnect(t *testing.T) {
 // TestEndToEndLinkEstablishment verifies two browser WASM sessions can
 // establish a bifrost link through the signaling relay cross-connect.
 func TestEndToEndLinkEstablishment(t *testing.T) {
+	compiler, err := ResolveE2EWasmCompiler()
+	if err != nil {
+		t.Fatalf("resolve wasm compiler: %v", err)
+	}
+	if !e2eWasmBrowserWebRTCEnabled(compiler) {
+		t.Skipf("requires the native Go browser WebRTC transport; compiler=%s", compiler)
+	}
+
 	sessA := harness(t).NewCleanSession(t)
 	sessB := harness(t).NewCleanSession(t)
 
