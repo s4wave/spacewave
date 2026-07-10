@@ -3,6 +3,7 @@ package segment
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"io"
 	"strconv"
 	"testing"
@@ -65,6 +66,40 @@ func TestRoundTrip(t *testing.T) {
 		if entries[i].Tombstone {
 			t.Errorf("entry %d: unexpected tombstone", i)
 		}
+	}
+}
+
+func TestV1FixtureRemainsWireCompatible(t *testing.T) {
+	const legacyHex = "" +
+		"4f53535400010000000000010000004a0000000e000000580000000900000061" +
+		"0000000700030003000000000000000000000000000000000000000000000000" +
+		"00036b657900036b657900036b65790000000576616c756500036b657900000000" +
+		"0b0000000fb73ba0b9601d"
+	legacy, err := hex.DecodeString(legacyHex)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rd, err := NewReader(bytes.NewReader(legacy), int64(len(legacy)))
+	if err != nil {
+		t.Fatalf("open legacy v1 segment: %v", err)
+	}
+	value, found, err := rd.Get([]byte("key"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || string(value) != "value" {
+		t.Fatalf("legacy lookup = %q, %v; want value, true", value, found)
+	}
+
+	w := NewWriter()
+	w.Add([]byte("key"), []byte("value"))
+	var current bytes.Buffer
+	if _, err := w.Build(&current); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(current.Bytes(), legacy) {
+		t.Fatalf("current v1 encoding changed:\n got %x\nwant %x", current.Bytes(), legacy)
 	}
 }
 
