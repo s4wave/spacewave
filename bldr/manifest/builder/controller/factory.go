@@ -14,11 +14,20 @@ import (
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus
+	// pluginBuildLimiter bounds concurrent whole-plugin build attempts
+	pluginBuildLimiter *PluginBuildLimiter
+	// pluginBuildLimiterErr is returned when the configured limit is invalid
+	pluginBuildLimiterErr error
 }
 
 // NewFactory builds the controller factory.
 func NewFactory(bus bus.Bus) *Factory {
-	return &Factory{bus: bus}
+	pluginBuildLimiter, pluginBuildLimiterErr := NewPluginBuildLimiterFromEnv()
+	return &Factory{
+		bus:                   bus,
+		pluginBuildLimiter:    pluginBuildLimiter,
+		pluginBuildLimiterErr: pluginBuildLimiterErr,
+	}
 }
 
 // GetConfigID returns the configuration ID for the controller.
@@ -44,8 +53,11 @@ func (t *Factory) Construct(
 ) (controller.Controller, error) {
 	le := opts.GetLogger()
 	cc := conf.(*Config)
+	if t.pluginBuildLimiterErr != nil {
+		return nil, t.pluginBuildLimiterErr
+	}
 
-	return NewController(le, t.bus, cc), nil
+	return newController(le, t.bus, cc, t.pluginBuildLimiter), nil
 }
 
 // GetVersion returns the version of this controller.

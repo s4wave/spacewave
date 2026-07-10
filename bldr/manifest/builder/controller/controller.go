@@ -44,6 +44,8 @@ type Controller struct {
 	bus bus.Bus
 	// c is the controller config
 	c *Config
+	// pluginBuildLimiter bounds concurrent whole-plugin build attempts
+	pluginBuildLimiter *PluginBuildLimiter
 	// resultPromise contains the result of the compilation.
 	resultPromise *promise.PromiseContainer[*bldr_manifest_builder.BuilderResult]
 	// subManifestBuilderTrackers track building sub-manifests
@@ -59,11 +61,21 @@ type Controller struct {
 
 // NewController constructs a new controller.
 func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
+	return newController(le, bus, cc, NewPluginBuildLimiter(0))
+}
+
+func newController(
+	le *logrus.Entry,
+	bus bus.Bus,
+	cc *Config,
+	pluginBuildLimiter *PluginBuildLimiter,
+) *Controller {
 	c := &Controller{
-		le:            le,
-		bus:           bus,
-		c:             cc,
-		resultPromise: promise.NewPromiseContainer[*bldr_manifest_builder.BuilderResult](),
+		le:                 le,
+		bus:                bus,
+		c:                  cc,
+		pluginBuildLimiter: pluginBuildLimiter,
+		resultPromise:      promise.NewPromiseContainer[*bldr_manifest_builder.BuilderResult](),
 	}
 	c.subManifestBuilderTrackers = keyed.NewKeyedWithLogger(c.newSubManifestBuilderTracker, le)
 	return c
@@ -283,8 +295,18 @@ func (c *Controller) Execute(ctx context.Context) error {
 				tkr.build.prepareParentAttempt(attempt.restart)
 			}
 
+			pluginBuildPermit, acquireErr := c.pluginBuildLimiter.Acquire(
+				buildCtx,
+				pconf.GetConfigID(),
+			)
+			if acquireErr != nil {
+				attempt.release()
+				return acquireErr
+			}
+
 			// Call the builder controller BuildManifest function.
 			result, err = builderCtrl.BuildManifest(buildCtx, args, builderHost)
+			pluginBuildPermit.Release()
 			if ctx.Err() != nil {
 				attempt.release()
 				return context.Canceled

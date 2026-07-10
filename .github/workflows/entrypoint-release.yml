@@ -261,6 +261,14 @@ jobs:
             .tmp/entrypoint-cli-manifest-packs/linux-${{ matrix.arch }}
           key: entrypoint-part-linux-${{ matrix.arch }}-${{ needs.prep.outputs.environment_name }}-${{ needs.prep.outputs.version }}-rev${{ needs.prep.outputs.rev }}-${{ github.sha }}-nativepackv2
 
+      - name: Free hosted runner disk
+        if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          df -h /
+
       - name: Setup Go
         if: steps.linux_handoff_cache.outputs.cache-hit != 'true'
         uses: actions/setup-go@v6
@@ -395,20 +403,18 @@ jobs:
       - prep
       - manifest_packs
       - remote_handoff
-    # Four hosted-runner shutdowns on 2026-07-09, each during a Rolldown
-    # plugin bundle (the sql split added a 78MB plugin chunk); the 7GB
-    # standard runner OOMs the runner service itself. Larger runner class
-    # carries the JS-side bundling; the Go-side bounds below stay.
-    runs-on: ubuntu-latest-8-cores
+    # The larger hosted-runner label queues indefinitely. The standard runner
+    # has enough memory when the whole-plugin compile and bundle pipeline is
+    # serialized below.
+    runs-on: ubuntu-latest
     environment: ${{ needs.prep.outputs.environment_name }}
     env:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
       BLDR_WASM_OPT_DIAGNOSTICS_DIR: ${{ github.workspace }}/.tmp/wasm-opt-diagnostics
-      # The v0.54.0 sql plugin split added a parallel GoScript plugin
-      # compile; unbounded parallelism now exceeds hosted-runner memory
-      # and the runner service dies mid-build ("shutdown signal", 3x on
-      # 2026-07-09). Bound Go compile parallelism to keep peak RSS under
-      # the ubuntu-latest ceiling.
+      # The sql plugin split added a parallel GoScript plugin build. Serialize
+      # whole-plugin builds and retain the existing Go subprocess bounds so the
+      # runner service stays within the ubuntu-latest memory ceiling.
+      BLDR_PLUGIN_BUILD_CONCURRENCY: '1'
       GOMAXPROCS: '3'
       GOFLAGS: '-p=2'
     steps:
