@@ -14,7 +14,7 @@ const h = vi.hoisted(() => ({
   buildDownloadURL: vi.fn((_, __, ___, path: string) => `/download${path}`),
   buildInlineURL: vi.fn((_, __, ___, path: string) => `/inline${path}`),
   galleryState: null as unknown as ReturnType<typeof buildGalleryState>,
-  downloadURL: vi.fn(),
+  downloadURL: vi.fn(() => Promise.resolve()),
   lightboxIndex: 0,
   photoProviderProps: null as null | {
     className?: string
@@ -190,6 +190,7 @@ describe('UnixFSGalleryViewer', () => {
 
   afterEach(() => {
     cleanup()
+    vi.restoreAllMocks()
   })
 
   it('renders inside the file browser shell and shows the no-images empty state', () => {
@@ -271,8 +272,6 @@ describe('UnixFSGalleryViewer', () => {
       '/download/gallery/second.svg',
       'second.svg',
     )
-
-    openSpy.mockRestore()
   })
 
   it('memoizes preview URLs while the discovered image list is unchanged', () => {
