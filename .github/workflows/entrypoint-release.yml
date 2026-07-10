@@ -395,7 +395,11 @@ jobs:
       - prep
       - manifest_packs
       - remote_handoff
-    runs-on: ubuntu-latest
+    # Four hosted-runner shutdowns on 2026-07-09, each during a Rolldown
+    # plugin bundle (the sql split added a 78MB plugin chunk); the 7GB
+    # standard runner OOMs the runner service itself. Larger runner class
+    # carries the JS-side bundling; the Go-side bounds below stay.
+    runs-on: ubuntu-latest-8-cores
     environment: ${{ needs.prep.outputs.environment_name }}
     env:
       SPACEWAVE_RELEASE_ENV: ${{ needs.prep.outputs.release_env }}
