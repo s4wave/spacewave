@@ -63,6 +63,7 @@ const sharedLayerHookState = {
     error: null as Error | null,
     setCommandOverride: vi.fn(),
     setSettings: vi.fn(),
+    setOverrideSet: vi.fn(),
     setCommandBindings: vi.fn(),
     addCommandBinding: vi.fn(),
     clearCommandBindings: vi.fn(),
@@ -80,6 +81,7 @@ const sharedLayerHookState = {
     error: null as Error | null,
     setCommandOverride: vi.fn(),
     setSettings: vi.fn(),
+    setOverrideSet: vi.fn(),
     setCommandBindings: vi.fn(),
     addCommandBinding: vi.fn(),
     clearCommandBindings: vi.fn(),
@@ -369,7 +371,7 @@ describe('KeybindingEditor', () => {
     })
 
     fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
-    fireEvent.keyDown(view.getByRole('button', { name: /Press one combo/ }), {
+    fireEvent.keyDown(document, {
       key: 'K',
       ctrlKey: true,
     })
@@ -428,7 +430,7 @@ describe('KeybindingEditor', () => {
     expect(scope.value).toBe('space')
 
     fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
-    fireEvent.keyDown(view.getByRole('button', { name: /Press one combo/ }), {
+    fireEvent.keyDown(document, {
       key: 'K',
       ctrlKey: true,
     })
@@ -460,6 +462,48 @@ describe('KeybindingEditor', () => {
 
     fireEvent.click(view.getByRole('button', { name: /Reset Space layer/ }))
     expect(sharedLayerHookState.space.resetLayer).toHaveBeenCalled()
+  })
+
+  it('captures without recorder focus, suppresses the combo, and cancels with Escape or click-away', () => {
+    commandStates = [
+      commandState(
+        command('spacewave.open', {
+          label: 'Open File',
+          defaultBindings: [comboBinding('open-default', 'Ctrl+O')],
+        }),
+      ),
+    ]
+
+    const view = renderEditor('spacewave.open')
+
+    fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
+    expect(document.activeElement).not.toBe(view.getByRole('status'))
+    fireEvent.keyDown(document, {
+      key: 'Shift',
+      shiftKey: true,
+    })
+    expect(view.getByText('Shift+…')).toBeTruthy()
+    const comboEvent = new KeyboardEvent('keydown', {
+      key: 'K',
+      ctrlKey: true,
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    })
+    act(() => document.dispatchEvent(comboEvent))
+    expect(comboEvent.defaultPrevented).toBe(true)
+    expect(view.getByText(/Pending replacement:/).textContent).toContain(
+      'Ctrl+Shift+K',
+    )
+
+    fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(view.queryByText(/Recording… press keys/)).toBeNull()
+    expect(view.queryByText(/Pending replacement:/)).toBeNull()
+
+    fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
+    fireEvent.pointerDown(document.body)
+    expect(view.queryByText(/Recording… press keys/)).toBeNull()
   })
 
   it('captures combos and Leader sequences, mutates the local layer, clears defaults, and resets overrides', async () => {
@@ -496,33 +540,30 @@ describe('KeybindingEditor', () => {
     })
 
     fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
-    fireEvent.keyDown(view.getByRole('button', { name: /Press one combo/ }), {
+    fireEvent.keyDown(document, {
       key: 'K',
       ctrlKey: true,
     })
     expect(view.getByText(/Pending replacement:/).textContent).toContain(
-      'ctrl+k',
+      'Ctrl+K',
     )
     fireEvent.click(view.getByRole('button', { name: 'Save binding' }))
     await waitFor(() => {
       expect(view.queryByText('Ctrl+O')).toBeNull()
-      expect(view.getAllByText('ctrl+k').length).toBeGreaterThan(0)
+      expect(view.getAllByText('Ctrl+K').length).toBeGreaterThan(0)
       expect(view.getByText('Local · Global')).toBeTruthy()
     })
 
     fireEvent.click(view.getByRole('button', { name: 'Add Leader sequence' }))
-    fireEvent.keyDown(
-      view.getByRole('button', { name: /Press sequence keys/ }),
-      {
-        key: 'K',
-      },
-    )
+    fireEvent.keyDown(document, {
+      key: 'K',
+    })
     expect(view.getByText(/Pending addition:/).textContent).toContain(
-      'Leader k',
+      'Leader K',
     )
     fireEvent.click(view.getByRole('button', { name: 'Save binding' }))
     await waitFor(() => {
-      expect(view.getByText('Leader k')).toBeTruthy()
+      expect(view.getByText('Leader K')).toBeTruthy()
     })
 
     fireEvent.click(view.getByText('Close File'))
@@ -541,7 +582,7 @@ describe('KeybindingEditor', () => {
     fireEvent.click(view.getByText('Open File'))
     await waitFor(() => {
       expect(within(editorPanel()).getByText('Ctrl+O')).toBeTruthy()
-      expect(within(editorPanel()).queryByText('ctrl+k')).toBeNull()
+      expect(within(editorPanel()).queryByText('Ctrl+K')).toBeNull()
     })
     fireEvent.click(view.getByText('Close File'))
     await waitFor(() => {
@@ -549,7 +590,7 @@ describe('KeybindingEditor', () => {
     })
   })
 
-  it('shows same-context conflicts before save and blocks the conflicting local binding', async () => {
+  it('surfaces a same-context conflict and replaces its existing owner', async () => {
     commandStates = [
       commandState(
         command('spacewave.open', {
@@ -568,18 +609,18 @@ describe('KeybindingEditor', () => {
     const view = renderEditor('spacewave.open')
 
     fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
-    fireEvent.keyDown(view.getByRole('button', { name: /Press one combo/ }), {
+    fireEvent.keyDown(document, {
       key: 'K',
       ctrlKey: true,
     })
     fireEvent.click(view.getByRole('button', { name: 'Save binding' }))
     await waitFor(() => {
-      expect(view.getAllByText('ctrl+k').length).toBeGreaterThan(0)
+      expect(view.getAllByText('Ctrl+K').length).toBeGreaterThan(0)
     })
 
     fireEvent.click(view.getByText('Close File'))
     fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
-    fireEvent.keyDown(view.getByRole('button', { name: /Press one combo/ }), {
+    fireEvent.keyDown(document, {
       key: 'K',
       ctrlKey: true,
     })
@@ -590,7 +631,7 @@ describe('KeybindingEditor', () => {
         view.getAllByText(
           (_, node) =>
             node?.textContent ===
-            'Global combo ctrl+k is used by Open File, Close File.',
+            'Global combo Ctrl+K is used by Open File, Close File.',
         ).length,
       ).toBeGreaterThan(0)
       expect(view.getByRole('button', { name: 'Save binding' })).toHaveProperty(
@@ -598,6 +639,19 @@ describe('KeybindingEditor', () => {
         true,
       )
       expect(within(editorPanel()).getByText('Ctrl+W')).toBeTruthy()
+    })
+
+    expect(view.getByText('Already used by Open File')).toBeTruthy()
+    fireEvent.click(
+      view.getByRole('button', { name: 'Replace existing binding' }),
+    )
+    await waitFor(() => {
+      expect(within(editorPanel()).getByText('Ctrl+K')).toBeTruthy()
+      expect(view.queryByText('Already used by Open File')).toBeNull()
+    })
+    fireEvent.click(view.getByText('Open File'))
+    await waitFor(() => {
+      expect(within(editorPanel()).queryByText('Ctrl+K')).toBeNull()
     })
   })
 

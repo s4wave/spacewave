@@ -35,6 +35,10 @@ export interface SpaceKeybindingOverridesValue {
     override: KeybindingCommandOverride | null,
   ) => void
   setSettings: (settings: KeybindingOverrideSettings) => void
+  setOverrideSet: (
+    overrideSet: KeybindingOverrideSet,
+    changedCommandIds: string[],
+  ) => void
   setCommandBindings: (commandId: string, bindings: CommandBinding[]) => void
   addCommandBinding: (commandId: string, binding: CommandBinding) => void
   clearCommandBindings: (commandId: string) => void
@@ -155,6 +159,7 @@ export function useSpaceKeybindingOverrides(): SpaceKeybindingOverridesValue {
     loading: context?.spaceWorldResource.loading ?? false,
     error: context?.spaceWorldResource.error ?? null,
     setCommandOverride,
+    setOverrideSet: applyOverrideSet,
     setSettings,
     setCommandBindings,
     addCommandBinding,

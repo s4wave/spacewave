@@ -85,13 +85,19 @@ export function formatKeybinding(binding: string): string {
       case 'Cmd':
         display.push('\u2318')
         break
+      case 'meta':
+        display.push(isMacPlatform ? '\u2318' : 'Meta')
+        break
       case 'Ctrl':
+      case 'ctrl':
         display.push(isMacPlatform ? '\u2303' : 'Ctrl')
         break
       case 'Shift':
+      case 'shift':
         display.push(isMacPlatform ? '\u21E7' : 'Shift')
         break
       case 'Alt':
+      case 'alt':
         display.push(isMacPlatform ? '\u2325' : 'Alt')
         break
       default:

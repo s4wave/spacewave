@@ -1,14 +1,18 @@
+import { Button } from '@s4wave/web/ui/button.js'
+
+import { formatKeybinding } from './CommandPalette.js'
 import { useKeybindingEditorContext } from './KeybindingEditorContext.js'
 import { bindingDisplay } from './keybinding-editor-helpers.js'
 
 export function KeybindingCaptureInput() {
   const {
+    cancelCapture,
     capture,
     captureError,
-    handleCaptureKeyDown,
     pendingBinding,
     pendingConflict,
     pendingReplace,
+    selectedRow,
   } = useKeybindingEditorContext()
 
   return (
@@ -19,15 +23,22 @@ export function KeybindingCaptureInput() {
             <div>
               Pending {pendingReplace ? 'replacement' : 'addition'}:{' '}
               <span className="text-brand font-mono">
-                {bindingDisplay(pendingBinding)}
+                {bindingDisplay(pendingBinding)
+                  .split(' ')
+                  .map(formatKeybinding)
+                  .join(' ')}
               </span>
             </div>
             <div className="min-h-5 shrink-0">
               {pendingConflict && (
                 <span className="text-warning text-xs">
-                  Conflicts with{' '}
+                  Already used by{' '}
                   {pendingConflict.bindings
-                    .map((binding) => binding.label)
+                    .flatMap((binding) =>
+                      binding.commandId === selectedRow?.commandId
+                        ? []
+                        : [binding.label],
+                    )
                     .join(', ')}
                 </span>
               )}
@@ -38,23 +49,42 @@ export function KeybindingCaptureInput() {
 
       {capture && (
         <div
-          role="button"
-          tabIndex={0}
-          className="border-brand/30 bg-brand/10 text-foreground ring-brand/20 rounded border p-3 text-sm ring-1 outline-none"
-          onKeyDown={handleCaptureKeyDown}
+          data-keybinding-recorder
+          role="status"
+          aria-live="polite"
+          className="border-brand/30 bg-brand/10 text-foreground ring-brand/20 rounded border p-3 text-sm ring-1"
         >
-          <div className="text-brand flex items-center gap-2 text-xs font-medium">
-            <span className="bg-brand size-2 rounded-full" />
-            Recording · press keys now
-          </div>
-          <div className="mt-2">
-            Press {capture.kind === 'combo' ? 'one combo' : 'sequence keys'}.
-          </div>
-          {capture.kind === 'sequence' && (
-            <div className="text-brand/90 mt-1 font-mono text-xs">
-              {capture.steps.join(' ')}
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-brand flex items-center gap-2 text-xs font-medium">
+                <span className="bg-brand size-2 rounded-full" />
+                Recording… press keys
+              </div>
+              <div className="text-foreground-alt mt-1 text-xs">
+                {capture.kind === 'combo'
+                  ? 'The first non-modifier key completes the combo.'
+                  : 'Press sequence keys, then Enter to finish.'}
+              </div>
             </div>
-          )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={cancelCapture}
+            >
+              Cancel
+            </Button>
+          </div>
+          <div className="border-foreground/8 bg-background/40 text-brand mt-3 rounded border px-3 py-2 font-mono text-sm">
+            {capture.steps.length > 0 &&
+              `${capture.steps.map(formatKeybinding).join(' ')} `}
+            {capture.heldModifiers.length > 0
+              ? formatKeybinding(`${capture.heldModifiers.join('+')}+…`)
+              : 'Waiting for input…'}
+          </div>
+          <div className="text-foreground-alt/60 mt-2 text-xs">
+            Escape or clicking away cancels.
+          </div>
         </div>
       )}
 

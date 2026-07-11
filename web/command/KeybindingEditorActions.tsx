@@ -10,7 +10,9 @@ export function KeybindingEditorActions() {
     clearSelectedBindings,
     pendingBinding,
     pendingConflict,
+    pendingConflictReplaceable,
     resetSelectedCommand,
+    replacePendingConflict,
     savePendingBinding,
     selectedController,
     selectedLayerEditable,
@@ -73,6 +75,19 @@ export function KeybindingEditorActions() {
         >
           Save binding
         </Button>
+        {pendingConflict && (
+          <Button
+            type="button"
+            size="sm"
+            className="bg-brand text-background hover:bg-brand-highlight"
+            disabled={!selectedLayerEditable || !pendingConflictReplaceable}
+            onClick={replacePendingConflict}
+          >
+            {pendingConflictReplaceable
+              ? 'Replace existing binding'
+              : 'Higher-priority binding cannot be replaced here'}
+          </Button>
+        )}
         <Button
           type="button"
           variant="destructive"

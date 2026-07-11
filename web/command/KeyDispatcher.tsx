@@ -112,6 +112,10 @@ export function KeyDispatcher({ children }: { children?: ReactNode }) {
   )
 
   const handler = useEffectEvent((event: KeyboardEvent) => {
+    if (document.documentElement.dataset.keybindingRecording === 'true') {
+      if (prefixRef.current) clearPrefix()
+      return
+    }
     if (isModifierKey(event)) return
     const combo = comboFromKeyboardEvent(event)
     const prefix = prefixRef.current

@@ -38,6 +38,10 @@ export interface AccountKeybindingOverridesValue {
     override: KeybindingCommandOverride | null,
   ) => void
   setSettings: (settings: KeybindingOverrideSettings) => void
+  setOverrideSet: (
+    overrideSet: KeybindingOverrideSet,
+    changedCommandIds: string[],
+  ) => void
   setCommandBindings: (commandId: string, bindings: CommandBinding[]) => void
   addCommandBinding: (commandId: string, binding: CommandBinding) => void
   clearCommandBindings: (commandId: string) => void
@@ -74,22 +78,35 @@ export function useAccountKeybindingOverrides(): AccountKeybindingOverridesValue
     [available, overrideSet],
   )
 
-  const applyOverride = useCallback(
-    (commandId: string, override: KeybindingCommandOverride | null) => {
+  const setOverrideSet = useCallback(
+    (next: KeybindingOverrideSet, changedCommandIds: string[]) => {
       const account = accountResource.value
       if (!account || readOnly) return
-      const normalized = normalizeKeybindingOverrideSet(overrideSet)
-      const next = setKeybindingCommandOverride(normalized, commandId, override)
-        .overrides[commandId]
-      if (!next) {
-        void account.removeKeybindingOverride({ commandId })
-        return
+      const normalized = normalizeKeybindingOverrideSet(next)
+      for (const commandId of changedCommandIds) {
+        const override = normalized.overrides[commandId]
+        if (!override) {
+          void account.removeKeybindingOverride({ commandId })
+          continue
+        }
+        void account.upsertKeybindingOverride({
+          override: keybindingCommandOverrideToProto(commandId, override),
+        })
       }
-      void account.upsertKeybindingOverride({
-        override: keybindingCommandOverrideToProto(commandId, next),
-      })
     },
-    [accountResource.value, overrideSet, readOnly],
+    [accountResource.value, readOnly],
+  )
+
+  const applyOverride = useCallback(
+    (commandId: string, override: KeybindingCommandOverride | null) => {
+      const next = setKeybindingCommandOverride(
+        normalizeKeybindingOverrideSet(overrideSet),
+        commandId,
+        override,
+      )
+      setOverrideSet(next, [commandId])
+    },
+    [overrideSet, setOverrideSet],
   )
 
   const setSettings = useCallback(
@@ -183,6 +200,7 @@ export function useAccountKeybindingOverrides(): AccountKeybindingOverridesValue
     error:
       sessionResource.error ?? accountResource.error ?? accountOverrides.error,
     setCommandOverride: applyOverride,
+    setOverrideSet,
     setSettings,
     setCommandBindings,
     addCommandBinding,

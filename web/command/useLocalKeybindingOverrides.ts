@@ -32,6 +32,10 @@ export interface LocalKeybindingOverridesValue {
     override: KeybindingCommandOverride | null,
   ) => void
   setSettings: (settings: KeybindingOverrideSettings) => void
+  setOverrideSet: (
+    overrideSet: KeybindingOverrideSet,
+    changedCommandIds: string[],
+  ) => void
   setCommandBindings: (commandId: string, bindings: CommandBinding[]) => void
   addCommandBinding: (commandId: string, binding: CommandBinding) => void
   clearCommandBindings: (commandId: string) => void
@@ -62,6 +66,13 @@ export function useLocalKeybindingOverrides(): LocalKeybindingOverridesValue {
       setRawOverrideSet((current) =>
         setKeybindingOverrideSettings(current, settings),
       )
+    },
+    [setRawOverrideSet],
+  )
+
+  const setOverrideSet = useCallback(
+    (next: KeybindingOverrideSet) => {
+      setRawOverrideSet(normalizeKeybindingOverrideSet(next))
     },
     [setRawOverrideSet],
   )
@@ -137,6 +148,7 @@ export function useLocalKeybindingOverrides(): LocalKeybindingOverridesValue {
     overrideSet,
     layer,
     setCommandOverride,
+    setOverrideSet,
     setSettings,
     setCommandBindings,
     addCommandBinding,

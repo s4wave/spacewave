@@ -140,6 +140,7 @@ function renderDispatcher(children?: React.ReactNode) {
 describe('KeyDispatcher', () => {
   beforeEach(() => {
     mockCommands = []
+    delete document.documentElement.dataset.keybindingRecording
   })
 
   afterEach(() => {
@@ -166,6 +167,22 @@ describe('KeyDispatcher', () => {
     expect(event.defaultPrevented).toBe(true)
     expect(mockInvokeCommand).toHaveBeenCalledTimes(1)
     expect(mockInvokeCommand).toHaveBeenCalledWith('spacewave.legacy.open')
+  })
+
+  it('does not invoke app shortcuts while the editor records a binding', () => {
+    mockCommands = [
+      commandState(
+        command('spacewave.open', {
+          defaultBindings: [comboBinding('open', 'Ctrl+K')],
+        }),
+      ),
+    ]
+    document.documentElement.dataset.keybindingRecording = 'true'
+    renderDispatcher()
+
+    dispatchKeydown(document, { key: 'k', ctrlKey: true })
+
+    expect(mockInvokeCommand).not.toHaveBeenCalled()
   })
 
   it('does not invoke either command when duplicate combos conflict', () => {

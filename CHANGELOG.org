@@ -14,6 +14,8 @@ data loading.
   again.
 - Object details now includes a permission-aware Danger Zone for permanently
   deleting the selected object with explicit confirmation.
+- Keyboard shortcut recording now captures key combinations even after focus
+  moves away from the recorder, and Escape or clicking away cancels recording.
 
 ** Improvements
 - Cold browser starts are faster: startup checksum processing is 55.7× faster,
@@ -21,6 +23,9 @@ data loading.
 - Local file storage now avoids duplicate integrity work while preserving
   compatibility with existing stored data, reducing repeated work during startup
   and file access.
+- The shortcut editor now shows held modifiers while recording, formats captured
+  keys like application menus, and identifies conflicting commands with a direct
+  replace action.
 - Browser startup and in-app data loading now avoid an unnecessary byte
   conversion, reducing copying and memory pressure.
 - Release checks now verify existing local file storage compatibility and

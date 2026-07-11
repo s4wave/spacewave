@@ -6,8 +6,10 @@ import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 
 import {
   addCommandBindingOverride,
+  clearCommandBindingIdOverride,
   createKeybindingOverrideLayer,
   keybindingBindingStorageId,
+  removeLocalCommandBindingOverride,
   setCommandBindingsOverride,
   type KeybindingOverrideLayer,
   type KeybindingOverrideScope,
@@ -99,6 +101,35 @@ export function previewPendingConflict(
   return graph.conflicts.find((conflict) =>
     conflict.bindings.some((candidate) => candidate.commandId === commandId),
   )
+}
+
+export function replaceConflictingBindingOverride(
+  currentOverrideSet: KeybindingOverrideSet,
+  scope: KeybindingOverrideScope,
+  commandId: string,
+  binding: CommandBinding,
+  replace: boolean,
+  conflict: KeybindingConflict,
+): KeybindingOverrideSet {
+  let next = currentOverrideSet
+  for (const current of conflict.bindings) {
+    if (current.commandId === commandId) continue
+    next =
+      current.sourceLayer === scope
+        ? removeLocalCommandBindingOverride(
+            next,
+            current.commandId,
+            current.bindingId,
+          )
+        : clearCommandBindingIdOverride(
+            next,
+            current.commandId,
+            current.bindingId,
+          )
+  }
+  return replace
+    ? setCommandBindingsOverride(next, commandId, [binding])
+    : addCommandBindingOverride(next, commandId, binding)
 }
 
 export function bindingFromCombo(

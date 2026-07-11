@@ -1,5 +1,6 @@
 import { Button } from '@s4wave/web/ui/button.js'
 
+import { formatKeybinding } from './CommandPalette.js'
 import { focusContextLabel } from './KeybindingResolver.js'
 import { useKeybindingEditorContext } from './KeybindingEditorContext.js'
 import { canLayerOverrideBinding } from './keybinding-editor-helpers.js'
@@ -30,7 +31,7 @@ export function KeybindingBindingList() {
           >
             <div className="min-w-0">
               <div className="text-brand font-mono text-sm">
-                {binding.display}
+                {binding.display.split(' ').map(formatKeybinding).join(' ')}
               </div>
               <div className="text-foreground-alt/50 text-xs">
                 {binding.sourceLayerLabel} ·{' '}

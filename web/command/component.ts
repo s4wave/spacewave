@@ -1,4 +1,3 @@
-import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import type { CommandBinding } from '@s4wave/sdk/command/command.pb.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 
@@ -34,6 +33,7 @@ export interface CaptureState {
   kind: 'combo' | 'sequence'
   replace: boolean
   steps: string[]
+  heldModifiers: string[]
 }
 
 export interface KeybindingLayerController {
@@ -47,6 +47,10 @@ export interface KeybindingLayerController {
   error: Error | null
   settingsEditable: boolean
   setSettings: (settings: KeybindingOverrideSettings) => void
+  setOverrideSet: (
+    overrideSet: KeybindingOverrideSet,
+    changedCommandIds: string[],
+  ) => void
   setCommandBindings: (commandId: string, bindings: CommandBinding[]) => void
   addCommandBinding: (commandId: string, binding: CommandBinding) => void
   clearCommandBindings: (commandId: string) => void
@@ -79,7 +83,9 @@ export interface KeybindingEditorContextValue {
   setSelectedCommandId: (commandId: string) => void
   setSelectedScope: (scope: KeybindingEditorScope) => void
   startCapture: (kind: 'combo' | 'sequence', replace: boolean) => void
-  handleCaptureKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void
+  cancelCapture: () => void
+  replacePendingConflict: () => void
+  pendingConflictReplaceable: boolean
   savePendingBinding: () => void
   clearSelectedBindings: () => void
   resetSelectedCommand: () => void
