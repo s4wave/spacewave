@@ -57,7 +57,11 @@ export function ForgeDashboardViewer({
   objectState,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  const dashboard = useForgeBlockData(objectState, ForgeDashboard)
+  const dashboard = useForgeBlockData(
+    objectState,
+    ForgeDashboardTypeID,
+    ForgeDashboard,
+  )
   const { navigateToObjects, spaceState, spaceWorld } =
     SpaceContainerContext.useContext()
   const visibleWizardTypeSet = useVisibleObjectWizardTypeSet()

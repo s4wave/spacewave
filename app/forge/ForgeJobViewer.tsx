@@ -64,7 +64,7 @@ export function ForgeJobViewer({
   objectState,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  const job = useForgeBlockData(objectState, Job)
+  const job = useForgeBlockData(objectState, ForgeJobTypeID, Job)
   const { spaceState, spaceWorld, navigateToObjects } =
     SpaceContainerContext.useContext()
   const [creatingTask, setCreatingTask] = useState(false)

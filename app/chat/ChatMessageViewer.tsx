@@ -11,7 +11,7 @@ export const ChatMessageTypeID = 'spacewave-chat/message'
 
 // ChatMessageViewer displays a Chat Message entity.
 export function ChatMessageViewer({ objectState }: ObjectViewerComponentProps) {
-  const message = useForgeBlockData(objectState, ChatMessage)
+  const message = useForgeBlockData(objectState, ChatMessageTypeID, ChatMessage)
 
   const textContent =
     message?.content?.content?.case === 'text'

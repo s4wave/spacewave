@@ -73,7 +73,7 @@ export function ForgeTaskViewer({
   objectState,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  const task = useForgeBlockData(objectState, Task)
+  const task = useForgeBlockData(objectState, ForgeTaskTypeID, Task)
 
   const { entities: passes, loading: passesLoading } = useForgeLinkedEntities(
     worldState,

@@ -61,7 +61,7 @@ export function ForgePassViewer({
   objectState,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  const pass = useForgeBlockData(objectState, Pass)
+  const pass = useForgeBlockData(objectState, ForgePassTypeID, Pass)
 
   const { entities: executions, loading: executionsLoading } =
     useForgeLinkedEntities(worldState, objectKey, PRED_PASS_TO_EXECUTION)

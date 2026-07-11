@@ -25,7 +25,7 @@ export function ManifestViewer({
   objectInfo: _objectInfo,
   objectState,
 }: ObjectViewerComponentProps) {
-  const manifest = useForgeBlockData(objectState, Manifest)
+  const manifest = useForgeBlockData(objectState, ManifestTypeID, Manifest)
   const meta = manifest?.meta
 
   const distHash = useMemo(

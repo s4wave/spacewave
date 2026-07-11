@@ -69,7 +69,7 @@ export function ForgeClusterViewer({
   objectState,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  const cluster = useForgeBlockData(objectState, Cluster)
+  const cluster = useForgeBlockData(objectState, ForgeClusterTypeID, Cluster)
   const { spaceState, spaceWorld, navigateToObjects } =
     SpaceContainerContext.useContext()
   const [creatingJob, setCreatingJob] = useState(false)

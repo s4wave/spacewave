@@ -114,7 +114,11 @@ export function ForgeExecutionViewer({
   objectState,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  const execution = useForgeBlockData(objectState, Execution)
+  const execution = useForgeBlockData(
+    objectState,
+    ForgeExecutionTypeID,
+    Execution,
+  )
 
   const tabs: ForgeViewerTab[] = useMemo(
     () => [

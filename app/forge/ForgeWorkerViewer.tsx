@@ -40,7 +40,7 @@ export function ForgeWorkerViewer({
   objectState,
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
-  const worker = useForgeBlockData(objectState, Worker)
+  const worker = useForgeBlockData(objectState, ForgeWorkerTypeID, Worker)
 
   const { entities: clusters, loading: clustersLoading } =
     useForgeLinkedEntities(worldState, objectKey, PRED_CLUSTER_TO_WORKER, 'in')

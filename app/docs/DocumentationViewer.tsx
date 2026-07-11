@@ -55,7 +55,7 @@ export function DocumentationViewer({
 }: ObjectViewerComponentProps) {
   const objectKey = getObjectKey(objectInfo)
   const ns = useStateNamespace(['docs', objectKey])
-  const doc = useForgeBlockData(objectState, Documentation)
+  const doc = useForgeBlockData(objectState, DocumentationTypeID, Documentation)
 
   // Resolve the doc/source graph edge to find the linked UnixFS object key.
   const linkedSource = useResource(
