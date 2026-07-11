@@ -165,7 +165,7 @@ describe('ShellMenuBar', () => {
     expect(mockOpenCommand).not.toHaveBeenCalled()
   })
 
-  it('shows effective typed binding hints for menu commands', () => {
+  it('shows only effective combo hints for menu commands', () => {
     mockUseCommands.mockReturnValue([
       {
         command: {
@@ -186,10 +186,26 @@ describe('ShellMenuBar', () => {
         active: true,
         enabled: true,
       },
+      {
+        command: {
+          commandId: 'spacewave.nav.search',
+          label: 'Search',
+          menuPath: 'View/Search',
+          defaultBindings: [
+            {
+              id: 'search-sequence',
+              binding: { case: 'sequence', value: { steps: ['Leader', 'S'] } },
+            },
+          ],
+        },
+        active: true,
+        enabled: true,
+      },
     ])
 
     const view = render(<ShellMenuBar />)
 
-    expect(view.getByText('Ctrl+H / Leader H')).toBeTruthy()
+    expect(view.getByText('Ctrl+H')).toBeTruthy()
+    expect(view.queryByText(/Leader/)).toBeNull()
   })
 })

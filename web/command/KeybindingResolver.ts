@@ -219,9 +219,15 @@ export function contextKey(context: CommandFocusContext, key: string): string {
 export function getCommandDisplayBindings(
   graph: KeybindingGraph,
   commandId: string,
+  kind?: ResolvedBindingKind,
 ): string[] {
-  const bindings = graph.bindingsByCommandId.get(commandId) ?? []
-  const allBindings = [...graph.bindingsByCommandId.values()].flat()
+  const commandBindings = graph.bindingsByCommandId.get(commandId) ?? []
+  const bindings = kind
+    ? commandBindings.filter((binding) => binding.kind === kind)
+    : commandBindings
+  const allBindings = [...graph.bindingsByCommandId.values()]
+    .flat()
+    .filter((binding) => !kind || binding.kind === kind)
   return bindings.map((binding) =>
     bindingNeedsContextLabel(binding, allBindings)
       ? `${binding.display} (${focusContextLabel(binding.context)})`

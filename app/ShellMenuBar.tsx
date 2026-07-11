@@ -87,7 +87,11 @@ function buildMenuTree(
         parent.children.set(seg, {
           label: seg,
           commandId,
-          keybindings: getCommandDisplayBindings(bindingGraph, commandId),
+          keybindings: getCommandDisplayBindings(
+            bindingGraph,
+            commandId,
+            'combo',
+          ),
           hasSubItems: cmd.command?.hasSubItems,
           enabled: nodeEnabled,
           children: new Map(),
