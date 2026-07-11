@@ -16,15 +16,18 @@ import {
   TerminalPane,
   type TerminalPaneConnector,
 } from '@s4wave/app/terminal/TerminalPane.js'
+import { useCliTerminalSession } from '@s4wave/app/terminal/CliTerminalSessionProvider.js'
 import { SessionFrame } from '@s4wave/app/session/SessionFrame.js'
 import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'
 import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'
+import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 
 const cliTerminalServiceId =
   'plugin/spacewave-cli-plugin/' + CliTerminalServiceServiceName
 
 // CliTerminalPage renders the session-local browser CLI terminal in the shell frame.
 export function CliTerminalPage() {
+  const sessionIndex = useSessionIndex()
   const bldrContext = useBldrContext()
   const webDocument = bldrContext?.webDocument ?? null
   const webViewUuid = bldrContext?.webView?.getUuid() ?? null
@@ -39,7 +42,7 @@ export function CliTerminalPage() {
     })
   }, [webDocument, webViewUuid])
 
-  const connectTerminal = useMemo<TerminalPaneConnector>(() => {
+  const openTerminal = useMemo<TerminalPaneConnector>(() => {
     if (!cliTerminal) {
       return async function* (): MessageStream<TerminalFrame> {
         yield {
@@ -50,6 +53,8 @@ export function CliTerminalPage() {
     }
     return (frames, signal) => cliTerminal.RunCli(frames, signal)
   }, [cliTerminal])
+
+  const connectTerminal = useCliTerminalSession(sessionIndex, openTerminal)
 
   const renderTerminalBarItem = useCallback(
     (selected: boolean, onClick: () => void, className?: string) => (

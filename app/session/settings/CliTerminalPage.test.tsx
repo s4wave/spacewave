@@ -6,6 +6,7 @@ import {
   type TerminalFrame,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
+import { CliTerminalSessionProvider } from '@s4wave/app/terminal/CliTerminalSessionProvider.js'
 
 const cliPageMocks = vi.hoisted(() => ({
   navigate: vi.fn(),
@@ -104,11 +105,13 @@ describe('CliTerminalPage', () => {
 
   afterEach(() => cleanup())
 
-  it('streams terminal frames through the CLI plugin service route and aborts RunCli on close', async () => {
-    render(
-      <BottomBarRoot>
-        <CliTerminalPage />
-      </BottomBarRoot>,
+  it('streams terminal frames through the persistent CLI session until its owner unmounts', async () => {
+    const { unmount } = render(
+      <CliTerminalSessionProvider>
+        <BottomBarRoot>
+          <CliTerminalPage />
+        </BottomBarRoot>
+      </CliTerminalSessionProvider>,
     )
 
     expect(screen.getByTestId('cli-terminal-pane').textContent).toBe(
@@ -157,13 +160,189 @@ describe('CliTerminalPage', () => {
         },
       },
     ])
-    expect(cliPageMocks.runCliSignals).toEqual([controller.signal])
+    expect(cliPageMocks.runCliSignals).toHaveLength(1)
+    expect(cliPageMocks.runCliSignals[0]).not.toBe(controller.signal)
+    expect(cliPageMocks.runCliSignals[0]?.aborted).toBe(false)
     expect(cliPageMocks.runCliInputFrames).toEqual([inputFrame])
     expect(outputFrames).toEqual([
       { kind: TerminalFrameKind.OUTPUT, data: new Uint8Array([111, 107]) },
     ])
+
+    unmount()
+
     await waitFor(() => {
       expect(cliPageMocks.runCliSignals[0]?.aborted).toBe(true)
     })
+  })
+
+  it('keeps a running command stream alive across pane unmount and remount', async () => {
+    const commandStarted = Promise.withResolvers<void>()
+    const finishCommand = Promise.withResolvers<void>()
+    cliPageMocks.runCli.mockImplementation(async function* (
+      frames: AsyncIterable<TerminalFrame>,
+      signal: AbortSignal,
+    ) {
+      cliPageMocks.runCliSignals.push(signal)
+      for await (const frame of frames) {
+        cliPageMocks.runCliInputFrames.push(frame)
+        commandStarted.resolve()
+        await finishCommand.promise
+        yield {
+          kind: TerminalFrameKind.OUTPUT,
+          data: new Uint8Array([100, 111, 110, 101]),
+        }
+      }
+      await waitForAbort(signal)
+    })
+
+    function Harness({ showPane }: { showPane: boolean }) {
+      return (
+        <CliTerminalSessionProvider>
+          <BottomBarRoot>{showPane ? <CliTerminalPage /> : null}</BottomBarRoot>
+        </CliTerminalSessionProvider>
+      )
+    }
+
+    const view = render(<Harness showPane={true} />)
+    const firstConnector = cliPageMocks.terminalConnector as (
+      frames: AsyncIterable<TerminalFrame>,
+      signal: AbortSignal,
+    ) => AsyncIterable<TerminalFrame>
+    const firstInput: TerminalFrame = {
+      kind: TerminalFrameKind.INPUT,
+      data: new Uint8Array([108, 111, 110, 103, 45, 114, 117, 110]),
+    }
+    const closeFirstPane = Promise.withResolvers<void>()
+    async function* firstInputFrames() {
+      yield firstInput
+      await closeFirstPane.promise
+      yield { kind: TerminalFrameKind.CLOSE }
+    }
+    const firstPane = new AbortController()
+    const firstOutput = firstConnector(firstInputFrames(), firstPane.signal)[
+      Symbol.asyncIterator
+    ]()
+    const firstRead = firstOutput.next()
+
+    await commandStarted.promise
+    closeFirstPane.resolve()
+    expect(await firstRead).toEqual({
+      done: true,
+      value: undefined,
+    })
+    firstPane.abort()
+
+    expect(cliPageMocks.runCliSignals).toHaveLength(1)
+    expect(cliPageMocks.runCliSignals[0]?.aborted).toBe(false)
+
+    view.rerender(<Harness showPane={false} />)
+    view.rerender(<Harness showPane={true} />)
+
+    const secondConnector =
+      cliPageMocks.terminalConnector as typeof firstConnector
+    const secondPane = new AbortController()
+    const secondInputFrames: AsyncIterable<TerminalFrame> = {
+      [Symbol.asyncIterator]: () => ({
+        next: async (): Promise<IteratorResult<TerminalFrame>> => {
+          await waitForAbort(secondPane.signal)
+          return { done: true, value: undefined }
+        },
+      }),
+    }
+    const secondOutput = secondConnector(secondInputFrames, secondPane.signal)[
+      Symbol.asyncIterator
+    ]()
+    const secondRead = secondOutput.next()
+
+    finishCommand.resolve()
+    expect(await secondRead).toEqual({
+      done: false,
+      value: {
+        kind: TerminalFrameKind.OUTPUT,
+        data: new Uint8Array([100, 111, 110, 101]),
+      },
+    })
+    expect(cliPageMocks.runCli).toHaveBeenCalledTimes(1)
+    expect(cliPageMocks.runCliInputFrames).toEqual([firstInput])
+    expect(cliPageMocks.runCliSignals[0]?.aborted).toBe(false)
+
+    secondPane.abort()
+    await secondOutput.return?.()
+  })
+
+  it('replaces a terminal stream that ended before a pane reattaches', async () => {
+    cliPageMocks.runCli.mockImplementationOnce(async function* (
+      _frames: AsyncIterable<TerminalFrame>,
+      signal: AbortSignal,
+    ) {
+      cliPageMocks.runCliSignals.push(signal)
+      yield {
+        kind: TerminalFrameKind.ERROR,
+        error: 'first-stream-ended',
+      }
+    })
+
+    function Harness({ showPane }: { showPane: boolean }) {
+      return (
+        <CliTerminalSessionProvider>
+          <BottomBarRoot>{showPane ? <CliTerminalPage /> : null}</BottomBarRoot>
+        </CliTerminalSessionProvider>
+      )
+    }
+
+    const view = render(<Harness showPane={true} />)
+    const firstConnector = cliPageMocks.terminalConnector as (
+      frames: AsyncIterable<TerminalFrame>,
+      signal: AbortSignal,
+    ) => AsyncIterable<TerminalFrame>
+    const firstPane = new AbortController()
+    const firstOutput = firstConnector(
+      (async function* () {})(),
+      firstPane.signal,
+    )[Symbol.asyncIterator]()
+
+    expect(await firstOutput.next()).toEqual({
+      done: false,
+      value: {
+        kind: TerminalFrameKind.ERROR,
+        error: 'first-stream-ended',
+      },
+    })
+    expect(await firstOutput.next()).toEqual({
+      done: true,
+      value: undefined,
+    })
+
+    view.rerender(<Harness showPane={false} />)
+    view.rerender(<Harness showPane={true} />)
+
+    const secondConnector =
+      cliPageMocks.terminalConnector as typeof firstConnector
+    const secondInput: TerminalFrame = {
+      kind: TerminalFrameKind.INPUT,
+      data: new Uint8Array([114, 101, 116, 114, 121]),
+    }
+    async function* secondInputFrames() {
+      yield secondInput
+    }
+    const secondPane = new AbortController()
+    const secondOutput = secondConnector(
+      secondInputFrames(),
+      secondPane.signal,
+    )[Symbol.asyncIterator]()
+
+    expect(await secondOutput.next()).toEqual({
+      done: false,
+      value: {
+        kind: TerminalFrameKind.OUTPUT,
+        data: new Uint8Array([111, 107]),
+      },
+    })
+    expect(cliPageMocks.runCli).toHaveBeenCalledTimes(2)
+    expect(cliPageMocks.runCliSignals).toHaveLength(2)
+    expect(cliPageMocks.runCliSignals[1]?.aborted).toBe(false)
+
+    secondPane.abort()
+    await secondOutput.return?.()
   })
 })

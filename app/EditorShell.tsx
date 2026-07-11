@@ -15,6 +15,7 @@ import { ShellTabFocusContextProvider } from '@s4wave/web/command/FocusContext.j
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { BuiltinCommands } from '@s4wave/app/BuiltinCommands.js'
+import { CliTerminalSessionProvider } from '@s4wave/app/terminal/CliTerminalSessionProvider.js'
 import { DebugCommands } from '@s4wave/app/DebugCommands.js'
 import {
   TabContextProvider,
@@ -111,6 +112,14 @@ function ActiveTabCommandScope({ children }: { children: ReactNode }) {
 // The FlexLayout spans the entire content area, enabling drag-to-split anywhere.
 // When splits are created, it transitions to grid mode via URL.
 export function EditorShell() {
+  return (
+    <CliTerminalSessionProvider>
+      <EditorShellContent />
+    </CliTerminalSessionProvider>
+  )
+}
+
+function EditorShellContent() {
   const namespace = useStateNamespace(['shell'])
 
   const [openMenu, setOpenMenu] = useStateAtom<string>(
