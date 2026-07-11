@@ -51,13 +51,33 @@ export function ObjectViewerDetails({
   onCloseClick,
   onDeleteConfirm,
 }: ObjectViewerDetailsProps) {
+  const [technicalDetailsOpen, setTechnicalDetailsOpen] = useState(false)
+  const [selectedComponentOverride, setSelectedComponentOverride] = useState<
+    string | undefined
+  >()
+
+  const displayedSelectedComponentID =
+    selectedComponentOverride ?? selectedComponent?.componentID
+  const displayedSelectedComponent =
+    availableComponents.find(
+      (component) => component.componentID === displayedSelectedComponentID,
+    ) ?? selectedComponent
+
+  const handleComponentSelect = useCallback(
+    (component: ObjectViewerComponent) => {
+      setSelectedComponentOverride(component.componentID)
+      onComponentSelect(component)
+    },
+    [onComponentSelect],
+  )
+
   return (
     <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
       <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
-        <div className="text-foreground flex items-center gap-2 text-sm font-semibold select-none">
-          <RxCube className="size-4" />
-          <span className="tracking-tight">{objectKey}</span>
-          <span className="text-foreground-alt">· Object</span>
+        <div className="text-foreground flex min-w-0 items-center gap-2 text-sm font-semibold select-none">
+          <RxCube className="size-4 shrink-0" />
+          <span className="truncate tracking-tight">{objectKey}</span>
+          <span className="text-foreground-alt shrink-0">· Object</span>
         </div>
         {onCloseClick && (
           <Tooltip>
@@ -73,81 +93,122 @@ export function ObjectViewerDetails({
       </div>
 
       <div className="flex-1 overflow-auto px-4 py-3">
-        <div className="space-y-3">
-          <section>
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-foreground flex items-center gap-1.5 text-xs select-none">
-                <LuInfo className="size-3.5" />
-                Details
-              </h2>
+        <div className="mx-auto w-full max-w-5xl">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="min-w-0 space-y-3">
+              <section>
+                <div className="mb-2 flex items-center justify-between">
+                  <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
+                    <LuInfo className="size-3.5" />
+                    About this object
+                  </h2>
+                </div>
+
+                <InfoCard>
+                  <div className="space-y-3">
+                    <div className="min-w-0">
+                      <p className="text-foreground-alt text-xs select-none">
+                        Object key
+                      </p>
+                      <p className="text-foreground text-sm font-medium break-all select-none">
+                        {objectKey}
+                      </p>
+                    </div>
+                    {missingComponentID && (
+                      <CopyableField
+                        label="Missing Component ID"
+                        value={missingComponentID}
+                      />
+                    )}
+                  </div>
+                </InfoCard>
+              </section>
+
+              <CollapsibleSection
+                title="Technical details"
+                icon={<LuInfo className="size-3.5" />}
+                open={technicalDetailsOpen}
+                onOpenChange={setTechnicalDetailsOpen}
+              >
+                <div className="space-y-2">
+                  <CopyableField label="Type ID" value={typeID} />
+                  {rootRef && (
+                    <CopyableField label="Root Ref" value={rootRef} />
+                  )}
+                </div>
+              </CollapsibleSection>
             </div>
 
-            <InfoCard>
-              <div className="space-y-2">
-                <CopyableField label="Object Key" value={objectKey} />
-                <CopyableField label="Type ID" value={typeID} />
-                {missingComponentID && (
-                  <CopyableField
-                    label="Missing Component ID"
-                    value={missingComponentID}
-                  />
-                )}
-                {rootRef && <CopyableField label="Root Ref" value={rootRef} />}
-              </div>
-            </InfoCard>
-          </section>
+            <div className="min-w-0 space-y-3">
+              {exportUrl && <ExportDataSection exportUrl={exportUrl} />}
 
-          {exportUrl && <ExportDataSection exportUrl={exportUrl} />}
+              {availableComponents.length > 0 && (
+                <section>
+                  <div className="mb-2 flex items-center justify-between">
+                    <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
+                      <LuEye className="size-3.5" />
+                      Viewer
+                    </h2>
+                  </div>
 
-          {availableComponents.length > 0 && (
-            <section>
-              <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-foreground flex items-center gap-1.5 text-xs select-none">
-                  <LuEye className="size-3.5" />
-                  Viewer Components
-                </h2>
-              </div>
+                  <InfoCard>
+                    <div className="space-y-1.5">
+                      {availableComponents.map((component) => {
+                        const isSelected =
+                          displayedSelectedComponentID === component.componentID
+                        return (
+                          <button
+                            key={component.componentID}
+                            type="button"
+                            aria-pressed={isSelected}
+                            onClick={() => handleComponentSelect(component)}
+                            className={cn(
+                              'border-foreground/10 hover:border-foreground/20 hover:bg-foreground/5 flex w-full cursor-pointer items-start justify-between gap-3 rounded-lg border p-2.5 text-left transition-colors',
+                              isSelected && 'border-brand/30 bg-brand/10',
+                            )}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <p className="text-foreground text-sm font-medium select-none">
+                                  {component.name}
+                                </p>
+                                {isSelected && (
+                                  <span className="border-brand/30 bg-brand/10 text-brand shrink-0 rounded border px-1.5 py-0.5 text-[0.65rem] font-medium select-none">
+                                    Active
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-foreground-alt/50 font-mono text-[0.6rem] break-all select-none">
+                                ID: {component.componentID}
+                              </p>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
 
-              <InfoCard>
-                <div className="space-y-1.5">
-                  {availableComponents.map((component) => {
-                    const isSelected =
-                      selectedComponent?.componentID === component.componentID
-                    return (
+                    {displayedSelectedComponent && onCloseClick && (
                       <button
-                        key={component.componentID}
-                        onClick={() => onComponentSelect(component)}
-                        className={cn(
-                          'border-foreground/8 hover:border-foreground/12 hover:bg-foreground/5 flex w-full cursor-pointer items-center justify-between rounded-lg border p-2.5 text-left transition-colors',
-                          isSelected && 'bg-foreground/5 border-foreground/12',
-                        )}
+                        type="button"
+                        onClick={onCloseClick}
+                        className="border-brand/30 bg-brand/10 text-brand hover:bg-brand/15 mt-3 flex h-7 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border text-xs font-medium transition-colors"
                       >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-foreground text-xs select-none">
-                            {component.name}
-                          </p>
-                          <p className="text-foreground-alt text-xs select-none">
-                            ID: {component.componentID}
-                          </p>
-                        </div>
-                        {isSelected && (
-                          <span className="text-primary text-xs select-none">
-                            Active
-                          </span>
-                        )}
+                        <LuEye className="size-3.5" />
+                        Open viewer
                       </button>
-                    )
-                  })}
-                </div>
-              </InfoCard>
-            </section>
-          )}
-          {onDeleteConfirm && (
-            <DangerZoneSection
-              objectKey={objectKey}
-              onDeleteConfirm={onDeleteConfirm}
-            />
-          )}
+                    )}
+                  </InfoCard>
+                </section>
+              )}
+
+              {onDeleteConfirm && (
+                <DangerZoneSection
+                  objectKey={objectKey}
+                  onDeleteConfirm={onDeleteConfirm}
+                />
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -156,36 +217,81 @@ export function ObjectViewerDetails({
 
 // ExportDataSection renders a download button for exporting object data.
 function ExportDataSection({ exportUrl }: { exportUrl: string }) {
-  const handleExport = useCallback(() => {
-    void downloadURL(exportUrl).catch((err: unknown) => {
+  const [status, setStatus] = useState<'idle' | 'busy' | 'success' | 'failure'>(
+    'idle',
+  )
+
+  const handleExport = useCallback(async () => {
+    if (status === 'busy') return
+
+    setStatus('busy')
+    try {
+      await downloadURL(exportUrl)
+      setStatus('success')
+    } catch (err: unknown) {
       console.error('failed to export object data', err)
-      toast.error('Export failed', { description: String(err) })
-    })
-  }, [exportUrl])
+      setStatus('failure')
+      toast.error('Export could not be prepared')
+    }
+  }, [exportUrl, status])
 
   return (
     <section>
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-foreground flex items-center gap-1.5 text-xs select-none">
+        <h2 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
           <LuDownload className="size-3.5" />
           Data
         </h2>
       </div>
 
-      <button
-        onClick={handleExport}
-        className="border-foreground/8 hover:border-foreground/12 hover:bg-foreground/5 flex w-full cursor-pointer items-center gap-3 rounded-lg border p-2.5 text-left transition-colors"
-      >
-        <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
-          <LuDownload className="text-foreground size-3.5" />
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <h4 className="text-foreground text-xs select-none">Export Data</h4>
-          <p className="text-foreground-alt text-xs select-none">
-            Download object contents as zip
-          </p>
-        </div>
-      </button>
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => void handleExport()}
+          disabled={status === 'busy' || status === 'success'}
+          aria-busy={status === 'busy'}
+          className="border-foreground/10 hover:border-foreground/20 hover:bg-foreground/5 flex h-14 w-full cursor-pointer items-center gap-3 rounded-lg border p-2.5 text-left transition-colors disabled:cursor-default disabled:opacity-100"
+        >
+          <div className="bg-foreground/5 flex size-8 shrink-0 items-center justify-center rounded-md">
+            <LuDownload className="text-foreground size-3.5" />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <h4 className="text-foreground text-sm font-medium select-none">
+              {status === 'busy'
+                ? 'Preparing export…'
+                : status === 'success'
+                  ? 'Export ready'
+                  : status === 'failure'
+                    ? 'Export could not be prepared'
+                    : 'Export Data'}
+            </h4>
+            <p className="text-foreground-alt text-xs leading-relaxed select-none">
+              {status === 'busy'
+                ? 'Preparing a downloadable archive…'
+                : status === 'success'
+                  ? 'The object contents are ready to download.'
+                  : status === 'failure'
+                    ? 'Try again to prepare the export.'
+                    : 'Download object contents as zip'}
+            </p>
+          </div>
+        </button>
+
+        {status === 'failure' && (
+          <div className="border-destructive/15 bg-destructive/5 flex items-center justify-between gap-3 rounded-lg border p-2.5 text-xs">
+            <p className="text-destructive leading-relaxed">
+              Export could not be prepared.
+            </p>
+            <button
+              type="button"
+              onClick={() => void handleExport()}
+              className="text-destructive hover:bg-destructive/10 shrink-0 rounded-md px-2 py-1 font-medium transition-colors"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+      </div>
     </section>
   )
 }
@@ -219,7 +325,8 @@ function DangerZoneSection({
       await onDeleteConfirm()
       handleDialogOpenChange(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Delete failed')
+      console.error('failed to delete object', err)
+      setError('Delete could not be completed. Try again.')
       setSubmitting(false)
     }
   }, [handleDialogOpenChange, onDeleteConfirm])
