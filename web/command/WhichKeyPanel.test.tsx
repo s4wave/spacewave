@@ -120,12 +120,30 @@ describe('WhichKeyPanel', () => {
     vi.useRealTimers()
   })
 
-  it('renders prefix continuations from dispatcher state only', async () => {
+  it('shows remaining chord paths and narrows them as a prefix is typed', async () => {
     mockCommands = [
       commandState(
         command('spacewave.file.open', {
           label: 'Open File',
-          defaultBindings: [sequenceBinding('leader-open', ['Leader', 'O'])],
+          defaultBindings: [
+            sequenceBinding('leader-open', ['Leader', 'F', 'O']),
+          ],
+        }),
+      ),
+      commandState(
+        command('spacewave.file.save', {
+          label: 'Save File',
+          defaultBindings: [
+            sequenceBinding('leader-save', ['Leader', 'F', 'S']),
+          ],
+        }),
+      ),
+      commandState(
+        command('spacewave.terminal.open', {
+          label: 'Open Terminal',
+          defaultBindings: [
+            sequenceBinding('leader-terminal', ['Leader', 'T']),
+          ],
         }),
       ),
     ]
@@ -145,13 +163,114 @@ describe('WhichKeyPanel', () => {
     const panel = await view.findByRole('region', {
       name: 'Key sequence continuations',
     })
-    expect(panel.textContent).toContain('Ctrl+Space')
-    expect(panel.textContent).toContain('O')
-    expect(panel.textContent).toContain('Open File')
-    expect(panel.textContent).toContain('spacewave.file.open')
+    expect(
+      view.getByRole('option', { name: /Open File/ }).textContent,
+    ).toContain('FO')
+    expect(
+      view.getByRole('option', { name: /Save File/ }).textContent,
+    ).toContain('FS')
+    expect(panel.textContent).toContain('Open Terminal')
+
+    dispatchKeydown({ key: 'f' })
+
+    await waitFor(() => {
+      expect(
+        view.getByRole('option', { name: /Open File/ }).textContent,
+      ).toContain('O')
+      expect(
+        view.getByRole('option', { name: /Save File/ }).textContent,
+      ).toContain('S')
+      expect(panel.textContent).not.toContain('Open Terminal')
+    })
 
     dispatchKeydown({ key: 'o' })
 
+    expect(mockInvokeCommand).toHaveBeenCalledWith('spacewave.file.open')
+    await waitFor(() => {
+      expect(
+        view.queryByRole('region', { name: 'Key sequence continuations' }),
+      ).toBeNull()
+    })
+  })
+
+  it('falls through printable non-chord keys to fuzzy command filtering', async () => {
+    mockCommands = [
+      commandState(
+        command('spacewave.layout.zoom', {
+          label: 'Alpha Zoom',
+          defaultBindings: [sequenceBinding('leader-zoom', ['Leader', 'A'])],
+        }),
+      ),
+      commandState(
+        command('spacewave.file.open', {
+          label: 'Open File',
+          defaultBindings: [sequenceBinding('leader-open', ['Leader', 'O'])],
+        }),
+      ),
+    ]
+
+    const view = render(
+      <KeyDispatcher>
+        <WhichKeyPanel />
+      </KeyDispatcher>,
+    )
+
+    dispatchKeydown({ key: ' ', ctrlKey: true })
+    const panel = await view.findByRole('region', {
+      name: 'Key sequence continuations',
+    })
+
+    dispatchKeydown({ key: 'z' })
+    dispatchKeydown({ key: 'm' })
+
+    await waitFor(() => {
+      expect(panel.textContent).toContain('Filter: zm')
+      expect(panel.textContent).toContain('Alpha Zoom')
+      expect(panel.textContent).not.toContain('Open File')
+    })
+  })
+
+  it('navigates filtered commands with arrows and runs the selection with Enter', async () => {
+    mockCommands = [
+      commandState(
+        command('spacewave.first.zoom', {
+          label: 'First Zoom',
+          defaultBindings: [sequenceBinding('leader-first', ['Leader', 'A'])],
+        }),
+      ),
+      commandState(
+        command('spacewave.second.zoom', {
+          label: 'Second Zoom',
+          defaultBindings: [sequenceBinding('leader-second', ['Leader', 'B'])],
+        }),
+      ),
+    ]
+
+    const view = render(
+      <KeyDispatcher>
+        <WhichKeyPanel />
+      </KeyDispatcher>,
+    )
+
+    dispatchKeydown({ key: ' ', ctrlKey: true })
+    await view.findByRole('region', { name: 'Key sequence continuations' })
+    dispatchKeydown({ key: 'z' })
+
+    const first = view.getByRole('option', { name: /First Zoom/ })
+    const second = view.getByRole('option', { name: /Second Zoom/ })
+    expect(first.getAttribute('aria-selected')).toBe('true')
+    expect(second.getAttribute('aria-selected')).toBe('false')
+
+    dispatchKeydown({ key: 'ArrowDown' })
+
+    await waitFor(() => {
+      expect(first.getAttribute('aria-selected')).toBe('false')
+      expect(second.getAttribute('aria-selected')).toBe('true')
+    })
+
+    dispatchKeydown({ key: 'Enter' })
+
+    expect(mockInvokeCommand).toHaveBeenCalledWith('spacewave.second.zoom')
     await waitFor(() => {
       expect(
         view.queryByRole('region', { name: 'Key sequence continuations' }),

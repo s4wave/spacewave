@@ -190,7 +190,7 @@ describe('KeyDispatcher', () => {
     expect(mockInvokeCommand).not.toHaveBeenCalled()
   })
 
-  it('cancels prefix state after an invalid sequence step', async () => {
+  it('keeps prefix state active to filter after an invalid sequence step', async () => {
     mockCommands = [
       commandState(
         command('spacewave.sequence.open', {
@@ -213,7 +213,7 @@ describe('KeyDispatcher', () => {
 
     expect(event.defaultPrevented).toBe(true)
     await waitFor(() => {
-      expect(getByTestId('prefix-state').textContent).toBe('idle||')
+      expect(getByTestId('prefix-state').textContent).toBe('prefix|ctrl+space|')
     })
     expect(mockInvokeCommand).not.toHaveBeenCalled()
   })

@@ -23,6 +23,7 @@ export type KeyDispatcherMode = 'idle' | 'prefix'
 
 export interface KeyDispatcherContinuation {
   key: string
+  remainingKeys?: string[]
   label?: string
   commandId?: string
   conflict?: boolean
@@ -33,12 +34,17 @@ export interface KeyDispatcherPrefixState {
   activePath: string[]
   continuations: KeyDispatcherContinuation[]
   conflicts: KeybindingConflict[]
+  query?: string
+  selectedIndex?: number
   whichKeyDelayMs: number
 }
 
 interface PrefixSession {
   activePath: string[]
   node: KeybindingSequenceNode
+  query: string
+  selectedIndex: number
+  continuations: KeyDispatcherContinuation[]
 }
 
 const idlePrefixState: KeyDispatcherPrefixState = {
@@ -46,6 +52,8 @@ const idlePrefixState: KeyDispatcherPrefixState = {
   activePath: [],
   continuations: [],
   conflicts: [],
+  query: '',
+  selectedIndex: 0,
   whichKeyDelayMs: 0,
 }
 
@@ -70,14 +78,34 @@ export function KeyDispatcher({ children }: { children?: ReactNode }) {
     setPrefixState(idlePrefixState)
   })
 
-  const beginPrefix = useEffectEvent(
-    (activePath: string[], node: KeybindingSequenceNode) => {
-      prefixRef.current = { activePath, node }
+  const publishPrefix = useEffectEvent(
+    (
+      activePath: string[],
+      node: KeybindingSequenceNode,
+      query = '',
+      selectedIndex = 0,
+    ) => {
+      const continuations = continuationsFromNode(node).filter((continuation) =>
+        continuationMatchesQuery(continuation, query),
+      )
+      const nextSelectedIndex =
+        continuations.length === 0
+          ? 0
+          : Math.min(selectedIndex, continuations.length - 1)
+      prefixRef.current = {
+        activePath,
+        node,
+        query,
+        selectedIndex: nextSelectedIndex,
+        continuations,
+      }
       setPrefixState({
         mode: 'prefix',
         activePath,
-        continuations: continuationsFromNode(node),
+        continuations,
         conflicts: node.conflicts,
+        query,
+        selectedIndex: nextSelectedIndex,
         whichKeyDelayMs: graph.whichKeyDelayMs,
       })
     },
@@ -93,22 +121,62 @@ export function KeyDispatcher({ children }: { children?: ReactNode }) {
         clearPrefix()
         return
       }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        if (prefix.continuations.length === 0) return
+        const offset = event.key === 'ArrowDown' ? 1 : -1
+        const selectedIndex =
+          (prefix.selectedIndex + offset + prefix.continuations.length) %
+          prefix.continuations.length
+        publishPrefix(
+          prefix.activePath,
+          prefix.node,
+          prefix.query,
+          selectedIndex,
+        )
+        return
+      }
+      if (event.key === 'Enter') {
+        const commandId = prefix.continuations[prefix.selectedIndex]?.commandId
+        if (!commandId) return
+        clearPrefix()
+        invokeCommand(commandId)
+        return
+      }
+      if (event.key === 'Backspace' && prefix.query) {
+        publishPrefix(prefix.activePath, prefix.node, prefix.query.slice(0, -1))
+        return
+      }
+      if (prefix.query) {
+        if (isPrintableKey(event)) {
+          publishPrefix(
+            prefix.activePath,
+            prefix.node,
+            prefix.query + event.key,
+          )
+        }
+        return
+      }
+
       const nextNode = prefix.node.children.get(combo)
-      if (!nextNode) {
-        clearPrefix()
+      if (nextNode) {
+        if (nextNode.conflicts.length) {
+          publishPrefix([...prefix.activePath, combo], nextNode)
+          return
+        }
+        const binding = nextNode.bindings[0]
+        if (binding) {
+          clearPrefix()
+          invokeCommand(binding.commandId)
+          return
+        }
+        publishPrefix([...prefix.activePath, combo], nextNode)
         return
       }
-      if (nextNode.conflicts.length) {
-        beginPrefix([...prefix.activePath, combo], nextNode)
+      if (isPrintableKey(event)) {
+        publishPrefix(prefix.activePath, prefix.node, event.key)
         return
       }
-      const binding = nextNode.bindings[0]
-      if (binding) {
-        clearPrefix()
-        invokeCommand(binding.commandId)
-        return
-      }
-      beginPrefix([...prefix.activePath, combo], nextNode)
+      clearPrefix()
       return
     }
 
@@ -129,7 +197,7 @@ export function KeyDispatcher({ children }: { children?: ReactNode }) {
       : undefined
     if (prefixNode) {
       event.preventDefault()
-      beginPrefix([combo], prefixNode)
+      publishPrefix([combo], prefixNode)
     }
   })
 
@@ -151,16 +219,48 @@ export function KeyDispatcher({ children }: { children?: ReactNode }) {
 
 function continuationsFromNode(
   node: KeybindingSequenceNode,
+  remainingKeys: string[] = [],
+  continuations: KeyDispatcherContinuation[] = [],
 ): KeyDispatcherContinuation[] {
-  const continuations: KeyDispatcherContinuation[] = []
-  for (const [key, child] of node.children) {
-    const binding = child.bindings[0]
+  const bindings =
+    node.bindings.length > 0
+      ? node.bindings
+      : node.conflicts.flatMap((conflict) => conflict.bindings)
+  for (const binding of bindings) {
     continuations.push({
-      key,
-      label: binding?.label,
-      commandId: binding?.commandId,
-      conflict: child.conflicts.length > 0,
+      key: remainingKeys.join(' '),
+      remainingKeys,
+      label: binding.label,
+      commandId: binding.commandId,
+      conflict: node.conflicts.length > 0,
     })
   }
+  for (const [key, child] of node.children) {
+    continuationsFromNode(child, [...remainingKeys, key], continuations)
+  }
   return continuations
+}
+
+function continuationMatchesQuery(
+  continuation: KeyDispatcherContinuation,
+  query: string,
+): boolean {
+  const normalizedQuery = query.toLowerCase().replace(/[^a-z0-9]+/g, '')
+  if (!normalizedQuery) return true
+  const text = `${continuation.label} ${continuation.commandId}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '')
+  let queryIndex = 0
+  for (let textIndex = 0; textIndex < text.length; textIndex++) {
+    if (text[textIndex] !== normalizedQuery[queryIndex]) continue
+    queryIndex++
+    if (queryIndex === normalizedQuery.length) return true
+  }
+  return false
+}
+
+function isPrintableKey(event: KeyboardEvent): boolean {
+  return (
+    event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey
+  )
 }
