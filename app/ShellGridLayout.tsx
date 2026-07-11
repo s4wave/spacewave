@@ -390,10 +390,38 @@ export function ShellGridLayout() {
 
   const handleExternalAppDrag = useCallback(
     (event: ReactDragEvent<HTMLElement>) =>
-      buildShellExternalDrag(event, (tab) => {
-        addShellTab(tab, { select: true })
+      buildShellExternalDrag(event, (draggedTabs, droppedNode) => {
+        if (!model || draggedTabs.length === 0) return
+
+        const droppedTabId = droppedNode?.getId()
+        const droppedTab = droppedTabId ? model.getNodeById(droppedTabId) : null
+        const droppedTabsetId =
+          droppedTabId && droppedTab
+            ? getShellTabsetId(model, droppedTabId)
+            : null
+        const tabsetId = droppedTabsetId ?? getActiveTabsetId(model)
+        if (!tabsetId) return
+
+        const [firstTab, ...remainingTabs] = draggedTabs
+        const activeTab =
+          droppedTabId && droppedTab
+            ? { ...firstTab, id: droppedTabId }
+            : firstTab
+
+        if (!droppedTab) {
+          addShellModelTab(model, tabsetId, activeTab, 'shell-panel')
+        }
+        addShellTab(activeTab, { select: true })
+
+        for (const tab of remainingTabs) {
+          addShellTab(tab)
+          addShellModelTab(model, tabsetId, tab, 'shell-panel')
+        }
+
+        selectShellTab(activeTab.id)
+        model.doAction(Actions.selectTab(activeTab.id))
       }),
-    [addShellTab],
+    [addShellTab, model, selectShellTab],
   )
 
   if (!model) {

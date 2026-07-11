@@ -673,12 +673,36 @@ function ShellTabStripInner({ children }: ShellTabStripProps) {
 
   const handleExternalAppDrag = useCallback(
     (event: ReactDragEvent<HTMLElement>) =>
-      buildShellExternalDrag(event, (tab) => {
-        addShellTab(tab, { select: true })
-        setAppPath(tab.path)
+      buildShellExternalDrag(event, (draggedTabs, droppedNode) => {
+        const [firstTab, ...remainingTabs] = draggedTabs
+        if (!firstTab) return
+
+        const droppedTabId = droppedNode?.getId()
+        const droppedTab = droppedTabId ? model.getNodeById(droppedTabId) : null
+        const tabsetId =
+          droppedTabId && droppedTab
+            ? (getShellTabsetId(model, droppedTabId) ?? 'shell-tabset')
+            : 'shell-tabset'
+        const activeTab =
+          droppedTabId && droppedTab
+            ? { ...firstTab, id: droppedTabId }
+            : firstTab
+
+        if (!droppedTab) {
+          addAndSelectShellModelTab(model, tabsetId, activeTab, 'shell-content')
+        }
+        addShellTab(activeTab, { select: true })
+
+        for (const tab of remainingTabs) {
+          addShellTab(tab)
+          addShellModelTab(model, tabsetId, tab, 'shell-content')
+        }
+
+        model.doAction(Actions.selectTab(activeTab.id))
+        setAppPath(activeTab.path)
         markShellEngaged()
       }),
-    [addShellTab, markShellEngaged],
+    [addShellTab, markShellEngaged, model],
   )
 
   const [contextMenu, setContextMenu] =

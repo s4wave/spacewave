@@ -20,7 +20,10 @@ import {
   SHELL_TABS_STORAGE_KEY,
   useShellTabs,
 } from './ShellTabContext.js'
-import { buildUnixFSEntryAppDragEnvelope } from './unixfs/unixfs-app-drag.js'
+import {
+  buildUnixFSEntryAppDragEnvelope,
+  buildUnixFSSelectionAppDragEnvelope,
+} from './unixfs/unixfs-app-drag.js'
 
 interface MockOptimizedLayoutProps {
   model: {
@@ -472,6 +475,29 @@ function createUnixFSRowDragEvent() {
   })
   if (!envelope) {
     throw new Error('failed to build UnixFS row drag envelope')
+  }
+  return {
+    dataTransfer: {
+      types: [APP_DRAG_MIME],
+      getData: (format: string) =>
+        format === APP_DRAG_MIME ? JSON.stringify(envelope) : '',
+    },
+  }
+}
+function createUnixFSSelectionDragEvent() {
+  const envelope = buildUnixFSSelectionAppDragEnvelope({
+    entries: [
+      { id: 'docs', name: 'docs', isDir: true },
+      { id: 'report', name: 'report.md', isDir: false },
+      { id: 'image', name: 'image.png', isDir: false },
+    ],
+    currentPath: '/docs',
+    sessionIndex: 7,
+    spaceId: 'space-1',
+    unixfsId: 'files',
+  })
+  if (!envelope) {
+    throw new Error('failed to build UnixFS selection drag envelope')
   }
   return {
     dataTransfer: {
@@ -951,6 +977,79 @@ describe('ShellGridLayout', () => {
             tab.path === '/u/7/so/space-1/-/files/-/docs/report.md',
         ),
       ).toBe(true)
+    })
+  })
+
+  it('opens a dragged UnixFS selection in order within the dropped tabset', async () => {
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [
+          { id: 'tab-1', name: 'Docs', path: '/docs' },
+          { id: 'tab-2', name: 'Home', path: '/' },
+          { id: 'tab-3', name: 'Blog', path: '/blog' },
+        ],
+        activeTabId: 'tab-1',
+      }),
+    )
+
+    render(
+      <ShellTabsProvider>
+        <ShellGridLayout />
+      </ShellTabsProvider>,
+    )
+
+    const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
+    const onExternalDrag = props?.onExternalDrag
+    if (typeof onExternalDrag !== 'function') {
+      throw new Error('grid layout did not provide onExternalDrag')
+    }
+
+    const externalDrag = onExternalDrag(createUnixFSSelectionDragEvent())
+    expect(externalDrag).toMatchObject({
+      json: {
+        type: 'tab',
+        name: 'docs',
+        component: 'shell-content',
+      },
+    })
+
+    const droppedNode = { getId: () => 'dropped-tab' }
+    const externalDrop = externalDrag as {
+      onDrop?: (node?: unknown) => void
+    }
+    act(() => {
+      externalDrop.onDrop?.(droppedNode)
+    })
+
+    await waitFor(() => {
+      const stored = JSON.parse(
+        sessionStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
+      ) as {
+        activeTabId: string
+        tabs: Array<{ id: string; name: string; path: string }>
+      }
+      const draggedTabs = stored.tabs.filter((tab) =>
+        tab.path.startsWith('/u/7/so/space-1/-/files/'),
+      )
+      expect(stored.activeTabId).toBe('dropped-tab')
+      expect(draggedTabs.map((tab) => tab.name)).toEqual([
+        'docs',
+        'report.md',
+        'image.png',
+      ])
+      expect(draggedTabs.map((tab) => tab.path)).toEqual([
+        '/u/7/so/space-1/-/files/-/docs/docs',
+        '/u/7/so/space-1/-/files/-/docs/report.md',
+        '/u/7/so/space-1/-/files/-/docs/image.png',
+      ])
+
+      const latestProps = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
+      const tabset = latestProps?.model.tabsets[0]
+      expect(tabset?.children.slice(-3).map((tab) => tab.id)).toEqual(
+        draggedTabs.map((tab) => tab.id),
+      )
+      expect(tabset?.children[tabset.selected ?? -1]?.id).toBe('dropped-tab')
     })
   })
 

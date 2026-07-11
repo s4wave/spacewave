@@ -14,45 +14,45 @@ export interface ShellExternalDragResult {
 
 export function buildShellExternalDrag(
   event: ReactDragEvent<HTMLElement>,
-  onAddTab: (tab: ShellTab) => void,
+  onAddTabs: (tabs: ShellTab[], node?: Node) => void,
 ): ShellExternalDragResult | undefined {
   const envelope = readAppDragEnvelopeWithActiveFallback(event.dataTransfer)
-  const item = envelope?.items.find((item) =>
-    item.capabilities.some(
-      (cap) =>
-        cap.kind === 'openable' &&
-        cap.value.case === 'object' &&
-        !!cap.value.value.routePath,
-    ),
-  )
-  if (!item) return undefined
+  const tabs =
+    envelope?.items.flatMap((item) => {
+      const capability = item.capabilities.find(
+        (cap) =>
+          cap.kind === 'openable' &&
+          cap.value.case === 'object' &&
+          !!cap.value.value.routePath,
+      )
+      if (!capability || capability.kind !== 'openable') return []
 
-  const capability = item.capabilities.find(
-    (cap) =>
-      cap.kind === 'openable' &&
-      cap.value.case === 'object' &&
-      !!cap.value.value.routePath,
-  )
-  if (!capability || capability.kind !== 'openable') return undefined
+      const routePath = capability.value.value.routePath
+      if (!routePath) return []
 
-  const routePath = capability.value.value.routePath
-  if (!routePath) return undefined
+      return [
+        {
+          id: generateTabId(),
+          name: item.label || getTabNameFromPath(routePath),
+          path: routePath,
+        },
+      ]
+    }) ?? []
+  const firstTab = tabs[0]
+  if (!firstTab) return undefined
 
-  const tabId = generateTabId()
-  const name = item.label || getTabNameFromPath(routePath)
   return {
     json: {
       type: 'tab',
-      id: tabId,
-      name,
+      id: firstTab.id,
+      name: firstTab.name,
       component: 'shell-content',
     },
     onDrop: (node) => {
-      onAddTab({
-        id: node?.getId() ?? tabId,
-        name,
-        path: routePath,
-      })
+      onAddTabs(
+        node ? [{ ...firstTab, id: node.getId() }, ...tabs.slice(1)] : tabs,
+        node,
+      )
     },
   }
 }
