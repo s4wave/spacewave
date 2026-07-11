@@ -18,7 +18,7 @@ type SRPCCdnResourceServiceClient interface {
 
 	MountCdnSpace(ctx context.Context, in *MountCdnSpaceRequest) (*MountCdnSpaceResponse, error)
 
-	CopyV86ImageToSpace(ctx context.Context, in *CopyV86ImageToSpaceRequest) (*CopyV86ImageToSpaceResponse, error)
+	CopyV86ImageToSpace(ctx context.Context, in *CopyV86ImageToSpaceRequest) (SRPCCdnResourceService_CopyV86ImageToSpaceClient, error)
 }
 
 type srpcCdnResourceServiceClient struct {
@@ -57,13 +57,38 @@ func (c *srpcCdnResourceServiceClient) MountCdnSpace(ctx context.Context, in *Mo
 	return out, nil
 }
 
-func (c *srpcCdnResourceServiceClient) CopyV86ImageToSpace(ctx context.Context, in *CopyV86ImageToSpaceRequest) (*CopyV86ImageToSpaceResponse, error) {
-	out := new(CopyV86ImageToSpaceResponse)
-	err := c.cc.ExecCall(ctx, c.serviceID, "CopyV86ImageToSpace", in, out)
+func (c *srpcCdnResourceServiceClient) CopyV86ImageToSpace(ctx context.Context, in *CopyV86ImageToSpaceRequest) (SRPCCdnResourceService_CopyV86ImageToSpaceClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "CopyV86ImageToSpace", in)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	strm := &srpcCdnResourceService_CopyV86ImageToSpaceClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCCdnResourceService_CopyV86ImageToSpaceClient interface {
+	srpc.Stream
+	Recv() (*CopyV86ImageToSpaceProgress, error)
+	RecvTo(*CopyV86ImageToSpaceProgress) error
+}
+
+type srpcCdnResourceService_CopyV86ImageToSpaceClient struct {
+	srpc.Stream
+}
+
+func (x *srpcCdnResourceService_CopyV86ImageToSpaceClient) Recv() (*CopyV86ImageToSpaceProgress, error) {
+	m := new(CopyV86ImageToSpaceProgress)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcCdnResourceService_CopyV86ImageToSpaceClient) RecvTo(m *CopyV86ImageToSpaceProgress) error {
+	return x.MsgRecv(m)
 }
 
 type SRPCCdnResourceServiceServer interface {
@@ -71,7 +96,7 @@ type SRPCCdnResourceServiceServer interface {
 
 	MountCdnSpace(context.Context, *MountCdnSpaceRequest) (*MountCdnSpaceResponse, error)
 
-	CopyV86ImageToSpace(context.Context, *CopyV86ImageToSpaceRequest) (*CopyV86ImageToSpaceResponse, error)
+	CopyV86ImageToSpace(*CopyV86ImageToSpaceRequest, SRPCCdnResourceService_CopyV86ImageToSpaceStream) error
 }
 
 const SRPCCdnResourceServiceServiceID = "s4wave.cdn.CdnResourceService"
@@ -155,11 +180,8 @@ func (SRPCCdnResourceServiceHandler) InvokeMethod_CopyV86ImageToSpace(impl SRPCC
 	if err := strm.MsgRecv(req); err != nil {
 		return err
 	}
-	out, err := impl.CopyV86ImageToSpace(strm.Context(), req)
-	if err != nil {
-		return err
-	}
-	return strm.MsgSend(out)
+	serverStrm := &srpcCdnResourceService_CopyV86ImageToSpaceStream{strm}
+	return impl.CopyV86ImageToSpace(req, serverStrm)
 }
 
 type SRPCCdnResourceService_GetCdnSpaceIdStream interface {
@@ -180,8 +202,23 @@ type srpcCdnResourceService_MountCdnSpaceStream struct {
 
 type SRPCCdnResourceService_CopyV86ImageToSpaceStream interface {
 	srpc.Stream
+	Send(*CopyV86ImageToSpaceProgress) error
+	SendAndClose(*CopyV86ImageToSpaceProgress) error
 }
 
 type srpcCdnResourceService_CopyV86ImageToSpaceStream struct {
 	srpc.Stream
+}
+
+func (x *srpcCdnResourceService_CopyV86ImageToSpaceStream) Send(m *CopyV86ImageToSpaceProgress) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcCdnResourceService_CopyV86ImageToSpaceStream) SendAndClose(m *CopyV86ImageToSpaceProgress) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }

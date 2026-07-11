@@ -58,6 +58,50 @@ func CopyObjectToBucketWithStats(
 	skipSubtreeExists bool,
 	cb WalkObjectBlocksCb,
 ) (*bucket.ObjectRef, ObjectCopyStats, error) {
+	return copyObjectToBucket(
+		ctx,
+		destCursor,
+		srcCursor,
+		rootCtor,
+		maxConcurrency,
+		skipSubtreeExists,
+		cb,
+		nil,
+	)
+}
+
+// CopyObjectToBucketWithProgress copies an object and reports logical copy
+// accounting after each processed source block.
+func CopyObjectToBucketWithProgress(
+	ctx context.Context,
+	destCursor, srcCursor *Cursor,
+	rootCtor block.Ctor,
+	maxConcurrency int,
+	skipSubtreeExists bool,
+	cb WalkObjectBlocksCb,
+	progress ObjectCopyProgress,
+) (*bucket.ObjectRef, ObjectCopyStats, error) {
+	return copyObjectToBucket(
+		ctx,
+		destCursor,
+		srcCursor,
+		rootCtor,
+		maxConcurrency,
+		skipSubtreeExists,
+		cb,
+		progress,
+	)
+}
+
+func copyObjectToBucket(
+	ctx context.Context,
+	destCursor, srcCursor *Cursor,
+	rootCtor block.Ctor,
+	maxConcurrency int,
+	skipSubtreeExists bool,
+	cb WalkObjectBlocksCb,
+	progress ObjectCopyProgress,
+) (*bucket.ObjectRef, ObjectCopyStats, error) {
 	// transform the destination object ref (for returning)
 	srcRef := srcCursor.GetRef()
 	destinationRef := srcRef.Clone()
@@ -99,6 +143,28 @@ func CopyObjectToBucketWithStats(
 	var skippedSubtrees atomic.Int64
 
 	var logicalSourceBytes atomic.Int64
+	var progressMtx sync.Mutex
+	snapshot := func() ObjectCopyStats {
+		return ObjectCopyStats{
+			BlocksSeen:         seenBlockCount.Load(),
+			BlocksCopied:       copiedBlocks.Load(),
+			BlocksExisting:     existingBlocks.Load(),
+			BlocksWritten:      writtenBlocks.Load(),
+			BlocksDeduped:      dedupedBlocks.Load(),
+			SubtreesSkipped:    skippedSubtrees.Load(),
+			LogicalSourceBytes: logicalSourceBytes.Load(),
+		}
+	}
+	reportProgress := func() error {
+		if progress == nil {
+			return nil
+		}
+		progressMtx.Lock()
+		err := progress(snapshot())
+		progressMtx.Unlock()
+		return err
+	}
+
 	// To copy the object fully, we have to traverse the block graph.
 	// We do this by recursively following the block refs.
 	// Note that GetBlockRefCtor must be implemented for this to work properly.
@@ -129,6 +195,9 @@ func CopyObjectToBucketWithStats(
 			_, seen := seenBlocks.LoadOrStore(refStr, true)
 			if seen {
 				dedupedBlocks.Add(1)
+				if err := reportProgress(); err != nil {
+					return false, err
+				}
 				return
 			}
 
@@ -158,25 +227,23 @@ func CopyObjectToBucketWithStats(
 
 			if skipSubtreeExists && writeExisted && err == nil {
 				skippedSubtrees.Add(1)
+				if err := reportProgress(); err != nil {
+					return false, err
+				}
 				// skip sub-tree
 				return false, nil
 			}
 
+			if progressErr := reportProgress(); progressErr != nil {
+				return false, progressErr
+			}
 			return err == nil, err
 		},
 		readBkt, readXfrm,
 		maxConcurrency,
 		false,
 	)
-	stats := ObjectCopyStats{
-		BlocksSeen:         seenBlockCount.Load(),
-		BlocksCopied:       copiedBlocks.Load(),
-		BlocksExisting:     existingBlocks.Load(),
-		BlocksWritten:      writtenBlocks.Load(),
-		BlocksDeduped:      dedupedBlocks.Load(),
-		SubtreesSkipped:    skippedSubtrees.Load(),
-		LogicalSourceBytes: logicalSourceBytes.Load(),
-	}
+	stats := snapshot()
 	trace.Logf(ctx, "copy-block-seen-count", "%d", stats.BlocksSeen)
 	trace.Logf(ctx, "copy-block-copied-count", "%d", stats.BlocksCopied)
 	trace.Logf(ctx, "copy-block-dedupe-skip-count", "%d", stats.BlocksDeduped)

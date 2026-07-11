@@ -46,6 +46,7 @@ import {
 import { InitCanvasDemoOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { CanvasTypeID } from '@s4wave/app/canvas/type.js'
 
+import { CopyV86ImageToSpaceStage } from '@s4wave/sdk/cdn/cdn-resource.pb.js'
 import { InitChatDemoOp } from '@s4wave/sdk/chat/chat.pb.js'
 import {
   INIT_CHAT_DEMO_OP_ID,
@@ -1486,13 +1487,21 @@ async function initV86Quickstart(
   )
   const { cdn } = await setup.root.getCdn('', abortSignal)
   using cdnHandle = cdn
-  await cdnHandle.copyV86ImageToSpace(
+  let copyCompleted = false
+  for await (const progress of cdnHandle.copyV86ImageToSpace(
     sessionIndex,
     spaceId,
     V86_DEFAULT_CDN_IMAGE_OBJECT_KEY,
     V86_USER_IMAGE_OBJECT_KEY,
     abortSignal,
-  )
+  )) {
+    copyCompleted =
+      progress.stage ===
+        CopyV86ImageToSpaceStage.CopyV86ImageToSpaceStage_DONE || copyCompleted
+  }
+  if (!copyCompleted) {
+    throw new Error('V86 CDN image copy ended before completion')
+  }
 
   const createOp: CreateVmV86Op = {
     objectKey: vmKey,

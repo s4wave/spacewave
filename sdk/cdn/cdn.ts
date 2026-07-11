@@ -2,6 +2,7 @@ import { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
 
 import { Space } from '../space/space.js'
+import type { CopyV86ImageToSpaceProgress } from './cdn-resource.pb.js'
 import {
   CdnResourceService,
   CdnResourceServiceClient,
@@ -35,19 +36,19 @@ export class Cdn extends Resource {
   }
 
   // copyV86ImageToSpace copies a V86Image (metadata block plus the five asset
-  // edges) from this CDN Space into a user-owned destination Space. The
-  // caller supplies session_idx for the session-aware destination resolve
-  // plus the destination space ULID and source/destination object keys.
+  // edges) from this CDN Space into a user-owned destination Space and streams
+  // the server owner's block-copy accounting.
+  //
   // Asset UnixFS blocks are content-addressed; the destination block store
   // dedupes them against the CDN block store without re-upload.
-  public async copyV86ImageToSpace(
+  public copyV86ImageToSpace(
     sessionIdx: number,
     dstSpaceId: string,
     srcObjectKey: string,
     dstObjectKey: string,
     abortSignal?: AbortSignal,
-  ): Promise<void> {
-    await this.service.CopyV86ImageToSpace(
+  ): AsyncIterable<CopyV86ImageToSpaceProgress> {
+    return this.service.CopyV86ImageToSpace(
       { sessionIdx, dstSpaceId, srcObjectKey, dstObjectKey },
       abortSignal,
     )

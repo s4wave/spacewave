@@ -8,6 +8,17 @@ use starpc::StreamExt;
 /// Service ID for CdnResourceService.
 pub const CDN_RESOURCE_SERVICE_SERVICE_ID: &str = "s4wave.cdn.CdnResourceService";
 
+/// Stream trait for CdnResourceService.CopyV86ImageToSpace.
+#[starpc::async_trait]
+pub trait CdnResourceServiceCopyV86ImageToSpaceStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<CopyV86ImageToSpaceProgress>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Client trait for CdnResourceService.
 #[starpc::async_trait]
 pub trait CdnResourceServiceClient: Send + Sync {
@@ -16,7 +27,7 @@ pub trait CdnResourceServiceClient: Send + Sync {
     /// MountCdnSpace.
     async fn mount_cdn_space(&self, request: &MountCdnSpaceRequest) -> starpc::Result<MountCdnSpaceResponse>;
     /// CopyV86ImageToSpace.
-    async fn copy_v86_image_to_space(&self, request: &CopyV86ImageToSpaceRequest) -> starpc::Result<CopyV86ImageToSpaceResponse>;
+    async fn copy_v86_image_to_space(&self, request: &CopyV86ImageToSpaceRequest) -> starpc::Result<Box<dyn CdnResourceServiceCopyV86ImageToSpaceStream>>;
 }
 
 /// Client implementation for CdnResourceService.
@@ -39,8 +50,29 @@ impl<C: starpc::Client + 'static> CdnResourceServiceClient for CdnResourceServic
     async fn mount_cdn_space(&self, request: &MountCdnSpaceRequest) -> starpc::Result<MountCdnSpaceResponse> {
         self.client.exec_call("s4wave.cdn.CdnResourceService", "MountCdnSpace", request).await
     }
-    async fn copy_v86_image_to_space(&self, request: &CopyV86ImageToSpaceRequest) -> starpc::Result<CopyV86ImageToSpaceResponse> {
-        self.client.exec_call("s4wave.cdn.CdnResourceService", "CopyV86ImageToSpace", request).await
+    async fn copy_v86_image_to_space(&self, request: &CopyV86ImageToSpaceRequest) -> starpc::Result<Box<dyn CdnResourceServiceCopyV86ImageToSpaceStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("s4wave.cdn.CdnResourceService", "CopyV86ImageToSpace", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(CdnResourceServiceCopyV86ImageToSpaceStreamImpl { stream }))
+    }
+}
+
+struct CdnResourceServiceCopyV86ImageToSpaceStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl CdnResourceServiceCopyV86ImageToSpaceStream for CdnResourceServiceCopyV86ImageToSpaceStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<CopyV86ImageToSpaceProgress> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
     }
 }
 
@@ -52,7 +84,7 @@ pub trait CdnResourceServiceServer: Send + Sync {
     /// MountCdnSpace.
     async fn mount_cdn_space(&self, request: MountCdnSpaceRequest) -> starpc::Result<MountCdnSpaceResponse>;
     /// CopyV86ImageToSpace.
-    async fn copy_v86_image_to_space(&self, request: CopyV86ImageToSpaceRequest) -> starpc::Result<CopyV86ImageToSpaceResponse>;
+    async fn copy_v86_image_to_space(&self, request: CopyV86ImageToSpaceRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
 }
 
 const CDN_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
@@ -122,15 +154,7 @@ impl<S: CdnResourceServiceServer + 'static> starpc::Invoker for CdnResourceServi
                     Ok(r) => r,
                     Err(e) => return (true, Err(e)),
                 };
-                match self.server.copy_v86_image_to_space(request).await {
-                    Ok(response) => {
-                        if let Err(e) = stream.msg_send(&response).await {
-                            return (true, Err(e));
-                        }
-                        (true, Ok(()))
-                    }
-                    Err(e) => (true, Err(e)),
-                }
+                (true, self.server.copy_v86_image_to_space(request, stream).await)
             }
             _ => (false, Err(starpc::Error::Unimplemented)),
         }

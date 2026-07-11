@@ -9,6 +9,7 @@ import (
 
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/block"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
@@ -53,8 +54,32 @@ func TestCopyV86ImageFromCdnCopiesAssetObjectsBeforeEdges(t *testing.T) {
 		t.Fatalf("set source rootfs edge: %v", err)
 	}
 
-	if err := CopyV86ImageFromCdn(ctx, srcTB.WorldState, dstTB.WorldState, srcImageKey, dstImageKey); err != nil {
+	var progress []bucket_lookup.ObjectCopyStats
+	if err := CopyV86ImageFromCdnWithProgress(
+		ctx,
+		srcTB.WorldState,
+		dstTB.WorldState,
+		srcImageKey,
+		dstImageKey,
+		func(current bucket_lookup.ObjectCopyStats) error {
+			progress = append(progress, current)
+			return nil
+		},
+	); err != nil {
 		t.Fatalf("copy v86 image: %v", err)
+	}
+	if len(progress) == 0 {
+		t.Fatal("expected block-copy progress")
+	}
+	finalProgress := progress[len(progress)-1]
+	if finalProgress.BlocksSeen == 0 ||
+		finalProgress.BlocksCopied == 0 ||
+		finalProgress.BlocksWritten == 0 ||
+		finalProgress.LogicalSourceBytes == 0 {
+		t.Fatalf("final copy progress = %#v, want real block and byte accounting", finalProgress)
+	}
+	if err := CopyV86ImageFromCdn(ctx, srcTB.WorldState, dstTB.WorldState, srcImageKey, dstImageKey); err != nil {
+		t.Fatalf("retry completed v86 image copy: %v", err)
 	}
 
 	if _, found, err := dstTB.WorldState.GetObject(ctx, assetKey); err != nil {

@@ -20,6 +20,8 @@ namespace s4wave::cdn {
 // Service ID for CdnResourceService
 constexpr const char* kSRPCCdnResourceServiceServiceID = "s4wave.cdn.CdnResourceService";
 
+class SRPCCdnResourceService_CopyV86ImageToSpaceClient;
+class SRPCCdnResourceService_CopyV86ImageToSpaceStream;
 
 // SRPCCdnResourceServiceClient is the client API for CdnResourceService service.
 class SRPCCdnResourceServiceClient {
@@ -34,7 +36,7 @@ class SRPCCdnResourceServiceClient {
   // MountCdnSpace
   virtual starpc::Error MountCdnSpace(const s4wave::cdn::MountCdnSpaceRequest& in, s4wave::cdn::MountCdnSpaceResponse* out) = 0;
   // CopyV86ImageToSpace
-  virtual starpc::Error CopyV86ImageToSpace(const s4wave::cdn::CopyV86ImageToSpaceRequest& in, s4wave::cdn::CopyV86ImageToSpaceResponse* out) = 0;
+  virtual std::pair<std::unique_ptr<SRPCCdnResourceService_CopyV86ImageToSpaceClient>, starpc::Error> CopyV86ImageToSpace(const s4wave::cdn::CopyV86ImageToSpaceRequest& in) = 0;
 };
 
 // SRPCCdnResourceServiceClientImpl implements SRPCCdnResourceServiceClient.
@@ -50,7 +52,7 @@ class SRPCCdnResourceServiceClientImpl : public SRPCCdnResourceServiceClient {
   // MountCdnSpace
   virtual starpc::Error MountCdnSpace(const s4wave::cdn::MountCdnSpaceRequest& in, s4wave::cdn::MountCdnSpaceResponse* out) override;
   // CopyV86ImageToSpace
-  virtual starpc::Error CopyV86ImageToSpace(const s4wave::cdn::CopyV86ImageToSpaceRequest& in, s4wave::cdn::CopyV86ImageToSpaceResponse* out) override;
+  virtual std::pair<std::unique_ptr<SRPCCdnResourceService_CopyV86ImageToSpaceClient>, starpc::Error> CopyV86ImageToSpace(const s4wave::cdn::CopyV86ImageToSpaceRequest& in) override;
 
  private:
   starpc::Client* cc_;
@@ -72,7 +74,7 @@ class SRPCCdnResourceServiceServer {
   // MountCdnSpace
   virtual starpc::Error MountCdnSpace(const s4wave::cdn::MountCdnSpaceRequest& req, s4wave::cdn::MountCdnSpaceResponse* resp) = 0;
   // CopyV86ImageToSpace
-  virtual starpc::Error CopyV86ImageToSpace(const s4wave::cdn::CopyV86ImageToSpaceRequest& req, s4wave::cdn::CopyV86ImageToSpaceResponse* resp) = 0;
+  virtual starpc::Error CopyV86ImageToSpace(const s4wave::cdn::CopyV86ImageToSpaceRequest& req, SRPCCdnResourceService_CopyV86ImageToSpaceStream* strm) = 0;
 };
 
 // SRPCCdnResourceServiceHandler implements starpc::Handler for CdnResourceService.
@@ -108,5 +110,40 @@ inline std::pair<std::unique_ptr<SRPCCdnResourceServiceHandler>, starpc::Error> 
   }
   return {std::move(handler), starpc::Error::OK};
 }
+
+// SRPCCdnResourceService_CopyV86ImageToSpaceClient is the client stream for CopyV86ImageToSpace.
+class SRPCCdnResourceService_CopyV86ImageToSpaceClient {
+ public:
+  explicit SRPCCdnResourceService_CopyV86ImageToSpaceClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(s4wave::cdn::CopyV86ImageToSpaceProgress* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCCdnResourceService_CopyV86ImageToSpaceStream is the server stream for CopyV86ImageToSpace.
+class SRPCCdnResourceService_CopyV86ImageToSpaceStream {
+ public:
+  explicit SRPCCdnResourceService_CopyV86ImageToSpaceStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const s4wave::cdn::CopyV86ImageToSpaceProgress& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const s4wave::cdn::CopyV86ImageToSpaceProgress& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
 
 }  // namespace s4wave::cdn

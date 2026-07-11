@@ -6,10 +6,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	"github.com/s4wave/spacewave/db/block/blob"
-	"github.com/s4wave/spacewave/db/block/byteslice"
-	block_file "github.com/s4wave/spacewave/db/block/file"
-	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
+	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -29,6 +27,9 @@ var v86ImageEdgePreds = []string{
 }
 
 const legacySpacewaveV86ImageTypeID = "spacewave/vm/image/v86"
+
+// V86ImageCopyProgressFunc receives cumulative block-copy progress.
+type V86ImageCopyProgressFunc func(bucket_lookup.ObjectCopyStats) error
 
 // CopyV86ImageFromCdn copies a V86Image (metadata block plus the five asset
 // edges) from the CDN WorldState into a user-owned destination WorldState.
@@ -50,6 +51,19 @@ func CopyV86ImageFromCdn(
 	srcObjectKey string,
 	dstObjectKey string,
 ) error {
+	return CopyV86ImageFromCdnWithProgress(ctx, src, dst, srcObjectKey, dstObjectKey, nil)
+}
+
+// CopyV86ImageFromCdnWithProgress copies a V86Image and reports cumulative
+// block accounting as its asset objects move into the destination bucket.
+func CopyV86ImageFromCdnWithProgress(
+	ctx context.Context,
+	src world.WorldState,
+	dst world.WorldState,
+	srcObjectKey string,
+	dstObjectKey string,
+	progress V86ImageCopyProgressFunc,
+) error {
 	if srcObjectKey == "" {
 		return errors.New("source object key is required")
 	}
@@ -67,26 +81,38 @@ func CopyV86ImageFromCdn(
 		return errors.Wrapf(err, "read v86 image edges for %q", srcObjectKey)
 	}
 
-	if err := checkDstWritable(ctx, dst, dstObjectKey); err != nil {
+	dstImageExists, err := checkDstV86Image(ctx, dst, dstObjectKey, img)
+	if err != nil {
 		return errors.Wrap(err, "destination write check")
 	}
 
-	createdAt := img.GetCreatedAt().AsTime()
-	if createdAt.IsZero() {
-		createdAt = time.Now()
-	}
-	op := s4wave_vm.NewCreateV86ImageOp(dstObjectKey, img, createdAt)
-	if _, _, err := dst.ApplyWorldOp(ctx, op, ""); err != nil {
-		return errors.Wrap(err, "apply create v86 image op on destination")
+	if !dstImageExists {
+		createdAt := img.GetCreatedAt().AsTime()
+		if createdAt.IsZero() {
+			createdAt = time.Now()
+		}
+		op := s4wave_vm.NewCreateV86ImageOp(dstObjectKey, img, createdAt)
+		if _, _, err := dst.ApplyWorldOp(ctx, op, ""); err != nil {
+			return errors.Wrap(err, "apply create v86 image op on destination")
+		}
 	}
 
+	var copiedStats bucket_lookup.ObjectCopyStats
 	for pred, targetKey := range edges {
 		if targetKey == "" {
 			continue
 		}
-		if err := ensureCopiedWorldObject(ctx, src, dst, targetKey); err != nil {
+		baseStats := copiedStats
+		stats, err := ensureCopiedWorldObject(ctx, src, dst, targetKey, func(current bucket_lookup.ObjectCopyStats) error {
+			if progress == nil {
+				return nil
+			}
+			return progress(addObjectCopyStats(baseStats, current))
+		})
+		if err != nil {
 			return errors.Wrapf(err, "copy %s asset object %q to destination", pred, targetKey)
 		}
+		copiedStats = addObjectCopyStats(copiedStats, stats)
 		quad := world.NewGraphQuadWithKeys(dstObjectKey, pred, targetKey, "")
 		if err := dst.SetGraphQuad(ctx, quad); err != nil {
 			return errors.Wrapf(err, "set %s edge on destination", pred)
@@ -100,42 +126,70 @@ func CopyV86ImageFromCdn(
 // does not already have it. V86Image edges point at UnixFS objects, and the
 // world graph requires both endpoints to exist before SetGraphQuad can link
 // them.
-func ensureCopiedWorldObject(ctx context.Context, src, dst world.WorldState, objectKey string) error {
+func ensureCopiedWorldObject(
+	ctx context.Context,
+	src, dst world.WorldState,
+	objectKey string,
+	progress bucket_lookup.ObjectCopyProgress,
+) (bucket_lookup.ObjectCopyStats, error) {
 	if objectKey == "" {
-		return nil
+		return bucket_lookup.ObjectCopyStats{}, nil
 	}
-	if _, found, err := dst.GetObject(ctx, objectKey); err != nil {
-		return errors.Wrap(err, "probe destination object")
-	} else if !found {
-		srcObj, srcFound, err := src.GetObject(ctx, objectKey)
-		if err != nil {
-			return errors.Wrap(err, "get source object")
+	_, found, err := dst.GetObject(ctx, objectKey)
+	if err != nil {
+		return bucket_lookup.ObjectCopyStats{}, errors.Wrap(err, "probe destination object")
+	}
+	if found {
+		if err := ensureCopiedObjectType(ctx, src, dst, objectKey); err != nil {
+			return bucket_lookup.ObjectCopyStats{}, err
 		}
-		if !srcFound {
-			return errors.Errorf("source object %q not found", objectKey)
-		}
+		return bucket_lookup.ObjectCopyStats{}, nil
+	}
 
-		rootCtor, err := lookupCopyRootCtor(ctx, src, objectKey)
-		if err != nil {
-			return err
-		}
+	srcObj, srcFound, err := src.GetObject(ctx, objectKey)
+	if err != nil {
+		return bucket_lookup.ObjectCopyStats{}, errors.Wrap(err, "get source object")
+	}
+	if !srcFound {
+		return bucket_lookup.ObjectCopyStats{}, errors.Errorf("source object %q not found", objectKey)
+	}
+	rootCtor, err := lookupCopyRootCtor(ctx, src, objectKey)
+	if err != nil {
+		return bucket_lookup.ObjectCopyStats{}, err
+	}
+	srcRef, _, err := srcObj.GetRootRef(ctx)
+	if err != nil {
+		return bucket_lookup.ObjectCopyStats{}, errors.Wrap(err, "get source object root")
+	}
 
-		_, _, err = world.AccessObjectState(ctx, srcObj, false, func(srcCursor *block.Cursor) error {
-			if err := loadCursorDAG(ctx, srcCursor, rootCtor); err != nil {
-				return err
-			}
-			_, _, createErr := world.CreateWorldObject(ctx, dst, objectKey, func(dstCursor *block.Cursor) error {
-				srcCursor.CopyToRecursive(dstCursor, true, true)
-				return nil
-			})
-			return createErr
+	var dstRef *bucket.ObjectRef
+	var stats bucket_lookup.ObjectCopyStats
+	err = dst.AccessWorldState(ctx, nil, func(dstCursor *bucket_lookup.Cursor) error {
+		return srcObj.AccessWorldState(ctx, srcRef, func(srcCursor *bucket_lookup.Cursor) error {
+			var copyErr error
+			dstRef, stats, copyErr = bucket_lookup.CopyObjectToBucketWithProgress(
+				ctx,
+				dstCursor,
+				srcCursor,
+				rootCtor,
+				1,
+				false,
+				nil,
+				progress,
+			)
+			return copyErr
 		})
-		if err != nil {
-			return errors.Wrap(err, "create destination object")
-		}
+	})
+	if err != nil {
+		return stats, errors.Wrap(err, "copy object blocks")
 	}
-
-	return ensureCopiedObjectType(ctx, src, dst, objectKey)
+	if _, err := dst.CreateObject(ctx, objectKey, dstRef); err != nil {
+		return stats, errors.Wrap(err, "create destination object")
+	}
+	if err := ensureCopiedObjectType(ctx, src, dst, objectKey); err != nil {
+		return stats, err
+	}
+	return stats, nil
 }
 
 func lookupCopyRootCtor(ctx context.Context, src world.WorldState, objectKey string) (block.Ctor, error) {
@@ -155,103 +209,16 @@ func lookupCopyRootCtor(ctx context.Context, src world.WorldState, objectKey str
 	return nil, nil
 }
 
-func loadCursorDAG(ctx context.Context, srcCursor *block.Cursor, rootCtor block.Ctor) error {
-	rootRef := srcCursor.GetRef()
-	if rootRef == nil || rootRef.GetEmpty() {
-		return nil
+func addObjectCopyStats(a, b bucket_lookup.ObjectCopyStats) bucket_lookup.ObjectCopyStats {
+	return bucket_lookup.ObjectCopyStats{
+		BlocksSeen:         a.BlocksSeen + b.BlocksSeen,
+		BlocksCopied:       a.BlocksCopied + b.BlocksCopied,
+		BlocksExisting:     a.BlocksExisting + b.BlocksExisting,
+		BlocksWritten:      a.BlocksWritten + b.BlocksWritten,
+		BlocksDeduped:      a.BlocksDeduped + b.BlocksDeduped,
+		SubtreesSkipped:    a.SubtreesSkipped + b.SubtreesSkipped,
+		LogicalSourceBytes: a.LogicalSourceBytes + b.LogicalSourceBytes,
 	}
-
-	visited := make(map[string]bool)
-	return loadUnixFSAssetCursor(ctx, srcCursor, rootCtor, visited)
-}
-
-func loadUnixFSAssetCursor(
-	ctx context.Context,
-	cursor *block.Cursor,
-	ctor block.Ctor,
-	visited map[string]bool,
-) error {
-	if cursor == nil {
-		return nil
-	}
-	if ref := cursor.GetRef(); ref != nil && !ref.GetEmpty() {
-		refStr := ref.MarshalString()
-		if visited[refStr] {
-			return nil
-		}
-		visited[refStr] = true
-	}
-
-	blk := getKnownUnixFSAssetBlock(ctx, cursor, ctor)
-	if blk == nil {
-		return nil
-	}
-	return followUnixFSAssetBlock(ctx, cursor, blk, visited)
-}
-
-func getKnownUnixFSAssetBlock(ctx context.Context, cursor *block.Cursor, preferred block.Ctor) any {
-	if blk, _ := cursor.GetBlock(); blk != nil {
-		return blk
-	}
-	for _, ctor := range unixFSAssetBlockCtors(preferred) {
-		if ctor == nil {
-			continue
-		}
-		blk, err := cursor.Unmarshal(ctx, ctor)
-		if err == nil && blk != nil {
-			return blk
-		}
-	}
-	return nil
-}
-
-func unixFSAssetBlockCtors(preferred block.Ctor) []block.Ctor {
-	return []block.Ctor{
-		preferred,
-		unixfs_block.NewFSNodeBlock,
-		unixfs_block.NewFSObjectBlock,
-		block_file.NewFileBlock,
-		blob.NewBlobBlock,
-		blob.NewChunkIndexBlock,
-		blob.NewChunkBlock,
-		byteslice.NewByteSliceBlock,
-	}
-}
-
-func followUnixFSAssetBlock(
-	ctx context.Context,
-	cursor *block.Cursor,
-	blk any,
-	visited map[string]bool,
-) error {
-	if withRefs, ok := blk.(block.BlockWithRefs); ok {
-		refs, err := withRefs.GetBlockRefs()
-		if err != nil {
-			return errors.Wrap(err, "get block refs")
-		}
-		for id, childRef := range refs {
-			if childRef == nil || childRef.GetEmpty() {
-				continue
-			}
-			childCursor := cursor.FollowRef(id, childRef)
-			if err := loadUnixFSAssetCursor(ctx, childCursor, withRefs.GetBlockRefCtor(id), visited); err != nil {
-				return err
-			}
-		}
-	}
-
-	if withSubBlocks, ok := blk.(block.BlockWithSubBlocks); ok {
-		for id, sub := range withSubBlocks.GetSubBlocks() {
-			if sub == nil || sub.IsNil() {
-				continue
-			}
-			subCursor := cursor.FollowSubBlock(id)
-			if err := followUnixFSAssetBlock(ctx, subCursor, sub, visited); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 func ensureCopiedObjectType(ctx context.Context, src, dst world.WorldState, objectKey string) error {
@@ -351,20 +318,31 @@ func lookupV86ImageEdge(ctx context.Context, ws world.WorldState, subject, pred 
 	return target, nil
 }
 
-// checkDstWritable ensures the destination WorldState can accept a new
-// V86Image at =dstObjectKey=. Fails loud when =dst= is explicitly read-only
-// (e.g. another mounted CDN Space) and refuses to overwrite an existing
-// object so the copy stays idempotent from the caller's perspective.
-func checkDstWritable(ctx context.Context, dst world.WorldState, dstObjectKey string) error {
+// checkDstV86Image verifies that the destination accepts the image copy. A
+// matching image is a resumable retry; a different existing object is never
+// overwritten.
+func checkDstV86Image(
+	ctx context.Context,
+	dst world.WorldState,
+	dstObjectKey string,
+	srcImage *s4wave_vm.V86Image,
+) (bool, error) {
 	if dst.GetReadOnly() {
-		return errors.New("destination world state is read-only")
+		return false, errors.New("destination world state is read-only")
 	}
 	_, found, err := dst.GetObject(ctx, dstObjectKey)
 	if err != nil {
-		return errors.Wrap(err, "probe destination object")
+		return false, errors.Wrap(err, "probe destination object")
 	}
-	if found {
-		return errors.Errorf("destination object %q already exists", dstObjectKey)
+	if !found {
+		return false, nil
 	}
-	return nil
+	dstImage, err := readCdnV86Image(ctx, dst, dstObjectKey)
+	if err != nil {
+		return false, errors.Wrap(err, "read existing destination image")
+	}
+	if !dstImage.EqualVT(srcImage) {
+		return false, errors.Errorf("destination object %q already contains a different V86Image", dstObjectKey)
+	}
+	return true, nil
 }

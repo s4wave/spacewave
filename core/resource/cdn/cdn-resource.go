@@ -12,6 +12,7 @@ import (
 	resource_space "github.com/s4wave/spacewave/core/resource/space"
 	space_resolve "github.com/s4wave/spacewave/core/space/resolve"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_cdn "github.com/s4wave/spacewave/sdk/cdn"
 	"github.com/sirupsen/logrus"
@@ -92,39 +93,81 @@ func (r *CdnResource) MountCdnSpace(
 // copy semantics (metadata block + five asset edges, dedupe by target key)
 // are handled by core/cdn.CopyV86ImageFromCdn.
 func (r *CdnResource) CopyV86ImageToSpace(
-	ctx context.Context,
 	req *s4wave_cdn.CopyV86ImageToSpaceRequest,
-) (*s4wave_cdn.CopyV86ImageToSpaceResponse, error) {
+	strm s4wave_cdn.SRPCCdnResourceService_CopyV86ImageToSpaceStream,
+) error {
+	ctx := strm.Context()
 	if req.GetDstSpaceId() == "" {
-		return nil, errors.New("dst_space_id is required")
+		return errors.New("dst_space_id is required")
 	}
 	if req.GetSrcObjectKey() == "" {
-		return nil, errors.New("src_object_key is required")
+		return errors.New("src_object_key is required")
 	}
 	if req.GetDstObjectKey() == "" {
-		return nil, errors.New("dst_object_key is required")
+		return errors.New("dst_object_key is required")
+	}
+
+	if err := strm.Send(&s4wave_cdn.CopyV86ImageToSpaceProgress{
+		Stage: s4wave_cdn.CopyV86ImageToSpaceStage_CopyV86ImageToSpaceStage_FETCHING,
+	}); err != nil {
+		return err
 	}
 
 	cdnSO := r.instance.GetSharedObject()
 	srcEngine, err := cdn_sharedobject.NewWorldEngine(ctx, r.le, r.b, cdnSO, space_world_optypes.LookupWorldOp)
 	if err != nil {
-		return nil, errors.Wrap(err, "build cdn source world engine")
+		return errors.Wrap(err, "build cdn source world engine")
 	}
 	defer srcEngine.Release()
 
 	resolved, dstCleanup, err := space_resolve.ResolveSpace(ctx, r.b, req.GetSessionIdx(), req.GetDstSpaceId())
 	if err != nil {
-		return nil, errors.Wrap(err, "resolve destination space")
+		return errors.Wrap(err, "resolve destination space")
 	}
 	defer dstCleanup()
 
 	src := world.NewEngineWorldState(srcEngine.Engine, false)
 	dst := world.NewEngineWorldState(resolved.Engine, true)
 
-	if err := cdn_copy.CopyV86ImageFromCdn(ctx, src, dst, req.GetSrcObjectKey(), req.GetDstObjectKey()); err != nil {
-		return nil, err
+	if err := strm.Send(&s4wave_cdn.CopyV86ImageToSpaceProgress{
+		Stage: s4wave_cdn.CopyV86ImageToSpaceStage_CopyV86ImageToSpaceStage_COPYING,
+	}); err != nil {
+		return err
 	}
-	return &s4wave_cdn.CopyV86ImageToSpaceResponse{}, nil
+	var finalStats bucket_lookup.ObjectCopyStats
+	if err := cdn_copy.CopyV86ImageFromCdnWithProgress(
+		ctx,
+		src,
+		dst,
+		req.GetSrcObjectKey(),
+		req.GetDstObjectKey(),
+		func(stats bucket_lookup.ObjectCopyStats) error {
+			finalStats = stats
+			return strm.Send(copyV86ImageProgress(
+				s4wave_cdn.CopyV86ImageToSpaceStage_CopyV86ImageToSpaceStage_COPYING,
+				stats,
+			))
+		},
+	); err != nil {
+		return err
+	}
+	return strm.Send(copyV86ImageProgress(
+		s4wave_cdn.CopyV86ImageToSpaceStage_CopyV86ImageToSpaceStage_DONE,
+		finalStats,
+	))
+}
+
+func copyV86ImageProgress(
+	stage s4wave_cdn.CopyV86ImageToSpaceStage,
+	stats bucket_lookup.ObjectCopyStats,
+) *s4wave_cdn.CopyV86ImageToSpaceProgress {
+	return &s4wave_cdn.CopyV86ImageToSpaceProgress{
+		Stage:              stage,
+		BlocksSeen:         uint64(stats.BlocksSeen),
+		BlocksCopied:       uint64(stats.BlocksCopied),
+		BlocksWritten:      uint64(stats.BlocksWritten),
+		LogicalSourceBytes: uint64(stats.LogicalSourceBytes),
+	}
 }
 
 // _ is a type assertion.

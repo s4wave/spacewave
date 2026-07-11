@@ -16,8 +16,16 @@ starpc::Error SRPCCdnResourceServiceClientImpl::MountCdnSpace(const s4wave::cdn:
   return cc_->ExecCall(service_id_, "MountCdnSpace", in, out);
 }
 
-starpc::Error SRPCCdnResourceServiceClientImpl::CopyV86ImageToSpace(const s4wave::cdn::CopyV86ImageToSpaceRequest& in, s4wave::cdn::CopyV86ImageToSpaceResponse* out) {
-  return cc_->ExecCall(service_id_, "CopyV86ImageToSpace", in, out);
+std::pair<std::unique_ptr<SRPCCdnResourceService_CopyV86ImageToSpaceClient>, starpc::Error> SRPCCdnResourceServiceClientImpl::CopyV86ImageToSpace(const s4wave::cdn::CopyV86ImageToSpaceRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "CopyV86ImageToSpace", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCCdnResourceService_CopyV86ImageToSpaceClient>(std::move(strm)), starpc::Error::OK};
 }
 
 std::vector<std::string> SRPCCdnResourceServiceHandler::GetMethodIDs() const {
@@ -56,10 +64,8 @@ std::pair<bool, starpc::Error> SRPCCdnResourceServiceHandler::InvokeMethod(
     s4wave::cdn::CopyV86ImageToSpaceRequest req;
     starpc::Error err = strm->MsgRecv(&req);
     if (err != starpc::Error::OK) return {true, err};
-    s4wave::cdn::CopyV86ImageToSpaceResponse resp;
-    err = impl_->CopyV86ImageToSpace(req, &resp);
-    if (err != starpc::Error::OK) return {true, err};
-    return {true, strm->MsgSend(resp)};
+    SRPCCdnResourceService_CopyV86ImageToSpaceStream serverStrm(strm);
+    return {true, impl_->CopyV86ImageToSpace(req, &serverStrm)};
   }
 
   return {false, starpc::Error::OK};

@@ -39,8 +39,53 @@ pub struct CopyV86ImageToSpaceRequest {
     #[prost(string, tag="4")]
     pub dst_object_key: ::prost::alloc::string::String,
 }
-/// CopyV86ImageToSpaceResponse is the response type for CopyV86ImageToSpace.
+/// CopyV86ImageToSpaceProgress reports cumulative logical copy accounting.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CopyV86ImageToSpaceResponse {
+pub struct CopyV86ImageToSpaceProgress {
+    /// Stage is the current server-owned image-copy stage.
+    #[prost(enumeration="CopyV86ImageToSpaceStage", tag="1")]
+    pub stage: i32,
+    /// BlocksSeen counts unique eligible source blocks encountered.
+    #[prost(uint64, tag="2")]
+    pub blocks_seen: u64,
+    /// BlocksCopied counts source blocks processed by the destination store.
+    #[prost(uint64, tag="3")]
+    pub blocks_copied: u64,
+    /// BlocksWritten counts source blocks newly written to the destination.
+    #[prost(uint64, tag="4")]
+    pub blocks_written: u64,
+    /// LogicalSourceBytes counts eligible source bytes before destination dedupe.
+    #[prost(uint64, tag="5")]
+    pub logical_source_bytes: u64,
+}
+/// CopyV86ImageToSpaceStage is the server-owned CDN image-copy stage.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CopyV86ImageToSpaceStage {
+    Fetching = 0,
+    Copying = 1,
+    Done = 2,
+}
+impl CopyV86ImageToSpaceStage {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Fetching => "CopyV86ImageToSpaceStage_FETCHING",
+            Self::Copying => "CopyV86ImageToSpaceStage_COPYING",
+            Self::Done => "CopyV86ImageToSpaceStage_DONE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "CopyV86ImageToSpaceStage_FETCHING" => Some(Self::Fetching),
+            "CopyV86ImageToSpaceStage_COPYING" => Some(Self::Copying),
+            "CopyV86ImageToSpaceStage_DONE" => Some(Self::Done),
+            _ => None,
+        }
+    }
 }
 // @@protoc_insertion_point(module)

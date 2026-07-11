@@ -34,6 +34,7 @@ import {
   AddDeviceWizardTargetKeyPrefix,
   AddDeviceWizardTypeID,
 } from '@s4wave/app/device/add-device-wizard.js'
+import { CopyV86ImageToSpaceStage } from '@s4wave/sdk/cdn/cdn-resource.pb.js'
 import { InitChatDemoOp } from '@s4wave/sdk/chat/chat.pb.js'
 import {
   CHAT_DEMO_CHANNEL_KEY,
@@ -1500,7 +1501,11 @@ to try first.
   })
 
   it('creates and starts the v86 quickstart from the default CDN image', async () => {
-    const copyV86ImageToSpace = vi.fn().mockResolvedValue(undefined)
+    const copyV86ImageToSpace = vi.fn(async function* () {
+      yield {
+        stage: CopyV86ImageToSpaceStage.CopyV86ImageToSpaceStage_DONE,
+      }
+    })
     const putBlock = vi.fn((_arg: { data: Uint8Array }) =>
       Promise.resolve({ ref: {} }),
     )

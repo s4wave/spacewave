@@ -13,3 +13,7 @@ type ObjectCopyStats struct {
 	SubtreesSkipped    int64
 	LogicalSourceBytes int64
 }
+
+// ObjectCopyProgress receives monotonic copy accounting snapshots. Callbacks are
+// serialized even when the copy runs with concurrent block workers.
+type ObjectCopyProgress func(ObjectCopyStats) error

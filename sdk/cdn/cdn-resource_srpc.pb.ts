@@ -3,15 +3,15 @@
 /* eslint-disable */
 
 import {
+  CopyV86ImageToSpaceProgress,
   CopyV86ImageToSpaceRequest,
-  CopyV86ImageToSpaceResponse,
   GetCdnSpaceIdRequest,
   GetCdnSpaceIdResponse,
   MountCdnSpaceRequest,
   MountCdnSpaceResponse,
 } from './cdn-resource.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
-import { ProtoRpc } from 'starpc'
+import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**
  * @generated from service s4wave.cdn.CdnResourceService
@@ -43,8 +43,8 @@ export const CdnResourceServiceDefinition = {
     CopyV86ImageToSpace: {
       name: 'CopyV86ImageToSpace',
       I: CopyV86ImageToSpaceRequest,
-      O: CopyV86ImageToSpaceResponse,
-      kind: MethodKind.Unary,
+      O: CopyV86ImageToSpaceProgress,
+      kind: MethodKind.ServerStreaming,
     },
   },
 } as const
@@ -75,7 +75,7 @@ export interface CdnResourceService {
   CopyV86ImageToSpace(
     request: CopyV86ImageToSpaceRequest,
     abortSignal?: AbortSignal,
-  ): Promise<CopyV86ImageToSpaceResponse>
+  ): MessageStream<CopyV86ImageToSpaceProgress>
 }
 
 export const CdnResourceServiceServiceName =
@@ -128,17 +128,17 @@ export class CdnResourceServiceClient implements CdnResourceService {
   /**
    * @generated from rpc s4wave.cdn.CdnResourceService.CopyV86ImageToSpace
    */
-  async CopyV86ImageToSpace(
+  CopyV86ImageToSpace(
     request: CopyV86ImageToSpaceRequest,
     abortSignal?: AbortSignal,
-  ): Promise<CopyV86ImageToSpaceResponse> {
+  ): MessageStream<CopyV86ImageToSpaceProgress> {
     const requestMsg = CopyV86ImageToSpaceRequest.create(request)
-    const result = await this.rpc.request(
+    const result = this.rpc.serverStreamingRequest(
       this.service,
       CdnResourceServiceDefinition.methods.CopyV86ImageToSpace.name,
       CopyV86ImageToSpaceRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
-    return CopyV86ImageToSpaceResponse.fromBinary(result)
+    return buildDecodeMessageTransform(CopyV86ImageToSpaceProgress)(result)
   }
 }

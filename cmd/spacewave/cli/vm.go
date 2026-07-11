@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"context"
+	"io"
 	"io/fs"
 	"os"
 	"slices"
@@ -531,7 +532,7 @@ func copyV86ImageFromCdn(
 		return errors.Wrap(err, "CDN client")
 	}
 	cdnSvc := s4wave_cdn.NewSRPCCdnResourceServiceClient(cdnClient)
-	_, err = cdnSvc.CopyV86ImageToSpace(ctx, &s4wave_cdn.CopyV86ImageToSpaceRequest{
+	strm, err := cdnSvc.CopyV86ImageToSpace(ctx, &s4wave_cdn.CopyV86ImageToSpaceRequest{
 		SessionIdx:   sessionIdx,
 		DstSpaceId:   sid,
 		SrcObjectKey: srcKey,
@@ -540,7 +541,15 @@ func copyV86ImageFromCdn(
 	if err != nil {
 		return errors.Wrap(err, "copy v86 image from CDN")
 	}
-	return nil
+	defer strm.Close()
+	for {
+		if _, err := strm.Recv(); err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return errors.Wrap(err, "receive v86 image copy progress")
+		}
+	}
 }
 
 func createV86VM(

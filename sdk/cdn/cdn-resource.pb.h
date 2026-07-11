@@ -31,6 +31,7 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 // @@protoc_insertion_point(includes)
 
@@ -57,14 +58,16 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace s4wave {
 namespace cdn {
+enum CopyV86ImageToSpaceStage : int;
+extern const uint32_t CopyV86ImageToSpaceStage_internal_data_[];
+class CopyV86ImageToSpaceProgress;
+struct CopyV86ImageToSpaceProgressDefaultTypeInternal;
+extern CopyV86ImageToSpaceProgressDefaultTypeInternal _CopyV86ImageToSpaceProgress_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CopyV86ImageToSpaceProgress_class_data_;
 class CopyV86ImageToSpaceRequest;
 struct CopyV86ImageToSpaceRequestDefaultTypeInternal;
 extern CopyV86ImageToSpaceRequestDefaultTypeInternal _CopyV86ImageToSpaceRequest_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull CopyV86ImageToSpaceRequest_class_data_;
-class CopyV86ImageToSpaceResponse;
-struct CopyV86ImageToSpaceResponseDefaultTypeInternal;
-extern CopyV86ImageToSpaceResponseDefaultTypeInternal _CopyV86ImageToSpaceResponse_default_instance_;
-extern const ::google::protobuf::internal::ClassDataFull CopyV86ImageToSpaceResponse_class_data_;
 class GetCdnSpaceIdRequest;
 struct GetCdnSpaceIdRequestDefaultTypeInternal;
 extern GetCdnSpaceIdRequestDefaultTypeInternal _GetCdnSpaceIdRequest_default_instance_;
@@ -85,11 +88,51 @@ extern const ::google::protobuf::internal::ClassDataFull MountCdnSpaceResponse_c
 }  // namespace s4wave
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::s4wave::cdn::CopyV86ImageToSpaceStage_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::cdn::CopyV86ImageToSpaceStage>;
 }  // namespace protobuf
 }  // namespace google
 
 namespace s4wave {
 namespace cdn {
+enum CopyV86ImageToSpaceStage : int {
+  CopyV86ImageToSpaceStage_FETCHING = 0,
+  CopyV86ImageToSpaceStage_COPYING = 1,
+  CopyV86ImageToSpaceStage_DONE = 2,
+  CopyV86ImageToSpaceStage_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  CopyV86ImageToSpaceStage_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t CopyV86ImageToSpaceStage_internal_data_[];
+inline constexpr CopyV86ImageToSpaceStage CopyV86ImageToSpaceStage_MIN =
+    static_cast<CopyV86ImageToSpaceStage>(0);
+inline constexpr CopyV86ImageToSpaceStage CopyV86ImageToSpaceStage_MAX =
+    static_cast<CopyV86ImageToSpaceStage>(2);
+inline bool CopyV86ImageToSpaceStage_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int CopyV86ImageToSpaceStage_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL CopyV86ImageToSpaceStage_descriptor();
+template <typename T>
+const ::std::string& CopyV86ImageToSpaceStage_Name(T value) {
+  static_assert(::std::is_same<T, CopyV86ImageToSpaceStage>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to CopyV86ImageToSpaceStage_Name().");
+  return CopyV86ImageToSpaceStage_Name(static_cast<CopyV86ImageToSpaceStage>(value));
+}
+template <>
+inline const ::std::string& CopyV86ImageToSpaceStage_Name(CopyV86ImageToSpaceStage value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<CopyV86ImageToSpaceStage_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool CopyV86ImageToSpaceStage_Parse(
+    ::absl::string_view name, CopyV86ImageToSpaceStage* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<CopyV86ImageToSpaceStage>(CopyV86ImageToSpaceStage_descriptor(), name,
+                                           value);
+}
 
 // ===================================================================
 
@@ -749,140 +792,6 @@ class GetCdnSpaceIdRequest final : public ::google::protobuf::internal::ZeroFiel
 extern const ::google::protobuf::internal::ClassDataFull GetCdnSpaceIdRequest_class_data_;
 // -------------------------------------------------------------------
 
-class CopyV86ImageToSpaceResponse final : public ::google::protobuf::internal::ZeroFieldsBase
-/* @@protoc_insertion_point(class_definition:s4wave.cdn.CopyV86ImageToSpaceResponse) */ {
- public:
-  inline CopyV86ImageToSpaceResponse() : CopyV86ImageToSpaceResponse(nullptr) {}
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(CopyV86ImageToSpaceResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(CopyV86ImageToSpaceResponse));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR CopyV86ImageToSpaceResponse(::google::protobuf::internal::ConstantInitialized);
-
-  inline CopyV86ImageToSpaceResponse(const CopyV86ImageToSpaceResponse& from) : CopyV86ImageToSpaceResponse(nullptr, from) {}
-  inline CopyV86ImageToSpaceResponse(CopyV86ImageToSpaceResponse&& from) noexcept
-      : CopyV86ImageToSpaceResponse(nullptr, ::std::move(from)) {}
-  inline CopyV86ImageToSpaceResponse& operator=(const CopyV86ImageToSpaceResponse& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline CopyV86ImageToSpaceResponse& operator=(CopyV86ImageToSpaceResponse&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const CopyV86ImageToSpaceResponse& default_instance() {
-    return *reinterpret_cast<const CopyV86ImageToSpaceResponse*>(
-        &_CopyV86ImageToSpaceResponse_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 5;
-  friend void swap(CopyV86ImageToSpaceResponse& a, CopyV86ImageToSpaceResponse& b) { a.Swap(&b); }
-  inline void Swap(CopyV86ImageToSpaceResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(CopyV86ImageToSpaceResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  CopyV86ImageToSpaceResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<CopyV86ImageToSpaceResponse>(arena);
-  }
-  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
-  inline void CopyFrom(const CopyV86ImageToSpaceResponse& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
-  }
-  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
-  void MergeFrom(const CopyV86ImageToSpaceResponse& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
-  }
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "s4wave.cdn.CopyV86ImageToSpaceResponse"; }
-
-  explicit CopyV86ImageToSpaceResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  CopyV86ImageToSpaceResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CopyV86ImageToSpaceResponse& from);
-  CopyV86ImageToSpaceResponse(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CopyV86ImageToSpaceResponse&& from) noexcept
-      : CopyV86ImageToSpaceResponse(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  // @@protoc_insertion_point(class_scope:s4wave.cdn.CopyV86ImageToSpaceResponse)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 0,
-                                   0, 0,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcdn_2fcdn_2dresource_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull CopyV86ImageToSpaceResponse_class_data_;
-// -------------------------------------------------------------------
-
 class CopyV86ImageToSpaceRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.cdn.CopyV86ImageToSpaceRequest) */ {
  public:
@@ -1122,6 +1031,244 @@ class CopyV86ImageToSpaceRequest final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull CopyV86ImageToSpaceRequest_class_data_;
+// -------------------------------------------------------------------
+
+class CopyV86ImageToSpaceProgress final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.cdn.CopyV86ImageToSpaceProgress) */ {
+ public:
+  inline CopyV86ImageToSpaceProgress() : CopyV86ImageToSpaceProgress(nullptr) {}
+  ~CopyV86ImageToSpaceProgress() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CopyV86ImageToSpaceProgress* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CopyV86ImageToSpaceProgress));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CopyV86ImageToSpaceProgress(::google::protobuf::internal::ConstantInitialized);
+
+  inline CopyV86ImageToSpaceProgress(const CopyV86ImageToSpaceProgress& from) : CopyV86ImageToSpaceProgress(nullptr, from) {}
+  inline CopyV86ImageToSpaceProgress(CopyV86ImageToSpaceProgress&& from) noexcept
+      : CopyV86ImageToSpaceProgress(nullptr, ::std::move(from)) {}
+  inline CopyV86ImageToSpaceProgress& operator=(const CopyV86ImageToSpaceProgress& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CopyV86ImageToSpaceProgress& operator=(CopyV86ImageToSpaceProgress&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CopyV86ImageToSpaceProgress& default_instance() {
+    return *reinterpret_cast<const CopyV86ImageToSpaceProgress*>(
+        &_CopyV86ImageToSpaceProgress_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(CopyV86ImageToSpaceProgress& a, CopyV86ImageToSpaceProgress& b) { a.Swap(&b); }
+  inline void Swap(CopyV86ImageToSpaceProgress* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CopyV86ImageToSpaceProgress* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CopyV86ImageToSpaceProgress* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<CopyV86ImageToSpaceProgress>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const CopyV86ImageToSpaceProgress& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const CopyV86ImageToSpaceProgress& from) { CopyV86ImageToSpaceProgress::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(CopyV86ImageToSpaceProgress* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.cdn.CopyV86ImageToSpaceProgress"; }
+
+  explicit CopyV86ImageToSpaceProgress(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CopyV86ImageToSpaceProgress(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CopyV86ImageToSpaceProgress& from);
+  CopyV86ImageToSpaceProgress(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CopyV86ImageToSpaceProgress&& from) noexcept
+      : CopyV86ImageToSpaceProgress(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kBlocksSeenFieldNumber = 2,
+    kBlocksCopiedFieldNumber = 3,
+    kBlocksWrittenFieldNumber = 4,
+    kLogicalSourceBytesFieldNumber = 5,
+    kStageFieldNumber = 1,
+  };
+  // uint64 blocks_seen = 2;
+  void clear_blocks_seen() ;
+  ::uint64_t blocks_seen() const;
+  void set_blocks_seen(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_blocks_seen() const;
+  void _internal_set_blocks_seen(::uint64_t value);
+
+  public:
+  // uint64 blocks_copied = 3;
+  void clear_blocks_copied() ;
+  ::uint64_t blocks_copied() const;
+  void set_blocks_copied(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_blocks_copied() const;
+  void _internal_set_blocks_copied(::uint64_t value);
+
+  public:
+  // uint64 blocks_written = 4;
+  void clear_blocks_written() ;
+  ::uint64_t blocks_written() const;
+  void set_blocks_written(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_blocks_written() const;
+  void _internal_set_blocks_written(::uint64_t value);
+
+  public:
+  // uint64 logical_source_bytes = 5;
+  void clear_logical_source_bytes() ;
+  ::uint64_t logical_source_bytes() const;
+  void set_logical_source_bytes(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_logical_source_bytes() const;
+  void _internal_set_logical_source_bytes(::uint64_t value);
+
+  public:
+  // .s4wave.cdn.CopyV86ImageToSpaceStage stage = 1;
+  void clear_stage() ;
+  ::s4wave::cdn::CopyV86ImageToSpaceStage stage() const;
+  void set_stage(::s4wave::cdn::CopyV86ImageToSpaceStage value);
+
+  private:
+  ::s4wave::cdn::CopyV86ImageToSpaceStage _internal_stage() const;
+  void _internal_set_stage(::s4wave::cdn::CopyV86ImageToSpaceStage value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.cdn.CopyV86ImageToSpaceProgress)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const CopyV86ImageToSpaceProgress& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::uint64_t blocks_seen_;
+    ::uint64_t blocks_copied_;
+    ::uint64_t blocks_written_;
+    ::uint64_t logical_source_bytes_;
+    int stage_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcdn_2fcdn_2dresource_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CopyV86ImageToSpaceProgress_class_data_;
 
 // ===================================================================
 
@@ -1467,7 +1614,132 @@ inline void CopyV86ImageToSpaceRequest::set_allocated_dst_object_key(::std::stri
 
 // -------------------------------------------------------------------
 
-// CopyV86ImageToSpaceResponse
+// CopyV86ImageToSpaceProgress
+
+// .s4wave.cdn.CopyV86ImageToSpaceStage stage = 1;
+inline void CopyV86ImageToSpaceProgress::clear_stage() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.stage_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::s4wave::cdn::CopyV86ImageToSpaceStage CopyV86ImageToSpaceProgress::stage() const {
+  // @@protoc_insertion_point(field_get:s4wave.cdn.CopyV86ImageToSpaceProgress.stage)
+  return _internal_stage();
+}
+inline void CopyV86ImageToSpaceProgress::set_stage(::s4wave::cdn::CopyV86ImageToSpaceStage value) {
+  _internal_set_stage(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:s4wave.cdn.CopyV86ImageToSpaceProgress.stage)
+}
+inline ::s4wave::cdn::CopyV86ImageToSpaceStage CopyV86ImageToSpaceProgress::_internal_stage() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::cdn::CopyV86ImageToSpaceStage>(_impl_.stage_);
+}
+inline void CopyV86ImageToSpaceProgress::_internal_set_stage(::s4wave::cdn::CopyV86ImageToSpaceStage value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.stage_ = value;
+}
+
+// uint64 blocks_seen = 2;
+inline void CopyV86ImageToSpaceProgress::clear_blocks_seen() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.blocks_seen_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::uint64_t CopyV86ImageToSpaceProgress::blocks_seen() const {
+  // @@protoc_insertion_point(field_get:s4wave.cdn.CopyV86ImageToSpaceProgress.blocks_seen)
+  return _internal_blocks_seen();
+}
+inline void CopyV86ImageToSpaceProgress::set_blocks_seen(::uint64_t value) {
+  _internal_set_blocks_seen(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:s4wave.cdn.CopyV86ImageToSpaceProgress.blocks_seen)
+}
+inline ::uint64_t CopyV86ImageToSpaceProgress::_internal_blocks_seen() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.blocks_seen_;
+}
+inline void CopyV86ImageToSpaceProgress::_internal_set_blocks_seen(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.blocks_seen_ = value;
+}
+
+// uint64 blocks_copied = 3;
+inline void CopyV86ImageToSpaceProgress::clear_blocks_copied() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.blocks_copied_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::uint64_t CopyV86ImageToSpaceProgress::blocks_copied() const {
+  // @@protoc_insertion_point(field_get:s4wave.cdn.CopyV86ImageToSpaceProgress.blocks_copied)
+  return _internal_blocks_copied();
+}
+inline void CopyV86ImageToSpaceProgress::set_blocks_copied(::uint64_t value) {
+  _internal_set_blocks_copied(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:s4wave.cdn.CopyV86ImageToSpaceProgress.blocks_copied)
+}
+inline ::uint64_t CopyV86ImageToSpaceProgress::_internal_blocks_copied() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.blocks_copied_;
+}
+inline void CopyV86ImageToSpaceProgress::_internal_set_blocks_copied(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.blocks_copied_ = value;
+}
+
+// uint64 blocks_written = 4;
+inline void CopyV86ImageToSpaceProgress::clear_blocks_written() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.blocks_written_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t CopyV86ImageToSpaceProgress::blocks_written() const {
+  // @@protoc_insertion_point(field_get:s4wave.cdn.CopyV86ImageToSpaceProgress.blocks_written)
+  return _internal_blocks_written();
+}
+inline void CopyV86ImageToSpaceProgress::set_blocks_written(::uint64_t value) {
+  _internal_set_blocks_written(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.cdn.CopyV86ImageToSpaceProgress.blocks_written)
+}
+inline ::uint64_t CopyV86ImageToSpaceProgress::_internal_blocks_written() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.blocks_written_;
+}
+inline void CopyV86ImageToSpaceProgress::_internal_set_blocks_written(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.blocks_written_ = value;
+}
+
+// uint64 logical_source_bytes = 5;
+inline void CopyV86ImageToSpaceProgress::clear_logical_source_bytes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.logical_source_bytes_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::uint64_t CopyV86ImageToSpaceProgress::logical_source_bytes() const {
+  // @@protoc_insertion_point(field_get:s4wave.cdn.CopyV86ImageToSpaceProgress.logical_source_bytes)
+  return _internal_logical_source_bytes();
+}
+inline void CopyV86ImageToSpaceProgress::set_logical_source_bytes(::uint64_t value) {
+  _internal_set_logical_source_bytes(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.cdn.CopyV86ImageToSpaceProgress.logical_source_bytes)
+}
+inline ::uint64_t CopyV86ImageToSpaceProgress::_internal_logical_source_bytes() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.logical_source_bytes_;
+}
+inline void CopyV86ImageToSpaceProgress::_internal_set_logical_source_bytes(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.logical_source_bytes_ = value;
+}
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -1477,6 +1749,19 @@ inline void CopyV86ImageToSpaceRequest::set_allocated_dst_object_key(::std::stri
 }  // namespace cdn
 }  // namespace s4wave
 
+
+namespace google {
+namespace protobuf {
+
+template <>
+struct is_proto_enum<::s4wave::cdn::CopyV86ImageToSpaceStage> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::cdn::CopyV86ImageToSpaceStage>() {
+  return ::s4wave::cdn::CopyV86ImageToSpaceStage_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 

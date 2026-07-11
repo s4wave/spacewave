@@ -9,7 +9,7 @@ service CdnResourceService {
   rpc MountCdnSpace(MountCdnSpaceRequest) returns (MountCdnSpaceResponse);
 
   rpc CopyV86ImageToSpace(CopyV86ImageToSpaceRequest)
-      returns (CopyV86ImageToSpaceResponse);
+      returns (stream CopyV86ImageToSpaceProgress);
 }
 
 // GetCdnSpaceIdRequest is the request type for GetCdnSpaceId.
@@ -43,5 +43,24 @@ message CopyV86ImageToSpaceRequest {
   string dst_object_key = 4;
 }
 
-// CopyV86ImageToSpaceResponse is the response type for CopyV86ImageToSpace.
-message CopyV86ImageToSpaceResponse {}
+
+// CopyV86ImageToSpaceStage is the server-owned CDN image-copy stage.
+enum CopyV86ImageToSpaceStage {
+  CopyV86ImageToSpaceStage_FETCHING = 0;
+  CopyV86ImageToSpaceStage_COPYING = 1;
+  CopyV86ImageToSpaceStage_DONE = 2;
+}
+
+// CopyV86ImageToSpaceProgress reports cumulative logical copy accounting.
+message CopyV86ImageToSpaceProgress {
+  // Stage is the current server-owned image-copy stage.
+  CopyV86ImageToSpaceStage stage = 1;
+  // BlocksSeen counts unique eligible source blocks encountered.
+  uint64 blocks_seen = 2;
+  // BlocksCopied counts source blocks processed by the destination store.
+  uint64 blocks_copied = 3;
+  // BlocksWritten counts source blocks newly written to the destination.
+  uint64 blocks_written = 4;
+  // LogicalSourceBytes counts eligible source bytes before destination dedupe.
+  uint64 logical_source_bytes = 5;
+}

@@ -27,6 +27,7 @@ import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 import { keyToIRI, iriToKey } from '@s4wave/sdk/world/graph-utils.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import type { Cdn } from '@s4wave/sdk/cdn/cdn.js'
+import { CopyV86ImageToSpaceStage } from '@s4wave/sdk/cdn/cdn-resource.pb.js'
 import type { Space } from '@s4wave/sdk/space/space.js'
 import { CreateVmV86Op, V86Image, VmV86 } from '@s4wave/sdk/vm/v86.pb.js'
 import {
@@ -46,6 +47,10 @@ import {
   V86_USER_IMAGE_OBJECT_KEY,
 } from '../vm/v86-wizard-config.js'
 
+import {
+  type VmCreationProgress,
+  VmCreationProgressScreen,
+} from './VmCreationProgressScreen.js'
 import { WizardShell } from './WizardShell.js'
 import { useWizardState } from './useWizardState.js'
 
@@ -70,6 +75,23 @@ interface ExistingVmInfo {
   name: string
   imageKey: string
   createdAt: Date | undefined
+}
+
+interface VmCreationRequest {
+  copyFromCdn: boolean
+  cdnId: string
+  cdnSourceObjectKey: string
+  imageObjectKey: string
+  sessionIndex: number
+  spaceId: string
+  vmKey: string
+  vmName: string
+  memoryMb: number
+  vgaMemoryMb: number
+  networking: boolean
+  sessionPeerId: string
+  wizardObjectKey: string
+  root?: Root
 }
 
 interface CdnV86ImageEntry {
@@ -316,6 +338,75 @@ export function getV86CatalogErrorCopy(error: unknown): V86CatalogErrorCopy {
       }
 }
 
+async function* runVmCreation(
+  world: EngineWorldState,
+  request: VmCreationRequest,
+  signal: AbortSignal,
+): AsyncGenerator<VmCreationProgress> {
+  if (request.copyFromCdn) {
+    const root = request.root
+    if (!root) throw new Error('root resource not ready')
+    yield { stage: 'fetching' }
+    const { cdn } = await root.getCdn(request.cdnId, signal)
+    using cdnHandle = cdn
+    let copyCompleted = false
+    for await (const progress of cdnHandle.copyV86ImageToSpace(
+      request.sessionIndex,
+      request.spaceId,
+      request.cdnSourceObjectKey,
+      request.imageObjectKey,
+      signal,
+    )) {
+      if (
+        progress.stage === undefined ||
+        progress.stage ===
+          CopyV86ImageToSpaceStage.CopyV86ImageToSpaceStage_FETCHING
+      ) {
+        yield { stage: 'fetching' }
+        continue
+      }
+      copyCompleted =
+        progress.stage ===
+          CopyV86ImageToSpaceStage.CopyV86ImageToSpaceStage_DONE ||
+        copyCompleted
+      yield {
+        stage: 'copying',
+        blocksSeen: progress.blocksSeen,
+        blocksCopied: progress.blocksCopied,
+        blocksWritten: progress.blocksWritten,
+        logicalSourceBytes: progress.logicalSourceBytes,
+      }
+    }
+    if (!copyCompleted) {
+      throw new Error('V86 CDN image copy ended before completion')
+    }
+  }
+
+  yield { stage: 'creating' }
+  const op: CreateVmV86Op = {
+    objectKey: request.vmKey,
+    name: request.vmName,
+    timestamp: new Date(),
+    imageObjectKey: request.imageObjectKey,
+    config: {
+      memoryMb: request.memoryMb,
+      vgaMemoryMb: request.vgaMemoryMb,
+      networking: request.networking,
+      serialEnabled: true,
+      bootArgs: '',
+      mounts: [],
+    },
+  }
+  await world.applyWorldOp(
+    CREATE_VM_V86_OP_ID,
+    CreateVmV86Op.toBinary(op),
+    request.sessionPeerId,
+    signal,
+  )
+  await world.deleteObject(request.wizardObjectKey, signal)
+  yield { stage: 'ready' }
+}
+
 // VmV86WizardViewer is the custom wizard viewer for creating V86 VMs.
 // Step 0: image source selection (existing in-space V86Image, inherit from
 // existing VmV86, or copy default from CDN). Step 1: VM name and memory
@@ -343,7 +434,6 @@ export function VmV86WizardViewer({
     objectKey,
     persistDraftState,
     sessionPeerId,
-    spaceWorld,
     state,
     wizardResource,
     navigateToObjects,
@@ -352,6 +442,8 @@ export function VmV86WizardViewer({
   const [creating, setCreating] = useState(false)
   const [cdnPickerOpen, setCdnPickerOpen] = useState(false)
   const [operationError, setOperationError] = useState('')
+  const [creationRequest, setCreationRequest] =
+    useState<VmCreationRequest | null>(null)
   const existingObjectKeys = useMemo(
     () =>
       spaceState.worldContents?.objects?.map((obj) => obj.objectKey ?? '') ??
@@ -382,6 +474,23 @@ export function VmV86WizardViewer({
     () => existingVmsResource.value ?? [],
     [existingVmsResource.value],
   )
+
+  const creationResource = useStreamingResource(
+    spaceWorldResource,
+    async function* (world: EngineWorldState, signal: AbortSignal) {
+      if (!creationRequest) return
+      yield* runVmCreation(world, creationRequest, signal)
+    },
+    [creationRequest],
+  )
+  const completedCreationRef = useRef<VmCreationRequest | null>(null)
+  useEffect(() => {
+    if (creationResource.value?.stage !== 'ready' || !creationRequest) return
+    if (completedCreationRef.current === creationRequest) return
+    completedCreationRef.current = creationRequest
+    toast.success(`Created ${creationRequest.vmName}`)
+    navigateToObjects([creationRequest.vmKey])
+  }, [creationRequest, creationResource.value, navigateToObjects])
 
   const existingDefault = useMemo(() => {
     for (const vm of existingVms) {
@@ -568,45 +677,32 @@ export function VmV86WizardViewer({
     setCreating(true)
     try {
       await persistDraftState()
-      if (cfg.source === V86WizardConfig_Source.COPY_FROM_CDN) {
+      const copyFromCdn = cfg.source === V86WizardConfig_Source.COPY_FROM_CDN
+      if (copyFromCdn) {
         if (!root) throw new Error('root resource not ready')
         if (!spaceId) throw new Error('space id not available')
-        const { cdn } = await root.getCdn(cfg.cdnId ?? '')
-        using cdnHandle = cdn
-        await cdnHandle.copyV86ImageToSpace(
-          sessionIndex,
-          spaceId,
-          cfg.cdnSourceObjectKey ?? '',
-          cfg.imageObjectKey,
-        )
       }
-      const vmKey = buildObjectKey('vm/v86/', localName, existingObjectKeys)
-      const op: CreateVmV86Op = {
-        objectKey: vmKey,
-        name: localName,
-        timestamp: new Date(),
+      setCreationRequest({
+        copyFromCdn,
+        cdnId: cfg.cdnId ?? '',
+        cdnSourceObjectKey: cfg.cdnSourceObjectKey ?? '',
         imageObjectKey: cfg.imageObjectKey,
-        config: {
-          memoryMb: cfg.memoryMb || DEFAULT_V86_MEMORY_MB,
-          vgaMemoryMb: cfg.vgaMemoryMb || DEFAULT_V86_VGA_MEMORY_MB,
-          networking: cfg.networking ?? false,
-          serialEnabled: true,
-          bootArgs: '',
-          mounts: [],
-        },
-      }
-      const opData = CreateVmV86Op.toBinary(op)
-      await spaceWorld.applyWorldOp(CREATE_VM_V86_OP_ID, opData, sessionPeerId)
-      await spaceWorld.deleteObject(objectKey)
-      toast.success(`Created ${localName}`)
-      navigateToObjects([vmKey])
-    } catch (err) {
-      console.error('v86 finalize: failed', err)
-      const message = 'VM could not be created. Check the image and try again.'
+        sessionIndex,
+        spaceId,
+        vmKey: buildObjectKey('vm/v86/', localName, existingObjectKeys),
+        vmName: localName,
+        memoryMb: cfg.memoryMb || DEFAULT_V86_MEMORY_MB,
+        vgaMemoryMb: cfg.vgaMemoryMb || DEFAULT_V86_VGA_MEMORY_MB,
+        networking: cfg.networking ?? false,
+        sessionPeerId,
+        wizardObjectKey: objectKey,
+        root: root ?? undefined,
+      })
+    } catch {
+      const message = 'VM creation could not start. Try again.'
       setOperationError(message)
-      toast.error(message)
-    } finally {
       setCreating(false)
+      toast.error(message)
     }
   }, [
     state,
@@ -617,9 +713,7 @@ export function VmV86WizardViewer({
     root,
     spaceId,
     sessionIndex,
-    spaceWorld,
     objectKey,
-    navigateToObjects,
     existingObjectKeys,
     persistDraftState,
   ])
@@ -627,6 +721,30 @@ export function VmV86WizardViewer({
   const handleFinalizeClick = useCallback(() => {
     void handleFinalize()
   }, [handleFinalize])
+
+  if (creationRequest) {
+    const progress =
+      creationResource.value ??
+      ({
+        stage: creationRequest.copyFromCdn ? 'fetching' : 'creating',
+      } satisfies VmCreationProgress)
+    const error = !creationResource.error
+      ? undefined
+      : progress.stage === 'fetching'
+        ? 'The image could not be fetched. Check your connection and try again.'
+        : progress.stage === 'copying'
+          ? 'The image copy stopped. Try again to continue.'
+          : 'The image is ready, but the VM could not be created. Try again.'
+    return (
+      <VmCreationProgressScreen
+        progress={progress}
+        vmName={creationRequest.vmName}
+        includesCdnCopy={creationRequest.copyFromCdn}
+        error={error}
+        onRetry={error ? creationResource.retry : undefined}
+      />
+    )
+  }
 
   if (!state) {
     return (
@@ -671,11 +789,7 @@ export function VmV86WizardViewer({
         namePlaceholder="e.g. debian-lab"
         nameStep={1}
         creating={creating}
-        creatingLabel={
-          cfg.source === V86WizardConfig_Source.COPY_FROM_CDN
-            ? 'Copying image and creating VM…'
-            : `Opening ${localName || 'VM'}…`
-        }
+        creatingLabel="Starting VM creation…"
         onFinalize={handleFinalizeClick}
         canFinalize={canFinalize}
         finalizeStep={1}

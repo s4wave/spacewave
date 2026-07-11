@@ -87,7 +87,8 @@ func TestCopyObjectToBucket(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	outRef, stats, err := bucket_lookup.CopyObjectToBucketWithStats(
+	var progress []bucket_lookup.ObjectCopyStats
+	outRef, stats, err := bucket_lookup.CopyObjectToBucketWithProgress(
 		ctx,
 		destCursor,
 		srcCursor,
@@ -95,6 +96,10 @@ func TestCopyObjectToBucket(t *testing.T) {
 		-1,
 		true,
 		nil,
+		func(current bucket_lookup.ObjectCopyStats) error {
+			progress = append(progress, current)
+			return nil
+		},
 	)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -111,6 +116,12 @@ func TestCopyObjectToBucket(t *testing.T) {
 	}
 	if stats.BlocksCopied == 0 || stats.LogicalSourceBytes == 0 {
 		t.Fatalf("copy stats = %#v, want copied blocks and source bytes", stats)
+	}
+	if len(progress) == 0 {
+		t.Fatal("expected live copy progress snapshots")
+	}
+	if last := progress[len(progress)-1]; last != stats {
+		t.Fatalf("final progress = %#v, want final stats %#v", last, stats)
 	}
 	_, repeatedStats, err := bucket_lookup.CopyObjectToBucketWithStats(
 		ctx,

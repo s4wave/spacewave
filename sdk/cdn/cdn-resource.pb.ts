@@ -2,6 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/sdk/cdn/cdn-resource.proto (package s4wave.cdn, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
   createEmptyMessageType,
@@ -11,6 +12,37 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.cdn'
+
+/**
+ * CopyV86ImageToSpaceStage is the server-owned CDN image-copy stage.
+ *
+ * @generated from enum s4wave.cdn.CopyV86ImageToSpaceStage
+ */
+export enum CopyV86ImageToSpaceStage {
+  /**
+   * @generated from enum value: CopyV86ImageToSpaceStage_FETCHING = 0;
+   */
+  CopyV86ImageToSpaceStage_FETCHING = 0,
+
+  /**
+   * @generated from enum value: CopyV86ImageToSpaceStage_COPYING = 1;
+   */
+  CopyV86ImageToSpaceStage_COPYING = 1,
+
+  /**
+   * @generated from enum value: CopyV86ImageToSpaceStage_DONE = 2;
+   */
+  CopyV86ImageToSpaceStage_DONE = 2,
+}
+
+export const CopyV86ImageToSpaceStage_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.cdn.CopyV86ImageToSpaceStage',
+  [
+    [0, 'CopyV86ImageToSpaceStage_FETCHING'],
+    [1, 'CopyV86ImageToSpaceStage_COPYING'],
+    [2, 'CopyV86ImageToSpaceStage_DONE'],
+  ],
+)
 
 /**
  * GetCdnSpaceIdRequest is the request type for GetCdnSpaceId.
@@ -130,14 +162,57 @@ export const CopyV86ImageToSpaceRequest: MessageType<CopyV86ImageToSpaceRequest>
   })
 
 /**
- * CopyV86ImageToSpaceResponse is the response type for CopyV86ImageToSpace.
+ * CopyV86ImageToSpaceProgress reports cumulative logical copy accounting.
  *
- * @generated from message s4wave.cdn.CopyV86ImageToSpaceResponse
+ * @generated from message s4wave.cdn.CopyV86ImageToSpaceProgress
  */
-export interface CopyV86ImageToSpaceResponse {}
+export interface CopyV86ImageToSpaceProgress {
+  /**
+   * Stage is the current server-owned image-copy stage.
+   *
+   * @generated from field: s4wave.cdn.CopyV86ImageToSpaceStage stage = 1;
+   */
+  stage?: CopyV86ImageToSpaceStage
+  /**
+   * BlocksSeen counts unique eligible source blocks encountered.
+   *
+   * @generated from field: uint64 blocks_seen = 2;
+   */
+  blocksSeen?: bigint
+  /**
+   * BlocksCopied counts source blocks processed by the destination store.
+   *
+   * @generated from field: uint64 blocks_copied = 3;
+   */
+  blocksCopied?: bigint
+  /**
+   * BlocksWritten counts source blocks newly written to the destination.
+   *
+   * @generated from field: uint64 blocks_written = 4;
+   */
+  blocksWritten?: bigint
+  /**
+   * LogicalSourceBytes counts eligible source bytes before destination dedupe.
+   *
+   * @generated from field: uint64 logical_source_bytes = 5;
+   */
+  logicalSourceBytes?: bigint
+}
 
-export const CopyV86ImageToSpaceResponse: MessageType<CopyV86ImageToSpaceResponse> =
-  /* @__PURE__ */ createEmptyMessageType<CopyV86ImageToSpaceResponse>(
-    's4wave.cdn.CopyV86ImageToSpaceResponse',
-    true,
-  )
+export const CopyV86ImageToSpaceProgress: MessageType<CopyV86ImageToSpaceProgress> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.cdn.CopyV86ImageToSpaceProgress',
+    fields: [
+      { no: 1, name: 'stage', kind: 'enum', T: CopyV86ImageToSpaceStage_Enum },
+      { no: 2, name: 'blocks_seen', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'blocks_copied', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'blocks_written', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 5,
+        name: 'logical_source_bytes',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
