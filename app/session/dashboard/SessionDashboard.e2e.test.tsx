@@ -6,7 +6,6 @@ const mockNavigate = vi.hoisted(() => vi.fn())
 const mockUseVisibleQuickstartOptions = vi.hoisted(() => vi.fn())
 const mockSetOpenMenu = vi.hoisted(() => vi.fn())
 const mockSetStateAtom = vi.hoisted(() => vi.fn())
-const mockOpenPathInNewTab = vi.hoisted(() => vi.fn())
 
 vi.mock('@s4wave/app/nav-links.js', () => ({
   useNavLinks: () => ({
@@ -38,14 +37,6 @@ vi.mock('@s4wave/app/session/setup/LocalSessionOnboardingContext.js', () => ({
     markLockComplete: vi.fn(),
   }),
 }))
-
-vi.mock('@s4wave/app/ShellTabContext.js', () => ({
-  useShellTabs: () => ({
-    activeTabId: 'home',
-    openPathInNewTab: mockOpenPathInNewTab,
-  }),
-}))
-
 vi.mock('@s4wave/web/frame/bottom-bar-context.js', () => ({
   useBottomBarSetOpenMenu: () => mockSetOpenMenu,
 }))

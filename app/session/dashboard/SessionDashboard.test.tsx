@@ -12,7 +12,7 @@ const mockNavigate = vi.hoisted(() => vi.fn())
 const mockUseVisibleQuickstartOptions = vi.hoisted(() => vi.fn())
 const mockSetOpenMenu = vi.hoisted(() => vi.fn())
 const mockSetStateAtom = vi.hoisted(() => vi.fn())
-const mockOpenPathInNewTab = vi.hoisted(() => vi.fn())
+const mockDocs = vi.hoisted(() => vi.fn())
 const mockGetObjectTypeIconComponent = vi.hoisted(() => vi.fn())
 const mockClipboard = {
   writeText: vi.fn().mockResolvedValue(undefined),
@@ -27,7 +27,7 @@ vi.mock('@s4wave/app/nav-links.js', () => ({
     blog: vi.fn(),
     changelog: vi.fn(),
     community: vi.fn(),
-    docs: vi.fn(),
+    docs: mockDocs,
     download: vi.fn(),
     legal: vi.fn(),
     support: vi.fn(),
@@ -50,13 +50,6 @@ vi.mock('@s4wave/app/session/setup/LocalSessionOnboardingContext.js', () => ({
     },
     markBackupComplete: vi.fn(),
     markLockComplete: vi.fn(),
-  }),
-}))
-
-vi.mock('@s4wave/app/ShellTabContext.js', () => ({
-  useShellTabs: () => ({
-    activeTabId: 'home',
-    openPathInNewTab: mockOpenPathInNewTab,
   }),
 }))
 
@@ -119,7 +112,7 @@ describe('SessionDashboard', () => {
     mockNavigate.mockReset()
     mockSetOpenMenu.mockReset()
     mockSetStateAtom.mockReset()
-    mockOpenPathInNewTab.mockReset()
+    mockDocs.mockReset()
     mockUseVisibleQuickstartOptions.mockReset()
     mockGetObjectTypeIconComponent.mockReset()
     Object.defineProperty(navigator, 'clipboard', {
@@ -367,14 +360,11 @@ describe('SessionDashboard', () => {
     expectTextBefore('Join Space', 'Link a device')
   })
 
-  it('opens Docs through provider Shell Tab semantics', () => {
+  it('opens Docs through the shared navigation owner', () => {
     render(<SessionDashboard spaces={[]} onQuickstartClick={vi.fn()} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Docs' }))
 
-    expect(mockOpenPathInNewTab).toHaveBeenCalledWith('/docs', {
-      afterTabId: 'home',
-      focusExisting: true,
-    })
+    expect(mockDocs).toHaveBeenCalledOnce()
   })
 })

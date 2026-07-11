@@ -29,7 +29,6 @@ import {
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useNavLinks } from '@s4wave/app/nav-links.js'
 import { QuickstartCommands } from '@s4wave/app/quickstart/QuickstartCommands.js'
-import { useShellTabs } from '@s4wave/app/ShellTabContext.js'
 import {
   getQuickstartPath,
   type QuickstartOption,
@@ -186,18 +185,9 @@ export function SessionDashboard({
 
 function DashboardNav() {
   const nav = useNavLinks()
-  const { activeTabId, openPathInNewTab } = useShellTabs()
-
-  const handleDocsClick = useCallback(() => {
-    openPathInNewTab('/docs', {
-      afterTabId: activeTabId || undefined,
-      focusExisting: true,
-    })
-  }, [activeTabId, openPathInNewTab])
-
   const links = [
     ...(!isDesktop ? [{ text: 'Download', onClick: nav.download }] : []),
-    { text: 'Docs', onClick: handleDocsClick },
+    { text: 'Docs', onClick: nav.docs },
     { text: 'Blog', onClick: nav.blog },
     { text: 'Release Notes', onClick: nav.changelog },
     { text: 'Support', onClick: nav.support },
