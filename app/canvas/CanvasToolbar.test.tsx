@@ -30,7 +30,7 @@ describe('CanvasToolbar', () => {
     cleanup()
   })
 
-  it('renders all four tool buttons', () => {
+  it('renders all tool buttons', () => {
     const onToolChange = vi.fn()
     render(
       <CanvasToolbar
@@ -187,5 +187,22 @@ describe('CanvasToolbar', () => {
     )
     await user.click(screen.getByLabelText('Add Existing Object'))
     expect(onAddObject).toHaveBeenCalledTimes(1)
+  })
+
+  it('changes the shared drawing color from a swatch', async () => {
+    const user = userEvent.setup()
+    const onColorChange = vi.fn()
+    render(
+      <CanvasToolbar
+        tool="draw"
+        color="#2563eb"
+        onToolChange={vi.fn()}
+        onColorChange={onColorChange}
+        actions={makeActions()}
+      />,
+    )
+
+    await user.click(screen.getByLabelText('Use color #dc2626'))
+    expect(onColorChange).toHaveBeenCalledWith('#dc2626')
   })
 })

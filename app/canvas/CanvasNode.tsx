@@ -18,6 +18,7 @@ import {
   UNMOUNT_DEBOUNCE_MS,
 } from './types.js'
 import { CanvasTextNode } from './CanvasTextNode.js'
+import { CanvasGeometryNode } from './CanvasGeometryNode.js'
 
 // ResizeDirection indicates which corner is being dragged for resize.
 type ResizeDirection = 'nw' | 'ne' | 'sw' | 'se'
@@ -46,18 +47,6 @@ interface ResizeHandleProps {
     dy: number,
     last: boolean,
   ) => void
-}
-
-// parseShapePoint validates a decoded drawing point object.
-function parseShapePoint(value: unknown): { x: number; y: number } | null {
-  if (typeof value !== 'object' || value === null) {
-    return null
-  }
-  const point = value as { x?: unknown; y?: unknown }
-  if (typeof point.x !== 'number' || typeof point.y !== 'number') {
-    return null
-  }
-  return { x: point.x, y: point.y }
 }
 
 // DragEdgeHandle renders a thin invisible border strip that can initiate node drag.
@@ -377,44 +366,7 @@ export const CanvasNode = memo(function CanvasNode({
     }
 
     if (node.type === 'drawing' && node.shapeData) {
-      const points: Array<{ x: number; y: number }> = (() => {
-        try {
-          const decoded: unknown = JSON.parse(
-            new TextDecoder().decode(node.shapeData),
-          )
-          if (!Array.isArray(decoded)) {
-            return []
-          }
-          return decoded.flatMap((point) => {
-            const nextPoint = parseShapePoint(point)
-            return nextPoint ? [nextPoint] : []
-          })
-        } catch {
-          return []
-        }
-      })()
-      if (points.length >= 2) {
-        const d = `M ${points[0].x} ${points[0].y} ${points
-          .slice(1)
-          .map((p) => `L ${p.x} ${p.y}`)
-          .join(' ')}`
-        return (
-          <svg
-            className="h-full w-full"
-            viewBox={`0 0 ${node.width} ${node.height}`}
-            preserveAspectRatio="none"
-          >
-            <path
-              d={d}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )
-      }
+      return <CanvasGeometryNode node={node} />
     }
 
     if (node.type === 'world_object' && callbacks.renderNodeContent) {

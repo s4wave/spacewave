@@ -33,6 +33,7 @@ import {
 import { CanvasSelectionOverlay } from './CanvasSelectionOverlay.js'
 import { CanvasScaleIndicator } from './CanvasScaleIndicator.js'
 import { CanvasSyncStatus } from './CanvasSyncStatus.js'
+import { DEFAULT_CANVAS_COLOR } from './geometry.js'
 
 // XL_BREAKPOINT is the container width threshold for the xl tailwind breakpoint.
 const XL_BREAKPOINT = 1280
@@ -76,6 +77,7 @@ export function Canvas({
   className,
 }: CanvasProps) {
   const [toolInternal, setToolInternal] = useState<CanvasTool>('select')
+  const [drawingColor, setDrawingColor] = useState(DEFAULT_CANVAS_COLOR)
   const tool = toolProp ?? toolInternal
 
   const [containerSize, setContainerSize] = useState<ContainerSize>({
@@ -592,7 +594,9 @@ export function Canvas({
     <div className={cn('flex h-full outline-none', className)}>
       <CanvasToolbar
         tool={tool}
+        color={drawingColor}
         onToolChange={onToolChange ?? (() => {})}
+        onColorChange={setDrawingColor}
         actions={actions}
         onAddObject={canAddObject ? handleToolbarAddObject : undefined}
       />
@@ -684,6 +688,7 @@ export function Canvas({
         <CanvasDrawingLayer
           visible={tool === 'draw'}
           viewport={viewport}
+          color={drawingColor}
           onStrokeComplete={handleStrokeComplete}
         />
         {objectDragRect && (

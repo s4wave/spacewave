@@ -1,41 +1,40 @@
-import { useRef, useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
-import type { Viewport, CanvasNodeData } from './types.js'
+import type { CanvasNodeData, Viewport } from './types.js'
+import {
+  DEFAULT_CANVAS_COLOR,
+  encodeCanvasGeometry,
+  type CanvasPoint,
+} from './geometry.js'
 
-// Stroke represents a freeform drawing stroke.
 interface Stroke {
-  points: Array<{ x: number; y: number }>
+  points: CanvasPoint[]
 }
 
-// STROKE_PADDING is extra pixels around the bounding box of a stroke.
 const STROKE_PADDING = 8
 
-// CanvasDrawingLayerProps are the props for CanvasDrawingLayer.
 interface CanvasDrawingLayerProps {
   visible: boolean
   viewport: Viewport
+  color?: string
   onStrokeComplete?: (node: CanvasNodeData) => void
   className?: string
 }
 
-// screenToCanvas converts screen-relative coordinates to canvas space.
-function screenToCanvas(
-  sx: number,
-  sy: number,
-  vp: Viewport,
-): { x: number; y: number } {
+function screenToCanvas(sx: number, sy: number, vp: Viewport): CanvasPoint {
   return {
     x: (sx - vp.x) / vp.scale,
     y: (sy - vp.y) / vp.scale,
   }
 }
 
-// CanvasDrawingLayer renders a canvas element for freeform drawing.
+// CanvasDrawingLayer captures and previews freeform pen strokes.
 export function CanvasDrawingLayer({
   visible,
   viewport,
+  color = DEFAULT_CANVAS_COLOR,
   onStrokeComplete,
   className,
 }: CanvasDrawingLayerProps) {
@@ -43,6 +42,7 @@ export function CanvasDrawingLayer({
   const currentStroke = useRef<Stroke | null>(null)
   const drawing = useRef(false)
   const viewportRef = useRef(viewport)
+  const colorRef = useRef(color)
   const onStrokeCompleteRef = useRef(onStrokeComplete)
 
   const redraw = useCallback(() => {
@@ -53,25 +53,22 @@ export function CanvasDrawingLayer({
 
     const vp = viewportRef.current
     ctx.clearRect(0, 0, canvas.width, canvas.height)
-
     const stroke = currentStroke.current
-    if (!stroke?.points || stroke.points.length < 2) return
+    if (!stroke || stroke.points.length < 2) return
 
-    ctx.strokeStyle = 'currentColor'
+    ctx.strokeStyle = colorRef.current
     ctx.lineWidth = 2
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
     ctx.beginPath()
-    const p0 = stroke.points[0]
-    ctx.moveTo(p0.x * vp.scale + vp.x, p0.y * vp.scale + vp.y)
-    for (let i = 1; i < stroke.points.length; i++) {
-      const p = stroke.points[i]
-      ctx.lineTo(p.x * vp.scale + vp.x, p.y * vp.scale + vp.y)
+    const start = stroke.points[0]
+    ctx.moveTo(start.x * vp.scale + vp.x, start.y * vp.scale + vp.y)
+    for (const point of stroke.points.slice(1)) {
+      ctx.lineTo(point.x * vp.scale + vp.x, point.y * vp.scale + vp.y)
     }
     ctx.stroke()
   }, [])
 
-  // Resize canvas to match its display size.
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -93,43 +90,52 @@ export function CanvasDrawingLayer({
     redraw()
   }, [redraw, viewport])
 
+  useEffect(() => {
+    colorRef.current = color
+    redraw()
+  }, [color, redraw])
+
+  useEffect(() => {
+    onStrokeCompleteRef.current = onStrokeComplete
+  }, [onStrokeComplete])
+
   const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
+    (event: React.PointerEvent) => {
       if (!visible) return
-      e.stopPropagation()
-      drawing.current = true
+      event.stopPropagation()
       const rect = canvasRef.current?.getBoundingClientRect()
       if (!rect) return
-      const pt = screenToCanvas(
-        e.clientX - rect.left,
-        e.clientY - rect.top,
-        viewportRef.current,
-      )
-      currentStroke.current = { points: [pt] }
-      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+      drawing.current = true
+      currentStroke.current = {
+        points: [
+          screenToCanvas(
+            event.clientX - rect.left,
+            event.clientY - rect.top,
+            viewportRef.current,
+          ),
+        ],
+      }
+      ;(event.target as HTMLElement).setPointerCapture(event.pointerId)
     },
     [visible],
   )
 
   const handlePointerMove = useCallback(
-    (e: React.PointerEvent) => {
+    (event: React.PointerEvent) => {
       if (!drawing.current || !currentStroke.current) return
       const rect = canvasRef.current?.getBoundingClientRect()
       if (!rect) return
-      const pt = screenToCanvas(
-        e.clientX - rect.left,
-        e.clientY - rect.top,
-        viewportRef.current,
+      currentStroke.current.points.push(
+        screenToCanvas(
+          event.clientX - rect.left,
+          event.clientY - rect.top,
+          viewportRef.current,
+        ),
       )
-      currentStroke.current.points.push(pt)
       redraw()
     },
     [redraw],
   )
-
-  useEffect(() => {
-    onStrokeCompleteRef.current = onStrokeComplete
-  }, [onStrokeComplete])
 
   const handlePointerUp = useCallback(() => {
     if (!drawing.current || !currentStroke.current) return
@@ -138,42 +144,36 @@ export function CanvasDrawingLayer({
     currentStroke.current = null
     if (stroke.points.length < 2) return
 
-    // Compute bounding box in canvas space.
-    let minX = Infinity,
-      minY = Infinity,
-      maxX = -Infinity,
-      maxY = -Infinity
-    for (const p of stroke.points) {
-      if (p.x < minX) minX = p.x
-      if (p.y < minY) minY = p.y
-      if (p.x > maxX) maxX = p.x
-      if (p.y > maxY) maxY = p.y
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (const point of stroke.points) {
+      minX = Math.min(minX, point.x)
+      minY = Math.min(minY, point.y)
+      maxX = Math.max(maxX, point.x)
+      maxY = Math.max(maxY, point.y)
     }
     const x = minX - STROKE_PADDING
     const y = minY - STROKE_PADDING
-    const w = maxX - minX + STROKE_PADDING * 2
-    const h = maxY - minY + STROKE_PADDING * 2
-
-    // Normalize points relative to the node origin.
-    const relPoints = stroke.points.map((p) => ({
-      x: p.x - x,
-      y: p.y - y,
-    }))
-
     const id = `draw-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    const shapeData = new TextEncoder().encode(JSON.stringify(relPoints))
-
-    const node: CanvasNodeData = {
+    onStrokeCompleteRef.current?.({
       id,
       x,
       y,
-      width: Math.max(w, 20),
-      height: Math.max(h, 20),
+      width: Math.max(maxX - minX + STROKE_PADDING * 2, 20),
+      height: Math.max(maxY - minY + STROKE_PADDING * 2, 20),
       zIndex: 0,
       type: 'drawing',
-      shapeData,
-    }
-    onStrokeCompleteRef.current?.(node)
+      shapeData: encodeCanvasGeometry({
+        kind: 'pen',
+        color: colorRef.current,
+        points: stroke.points.map((point) => ({
+          x: point.x - x,
+          y: point.y - y,
+        })),
+      }),
+    })
     redraw()
   }, [redraw])
 
@@ -181,13 +181,14 @@ export function CanvasDrawingLayer({
     <canvas
       ref={canvasRef}
       className={cn(
-        'text-foreground absolute inset-0 h-full w-full',
+        'absolute inset-0 h-full w-full',
         visible
           ? 'pointer-events-auto cursor-crosshair'
           : 'pointer-events-none',
         className,
       )}
       style={{ zIndex: visible ? 10 : -1 }}
+      data-canvas-drawing-color={color}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
