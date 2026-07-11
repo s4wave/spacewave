@@ -183,9 +183,6 @@ func (r *TerminalResource) buildSshClientConfig(
 	if err != nil {
 		return nil, "", err
 	}
-	if len(auth) == 0 {
-		return nil, "", errors.New("ssh host credential Secret refs are required")
-	}
 	return &ssh.ClientConfig{
 		User: endpoint.GetUsername(),
 		Auth: auth,

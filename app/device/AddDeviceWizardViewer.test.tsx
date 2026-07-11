@@ -376,6 +376,45 @@ describe('AddDeviceWizardViewer', () => {
     expect(h.navigateToObjects).toHaveBeenCalledWith(['build-host-terminal-1'])
   })
 
+  it('allows a blank SSH password for empty-password or no-auth hosts', async () => {
+    h.currentStep = 1
+    h.configData = new TextEncoder().encode(
+      JSON.stringify({
+        mode: 'ssh',
+        ssh: {
+          host: 'build.example.com',
+          port: 22,
+          username: 'ubuntu',
+          authMode: 'password',
+          hostKeyAlgorithm: 'ssh-ed25519',
+          hostKeyFingerprint: 'SHA256:trusted-host',
+        },
+      }),
+    )
+    renderViewer()
+
+    expect(
+      screen.getByText(
+        'Leave blank if the host accepts an empty password or requires no authentication.',
+      ),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+
+    await waitFor(() => expect(h.createSecret).toHaveBeenCalled())
+    expect(h.createSecret).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: SecretKindSSHPassword,
+        value: new Uint8Array(),
+      }),
+    )
+    expect(
+      h.applyWorldOp.mock.calls.some(
+        ([opId]) => opId === CREATE_SSH_HOST_OP_ID,
+      ),
+    ).toBe(true)
+    expect(h.navigateToObjects).toHaveBeenCalledWith(['build-host-terminal-1'])
+  })
+
   it('allows private-key auth without passphrase or prefilled host key trust', async () => {
     h.currentStep = 1
     h.configData = new TextEncoder().encode(

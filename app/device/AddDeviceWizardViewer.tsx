@@ -770,6 +770,7 @@ function SshHostSetupForm({
             value={credentialDraft.password}
             onChange={(e) => onCredentialChange({ password: e.target.value })}
             placeholder="SSH password"
+            help="Leave blank if the host accepts an empty password or requires no authentication."
           />
         ) : (
           <div className="space-y-2">
@@ -1231,9 +1232,6 @@ function getSshCreateError(
   const authMode = config.authMode ?? 'password'
   if (authMode === 'private-key' && !draft.privateKey.trim()) {
     return 'SSH private key is required'
-  }
-  if (authMode === 'password' && !draft.password) {
-    return 'SSH password is required'
   }
   const publicKey = normalizeSshHostPublicKey(config.hostKeyPublicKey)
   const hasManualTrust = !!publicKey || !!config.hostKeyFingerprint?.trim()

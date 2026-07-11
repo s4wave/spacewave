@@ -29,105 +29,122 @@ import (
 )
 
 func TestConnectTerminalOpensSshHostSession(t *testing.T) {
-	ctx := t.Context()
-	tb, soProvider, release := setupTerminalSecretTest(ctx, t)
-	defer release()
+	tests := []struct {
+		name     string
+		password string
+		noAuth   bool
+	}{
+		{name: "password", password: "ssh-password"},
+		{name: "empty password"},
+		{name: "no authentication", noAuth: true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := t.Context()
+			tb, soProvider, release := setupTerminalSecretTest(ctx, t)
+			defer release()
 
-	addr, hostKey, closeServer := startTerminalTestSSHServer(t, "ssh-password")
-	defer closeServer()
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	portNum, err := net.LookupPort("tcp", port)
-	if err != nil {
-		t.Fatal(err)
-	}
+			addr, hostKey, closeServer := startTerminalTestSSHServer(t, test.password, test.noAuth)
+			defer closeServer()
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				t.Fatal(err)
+			}
+			portNum, err := net.LookupPort("tcp", port)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	if _, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
-		ObjectKey:   "secrets/ssh/password",
-		DisplayName: "SSH password",
-		Kind:        s4wave_secret.SecretKindSSHPassword,
-		ContentType: s4wave_secret.SSHTextCredentialContentType,
-		Value:       []byte("ssh-password"),
-		Timestamp:   time.Unix(10, 0),
-	}); err != nil {
-		t.Fatalf("CreateSecret: %v", err)
-	}
+			var credentials *s4wave_sshhost.SshHostCredentialRefs
+			if !test.noAuth {
+				if _, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
+					ObjectKey:   "secrets/ssh/password",
+					DisplayName: "SSH password",
+					Kind:        s4wave_secret.SecretKindSSHPassword,
+					ContentType: s4wave_secret.SSHTextCredentialContentType,
+					Value:       []byte(test.password),
+					Timestamp:   time.Unix(10, 0),
+				}); err != nil {
+					t.Fatalf("CreateSecret: %v", err)
+				}
+				credentials = &s4wave_sshhost.SshHostCredentialRefs{
+					PasswordSecretObjectKey: "secrets/ssh/password",
+				}
+			}
 
-	hostOp := s4wave_sshhost.NewCreateSshHostOp(
-		"hosts/prod",
-		"Prod SSH",
-		&s4wave_sshhost.SshHostEndpoint{
-			Host:     host,
-			Port:     uint32(portNum),
-			Username: "deploy",
-		},
-		&s4wave_sshhost.SshHostCredentialRefs{
-			PasswordSecretObjectKey: "secrets/ssh/password",
-		},
-		[]*s4wave_sshhost.SshHostKeyPin{{
-			Algorithm:         hostKey.Type(),
-			Sha256Fingerprint: ssh.FingerprintSHA256(hostKey),
-		}},
-		time.Unix(11, 0),
-	)
-	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, hostOp, tb.Volume.GetPeerID()); err != nil {
-		t.Fatalf("create SSH Host: %v", err)
-	}
+			hostOp := s4wave_sshhost.NewCreateSshHostOp(
+				"hosts/prod",
+				"Prod SSH",
+				&s4wave_sshhost.SshHostEndpoint{
+					Host:     host,
+					Port:     uint32(portNum),
+					Username: "deploy",
+				},
+				credentials,
+				[]*s4wave_sshhost.SshHostKeyPin{{
+					Algorithm:         hostKey.Type(),
+					Sha256Fingerprint: ssh.FingerprintSHA256(hostKey),
+				}},
+				time.Unix(11, 0),
+			)
+			if _, _, err := tb.WorldState.ApplyWorldOp(ctx, hostOp, tb.Volume.GetPeerID()); err != nil {
+				t.Fatalf("create SSH Host: %v", err)
+			}
 
-	termOp := s4wave_terminal.NewCreateSshHostTerminalOp(
-		"terminal/prod-ssh",
-		"Prod SSH Terminal",
-		"hosts/prod",
-		time.Unix(12, 0),
-	)
-	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, termOp, tb.Volume.GetPeerID()); err != nil {
-		t.Fatalf("create Terminal: %v", err)
-	}
-	objState, found, err := tb.WorldState.GetObject(ctx, "terminal/prod-ssh")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !found {
-		t.Fatal("terminal object was not created")
-	}
-	state, err := readTerminalObject(ctx, objState)
-	if err != nil {
-		t.Fatal(err)
-	}
+			termOp := s4wave_terminal.NewCreateSshHostTerminalOp(
+				"terminal/prod-ssh",
+				"Prod SSH Terminal",
+				"hosts/prod",
+				time.Unix(12, 0),
+			)
+			if _, _, err := tb.WorldState.ApplyWorldOp(ctx, termOp, tb.Volume.GetPeerID()); err != nil {
+				t.Fatalf("create Terminal: %v", err)
+			}
+			objState, found, err := tb.WorldState.GetObject(ctx, "terminal/prod-ssh")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !found {
+				t.Fatal("terminal object was not created")
+			}
+			state, err := readTerminalObject(ctx, objState)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	streamCtx, cancelStream := context.WithTimeout(ctx, 5*time.Second)
-	defer cancelStream()
-	strm := newBlockingTerminalConnectStream(streamCtx)
-	strm.sendDelay = 10 * time.Millisecond
-	err = s4wave_terminal.NewTerminalResource(tb.Bus, tb.WorldState, tb.Engine, "terminal/prod-ssh", state).
-		ConnectTerminal(strm)
-	strm.closeRecv()
-	if err != nil {
-		t.Fatalf("ConnectTerminal: %v", err)
-	}
+			streamCtx, cancelStream := context.WithTimeout(ctx, 5*time.Second)
+			defer cancelStream()
+			strm := newBlockingTerminalConnectStream(streamCtx)
+			strm.sendDelay = 10 * time.Millisecond
+			err = s4wave_terminal.NewTerminalResource(tb.Bus, tb.WorldState, tb.Engine, "terminal/prod-ssh", state).
+				ConnectTerminal(strm)
+			strm.closeRecv()
+			if err != nil {
+				t.Fatalf("ConnectTerminal: %v", err)
+			}
 
-	frames := strm.sentFrames()
-	if !terminalFramesContainKind(frames, s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_READY) {
-		t.Fatalf("sent frames missing READY: %#v", frames)
-	}
-	if !terminalFramesContainOutput(frames, "ssh ready\n") {
-		t.Fatalf("sent frames missing SSH output: %#v", frames)
-	}
-	if !terminalFramesContainKind(frames, s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT) {
-		t.Fatalf("sent frames missing EXIT: %#v", frames)
-	}
+			frames := strm.sentFrames()
+			if !terminalFramesContainKind(frames, s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_READY) {
+				t.Fatalf("sent frames missing READY: %#v", frames)
+			}
+			if !terminalFramesContainOutput(frames, "ssh ready\n") {
+				t.Fatalf("sent frames missing SSH output: %#v", frames)
+			}
+			if !terminalFramesContainKind(frames, s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT) {
+				t.Fatalf("sent frames missing EXIT: %#v", frames)
+			}
 
-	updated, err := readTerminalObject(ctx, objState)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if updated.GetState() != s4wave_terminal.TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED {
-		t.Fatalf("state = %s", updated.GetState().String())
-	}
-	if updated.GetStatus() != "exited" {
-		t.Fatalf("status = %q", updated.GetStatus())
+			updated, err := readTerminalObject(ctx, objState)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if updated.GetState() != s4wave_terminal.TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED {
+				t.Fatalf("state = %s", updated.GetState().String())
+			}
+			if updated.GetStatus() != "exited" {
+				t.Fatalf("status = %q", updated.GetStatus())
+			}
+		})
 	}
 }
 
@@ -136,7 +153,7 @@ func TestConnectTerminalChallengesAndRemembersAcceptedUnknownSshHostKey(t *testi
 	tb, soProvider, release := setupTerminalSecretTest(ctx, t)
 	defer release()
 
-	addr, _, closeServer := startTerminalTestSSHServer(t, "ssh-password")
+	addr, _, closeServer := startTerminalTestSSHServer(t, "ssh-password", false)
 	defer closeServer()
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -254,7 +271,7 @@ func TestConnectTerminalRejectsUnknownSshHostKeyWithoutRemembering(t *testing.T)
 	tb, soProvider, release := setupTerminalSecretTest(ctx, t)
 	defer release()
 
-	addr, _, closeServer := startTerminalTestSSHServer(t, "ssh-password")
+	addr, _, closeServer := startTerminalTestSSHServer(t, "ssh-password", false)
 	defer closeServer()
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -393,7 +410,7 @@ func setupTerminalSecretTest(
 	}
 }
 
-func startTerminalTestSSHServer(t *testing.T, password string) (string, ssh.PublicKey, func()) {
+func startTerminalTestSSHServer(t *testing.T, password string, noAuth bool) (string, ssh.PublicKey, func()) {
 	t.Helper()
 	hostKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -403,13 +420,14 @@ func startTerminalTestSSHServer(t *testing.T, password string) (string, ssh.Publ
 	if err != nil {
 		t.Fatal(err)
 	}
-	config := &ssh.ServerConfig{
-		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
+	config := &ssh.ServerConfig{NoClientAuth: noAuth}
+	if !noAuth {
+		config.PasswordCallback = func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
 			if conn.User() == "deploy" && string(pass) == password {
 				return nil, nil
 			}
 			return nil, errors.New("unauthorized")
-		},
+		}
 	}
 	config.AddHostKey(signer)
 
