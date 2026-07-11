@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
+
+const mockRootResource = vi.hoisted(() => ({ value: null }))
 
 const mockOpenCommand = vi.hoisted(() => vi.fn())
 const mockUseSpaceContainer = vi.hoisted(() => vi.fn())
@@ -13,6 +21,12 @@ vi.mock('@s4wave/web/command/CommandContext.js', () => ({
 vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
   SpaceContainerContext: {
     useContext: mockUseSpaceContainer,
+  },
+}))
+
+vi.mock('@s4wave/web/contexts/contexts.js', () => ({
+  RootContext: {
+    useContext: () => mockRootResource,
   },
 }))
 
@@ -102,6 +116,38 @@ describe('SpaceIndex', () => {
     render(<SpaceIndex />)
 
     expect(screen.getByText('Empty Space')).toBeDefined()
+  })
+
+  it('renders the object list when objects exist without an index path', async () => {
+    const navigateToObjects = vi.fn()
+    mockUseSpaceContainer.mockReturnValue({
+      spaceState: {
+        settings: {},
+        worldContents: {
+          objects: [{ objectKey: 'files', objectType: 'unixfs/fs-node' }],
+        },
+      },
+      spaceWorld: { applyWorldOp: vi.fn() },
+      navigateToObjects,
+      navigateToSubPath: vi.fn(),
+      canDeleteObjects: false,
+    })
+
+    render(<SpaceIndex />)
+
+    await waitFor(() => {
+      expect(screen.getByText('files')).toBeDefined()
+    })
+    expect(
+      screen.getByText('Select an object to view, or add a new one.'),
+    ).toBeDefined()
+    expect(screen.queryByText('Empty Space')).toBeNull()
+
+    fireEvent.doubleClick(screen.getByRole('treeitem', { name: /files/i }))
+    expect(navigateToObjects).toHaveBeenCalledWith(['files'])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add an object' }))
+    expect(mockOpenCommand).toHaveBeenCalledWith('spacewave.create-object')
   })
 
   it('renders the empty state without repair when a stale index has no visible replacement', () => {

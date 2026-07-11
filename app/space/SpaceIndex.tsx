@@ -9,6 +9,8 @@ import {
 } from '@s4wave/sdk/space/object-uri.js'
 import { isHiddenSpaceObject } from '@s4wave/web/space/object-tree.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
+
+import { SpaceObjectBrowser } from './SpaceObjectBrowser.js'
 import { applySpaceIndexPath } from './space-settings.js'
 
 interface SpaceIndexObject {
@@ -91,6 +93,11 @@ export function SpaceIndex() {
     indexResolution.path && indexResolution.path !== '/'
       ? indexResolution.path
       : null
+  const hasVisibleObjects = (spaceState.worldContents?.objects ?? []).some(
+    (object) =>
+      !!object.objectKey &&
+      !isHiddenSpaceObject(object.objectKey, object.objectType),
+  )
 
   const handleCreateClick = useCallback(() => {
     openCommand('spacewave.create-object')
@@ -138,6 +145,26 @@ export function SpaceIndex() {
 
   if (redirectPath) {
     return null
+  }
+
+  if (hasVisibleObjects) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <EmptyState
+          className="shrink-0"
+          icon={<LuBox className="text-foreground-alt size-7" />}
+          title="Choose an object"
+          description="Select an object to view, or add a new one."
+          action={{
+            label: 'Add an object',
+            onClick: handleCreateClick,
+          }}
+        />
+        <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
+          <SpaceObjectBrowser embedded={true} />
+        </div>
+      </div>
+    )
   }
 
   return (
