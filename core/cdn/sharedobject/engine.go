@@ -157,6 +157,7 @@ func NewWorldEngine(
 		},
 		transformConf,
 	)
+	cursor.SetBucketIDOverride(bucketID)
 	cursor.SetDecodedBlockCache(decodedBlocks)
 
 	bengine, err := world_block.NewEngine(ctx, le, cursor, lookupOp, nil, false)

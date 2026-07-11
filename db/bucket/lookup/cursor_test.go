@@ -2,12 +2,14 @@ package bucket_lookup
 
 import (
 	"bytes"
+	"context"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/config"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_chksum "github.com/s4wave/spacewave/db/block/transform/chksum"
 	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
+	"github.com/s4wave/spacewave/db/bucket"
 )
 
 func TestTransformConfEnvelopeRoundTrip(t *testing.T) {
@@ -64,6 +66,40 @@ func TestTransformConfEnvelopeRejectsUnknownVersion(t *testing.T) {
 	encoded[len(transformConfEnvelopeMagic)]++
 	if _, err := UnmarshalTransformConf(encoded); err == nil {
 		t.Fatal("unknown transform config envelope version accepted")
+	}
+}
+
+func TestCursorBucketIDOverridePinsImplicitReferences(t *testing.T) {
+	ctx := context.Background()
+	cursor := NewCursor(
+		ctx,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		&bucket.ObjectRef{},
+		&bucket.BucketOpArgs{BucketId: "public-cdn", VolumeId: "public-cdn"},
+		&block_transform.Config{},
+	)
+	cursor.SetBucketIDOverride("public-cdn")
+
+	followed, err := cursor.FollowRef(ctx, &bucket.ObjectRef{BucketId: "authoring-world"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer followed.Release()
+	if got := followed.GetOpArgs().GetBucketId(); got != "public-cdn" {
+		t.Fatalf("followed bucket = %q, want public-cdn", got)
+	}
+
+	nested, err := followed.FollowRef(ctx, &bucket.ObjectRef{BucketId: "another-authoring-world"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer nested.Release()
+	if got := nested.GetOpArgs().GetBucketId(); got != "public-cdn" {
+		t.Fatalf("nested followed bucket = %q, want public-cdn", got)
 	}
 }
 

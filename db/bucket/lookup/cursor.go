@@ -37,6 +37,8 @@ type Cursor struct {
 	bkt bucket.BucketOps
 	// opArgs is the bucket ID / volume ID pair used for bkt
 	opArgs *bucket.BucketOpArgs
+	// bucketIDOverride forces implicit reference traversal to stay in one mounted bucket.
+	bucketIDOverride string
 	// xfrm is the transformer handle
 	xfrm block.Transformer
 	// transformConf is the transform conf used for xfrm
@@ -350,7 +352,9 @@ func (c *Cursor) FollowRef(
 		BucketId: c.opArgs.GetBucketId(),
 		VolumeId: c.opArgs.GetVolumeId(),
 	}
-	if refBucketID := objRef.GetBucketId(); refBucketID != "" {
+	if c.bucketIDOverride != "" {
+		opArgs.BucketId = c.bucketIDOverride
+	} else if refBucketID := objRef.GetBucketId(); refBucketID != "" {
 		opArgs.BucketId = refBucketID
 	}
 	return c.FollowRefWithOpArgs(ctx, objRef, opArgs)
@@ -606,6 +610,14 @@ func (c *Cursor) GetOpArgs() *bucket.BucketOpArgs {
 	return c.opArgs.CloneVT()
 }
 
+// SetBucketIDOverride forces FollowRef to resolve every implicit reference
+// through bucketID. Explicit FollowRefWithOpArgs calls remain unchanged.
+// This is intended for self-contained mirrors whose stored refs retain the
+// authoring bucket ID but whose complete block DAG is mounted under an alias.
+func (c *Cursor) SetBucketIDOverride(bucketID string) {
+	c.bucketIDOverride = bucketID
+}
+
 // GetRefWithOpArgs gets the ref and sets the BucketId and TransformConf (if unset).
 func (c *Cursor) GetRefWithOpArgs() *bucket.ObjectRef {
 	ref := c.ref.Clone()
@@ -673,14 +685,15 @@ func (c *Cursor) Release() {
 // clone returns a base copy of the cursor
 func (c *Cursor) clone() *Cursor {
 	return &Cursor{
-		le:            c.le,
-		sfs:           c.sfs,
-		bus:           c.bus,
-		transformConf: c.transformConf.Clone(),
-		bkt:           c.bkt,
-		xfrm:          c.xfrm,
-		ref:           c.ref.Clone(),
-		opArgs:        c.opArgs.CloneVT(),
-		decodedBlocks: c.decodedBlocks,
+		le:               c.le,
+		sfs:              c.sfs,
+		bus:              c.bus,
+		transformConf:    c.transformConf.Clone(),
+		bkt:              c.bkt,
+		xfrm:             c.xfrm,
+		ref:              c.ref.Clone(),
+		opArgs:           c.opArgs.CloneVT(),
+		decodedBlocks:    c.decodedBlocks,
+		bucketIDOverride: c.bucketIDOverride,
 	}
 }

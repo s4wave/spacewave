@@ -255,6 +255,15 @@ func TestWorldEnginesBorrowBlockStoreDecodedCache(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer first.Release()
+	followed, err := first.Cursor.FollowRef(ctx, &bucket.ObjectRef{BucketId: "authoring-world"})
+	if err != nil {
+		t.Fatalf("follow authoring ref through CDN bucket override: %v", err)
+	}
+	if got := followed.GetOpArgs().GetBucketId(); got != testSpaceID {
+		followed.Release()
+		t.Fatalf("followed bucket = %q, want %q", got, testSpaceID)
+	}
+	followed.Release()
 	second, err := NewWorldEngine(ctx, le, nil, so, nil)
 	if err != nil {
 		t.Fatal(err)
