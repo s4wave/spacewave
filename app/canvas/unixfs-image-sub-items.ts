@@ -1,6 +1,8 @@
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
+import { getUnixFSDirEntryKind } from '@s4wave/sdk/unixfs/file-kind.js'
 import { normalizeUnixFSLookupPath } from '@s4wave/sdk/unixfs/path.js'
 import { getMimeType } from '@s4wave/web/hooks/useUnixFSHandle.js'
+import { createSubItemQueryId } from '@s4wave/web/command/sub-item-navigation.js'
 import type { SubItem } from '@s4wave/web/command/CommandContext.js'
 
 function splitFindFileQuery(query: string): {
@@ -29,12 +31,24 @@ async function listDirectory(
     const name = entry.name ?? ''
     if (!name || !name.toLowerCase().includes(normalizedFragment)) return []
     const path = directory ? `${directory}/${name}` : name
+    if (getUnixFSDirEntryKind(entry) === 'directory') {
+      const nextQuery = `${path}/`
+      return [
+        {
+          id: createSubItemQueryId(nextQuery),
+          label: `/${nextQuery}`,
+          description: 'Directory',
+          iconName: 'LuFolder',
+        },
+      ]
+    }
     if (!getMimeType(name).startsWith('image/')) return []
     return [
       {
         id: `/${path}`,
         label: `/${path}`,
         description: 'Image',
+        iconName: 'LuImage',
       },
     ]
   })

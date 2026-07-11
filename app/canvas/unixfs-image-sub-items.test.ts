@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
+import { getSubItemQuery } from '@s4wave/web/command/sub-item-navigation.js'
 
 import { getUnixFSImageSubItems } from './unixfs-image-sub-items.js'
 
@@ -14,7 +15,7 @@ function makeHandle(entries: Array<{ name: string; isDir: boolean }>) {
 }
 
 describe('getUnixFSImageSubItems', () => {
-  it('filters root entries to image files', async () => {
+  it('filters root entries to images and navigable directories', async () => {
     const root = makeHandle([
       { name: 'photos', isDir: true },
       { name: 'cover.png', isDir: false },
@@ -27,8 +28,9 @@ describe('getUnixFSImageSubItems', () => {
       new AbortController().signal,
     )
 
-    expect(items.map((item) => item.label)).toEqual(['/cover.png'])
-    expect(items[0]?.id).toBe('/cover.png')
+    expect(items.map((item) => item.label)).toEqual(['/photos/', '/cover.png'])
+    expect(getSubItemQuery(items[0]?.id ?? '')).toBe('photos/')
+    expect(items[1]?.id).toBe('/cover.png')
   })
 
   it('completes and filters an image path inside the selected directory', async () => {
