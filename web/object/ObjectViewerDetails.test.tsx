@@ -1,4 +1,10 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import type React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -50,5 +56,46 @@ describe('ObjectViewerDetails', () => {
     expect(screen.getByText('Missing Component ID')).toBeDefined()
     expect(screen.getByText('glados.missing.viewer')).toBeDefined()
     expect(screen.getByText('ID: spacewave.debug.viewer')).toBeDefined()
+  })
+
+  it('omits the danger zone when object deletion is unavailable', () => {
+    render(
+      <ObjectViewerDetails
+        objectKey="glados/workfront/1"
+        typeID="glados/workfront"
+        availableComponents={components}
+        onComponentSelect={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByText('Danger Zone')).toBeNull()
+  })
+
+  it('names the object before confirming deletion', async () => {
+    const onDeleteConfirm = vi.fn().mockResolvedValue(undefined)
+    render(
+      <ObjectViewerDetails
+        objectKey="glados/workfront/1"
+        typeID="glados/workfront"
+        availableComponents={components}
+        onComponentSelect={vi.fn()}
+        onDeleteConfirm={onDeleteConfirm}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Danger Zone' }))
+    fireEvent.click(screen.getByRole('button', { name: /Delete Object/ }))
+
+    const confirmation = screen.getByText(/This will permanently delete/)
+    expect(confirmation.textContent).toContain('glados/workfront/1')
+
+    const deleteButtons = screen.getAllByRole('button', {
+      name: 'Delete Object',
+    })
+    fireEvent.click(deleteButtons.at(-1)!)
+
+    await waitFor(() => {
+      expect(onDeleteConfirm).toHaveBeenCalledTimes(1)
+    })
   })
 })

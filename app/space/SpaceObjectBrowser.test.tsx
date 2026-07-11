@@ -105,6 +105,7 @@ describe('SpaceObjectBrowser', () => {
   function renderBrowser(
     spaceState: SpaceState = mockSpaceState,
     props?: React.ComponentProps<typeof SpaceObjectBrowser>,
+    canDeleteObjects = true,
   ) {
     return render(
       <SpaceContainerContext.Provider
@@ -112,6 +113,7 @@ describe('SpaceObjectBrowser', () => {
         spaceState={spaceState}
         spaceWorldResource={mockWorldResource}
         spaceWorld={mockSpaceWorld}
+        canDeleteObjects={canDeleteObjects}
         navigateToRoot={vi.fn()}
         navigateToObjects={mockNavigateToObjects}
         buildObjectUrls={vi.fn()}
@@ -217,6 +219,29 @@ describe('SpaceObjectBrowser', () => {
   it('does not render context menu when menuState is null', () => {
     renderBrowser()
     expect(screen.queryByTestId('context-menu')).toBeNull()
+  })
+
+  it('hides object deletion without mutation permission', async () => {
+    renderBrowser(mockSpaceState, undefined, false)
+
+    const node = await screen.findByText('files')
+    fireEvent.contextMenu(node, { clientX: 120, clientY: 140 })
+
+    expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull()
+  })
+
+  it('deletes an object through the space world owner', async () => {
+    renderBrowser()
+
+    const node = await screen.findByText('files')
+    fireEvent.contextMenu(node, { clientX: 120, clientY: 140 })
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(screen.getByText('Delete "files"?')).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Delete' }))
+
+    await waitFor(() => {
+      expect(mockSpaceWorld.deleteObject).toHaveBeenCalledWith('files')
+    })
   })
 
   it('renames an object key from the context menu', async () => {

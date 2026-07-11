@@ -75,7 +75,7 @@ import { buildSpaceObjectActionTargets } from '@s4wave/web/space/object-tree.js'
 import { createSpaceObjectNavigationActions } from '@s4wave/web/space/space-object-navigation-actions.js'
 import { useObjectTypeMetadata } from '@s4wave/web/hooks/useObjectTypeMetadata.js'
 import { downloadURL } from '@s4wave/web/download.js'
-import { canRenameSpace } from './permissions.js'
+import { canDeleteSpaceObject, canRenameSpace } from './permissions.js'
 import {
   consumeQuickstartSpaceContentsHandoff,
   consumeQuickstartSpaceHandoff,
@@ -397,6 +397,10 @@ export function SpaceContainer() {
     return meta.name || sharedObjectId
   }, [resourcesList, sharedObject, sharedObjectId])
   const canRename = canRenameSpace(providerId, canManageSharing)
+  const canDeleteObjects = canDeleteSpaceObject(
+    providerId,
+    spaceSharingState?.viewerRole,
+  )
   const canRenderBody = spaceRouteCanRenderBody(
     !!root,
     !!space,
@@ -735,6 +739,7 @@ export function SpaceContainer() {
                 spaceState={routeSpaceState}
                 spaceSharingState={spaceSharingState}
                 orgState={spaceOrgState}
+                canDeleteObjects={canDeleteObjects}
                 buildObjectUrls={buildObjectUrls}
                 buildExportUrl={buildExportUrl}
                 objectKey={objectKey}

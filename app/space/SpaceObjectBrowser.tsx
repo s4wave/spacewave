@@ -53,6 +53,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
     spaceState,
     navigateToObjects,
     spaceWorld,
+    canDeleteObjects,
     objectKey: currentObjectKey,
   } = SpaceContainerContext.useContext()
   const rootResource = RootContext.useContext()
@@ -443,14 +444,16 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
               <LuPlus className="size-3.5" />
               New Object
             </DropdownMenuItem>
-            <DropdownMenuItem
-              variant="destructive"
-              onSelect={(e) => e.preventDefault()}
-              onClick={handleDeleteClick}
-            >
-              <LuTrash2 className="size-3.5" />
-              Delete
-            </DropdownMenuItem>
+            {canDeleteObjects && (
+              <DropdownMenuItem
+                variant="destructive"
+                onSelect={(e) => e.preventDefault()}
+                onClick={handleDeleteClick}
+              >
+                <LuTrash2 className="size-3.5" />
+                Delete
+              </DropdownMenuItem>
+            )}
           </>
         )}
       </DropdownMenuContent>

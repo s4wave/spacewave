@@ -12,6 +12,8 @@ data loading.
 ** Fixes
 - Fixed Terminal in browser builds so it opens and reaches the command prompt
   again.
+- Object details now includes a permission-aware Danger Zone for permanently
+  deleting the selected object with explicit confirmation.
 
 ** Improvements
 - Cold browser starts are faster: startup checksum processing is 55.7× faster,

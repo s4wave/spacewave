@@ -1,4 +1,11 @@
-import { cleanup, renderHook } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
@@ -43,6 +50,11 @@ const h = vi.hoisted(() => {
         },
       },
       navigateToObjects: vi.fn(),
+      navigateToRoot: vi.fn(),
+      canDeleteObjects: true,
+      spaceWorld: {
+        deleteObject: vi.fn().mockResolvedValue({ deleted: true }),
+      },
     },
   }
 })
@@ -91,6 +103,11 @@ beforeEach(() => {
       },
     },
     navigateToObjects: vi.fn(),
+    navigateToRoot: vi.fn(),
+    canDeleteObjects: true,
+    spaceWorld: {
+      deleteObject: vi.fn().mockResolvedValue({ deleted: true }),
+    },
   }
 })
 
@@ -361,6 +378,59 @@ describe('useObjectViewer context menu targets', () => {
     expect(labels).toContain('Visible Doc')
     expect(labels).not.toContain('Internal')
     expect(labels).not.toContain('hidden')
+  })
+
+  it('deletes through the space world owner and returns to the space root', async () => {
+    const { result } = renderHook(() =>
+      useObjectViewer({
+        objectInfo: {
+          info: {
+            case: 'worldObjectInfo',
+            value: {
+              objectKey: 'visible-doc',
+              objectType: 'canvas',
+            },
+          },
+        },
+        worldState: emptyWorldState,
+      }),
+    )
+
+    render(result.current.overlayContent)
+    fireEvent.click(screen.getByRole('button', { name: 'Danger Zone' }))
+    fireEvent.click(screen.getByRole('button', { name: /Delete Object/ }))
+    const deleteButtons = screen.getAllByRole('button', {
+      name: 'Delete Object',
+    })
+    fireEvent.click(deleteButtons.at(-1)!)
+
+    await waitFor(() => {
+      expect(h.spaceContext.spaceWorld.deleteObject).toHaveBeenCalledWith(
+        'visible-doc',
+      )
+    })
+    expect(h.spaceContext.navigateToRoot).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not expose deletion without object mutation permission', () => {
+    h.spaceContext.canDeleteObjects = false
+    const { result } = renderHook(() =>
+      useObjectViewer({
+        objectInfo: {
+          info: {
+            case: 'worldObjectInfo',
+            value: {
+              objectKey: 'visible-doc',
+              objectType: 'canvas',
+            },
+          },
+        },
+        worldState: emptyWorldState,
+      }),
+    )
+
+    render(result.current.overlayContent)
+    expect(screen.queryByText('Danger Zone')).toBeNull()
   })
 })
 

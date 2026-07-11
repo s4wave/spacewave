@@ -313,13 +313,21 @@ export function useObjectViewer({
         typeID ?? 'none',
         rootRef ?? 'none',
         selectedComponentIDDisplay,
+        spaceContext?.canDeleteObjects ? 'delete' : 'read-only',
       ].join(':'),
-    [objectKey, typeID, rootRef, selectedComponentIDDisplay],
+    [objectKey, typeID, rootRef, selectedComponentIDDisplay, spaceContext],
   )
 
   const handleCloseDetails = useCallback(() => {
     setOpenMenu?.('')
   }, [setOpenMenu])
+
+  const handleDeleteObject = useCallback(async () => {
+    if (!objectKey || !spaceContext?.canDeleteObjects) return
+    await spaceContext.spaceWorld.deleteObject(objectKey)
+    setOpenMenu?.('')
+    spaceContext.navigateToRoot()
+  }, [objectKey, setOpenMenu, spaceContext])
 
   const buttonRender = useCallback(
     (selected: boolean, onClick: () => void, className?: string) => {
@@ -394,6 +402,9 @@ export function useObjectViewer({
           missingComponentID={missingComponentID}
           onComponentSelect={handleSelectComponent}
           onCloseClick={handleCloseDetails}
+          onDeleteConfirm={
+            spaceContext?.canDeleteObjects ? handleDeleteObject : undefined
+          }
         />
       ) : undefined,
     [
@@ -406,6 +417,8 @@ export function useObjectViewer({
       missingComponentID,
       handleSelectComponent,
       handleCloseDetails,
+      handleDeleteObject,
+      spaceContext?.canDeleteObjects,
     ],
   )
 

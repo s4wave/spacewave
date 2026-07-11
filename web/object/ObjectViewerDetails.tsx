@@ -1,9 +1,10 @@
-import { useCallback } from 'react'
-import { LuX, LuEye, LuInfo, LuDownload } from 'react-icons/lu'
+import { useCallback, useState } from 'react'
+import { LuX, LuEye, LuInfo, LuDownload, LuTrash2 } from 'react-icons/lu'
 import { RxCube } from 'react-icons/rx'
 
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
+import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
 import { downloadURL } from '@s4wave/web/download.js'
 import { cn } from '@s4wave/web/style/utils.js'
@@ -13,6 +14,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@s4wave/web/ui/tooltip.js'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@s4wave/web/ui/dialog.js'
 
 import type { ObjectViewerComponent } from './object.js'
 
@@ -26,6 +35,7 @@ export interface ObjectViewerDetailsProps {
   missingComponentID?: string
   onComponentSelect: (component: ObjectViewerComponent) => void
   onCloseClick?: () => void
+  onDeleteConfirm?: () => Promise<void>
 }
 
 // ObjectViewerDetails displays metadata and viewer selection for an object.
@@ -39,6 +49,7 @@ export function ObjectViewerDetails({
   missingComponentID,
   onComponentSelect,
   onCloseClick,
+  onDeleteConfirm,
 }: ObjectViewerDetailsProps) {
   return (
     <div className="bg-background-primary flex h-full w-full flex-col overflow-auto">
@@ -131,6 +142,12 @@ export function ObjectViewerDetails({
               </InfoCard>
             </section>
           )}
+          {onDeleteConfirm && (
+            <DangerZoneSection
+              objectKey={objectKey}
+              onDeleteConfirm={onDeleteConfirm}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -170,5 +187,105 @@ function ExportDataSection({ exportUrl }: { exportUrl: string }) {
         </div>
       </button>
     </section>
+  )
+}
+
+interface DangerZoneSectionProps {
+  objectKey: string
+  onDeleteConfirm: () => Promise<void>
+}
+
+function DangerZoneSection({
+  objectKey,
+  onDeleteConfirm,
+}: DangerZoneSectionProps) {
+  const [open, setOpen] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string>()
+
+  const handleDialogOpenChange = useCallback((next: boolean) => {
+    if (!next) {
+      setError(undefined)
+      setSubmitting(false)
+    }
+    setDialogOpen(next)
+  }, [])
+
+  const handleDelete = useCallback(async () => {
+    setSubmitting(true)
+    setError(undefined)
+    try {
+      await onDeleteConfirm()
+      handleDialogOpenChange(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed')
+      setSubmitting(false)
+    }
+  }, [handleDialogOpenChange, onDeleteConfirm])
+
+  return (
+    <>
+      <CollapsibleSection
+        title="Danger Zone"
+        open={open}
+        onOpenChange={setOpen}
+      >
+        <button
+          type="button"
+          onClick={() => setDialogOpen(true)}
+          className="border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive/10 group flex w-full cursor-pointer items-center gap-3 rounded-lg border p-2.5 text-left transition-colors"
+        >
+          <div className="bg-destructive/20 group-hover:bg-destructive/30 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+            <LuTrash2 className="text-destructive size-3.5" />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <h4 className="text-destructive text-xs font-medium select-none">
+              Delete Object
+            </h4>
+            <p className="text-destructive/80 text-[0.6rem] select-none">
+              Permanently remove this object and all its data
+            </p>
+          </div>
+        </button>
+      </CollapsibleSection>
+
+      <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Object</DialogTitle>
+            <DialogDescription>
+              This will permanently delete &ldquo;{objectKey}&rdquo; and all its
+              data.
+            </DialogDescription>
+          </DialogHeader>
+
+          {error && <p className="text-destructive text-xs">{error}</p>}
+
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => handleDialogOpenChange(false)}
+              disabled={submitting}
+              className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleDelete()}
+              disabled={submitting}
+              className={cn(
+                'rounded-md border px-4 py-2 text-sm transition-all',
+                'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20',
+                'disabled:cursor-not-allowed disabled:opacity-50',
+              )}
+            >
+              {submitting ? 'Deleting...' : 'Delete Object'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

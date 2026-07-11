@@ -36,6 +36,8 @@ export interface SpaceContainerContextValue {
   spaceSharingState?: SpaceSharingState | null
   // orgState is the combined organization snapshot for the owning org, if any
   orgState?: WatchOrganizationStateResponse | null
+  // canDeleteObjects is true when the current participant can apply object mutations.
+  canDeleteObjects?: boolean
   // spaceWorldResource is the world resource
   spaceWorldResource: Resource<EngineWorldState>
   // spaceWorld is the world instance
@@ -73,6 +75,7 @@ const Provider: React.FC<
   spaceState,
   spaceSharingState,
   orgState,
+  canDeleteObjects,
   spaceWorldResource,
   spaceWorld,
   objectKey,
@@ -90,6 +93,7 @@ const Provider: React.FC<
       spaceState,
       spaceSharingState,
       orgState,
+      canDeleteObjects,
       spaceWorldResource,
       spaceWorld,
       objectKey,
@@ -106,6 +110,7 @@ const Provider: React.FC<
       spaceState,
       spaceSharingState,
       orgState,
+      canDeleteObjects,
       spaceWorldResource,
       spaceWorld,
       objectKey,
