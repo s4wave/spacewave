@@ -1873,6 +1873,42 @@ func TestWorldState_GC_ReconcileJournalInBoundedDurableChunks(t *testing.T) {
 	}
 }
 
+func TestWorldState_GC_DoesNotAuthorizePhysicalDeletion(t *testing.T) {
+	ctx := context.Background()
+	ws, tb := buildGCTestWorld(t)
+
+	obj, err := world_block.BuildMockObject(ctx, ws, "world-local-gc")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	objRef, _, err := obj.GetRootRef(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	deleted, err := ws.DeleteObject(ctx, "world-local-gc")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !deleted {
+		t.Fatal("expected object deletion")
+	}
+	if _, err := ws.GarbageCollect(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	volumeCollector := block_gc.NewCollector(tb.Volume.GetRefGraph(), tb.Volume, nil)
+	if _, err := volumeCollector.Collect(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	exists, err := tb.Volume.GetBlockExists(ctx, objRef.GetRootRef())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !exists {
+		t.Fatal("World GC authorized physical deletion from the shared store")
+	}
+}
+
 func TestWorldState_GC_ForkDoesNotCollectBlocksReachableFromOriginal(t *testing.T) {
 	ctx := context.Background()
 	ws, tb := buildGCTestWorld(t)

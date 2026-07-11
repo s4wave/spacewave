@@ -70,10 +70,6 @@ type WorldState struct {
 	gcJournal      *gcJournal
 	gcJournalDirty bool
 
-	// forked states share their physical store with another retained root, so
-	// their local ref graph cannot authorize physical block deletion.
-	forked bool
-
 	storage  world.WorldStorage
 	lookupOp world.LookupOp
 
@@ -351,7 +347,6 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 	if err != nil {
 		return nil, err
 	}
-	ows.forked = true
 	return ows, nil
 }
 
@@ -694,11 +689,11 @@ func (t *WorldState) GarbageCollect(ctx context.Context) (*block_gc.Stats, error
 	if err := t.removeCurrentWorldRootUnreferenced(ctx); err != nil {
 		return nil, errors.Wrap(err, "mark pinned world root for gc")
 	}
+	// A World ref graph covers one retained root, while the physical store is
+	// shared by engine snapshots, transactions, forks, and coordinated heads.
+	// Only a store-scoped reachability owner may authorize physical deletion.
 	c := block_gc.NewCollector(t.refGraph, t.store, t.onSwept)
-	if t.forked {
-		return c.CollectGraphOnly(ctx)
-	}
-	return c.Collect(ctx)
+	return c.CollectGraphOnly(ctx)
 }
 
 func (t *WorldState) pinCurrentWorldRootForGC(ctx context.Context) (func(), error) {
