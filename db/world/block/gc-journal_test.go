@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	stderrors "errors"
 	"slices"
 	"strconv"
 	"testing"
@@ -14,11 +15,12 @@ import (
 )
 
 type gcJournalTestTree struct {
-	values         map[string][]byte
-	scanPrefixKeys int
-	scanPrefix     int
-	scanValues     int
-	seqKeySets     int
+	values            map[string][]byte
+	scanPrefixKeys    int
+	scanPrefixKeysErr error
+	scanPrefix        int
+	scanValues        int
+	seqKeySets        int
 }
 
 func newGCJournalTestTree() *gcJournalTestTree {
@@ -81,7 +83,7 @@ func (t *gcJournalTestTree) ScanPrefixKeys(ctx context.Context, prefix []byte, c
 			return err
 		}
 	}
-	return nil
+	return t.scanPrefixKeysErr
 }
 
 func (t *gcJournalTestTree) Iterate(context.Context, []byte, bool, bool) kvtx.Iterator {
@@ -140,6 +142,26 @@ func TestGCJournalReadsSequenceMetadataWithoutScan(t *testing.T) {
 	}
 	if tree.scanPrefixKeys != 0 {
 		t.Fatalf("metadata load scanned journal keys %d times", tree.scanPrefixKeys)
+	}
+}
+
+func TestGCJournalPartialLegacyScanFailsClosed(t *testing.T) {
+	ctx := context.Background()
+	tree := newGCJournalTestTree()
+	var key [8]byte
+	binary.BigEndian.PutUint64(key[:], 1)
+	tree.values[string(key[:])] = encodeRefBatch(
+		[]block_gc.RefEdge{{Subject: "a", Object: "b"}},
+		nil,
+	)
+	tree.scanPrefixKeysErr = block.ErrNotFound
+
+	_, err := newGCJournal(ctx, tree, true)
+	if !stderrors.Is(err, block.ErrNotFound) {
+		t.Fatalf("error = %v, want block not found", err)
+	}
+	if tree.seqKeySets != 0 {
+		t.Fatal("partial legacy scan mutated sequence metadata")
 	}
 }
 

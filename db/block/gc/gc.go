@@ -75,9 +75,20 @@ func NewCollector(
 	}
 }
 
-// Collect sweeps all unreferenced nodes. Loops until no unreferenced
-// nodes remain, since deleting a node may orphan its children.
+// Collect sweeps all unreferenced nodes and removes their physical blocks.
 func (c *Collector) Collect(ctx context.Context) (*Stats, error) {
+	return c.collect(ctx, true)
+}
+
+// CollectGraphOnly sweeps unreferenced nodes from the graph without authorizing
+// deletion from the physical store.
+func (c *Collector) CollectGraphOnly(ctx context.Context) (*Stats, error) {
+	return c.collect(ctx, false)
+}
+
+// collect loops until no unreferenced nodes remain, since removing a node may
+// orphan its children.
+func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, error) {
 	start := time.Now()
 	stats := &Stats{}
 
@@ -152,8 +163,9 @@ func (c *Collector) Collect(ctx context.Context) (*Stats, error) {
 				stats.OnSweptCount++
 			}
 
-			// Physical delete for block-backed nodes.
-			if ref, ok := ParseBlockIRI(node); ok {
+			// Physical deletion is valid only when this graph's reachability
+			// scope owns the store.
+			if ref, ok := ParseBlockIRI(node); ok && removeBlocks {
 				phaseStart = time.Now()
 				if err := c.store.RmBlock(ctx, ref); err != nil {
 					stats.RemoveBlockDuration += time.Since(phaseStart)

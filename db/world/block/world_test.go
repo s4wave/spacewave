@@ -1873,6 +1873,51 @@ func TestWorldState_GC_ReconcileJournalInBoundedDurableChunks(t *testing.T) {
 	}
 }
 
+func TestWorldState_GC_ForkDoesNotCollectBlocksReachableFromOriginal(t *testing.T) {
+	ctx := context.Background()
+	ws, tb := buildGCTestWorld(t)
+
+	obj, err := world_block.BuildMockObject(ctx, ws, "shared-before-fork")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	objRef, _, err := obj.GetRootRef(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	forkedState, err := ws.Fork(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	forked := forkedState.(*world_block.WorldState)
+	deleted, err := forked.DeleteObject(ctx, "shared-before-fork")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !deleted {
+		t.Fatal("expected forked object deletion")
+	}
+	if _, err := forked.GarbageCollect(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	volumeCollector := block_gc.NewCollector(tb.Volume.GetRefGraph(), tb.Volume, nil)
+	if _, err := volumeCollector.Collect(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	exists, err := tb.Volume.GetBlockExists(ctx, objRef.GetRootRef())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !exists {
+		t.Fatal("fork GC collected a block still reachable from the original world")
+	}
+}
+
 // TestWorldState_GC_Fork verifies that forking a WorldState preserves
 // GC tracking: the forked state has a RefGraph, existing GC edges are
 // visible, new objects get GC edges, and GarbageCollect works.

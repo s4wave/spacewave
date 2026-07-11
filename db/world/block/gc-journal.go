@@ -68,7 +68,9 @@ func newGCJournal(ctx context.Context, tree kvtx.BlockTx, write bool) (*gcJourna
 	}
 
 	var count uint64
+	var scanned bool
 	err = tree.ScanPrefixKeys(ctx, nil, func(key []byte) error {
+		scanned = true
 		if isGCJournalEntryKey(key) {
 			seq := binary.BigEndian.Uint64(key)
 			if seq > j.seq {
@@ -78,7 +80,7 @@ func newGCJournal(ctx context.Context, tree kvtx.BlockTx, write bool) (*gcJourna
 		}
 		return nil
 	})
-	if stderrors.Is(err, block.ErrNotFound) {
+	if stderrors.Is(err, block.ErrNotFound) && !scanned {
 		err = nil
 	}
 	if err != nil {

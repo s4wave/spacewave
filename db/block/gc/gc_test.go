@@ -166,6 +166,25 @@ func TestCollector_OrphanBlocks(t *testing.T) {
 	}
 }
 
+func TestCollectorGraphOnlyPreservesOrphanBlocks(t *testing.T) {
+	env := newTestEnv(t)
+	orphan := env.putBlock(t, "orphan")
+
+	stats, err := env.gc.CollectGraphOnly(env.ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if stats.NodesSwept != 1 {
+		t.Fatalf("nodes swept = %d, want 1", stats.NodesSwept)
+	}
+	if stats.RemoveBlockCount != 0 {
+		t.Fatalf("blocks removed = %d, want 0", stats.RemoveBlockCount)
+	}
+	if !env.blockExists(t, orphan) {
+		t.Fatal("graph-only collection removed the physical block")
+	}
+}
+
 // TestCollector_CascadingOrphans tests that removing a root cascades
 // through the reference chain, orphaning and sweeping all descendants.
 func TestCollector_CascadingOrphans(t *testing.T) {
