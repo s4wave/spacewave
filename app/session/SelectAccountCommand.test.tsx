@@ -41,10 +41,9 @@ vi.mock('@s4wave/web/hooks/useRootResource.js', () => ({
     value: { getSessionMetadata: h.getSessionMetadata },
   }),
 }))
-
-vi.mock('@s4wave/web/router/router.js', () => ({
-  useNavigate: () => h.navigate,
-  usePath: () => h.path,
+vi.mock('@s4wave/web/router/app-path.js', () => ({
+  getAppPath: () => h.path,
+  setAppPath: (path: string) => h.navigate({ path }),
 }))
 
 function findSelectAccountCommand(): RegisteredCommand {

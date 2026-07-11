@@ -8,7 +8,7 @@ import type {
 } from '@s4wave/web/command/CommandContext.js'
 import { useCommand } from '@s4wave/web/command/useCommand.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
-import { usePath } from '@s4wave/web/router/router.js'
+import { getAppPath } from '@s4wave/web/router/app-path.js'
 
 import { accountDescription, accountTitle } from './account-presentation.js'
 
@@ -18,7 +18,7 @@ export function SelectAccountCommand() {
   const sessionList = useSessionList().value?.sessions
   const sessions = useMemo(() => sessionList ?? [], [sessionList])
   const selectAccount = useSelectAccount()
-  const path = usePath()
+  const path = getAppPath()
   const accountPathMatch = /^\/u\/(\d+)(?:\/|$)/.exec(path)
   const currentSessionIndex = accountPathMatch
     ? Number(accountPathMatch[1])
