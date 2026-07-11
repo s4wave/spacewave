@@ -2,6 +2,7 @@ package world_block_engine
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -34,6 +35,18 @@ type Controller struct {
 	engineCtr *ccontainer.CContainer[*engineResult]
 	// engineID is the engine id we are listening on
 	engineID string
+	// mtx guards controller-lifetime executions and engine resources.
+	mtx sync.Mutex
+	// closed indicates controller resource cleanup has started.
+	closed bool
+	// closeDone closes after controller resource cleanup completes.
+	closeDone chan struct{}
+	// closeErr is the result returned to every Close caller.
+	closeErr error
+	// executions are canceled and joined by Close.
+	executions map[*engineExecution]struct{}
+	// engineResources remain valid across Execute restarts until Close.
+	engineResources []engineResource
 
 	// sfs is the step factory set
 	sfs *block_transform.StepFactorySet
@@ -44,6 +57,16 @@ type Controller struct {
 type engineResult struct {
 	engine Engine
 	err    error
+}
+
+type engineExecution struct {
+	cancel context.CancelFunc
+	done   chan struct{}
+}
+
+type engineResource struct {
+	engine   *world_block.Engine
+	storeRef directive.Reference
 }
 
 // NewController constructs a new World Engine controller.
@@ -63,11 +86,13 @@ func NewController(
 	}
 
 	return &Controller{
-		le:        le.WithField("engine-id", conf.GetEngineId()),
-		conf:      conf,
-		bus:       bus,
-		engineCtr: ccontainer.NewCContainer[*engineResult](nil),
-		engineID:  conf.GetEngineId(),
+		le:         le.WithField("engine-id", conf.GetEngineId()),
+		conf:       conf,
+		bus:        bus,
+		engineCtr:  ccontainer.NewCContainer[*engineResult](nil),
+		engineID:   conf.GetEngineId(),
+		closeDone:  make(chan struct{}),
+		executions: make(map[*engineExecution]struct{}),
 
 		sfs:       sfs,
 		stateXfrm: xfrm,
@@ -90,7 +115,19 @@ func (c *Controller) Execute(ctx context.Context) error {
 	le := c.le
 
 	rctx, rctxCancel := context.WithCancel(ctx)
-	defer rctxCancel()
+	execution := &engineExecution{
+		cancel: rctxCancel,
+		done:   make(chan struct{}),
+	}
+	if !c.startExecution(execution) {
+		rctxCancel()
+		return nil
+	}
+	defer func() {
+		rctxCancel()
+		c.finishExecution(execution)
+	}()
+	ctx = rctx
 
 	// Determine the init ref to the HEAD
 	var headRef *bucket.ObjectRef
@@ -108,6 +145,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 		le.Debug("no volume id set, using any available volume")
 	}
 
+	var stateStoreRef directive.Reference
+	defer func() {
+		if stateStoreRef != nil {
+			stateStoreRef.Release()
+		}
+	}()
+
 	var stateStore object.ObjectStore
 	var stateCoordinator coord.Coordinator
 	var stateCoordScope coord.Scope
@@ -116,7 +160,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		defer storeRef.Release()
+		stateStoreRef = storeRef
 		stateStore = storeVal.GetObjectStore()
 		stateVolume := storeVal.GetVolume()
 		stateCoordScope = coord.Scope{
@@ -209,10 +253,10 @@ buildWorldEngine:
 		}
 		return err
 	}
-	defer cursor.Release()
 	if err := validateReadOnlyInitHead(ctx, cursor, stateStore, initRef); err != nil {
 		c.engineCtr.SetValue(&engineResult{err: err})
 		le.WithError(err).Warn("read-only world engine init head is missing")
+		cursor.Release()
 		return nil
 	}
 
@@ -224,12 +268,14 @@ buildWorldEngine:
 		bcs.SetBlock(worldRoot, true)
 		nrootRef, _, err := btx.Write(ctx, true)
 		if err != nil {
+			cursor.Release()
 			return err
 		}
 		headRef.RootRef = nrootRef
 		cursor.SetRootRef(nrootRef)
 		if stateStore != nil {
 			if err := c.writeHeadState(ctx, stateStore, recoveryBaseRef, headRef.Clone()); err != nil {
+				cursor.Release()
 				return err
 			}
 			recoveryBaseRef = nil
@@ -295,34 +341,27 @@ buildWorldEngine:
 		}
 		return err
 	}
-	defer engine.Close()
 
 	seqno, err := engine.GetSeqno(ctx)
 	if isReadOnlyInitHeadNotFound(err, stateStore, initRef) {
 		c.engineCtr.SetValue(&engineResult{err: err})
 		le.WithError(err).Warn("read-only world engine init head is missing")
+		_ = engine.Close()
 		return nil
 	}
 	if err != nil {
+		_ = engine.Close()
 		if recoverMissingPersistedHead(err) {
-			_ = engine.Close()
 			goto buildWorldEngine
 		}
 		return err
 	}
 	if recoveryBaseRef != nil {
 		if err := c.writeHeadState(ctx, stateStore, recoveryBaseRef, headRef.Clone()); err != nil {
+			_ = engine.Close()
 			return err
 		}
 		recoveryBaseRef = nil
-	}
-
-	var headWatchDone <-chan struct{}
-	if useStateCoordinator {
-		headWatchDone = c.startCoordinatorHeadWatch(rctx, stateCoordinator, stateCoordScope, stateStore, engine)
-		defer func() {
-			<-headWatchDone
-		}()
 	}
 
 	le.WithField("world-seqno", seqno).Info("world engine ready")
@@ -330,19 +369,30 @@ buildWorldEngine:
 	if c.conf.GetVerbose() {
 		wengine = world_vlogger.NewEngine(le, wengine)
 	}
-	c.engineCtr.SetValue(&engineResult{engine: wengine})
+	if !c.retainEngine(engine, wengine, stateStoreRef) {
+		_ = engine.Close()
+		return nil
+	}
+	stateStoreRef = nil
+
+	var headWatchDone <-chan struct{}
+	if useStateCoordinator {
+		headWatchDone = c.startCoordinatorHeadWatch(rctx, stateCoordinator, stateCoordScope, stateStore, engine)
+	}
 
 	<-rctx.Done()
 	le.Debug("shutting down")
 	// Clean-shutdown durability flush. In the single-writer path the durable
-	// head advances only at Sync, so a normal shutdown must fence before dropping
-	// the engine or committed-but-unsynced work would be lost. Detach from the
-	// now-canceled engine context because the durable stores stay mounted until
-	// Execute returns (storeRef.Release is deferred above).
+	// head advances only at Sync, so a normal shutdown must fence before ending
+	// this execution. Controller-lifetime resources remain mounted until Close.
 	if _, err := engine.Sync(context.WithoutCancel(ctx)); err != nil {
 		le.WithError(err).Warn("world engine shutdown sync failed")
 	}
 	c.engineCtr.SetValue(nil)
+	rctxCancel()
+	if headWatchDone != nil {
+		<-headWatchDone
+	}
 
 	return nil
 }
@@ -417,10 +467,86 @@ func isReadOnlyInitHeadNotFound(err error, stateStore object.ObjectStore, initRe
 		isReadOnlyInitHead(stateStore, initRef)
 }
 
+func (c *Controller) startExecution(execution *engineExecution) bool {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	if c.closed {
+		return false
+	}
+	c.executions[execution] = struct{}{}
+	return true
+}
+
+func (c *Controller) finishExecution(execution *engineExecution) {
+	c.mtx.Lock()
+	delete(c.executions, execution)
+	close(execution.done)
+	c.mtx.Unlock()
+}
+
+func (c *Controller) retainEngine(
+	engine *world_block.Engine,
+	publishedEngine world.Engine,
+	storeRef directive.Reference,
+) bool {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	if c.closed {
+		return false
+	}
+	c.engineResources = append(c.engineResources, engineResource{
+		engine:   engine,
+		storeRef: storeRef,
+	})
+	c.engineCtr.SetValue(&engineResult{engine: publishedEngine})
+	return true
+}
+
 // Close releases any resources used by the controller.
 // Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
-	return nil
+	c.mtx.Lock()
+	if c.closed {
+		closeDone := c.closeDone
+		c.mtx.Unlock()
+		<-closeDone
+		c.mtx.Lock()
+		closeErr := c.closeErr
+		c.mtx.Unlock()
+		return closeErr
+	}
+	c.closed = true
+	executions := make([]*engineExecution, 0, len(c.executions))
+	for execution := range c.executions {
+		executions = append(executions, execution)
+	}
+	resources := c.engineResources
+	c.engineResources = nil
+	c.engineCtr.SetValue(nil)
+	c.mtx.Unlock()
+
+	for _, execution := range executions {
+		execution.cancel()
+	}
+	for _, execution := range executions {
+		<-execution.done
+	}
+
+	var closeErr error
+	for _, resource := range resources {
+		if err := resource.engine.Close(); err != nil && closeErr == nil {
+			closeErr = err
+		}
+		if resource.storeRef != nil {
+			resource.storeRef.Release()
+		}
+	}
+
+	c.mtx.Lock()
+	c.closeErr = closeErr
+	close(c.closeDone)
+	c.mtx.Unlock()
+	return closeErr
 }
 
 // _ is a type assertion

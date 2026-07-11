@@ -169,6 +169,9 @@ func TestControllerRecoversMissingPersistedHead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	t.Cleanup(func() {
+		_ = ctrl.Close()
+	})
 
 	execCtx, execCancel := context.WithCancel(ctx)
 	execErrCh := make(chan error, 1)
@@ -226,6 +229,111 @@ func TestControllerRecoversMissingPersistedHead(t *testing.T) {
 	case <-getCtx.Done():
 		t.Fatalf("Execute did not stop after cancellation: %v", getCtx.Err())
 	}
+}
+
+func TestControllerEngineSurvivesExecuteRestartUntilClose(t *testing.T) {
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+
+	const objectStoreID = "test-world-engine-execute-restart"
+	conf := NewConfig(
+		objectStoreID,
+		tb.Volume.GetID(),
+		tb.BucketId,
+		objectStoreID,
+		&bucket.ObjectRef{BucketId: tb.BucketId},
+		nil,
+		false,
+	)
+	ctrl, err := NewController(le, tb.Bus, conf, transform_all.BuildFactorySet())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(func() {
+		_ = ctrl.Close()
+	})
+
+	getCtx, getCancel := context.WithTimeout(ctx, 2*time.Second)
+	defer getCancel()
+	startExecution := func() (Engine, context.CancelFunc, <-chan error) {
+		execCtx, execCancel := context.WithCancel(ctx)
+		execErrCh := make(chan error, 1)
+		go func() {
+			execErrCh <- ctrl.Execute(execCtx)
+		}()
+		eng, err := ctrl.GetWorldEngine(getCtx)
+		if err != nil {
+			execCancel()
+			t.Fatal(err.Error())
+		}
+		return eng, execCancel, execErrCh
+	}
+	stopExecution := func(execCancel context.CancelFunc, execErrCh <-chan error) {
+		execCancel()
+		select {
+		case err := <-execErrCh:
+			if err != nil {
+				t.Fatalf("Execute shutdown error = %v", err)
+			}
+		case <-getCtx.Done():
+			t.Fatalf("Execute did not stop after cancellation: %v", getCtx.Err())
+		}
+	}
+	assertOpen := func(name string, eng Engine) {
+		t.Helper()
+		if _, err := eng.GetSeqno(ctx); err != nil {
+			t.Fatalf("%s engine is unusable while controller remains attached: %v", name, err)
+		}
+	}
+	assertClosed := func(name string, eng Engine) {
+		t.Helper()
+		_, err := eng.GetSeqno(ctx)
+		if err == nil || !strings.Contains(err.Error(), "world block engine is closed") {
+			t.Fatalf("%s engine error after Close = %v, want world block engine is closed", name, err)
+		}
+	}
+
+	firstEngine, firstCancel, firstErrCh := startExecution()
+	stopExecution(firstCancel, firstErrCh)
+	assertOpen("first after Execute return", firstEngine)
+	firstTx, err := firstEngine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := firstTx.CreateObject(ctx, "after-execute-return", nil); err != nil {
+		firstTx.Discard()
+		t.Fatal(err.Error())
+	}
+	if err := firstTx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := firstEngine.Sync(ctx); err != nil {
+		t.Fatalf("sync after Execute return: %v", err)
+	}
+
+	secondEngine, secondCancel, secondErrCh := startExecution()
+	defer secondCancel()
+	assertOpen("first after Execute restart", firstEngine)
+
+	if err := ctrl.Close(); err != nil {
+		t.Fatal(err.Error())
+	}
+	select {
+	case err := <-secondErrCh:
+		if err != nil {
+			t.Fatalf("Execute shutdown during Close = %v", err)
+		}
+	case <-getCtx.Done():
+		t.Fatalf("Close did not join Execute: %v", getCtx.Err())
+	}
+	assertClosed("first", firstEngine)
+	assertClosed("second", secondEngine)
 }
 
 func TestControllerDoesNotRecoverMissingPersistedHeadByDefault(t *testing.T) {
