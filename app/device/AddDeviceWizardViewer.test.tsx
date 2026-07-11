@@ -168,13 +168,13 @@ describe('AddDeviceWizardViewer', () => {
     ]
   })
 
-  it('renders CLI and container setup copy distinct from account device pairing', () => {
+  it('renders one setup command when the CLI and container command are identical', () => {
     renderViewer()
 
     expect(screen.getByText('Add Device')).toBeTruthy()
     expect(screen.queryByText('Link My Device')).toBeNull()
-    expect(screen.getAllByText(/spacewave device setup/)).toHaveLength(2)
-    expect(screen.getAllByText(/--target-hint space-1/)).toHaveLength(2)
+    expect(screen.getAllByText(/spacewave device setup/)).toHaveLength(1)
+    expect(screen.getAllByText(/--target-hint space-1/)).toHaveLength(1)
   })
 
   it('approves a CLI SpaceLink ticket and persists the completion command', async () => {

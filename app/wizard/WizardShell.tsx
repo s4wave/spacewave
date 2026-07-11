@@ -8,6 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@s4wave/web/ui/tooltip.js'
+import { cn } from '@s4wave/web/style/utils.js'
 
 import { WizardField } from './WizardField.js'
 
@@ -15,6 +16,7 @@ export interface WizardShellProps {
   title: ReactNode
   step: number
   totalSteps?: number
+  stepName?: string
   localName: string
   onUpdateName: (name: string) => void
   onBack: () => void
@@ -39,8 +41,13 @@ export interface WizardShellProps {
   // Optional next button for multi-step wizards where step 0 is config.
   onNext?: () => void
   canNext?: boolean
+  nextLabel?: string
+  nextBusyLabel?: string
+  nextBusy?: boolean
   // Which step shows the finalize button. Defaults to 0 (single-step).
   finalizeStep?: number
+  // Long-form steps can opt into the established wide wizard width.
+  width?: 'default' | 'wide'
 }
 
 // WizardShell renders the shared wizard layout: header, step indicator,
@@ -49,6 +56,7 @@ export function WizardShell({
   title,
   step,
   totalSteps,
+  stepName,
   localName,
   onUpdateName,
   onBack,
@@ -67,7 +75,11 @@ export function WizardShell({
   canFinalize = true,
   onNext,
   canNext = true,
+  nextLabel = 'Next',
+  nextBusyLabel = 'Opening…',
+  nextBusy = false,
   finalizeStep,
+  width = 'default',
 }: WizardShellProps) {
   const showFinalize = finalizeStep === undefined || step === finalizeStep
   const handleNameInputRef = useCallback(
@@ -86,7 +98,12 @@ export function WizardShell({
 
   return (
     <div className="flex h-full w-full items-start justify-center overflow-auto px-4 py-10">
-      <div className="border-foreground/6 bg-background-card/30 flex w-full max-w-lg flex-col overflow-hidden rounded-xl border backdrop-blur-sm">
+      <div
+        className={cn(
+          'border-foreground/6 bg-background-card/30 flex w-full flex-col overflow-hidden rounded-xl border backdrop-blur-sm',
+          width === 'wide' ? 'max-w-2xl' : 'max-w-lg',
+        )}
+      >
         <div className="border-foreground/8 flex h-9 shrink-0 items-center justify-between border-b px-4">
           <h2 className="text-foreground flex min-w-0 items-center text-sm font-semibold tracking-tight select-none">
             {title}
@@ -106,10 +123,17 @@ export function WizardShell({
 
         <div className="flex-1 px-4 py-3">
           <div className="space-y-3">
-            <div className="text-foreground-alt/50 flex items-center text-[0.6rem] font-medium tracking-widest uppercase select-none">
-              {totalSteps !== undefined
-                ? `Step ${step + 1} of ${totalSteps}`
-                : `Step ${step + 1}`}
+            <div className="text-foreground-alt/50 flex items-center gap-2 select-none">
+              <span className="text-[0.6rem] font-medium tracking-widest uppercase">
+                {totalSteps !== undefined
+                  ? `Step ${step + 1} of ${totalSteps}`
+                  : `Step ${step + 1}`}
+              </span>
+              {stepName && (
+                <span className="text-foreground-alt/80 text-xs font-medium">
+                  {stepName}
+                </span>
+              )}
             </div>
 
             {step === nameStep && (
@@ -149,10 +173,10 @@ export function WizardShell({
               <Button
                 size="sm"
                 onClick={onNext}
-                disabled={!canNext}
+                disabled={nextBusy || !canNext}
                 className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs transition-all duration-150"
               >
-                Next
+                {nextBusy ? nextBusyLabel : nextLabel}
               </Button>
             )}
             {showFinalize && (

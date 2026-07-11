@@ -5,7 +5,6 @@ import {
   LuHardDrive,
   LuKeyRound,
   LuLogIn,
-  LuMonitor,
   LuServer,
   LuTerminal,
 } from 'react-icons/lu'
@@ -26,6 +25,7 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 import { Button } from '@s4wave/web/ui/button.js'
+import { cn } from '@s4wave/web/style/utils.js'
 import { parseObjectUri } from '@s4wave/sdk/space/object-uri.js'
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import {
@@ -51,6 +51,7 @@ import { useNavigate } from '@s4wave/web/router/router.js'
 import { applySpaceIndexPath } from '../space/space-settings.js'
 import { buildObjectKey } from '../space/create-op-builders.js'
 import { useWizardState } from '../wizard/useWizardState.js'
+import type { UseWizardStateResult } from '../wizard/useWizardState.js'
 import { WizardShell } from '../wizard/WizardShell.js'
 import { WizardField } from '../wizard/WizardField.js'
 import { WizardTextareaField } from '../wizard/WizardTextareaField.js'
@@ -128,6 +129,10 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
     navigate({ path: '/login' })
   }, [navigate])
   const [busy, setBusy] = useState(false)
+  const [approvalError, setApprovalError] = useState('')
+  const [operationError, setOperationError] = useState('')
+  const [openingStep, setOpeningStep] = useState(false)
+  const isOpeningStep = openingStep && currentStep === 0
   const [sshCredentialDraft, setSshCredentialDraft] =
     useState<SshCredentialDraft>({
       password: '',
@@ -213,10 +218,24 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
 
   const handleNameNext = useCallback(async () => {
     const handle = ws.wizardResource.value
-    if (!handle) return
-    await ws.persistDraftState()
-    await handle.updateState({ step: 1 })
-  }, [ws])
+    if (!handle) {
+      setOperationError('Device setup is still loading. Try again.')
+      return
+    }
+    setOperationError('')
+    setOpeningStep(true)
+    try {
+      await ws.persistDraftState()
+      await handle.updateState({ step: 1 })
+    } catch {
+      setOpeningStep(false)
+      setOperationError(
+        mode === 'ssh'
+          ? 'SSH setup could not be opened. Try again.'
+          : 'Device setup could not be opened. Try again.',
+      )
+    }
+  }, [mode, ws])
 
   const handleFinishSpaceLink = useCallback(async () => {
     if (!state || ws.creating) return
@@ -230,10 +249,10 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
       const deviceKey = deviceObjects[0]?.objectKey ?? ''
       const openKey = deviceKey || dashboardKey
       if (openKey) ws.navigateToObjects([openKey])
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to finish Add Device',
-      )
+    } catch {
+      const message = 'Device setup could not be completed. Try again.'
+      setOperationError(message)
+      toast.error(message)
     } finally {
       ws.setCreating(false)
     }
@@ -331,10 +350,12 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
     if (!state || ws.creating) return
     const error = getSshCreateError(sshConfig, sshCredentialDraft)
     if (error) {
+      setOperationError(error)
       toast.error(error)
       return
     }
 
+    setOperationError('')
     ws.setCreating(true)
     try {
       const { hostObjectKey, terminalObjectKey } =
@@ -345,8 +366,10 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
       await ws.spaceWorld.deleteObject(ws.objectKey)
       toast.success('SSH Host added')
       ws.navigateToObjects([terminalObjectKey || hostObjectKey])
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to add SSH Host')
+    } catch {
+      const message = 'SSH Host could not be added. Try again.'
+      setOperationError(message)
+      toast.error(message)
     } finally {
       ws.setCreating(false)
     }
@@ -363,10 +386,12 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
     if (!state || ws.creating) return
     const error = getSshCreateError(sshConfig, sshCredentialDraft)
     if (error) {
+      setOperationError(error)
       toast.error(error)
       return
     }
 
+    setOperationError('')
     ws.setCreating(true)
     try {
       const { hostObjectKey, terminalObjectKey } =
@@ -387,9 +412,9 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
       })
       toast.success('SSH installer opened')
       ws.navigateToObjects([terminalObjectKey || hostObjectKey])
-    } catch (err) {
+    } catch {
       const message =
-        err instanceof Error ? err.message : 'Failed to open SSH installer'
+        'SSH installer could not be opened. Check the connection and try again.'
       try {
         await handleConfigUpdate({
           ...config,
@@ -406,6 +431,7 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
       } catch {
         // Preserve the primary setup failure as the visible error.
       }
+      setOperationError(message)
       toast.error(message)
     } finally {
       ws.setCreating(false)
@@ -441,6 +467,15 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
     )
   }
 
+  const totalSteps = currentStep === 0 ? 3 : mode === 'ssh' ? 2 : 3
+  const stepName =
+    currentStep === 0
+      ? 'Choose connection'
+      : mode === 'ssh'
+        ? 'Configure SSH'
+        : currentStep === 1
+          ? 'Set up Device'
+          : 'Finish'
   return (
     <WizardShell
       title={
@@ -450,10 +485,15 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
         </>
       }
       step={currentStep}
-      totalSteps={mode === 'ssh' ? 2 : 3}
+      totalSteps={totalSteps}
+      stepName={stepName}
       localName={ws.localName || 'Device'}
       onUpdateName={ws.handleUpdateName}
-      onBack={() => void ws.handleBack()}
+      onBack={() => {
+        setOpeningStep(false)
+        setOperationError('')
+        void ws.handleBack()
+      }}
       onCancel={handleCancel}
       nameLabel={mode === 'ssh' ? 'Host Name' : 'Device Name'}
       namePlaceholder="Build server"
@@ -463,10 +503,16 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
         isSshInstallMode
           ? 'Open installer'
           : mode === 'ssh'
-            ? 'Open terminal'
-            : 'Open device'
+            ? 'Add SSH Host and open terminal'
+            : 'Open Device'
       }
-      creatingLabel={mode === 'ssh' ? 'Adding...' : 'Opening...'}
+      creatingLabel={
+        isSshInstallMode
+          ? 'Opening installer…'
+          : mode === 'ssh'
+            ? 'Adding SSH Host and opening terminal…'
+            : 'Opening Device…'
+      }
       onFinalize={() =>
         void (isSshInstallMode
           ? handleOpenSshInstaller()
@@ -480,23 +526,28 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
           : !!completion
       }
       onNext={currentStep === 0 ? () => void handleNameNext() : undefined}
-      canNext={!!ws.localName.trim()}
+      nextBusyLabel={
+        mode === 'ssh' ? 'Opening SSH setup…' : 'Preparing Device setup…'
+      }
+      nextBusy={isOpeningStep}
+      canNext={!!ws.localName.trim() && !isOpeningStep}
       finalizeStep={mode === 'ssh' ? 1 : 2}
+      width={mode === 'ssh' ? 'wide' : 'default'}
     >
       {currentStep === 0 && (
-        <section className="grid grid-cols-2 gap-2">
+        <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <ModeButton
             active={mode === 'spacelink'}
             icon={<LuHardDrive className="size-3.5" />}
-            label="SpaceLink"
-            detail="Device agent"
+            label="Managed Device"
+            detail="Install Spacewave for persistent status, policy, and capabilities. 3 steps"
             onClick={() => handleModeChange('spacelink')}
           />
           <ModeButton
             active={mode === 'ssh'}
             icon={<LuServer className="size-3.5" />}
             label="SSH Host"
-            detail="No agent"
+            detail="Connect on demand over SSH without installing an agent. 2 steps"
             onClick={() => handleModeChange('ssh')}
           />
         </section>
@@ -505,16 +556,6 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
         <>
           {mode === 'spacelink' && (
             <section className="space-y-3">
-              <CommandPanel
-                title="Local CLI"
-                command={setupCommand}
-                icon={<LuTerminal className="size-3.5" />}
-              />
-              <CommandPanel
-                title="Container daemon"
-                command={setupCommand}
-                icon={<LuMonitor className="size-3.5" />}
-              />
               <SpaceLinkApprovalPanel
                 supported={supportsDeviceApproval}
                 loading={sessionInfoLoading}
@@ -522,8 +563,13 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
                 config={config}
                 ticket={ticket}
                 busy={busy}
-                onTicketChange={handleTicketChange}
-                onApprove={() =>
+                error={approvalError}
+                onTicketChange={(value) => {
+                  setApprovalError('')
+                  handleTicketChange(value)
+                }}
+                onApprove={() => {
+                  setApprovalError('')
                   void approveTicket({
                     ws,
                     sharedObjectId,
@@ -531,10 +577,27 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
                     config,
                     session,
                     setBusy,
+                    setError: setApprovalError,
                     persist: handleConfigUpdate,
                   })
-                }
+                }}
               />
+              <div className="space-y-2">
+                <div>
+                  <h3 className="text-foreground text-xs font-medium">
+                    Get a ticket on the Device
+                  </h3>
+                  <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
+                    Run this command with the installed Local CLI or Container
+                    daemon, then paste the ticket above.
+                  </p>
+                </div>
+                <CommandPanel
+                  title="Device setup command"
+                  command={setupCommand}
+                  icon={<LuTerminal className="size-3.5" />}
+                />
+              </div>
             </section>
           )}
           {mode === 'ssh' && (
@@ -563,8 +626,13 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
                     config={config}
                     ticket={ticket}
                     busy={busy}
-                    onTicketChange={handleTicketChange}
-                    onApprove={() =>
+                    error={approvalError}
+                    onTicketChange={(value) => {
+                      setApprovalError('')
+                      handleTicketChange(value)
+                    }}
+                    onApprove={() => {
+                      setApprovalError('')
                       void approveTicket({
                         ws,
                         sharedObjectId,
@@ -572,10 +640,11 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
                         config,
                         session,
                         setBusy,
+                        setError: setApprovalError,
                         persist: handleConfigUpdate,
                         nextStep: 1,
                       })
-                    }
+                    }}
                   />
                   {completion && (
                     <CommandPanel
@@ -631,6 +700,20 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
           )}
         </section>
       )}
+      {(operationError || isOpeningStep) && (
+        <div
+          className={cn(
+            'rounded-lg border p-3 text-xs leading-relaxed',
+            operationError
+              ? 'border-destructive/15 bg-destructive/5 text-destructive'
+              : 'border-brand/20 bg-brand/5 text-foreground-alt/80',
+          )}
+          role={operationError ? 'alert' : 'status'}
+        >
+          {operationError ||
+            (mode === 'ssh' ? 'Opening SSH setup…' : 'Preparing Device setup…')}
+        </div>
+      )}
     </WizardShell>
   )
 }
@@ -653,19 +736,19 @@ function ModeButton({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={[
-        'flex min-w-0 items-center gap-2 rounded-lg border p-3 text-left transition-all duration-150',
+      className={cn(
+        'flex min-w-0 items-center gap-3 rounded-lg border p-3 text-left transition-all duration-150',
         active
-          ? 'border-brand/40 bg-brand/10 text-foreground'
-          : 'border-foreground/8 bg-background-card/20 text-foreground-alt hover:border-foreground/16 hover:bg-foreground/5',
-      ].join(' ')}
+          ? 'border-brand/30 bg-brand/10 text-foreground'
+          : 'border-foreground/10 bg-background-card/30 text-foreground-alt hover:border-foreground/20 hover:bg-background-card/50',
+      )}
     >
       <span className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
         {icon}
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-xs font-medium">{label}</span>
-        <span className="text-foreground-alt/60 block truncate text-[0.65rem]">
+        <span className="block truncate text-sm font-medium">{label}</span>
+        <span className="text-foreground-alt/70 block text-xs leading-relaxed">
           {detail}
         </span>
       </span>
@@ -689,10 +772,26 @@ function SshHostSetupForm({
   onCredentialChange: (patch: Partial<SshCredentialDraft>) => void
 }) {
   const port = normalizeSshPort(config.port)
+  const hostError = !config.host?.trim() ? 'Host is required.' : ''
+  const userError = !config.username?.trim() ? 'User is required.' : ''
+  const portError =
+    port < 1 || port > 65535 ? 'Port must be between 1 and 65535.' : ''
+  const credentialError =
+    authMode === 'private-key' && !credentialDraft.privateKey.trim()
+      ? 'Private key is required.'
+      : ''
+  const trustMode = config.hostKeyFingerprint?.trim()
+    ? `Pinned to ${config.hostKeyFingerprint.trim()}`
+    : 'Ask on first connection'
+  const credentialKind = authMode === 'private-key' ? 'Private key' : 'Password'
+  const endpoint = config.host?.trim()
+    ? `${config.host.trim()}:${port}`
+    : 'Host not set'
+
   return (
     <section className="space-y-3">
       <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-        <div className="text-foreground mb-2 flex items-center gap-2 text-xs font-medium">
+        <div className="text-foreground mb-2 flex items-center gap-1.5 text-xs font-medium">
           <LuServer className="size-3.5" />
           SSH Endpoint
         </div>
@@ -702,6 +801,11 @@ function SshHostSetupForm({
             value={config.host ?? ''}
             onChange={(e) => onConfigChange({ host: e.target.value })}
             placeholder="host.example.com"
+            help={
+              hostError ? (
+                <span className="text-destructive text-xs">{hostError}</span>
+              ) : undefined
+            }
           />
           <WizardField
             label="Port"
@@ -713,41 +817,28 @@ function SshHostSetupForm({
               onConfigChange({ port: parsePortInput(e.target.value) })
             }
             aria-label="SSH port"
+            help={
+              portError ? (
+                <span className="text-destructive text-xs">{portError}</span>
+              ) : undefined
+            }
           />
           <WizardField
             label="User"
             value={config.username ?? ''}
             onChange={(e) => onConfigChange({ username: e.target.value })}
             placeholder="user"
+            help={
+              userError ? (
+                <span className="text-destructive text-xs">{userError}</span>
+              ) : undefined
+            }
           />
         </div>
       </div>
 
       <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-        <div className="text-foreground mb-2 text-xs font-medium">
-          Setup Target
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <AuthModeButton
-            active={setupMode === 'host'}
-            label="SSH Host"
-            onClick={() => onConfigChange({ setupMode: 'host' })}
-          />
-          <AuthModeButton
-            active={setupMode === 'install-agent'}
-            label="Install Agent"
-            onClick={() => onConfigChange({ setupMode: 'install-agent' })}
-          />
-        </div>
-        {config.setupStatus && (
-          <div className="text-foreground-alt/60 mt-2 truncate text-xs">
-            {formatSshSetupStatus(config.setupStatus)}
-          </div>
-        )}
-      </div>
-
-      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-        <div className="text-foreground mb-2 flex items-center gap-2 text-xs font-medium">
+        <div className="text-foreground mb-2 flex items-center gap-1.5 text-xs font-medium">
           <LuKeyRound className="size-3.5" />
           SSH Credential
         </div>
@@ -782,6 +873,13 @@ function SshHostSetupForm({
               }
               placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
               className="min-h-28"
+              help={
+                credentialError ? (
+                  <span className="text-destructive text-xs">
+                    {credentialError}
+                  </span>
+                ) : undefined
+              }
             />
             <WizardField
               label="Passphrase"
@@ -799,15 +897,12 @@ function SshHostSetupForm({
 
       <details className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
         <summary className="text-foreground flex cursor-pointer items-center justify-between text-xs font-medium select-none">
-          <span>Advanced host key trust</span>
-          <span className="text-foreground-alt/50 text-[0.65rem]">
-            optional
-          </span>
+          <span>Host-key trust (advanced)</span>
+          <span className="text-foreground-alt/60 text-xs">optional</span>
         </summary>
-        <p className="text-foreground-alt/60 mt-2 text-xs leading-relaxed">
-          Leave this empty to review and trust the host key on first connection,
-          like SSH does. Paste a known key or fingerprint only when you already
-          have trusted host-key material.
+        <p className="text-foreground-alt/70 mt-2 text-xs leading-relaxed">
+          Trust mode: <span className="font-medium">{trustMode}</span>. Leave
+          the fields empty to ask on the first connection.
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-[8rem_1fr]">
           <WizardField
@@ -817,6 +912,7 @@ function SshHostSetupForm({
               onConfigChange({ hostKeyAlgorithm: e.target.value })
             }
             placeholder="ssh-ed25519"
+            className="font-mono text-xs"
           />
           <WizardField
             label="Fingerprint"
@@ -825,6 +921,7 @@ function SshHostSetupForm({
               onConfigChange({ hostKeyFingerprint: e.target.value })
             }
             placeholder="SHA256:..."
+            className="font-mono text-xs"
           />
         </div>
         <WizardTextareaField
@@ -832,11 +929,75 @@ function SshHostSetupForm({
           value={config.hostKeyPublicKey ?? ''}
           onChange={(e) => onConfigChange({ hostKeyPublicKey: e.target.value })}
           placeholder="[host]:22 ssh-ed25519 AAAA... or ssh-ed25519 AAAA..."
-          className="min-h-16"
+          className="min-h-16 font-mono text-xs"
           fieldClassName="mt-2"
         />
       </details>
+
+      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+        <div className="text-foreground mb-2 text-xs font-medium">
+          What do you want to do?
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <AuthModeButton
+            active={setupMode === 'host'}
+            label="Add SSH Host"
+            onClick={() => onConfigChange({ setupMode: 'host' })}
+          />
+          <AuthModeButton
+            active={setupMode === 'install-agent'}
+            label="Install Agent"
+            onClick={() => undefined}
+            disabled
+          />
+        </div>
+        <p className="text-foreground-alt/70 mt-2 text-xs leading-relaxed">
+          Install Agent is not available until secure bootstrap is configured.
+          Add the SSH Host to keep on-demand terminal access.
+        </p>
+      </div>
+
+      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+        <div className="text-foreground mb-2 text-xs font-medium">Review</div>
+        <dl className="grid gap-2 text-xs sm:grid-cols-2">
+          <ReviewRow
+            label="Host label"
+            value={config.host?.trim() || 'Not set'}
+          />
+          <ReviewRow label="SSH endpoint" value={endpoint} mono />
+          <ReviewRow
+            label="Username"
+            value={config.username?.trim() || 'Not set'}
+          />
+          <ReviewRow label="Credential" value={credentialKind} />
+          <ReviewRow label="Trust mode" value={trustMode} />
+          <ReviewRow label="Runtime" value="Native SSH connector required" />
+        </dl>
+      </div>
     </section>
+  )
+}
+function ReviewRow({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string
+  value: string
+  mono?: boolean
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-foreground-alt/60">{label}</dt>
+      <dd
+        className={cn(
+          'text-foreground mt-0.5 truncate',
+          mono && 'font-mono text-xs',
+        )}
+      >
+        {value}
+      </dd>
+    </div>
   )
 }
 
@@ -844,22 +1005,26 @@ function AuthModeButton({
   active,
   label,
   onClick,
+  disabled = false,
 }: {
   active: boolean
   label: string
   onClick: () => void
+  disabled?: boolean
 }) {
   return (
     <button
       type="button"
       aria-pressed={active}
+      disabled={disabled}
       onClick={onClick}
-      className={[
-        'h-8 rounded-md border px-3 text-xs transition-all duration-150',
+      className={cn(
+        'h-8 rounded-md border px-3 text-xs font-medium transition-all duration-150',
+        disabled && 'cursor-not-allowed opacity-50',
         active
-          ? 'border-brand/40 bg-brand/10 text-foreground'
-          : 'border-foreground/8 bg-background/20 text-foreground-alt hover:border-foreground/16 hover:bg-foreground/5',
-      ].join(' ')}
+          ? 'border-brand/30 bg-brand/10 text-foreground'
+          : 'border-foreground/10 bg-background/20 text-foreground-alt hover:border-foreground/20 hover:bg-foreground/5',
+      )}
     >
       {label}
     </button>
@@ -895,6 +1060,7 @@ function SpaceLinkApprovalPanel({
   config,
   ticket,
   busy,
+  error,
   supported,
   loading,
   onTicketChange,
@@ -904,6 +1070,7 @@ function SpaceLinkApprovalPanel({
   config: AddDeviceWizardConfig
   ticket: string
   busy: boolean
+  error?: string
   supported: boolean
   loading: boolean
   onTicketChange: (value: string) => void
@@ -948,11 +1115,16 @@ function SpaceLinkApprovalPanel({
       <label className="text-foreground text-xs font-medium select-none">
         SpaceLink Ticket
       </label>
+      <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
+        Paste the ticket created by the Device setup command to prepare
+        enrollment.
+      </p>
       <textarea
         value={ticket}
         onChange={(e) => onTicketChange(e.target.value)}
         placeholder="Paste the base64 ticket from spacewave device setup"
-        className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 mt-2 min-h-24 w-full rounded-md border p-2 font-mono text-xs outline-none"
+        disabled={busy}
+        className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 mt-2 min-h-24 w-full rounded-md border p-2 font-mono text-xs outline-none disabled:opacity-60"
       />
       {config.preview && (
         <div className="text-foreground-alt/60 mt-2 grid gap-1 text-xs">
@@ -964,6 +1136,20 @@ function SpaceLinkApprovalPanel({
           )}
         </div>
       )}
+      {busy && (
+        <p className="text-foreground-alt/80 mt-2 text-xs leading-relaxed">
+          Checking ticket and preparing enrollment…
+        </p>
+      )}
+      {error && (
+        <div
+          className="border-destructive/15 bg-destructive/5 text-destructive mt-2 rounded-md border p-2 text-xs leading-relaxed"
+          role="alert"
+        >
+          <div className="font-medium">Ticket could not be approved</div>
+          <div className="mt-0.5">{error}</div>
+        </div>
+      )}
       <Button
         size="sm"
         onClick={onApprove}
@@ -971,7 +1157,7 @@ function SpaceLinkApprovalPanel({
         className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground mt-3 h-7 rounded-md border px-3 text-xs transition-all duration-150"
       >
         <LuClipboardCheck className="size-3.5" />
-        {busy ? 'Approving...' : 'Approve'}
+        {busy ? 'Checking ticket…' : 'Approve'}
       </Button>
     </div>
   )
@@ -984,15 +1170,17 @@ async function approveTicket({
   config,
   session,
   setBusy,
+  setError,
   persist,
   nextStep = 2,
 }: {
-  ws: ReturnType<typeof useWizardState>
+  ws: UseWizardStateResult
   sharedObjectId: string
   ticket: string
   config: AddDeviceWizardConfig
   session: Session | undefined
   setBusy: (busy: boolean) => void
+  setError?: (message: string) => void
   persist: (config: AddDeviceWizardConfig, step?: number) => Promise<void>
   nextStep?: number
 }) {
@@ -1048,17 +1236,23 @@ async function approveTicket({
     )
     toast.success('Device approved')
   } catch (err) {
-    toast.error(getApprovalErrorMessage(err))
+    const message = getApprovalErrorMessage(err)
+    setError?.(message)
+    toast.error(
+      message === DEVICE_APPROVAL_CLOUD_REQUIRED
+        ? message
+        : `Ticket could not be approved. ${message}`,
+    )
   } finally {
     setBusy(false)
   }
 }
 
-function getApprovalErrorMessage(error: unknown): string {
+export function getApprovalErrorMessage(error: unknown): string {
   if (isUnimplementedRpcError(error)) {
     return DEVICE_APPROVAL_CLOUD_REQUIRED
   }
-  return error instanceof Error ? error.message : 'Failed to approve ticket'
+  return 'Check the ticket and try again.'
 }
 
 function isUnimplementedRpcError(error: unknown): boolean {
@@ -1081,7 +1275,7 @@ function isUnimplementedRpcError(error: unknown): boolean {
 }
 
 async function replaceSpaceIndexIfWizardIsCurrent(
-  ws: ReturnType<typeof useWizardState>,
+  ws: UseWizardStateResult,
   dashboardKey: string,
 ) {
   if (
@@ -1208,17 +1402,6 @@ function buildSshHostKeyPins(
       acceptedAt,
     },
   ]
-}
-
-function formatSshSetupStatus(status: SshSetupStatus): string {
-  if (status.state === 'failed') return status.message || 'setup failed'
-  if (status.terminalObjectKey) {
-    return `installer terminal ${status.terminalObjectKey}`
-  }
-  if (status.hostObjectKey) {
-    return `installer host ${status.hostObjectKey}`
-  }
-  return status.message || 'setup started'
 }
 
 function getSshCreateError(
