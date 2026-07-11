@@ -56,12 +56,13 @@ export function ForgeWorkerViewer({
     [objectKey, snapshot.workers],
   )
   const peerIds = useMemo(() => workerSnapshot?.peerIds ?? [], [workerSnapshot])
+  const peerIdSet = useMemo(() => new Set(peerIds), [peerIds])
   const executions = useMemo(
     () =>
       snapshot.executions.filter((execution) =>
-        peerIds.includes(execution.data.peerId ?? ''),
+        peerIdSet.has(execution.data.peerId ?? ''),
       ),
-    [peerIds, snapshot.executions],
+    [peerIdSet, snapshot.executions],
   )
   const activeExecutions = useMemo(
     () =>
@@ -287,6 +288,7 @@ export function ForgeWorkerViewer({
 
   return (
     <ForgeViewerShell
+      stateKey={objectKey}
       icon={<LuCpu className="size-4" />}
       title={worker?.name || 'Worker'}
       tabs={tabs}

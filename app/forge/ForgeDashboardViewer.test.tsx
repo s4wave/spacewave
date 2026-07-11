@@ -69,19 +69,33 @@ vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
   ForgeViewerShell: ({
     tabs,
     actions,
+    headerActions,
+    headerStatus,
   }: {
     tabs?: Array<{ id: string; content: React.ReactNode }>
     actions?: Array<{ label: string; onClick: () => void }>
+    headerActions?: Array<{ label: string; onClick: () => void }>
+    headerStatus?: React.ReactNode
   }) => (
     <div data-testid="forge-viewer-shell">
+      <div data-testid="forge-viewer-header-actions">
+        {headerActions?.map((action) => (
+          <button key={action.label} type="button" onClick={action.onClick}>
+            {action.label}
+          </button>
+        ))}
+      </div>
+      {headerStatus}
       {tabs?.map((tab) => (
         <div key={tab.id}>{tab.content}</div>
       ))}
-      {actions?.map((action) => (
-        <button key={action.label} type="button" onClick={action.onClick}>
-          {action.label}
-        </button>
-      ))}
+      <div data-testid="forge-viewer-action-bar">
+        {actions?.map((action) => (
+          <button key={action.label} type="button" onClick={action.onClick}>
+            {action.label}
+          </button>
+        ))}
+      </div>
     </div>
   ),
 }))
@@ -109,7 +123,7 @@ vi.mock('@s4wave/web/forge/useForgeLinkedEntities.js', () => ({
 }))
 
 describe('ForgeDashboardViewer', () => {
-  function renderViewer() {
+  function renderViewer(worldError: Error | null = null) {
     return render(
       <SpaceContainerContext.Provider
         spaceId="space-1"
@@ -139,7 +153,7 @@ describe('ForgeDashboardViewer', () => {
           worldState={{
             value: {} as never,
             loading: false,
-            error: null,
+            error: worldError,
             retry: vi.fn(),
           }}
           objectState={{} as never}
@@ -177,7 +191,7 @@ describe('ForgeDashboardViewer', () => {
     )
   })
 
-  it('opens cluster and job wizards from the dashboard action bar', async () => {
+  it('opens cluster and job wizards from the dashboard header', async () => {
     const user = userEvent.setup()
     renderViewer()
 
@@ -226,6 +240,38 @@ describe('ForgeDashboardViewer', () => {
     expect(mockNavigateToObjects).toHaveBeenNthCalledWith(2, [jobOp.objectKey])
   })
 
+  it('keeps global creation actions in the header, not the bottom bar', () => {
+    renderViewer()
+
+    const headerActions = screen.getByTestId('forge-viewer-header-actions')
+    expect(headerActions.textContent).toContain('Create Job')
+    expect(headerActions.textContent).toContain('Create Cluster')
+    expect(
+      screen.getByTestId('forge-viewer-action-bar').textContent,
+    ).not.toMatch(/create (job|cluster)/i)
+  })
+
+  it('keeps creation failures visible with safe retry copy', async () => {
+    const user = userEvent.setup()
+    mockSpaceWorld.applyWorldOp.mockRejectedValueOnce(
+      new Error('sql: internal backend failure'),
+    )
+    renderViewer()
+
+    const [createJobButton] = screen.getAllByRole('button', {
+      name: /create job/i,
+    })
+    if (!createJobButton) {
+      throw new Error('expected dashboard create job action')
+    }
+    await user.click(createJobButton)
+
+    expect(
+      await screen.findByText('Job creation is unavailable. Try again.'),
+    ).toBeTruthy()
+    expect(screen.queryByText('sql: internal backend failure')).toBeNull()
+  })
+
   it('renders recent activity entries on the dashboard', () => {
     renderViewer()
 
@@ -235,6 +281,20 @@ describe('ForgeDashboardViewer', () => {
     ).toBeGreaterThan(0)
     expect(
       screen.getAllByText('2026-04-17T12:00:00.000Z').length,
+    ).toBeGreaterThan(0)
+  })
+
+  it('keeps world failures persistent with safe Forge copy', () => {
+    renderViewer(new Error('listGraphEdgeBuckets: backend unavailable'))
+
+    expect(
+      screen.getAllByText('Forge entities unavailable').length,
+    ).toBeGreaterThan(0)
+    expect(
+      screen.queryByText('listGraphEdgeBuckets: backend unavailable'),
+    ).toBeNull()
+    expect(
+      screen.getAllByText('Try again to reload Forge entities.').length,
     ).toBeGreaterThan(0)
   })
 

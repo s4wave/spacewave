@@ -400,6 +400,7 @@ export function ForgeClusterViewer({
 
   return (
     <ForgeViewerShell
+      stateKey={objectKey}
       icon={<LuServer className="size-4" />}
       title={cluster?.name || 'Cluster'}
       tabs={tabs}

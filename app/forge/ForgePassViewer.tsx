@@ -193,6 +193,7 @@ export function ForgePassViewer({
 
   return (
     <ForgeViewerShell
+      stateKey={objectKey}
       icon={<LuPlay className="size-4" />}
       title="Pass"
       state={pass?.passState ?? 0}

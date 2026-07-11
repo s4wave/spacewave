@@ -295,6 +295,7 @@ export function ForgeTaskViewer({
 
   return (
     <ForgeViewerShell
+      stateKey={objectKey}
       icon={<LuListTodo className="size-4" />}
       title={task?.name || 'Task'}
       state={task?.taskState ?? 0}

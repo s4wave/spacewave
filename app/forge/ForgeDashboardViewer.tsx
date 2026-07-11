@@ -1,5 +1,5 @@
 /* eslint-disable react-doctor/no-giant-component */
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   LuLayoutDashboard,
   LuBox,
@@ -31,6 +31,8 @@ import { ForgeEntityLink } from '@s4wave/web/forge/ForgeEntityLink.js'
 import { PRED_DASHBOARD_FORGE_REF } from '@s4wave/web/forge/predicates.js'
 import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
+import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { ProcessBindingList } from './ProcessBindingList.js'
 import { useForgeDashboardActivity } from './useForgeDashboardActivity.js'
@@ -73,6 +75,7 @@ export function ForgeDashboardViewer({
   )
   const { entries: activityEntries, loading: activityLoading } =
     useForgeDashboardActivity(worldState, dashboard, entities)
+  const worldError = worldState.error
 
   // Group entities by type for summary cards.
   const typeCounts = useMemo(() => {
@@ -83,6 +86,30 @@ export function ForgeDashboardViewer({
     }
     return counts
   }, [entities])
+  const summaryMetrics = useMemo(() => {
+    const activeWorkCount = activityEntries.filter((entry) =>
+      /\b(PENDING|RUNNING|CHECKING|RETRY)\b/.test(entry.title),
+    ).length
+
+    return [
+      {
+        label: 'Jobs',
+        count: entities.filter((entity) => entity.typeId === 'forge/job')
+          .length,
+      },
+      {
+        label: 'Workers',
+        count: entities.filter((entity) => entity.typeId === 'forge/worker')
+          .length,
+      },
+      {
+        label: 'Clusters',
+        count: entities.filter((entity) => entity.typeId === 'forge/cluster')
+          .length,
+      },
+      { label: 'Active work', count: activeWorkCount },
+    ]
+  }, [activityEntries, entities])
 
   // Get process bindings from SpaceContents.
   const contentsResource = SpaceContentsContext.useContext()
@@ -96,6 +123,8 @@ export function ForgeDashboardViewer({
     () => contentsState.value?.processBindings ?? [],
     [contentsState.value?.processBindings],
   )
+  const bindingsLoading = contentsState.loading && bindings.length === 0
+  const bindingsError = contentsState.error
   const bindingsByObjectKey = useMemo(
     () =>
       new Map(bindings.map((binding) => [binding.objectKey ?? '', binding])),
@@ -113,6 +142,10 @@ export function ForgeDashboardViewer({
     () => entities.filter((entity) => entity.typeId === 'forge/cluster'),
     [entities],
   )
+  const [openingAction, setOpeningAction] = useState<'cluster' | 'job' | null>(
+    null,
+  )
+  const [creationError, setCreationError] = useState('')
   const canCreateCluster = visibleWizardTypeSet.has('forge/cluster')
   const canCreateJob = visibleWizardTypeSet.has('forge/job')
   const existingObjectKeys = useMemo(
@@ -171,6 +204,8 @@ export function ForgeDashboardViewer({
     )
   }, [contents, pendingWorkers])
   const handleCreateCluster = useCallback(async () => {
+    setCreationError('')
+    setOpeningAction('cluster')
     try {
       await openWizard(
         'wizard/forge/cluster',
@@ -178,13 +213,17 @@ export function ForgeDashboardViewer({
         'forge/cluster/',
         'Cluster',
       )
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to open cluster wizard',
-      )
+    } catch {
+      const message = 'Cluster creation is unavailable. Try again.'
+      setCreationError(message)
+      toast.error(message)
+    } finally {
+      setOpeningAction(null)
     }
   }, [openWizard])
   const handleCreateJob = useCallback(async () => {
+    setCreationError('')
+    setOpeningAction('job')
     try {
       const selectedClusterKey =
         clusterEntities.length === 1
@@ -200,38 +239,35 @@ export function ForgeDashboardViewer({
         initialStep: selectedClusterKey ? 1 : 0,
         initialConfigData: configData,
       })
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to open job wizard',
-      )
+    } catch {
+      const message = 'Job creation is unavailable. Try again.'
+      setCreationError(message)
+      toast.error(message)
+    } finally {
+      setOpeningAction(null)
     }
   }, [clusterEntities, openWizard])
-  const actions = useMemo(() => {
+  const headerActions = useMemo(() => {
     const nextActions = []
-    if (canCreateCluster) {
-      nextActions.push({
-        label: 'Create Cluster',
-        icon: <LuServer className="size-3.5" />,
-        onClick: () => {
-          void handleCreateCluster()
-        },
-      })
-    }
     if (canCreateJob) {
       nextActions.push({
-        label: 'Create Job',
+        label: openingAction === 'job' ? 'Opening Job…' : 'Create Job',
         icon: <LuBriefcase className="size-3.5" />,
+        variant: 'primary' as const,
+        disabled: openingAction !== null,
         onClick: () => {
           void handleCreateJob()
         },
       })
     }
-    if (pendingWorkers.length !== 0) {
-      nextActions.unshift({
-        label: pendingWorkers.length === 1 ? 'Start Worker' : 'Start Workers',
-        icon: <LuPlus className="size-3.5" />,
+    if (canCreateCluster) {
+      nextActions.push({
+        label:
+          openingAction === 'cluster' ? 'Opening Cluster…' : 'Create Cluster',
+        icon: <LuServer className="size-3.5" />,
+        disabled: openingAction !== null,
         onClick: () => {
-          void handleStartWorkers()
+          void handleCreateCluster()
         },
       })
     }
@@ -241,8 +277,7 @@ export function ForgeDashboardViewer({
     canCreateJob,
     handleCreateCluster,
     handleCreateJob,
-    handleStartWorkers,
-    pendingWorkers.length,
+    openingAction,
   ])
 
   const tabs: ForgeViewerTab[] = useMemo(
@@ -252,60 +287,154 @@ export function ForgeDashboardViewer({
         label: 'Overview',
         content: (
           <div className="space-y-3">
-            {pendingWorkers.length > 0 && (
-              <div className="border-brand/20 bg-brand/5 rounded-lg border p-3.5">
-                <div className="text-foreground text-sm font-medium">
-                  Worker ready to start
-                </div>
-                <div className="text-foreground-alt/60 mt-1 text-xs">
-                  Approve the quickstart worker process binding to start task
-                  execution in this session.
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleStartWorkers()
-                  }}
-                  className="border-brand/40 bg-brand/10 hover:border-brand/60 hover:bg-brand/15 text-foreground mt-3 rounded-md border px-3 py-1.5 text-xs font-medium transition-all duration-150"
-                >
-                  {pendingWorkers.length === 1
-                    ? 'Start worker'
-                    : 'Start workers'}
-                </button>
+            {openingAction && (
+              <div
+                role="status"
+                className="border-brand/20 bg-brand/5 text-foreground-alt/70 rounded-lg border px-3.5 py-2.5 text-xs"
+              >
+                Opening Forge {openingAction}…
               </div>
             )}
-            {/* Summary counts grid */}
-            {Object.keys(typeCounts).length > 0 && (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {Object.entries(typeCounts).map(([label, count]) => (
+
+            {worldError ? (
+              <LoadingCard
+                view={{
+                  state: 'error',
+                  title: 'Forge entities unavailable',
+                  detail:
+                    'This dashboard could not read its linked Forge work.',
+                  error: 'Try again to reload Forge entities.',
+                  onRetry: worldState.retry,
+                }}
+              />
+            ) : (
+              entitiesLoading &&
+              entities.length === 0 && (
+                <LoadingCard
+                  view={{
+                    state: 'loading',
+                    title: 'Loading Forge entities…',
+                    detail: 'Reading Jobs, Workers, Clusters, and active work.',
+                    progressIndeterminate: true,
+                  }}
+                />
+              )
+            )}
+
+            {!worldError && !entitiesLoading && entities.length === 0 && (
+              <InfoCard
+                icon={<LuLayoutDashboard className="text-brand size-4" />}
+                title="No Forge work yet"
+              >
+                <p className="text-foreground-alt/70 text-xs leading-relaxed">
+                  Create a Job to define work, or create a Cluster to attach
+                  execution capacity.
+                </p>
+              </InfoCard>
+            )}
+
+            {entities.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {summaryMetrics.map((metric) => (
                   <div
-                    key={label}
+                    key={metric.label}
                     className="border-foreground/6 bg-background-card/30 rounded-lg border p-3"
                   >
-                    <div className="text-foreground-alt/60 mb-1 text-[0.6rem] tracking-widest uppercase">
-                      {label}
+                    <div className="text-foreground-alt/60 mb-1 text-[0.6rem] font-medium tracking-widest uppercase">
+                      {metric.label}
                     </div>
-                    <div className="text-foreground text-xl font-semibold">
-                      {count}
+                    <div className="text-foreground text-xl font-semibold tabular-nums">
+                      {metric.count}
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            {entitiesLoading && entities.length === 0 && (
-              <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-                  <LuBox className="size-3.5 shrink-0" />
-                  <span>Loading entities…</span>
-                </div>
-              </div>
+
+            {pendingWorkers.length > 0 && (
+              <InfoCard
+                icon={<LuPlus className="text-brand size-4" />}
+                title={
+                  pendingWorkers.length === 1
+                    ? 'Worker ready to start'
+                    : 'Workers ready to start'
+                }
+              >
+                <p className="text-foreground-alt/70 text-xs leading-relaxed">
+                  Approve the quickstart worker process binding to start task
+                  execution in this session.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleStartWorkers()
+                  }}
+                  className="border-brand/40 bg-brand/10 hover:border-brand/60 hover:bg-brand/15 text-foreground mt-3 inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-all duration-150"
+                >
+                  <LuPlus className="size-3.5" />
+                  {pendingWorkers.length === 1
+                    ? 'Start worker'
+                    : 'Start workers'}
+                </button>
+              </InfoCard>
             )}
-            {!entitiesLoading && entities.length === 0 && (
-              <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-                  <LuBox className="size-3.5 shrink-0" />
-                  <span>No linked Forge entities</span>
-                </div>
+
+            {entities.length > 0 && (
+              <div className="grid gap-3 lg:grid-cols-2">
+                <InfoCard
+                  icon={<LuBox className="text-foreground-alt/70 size-3.5" />}
+                  title="Entity health"
+                >
+                  <div className="space-y-1.5">
+                    {Object.entries(typeCounts).map(([label, count]) => (
+                      <div
+                        key={label}
+                        className="text-foreground-alt/70 flex items-center justify-between gap-3 text-xs"
+                      >
+                        <span>{label}</span>
+                        <span className="text-foreground font-medium tabular-nums">
+                          {count} linked
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </InfoCard>
+
+                <InfoCard
+                  icon={
+                    <LuActivity className="text-foreground-alt/70 size-3.5" />
+                  }
+                  title="Recent activity"
+                >
+                  {activityLoading && activityEntries.length === 0 && (
+                    <div className="text-foreground-alt/60 flex items-center gap-2 text-xs">
+                      <LuActivity className="size-3.5 shrink-0" />
+                      <span>Loading Forge activity…</span>
+                    </div>
+                  )}
+                  {!activityLoading && activityEntries.length === 0 && (
+                    <p className="text-foreground-alt/60 text-xs leading-relaxed">
+                      No recent activity yet. Activity will appear as Forge work
+                      changes; no action is required.
+                    </p>
+                  )}
+                  {activityEntries.slice(0, 3).map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="border-foreground/6 flex items-start gap-2 border-b py-2 last:border-b-0 last:pb-0"
+                    >
+                      <LuActivity className="text-foreground-alt/60 mt-0.5 size-3 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-foreground text-xs font-medium">
+                          {entry.title}
+                        </div>
+                        <div className="text-foreground-alt/50 truncate text-xs">
+                          {entry.detail}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </InfoCard>
               </div>
             )}
           </div>
@@ -316,22 +445,38 @@ export function ForgeDashboardViewer({
         label: 'Activity',
         content: (
           <div className="space-y-2">
-            {activityLoading && activityEntries.length === 0 && (
-              <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-                  <LuActivity className="size-3.5 shrink-0" />
-                  <span>Loading activity…</span>
-                </div>
-              </div>
-            )}
-            {!activityLoading && activityEntries.length === 0 && (
-              <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-                  <LuActivity className="size-3.5 shrink-0" />
-                  <span>No recent activity yet</span>
-                </div>
-              </div>
-            )}
+            {worldError ? (
+              <LoadingCard
+                view={{
+                  state: 'error',
+                  title: 'Forge activity unavailable',
+                  detail: 'This dashboard could not read recent Forge work.',
+                  error: 'Try again to reload Forge activity.',
+                  onRetry: worldState.retry,
+                }}
+              />
+            ) : activityLoading && activityEntries.length === 0 ? (
+              <LoadingCard
+                view={{
+                  state: 'loading',
+                  title: 'Loading Forge activity…',
+                  detail: 'Reading recent jobs, tasks, and executions.',
+                  progressIndeterminate: true,
+                }}
+              />
+            ) : !activityLoading && activityEntries.length === 0 ? (
+              <InfoCard
+                icon={
+                  <LuActivity className="text-foreground-alt/70 size-3.5" />
+                }
+                title="No recent activity yet"
+              >
+                <p className="text-foreground-alt/60 text-xs leading-relaxed">
+                  Activity will appear as Forge work changes; no action is
+                  required.
+                </p>
+              </InfoCard>
+            ) : null}
             {activityEntries.map((entry) => {
               const content = (
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -378,7 +523,38 @@ export function ForgeDashboardViewer({
         id: 'entities',
         label: 'Entities',
         content: (
-          <div className="space-y-1">
+          <div className="space-y-2">
+            {worldError ? (
+              <LoadingCard
+                view={{
+                  state: 'error',
+                  title: 'Forge entities unavailable',
+                  detail:
+                    'This dashboard could not read its linked Forge work.',
+                  error: 'Try again to reload Forge entities.',
+                  onRetry: worldState.retry,
+                }}
+              />
+            ) : entitiesLoading && entities.length === 0 ? (
+              <LoadingCard
+                view={{
+                  state: 'loading',
+                  title: 'Loading Forge entities…',
+                  detail: 'Reading linked Jobs, Workers, and Clusters.',
+                  progressIndeterminate: true,
+                }}
+              />
+            ) : !entitiesLoading && entities.length === 0 ? (
+              <InfoCard
+                icon={<LuBox className="text-foreground-alt/70 size-3.5" />}
+                title="No linked Forge entities"
+              >
+                <p className="text-foreground-alt/60 text-xs leading-relaxed">
+                  Create a Job or Cluster to add Forge entities to this
+                  dashboard.
+                </p>
+              </InfoCard>
+            ) : null}
             {entities.map((entity) => (
               <ForgeEntityLink
                 key={entity.objectKey}
@@ -396,7 +572,7 @@ export function ForgeDashboardViewer({
                     variant="dot"
                   />
                 )}
-                {entity.objectKey}
+                <span className="text-sm font-medium">{entity.objectKey}</span>
               </ForgeEntityLink>
             ))}
           </div>
@@ -406,8 +582,27 @@ export function ForgeDashboardViewer({
         id: 'bindings',
         label: 'Bindings',
         content: (
-          <div>
-            {bindings.length > 0 ? (
+          <div className="space-y-2">
+            {bindingsError ? (
+              <LoadingCard
+                view={{
+                  state: 'error',
+                  title: 'Process bindings unavailable',
+                  detail: 'Forge could not read worker approval state.',
+                  error: 'Try again to refresh process bindings.',
+                  onRetry: contentsState.retry,
+                }}
+              />
+            ) : bindingsLoading ? (
+              <LoadingCard
+                view={{
+                  state: 'loading',
+                  title: 'Loading process bindings…',
+                  detail: 'Reading worker approval state for this Space.',
+                  progressIndeterminate: true,
+                }}
+              />
+            ) : bindings.length > 0 ? (
               <ProcessBindingList
                 bindings={bindings}
                 onToggle={(bindingObjectKey, approved) => {
@@ -415,27 +610,37 @@ export function ForgeDashboardViewer({
                 }}
               />
             ) : (
-              <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-                <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-                  <LuBox className="size-3.5 shrink-0" />
-                  <span>No process bindings</span>
-                </div>
-              </div>
+              <InfoCard
+                icon={<LuBox className="text-foreground-alt/70 size-3.5" />}
+                title="No process bindings"
+              >
+                <p className="text-foreground-alt/60 text-xs leading-relaxed">
+                  Bindings appear when Forge workers are linked; no action is
+                  required yet.
+                </p>
+              </InfoCard>
             )}
           </div>
         ),
       },
     ],
     [
-      typeCounts,
-      entitiesLoading,
-      entities,
       activityEntries,
       activityLoading,
       bindings,
-      pendingWorkers.length,
+      bindingsError,
+      bindingsLoading,
+      contentsState.retry,
+      entities,
+      entitiesLoading,
+      worldError,
+      worldState.retry,
       handleStartWorkers,
       handleToggle,
+      openingAction,
+      summaryMetrics,
+      typeCounts,
+      pendingWorkers.length,
     ],
   )
 
@@ -444,7 +649,18 @@ export function ForgeDashboardViewer({
       icon={<LuLayoutDashboard className="size-4" />}
       title={dashboard?.name || 'Forge Dashboard'}
       tabs={tabs}
-      actions={actions}
+      headerActions={headerActions}
+      headerStatus={
+        creationError ? (
+          <div
+            className="border-destructive/15 bg-destructive/5 text-destructive shrink-0 border-b px-4 py-2 text-xs leading-relaxed"
+            role="alert"
+          >
+            {creationError}
+          </div>
+        ) : undefined
+      }
+      stateKey={objectKey}
     />
   )
 }

@@ -200,6 +200,7 @@ export function ForgeExecutionViewer({
 
   return (
     <ForgeViewerShell
+      stateKey={objectKey}
       icon={<LuActivity className="size-4" />}
       title="Execution"
       state={execution?.executionState ?? 0}

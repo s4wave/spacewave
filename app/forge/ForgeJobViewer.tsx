@@ -362,6 +362,7 @@ export function ForgeJobViewer({
 
   return (
     <ForgeViewerShell
+      stateKey={objectKey}
       icon={<LuBriefcase className="size-4" />}
       title="Job"
       state={job?.jobState ?? 0}
