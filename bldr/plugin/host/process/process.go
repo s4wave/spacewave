@@ -16,12 +16,12 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
-	"github.com/aperturerobotics/util/pipesock"
 	"github.com/pkg/errors"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	host_controller "github.com/s4wave/spacewave/bldr/plugin/host/controller"
+	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	"github.com/s4wave/spacewave/bldr/util/tailwriter"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
@@ -257,11 +257,12 @@ func (h *ProcessHost) ExecutePlugin(
 	}
 
 	// attach to pipe
-	pipeListener, err := pipesock.BuildPipeListener(le, pluginDistDir, pluginInstanceID)
+	pipeListener, err := bldr_pipesock.Listen(le, pluginDistDir, pluginInstanceID)
 	if err != nil {
 		return err
 	}
 	defer pipeListener.Close()
+	entrypointProc.Env = append(entrypointProc.Env, "BLDR_PIPE_ROOT="+pipeListener.GetRootDir())
 
 	le.
 		WithField("entrypoint", entrypoint).

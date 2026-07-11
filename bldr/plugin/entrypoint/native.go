@@ -11,9 +11,9 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/starpc/srpc"
-	"github.com/aperturerobotics/util/pipesock"
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	"github.com/sirupsen/logrus"
 )
 
@@ -101,9 +101,14 @@ func Run(
 		return err
 	}
 
+	pipeRoot := os.Getenv("BLDR_PIPE_ROOT")
+	if pipeRoot == "" {
+		pipeRoot = wd
+	}
+
 	// construct pipe socket
 	instanceID := pluginStartInfo.GetInstanceId()
-	conn, err := pipesock.DialPipeListener(ctx, le, wd, instanceID)
+	conn, err := bldr_pipesock.Dial(ctx, le, pipeRoot, instanceID)
 	if err != nil {
 		return err
 	}

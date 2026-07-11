@@ -9,7 +9,7 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/exec"
-	"github.com/aperturerobotics/util/pipesock"
+	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	"github.com/sirupsen/logrus"
 )
@@ -41,8 +41,7 @@ func RunElectron(
 	electronInit *ElectronInit,
 ) (*Electron, error) {
 	le.Debug("listening on ipc socket")
-	pipeRoot := workdirPath
-	pipeListener, err := pipesock.BuildPipeListener(le, pipeRoot, runtimeUuid)
+	pipeListener, err := bldr_pipesock.Listen(le, workdirPath, runtimeUuid)
 	if err != nil {
 		return nil, err
 	}
@@ -60,6 +59,7 @@ func RunElectron(
 
 	cmd := exec.NewCmd(ctx, electronPath, electronArgs...)
 	cmd.Env = append(cmd.Env, "BLDR_RUNTIME_ID="+runtimeUuid)
+	cmd.Env = append(cmd.Env, "BLDR_PIPE_ROOT="+pipeListener.GetRootDir())
 
 	// Pass ElectronInit as base64-encoded protobuf via env var
 	if electronInit != nil {

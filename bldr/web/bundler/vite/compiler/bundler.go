@@ -16,10 +16,10 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/bun"
 	"github.com/aperturerobotics/util/keyed"
-	"github.com/aperturerobotics/util/pipesock"
 	"github.com/aperturerobotics/util/promise"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
+	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
@@ -143,7 +143,7 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 		return err
 	}
 
-	pipeListener, err := pipesock.BuildPipeListener(t.le, workingPath, pipeUuid)
+	pipeListener, err := bldr_pipesock.Listen(t.le, workingPath, pipeUuid)
 	if err != nil {
 		if ctx.Err() == nil {
 			t.instancePromiseCtr.SetResult(nil, err)
@@ -162,7 +162,7 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	bunStateDir := filepath.Join(workingPath, "..", "..", "bun")
 
 	// Set up the bun process
-	cmd, err := bun.BunExec(ctx, t.le, bunStateDir, viteScriptPath, "--bundle-id", bundleID, "--pipe-uuid", pipeUuid)
+	cmd, err := bun.BunExec(ctx, t.le, bunStateDir, viteScriptPath, "--bundle-id", bundleID, "--pipe-uuid", pipeUuid, "--pipe-root", pipeListener.GetRootDir())
 	if err != nil {
 		if ctx.Err() == nil {
 			t.instancePromiseCtr.SetResult(nil, err)

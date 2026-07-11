@@ -14,9 +14,9 @@ import (
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/bun"
-	"github.com/aperturerobotics/util/pipesock"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
+	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
@@ -89,7 +89,7 @@ func RunOneShot(
 	defer os.Remove(viteScriptPath + ".map")
 
 	// Set up the IPC pipe.
-	pipeListener, err := pipesock.BuildPipeListener(le, workingPath, pipeUuid)
+	pipeListener, err := bldr_pipesock.Listen(le, workingPath, pipeUuid)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func RunOneShot(
 	bunStateDir := filepath.Join(workingPath, "..", "..", "bun")
 
 	// Start the bun process.
-	cmd, err := bun.BunExec(ctx, le, bunStateDir, viteScriptPath, "--bundle-id", bundleID, "--pipe-uuid", pipeUuid)
+	cmd, err := bun.BunExec(ctx, le, bunStateDir, viteScriptPath, "--bundle-id", bundleID, "--pipe-uuid", pipeUuid, "--pipe-root", pipeListener.GetRootDir())
 	if err != nil {
 		return err
 	}

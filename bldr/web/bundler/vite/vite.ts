@@ -736,6 +736,7 @@ async function main() {
   const args = parseArgs()
   const bundleId = args['bundle-id'] || ''
   const pipeUuid = args['pipe-uuid'] || ''
+  const pipeRoot = args['pipe-root'] || ''
 
   // Validate required parameters
   if (!bundleId) {
@@ -748,6 +749,13 @@ async function main() {
   if (!pipeUuid) {
     if (verboseDebug) {
       console.error('[vite] Error: Missing required parameter --pipe-uuid')
+    }
+    process.exit(1)
+  }
+
+  if (!pipeRoot) {
+    if (verboseDebug) {
+      console.error('[vite] Error: Missing required parameter --pipe-root')
     }
     process.exit(1)
   }
@@ -768,7 +776,7 @@ async function main() {
 
   // Connect to the pipe created by the Go process
   // Use the pipe UUID passed from the Go process
-  const ipcPath = buildPipeName(workdir, pipeUuid)
+  const ipcPath = buildPipeName(pipeRoot, pipeUuid)
 
   if (verboseDebug) {
     console.log(`[vite] connecting to pipe: ${ipcPath}`)

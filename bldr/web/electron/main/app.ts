@@ -422,8 +422,10 @@ export class BldrElectronApp {
       workdir = path.dirname(workdir)
     }
 
+    const pipeRoot = process.env.BLDR_PIPE_ROOT || workdir
+
     // Build the IPC path using the pipesock utility
-    const ipcPath = buildPipeName(workdir, runtimeUuid)
+    const ipcPath = buildPipeName(pipeRoot, runtimeUuid)
 
     // socketConn reads and writes to the socket.
     const socketConn = new StreamConn(this.webRuntime.getWebRuntimeServer(), {

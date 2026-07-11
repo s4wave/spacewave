@@ -10,7 +10,7 @@ import (
 	bldr_saucer "github.com/aperturerobotics/bldr-saucer"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/exec"
-	"github.com/aperturerobotics/util/pipesock"
+	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	random_id "github.com/s4wave/spacewave/net/util/randstring"
 	"github.com/sirupsen/logrus"
@@ -39,13 +39,12 @@ func RunSaucer(
 	extraSaucerFlags []string,
 	saucerInit *SaucerInit,
 ) (*Saucer, error) {
-	pipeRoot := workdirPath
 
 	// Create yamux pipe.
 	// C++ acts as the client (opens streams to us).
 	// We act as the server (accept streams from C++).
 	le.Debug("listening on yamux socket")
-	pipeListener, err := pipesock.BuildPipeListener(le, pipeRoot, runtimeUuid)
+	pipeListener, err := bldr_pipesock.Listen(le, workdirPath, runtimeUuid)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +60,7 @@ func RunSaucer(
 	saucerArgs = append(saucerArgs, extraSaucerFlags...)
 
 	cmd := exec.NewCmd(ctx, saucerPath, saucerArgs...)
-	cmd.Dir = workdirPath
+	cmd.Dir = pipeListener.GetRootDir()
 	cmd.Env = append(cmd.Env, "BLDR_RUNTIME_ID="+runtimeUuid)
 	cmd.Env = append(cmd.Env, "BLDR_WEB_DOCUMENT_ID="+random_id.RandomIdentifier(8))
 
