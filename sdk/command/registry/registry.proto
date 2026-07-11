@@ -89,6 +89,8 @@ message CommandSubItem {
   string description = 3;
   // IconName is an optional react-icons icon identifier (e.g., "LuLayoutGrid").
   string icon_name = 4;
+  // Experimental marks entries that require experimental creator visibility.
+  bool experimental = 5;
 }
 
 // GetSubItemsRequest is the request for GetSubItems.

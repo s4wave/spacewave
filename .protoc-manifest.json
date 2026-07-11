@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "49823027377d12dfb147aa075967098685a1d4cdde26e148f2d38ef14a777ccc",
+  "protocFlagsHash": "f5f3a969d51e19b04589122f888799569203f4ae0d216b8f13d56f6f61638b5a",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.15.0,starpc=v0.49.18,protobuf-es-lite=1.1.1",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -3901,7 +3901,7 @@
       "protoFiles": ["sdk/command/command.proto"]
     },
     "github.com/s4wave/spacewave/sdk/command/registry": {
-      "hash": "8794263751c31e9d0b4327eac95ebffba0754d60aad686f170a4f876c259ac85",
+      "hash": "4e13aabd7189daf7e243cc2a2b5333e2e0d1e23e33ede30b24c78b9a9f3e12c4",
       "generatedFiles": [
         "sdk/command/registry/registry.pb.cc",
         "sdk/command/registry/registry.pb.go",

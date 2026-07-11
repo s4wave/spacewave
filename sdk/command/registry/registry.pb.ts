@@ -274,6 +274,12 @@ export interface CommandSubItem {
    * @generated from field: string icon_name = 4;
    */
   iconName?: string
+  /**
+   * Experimental marks entries that require experimental creator visibility.
+   *
+   * @generated from field: bool experimental = 5;
+   */
+  experimental?: boolean
 }
 
 export const CommandSubItem: MessageType<CommandSubItem> =
@@ -284,6 +290,7 @@ export const CommandSubItem: MessageType<CommandSubItem> =
       { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'description', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'icon_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'experimental', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

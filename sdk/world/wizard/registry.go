@@ -159,5 +159,6 @@ var ObjectWizards = []*ObjectWizard{
 		KeyPrefix:          "vm/v86/",
 		Persistent:         true,
 		WizardTypeId:       "wizard/vm/v86",
+		Experimental:       true,
 	},
 }

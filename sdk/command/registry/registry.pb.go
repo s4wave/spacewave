@@ -233,6 +233,8 @@ type CommandSubItem struct {
 	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// IconName is an optional react-icons icon identifier (e.g., "LuLayoutGrid").
 	IconName string `protobuf:"bytes,4,opt,name=icon_name,json=iconName,proto3" json:"iconName,omitempty"`
+	// Experimental marks entries that require experimental creator visibility.
+	Experimental bool `protobuf:"varint,5,opt,name=experimental,proto3" json:"experimental,omitempty"`
 }
 
 func (x *CommandSubItem) Reset() {
@@ -267,6 +269,13 @@ func (x *CommandSubItem) GetIconName() string {
 		return x.IconName
 	}
 	return ""
+}
+
+func (x *CommandSubItem) GetExperimental() bool {
+	if x != nil {
+		return x.Experimental
+	}
+	return false
 }
 
 // GetSubItemsRequest is the request for GetSubItems.
@@ -606,6 +615,7 @@ func (m *CommandSubItem) CloneVT() *CommandSubItem {
 	r.Label = m.Label
 	r.Description = m.Description
 	r.IconName = m.IconName
+	r.Experimental = m.Experimental
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -918,6 +928,9 @@ func (this *CommandSubItem) EqualVT(that *CommandSubItem) bool {
 		return false
 	}
 	if this.IconName != that.IconName {
+		return false
+	}
+	if this.Experimental != that.Experimental {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1501,6 +1514,11 @@ func (x *CommandSubItem) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("iconName")
 		s.WriteString(x.IconName)
 	}
+	if x.Experimental || s.HasField("experimental") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("experimental")
+		s.WriteBool(x.Experimental)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1530,6 +1548,9 @@ func (x *CommandSubItem) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "icon_name", "iconName":
 			s.AddField("icon_name")
 			x.IconName = s.ReadString()
+		case "experimental":
+			s.AddField("experimental")
+			x.Experimental = s.ReadBool()
 		}
 	})
 }
@@ -2334,6 +2355,11 @@ func (m *CommandSubItem) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Experimental {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Experimental)
+		i--
+		dAtA[i] = 0x28
+	}
 	if len(m.IconName) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.IconName)
 		i--
@@ -2732,6 +2758,7 @@ func (m *CommandSubItem) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Label)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Description)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.IconName)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Experimental)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2980,6 +3007,10 @@ func (x *CommandSubItem) MarshalProtoText() string {
 	if x.IconName != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "icon_name")
 		protobuf_go_lite.TextWriteString(&sb, x.IconName)
+	}
+	if x.Experimental != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "experimental")
+		protobuf_go_lite.TextWriteBool(&sb, x.Experimental)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3709,6 +3740,16 @@ func (m *CommandSubItem) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.IconName = v
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Experimental", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Experimental = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -15,6 +15,7 @@ import {
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 
 import { CommandPalette } from './CommandPalette.js'
+import { createSubItemQueryId } from './sub-item-navigation.js'
 
 if (typeof document === 'undefined') {
   const happyDomWindow = new Window({ url: 'http://localhost/' })
@@ -347,7 +348,7 @@ describe('CommandPalette', () => {
     })
   })
 
-  it('renders sub-item icons and descriptions', async () => {
+  it('renders sub-item icons, descriptions, and experimental badges', async () => {
     mockCommands = [
       {
         command: {
@@ -371,6 +372,7 @@ describe('CommandPalette', () => {
         id: 'notes/blog',
         label: 'Blog',
         description: 'Content',
+        experimental: true,
       },
     ])
 
@@ -390,6 +392,54 @@ describe('CommandPalette', () => {
     expect(
       view.getByText('Blog').closest('button')?.querySelector('svg'),
     ).toBeNull()
+    expect(
+      view.getByText('Canvas').closest('button')?.textContent,
+    ).not.toContain('Exp')
+    expect(view.getByText('Blog').closest('button')?.textContent).toContain(
+      'Exp',
+    )
+  })
+
+  it('keeps the palette open when a sub-item completes a path query', async () => {
+    mockCommands = [
+      {
+        command: {
+          commandId: 'canvas.add-image',
+          label: 'Add Image',
+          menuPath: 'Tools/Add Image',
+          hasSubItems: true,
+        },
+        active: true,
+        enabled: true,
+      },
+    ]
+    mockGetSubItems.mockResolvedValue([
+      {
+        id: createSubItemQueryId('photos/'),
+        label: '/photos/',
+        description: 'Directory',
+      },
+    ])
+
+    const view = render(<CommandPalette />)
+    act(() => paletteHandler?.())
+    fireEvent.click(view.getByText('Add Image'))
+    await waitFor(() => expect(view.getByText('/photos/')).toBeTruthy())
+
+    fireEvent.click(view.getByText('/photos/'))
+
+    await waitFor(() => {
+      expect(view.getByLabelText('Command search')).toHaveProperty(
+        'value',
+        'photos/',
+      )
+      expect(mockGetSubItems).toHaveBeenCalledWith(
+        'canvas.add-image',
+        'photos/',
+        expect.any(AbortSignal),
+      )
+    })
+    expect(mockInvokeCommand).not.toHaveBeenCalled()
   })
 
   it('keeps f as a chord step at the root instead of starting a filter', () => {

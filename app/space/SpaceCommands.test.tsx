@@ -692,6 +692,9 @@ describe('SpaceCommands', () => {
 
     expect(items.map((item) => item.id)).toContain('git/repo')
     expect(items.map((item) => item.id)).not.toContain('forge/task')
+    expect(
+      items.find((item) => item.id === 'git/repo')?.experimental,
+    ).toBeUndefined()
   })
 
   it('shows experimental create-object subitems when the browser opts in', async () => {
@@ -715,5 +718,8 @@ describe('SpaceCommands', () => {
     const items = await subItems('', new AbortController().signal)
 
     expect(items.map((item) => item.id)).toContain('forge/task')
+    expect(items.find((item) => item.id === 'forge/task')?.experimental).toBe(
+      true,
+    )
   })
 })

@@ -29,6 +29,8 @@ export interface SubItem {
   description?: string
   // iconName is a react-icons icon identifier (e.g. "LuLayoutGrid").
   iconName?: string
+  // experimental renders the shared experimental marker.
+  experimental?: boolean
 }
 
 // SubItemsCallback provides sub-items for a command's palette sub-list.
@@ -190,6 +192,7 @@ export function CommandProvider({
                 label: item.label ?? '',
                 description: item.description || undefined,
                 iconName: item.iconName || undefined,
+                experimental: item.experimental ?? false,
               },
             ]
           : [],

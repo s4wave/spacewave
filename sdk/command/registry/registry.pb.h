@@ -1852,6 +1852,7 @@ class CommandSubItem final : public ::google::protobuf::Message
     kLabelFieldNumber = 2,
     kDescriptionFieldNumber = 3,
     kIconNameFieldNumber = 4,
+    kExperimentalFieldNumber = 5,
   };
   // string id = 1;
   void clear_id() ;
@@ -1913,11 +1914,21 @@ class CommandSubItem final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_icon_name();
 
   public:
+  // bool experimental = 5;
+  void clear_experimental() ;
+  bool experimental() const;
+  void set_experimental(bool value);
+
+  private:
+  bool _internal_experimental() const;
+  void _internal_set_experimental(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.command.registry.CommandSubItem)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 4,
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
                                    0, 74,
                                    2>
       _table_;
@@ -1943,6 +1954,7 @@ class CommandSubItem final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr label_;
     ::google::protobuf::internal::ArenaStringPtr description_;
     ::google::protobuf::internal::ArenaStringPtr icon_name_;
+    bool experimental_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -3990,6 +4002,31 @@ inline void CommandSubItem::set_allocated_icon_name(::std::string* PROTOBUF_NULL
     _impl_.icon_name_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:s4wave.command.registry.CommandSubItem.icon_name)
+}
+
+// bool experimental = 5;
+inline void CommandSubItem::clear_experimental() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.experimental_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline bool CommandSubItem::experimental() const {
+  // @@protoc_insertion_point(field_get:s4wave.command.registry.CommandSubItem.experimental)
+  return _internal_experimental();
+}
+inline void CommandSubItem::set_experimental(bool value) {
+  _internal_set_experimental(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:s4wave.command.registry.CommandSubItem.experimental)
+}
+inline bool CommandSubItem::_internal_experimental() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.experimental_;
+}
+inline void CommandSubItem::_internal_set_experimental(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.experimental_ = value;
 }
 
 // -------------------------------------------------------------------

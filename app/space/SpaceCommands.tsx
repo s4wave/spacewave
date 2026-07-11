@@ -170,6 +170,7 @@ export function SpaceCommands({
             label: w.displayName ?? '',
             description: w.description || w.category,
             iconName: w.iconName,
+            experimental: w.experimental || undefined,
           },
         ]
       })

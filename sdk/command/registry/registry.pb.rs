@@ -88,6 +88,9 @@ pub struct CommandSubItem {
     /// IconName is an optional react-icons icon identifier (e.g., "LuLayoutGrid").
     #[prost(string, tag="4")]
     pub icon_name: ::prost::alloc::string::String,
+    /// Experimental marks entries that require experimental creator visibility.
+    #[prost(bool, tag="5")]
+    pub experimental: bool,
 }
 /// GetSubItemsRequest is the request for GetSubItems.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

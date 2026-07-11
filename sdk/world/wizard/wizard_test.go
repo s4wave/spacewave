@@ -709,28 +709,31 @@ func TestWizardRegistryStaticWizardsWinTypeDedupe(t *testing.T) {
 	t.Fatal("expected canvas wizard")
 }
 
-func TestWizardRegistryStaticAppWizardsAreReleaseVisible(t *testing.T) {
-	expected := map[string]string{
-		"spacewave-chat/channel":    "Chat Channel",
-		"forge/worker":              "Forge Worker",
-		"spacewave/forge/dashboard": "Forge Dashboard",
-		"forge/cluster":             "Forge Cluster",
-		"forge/job":                 "Forge Job",
-		"forge/task":                "Forge Task",
-		"vm/v86":                    "V86 VM",
+func TestWizardRegistryStaticAppWizardVisibility(t *testing.T) {
+	expected := map[string]struct {
+		name         string
+		experimental bool
+	}{
+		"spacewave-chat/channel":    {"Chat Channel", false},
+		"forge/worker":              {"Forge Worker", false},
+		"spacewave/forge/dashboard": {"Forge Dashboard", false},
+		"forge/cluster":             {"Forge Cluster", false},
+		"forge/job":                 {"Forge Job", false},
+		"forge/task":                {"Forge Task", false},
+		"vm/v86":                    {"V86 VM", true},
 	}
 	seen := make(map[string]struct{}, len(expected))
 	for _, wizard := range s4wave_wizard.ObjectWizards {
-		wantName, ok := expected[wizard.GetTypeId()]
+		want, ok := expected[wizard.GetTypeId()]
 		if !ok {
 			continue
 		}
 		seen[wizard.GetTypeId()] = struct{}{}
-		if wizard.GetDisplayName() != wantName {
-			t.Fatalf("expected %s display name %q, got %q", wizard.GetTypeId(), wantName, wizard.GetDisplayName())
+		if wizard.GetDisplayName() != want.name {
+			t.Fatalf("expected %s display name %q, got %q", wizard.GetTypeId(), want.name, wizard.GetDisplayName())
 		}
-		if wizard.GetExperimental() {
-			t.Fatalf("expected %s to be visible in release builds", wizard.GetTypeId())
+		if wizard.GetExperimental() != want.experimental {
+			t.Fatalf("expected %s experimental = %t, got %t", wizard.GetTypeId(), want.experimental, wizard.GetExperimental())
 		}
 	}
 	for typeID := range expected {

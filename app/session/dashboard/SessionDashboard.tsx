@@ -50,6 +50,7 @@ import {
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/persist.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
+import { ExperimentalBadge } from '@s4wave/web/ui/ExperimentalBadge.js'
 import { CopyButton } from '@s4wave/web/ui/CopyButton.js'
 import {
   Command,
@@ -1102,11 +1103,7 @@ function DashboardItem({
               {orgName}
             </span>
           )}
-          {experimental && (
-            <span className="bg-foreground/8 text-foreground-alt/60 shrink-0 rounded px-1 py-0.5 text-[10px] leading-none font-medium uppercase">
-              Exp
-            </span>
-          )}
+          {experimental && <ExperimentalBadge />}
         </div>
         {(sublabel || identifier) && (
           <div className="mt-0.5 flex min-w-0 items-center gap-1.5">

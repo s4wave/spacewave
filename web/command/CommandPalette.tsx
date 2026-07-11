@@ -14,9 +14,11 @@ import {
   LuBox,
   LuBriefcase,
   LuCpu,
+  LuFolder,
   LuGitBranch,
   LuHammer,
   LuHardDrive,
+  LuImage,
   LuLayoutGrid,
   LuListTodo,
   LuMessageSquare,
@@ -38,6 +40,7 @@ import {
   CommandList,
   CommandShortcut,
 } from '@s4wave/web/ui/command.js'
+import { ExperimentalBadge } from '@s4wave/web/ui/ExperimentalBadge.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
 
@@ -57,6 +60,7 @@ import {
   type KeybindingSequenceNode,
 } from './KeybindingResolver.js'
 import { useKeybindingGraph } from './useKeybindingGraph.js'
+import { getSubItemQuery } from './sub-item-navigation.js'
 
 // isMacPlatform detects whether the current platform is macOS.
 const isMacPlatform =
@@ -274,9 +278,11 @@ const subItemIcons: Record<string, ComponentType<{ className?: string }>> = {
   LuBox,
   LuBriefcase,
   LuCpu,
+  LuFolder,
   LuGitBranch,
   LuHammer,
   LuHardDrive,
+  LuImage,
   LuLayoutGrid,
   LuListTodo,
   LuMessageSquare,
@@ -632,12 +638,18 @@ export function CommandPalette() {
 
   const handleSubItemSelect = useCallback(
     (subItemId: string) => {
+      const nextQuery = getSubItemQuery(subItemId)
+      if (nextQuery !== null) {
+        setSubQuery(nextQuery)
+        focusFilter()
+        return
+      }
       if (subItemCommandId) {
         invokeCommand(subItemCommandId, { subItemId })
       }
       handleOpenChange(false)
     },
-    [subItemCommandId, invokeCommand, handleOpenChange],
+    [focusFilter, subItemCommandId, invokeCommand, handleOpenChange],
   )
 
   const handleBack = useCallback(() => {
@@ -810,7 +822,10 @@ export function CommandPalette() {
                   >
                     <SubItemIcon iconName={item.iconName} />
                     <span className="flex flex-col">
-                      <span>{item.label}</span>
+                      <span className="flex items-center gap-1.5">
+                        <span>{item.label}</span>
+                        {item.experimental && <ExperimentalBadge />}
+                      </span>
                       {item.description && (
                         <span className="text-foreground-alt text-xs">
                           {item.description}
