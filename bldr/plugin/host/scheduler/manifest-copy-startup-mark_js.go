@@ -28,3 +28,11 @@ func emitManifestCopyStartupMarkToBrowser(
 		float64(stats.LogicalSourceBytes),
 	)
 }
+
+func emitPluginManifestRootToBrowser(pluginID, rootHash string) {
+	notify := js.Global().Get("BLDR_NOTIFY_PLUGIN_MANIFEST_ROOT")
+	if notify.IsUndefined() || notify.IsNull() || notify.Type() != js.TypeFunction {
+		return
+	}
+	notify.Invoke(pluginID, rootHash)
+}

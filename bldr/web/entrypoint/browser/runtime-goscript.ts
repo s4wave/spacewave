@@ -35,6 +35,10 @@ interface Global {
     subtreesSkipped: number,
     logicalSourceBytes: number,
   ) => void
+  BLDR_NOTIFY_PLUGIN_MANIFEST_ROOT?: (
+    pluginId: string,
+    rootHash: string,
+  ) => void
 }
 
 const globalScope = self as unknown as Global
@@ -70,6 +74,9 @@ globalScope.BLDR_NOTIFY_STARTUP_MARK = (
     subtreesSkipped,
     logicalSourceBytes,
   })
+}
+globalScope.BLDR_NOTIFY_PLUGIN_MANIFEST_ROOT = (pluginId, rootHash) => {
+  webRuntime.broadcastPluginManifestRoot(pluginId, rootHash)
 }
 
 const goOpenStreamChannel = new MessageChannel()

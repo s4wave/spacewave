@@ -8,3 +8,7 @@ func (t *pluginInstance) emitManifestCopyStartupMark(
 ) {
 	emitManifestCopyStartupMarkToBrowser(phase, stats)
 }
+
+func (t *pluginInstance) emitPluginManifestRoot(rootHash string) {
+	emitPluginManifestRootToBrowser(t.pluginID, rootHash)
+}

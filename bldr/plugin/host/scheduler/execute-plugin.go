@@ -104,6 +104,8 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		t.assetsAccess.SetCurrent(unixfs_access.NewAccessUnixFSFunc(assetsFS))
 		defer t.assetsAccess.SetBlocked()
 
+		t.emitPluginManifestRoot(pluginManifest.GetManifestRef().GetRootRef().GetHash().MarshalString())
+
 		hostRoot, _, hostRootRef, err := plugin_host_root.ExLookupRootByPlatform(
 			ctx,
 			t.c.bus,

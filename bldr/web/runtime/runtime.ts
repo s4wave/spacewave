@@ -61,6 +61,11 @@ export interface WebRuntimeToClient {
     label: string
     detail: Record<string, unknown>
   }
+  // pluginManifestRoot grants the ServiceWorker cache authority for one root.
+  pluginManifestRoot?: {
+    pluginId: string
+    rootHash: string
+  }
 }
 
 // WebDocumentToWebRuntime is a message sent to the WebRuntime from the WebDocument.

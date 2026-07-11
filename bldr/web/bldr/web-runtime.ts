@@ -640,6 +640,18 @@ export class WebRuntime {
     }
   }
 
+  // broadcastPluginManifestRoot forwards selected root authority to documents.
+  public broadcastPluginManifestRoot(pluginId: string, rootHash: string): void {
+    for (const client of Object.values(this.clients)) {
+      if (
+        client.init.clientType !==
+        WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT
+      ) {
+        continue
+      }
+      client.postMessage({ pluginManifestRoot: { pluginId, rootHash } })
+    }
+  }
 
   // flushIndexCache forces the service worker to refresh its browser index cache.
   public async flushIndexCache(): Promise<void> {
@@ -690,11 +702,7 @@ export class WebRuntime {
     webLockName: string | undefined,
     waiter: WebRuntimeClientWaiter,
   ) {
-    if (
-      !webLockName ||
-      typeof navigator === 'undefined' ||
-      !navigator.locks
-    ) {
+    if (!webLockName || typeof navigator === 'undefined' || !navigator.locks) {
       return
     }
 

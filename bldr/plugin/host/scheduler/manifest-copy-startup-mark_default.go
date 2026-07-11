@@ -9,3 +9,6 @@ func emitManifestCopyStartupMarkToBrowser(
 	_ bucket_lookup.ObjectCopyStats,
 ) {
 }
+
+func emitPluginManifestRootToBrowser(_, _ string) {
+}

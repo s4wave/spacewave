@@ -14,6 +14,16 @@ import { ClientToWebRuntime, WebRuntimeToClient } from '../runtime/runtime.js'
 import { WebRuntimeClientChannelStreamOpts } from './web-runtime.js'
 import { markStartupBoundary } from './startup-marks.js'
 
+// postPluginManifestRootToServiceWorker grants cache authority to the controller.
+export function postPluginManifestRootToServiceWorker(
+  pluginId: string,
+  rootHash: string,
+): void {
+  navigator.serviceWorker?.controller?.postMessage({
+    bldrPluginManifestRoot: { pluginId, rootHash },
+  })
+}
+
 // RuntimeClientGenerationState is the lifecycle state for one runtime client channel.
 export type RuntimeClientGenerationState =
   | 'idle'
@@ -473,6 +483,12 @@ export class WebRuntimeClient {
   ) {
     if (msg.openStream && ports && ports.length) {
       await this.handleWebRuntimeOpenStream(ports[0])
+    }
+    if (msg.pluginManifestRoot) {
+      postPluginManifestRootToServiceWorker(
+        msg.pluginManifestRoot.pluginId,
+        msg.pluginManifestRoot.rootHash,
+      )
     }
     if (msg.startupMark) {
       markStartupBoundary(msg.startupMark.label, {

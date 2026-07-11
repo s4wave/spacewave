@@ -2,14 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
 import {
+  postPluginManifestRootToServiceWorker,
   RuntimeClientGenerationGateError,
   type RuntimeClientStreamOpenGateResult,
   WebRuntimeClient,
 } from './web-runtime-client.js'
-import {
-  resetStartupMarksForTest,
-  startupMarkEvent,
-} from './startup-marks.js'
+import { resetStartupMarksForTest, startupMarkEvent } from './startup-marks.js'
 
 interface Deferred<T> {
   promise: Promise<T>
@@ -250,6 +248,24 @@ describe('WebRuntimeClient', () => {
     })
     client.close()
     port2.close()
+  })
+
+  it('forwards selected plugin root authority to the ServiceWorker', () => {
+    const postMessage = vi.fn()
+    vi.stubGlobal('navigator', {
+      serviceWorker: {
+        controller: { postMessage },
+      },
+    })
+
+    postPluginManifestRootToServiceWorker('spacewave-app', '2abc')
+
+    expect(postMessage).toHaveBeenCalledWith({
+      bldrPluginManifestRoot: {
+        pluginId: 'spacewave-app',
+        rootHash: '2abc',
+      },
+    })
   })
 
   it('closes child streams when the parent runtime client generation closes', () => {

@@ -27,6 +27,10 @@ declare let self: SharedWorkerGlobalScope & DedicatedWorkerGlobalScope
 interface Global {
   BLDR_INIT?: Uint8Array
   BLDR_WEB_RUNTIME_CLIENT_OPEN?: MessagePort
+  BLDR_NOTIFY_PLUGIN_MANIFEST_ROOT?: (
+    pluginId: string,
+    rootHash: string,
+  ) => void
 }
 const global: Global = self as unknown as Global
 
@@ -46,6 +50,9 @@ const webRuntime = new WebRuntime(
   createDocCb,
   removeDocCb,
 )
+global.BLDR_NOTIFY_PLUGIN_MANIFEST_ROOT = (pluginId, rootHash) => {
+  webRuntime.broadcastPluginManifestRoot(pluginId, rootHash)
+}
 
 // baseURL is the base URL to use for paths.
 const baseURL = import.meta?.url

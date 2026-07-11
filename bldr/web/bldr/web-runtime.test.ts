@@ -226,7 +226,6 @@ async function flushMessages(): Promise<void> {
   await Promise.resolve()
 }
 
-
 function connectRuntimeServer(runtime: WebRuntime): {
   client: SRPCClient
   close(): Promise<void>
@@ -456,7 +455,7 @@ describe('WebRuntime', () => {
     await expect(waitForClient).rejects.toThrow('renderer gone: crashed')
   })
 
-  it('forwards compact runtime startup marks only to documents', () => {
+  it('forwards startup accounting and plugin roots only to documents', () => {
     const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
     const documentChannel = new MessageChannel()
     const workerChannel = new MessageChannel()
@@ -490,6 +489,15 @@ describe('WebRuntime', () => {
       startupMark: {
         label: 'manifest-copy.done',
         detail: { blocksSeen: 3, logicalSourceBytes: 1024 },
+      },
+    })
+    expect(workerPost).not.toHaveBeenCalled()
+    documentPost.mockClear()
+    runtime.broadcastPluginManifestRoot('spacewave-app', '2abc')
+    expect(documentPost).toHaveBeenCalledWith({
+      pluginManifestRoot: {
+        pluginId: 'spacewave-app',
+        rootHash: '2abc',
       },
     })
     expect(workerPost).not.toHaveBeenCalled()
