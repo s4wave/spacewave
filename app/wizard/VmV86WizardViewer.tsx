@@ -108,7 +108,7 @@ async function mountCdnImageSpace(
   }
 }
 
-async function loadCdnV86ImagesFromSpace(
+export async function loadCdnV86ImagesFromSpace(
   space: Space,
   signal: AbortSignal,
 ): Promise<CdnV86ImageEntry[]> {
@@ -119,7 +119,7 @@ async function loadCdnV86ImagesFromSpace(
     using obj = await world.getObject(key, signal)
     if (!obj) continue
     using cursor = await obj.accessWorldState(undefined, signal)
-    const resp = await cursor.unmarshal({}, signal)
+    const resp = await cursor.unmarshal({ blockType: V86ImageTypeID }, signal)
     if (!resp.found || !resp.data?.length) continue
     try {
       out.push({ objectKey: key, image: V86Image.fromBinary(resp.data) })
@@ -151,7 +151,7 @@ async function loadCdnV86ImageFromSpace(
   using obj = await world.getObject(objectKey, signal)
   if (!obj) return undefined
   using cursor = await obj.accessWorldState(undefined, signal)
-  const resp = await cursor.unmarshal({}, signal)
+  const resp = await cursor.unmarshal({ blockType: V86ImageTypeID }, signal)
   if (!resp.found || !resp.data?.length) return undefined
   try {
     return { objectKey, image: V86Image.fromBinary(resp.data) }
@@ -226,7 +226,7 @@ async function loadInSpaceV86Images(
     using obj = await ws.getObject(key, signal)
     if (!obj) continue
     using cursor = await obj.accessWorldState(undefined, signal)
-    const resp = await cursor.unmarshal({}, signal)
+    const resp = await cursor.unmarshal({ blockType: V86ImageTypeID }, signal)
     if (!resp.found || !resp.data?.length) continue
     try {
       out.push({ objectKey: key, image: V86Image.fromBinary(resp.data) })
@@ -248,7 +248,7 @@ async function loadExistingVms(
     using obj = await ws.getObject(key, signal)
     if (!obj) continue
     using cursor = await obj.accessWorldState(undefined, signal)
-    const resp = await cursor.unmarshal({}, signal)
+    const resp = await cursor.unmarshal({ blockType: VmV86TypeID }, signal)
     if (!resp.found || !resp.data?.length) continue
     try {
       const vm = VmV86.fromBinary(resp.data)

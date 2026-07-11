@@ -120,13 +120,14 @@ function outgoingLinkedKeys(
 async function decodeObject<T extends { fromBinary(data: Uint8Array): U }, U>(
   world: IWorldState,
   objectKey: string,
+  blockTypeID: string,
   messageType: T,
   signal: AbortSignal,
 ): Promise<U | null> {
   using objectState = await world.getObject(objectKey, signal)
   if (!objectState) return null
   using cursor = await objectState.accessWorldState(undefined, signal)
-  const resp = await cursor.unmarshal({}, signal)
+  const resp = await cursor.unmarshal({ blockType: blockTypeID }, signal)
   if (!resp.found || !resp.data?.length) return null
   return messageType.fromBinary(resp.data)
 }
@@ -137,6 +138,7 @@ async function decodeObjectMap<
 >(
   world: IWorldState,
   objectKeys: string[],
+  blockTypeID: string,
   messageType: T,
   signal: AbortSignal,
 ): Promise<Map<string, U>> {
@@ -146,6 +148,7 @@ async function decodeObjectMap<
       const data = await decodeObject<T, U>(
         world,
         objectKey,
+        blockTypeID,
         messageType,
         signal,
       )
@@ -187,8 +190,8 @@ export async function buildForgeClusterSnapshot(
   const allJobKeys = [...jobKeysByCluster.values()].flat()
   const allWorkerKeys = [...workerKeysByCluster.values()].flat()
   const [jobData, workerData, jobBuckets, workerBuckets] = await Promise.all([
-    decodeObjectMap(world, allJobKeys, Job, signal),
-    decodeObjectMap(world, allWorkerKeys, Worker, signal),
+    decodeObjectMap(world, allJobKeys, 'forge/job', Job, signal),
+    decodeObjectMap(world, allWorkerKeys, 'forge/worker', Worker, signal),
     listOutgoingEdgeBuckets(world, allJobKeys, signal),
     listOutgoingEdgeBuckets(world, allWorkerKeys, signal),
   ])
@@ -202,7 +205,7 @@ export async function buildForgeClusterSnapshot(
   }
   const allTaskKeys = [...taskKeysByJob.values()].flat()
   const [taskData, taskBuckets] = await Promise.all([
-    decodeObjectMap(world, allTaskKeys, Task, signal),
+    decodeObjectMap(world, allTaskKeys, 'forge/task', Task, signal),
     listOutgoingEdgeBuckets(world, allTaskKeys, signal),
   ])
 
@@ -215,7 +218,7 @@ export async function buildForgeClusterSnapshot(
   }
   const allPassKeys = [...passKeysByTask.values()].flat()
   const [passData, passBuckets] = await Promise.all([
-    decodeObjectMap(world, allPassKeys, Pass, signal),
+    decodeObjectMap(world, allPassKeys, 'forge/pass', Pass, signal),
     listOutgoingEdgeBuckets(world, allPassKeys, signal),
   ])
 
@@ -230,6 +233,7 @@ export async function buildForgeClusterSnapshot(
   const executionData = await decodeObjectMap(
     world,
     allExecutionKeys,
+    'forge/execution',
     Execution,
     signal,
   )
@@ -244,6 +248,7 @@ export async function buildForgeClusterSnapshot(
   const keypairData = await decodeObjectMap<typeof Keypair, Keypair>(
     world,
     [...keypairKeysByWorker.values()].flat(),
+    'identity/keypair',
     Keypair,
     signal,
   )

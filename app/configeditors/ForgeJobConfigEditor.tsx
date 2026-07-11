@@ -42,7 +42,10 @@ export function ForgeJobConfigEditor({
         }
         try {
           using cursor = await obj.accessWorldState(undefined, signal)
-          const resp = await cursor.unmarshal({}, signal)
+          const resp = await cursor.unmarshal(
+            { blockType: 'forge/cluster' },
+            signal,
+          )
           if (resp.found && resp.data?.length) {
             const cluster = Cluster.fromBinary(resp.data)
             results.push({ key, name: cluster.name || key })

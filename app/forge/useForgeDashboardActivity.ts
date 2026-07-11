@@ -149,7 +149,7 @@ export async function loadForgeDashboardActivityEntries(
       using objectState = await world.getObject(entity.objectKey, signal)
       if (!objectState) return null
       using cursor = await objectState.accessWorldState(undefined, signal)
-      const resp = await cursor.unmarshal({}, signal)
+      const resp = await cursor.unmarshal({ blockType: entity.typeId }, signal)
       if (!resp.found || !resp.data?.length) return null
       return describeActivitySource(entity, resp.data)
     }),
