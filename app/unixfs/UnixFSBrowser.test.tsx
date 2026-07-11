@@ -719,7 +719,8 @@ describe('UnixFSBrowser drag gating', () => {
 
     const navigateUp = h.registeredCommands.get('spacewave.nav.up')
     expect(navigateUp?.enabled).toBe(true)
-    navigateUp?.handler?.()
+    if (!navigateUp?.handler) throw new Error('navigate up handler missing')
+    navigateUp.handler()
     expect(h.mockNavigate).toHaveBeenCalledWith({ path: '/docs' })
   })
 
