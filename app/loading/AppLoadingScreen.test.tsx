@@ -19,8 +19,8 @@ const mockProjection = vi.hoisted<{
   const initial: BrowserStartupProjection = {
     view: {
       state: 'loading',
-      title: 'Spacewave',
-      detail: 'Runtime: Connecting the Spacewave runtime.',
+      title: 'Starting the Spacewave runtime',
+      detail: 'Runtime initialization: Connecting the Spacewave runtime.',
       progress: 0.58,
     },
     phase: {
@@ -98,9 +98,11 @@ describe('AppLoadingScreen', () => {
   it('renders the branded startup composition from the shared loading view', () => {
     const { container } = render(<AppLoadingScreen />)
 
-    expect(screen.getByText('Spacewave')).toBeDefined()
+    expect(screen.getByText('Starting the Spacewave runtime')).toBeDefined()
     expect(
-      screen.getByText('Runtime: Connecting the Spacewave runtime.'),
+      screen.getByText(
+        'Runtime initialization: Connecting the Spacewave runtime.',
+      ),
     ).toBeDefined()
     expect(screen.getByLabelText('Startup phases')).toBeDefined()
     expect(screen.getByText('Prepare')).toBeDefined()
@@ -142,8 +144,8 @@ describe('AppLoadingScreen', () => {
       ...mockProjection.current,
       view: {
         state: 'loading',
-        title: 'Spacewave',
-        detail: 'App: Opening the application.',
+        title: 'Loading the app',
+        detail: 'Current app download: Opening the application.',
         progress: 0.42,
       },
       phase: {
@@ -172,6 +174,7 @@ describe('AppLoadingScreen', () => {
 
     const { container } = render(<AppLoadingScreen />)
 
+    expect(screen.getByText('Current download')).toBeDefined()
     expect(screen.getByText('42%')).toBeDefined()
     expect(screen.queryByText('84%')).toBeNull()
     expect(container.querySelector('.swb-bar-fill--indeterminate')).toBeNull()
@@ -204,12 +207,17 @@ describe('AppLoadingScreen', () => {
     expect(progress.getAttribute('aria-valuenow')).toBe('58')
     expect(screen.getByText('58%')).toBeDefined()
     expect(container.querySelector('.swb-bar-fill--indeterminate')).toBeNull()
+    expect(
+      screen.getByText(
+        'The runtime is still starting. First launch may take longer.',
+      ),
+    ).toBeDefined()
 
     mockProjection.current = {
       ...mockProjection.current,
       view: {
         ...mockProjection.current.view,
-        detail: 'Runtime: Runtime channel connected.',
+        detail: 'Runtime initialization: Runtime channel connected.',
         progress: 0.64,
       },
       evidence: {
@@ -256,8 +264,8 @@ describe('AppLoadingScreen', () => {
       ...mockProjection.current,
       view: {
         state: 'error',
-        title: 'Spacewave',
-        detail: 'Runtime: Connecting the Spacewave runtime.',
+        title: 'Starting the Spacewave runtime',
+        detail: 'Runtime initialization: Connecting the Spacewave runtime.',
         progress: 0.31,
         error:
           'Startup did not finish. Check the browser console or startup marks for details.',
@@ -305,8 +313,8 @@ describe('AppLoadingScreen', () => {
       ...mockProjection.current,
       view: {
         state: 'error',
-        title: 'Spacewave',
-        detail: 'Connect: Downloading the application.',
+        title: 'Connecting to your Space',
+        detail: 'Session connection: Downloading the application.',
         progress: 0.3,
         error:
           'Startup did not finish. Check the browser console or startup marks for details.',
@@ -361,7 +369,9 @@ describe('AppLoadingScreen', () => {
       'true',
     )
     expect(
-      screen.getByText('Runtime: Connecting the Spacewave runtime.'),
+      screen.getByText(
+        'Runtime initialization: Connecting the Spacewave runtime.',
+      ),
     ).toBeDefined()
     expect(screen.getByLabelText('Startup phases')).toBeDefined()
     expect(screen.getByText('58%')).toBeDefined()

@@ -21,6 +21,9 @@ export const BOOT_LOADING_CRITICAL_CSS = `
 .swb-title{margin:0;font-size:1.5rem;font-weight:600;letter-spacing:-0.01em;line-height:1.2;color:var(--color-foreground,#fafafa)}
 .swb-detail{margin:0;font-size:0.875rem;line-height:1.4;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 70%,transparent)}
 .swb-hint{margin:0;max-width:22rem;font-size:0.75rem;line-height:1.5;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 52%,transparent)}
+.swb-progress-block{display:flex;flex-direction:column;align-items:center;gap:0.35rem;width:100%}
+.swb-progress-context{font-size:0.75rem;line-height:1.4;font-weight:500;color:color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 85%,transparent)}
+.swb-stall{margin:0;max-width:22rem;font-size:0.75rem;line-height:1.5;color:color-mix(in srgb,var(--color-warning,#f59e0b) 85%,transparent)}
 .swb-progress-wrap{margin-top:0.25rem;display:flex;width:min(16rem,calc(100vw - 4rem));align-items:center;gap:0.75rem}
 .swb-bar{position:relative;height:0.375rem;flex:1;overflow:hidden;border-radius:9999px;background:color-mix(in srgb,var(--color-foreground,#fafafa) 8%,transparent)}
 .swb-bar-fill{height:100%;border-radius:9999px;background:var(--color-brand,#4f8cff);transition:width 200ms ease}

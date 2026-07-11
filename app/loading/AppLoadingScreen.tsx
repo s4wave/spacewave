@@ -10,7 +10,10 @@ import {
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useBrowserStartupProjection } from '@s4wave/app/loading/status/browser-startup.js'
 import { useBootDownloads } from '@s4wave/app/loading/status/browser-downloads.js'
-import type { BrowserStartupPhaseView } from '@s4wave/app/loading/status/browser-startup-model.js'
+import {
+  browserStartupStallCopy,
+  type BrowserStartupPhaseView,
+} from '@s4wave/app/loading/status/browser-startup-model.js'
 import { markBrowserStartupBoundary } from '@s4wave/app/prerender/boot-status.js'
 import { useReducedMotion } from '@s4wave/web/ui/loading/index.js'
 import type { LoadingView } from '@s4wave/web/ui/loading/types.js'
@@ -26,6 +29,8 @@ export function AppLoadingScreen() {
   const startup = useBrowserStartupProjection()
   const reducedMotion = useReducedMotion()
   const view = withBrowserStartupErrorActions(startup.view)
+  const hasProgress =
+    view.progress !== undefined || view.progressIndeterminate === true
   return (
     <BrowserStartupRevealProbe>
       <BootLoadingCriticalStyle />
@@ -45,7 +50,7 @@ export function AppLoadingScreen() {
           <div className="swb-head" aria-live="polite">
             <h1 className="swb-title">{view.title}</h1>
             {view.detail ? <p className="swb-detail">{view.detail}</p> : null}
-            {view.progress !== undefined || view.progressIndeterminate ? (
+            {hasProgress ? (
               <BrowserStartupProgress
                 value={
                   view.progress === undefined ? undefined : view.progress * 100
@@ -53,6 +58,7 @@ export function AppLoadingScreen() {
                 indeterminate={view.progressIndeterminate}
                 active={view.state === 'loading'}
                 activitySequence={startup.evidence.marks.at(-1)?.sequence}
+                stallMessage={browserStartupStallCopy[startup.phase.id]}
               />
             ) : null}
             {view.error ? <p className="swb-error">{view.error}</p> : null}
@@ -79,13 +85,14 @@ export function AppLoadingScreen() {
               </div>
             ) : null}
           </div>
-
-          <BrowserStartupPhaseRail phases={startup.phases} />
           <BrowserStartupDownloadList />
-          <p className="swb-hint">
-            The first launch downloads the full app bundle and can take a while.
-            It is cached for instant loads afterward.
-          </p>
+          <BrowserStartupPhaseRail phases={startup.phases} />
+          {!hasProgress ? (
+            <p className="swb-hint">
+              The first launch downloads the full app bundle and can take a
+              while. It is cached for instant loads afterward.
+            </p>
+          ) : null}
         </div>
       </div>
     </BrowserStartupRevealProbe>
@@ -148,11 +155,13 @@ function BrowserStartupProgress({
   indeterminate,
   active,
   activitySequence,
+  stallMessage,
 }: {
   value?: number
   indeterminate?: boolean
   active?: boolean
   activitySequence?: number
+  stallMessage: string
 }) {
   const pct =
     value === undefined ? 0 : Math.max(0, Math.min(100, Math.round(value)))
@@ -171,26 +180,34 @@ function BrowserStartupProgress({
   const stalled =
     active && !indeterminate && pct < 100 && stalledActivity === activityKey
   return (
-    <div className="swb-progress-wrap">
-      <div
-        className="swb-bar"
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={indeterminate ? undefined : pct}
-      >
-        {indeterminate ? (
-          <div className="swb-bar-fill swb-bar-fill--indeterminate" />
-        ) : (
-          <div
-            className={cn('swb-bar-fill', stalled && 'swb-bar-fill--stalled')}
-            style={{ width: `${pct}%` }}
-          />
+    <div className="swb-progress-block">
+      <div className="swb-progress-context">Current download</div>
+      <div className="swb-progress-wrap">
+        <div
+          className="swb-bar"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={indeterminate ? undefined : pct}
+        >
+          {indeterminate ? (
+            <div className="swb-bar-fill swb-bar-fill--indeterminate" />
+          ) : (
+            <div
+              className={cn('swb-bar-fill', stalled && 'swb-bar-fill--stalled')}
+              style={{ width: `${pct}%` }}
+            />
+          )}
+        </div>
+        {indeterminate ? null : (
+          <span className="swb-mono swb-progress-label">{pct}%</span>
         )}
       </div>
-      {indeterminate ? null : (
-        <span className="swb-mono swb-progress-label">{pct}%</span>
-      )}
+      {stalled ? <p className="swb-stall">{stallMessage}</p> : null}
+      <p className="swb-hint">
+        The first launch downloads the full app bundle and can take a while. It
+        is cached for instant loads afterward.
+      </p>
     </div>
   )
 }

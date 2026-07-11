@@ -55,6 +55,14 @@ export const browserStartupPhaseRail: readonly BrowserStartupPhase[] = [
   { id: 'frame', label: 'App' },
   { id: 'done', label: 'Done' },
 ]
+export const browserStartupStallCopy: Record<BrowserStartupPhaseID, string> = {
+  prepare: 'Still preparing local storage and startup files.',
+  connect:
+    'The connection is taking longer than usual. Check your network, or go back and retry.',
+  runtime: 'The runtime is still starting. First launch may take longer.',
+  frame: 'Still loading; downloaded files are cached for the next launch.',
+  done: 'Still opening your Space. The first view is taking longer than usual.',
+}
 
 const browserStartupPhaseIndex: Record<BrowserStartupPhaseID, number> = {
   prepare: 0,
@@ -89,6 +97,44 @@ export function withBrowserBootProgress(
   }
 }
 
+interface BrowserStartupPhasePresentation {
+  title: string
+  detail: string
+}
+
+function browserStartupPhasePresentation(
+  phase: BrowserStartupPhaseID,
+  stepLabel: string,
+): BrowserStartupPhasePresentation {
+  switch (phase) {
+    case 'prepare':
+      return {
+        title: 'Preparing Spacewave',
+        detail: `Local initialization: ${stepLabel}`,
+      }
+    case 'connect':
+      return {
+        title: 'Connecting to your Space',
+        detail: `Session connection: ${stepLabel}`,
+      }
+    case 'runtime':
+      return {
+        title: 'Starting the Spacewave runtime',
+        detail: `Runtime initialization: ${stepLabel}`,
+      }
+    case 'frame':
+      return {
+        title: 'Loading the app',
+        detail: `Current app download: ${stepLabel}`,
+      }
+    case 'done':
+      return {
+        title: 'Opening your Space',
+        detail: 'Startup complete. Rendering the first view…',
+      }
+  }
+}
+
 export function projectBrowserStartup(
   status: BrowserBootStatus,
   marks: readonly BrowserStartupMark[] = [],
@@ -102,9 +148,10 @@ export function projectBrowserStartup(
   const failed = boot.state === 'error' || !!runtime.terminalFailure
   const step = projectBootProgress(boot, marks)
   const progress = phase.id === 'done' ? 1 : step.progress
+  const presentation = browserStartupPhasePresentation(phase.id, step.label)
   const baseView = {
-    title: 'Spacewave',
-    detail: `${phase.label}: ${step.label}`,
+    title: presentation.title,
+    detail: presentation.detail,
     progress,
   }
   const view: LoadingView = failed
