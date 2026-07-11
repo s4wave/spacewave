@@ -474,6 +474,15 @@ export class WebRuntimeClient {
     if (msg.openStream && ports && ports.length) {
       await this.handleWebRuntimeOpenStream(ports[0])
     }
+    if (msg.startupMark) {
+      markStartupBoundary(msg.startupMark.label, {
+        source: 'runtime',
+        runtimeId: this.webRuntimeId,
+        clientId: this.clientId,
+        clientType: this.clientType,
+        ...msg.startupMark.detail,
+      })
+    }
   }
 
   // handleWebRuntimeOpenStream handles an incoming request to open a stream.

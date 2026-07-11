@@ -30,6 +30,7 @@ type manifestCopyStatus struct {
 	phase       manifestCopyPhase
 	class       manifestCopyClass
 	manifestRef string
+	stats       bucket_lookup.ObjectCopyStats
 }
 
 func (t *pluginInstance) classifyManifestCopy(manifestSnapshot *bldr_manifest.ManifestSnapshot) manifestCopyClass {
@@ -53,6 +54,7 @@ func (t *pluginInstance) setManifestCopyStatus(
 	phase manifestCopyPhase,
 	class manifestCopyClass,
 	manifestSnapshot *bldr_manifest.ManifestSnapshot,
+	stats bucket_lookup.ObjectCopyStats,
 ) {
 	if t == nil || t.manifestCopyStatus == nil {
 		return
@@ -65,6 +67,7 @@ func (t *pluginInstance) setManifestCopyStatus(
 		phase:       phase,
 		class:       class,
 		manifestRef: ref,
+		stats:       stats,
 	})
 }
 
@@ -81,7 +84,8 @@ func (t *pluginInstance) waitForStartupExecuteReady(
 	t.logPluginAccountingFields(ctx)
 	logManifestSnapshotAccountingFields(ctx, "download", manifestSnapshot)
 
-	t.setManifestCopyStatus(manifestCopyPhaseWaiting, class, manifestSnapshot)
+	t.setManifestCopyStatus(manifestCopyPhaseWaiting, class, manifestSnapshot, bucket_lookup.ObjectCopyStats{})
+	t.emitManifestCopyStartupMark(manifestCopyPhaseWaiting, bucket_lookup.ObjectCopyStats{})
 	_, err := t.runningPluginCtr.WaitValue(ctx, nil)
 	return err
 }
@@ -116,9 +120,11 @@ func (t *pluginInstance) execDownloadManifest(
 		}
 	}
 	class := t.classifyManifestCopy(manifestSnapshot)
+	var copyStats bucket_lookup.ObjectCopyStats
 	defer func() {
 		if rerr != nil {
-			t.setManifestCopyStatus(manifestCopyPhaseFailed, class, manifestSnapshot)
+			t.setManifestCopyStatus(manifestCopyPhaseFailed, class, manifestSnapshot, copyStats)
+			t.emitManifestCopyStartupMark(manifestCopyPhaseFailed, copyStats)
 		}
 	}()
 	t.logPluginAccountingFields(ctx)
@@ -129,7 +135,8 @@ func (t *pluginInstance) execDownloadManifest(
 	if err := t.waitForStartupExecuteReady(ctx, class, manifestSnapshot); err != nil {
 		return err
 	}
-	t.setManifestCopyStatus(manifestCopyPhaseCopying, class, manifestSnapshot)
+	t.setManifestCopyStatus(manifestCopyPhaseCopying, class, manifestSnapshot, bucket_lookup.ObjectCopyStats{})
+	t.emitManifestCopyStartupMark(manifestCopyPhaseCopying, bucket_lookup.ObjectCopyStats{})
 
 	ws, err := t.c.worldStateCtr.WaitValue(ctx, nil)
 	if err != nil {
@@ -147,7 +154,7 @@ func (t *pluginInstance) execDownloadManifest(
 
 			copyCtx, copyTask := trace.NewTask(accessCtx, "bldr/plugin-host-scheduler/download-manifest/copy-dag")
 			trace.Log(copyCtx, "accounting-phase", "decode-verify-deserialize-block-publish")
-			localRef, err := bucket_lookup.CopyObjectToBucket(
+			localRef, stats, err := bucket_lookup.CopyObjectToBucketWithStats(
 				copyCtx,
 				dest,
 				src,
@@ -156,6 +163,7 @@ func (t *pluginInstance) execDownloadManifest(
 				false,
 				nil,
 			)
+			copyStats = stats
 			copyTask.End()
 			if err != nil {
 				return errors.Wrap(err, "copy manifest block DAG")
@@ -187,7 +195,8 @@ func (t *pluginInstance) execDownloadManifest(
 				return errors.Wrap(err, "sync local manifest blocks")
 			}
 			syncTask.End()
-			t.setManifestCopyStatus(manifestCopyPhaseDone, class, manifestSnapshot)
+			t.setManifestCopyStatus(manifestCopyPhaseDone, class, manifestSnapshot, copyStats)
+			t.emitManifestCopyStartupMark(manifestCopyPhaseDone, copyStats)
 			le.Info("manifest download complete")
 			return nil
 		})

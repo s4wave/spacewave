@@ -456,6 +456,45 @@ describe('WebRuntime', () => {
     await expect(waitForClient).rejects.toThrow('renderer gone: crashed')
   })
 
+  it('forwards compact runtime startup marks only to documents', () => {
+    const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
+    const documentChannel = new MessageChannel()
+    const workerChannel = new MessageChannel()
+    runtime.handleClient(
+      {
+        clientUuid: 'document-1',
+        clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      },
+      documentChannel.port1,
+    )
+    runtime.handleClient(
+      {
+        clientUuid: 'worker-1',
+        clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
+      },
+      workerChannel.port1,
+    )
+    const documentClient = runtime.lookupClient('document-1')
+    const workerClient = runtime.lookupClient('worker-1')
+    expect(documentClient).not.toBeNull()
+    expect(workerClient).not.toBeNull()
+    const documentPost = vi.spyOn(documentClient!, 'postMessage')
+    const workerPost = vi.spyOn(workerClient!, 'postMessage')
+
+    runtime.broadcastStartupMark('manifest-copy.done', {
+      blocksSeen: 3,
+      logicalSourceBytes: 1024,
+    })
+
+    expect(documentPost).toHaveBeenCalledWith({
+      startupMark: {
+        label: 'manifest-copy.done',
+        detail: { blocksSeen: 3, logicalSourceBytes: 1024 },
+      },
+    })
+    expect(workerPost).not.toHaveBeenCalled()
+  })
+
   it('removes active clients when invalidated', () => {
     const runtime = new WebRuntime('runtime-1', vi.fn(), null, null)
     const { port1 } = new MessageChannel()

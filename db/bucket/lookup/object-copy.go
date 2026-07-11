@@ -28,7 +28,7 @@ import (
 // all blocks it references have also already been stored.
 //
 // cb is an optional callback to call with each block before copying.
-// if cb is nil and a block is not found, returns block.ErrNotFound
+// if cb is nil and a block is not found, returns block.ErrNotFound.
 func CopyObjectToBucket(
 	ctx context.Context,
 	destCursor, srcCursor *Cursor,
@@ -37,6 +37,27 @@ func CopyObjectToBucket(
 	skipSubtreeExists bool,
 	cb WalkObjectBlocksCb,
 ) (*bucket.ObjectRef, error) {
+	ref, _, err := CopyObjectToBucketWithStats(
+		ctx,
+		destCursor,
+		srcCursor,
+		rootCtor,
+		maxConcurrency,
+		skipSubtreeExists,
+		cb,
+	)
+	return ref, err
+}
+
+// CopyObjectToBucketWithStats copies an object and returns its logical copy accounting.
+func CopyObjectToBucketWithStats(
+	ctx context.Context,
+	destCursor, srcCursor *Cursor,
+	rootCtor block.Ctor,
+	maxConcurrency int,
+	skipSubtreeExists bool,
+	cb WalkObjectBlocksCb,
+) (*bucket.ObjectRef, ObjectCopyStats, error) {
 	// transform the destination object ref (for returning)
 	srcRef := srcCursor.GetRef()
 	destinationRef := srcRef.Clone()
@@ -46,15 +67,15 @@ func CopyObjectToBucket(
 
 	// if the cursors are located in the same bucket and volume, do nothing.
 	if srcCursor.GetOpArgs().EqualVT(destCursor.GetOpArgs()) {
-		return destinationRef, nil
+		return destinationRef, ObjectCopyStats{}, nil
 	}
 
 	writeCursor, err := destCursor.FollowRef(ctx, destinationRef)
 	if err != nil {
 		if err == context.Canceled {
-			return nil, err
+			return nil, ObjectCopyStats{}, err
 		}
-		return nil, errors.Wrap(err, "construct write cursor")
+		return nil, ObjectCopyStats{}, errors.Wrap(err, "construct write cursor")
 	}
 	defer writeCursor.Release()
 
@@ -70,12 +91,14 @@ func CopyObjectToBucket(
 	// key: string (BlockRef)
 	// value: bool (seen)
 	var seenBlocks sync.Map
+	var seenBlockCount atomic.Int64
 	var copiedBlocks atomic.Int64
 	var dedupedBlocks atomic.Int64
 	var existingBlocks atomic.Int64
 	var writtenBlocks atomic.Int64
 	var skippedSubtrees atomic.Int64
 
+	var logicalSourceBytes atomic.Int64
 	// To copy the object fully, we have to traverse the block graph.
 	// We do this by recursively following the block refs.
 	// Note that GetBlockRefCtor must be implemented for this to work properly.
@@ -109,7 +132,8 @@ func CopyObjectToBucket(
 				return
 			}
 
-			// copy the block
+			seenBlockCount.Add(1)
+			logicalSourceBytes.Add(int64(len(ent.Data)))
 			// note: most implementations check Exists() inside PutBlock().
 			var writeRef *block.BlockRef
 			var writeExisted bool
@@ -144,14 +168,25 @@ func CopyObjectToBucket(
 		maxConcurrency,
 		false,
 	)
-	trace.Logf(ctx, "copy-block-copied-count", "%d", copiedBlocks.Load())
-	trace.Logf(ctx, "copy-block-dedupe-skip-count", "%d", dedupedBlocks.Load())
-	trace.Logf(ctx, "copy-block-existing-count", "%d", existingBlocks.Load())
-	trace.Logf(ctx, "copy-block-written-count", "%d", writtenBlocks.Load())
-	trace.Logf(ctx, "copy-block-skip-subtree-count", "%d", skippedSubtrees.Load())
+	stats := ObjectCopyStats{
+		BlocksSeen:         seenBlockCount.Load(),
+		BlocksCopied:       copiedBlocks.Load(),
+		BlocksExisting:     existingBlocks.Load(),
+		BlocksWritten:      writtenBlocks.Load(),
+		BlocksDeduped:      dedupedBlocks.Load(),
+		SubtreesSkipped:    skippedSubtrees.Load(),
+		LogicalSourceBytes: logicalSourceBytes.Load(),
+	}
+	trace.Logf(ctx, "copy-block-seen-count", "%d", stats.BlocksSeen)
+	trace.Logf(ctx, "copy-block-copied-count", "%d", stats.BlocksCopied)
+	trace.Logf(ctx, "copy-block-dedupe-skip-count", "%d", stats.BlocksDeduped)
+	trace.Logf(ctx, "copy-block-existing-count", "%d", stats.BlocksExisting)
+	trace.Logf(ctx, "copy-block-written-count", "%d", stats.BlocksWritten)
+	trace.Logf(ctx, "copy-block-skip-subtree-count", "%d", stats.SubtreesSkipped)
+	trace.Logf(ctx, "copy-block-logical-source-byte-count", "%d", stats.LogicalSourceBytes)
 	if err != nil {
-		return nil, err
+		return nil, stats, err
 	}
 
-	return destinationRef, nil
+	return destinationRef, stats, nil
 }

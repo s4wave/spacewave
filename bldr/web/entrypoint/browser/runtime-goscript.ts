@@ -24,6 +24,17 @@ declare let self: SharedWorkerGlobalScope & DedicatedWorkerGlobalScope
 interface Global {
   BLDR_INIT?: Uint8Array
   BLDR_WEB_RUNTIME_CLIENT_OPEN?: MessagePort
+  BLDR_NOTIFY_STARTUP_MARK?: (
+    label: string,
+    phase: string,
+    blocksSeen: number,
+    blocksCopied: number,
+    blocksExisting: number,
+    blocksWritten: number,
+    blocksDeduped: number,
+    subtreesSkipped: number,
+    logicalSourceBytes: number,
+  ) => void
 }
 
 const globalScope = self as unknown as Global
@@ -37,6 +48,29 @@ const webRuntime = new WebRuntime(
   createDocCb,
   removeDocCb,
 )
+globalScope.BLDR_NOTIFY_STARTUP_MARK = (
+  label,
+  phase,
+  blocksSeen,
+  blocksCopied,
+  blocksExisting,
+  blocksWritten,
+  blocksDeduped,
+  subtreesSkipped,
+  logicalSourceBytes,
+) => {
+  webRuntime.broadcastStartupMark(label, {
+    source: 'scheduler',
+    manifestCopyPhase: phase,
+    blocksSeen,
+    blocksCopied,
+    blocksExisting,
+    blocksWritten,
+    blocksDeduped,
+    subtreesSkipped,
+    logicalSourceBytes,
+  })
+}
 
 const goOpenStreamChannel = new MessageChannel()
 globalScope.BLDR_WEB_RUNTIME_CLIENT_OPEN = goOpenStreamChannel.port2

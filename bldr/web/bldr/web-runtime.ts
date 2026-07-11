@@ -333,7 +333,7 @@ class WebRuntimeClientInstance {
   }
 
   // postMessage writes a message via the client MessagePort.
-  private postMessage(msg: WebRuntimeToClient, xfer?: MessagePort[]) {
+  public postMessage(msg: WebRuntimeToClient, xfer?: MessagePort[]) {
     try {
       if (xfer && xfer.length) {
         this.port.postMessage(msg, xfer)
@@ -624,6 +624,22 @@ export class WebRuntime {
       this.runtimeHost.ServiceWorkerRpc.bind(this.runtimeHost),
     )
   }
+  // broadcastStartupMark forwards compact runtime accounting to attached documents.
+  public broadcastStartupMark(
+    label: string,
+    detail: Record<string, unknown>,
+  ): void {
+    for (const client of Object.values(this.clients)) {
+      if (
+        client.init.clientType !==
+        WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT
+      ) {
+        continue
+      }
+      client.postMessage({ startupMark: { label, detail } })
+    }
+  }
+
 
   // flushIndexCache forces the service worker to refresh its browser index cache.
   public async flushIndexCache(): Promise<void> {

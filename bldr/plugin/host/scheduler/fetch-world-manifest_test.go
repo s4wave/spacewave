@@ -2203,6 +2203,11 @@ func TestDownloadManifestYieldsColdStartCopyUntilPluginRunning(t *testing.T) {
 	if status == nil || status.phase != manifestCopyPhaseDone {
 		t.Fatalf("copy status = %#v, want done", status)
 	}
+	if status.stats.BlocksSeen == 0 ||
+		status.stats.BlocksCopied != status.stats.BlocksWritten+status.stats.BlocksExisting ||
+		status.stats.LogicalSourceBytes == 0 {
+		t.Fatalf("copy accounting = %#v, want complete logical copy totals", status.stats)
+	}
 }
 
 func TestDownloadManifestCopiesTransformedRemoteDAGAndStoresLocalWorldRef(t *testing.T) {

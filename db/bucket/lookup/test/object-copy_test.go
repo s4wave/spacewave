@@ -64,6 +64,14 @@ func TestCopyObjectToBucket(t *testing.T) {
 	}
 	srcCursor.SetRootRef(srcRef)
 
+	const destBucketID = "object-copy-dest"
+	if _, _, _, err := tb.Volume.ApplyBucketConfig(ctx, &bucket.Config{
+		Id:  destBucketID,
+		Rev: 1,
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+
 	// Set a destination transform conf
 	destTransformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_lz4.Config{},
@@ -73,12 +81,13 @@ func TestCopyObjectToBucket(t *testing.T) {
 	}
 
 	destCursor, err := baseSrcCursor.FollowRef(ctx, &bucket.ObjectRef{
+		BucketId:      destBucketID,
 		TransformConf: destTransformConf,
 	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	outRef, err := bucket_lookup.CopyObjectToBucket(
+	outRef, stats, err := bucket_lookup.CopyObjectToBucketWithStats(
 		ctx,
 		destCursor,
 		srcCursor,
@@ -89,6 +98,54 @@ func TestCopyObjectToBucket(t *testing.T) {
 	)
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+	if stats.BlocksSeen == 0 {
+		t.Fatal("expected copied graph to contain logical source blocks")
+	}
+	if stats.BlocksCopied != stats.BlocksWritten+stats.BlocksExisting {
+		t.Fatalf(
+			"copied blocks = %d, want written + existing = %d",
+			stats.BlocksCopied,
+			stats.BlocksWritten+stats.BlocksExisting,
+		)
+	}
+	if stats.BlocksCopied == 0 || stats.LogicalSourceBytes == 0 {
+		t.Fatalf("copy stats = %#v, want copied blocks and source bytes", stats)
+	}
+	_, repeatedStats, err := bucket_lookup.CopyObjectToBucketWithStats(
+		ctx,
+		destCursor,
+		srcCursor,
+		block_mock.NewRootBlock,
+		-1,
+		false,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if repeatedStats.BlocksSeen == 0 || repeatedStats.LogicalSourceBytes == 0 {
+		t.Fatalf("repeated copy stats = %#v, want logical source totals", repeatedStats)
+	}
+	if repeatedStats.BlocksWritten != 0 ||
+		repeatedStats.BlocksExisting != repeatedStats.BlocksCopied {
+		t.Fatalf("repeated copy stats = %#v, want existing destination blocks", repeatedStats)
+	}
+
+	_, sameBucketStats, err := bucket_lookup.CopyObjectToBucketWithStats(
+		ctx,
+		srcCursor,
+		srcCursor,
+		block_mock.NewRootBlock,
+		-1,
+		false,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if sameBucketStats != (bucket_lookup.ObjectCopyStats{}) {
+		t.Fatalf("same bucket stats = %#v, want zero", sameBucketStats)
 	}
 
 	resultCursor, err := baseSrcCursor.FollowRef(ctx, outRef)

@@ -6,6 +6,10 @@ import {
   type RuntimeClientStreamOpenGateResult,
   WebRuntimeClient,
 } from './web-runtime-client.js'
+import {
+  resetStartupMarksForTest,
+  startupMarkEvent,
+} from './startup-marks.js'
 
 interface Deferred<T> {
   promise: Promise<T>
@@ -93,6 +97,7 @@ describe('WebRuntimeClient', () => {
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
     vi.useRealTimers()
+    resetStartupMarksForTest()
   })
 
   it('keeps runtime connected ack pending until the generation closes', async () => {
@@ -197,6 +202,53 @@ describe('WebRuntimeClient', () => {
       closeReason: 'normal-close',
       activeStreams: 0,
     })
+    port2.close()
+  })
+
+  it('projects runtime copy accounting onto the document startup timeline', async () => {
+    const { port1, port2 } = new MessageChannel()
+    const client = new WebRuntimeClient(
+      'runtime',
+      'document',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+      vi.fn().mockResolvedValue(port1),
+      null,
+      null,
+    )
+
+    await connectClient(client, port2)
+    const markEvent = new Promise<void>((resolve) => {
+      globalThis.addEventListener(startupMarkEvent, () => resolve(), {
+        once: true,
+      })
+    })
+    port2.postMessage({
+      startupMark: {
+        label: 'manifest-copy.done',
+        detail: {
+          blocksSeen: 3,
+          blocksWritten: 2,
+          logicalSourceBytes: 1024,
+        },
+      },
+    })
+    await markEvent
+
+    const mark = globalThis.__swStartupMarks?.find(
+      (entry) => entry.label === 'manifest-copy.done',
+    )
+    expect(mark).toMatchObject({
+      label: 'manifest-copy.done',
+      detail: expect.objectContaining({
+        source: 'runtime',
+        runtimeId: 'runtime',
+        clientId: 'document',
+        blocksSeen: 3,
+        blocksWritten: 2,
+        logicalSourceBytes: 1024,
+      }),
+    })
+    client.close()
     port2.close()
   })
 

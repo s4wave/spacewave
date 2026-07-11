@@ -56,6 +56,11 @@ export interface WebRuntimeToClient {
   // connected acks that the runtime registered this client successfully.
   // sent as the first message on the channel from WebRuntimeClientInstance.
   connected?: true
+  // startupMark carries compact runtime startup accounting for the document timeline.
+  startupMark?: {
+    label: string
+    detail: Record<string, unknown>
+  }
 }
 
 // WebDocumentToWebRuntime is a message sent to the WebRuntime from the WebDocument.
