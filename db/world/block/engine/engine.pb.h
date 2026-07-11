@@ -434,6 +434,7 @@ class Config final : public ::google::protobuf::Message
     kDisableApplyObjectOpFieldNumber = 10,
     kVerboseFieldNumber = 12,
     kDisableChangelogFieldNumber = 13,
+    kRecoverMissingPersistedHeadFieldNumber = 14,
   };
   // string engine_id = 1;
   void clear_engine_id() ;
@@ -605,11 +606,21 @@ class Config final : public ::google::protobuf::Message
   void _internal_set_disable_changelog(bool value);
 
   public:
+  // bool recover_missing_persisted_head = 14;
+  void clear_recover_missing_persisted_head() ;
+  bool recover_missing_persisted_head() const;
+  void set_recover_missing_persisted_head(bool value);
+
+  private:
+  bool _internal_recover_missing_persisted_head() const;
+  void _internal_set_recover_missing_persisted_head(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:world.block.engine.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 13,
+  static const ::google::protobuf::internal::TcParseTable<4, 14,
                                    2, 124,
                                    2>
       _table_;
@@ -644,6 +655,7 @@ class Config final : public ::google::protobuf::Message
     bool disable_apply_object_op_;
     bool verbose_;
     bool disable_changelog_;
+    bool recover_missing_persisted_head_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1342,6 +1354,31 @@ inline bool Config::_internal_disable_apply_object_op() const {
 inline void Config::_internal_set_disable_apply_object_op(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_apply_object_op_ = value;
+}
+
+// bool recover_missing_persisted_head = 14;
+inline void Config::clear_recover_missing_persisted_head() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.recover_missing_persisted_head_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00002000U);
+}
+inline bool Config::recover_missing_persisted_head() const {
+  // @@protoc_insertion_point(field_get:world.block.engine.Config.recover_missing_persisted_head)
+  return _internal_recover_missing_persisted_head();
+}
+inline void Config::set_recover_missing_persisted_head(bool value) {
+  _internal_set_recover_missing_persisted_head(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
+  // @@protoc_insertion_point(field_set:world.block.engine.Config.recover_missing_persisted_head)
+}
+inline bool Config::_internal_recover_missing_persisted_head() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.recover_missing_persisted_head_;
+}
+inline void Config::_internal_set_recover_missing_persisted_head(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.recover_missing_persisted_head_ = value;
 }
 
 // bool verbose = 12;

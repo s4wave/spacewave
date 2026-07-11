@@ -106,6 +106,14 @@ export interface Config {
    */
   disableApplyObjectOp?: boolean
   /**
+   * RecoverMissingPersistedHead replaces a persisted head that cannot be
+   * resolved because one of its blocks is missing with InitHeadRef. An empty
+   * InitHeadRef creates a new World. Enable only for reconstructible state.
+   *
+   * @generated from field: bool recover_missing_persisted_head = 14;
+   */
+  recoverMissingPersistedHead?: boolean
+  /**
    * Verbose logs all operation results as debug messages.
    *
    * @generated from field: bool verbose = 12;
@@ -150,6 +158,12 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     {
       no: 10,
       name: 'disable_apply_object_op',
+      kind: 'scalar',
+      T: ScalarType.BOOL,
+    },
+    {
+      no: 14,
+      name: 'recover_missing_persisted_head',
       kind: 'scalar',
       T: ScalarType.BOOL,
     },

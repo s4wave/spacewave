@@ -14,6 +14,8 @@ import (
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/db/volume"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
@@ -115,6 +117,187 @@ func TestControllerGetWorldEngineReturnsMissingInitHeadError(t *testing.T) {
 		}
 	case <-getCtx.Done():
 		t.Fatalf("Execute did not return after publishing fatal startup error: %v", getCtx.Err())
+	}
+}
+
+func TestControllerRecoversMissingPersistedHead(t *testing.T) {
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+
+	currentCursor, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	currentTx, currentBlocks := currentCursor.BuildTransaction(nil)
+	currentBlocks.ClearAllRefs()
+	currentBlocks.SetBlock(world_block.NewWorld(true), true)
+	currentRootRef, _, err := currentTx.Write(ctx, true)
+	currentCursor.Release()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	currentHeadRef := &bucket.ObjectRef{
+		BucketId: tb.BucketId,
+		RootRef:  currentRootRef,
+	}
+
+	objectStoreID := "test-world-engine-recover-missing-head"
+	missingRootRef := controllerTestBlockRef(t, objectStoreID)
+	missingHeadRef := &bucket.ObjectRef{
+		BucketId: tb.BucketId,
+		RootRef:  missingRootRef,
+	}
+	writeControllerTestHead(t, ctx, tb, objectStoreID, missingHeadRef)
+
+	conf := NewConfig(
+		objectStoreID,
+		tb.Volume.GetID(),
+		tb.BucketId,
+		objectStoreID,
+		currentHeadRef,
+		nil,
+		false,
+	)
+	conf.RecoverMissingPersistedHead = true
+	ctrl, err := NewController(le, tb.Bus, conf, transform_all.BuildFactorySet())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	execCtx, execCancel := context.WithCancel(ctx)
+	execErrCh := make(chan error, 1)
+	go func() {
+		execErrCh <- ctrl.Execute(execCtx)
+	}()
+
+	getCtx, getCancel := context.WithTimeout(ctx, 2*time.Second)
+	defer getCancel()
+	eng, err := ctrl.GetWorldEngine(getCtx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if seqno, err := eng.GetSeqno(getCtx); err != nil {
+		t.Fatal(err.Error())
+	} else if seqno != 0 {
+		t.Fatalf("recovered world seqno = %d, want 0", seqno)
+	}
+
+	storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(ctx, tb.Bus, false, objectStoreID, tb.Volume.GetID(), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer storeRef.Release()
+	headState, found, err := ctrl.loadHeadState(ctx, storeVal.GetObjectStore())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !found {
+		t.Fatal("recovered world head was not persisted")
+	}
+	recoveredHeadRef := headState.GetHeadRef()
+	if recoveredHeadRef.GetRootRef().GetEmpty() {
+		t.Fatal("recovered world head is empty")
+	}
+	if recoveredHeadRef.GetRootRef().EqualsRef(missingRootRef) {
+		t.Fatal("recovered world retained the missing root")
+	}
+	if !recoveredHeadRef.GetRootRef().EqualsRef(currentRootRef) {
+		t.Fatal("recovered world did not select the configured current generation")
+	}
+
+	select {
+	case err := <-execErrCh:
+		t.Fatalf("Execute exited after recovery: %v", err)
+	default:
+	}
+
+	execCancel()
+	select {
+	case err := <-execErrCh:
+		if err != nil {
+			t.Fatalf("Execute shutdown error = %v", err)
+		}
+	case <-getCtx.Done():
+		t.Fatalf("Execute did not stop after cancellation: %v", getCtx.Err())
+	}
+}
+
+func TestControllerDoesNotRecoverMissingPersistedHeadByDefault(t *testing.T) {
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le, testbed.WithVerbose(false))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+
+	objectStoreID := "test-world-engine-missing-persisted-head"
+	missingHeadRef := &bucket.ObjectRef{
+		BucketId: tb.BucketId,
+		RootRef:  controllerTestBlockRef(t, objectStoreID),
+	}
+	writeControllerTestHead(t, ctx, tb, objectStoreID, missingHeadRef)
+
+	conf := NewConfig(
+		objectStoreID,
+		tb.Volume.GetID(),
+		tb.BucketId,
+		objectStoreID,
+		&bucket.ObjectRef{BucketId: tb.BucketId},
+		nil,
+		false,
+	)
+	ctrl, err := NewController(le, tb.Bus, conf, transform_all.BuildFactorySet())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ctrl.Execute(ctx); !errors.Is(err, block.ErrNotFound) {
+		t.Fatalf("Execute error = %v, want block.ErrNotFound", err)
+	}
+}
+
+func writeControllerTestHead(
+	t *testing.T,
+	ctx context.Context,
+	tb *testbed.Testbed,
+	objectStoreID string,
+	headRef *bucket.ObjectRef,
+) {
+	t.Helper()
+	storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(
+		ctx,
+		tb.Bus,
+		false,
+		objectStoreID,
+		tb.Volume.GetID(),
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer storeRef.Release()
+
+	ktx, err := storeVal.GetObjectStore().NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ktx.Discard()
+	data, err := (&HeadState{HeadRef: headRef}).MarshalVT()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ktx.Set(ctx, []byte(defaultHeadStateKey), data); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ktx.Commit(ctx); err != nil {
+		t.Fatal(err.Error())
 	}
 }
 

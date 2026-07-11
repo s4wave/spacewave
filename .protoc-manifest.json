@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "protocFlagsHash": "1d53e110d87721c381fdb6bed88cd65dd7bed78158fb5da07d3e1f482c34af53",
-  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.15.0,starpc=v0.49.18,protobuf-es-lite=1.1.0",
+  "protocFlagsHash": "49823027377d12dfb147aa075967098685a1d4cdde26e148f2d38ef14a777ccc",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.15.0,starpc=v0.49.18,protobuf-es-lite=1.1.1",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
       "hash": "b151ca9704cbadf4e0cf0a5f55e57d006ba858f63ba47a9bf2f9a92eb52a78c2",
@@ -1410,7 +1410,7 @@
       "protoFiles": ["core/resource/desktop/statusprojector/config.proto"]
     },
     "github.com/s4wave/spacewave/core/resource/listener": {
-      "hash": "d80bcd1f7f57703029be48121410614da1500410a40497c158c7778881c449c3",
+      "hash": "8a6d54b944a2eddb756ebd93777c947dbc833c51aadea479f59f175a5b6aab68",
       "generatedFiles": [
         "core/resource/listener/config.pb.cc",
         "core/resource/listener/config.pb.go",
@@ -1514,7 +1514,7 @@
       "protoFiles": ["core/sobject/world/engine/engine.proto"]
     },
     "github.com/s4wave/spacewave/core/space": {
-      "hash": "a78947569bcec17ef3ab2340149bd050967f5ebe0f2b7a56c2df8ae51b84668c",
+      "hash": "639b744ddbf93b8219573990c0bd1ea3098610ca84cdcbdd03630be01bb7b251",
       "generatedFiles": [
         "core/space/space.pb.cc",
         "core/space/space.pb.go",
@@ -2707,7 +2707,7 @@
       "protoFiles": ["db/world/block/world.proto"]
     },
     "github.com/s4wave/spacewave/db/world/block/engine": {
-      "hash": "f102f1c619b3082ba1a98311a9e64db4a5beb317caca128601bf2df2f340bee6",
+      "hash": "6aa20271840786406b41db931c238eea9d276ba14f8bfc9e85dcf0cd4058a6c3",
       "generatedFiles": [
         "db/world/block/engine/engine.pb.cc",
         "db/world/block/engine/engine.pb.go",
@@ -3728,6 +3728,17 @@
         "plugin/notes/sdk/notebook.proto"
       ]
     },
+    "github.com/s4wave/spacewave/plugin/sql": {
+      "hash": "7e5db3b08140dcf53405c8553ee3014525af1d2d0495779bed7d5d23afc46feb",
+      "generatedFiles": [
+        "plugin/sql/config.pb.cc",
+        "plugin/sql/config.pb.go",
+        "plugin/sql/config.pb.h",
+        "plugin/sql/config.pb.rs",
+        "plugin/sql/config.pb.ts"
+      ],
+      "protoFiles": ["plugin/sql/config.proto"]
+    },
     "github.com/s4wave/spacewave/sdk/account": {
       "hash": "f69ba591db8e8d79e093f73d2480a83157a90033690146d4125a392a39794d9d",
       "generatedFiles": [
@@ -4210,7 +4221,7 @@
       "protoFiles": ["sdk/secret/secret.proto"]
     },
     "github.com/s4wave/spacewave/sdk/session": {
-      "hash": "a716b55a594001102c095b8cfc8b7014d660ce2c23563f18813989d9830329c7",
+      "hash": "ffcbe4d164d88307d2a4ae1c101465d744ca5f214457d081400cc472d6ac4663",
       "generatedFiles": [
         "sdk/session/local-session.pb.cc",
         "sdk/session/local-session.pb.go",

@@ -55,6 +55,11 @@ pub struct Config {
     /// DisableApplyObjectOp directive.
     #[prost(bool, tag="10")]
     pub disable_apply_object_op: bool,
+    /// RecoverMissingPersistedHead replaces a persisted head that cannot be
+    /// resolved because one of its blocks is missing with InitHeadRef. An empty
+    /// InitHeadRef creates a new World. Enable only for reconstructible state.
+    #[prost(bool, tag="14")]
+    pub recover_missing_persisted_head: bool,
     /// Verbose logs all operation results as debug messages.
     #[prost(bool, tag="12")]
     pub verbose: bool,

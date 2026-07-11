@@ -82,7 +82,8 @@ inline constexpr Config::Impl_::Impl_(
         disable_apply_world_op_{false},
         disable_apply_object_op_{false},
         verbose_{false},
-        disable_changelog_{false} {}
+        disable_changelog_{false},
+        recover_missing_persisted_head_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR Config::Config(::_pbi::ConstantInitialized)
@@ -115,7 +116,7 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::world::block::engine::Config, _impl_._has_bits_),
-        16, // hasbit index offset
+        17, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::world::block::engine::Config, _impl_.engine_id_),
         PROTOBUF_FIELD_OFFSET(::world::block::engine::Config, _impl_.bucket_id_),
         PROTOBUF_FIELD_OFFSET(::world::block::engine::Config, _impl_.volume_id_),
@@ -128,6 +129,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::world::block::engine::Config, _impl_.disable_lookup_),
         PROTOBUF_FIELD_OFFSET(::world::block::engine::Config, _impl_.disable_apply_world_op_),
         PROTOBUF_FIELD_OFFSET(::world::block::engine::Config, _impl_.disable_apply_object_op_),
+        PROTOBUF_FIELD_OFFSET(::world::block::engine::Config, _impl_.recover_missing_persisted_head_),
         PROTOBUF_FIELD_OFFSET(::world::block::engine::Config, _impl_.verbose_),
         0,
         1,
@@ -141,6 +143,7 @@ const ::uint32_t
         8,
         9,
         10,
+        13,
         11,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::world::block::engine::HeadState, _impl_._has_bits_),
@@ -152,7 +155,7 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::world::block::engine::Config)},
-        {29, sizeof(::world::block::engine::HeadState)},
+        {31, sizeof(::world::block::engine::HeadState)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::world::block::engine::_Config_default_instance_._instance,
@@ -165,7 +168,7 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fwo
     "gine\032>github.com/s4wave/spacewave/db/blo"
     "ck/transform/transform.proto\0322github.com"
     "/s4wave/spacewave/db/bucket/bucket.proto"
-    "\"\374\002\n\006Config\022\021\n\tengine_id\030\001 \001(\t\022\021\n\tbucket"
+    "\"\244\003\n\006Config\022\021\n\tengine_id\030\001 \001(\t\022\021\n\tbucket"
     "_id\030\002 \001(\t\022\021\n\tvolume_id\030\003 \001(\t\022\027\n\017object_s"
     "tore_id\030\004 \001(\t\022\033\n\023object_store_prefix\030\005 \001"
     "(\t\022\035\n\025object_store_head_key\030\006 \001(\t\022(\n\rini"
@@ -174,7 +177,8 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fwo
     "orm.Config\022\031\n\021disable_changelog\030\r \001(\010\022\026\n"
     "\016disable_lookup\030\010 \001(\010\022\036\n\026disable_apply_w"
     "orld_op\030\t \001(\010\022\037\n\027disable_apply_object_op"
-    "\030\n \001(\010\022\017\n\007verbose\030\014 \001(\010\"0\n\tHeadState\022#\n\010"
+    "\030\n \001(\010\022&\n\036recover_missing_persisted_head"
+    "\030\016 \001(\010\022\017\n\007verbose\030\014 \001(\010\"0\n\tHeadState\022#\n\010"
     "head_ref\030\001 \001(\0132\021.bucket.ObjectRefb\006proto"
     "3"
 };
@@ -187,7 +191,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fengine_2fengine_2eproto = {
     false,
     false,
-    641,
+    681,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fengine_2fengine_2eproto,
     "github.com/s4wave/spacewave/db/world/block/engine/engine.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fworld_2fblock_2fengine_2fengine_2eproto_once,
@@ -271,9 +275,9 @@ Config::Config(
                offsetof(Impl_, disable_lookup_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, disable_lookup_),
-           offsetof(Impl_, disable_changelog_) -
+           offsetof(Impl_, recover_missing_persisted_head_) -
                offsetof(Impl_, disable_lookup_) +
-               sizeof(Impl_::disable_changelog_));
+               sizeof(Impl_::recover_missing_persisted_head_));
 
   // @@protoc_insertion_point(copy_constructor:world.block.engine.Config)
 }
@@ -293,9 +297,9 @@ inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, init_head_ref_),
            0,
-           offsetof(Impl_, disable_changelog_) -
+           offsetof(Impl_, recover_missing_persisted_head_) -
                offsetof(Impl_, init_head_ref_) +
-               sizeof(Impl_::disable_changelog_));
+               sizeof(Impl_::recover_missing_persisted_head_));
 }
 Config::~Config() {
   // @@protoc_insertion_point(destructor:world.block.engine.Config)
@@ -362,16 +366,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 13, 2, 124, 2>
+const ::_pbi::TcParseTable<4, 14, 2, 124, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    13, 120,  // max_field_number, fast_idx_mask
+    14, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294959104,  // skipmap
+    4294950912,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    13,  // num_field_entries
+    14,  // num_field_entries
     2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
@@ -434,7 +438,10 @@ Config::_table_ = {
     {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.disable_changelog_), 12>(),
      {104, 12, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_changelog_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // bool recover_missing_persisted_head = 14;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.recover_missing_persisted_head_), 13>(),
+     {112, 13, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.recover_missing_persisted_head_)}},
     {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
@@ -465,6 +472,8 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.verbose_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // bool disable_changelog = 13;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_changelog_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool recover_missing_persisted_head = 14;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.recover_missing_persisted_head_), _Internal::kHasBitsOffset + 13, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::bucket::ObjectRef>()},
@@ -517,10 +526,10 @@ PROTOBUF_NOINLINE void Config::Clear() {
       _impl_.state_transform_conf_->Clear();
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00001f00U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00003f00U)) {
     ::memset(&_impl_.disable_lookup_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.disable_changelog_) -
-        reinterpret_cast<char*>(&_impl_.disable_lookup_)) + sizeof(_impl_.disable_changelog_));
+        reinterpret_cast<char*>(&_impl_.recover_missing_persisted_head_) -
+        reinterpret_cast<char*>(&_impl_.disable_lookup_)) + sizeof(_impl_.recover_missing_persisted_head_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -664,6 +673,15 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
+  // bool recover_missing_persisted_head = 14;
+  if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+    if (this_._internal_recover_missing_persisted_head() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          14, this_._internal_recover_missing_persisted_head(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -743,7 +761,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.state_transform_conf_);
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00001f00U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00003f00U)) {
     // bool disable_lookup = 8;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_disable_lookup() != 0) {
@@ -771,6 +789,12 @@ PROTOBUF_NOINLINE void Config::Clear() {
     // bool disable_changelog = 13;
     if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (this_._internal_disable_changelog() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool recover_missing_persisted_head = 14;
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (this_._internal_recover_missing_persisted_head() != 0) {
         total_size += 2;
       }
     }
@@ -866,7 +890,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x00001f00U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00003f00U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (from._internal_disable_lookup() != 0) {
         _this->_impl_.disable_lookup_ = from._impl_.disable_lookup_;
@@ -890,6 +914,11 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
     if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (from._internal_disable_changelog() != 0) {
         _this->_impl_.disable_changelog_ = from._impl_.disable_changelog_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (from._internal_recover_missing_persisted_head() != 0) {
+        _this->_impl_.recover_missing_persisted_head_ = from._impl_.recover_missing_persisted_head_;
       }
     }
   }
@@ -919,8 +948,8 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_store_prefix_, &other->_impl_.object_store_prefix_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_store_head_key_, &other->_impl_.object_store_head_key_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.disable_changelog_)
-      + sizeof(Config::_impl_.disable_changelog_)
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.recover_missing_persisted_head_)
+      + sizeof(Config::_impl_.recover_missing_persisted_head_)
       - PROTOBUF_FIELD_OFFSET(Config, _impl_.init_head_ref_)>(
           reinterpret_cast<char*>(&_impl_.init_head_ref_),
           reinterpret_cast<char*>(&other->_impl_.init_head_ref_));

@@ -126,6 +126,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		stateCoordinator = stateVolume
 	}
+	var persistedHeadRef *bucket.ObjectRef
+
 	var headState *HeadState
 	if stateStore != nil {
 		// apply object store prefix
@@ -141,6 +143,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		if headStateFound {
 			headRef = headState.GetHeadRef()
+			if headRef != nil {
+				persistedHeadRef = headRef.Clone()
+			}
 		}
 	} else {
 		le.Debug("state store is not configured, changes will not be persisted")
@@ -155,6 +160,33 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if headRef.GetBucketId() == "" {
 		return errors.New("head ref bucket id required but was unset")
 	}
+
+	var recoveryBaseRef *bucket.ObjectRef
+	var recoveredMissingPersistedHead bool
+	recoverMissingPersistedHead := func(err error) bool {
+		if err == nil ||
+			!errors.Is(err, block.ErrNotFound) ||
+			persistedHeadRef == nil ||
+			recoveredMissingPersistedHead ||
+			!c.conf.GetRecoverMissingPersistedHead() {
+			return false
+		}
+
+		recoveredMissingPersistedHead = true
+		recoveryBaseRef = persistedHeadRef
+		if initRef == nil {
+			headRef = &bucket.ObjectRef{}
+		} else {
+			headRef = initRef.Clone()
+		}
+		if confBucketID := c.conf.GetBucketId(); confBucketID != "" {
+			headRef.BucketId = confBucketID
+		}
+		le.WithError(err).Warn("persisted world head is missing blocks; rebuilding world")
+		return true
+	}
+
+buildWorldEngine:
 
 	le.Debug("building world engine")
 	cursor, err := bucket_lookup.BuildCursor(
@@ -172,6 +204,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return nil
 	}
 	if err != nil {
+		if recoverMissingPersistedHead(err) {
+			goto buildWorldEngine
+		}
 		return err
 	}
 	defer cursor.Release()
@@ -194,9 +229,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 		headRef.RootRef = nrootRef
 		cursor.SetRootRef(nrootRef)
 		if stateStore != nil {
-			if err := c.writeHeadState(ctx, stateStore, nil, headRef.Clone()); err != nil {
+			if err := c.writeHeadState(ctx, stateStore, recoveryBaseRef, headRef.Clone()); err != nil {
 				return err
 			}
+			recoveryBaseRef = nil
 		}
 	}
 
@@ -254,15 +290,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 		engineOpts...,
 	)
 	if err != nil {
+		if recoverMissingPersistedHead(err) {
+			goto buildWorldEngine
+		}
 		return err
 	}
-	var headWatchDone <-chan struct{}
-	if useStateCoordinator {
-		headWatchDone = c.startCoordinatorHeadWatch(rctx, stateCoordinator, stateCoordScope, stateStore, engine)
-		defer func() {
-			<-headWatchDone
-		}()
-	}
+	defer engine.Close()
 
 	seqno, err := engine.GetSeqno(ctx)
 	if isReadOnlyInitHeadNotFound(err, stateStore, initRef) {
@@ -271,7 +304,25 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return nil
 	}
 	if err != nil {
+		if recoverMissingPersistedHead(err) {
+			_ = engine.Close()
+			goto buildWorldEngine
+		}
 		return err
+	}
+	if recoveryBaseRef != nil {
+		if err := c.writeHeadState(ctx, stateStore, recoveryBaseRef, headRef.Clone()); err != nil {
+			return err
+		}
+		recoveryBaseRef = nil
+	}
+
+	var headWatchDone <-chan struct{}
+	if useStateCoordinator {
+		headWatchDone = c.startCoordinatorHeadWatch(rctx, stateCoordinator, stateCoordScope, stateStore, engine)
+		defer func() {
+			<-headWatchDone
+		}()
 	}
 
 	le.WithField("world-seqno", seqno).Info("world engine ready")

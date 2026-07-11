@@ -48,6 +48,11 @@ message Config {
   // DisableApplyObjectOp directive.
   bool disable_apply_object_op = 10;
 
+  // RecoverMissingPersistedHead replaces a persisted head that cannot be
+  // resolved because one of its blocks is missing with InitHeadRef. An empty
+  // InitHeadRef creates a new World. Enable only for reconstructible state.
+  bool recover_missing_persisted_head = 14;
+
   // Verbose logs all operation results as debug messages.
   bool verbose = 12;
 

@@ -160,6 +160,7 @@ func NewEngine(
 	err := e.updateReadWriteTxns(taskCtx)
 	subtask.End()
 	if err != nil {
+		_ = e.Close()
 		return nil, err
 	}
 	return e, nil

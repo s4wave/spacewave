@@ -340,6 +340,7 @@ func BuildDistBus(
 		false,
 	)
 	engConf.DisableLookup = true
+	engConf.RecoverMissingPersistedHead = true
 
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,
