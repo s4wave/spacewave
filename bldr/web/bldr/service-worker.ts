@@ -40,6 +40,7 @@ const serviceWorkerId = `${serviceWorkerLogicalId}-${randomId()}`
 const baseURL = new URL(self.location.toString())
 
 const controlCacheName = 'bldr-control'
+const pluginCacheNamePrefix = 'bldr-plugin-'
 const browserReleasePath = '/browser-release.json'
 const bootAssetPath = '/boot.mjs'
 const browserIndexPath = '/b/__index.html'
@@ -98,6 +99,13 @@ export interface BrowserReleaseSyncMessage {
 // BrowserIndexRefreshMessage asks the SW to refresh the runtime browser shell.
 export interface BrowserIndexRefreshMessage {
   bldrRefreshBrowserIndex?: boolean
+}
+// PluginManifestRootMessage grants cache authority for one selected plugin root.
+export interface PluginManifestRootMessage {
+  bldrPluginManifestRoot?: {
+    pluginId: string
+    rootHash: string
+  }
 }
 
 interface DedicatedRuntimeHostConnectRequest {
@@ -181,17 +189,23 @@ export interface BrowserRuntimeFetchClientTracker {
   hasRuntimeFetchRelay(): boolean
 }
 
-// resetServiceWorkerTestState clears module-level cache handles for unit tests.
+// resetServiceWorkerTestState clears module-level state for unit tests.
 export function resetServiceWorkerTestState(): void {
   CACHES[controlCacheName] = undefined
   browserReleaseSyncInFlight = null
   browserReleaseLifecycleSyncLastSuccessMs = Number.NEGATIVE_INFINITY
   firstWebDocumentMessageMarked = false
+  activePluginRoots.clear()
+  desiredPluginRoots.clear()
+  pluginRootUpdates.clear()
 }
 
 let browserReleaseSyncInFlight: Promise<void> | null = null
 let browserReleaseLifecycleSyncLastSuccessMs = Number.NEGATIVE_INFINITY
 let firstWebDocumentMessageMarked = false
+const activePluginRoots = new Map<string, string>()
+const desiredPluginRoots = new Map<string, string>()
+const pluginRootUpdates = new Map<string, Promise<void>>()
 
 interface CacheWriteContext {
   cacheName: string
@@ -524,7 +538,10 @@ async function pruneReleaseCaches(state: BrowserReleaseState): Promise<void> {
   }
   const cacheNames = await caches.keys()
   for (const cacheName of cacheNames) {
-    if (!retainedCaches.has(cacheName)) {
+    if (
+      !retainedCaches.has(cacheName) &&
+      !cacheName.startsWith(pluginCacheNamePrefix)
+    ) {
       await caches.delete(cacheName)
     }
   }
@@ -785,82 +802,119 @@ async function matchPromotedCurrentGenerationResponse(
   return responseForMethod(request, response)
 }
 
-// isStaticPluginAssetSource reports whether the fetch targets an immutable
-// static plugin asset (plugin-assets / plugin-dist), excluding the dynamic
-// plugin HTTP path, which is request-specific and must always reach the runtime.
-function isStaticPluginAssetSource(source: BrowserFetchSource): boolean {
-  return (
-    isPluginRuntimeFetchSourceKind(source.kind) &&
-    !source.path.startsWith(pluginHttpPathPrefix)
-  )
+interface StaticPluginAsset {
+  pluginId: string
+  rootHash: string
 }
 
-// staticPluginAssetCacheRequest keys a static plugin asset by its path and
-// query within the current generation cache. The asset URL is stable across
-// builds (the plugin id prefix and lazy-chunk name are not content-hashed), so
-// the generation cache scope is what keeps a promoted build from serving an
-// earlier build's chunk.
+function parseStaticPluginAsset(
+  source: BrowserFetchSource,
+): StaticPluginAsset | null {
+  let prefix: string
+  if (source.path.startsWith(pluginDistPathPrefix)) {
+    prefix = pluginDistPathPrefix
+  } else if (source.path.startsWith(pluginAssetsPathPrefix)) {
+    prefix = pluginAssetsPathPrefix
+  } else {
+    return null
+  }
+  const pathAfterPrefix = source.path.slice(prefix.length)
+  const slash = pathAfterPrefix.indexOf('/')
+  if (slash <= 0) {
+    return null
+  }
+  const pluginId = pathAfterPrefix.slice(0, slash)
+  const rootHash = activePluginRoots.get(pluginId)
+  if (!rootHash) {
+    return null
+  }
+  return { pluginId, rootHash }
+}
+
+function buildPluginCachePrefix(pluginId: string): string {
+  return `${pluginCacheNamePrefix}${encodeURIComponent(pluginId)}-`
+}
+
+function buildPluginCacheName(pluginId: string, rootHash: string): string {
+  return `${buildPluginCachePrefix(pluginId)}${rootHash}`
+}
+
 function staticPluginAssetCacheRequest(request: Request): Request {
   const url = new URL(request.url)
   return buildCacheRequest(url.pathname + url.search)
 }
 
-// cacheStaticPluginAsset stores a successfully fetched static plugin asset in
-// the current generation cache so it can be served across a runtime relay gap,
-// the window where the page client that owned the relay is closing and the
-// next document has not yet registered its relay. Without it, a lazy chunk
-// import issued during that window has no live runtime client and fails.
 async function cacheStaticPluginAsset(
+  asset: StaticPluginAsset,
   request: Request,
   response: Response,
 ): Promise<void> {
-  if (request.method !== 'GET' || !response.ok) {
-    return
-  }
-  if (!canCacheBrowserReleaseRequests()) {
-    return
-  }
-  const state = await loadBrowserReleaseState()
-  const release = state.promotedCurrent
-  if (!release) {
+  if (
+    request.method !== 'GET' ||
+    !response.ok ||
+    activePluginRoots.get(asset.pluginId) !== asset.rootHash
+  ) {
     return
   }
   const cacheRequest = staticPluginAssetCacheRequest(request)
   if (!canCacheRequest(cacheRequest)) {
     return
   }
-  const cacheName = buildGenerationCacheName(release.generationId)
+  const cacheName = buildPluginCacheName(asset.pluginId, asset.rootHash)
   const cache = await caches.open(cacheName)
   await putCacheResponse(cache, cacheRequest, response, {
     cacheName,
     operation: 'cache static plugin asset',
-    generationId: release.generationId,
   })
 }
 
-// matchStaticPluginAsset returns a static plugin asset cached for the current
-// generation, the relay-gap fallback. Scoped to the promoted-current
-// generation so a stale chunk from an earlier build is never served; the cache
-// for a superseded generation is pruned on promotion.
 async function matchStaticPluginAsset(
+  asset: StaticPluginAsset,
   request: Request,
 ): Promise<Response | null> {
-  if (!canCacheBrowserReleaseRequests()) {
-    return null
-  }
-  const state = await loadBrowserReleaseState()
-  const release = state.promotedCurrent
-  if (!release) {
+  if (
+    request.method !== 'GET' ||
+    request.cache === 'reload' ||
+    request.cache === 'no-cache'
+  ) {
     return null
   }
   const cache = await caches.open(
-    buildGenerationCacheName(release.generationId),
+    buildPluginCacheName(asset.pluginId, asset.rootHash),
   )
   const response = await cache.match(staticPluginAssetCacheRequest(request))
-  if (!response) {
+  if (!response || activePluginRoots.get(asset.pluginId) !== asset.rootHash) {
     return null
   }
   return responseForMethod(request, response)
+}
+
+async function activatePluginManifestRoot(
+  pluginId: string,
+  rootHash: string,
+): Promise<void> {
+  const cacheName = buildPluginCacheName(pluginId, rootHash)
+  const cachePrefix = buildPluginCachePrefix(pluginId)
+  try {
+    const cacheNames = await caches.keys()
+    await Promise.all(
+      cacheNames
+        .filter((name) => name.startsWith(cachePrefix) && name !== cacheName)
+        .map((name) => caches.delete(name)),
+    )
+    if (desiredPluginRoots.get(pluginId) === rootHash) {
+      activePluginRoots.set(pluginId, rootHash)
+    }
+  } catch (error) {
+    activePluginRoots.delete(pluginId)
+    console.warn(
+      'ServiceWorker: %s: plugin cache activation failed: plugin=%s root=%s: %s',
+      serviceWorkerId,
+      pluginId,
+      rootHash,
+      castToError(error, 'unknown error').message,
+    )
+  }
 }
 
 export async function handleBrowserReleaseRequest(
@@ -1092,6 +1146,26 @@ export function handleServiceWorkerMessage(
   ev: ExtendableMessageEvent,
   deps: ServiceWorkerMessageDeps,
 ): void {
+  const pluginManifestRoot = readPluginManifestRootMessage(ev.data)
+  if (pluginManifestRoot) {
+    const { pluginId, rootHash } = pluginManifestRoot
+    desiredPluginRoots.set(pluginId, rootHash)
+    if (activePluginRoots.get(pluginId) !== rootHash) {
+      activePluginRoots.delete(pluginId)
+    }
+    const previousUpdate = pluginRootUpdates.get(pluginId) ?? Promise.resolve()
+    const update = previousUpdate
+      .then(() => activatePluginManifestRoot(pluginId, rootHash))
+      .finally(() => {
+        if (pluginRootUpdates.get(pluginId) === update) {
+          pluginRootUpdates.delete(pluginId)
+        }
+      })
+    pluginRootUpdates.set(pluginId, update)
+    ev.waitUntil(update)
+    return
+  }
+
   if (isBrowserReleaseSyncMessage(ev.data)) {
     if (browserReleaseSyncInFlight) {
       return
@@ -1149,6 +1223,23 @@ export function handleServiceWorkerMessage(
       serviceWorkerId,
     })
   }
+}
+
+function readPluginManifestRootMessage(
+  data: unknown,
+): PluginManifestRootMessage['bldrPluginManifestRoot'] | null {
+  if (!data || typeof data !== 'object') {
+    return null
+  }
+  const value = (data as PluginManifestRootMessage).bldrPluginManifestRoot
+  if (
+    !value ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value.pluginId) ||
+    !/^[1-9A-HJ-NP-Za-km-z]+$/.test(value.rootHash)
+  ) {
+    return null
+  }
+  return value
 }
 
 function isBrowserReleaseSyncMessage(
@@ -1708,13 +1799,20 @@ export async function swFetch(
     }
     return response
   }
-  const staticPluginAsset = isStaticPluginAssetSource(source)
-  // A static plugin asset is a content-hashed plugin frontend chunk served only
-  // by the running plugin runtime; on first load it is in no cache. During the
-  // page-client close / relay-establishment gap the relay is briefly absent or
-  // resolves to a dying client, which fails the chunk fetch and breaks an
-  // in-flight navigation. Wait once for the next relay (event-driven, bounded)
-  // and retry instead of failing.
+  const staticPluginAssetSource =
+    source.path.startsWith(pluginDistPathPrefix) ||
+    source.path.startsWith(pluginAssetsPathPrefix)
+  let staticPluginAsset = parseStaticPluginAsset(source)
+  if (staticPluginAsset) {
+    const cached = await matchStaticPluginAsset(staticPluginAsset, request)
+    if (cached) {
+      return cached
+    }
+  }
+  // Static plugin assets are available only through the running runtime. During
+  // a page-client handover, wait once for the replacement relay. A root-scoped
+  // cache can satisfy the request immediately when the current manifest has
+  // already granted authority.
   for (let attempt = 0; attempt < 2; attempt++) {
     const runtimeFetchClientId = resolveBrowserRuntimeFetchClientId(
       ev.clientId || '',
@@ -1723,10 +1821,15 @@ export async function swFetch(
       serviceWorkerLogicalId,
     )
     if (!runtimeFetchClientId) {
-      if (staticPluginAsset) {
-        const cached = await matchStaticPluginAsset(request)
-        if (cached) {
-          return cached
+      if (staticPluginAssetSource) {
+        if (staticPluginAsset) {
+          const cached = await matchStaticPluginAsset(
+            staticPluginAsset,
+            request,
+          )
+          if (cached) {
+            return cached
+          }
         }
         if (
           attempt === 0 &&
@@ -1754,15 +1857,16 @@ export async function swFetch(
         },
       ).finally(() => trackedFetch.release())
     } catch (err) {
-      if (staticPluginAsset) {
-        const cached = await matchStaticPluginAsset(request)
-        if (cached) {
-          return cached
+      if (staticPluginAssetSource) {
+        if (staticPluginAsset) {
+          const cached = await matchStaticPluginAsset(
+            staticPluginAsset,
+            request,
+          )
+          if (cached) {
+            return cached
+          }
         }
-        // The proxy reached a relay document but its runtime client channel was
-        // torn down (e.g. the relaying document closed and the client is
-        // rerouting through a surviving document). Wait for the runtime client
-        // to reconnect, not merely for a document to exist, before retrying.
         if (
           attempt === 0 &&
           (await webDocumentTracker.waitForRuntimeClientReady(
@@ -1775,14 +1879,39 @@ export async function swFetch(
       throw err
     }
 
-    if (staticPluginAsset) {
+    if (
+      staticPluginAsset &&
+      desiredPluginRoots.get(staticPluginAsset.pluginId) !==
+        staticPluginAsset.rootHash
+    ) {
+      await pluginRootUpdates.get(staticPluginAsset.pluginId)
+      if (attempt === 0) {
+        staticPluginAsset = parseStaticPluginAsset(source)
+        continue
+      }
+      return new Response('plugin manifest root changed during fetch', {
+        status: 503,
+      })
+    }
+
+    if (staticPluginAssetSource) {
       if (response.ok) {
-        ev.waitUntil(cacheStaticPluginAsset(request, response.clone()))
+        if (staticPluginAsset) {
+          ev.waitUntil(
+            cacheStaticPluginAsset(
+              staticPluginAsset,
+              request,
+              response.clone(),
+            ),
+          )
+        }
         return response
       }
-      const cached = await matchStaticPluginAsset(request)
-      if (cached) {
-        return cached
+      if (staticPluginAsset) {
+        const cached = await matchStaticPluginAsset(staticPluginAsset, request)
+        if (cached) {
+          return cached
+        }
       }
     }
     return response
