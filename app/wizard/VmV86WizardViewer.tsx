@@ -21,7 +21,7 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
-import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 
 import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 import { keyToIRI, iriToKey } from '@s4wave/sdk/world/graph-utils.js'
@@ -288,6 +288,34 @@ function formatImageLabel(img: V86Image): string {
   return name
 }
 
+export interface V86CatalogErrorCopy {
+  title: string
+  detail: string
+  unpublished: boolean
+}
+
+export function getV86CatalogErrorCopy(error: unknown): V86CatalogErrorCopy {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : ''
+  const unpublished =
+    /published head|not published|no published|empty catalog/i.test(message)
+  return unpublished
+    ? {
+        title: 'No VM images are published yet',
+        detail: 'This image catalog has no published images to copy.',
+        unpublished: true,
+      }
+    : {
+        title: 'Image catalog unavailable',
+        detail: 'The VM image catalog could not be loaded. Try again.',
+        unpublished: false,
+      }
+}
+
 // VmV86WizardViewer is the custom wizard viewer for creating V86 VMs.
 // Step 0: image source selection (existing in-space V86Image, inherit from
 // existing VmV86, or copy default from CDN). Step 1: VM name and memory
@@ -323,6 +351,7 @@ export function VmV86WizardViewer({
 
   const [creating, setCreating] = useState(false)
   const [cdnPickerOpen, setCdnPickerOpen] = useState(false)
+  const [operationError, setOperationError] = useState('')
   const existingObjectKeys = useMemo(
     () =>
       spaceState.worldContents?.objects?.map((obj) => obj.objectKey ?? '') ??
@@ -459,6 +488,7 @@ export function VmV86WizardViewer({
 
   const handleSelectInSpaceImage = useCallback(
     (imageKey: string) => {
+      setOperationError('')
       const next: V86WizardConfig = { ...cfg }
       next.source = V86WizardConfig_Source.EXISTING_IN_SPACE
       next.imageObjectKey = imageKey
@@ -474,6 +504,7 @@ export function VmV86WizardViewer({
 
   const handlePickCdnEntry = useCallback(
     (cdnSrcKey: string) => {
+      setOperationError('')
       const next: V86WizardConfig = { ...cfg }
       next.source = V86WizardConfig_Source.COPY_FROM_CDN
       next.imageObjectKey = V86_USER_IMAGE_OBJECT_KEY
@@ -513,20 +544,27 @@ export function VmV86WizardViewer({
   const handleFinalize = useCallback(async () => {
     if (!state || creating || !localName.trim()) return
     if (!cfg.imageObjectKey) {
-      toast.error('Select a VM image source before creating.')
+      const message = 'Choose a VM image before creating the VM.'
+      setOperationError(message)
+      toast.error(message)
       return
     }
     if (
       cfg.source === V86WizardConfig_Source.COPY_FROM_CDN &&
       !cfg.cdnSourceObjectKey
     ) {
-      toast.error('Pick a CDN image to copy before creating.')
+      const message = 'Choose an image from the catalog before creating the VM.'
+      setOperationError(message)
+      toast.error(message)
       return
     }
     if (!sessionPeerId) {
-      toast.error('Session peer id not available; cannot create VM.')
+      const message = 'VM creation is not ready in this session. Try again.'
+      setOperationError(message)
+      toast.error(message)
       return
     }
+    setOperationError('')
     setCreating(true)
     try {
       await persistDraftState()
@@ -564,9 +602,9 @@ export function VmV86WizardViewer({
       navigateToObjects([vmKey])
     } catch (err) {
       console.error('v86 finalize: failed', err)
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to create V86 VM',
-      )
+      const message = 'VM could not be created. Check the image and try again.'
+      setOperationError(message)
+      toast.error(message)
     } finally {
       setCreating(false)
     }
@@ -624,6 +662,7 @@ export function VmV86WizardViewer({
         }
         step={step}
         totalSteps={2}
+        stepName={step === 0 ? 'Choose image' : 'Configure VM'}
         localName={localName}
         onUpdateName={handleUpdateName}
         onBack={() => void handleBack()}
@@ -632,6 +671,11 @@ export function VmV86WizardViewer({
         namePlaceholder="e.g. debian-lab"
         nameStep={1}
         creating={creating}
+        creatingLabel={
+          cfg.source === V86WizardConfig_Source.COPY_FROM_CDN
+            ? 'Copying image and creating VM…'
+            : `Opening ${localName || 'VM'}…`
+        }
         onFinalize={handleFinalizeClick}
         canFinalize={canFinalize}
         finalizeStep={1}
@@ -657,6 +701,15 @@ export function VmV86WizardViewer({
             selectedCdnImage={selectedCdnImage}
             existingDefault={existingDefault}
           />
+        )}
+        {operationError && (
+          <div
+            className="border-destructive/15 bg-destructive/5 text-destructive rounded-lg border p-3 text-xs leading-relaxed"
+            role="alert"
+          >
+            <div className="font-medium">VM could not be created</div>
+            <div className="mt-0.5">{operationError}</div>
+          </div>
         )}
       </WizardShell>
       {cdnPickerOpen && (
@@ -694,7 +747,7 @@ function SourcePickerStep({
         'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all duration-150',
         cfg.source === V86WizardConfig_Source.EXISTING_IN_SPACE &&
           cfg.imageObjectKey === existingDefault.imageKey &&
-          'border-brand/30 bg-brand/5',
+          'border-brand/30 bg-brand/10',
       )}
       onClick={() => onSelectInSpace(existingDefault.imageKey)}
     >
@@ -702,7 +755,7 @@ function SourcePickerStep({
         <LuRefreshCcw className="text-foreground-alt/50 size-3.5" />
       </span>
       <div className="min-w-0">
-        <div className="text-foreground text-xs font-medium">
+        <div className="text-foreground text-sm font-medium">
           Use same image as {existingDefault.name}
         </div>
         <div className="text-foreground-alt/50 text-xs">
@@ -721,6 +774,17 @@ function SourcePickerStep({
         </h3>
       </div>
       <div className="space-y-2">
+        {pending &&
+          inSpaceImages.length === 0 &&
+          !existingDefault?.imageKey && (
+            <LoadingCard
+              view={{
+                state: 'active',
+                title: 'Looking for VM images in this Space…',
+                detail: 'Reading images that are ready to use.',
+              }}
+            />
+          )}
         {shortcutRow}
         {inSpaceImages.map((entry) => (
           <button
@@ -730,7 +794,7 @@ function SourcePickerStep({
               'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all duration-150',
               cfg.source === V86WizardConfig_Source.EXISTING_IN_SPACE &&
                 cfg.imageObjectKey === entry.objectKey &&
-                'border-brand/30 bg-brand/5',
+                'border-brand/30 bg-brand/10',
             )}
             onClick={() => onSelectInSpace(entry.objectKey)}
           >
@@ -738,7 +802,7 @@ function SourcePickerStep({
               <LuHardDrive className="text-foreground-alt/50 size-3.5" />
             </span>
             <div className="min-w-0">
-              <div className="text-foreground text-xs font-medium">
+              <div className="text-foreground text-sm font-medium">
                 {formatImageLabel(entry.image)}
               </div>
               <div className="text-foreground-alt/50 truncate text-xs">
@@ -747,43 +811,47 @@ function SourcePickerStep({
             </div>
           </button>
         ))}
-        <button
-          type="button"
-          className={cn(
-            'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all duration-150',
-            cfg.source === V86WizardConfig_Source.COPY_FROM_CDN &&
-              'border-brand/30 bg-brand/5',
+        {!pending &&
+          (inSpaceImages.length > 0 || existingDefault?.imageKey) && (
+            <button
+              type="button"
+              className={cn(
+                'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all duration-150',
+                cfg.source === V86WizardConfig_Source.COPY_FROM_CDN &&
+                  'border-brand/30 bg-brand/5',
+              )}
+              onClick={onOpenCdnPicker}
+            >
+              <span className="bg-brand/10 flex size-7 shrink-0 items-center justify-center rounded-md">
+                <LuCloud className="text-brand size-3.5" />
+              </span>
+              <div className="min-w-0">
+                <div className="text-foreground text-sm font-medium">
+                  Add image from catalog
+                </div>
+                <div className="text-foreground-alt/70 text-xs leading-relaxed">
+                  Copy a published VM image into this Space.
+                </div>
+              </div>
+            </button>
           )}
-          onClick={onOpenCdnPicker}
-        >
-          <span className="bg-brand/10 flex size-7 shrink-0 items-center justify-center rounded-md">
-            <LuCloud className="text-brand size-3.5" />
-          </span>
-          <div className="min-w-0">
-            <div className="text-foreground text-xs font-medium">
-              Copy default from CDN
-            </div>
-            <div className="text-foreground-alt/50 text-xs">
-              Download a published Aperture V86Image into this Space.
-            </div>
-          </div>
-        </button>
       </div>
-      {pending && (
-        <div className="mt-2">
-          <LoadingInline
-            label="Loading images from this Space"
-            tone="muted"
-            size="sm"
-          />
-        </div>
-      )}
       {!pending && inSpaceImages.length === 0 && !existingDefault?.imageKey && (
-        <div className="border-foreground/6 bg-background-card/30 text-foreground-alt/40 mt-2 flex items-center gap-2 rounded-lg border px-3.5 py-3 text-xs">
-          <LuHardDrive className="size-3.5 shrink-0" />
-          No V86Images exist in this Space yet. Copy one from the CDN to
-          continue.
-        </div>
+        <InfoCard
+          icon={<LuHardDrive className="text-foreground-alt/60 size-3.5" />}
+          title="No VM images in this Space"
+        >
+          <p className="text-foreground-alt/70 text-xs leading-relaxed">
+            Copy a published image from the catalog to continue.
+          </p>
+          <Button
+            size="sm"
+            onClick={onOpenCdnPicker}
+            className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground mt-3 h-7 rounded-md border px-3 text-xs"
+          >
+            Browse image catalog
+          </Button>
+        </InfoCard>
       )}
     </section>
   )
@@ -807,52 +875,66 @@ function ConfigStep({
   existingDefault,
 }: ConfigStepProps) {
   const isCdn = cfg.source === V86WizardConfig_Source.COPY_FROM_CDN
+  const imageSummary = isCdn
+    ? selectedCdnImage
+      ? `Will copy from catalog: ${formatImageLabel(selectedCdnImage)}`
+      : `Catalog image: ${cfg.cdnSourceObjectKey || 'Not selected'}`
+    : selectedImage
+      ? formatImageLabel(selectedImage)
+      : existingDefault?.imageKey
+        ? `Using ${existingDefault.imageKey} from ${existingDefault.name}`
+        : cfg.imageObjectKey || 'Not selected'
+
   return (
     <div className="space-y-3">
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-            <LuCpu className="size-3.5" />
-            Memory
-          </h3>
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {MEMORY_OPTIONS.map((mb) => (
-            <button
-              type="button"
-              key={mb}
-              className={cn(
-                'border-foreground/10 bg-background/20 text-foreground-alt hover:border-foreground/20 hover:bg-background/30 rounded-md border px-3 py-2 text-left text-xs transition-all duration-150 select-none',
-                memoryMb === mb && 'border-brand/30 bg-brand/5 text-foreground',
-              )}
-              onClick={() => onMemoryChange(mb)}
-            >
-              {mb} MB
-            </button>
-          ))}
-        </div>
-      </section>
-      <div className="border-foreground/6 bg-background-card/30 flex items-start gap-3 rounded-lg border p-3.5">
-        <span className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
-          <LuCpu className="text-foreground-alt/50 size-3.5" />
-        </span>
-        <div className="flex flex-col gap-0.5">
-          <div className="text-foreground text-xs font-medium select-none">
+      <div className="border-foreground/6 bg-background-card/30 space-y-3 rounded-lg border p-3.5">
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
+              <LuCpu className="size-3.5" />
+              Memory
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {MEMORY_OPTIONS.map((mb) => (
+              <button
+                type="button"
+                key={mb}
+                className={cn(
+                  'border-foreground/10 bg-background/20 text-foreground-alt hover:border-foreground/20 hover:bg-background/30 rounded-md border px-3 py-2 text-left text-xs transition-all duration-150 select-none',
+                  memoryMb === mb &&
+                    'border-brand/30 bg-brand/10 text-foreground',
+                )}
+                onClick={() => onMemoryChange(mb)}
+              >
+                {mb} MB
+              </button>
+            ))}
+          </div>
+        </section>
+        <section className="border-foreground/8 border-t pt-3">
+          <div className="text-foreground mb-2 flex items-center gap-1.5 text-xs font-medium">
+            <LuHardDrive className="size-3.5" />
             Image
           </div>
-          <div className="text-foreground-alt/50 text-xs">
-            {isCdn
-              ? selectedCdnImage
-                ? `Will copy from CDN: ${formatImageLabel(selectedCdnImage)}`
-                : `Will copy from CDN: ${cfg.cdnSourceObjectKey || '(pending)'}`
-              : selectedImage
-                ? formatImageLabel(selectedImage)
-                : existingDefault?.imageKey
-                  ? `Inheriting image ${existingDefault.imageKey} from ${existingDefault.name}`
-                  : cfg.imageObjectKey || '(no image selected)'}
+          <div className="text-foreground text-sm font-medium">
+            {imageSummary}
           </div>
-        </div>
+          <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
+            {isCdn
+              ? 'The image is copied into this Space before the VM opens.'
+              : 'The VM uses an image already stored in this Space.'}
+          </p>
+        </section>
       </div>
+      {!cfg.imageObjectKey && (
+        <div
+          className="border-destructive/15 bg-destructive/5 text-destructive rounded-lg border p-3 text-xs leading-relaxed"
+          role="alert"
+        >
+          Choose a VM image before creating the VM.
+        </div>
+      )}
     </div>
   )
 }
@@ -887,6 +969,11 @@ function CdnImagePickerModal({
   )
   const entries = entriesResource.value
   const loadError = cdnSpaceResource.error ?? entriesResource.error
+  const errorCopy = loadError ? getV86CatalogErrorCopy(loadError) : undefined
+  const handleRetry = () => {
+    if (cdnSpaceResource.error) cdnSpaceResource.retry()
+    if (entriesResource.error) entriesResource.retry()
+  }
 
   return (
     <div
@@ -897,11 +984,11 @@ function CdnImagePickerModal({
       <div
         role="presentation"
         className="border-foreground/8 bg-background-card/95 flex max-h-[80vh] w-full max-w-md flex-col gap-3 rounded-xl border p-4 shadow-lg backdrop-blur-sm"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <h3 className="text-foreground text-sm font-semibold tracking-tight select-none">
-            Pick a CDN V86Image
+            VM image catalog
           </h3>
           <Button
             variant="outline"
@@ -914,34 +1001,62 @@ function CdnImagePickerModal({
         </div>
         <div className="space-y-2 overflow-y-auto">
           {!entries && !loadError && (
-            <LoadingInline label="Loading" tone="muted" size="sm" />
+            <LoadingCard
+              view={{
+                state: 'active',
+                title: 'Loading image catalog',
+                detail: 'Looking for published VM images.',
+              }}
+            />
           )}
-          {loadError && (
-            <span className="text-destructive text-xs">
-              {loadError.message}
-            </span>
+          {errorCopy && (
+            <div
+              className="border-destructive/15 bg-destructive/5 rounded-lg border p-3"
+              role="alert"
+            >
+              <div className="text-destructive text-sm font-semibold">
+                {errorCopy.title}
+              </div>
+              <p className="text-destructive mt-1 text-xs leading-relaxed">
+                {errorCopy.detail}
+              </p>
+              {!errorCopy.unpublished && (
+                <Button
+                  size="sm"
+                  onClick={handleRetry}
+                  className="border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/15 mt-3 h-7 rounded-md border px-3 text-xs"
+                >
+                  Retry
+                </Button>
+              )}
+            </div>
           )}
           {entries && entries.length === 0 && !loadError && (
-            <span className="text-foreground-alt text-xs">
-              No V86Images published in this CDN yet.
-            </span>
+            <InfoCard
+              icon={<LuCloud className="text-foreground-alt/60 size-3.5" />}
+              title="No VM images are published yet"
+            >
+              <p className="text-foreground-alt/70 text-xs leading-relaxed">
+                This image catalog has no published images to copy.
+              </p>
+            </InfoCard>
           )}
           {entries?.map((entry) => (
             <button
               type="button"
               key={entry.objectKey}
-              className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full flex-col items-start gap-1 rounded-lg border p-3 text-left transition-all duration-150"
+              className="border-foreground/10 bg-background-card/30 hover:border-foreground/20 hover:bg-background-card/50 flex w-full flex-col items-start gap-1 rounded-lg border p-3 text-left transition-all duration-150"
               onClick={() => onSelect(entry.objectKey)}
             >
-              <span className="text-foreground text-xs font-medium">
+              <span className="text-foreground text-sm font-medium">
                 {formatImageLabel(entry.image)}
               </span>
-              <span className="text-foreground-alt/50 text-xs">
+              <span className="text-foreground-alt/60 text-xs leading-relaxed">
                 {entry.metadataError
-                  ? `Metadata decode failed: ${entry.metadataError}`
+                  ? 'Image details are unavailable.'
                   : entry.image.distro || ''}
                 {!entry.metadataError && entry.image.tags?.length
-                  ? `  ·  ${entry.image.tags.join(', ')}`
+                  ? ` · ${entry.image.tags.join(', ')}`
                   : ''}
               </span>
             </button>
