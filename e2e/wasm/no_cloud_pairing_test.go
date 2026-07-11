@@ -30,7 +30,7 @@ func TestNoCloudPairingDirect(t *testing.T) {
 		t.Fatalf("resolve wasm compiler: %v", err)
 	}
 	if !e2eWasmBrowserWebRTCEnabled(compiler) {
-		t.Skipf("requires the native Go browser WebRTC transport; compiler=%s", compiler)
+		t.Skipf("requires browser WebRTC transport support; compiler=%s", compiler)
 	}
 
 	sessA := harness(t).NewCleanSession(t)

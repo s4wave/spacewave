@@ -314,16 +314,16 @@ func TestConfigureGoScriptForManifestRemovesSeedRuntimeConfig(t *testing.T) {
 }
 
 func TestE2EWasmBrowserWebRTCEnabled(t *testing.T) {
-	if !e2eWasmBrowserWebRTCEnabled(E2EWasmCompilerGo) {
-		t.Fatal("expected native Go browser WebRTC enabled")
-	}
 	for _, compiler := range []E2EWasmCompiler{
-		E2EWasmCompilerTinyGo,
+		E2EWasmCompilerGo,
 		E2EWasmCompilerGoScript,
 	} {
-		if e2eWasmBrowserWebRTCEnabled(compiler) {
-			t.Fatalf("expected browser WebRTC disabled for %s", compiler)
+		if !e2eWasmBrowserWebRTCEnabled(compiler) {
+			t.Fatalf("expected browser WebRTC enabled for %s", compiler)
 		}
+	}
+	if e2eWasmBrowserWebRTCEnabled(E2EWasmCompilerTinyGo) {
+		t.Fatal("expected browser WebRTC disabled for tinygo")
 	}
 }
 

@@ -187,7 +187,7 @@ func ResolveE2EWasmCompiler() (E2EWasmCompiler, error) {
 }
 
 func e2eWasmBrowserWebRTCEnabled(compiler E2EWasmCompiler) bool {
-	return compiler == E2EWasmCompilerGo
+	return compiler == E2EWasmCompilerGo || compiler == E2EWasmCompilerGoScript
 }
 
 // E2EWasmTraceServiceEnabled reports whether the trace service should be

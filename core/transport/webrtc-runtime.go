@@ -1,4 +1,4 @@
-//go:build !tinygo && !goscript
+//go:build !tinygo
 
 package transport
 
@@ -10,7 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	"github.com/s4wave/spacewave/net/transport/controller"
+	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 	"github.com/s4wave/spacewave/net/transport/webrtc"
 	"github.com/s4wave/spacewave/net/transport/websocket"
 	"github.com/sirupsen/logrus"
