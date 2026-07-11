@@ -4,6 +4,7 @@ import {
   LuClipboardCheck,
   LuHardDrive,
   LuKeyRound,
+  LuLogIn,
   LuMonitor,
   LuServer,
   LuTerminal,
@@ -45,6 +46,7 @@ import {
 } from '@s4wave/sdk/sshhost/sshhost.pb.js'
 import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
+import { useNavigate } from '@s4wave/web/router/router.js'
 
 import { applySpaceIndexPath } from '../space/space-settings.js'
 import { buildObjectKey } from '../space/create-op-builders.js'
@@ -56,6 +58,8 @@ import { ComputersDashboardTypeID } from './computers.js'
 import { buildCreateSshHostTerminalOpData } from './terminal-action.js'
 
 const DEFAULT_SSH_PORT = 22
+const DEVICE_APPROVAL_CLOUD_REQUIRED =
+  'Device linking requires a Spacewave Cloud session. Sign in or create an account to continue.'
 
 type AddDeviceWizardMode = 'spacelink' | 'ssh'
 type SshAuthMode = 'password' | 'private-key'
@@ -111,10 +115,18 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
   const session = useResourceValue(SessionContext.useContext()) as
     | Session
     | undefined
-  const { sessionInfo } = useSessionInfo(session)
+  const {
+    sessionInfo,
+    loading: sessionInfoLoading,
+    supportsDeviceApproval,
+  } = useSessionInfo(session)
   const sharedObject = useResourceValue(SharedObjectContext.useContext())
   const sharedObjectId = sharedObject?.meta.sharedObjectId ?? ''
   const { spaceState } = SpaceContainerContext.useContext()
+  const navigate = useNavigate()
+  const handleSignIn = useCallback(() => {
+    navigate({ path: '/login' })
+  }, [navigate])
   const [busy, setBusy] = useState(false)
   const [sshCredentialDraft, setSshCredentialDraft] =
     useState<SshCredentialDraft>({
@@ -504,6 +516,9 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
                 icon={<LuMonitor className="size-3.5" />}
               />
               <SpaceLinkApprovalPanel
+                supported={supportsDeviceApproval}
+                loading={sessionInfoLoading}
+                onSignIn={handleSignIn}
                 config={config}
                 ticket={ticket}
                 busy={busy}
@@ -542,6 +557,9 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
                     icon={<LuTerminal className="size-3.5" />}
                   />
                   <SpaceLinkApprovalPanel
+                    supported={supportsDeviceApproval}
+                    loading={sessionInfoLoading}
+                    onSignIn={handleSignIn}
                     config={config}
                     ticket={ticket}
                     busy={busy}
@@ -876,15 +894,54 @@ function SpaceLinkApprovalPanel({
   config,
   ticket,
   busy,
+  supported,
+  loading,
   onTicketChange,
   onApprove,
+  onSignIn,
 }: {
   config: AddDeviceWizardConfig
   ticket: string
   busy: boolean
+  supported: boolean
+  loading: boolean
   onTicketChange: (value: string) => void
   onApprove: () => void
+  onSignIn: () => void
 }) {
+  if (loading) {
+    return (
+      <LoadingCard
+        view={{
+          state: 'active',
+          title: 'Checking device linking',
+          detail: 'Checking whether this session can approve device links.',
+        }}
+      />
+    )
+  }
+
+  if (!supported) {
+    return (
+      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+        <div className="text-foreground text-xs font-medium">
+          Spacewave Cloud required
+        </div>
+        <p className="text-foreground-alt/60 mt-1 text-xs">
+          {DEVICE_APPROVAL_CLOUD_REQUIRED}
+        </p>
+        <Button
+          size="sm"
+          onClick={onSignIn}
+          className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground mt-3 h-7 rounded-md border px-3 text-xs transition-all duration-150"
+        >
+          <LuLogIn className="size-3.5" />
+          Sign in or create account
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
       <label className="text-foreground text-xs font-medium select-none">
@@ -990,10 +1047,36 @@ async function approveTicket({
     )
     toast.success('Device approved')
   } catch (err) {
-    toast.error(err instanceof Error ? err.message : 'Failed to approve ticket')
+    toast.error(getApprovalErrorMessage(err))
   } finally {
     setBusy(false)
   }
+}
+
+function getApprovalErrorMessage(error: unknown): string {
+  if (isUnimplementedRpcError(error)) {
+    return DEVICE_APPROVAL_CLOUD_REQUIRED
+  }
+  return error instanceof Error ? error.message : 'Failed to approve ticket'
+}
+
+function isUnimplementedRpcError(error: unknown): boolean {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : ''
+  if (/\bunimplemented\b|\bmethod not implemented\b/i.test(message)) {
+    return true
+  }
+  if (typeof error !== 'object' || error === null || !('rpcError' in error)) {
+    return false
+  }
+  return (
+    typeof error.rpcError === 'string' &&
+    /\bunimplemented\b|\bmethod not implemented\b/i.test(error.rpcError)
+  )
 }
 
 async function replaceSpaceIndexIfWizardIsCurrent(

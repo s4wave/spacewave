@@ -35,6 +35,7 @@ const h = vi.hoisted(() => ({
   applyWorldOp: vi.fn().mockResolvedValue({ seqno: 1n, sysErr: false }),
   deleteObject: vi.fn().mockResolvedValue({ deleted: true }),
   navigateToObjects: vi.fn(),
+  navigate: vi.fn(),
   updateState: vi.fn().mockResolvedValue(undefined),
   persistDraftState: vi.fn().mockResolvedValue(undefined),
   handleConfigDataChange: vi.fn(),
@@ -46,6 +47,8 @@ const h = vi.hoisted(() => ({
   toastError: vi.fn(),
   currentStep: 1,
   configData: undefined as Uint8Array | undefined,
+  providerId: 'spacewave',
+  sessionInfoLoading: false,
   spaceSettingsIndexPath: 'wizard/device-setup',
   worldObjects: [
     { objectKey: 'computers', objectType: 'spacewave/computers' },
@@ -122,7 +125,15 @@ vi.mock('@s4wave/web/hooks/useSessionInfo.js', () => ({
           '-----BEGIN PUBLIC KEY-----\nmock\n-----END PUBLIC KEY-----',
       },
     },
+    loading: h.sessionInfoLoading,
+    providerId: h.providerId,
+    supportsDeviceApproval: h.providerId === 'spacewave',
   }),
+}))
+
+vi.mock('@s4wave/web/router/router.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  useNavigate: () => h.navigate,
 }))
 
 vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
@@ -148,6 +159,8 @@ describe('AddDeviceWizardViewer', () => {
     vi.clearAllMocks()
     h.currentStep = 1
     h.configData = undefined
+    h.providerId = 'spacewave'
+    h.sessionInfoLoading = false
     h.spaceSettingsIndexPath = 'wizard/device-setup'
     h.worldObjects = [
       { objectKey: 'computers', objectType: ComputersDashboardTypeID },
@@ -215,6 +228,47 @@ describe('AddDeviceWizardViewer', () => {
     )
     expect(completion.status).toBe(
       SpaceLinkCallbackStatus.SpaceLinkCallbackStatus_OK,
+    )
+  })
+
+  it('replaces SpaceLink approval with the Cloud sign-in affordance for local sessions', () => {
+    h.providerId = 'local'
+    renderViewer()
+
+    expect(screen.getByText('Spacewave Cloud required')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'Device linking requires a Spacewave Cloud session. Sign in or create an account to continue.',
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByPlaceholderText(/paste the base64 ticket/i)).toBeNull()
+    expect(screen.queryByRole('button', { name: /^approve$/i })).toBeNull()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in or create account' }),
+    )
+    expect(h.navigate).toHaveBeenCalledWith({ path: '/login' })
+    expect(h.previewSpaceLink).not.toHaveBeenCalled()
+    expect(h.approveSpaceLink).not.toHaveBeenCalled()
+  })
+
+  it('maps an unimplemented approval RPC to the Cloud-session explanation', async () => {
+    const ticket = bytesToBase64(new Uint8Array([1, 2, 3]))
+    h.configData = new TextEncoder().encode(JSON.stringify({ ticket }))
+    h.previewSpaceLink.mockRejectedValue(
+      new Error('Server error: unimplemented'),
+    )
+    renderViewer()
+
+    fireEvent.click(screen.getByRole('button', { name: /^approve$/i }))
+
+    await waitFor(() =>
+      expect(h.toastError).toHaveBeenCalledWith(
+        'Device linking requires a Spacewave Cloud session. Sign in or create an account to continue.',
+      ),
+    )
+    expect(h.toastError).not.toHaveBeenCalledWith(
+      expect.stringMatching(/unimplemented/i),
     )
   })
 

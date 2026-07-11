@@ -21,6 +21,8 @@ export interface SessionInfo {
   peerId: string
   // isCloud is true when the session uses a remote provider (not local).
   isCloud: boolean
+  // supportsDeviceApproval is true when this session can approve SpaceLink tickets.
+  supportsDeviceApproval: boolean
 }
 
 // useSessionInfo fetches session info and derives common provider fields.
@@ -45,6 +47,7 @@ export function useSessionInfo(
       sessionInfo?.sessionRef?.providerResourceRef?.providerAccountId ?? ''
     const peerId = sessionInfo?.peerId ?? ''
     const isCloud = providerId !== '' && providerId !== 'local'
+    const supportsDeviceApproval = providerId === 'spacewave'
     return {
       sessionInfo,
       loading,
@@ -53,6 +56,7 @@ export function useSessionInfo(
       accountId,
       peerId,
       isCloud,
+      supportsDeviceApproval,
     }
   }, [sessionInfo, loading, error])
 }
