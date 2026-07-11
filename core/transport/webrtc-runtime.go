@@ -4,7 +4,6 @@ package transport
 
 import (
 	"context"
-	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -37,9 +36,10 @@ func (t *SessionTransport) startWebRTCControllers(
 		return nil, nil, err
 	}
 
-	wsURL := strings.Replace(t.signalingURL, "https://", "wss://", 1)
-	wsURL = strings.Replace(wsURL, "http://", "ws://", 1)
-	wsURL += "/api/signal/ws?tk=" + ticket
+	wsURL, err := signalWebSocketURL(t.signalingURL, ticket)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	le.Debug("connecting to signaling")
 

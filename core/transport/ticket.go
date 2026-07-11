@@ -4,12 +4,43 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/url"
+	"path"
 
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 )
+
+// signalURL joins a signaling endpoint path to its relative or absolute base.
+func signalURL(baseURL, endpoint string) (*url.URL, error) {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path.Join(u.Path, endpoint)
+	u.RawPath = ""
+	return u, nil
+}
+
+// signalWebSocketURL builds a signaling WebSocket URL with an encoded ticket.
+func signalWebSocketURL(baseURL, ticket string) (string, error) {
+	u, err := signalURL(baseURL, "/api/signal/ws")
+	if err != nil {
+		return "", err
+	}
+	switch u.Scheme {
+	case "http":
+		u.Scheme = "ws"
+	case "https":
+		u.Scheme = "wss"
+	}
+	query := u.Query()
+	query.Set("tk", ticket)
+	u.RawQuery = query.Encode()
+	return u.String(), nil
+}
 
 // acquireSignalTicket POSTs to /signal/ticket with entity-signed headers
 // and returns a JWT token for WebSocket authentication.
@@ -20,8 +51,11 @@ func acquireSignalTicket(
 	pid peer.ID,
 	envPfx string,
 ) (string, error) {
-	ticketURL := baseURL + "/api/signal/ticket"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ticketURL, nil)
+	ticketURL, err := signalURL(baseURL, "/api/signal/ticket")
+	if err != nil {
+		return "", err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ticketURL.String(), nil)
 	if err != nil {
 		return "", err
 	}
