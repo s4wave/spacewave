@@ -80,7 +80,7 @@ describe('writeBrowserBootStatus', () => {
       state: 'loading',
     })
     expect(document.querySelector('[data-sw-boot-status]')?.textContent).toBe(
-      'Connect: Fetching the runtime.',
+      'Session connection: Fetching the runtime.',
     )
     const progress = document.querySelector('[data-sw-boot-progress]')
     if (!(progress instanceof HTMLElement)) {
@@ -108,7 +108,7 @@ describe('writeBrowserBootStatus', () => {
     })
 
     expect(document.querySelector('[data-sw-boot-status]')?.textContent).toBe(
-      'App: Opening the application.',
+      'Current app download: Opening the application.',
     )
     const progress = document.querySelector('[data-sw-boot-progress]')
     if (!(progress instanceof HTMLElement)) {
