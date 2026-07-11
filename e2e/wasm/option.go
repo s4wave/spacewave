@@ -412,7 +412,7 @@ func ConfigureGoScriptBrowserStartup(conf *bldr_project.ProjectConfig) error {
 }
 
 // ConfigureGoCompilerForManifest enables an alternate browser Go plugin
-// compiler and removes dev-only config outside the seed compiler proof.
+// compiler and removes only the dev config unsupported by that compiler.
 func ConfigureGoCompilerForManifest(
 	manifestID string,
 	mode bldr_plugin_compiler_go.GoCompiler,
@@ -420,7 +420,9 @@ func ConfigureGoCompilerForManifest(
 	return updateGoPluginManifest(manifestID, func(goConf *bldr_plugin_compiler_go.Config) error {
 		setWebGoCompiler(goConf, mode)
 		removeDebugTraceConfig(goConf)
-		removeSessionHarnessWebRTCConfig(goConf)
+		if mode == bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_TINYGO {
+			removeSessionHarnessWebRTCConfig(goConf)
+		}
 		return nil
 	})
 }

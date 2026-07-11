@@ -237,7 +237,7 @@ func TestConfigureTinyGoForManifestRemovesSessionHarnessWebRTC(t *testing.T) {
 	}
 }
 
-func TestConfigureGoScriptForManifestRemovesSeedRuntimeConfig(t *testing.T) {
+func TestConfigureGoScriptForManifestRetainsSessionHarnessWebRTC(t *testing.T) {
 	goConf := &bldr_plugin_compiler_go.Config{
 		GoPkgs: []string{
 			"./e2e/wasm/session",
@@ -296,11 +296,11 @@ func TestConfigureGoScriptForManifestRemovesSeedRuntimeConfig(t *testing.T) {
 	if _, ok := devConf.GetConfigSet()["debug-trace"]; ok {
 		t.Fatal("GoScript config still includes debug-trace config")
 	}
-	if slices.Contains(got.GetGoPkgs(), "github.com/s4wave/spacewave/net/transport/webrtc") {
-		t.Fatal("GoScript config still includes net/transport/webrtc")
+	if !slices.Contains(got.GetGoPkgs(), "github.com/s4wave/spacewave/net/transport/webrtc") {
+		t.Fatal("GoScript config removed net/transport/webrtc")
 	}
-	if _, ok := got.GetConfigSet()["e2e-session-harness-webrtc"]; ok {
-		t.Fatal("GoScript config still includes e2e-session-harness-webrtc")
+	if _, ok := got.GetConfigSet()["e2e-session-harness-webrtc"]; !ok {
+		t.Fatal("GoScript config removed e2e-session-harness-webrtc")
 	}
 	if _, ok := got.GetConfigSet()["e2e-session-harness"]; !ok {
 		t.Fatal("expected session harness controller config to remain")
