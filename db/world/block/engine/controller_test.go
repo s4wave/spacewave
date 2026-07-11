@@ -290,6 +290,19 @@ func TestControllerEngineSurvivesExecuteRestartUntilClose(t *testing.T) {
 		if _, err := eng.GetSeqno(ctx); err != nil {
 			t.Fatalf("%s engine is unusable while controller remains attached: %v", name, err)
 		}
+		blockEngine, ok := eng.(*world_block.Engine)
+		if !ok {
+			t.Fatalf("%s engine type = %T, want *world_block.Engine", name, eng)
+		}
+		rootRef := blockEngine.GetRootRef()
+		if rootRef == nil || rootRef.GetRootRef().GetEmpty() {
+			t.Fatalf("%s engine has no live world root", name)
+		}
+		readTx, err := eng.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatalf("%s engine read transaction: %v", name, err)
+		}
+		readTx.Discard()
 	}
 	assertClosed := func(name string, eng Engine) {
 		t.Helper()
@@ -320,6 +333,18 @@ func TestControllerEngineSurvivesExecuteRestartUntilClose(t *testing.T) {
 	secondEngine, secondCancel, secondErrCh := startExecution()
 	defer secondCancel()
 	assertOpen("first after Execute restart", firstEngine)
+	restartReadTx, err := firstEngine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, found, err := restartReadTx.GetObject(ctx, "after-execute-return")
+	restartReadTx.Discard()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !found {
+		t.Fatal("retained engine did not read committed object after Execute restart")
+	}
 
 	if err := ctrl.Close(); err != nil {
 		t.Fatal(err.Error())

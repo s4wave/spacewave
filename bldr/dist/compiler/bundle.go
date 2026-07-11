@@ -272,9 +272,6 @@ func BuildDistBundle(
 	// Update the initial root ref
 	meta.DistWorldRef = embedBlockEngine.GetRootRef().Clone()
 
-	// Close the embedded world controller, no longer needed.
-	embedEngineCtrlRef.Release()
-
 	// Validate the metadata
 	if err := meta.Validate(); err != nil {
 		return err
