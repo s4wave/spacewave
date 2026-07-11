@@ -9,7 +9,7 @@ import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 // useAccessTypedHandle creates an SDK handle for a world object's typed resource.
 export function useAccessTypedHandle<T extends SDKResource>(
   worldState: Resource<IWorldState>,
-  objectKey: string,
+  objectKey: string | null,
   HandleClass: new (ref: ClientResourceRef) => T,
   typeId?: string,
 ): Resource<T> {
@@ -17,6 +17,7 @@ export function useAccessTypedHandle<T extends SDKResource>(
     worldState,
     async (world, signal, cleanup) => {
       if (!world) return null
+      if (!objectKey) return null
       const access = await world.accessTypedObject(objectKey, signal)
       if (!access.resourceId) return null
       if (typeId && access.typeId !== typeId) return null

@@ -3,6 +3,7 @@ import {
   LuArrowRight,
   LuBox,
   LuCircle,
+  LuImagePlus,
   LuLayoutGrid,
   LuMaximize2,
   LuMinus,
@@ -33,6 +34,7 @@ interface CanvasToolbarProps {
   onColorChange?: (color: string) => void
   actions: Record<CanvasAction, () => void>
   onAddObject?: () => void
+  onAddImage?: () => void
   className?: string
 }
 
@@ -77,6 +79,7 @@ export function CanvasToolbar({
   onColorChange,
   actions,
   onAddObject,
+  onAddImage,
   className,
 }: CanvasToolbarProps) {
   const setSelect = useCallback(() => onToolChange('select'), [onToolChange])
@@ -148,6 +151,11 @@ export function CanvasToolbar({
       {onAddObject && (
         <ToolButton label="Add Existing Object" onClick={onAddObject}>
           <LuSquarePlus size={16} />
+        </ToolButton>
+      )}
+      {onAddImage && (
+        <ToolButton label="Add Image" onClick={onAddImage}>
+          <LuImagePlus size={16} />
         </ToolButton>
       )}
 

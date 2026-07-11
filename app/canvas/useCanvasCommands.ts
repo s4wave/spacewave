@@ -23,6 +23,8 @@ interface UseCanvasCommandsParams {
   onAddText?: () => void
   onAddObject?: (objectKey: string) => void
   addObjectSubItems?: SubItemsCallback
+  onAddImage?: (path: string) => void
+  addImageSubItems?: SubItemsCallback
 }
 
 // ARROW_STEP is the number of canvas units to move per arrow key press.
@@ -43,6 +45,8 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     onAddText,
     onAddObject,
     addObjectSubItems,
+    onAddImage,
+    addImageSubItems,
   } = params
 
   const isTabActive = useIsTabActive()
@@ -484,6 +488,30 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
         openCommand('canvas.add-object')
       },
       [onAddObject, openCommand],
+    ),
+  })
+
+  useCommand({
+    commandId: 'canvas.add-image',
+    label: 'Add Image',
+    description: 'Place an image from this Space on the Canvas',
+    menuPath: 'Tools/Add Image',
+    menuGroup: 2,
+    menuOrder: 3,
+    active: isTabActive && !!onAddImage && !!addImageSubItems,
+    enabled: !!onAddImage && !!addImageSubItems,
+    hasSubItems: true,
+    subItems: addImageSubItems,
+    handler: useCallback(
+      (args: Record<string, string>) => {
+        const path = args.subItemId
+        if (path) {
+          onAddImage?.(path)
+          return
+        }
+        openCommand('canvas.add-image')
+      },
+      [onAddImage, openCommand],
     ),
   })
 }

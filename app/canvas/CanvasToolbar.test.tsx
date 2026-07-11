@@ -221,4 +221,25 @@ describe('CanvasToolbar', () => {
     await user.click(screen.getByLabelText('Use color #dc2626'))
     expect(onColorChange).toHaveBeenCalledWith('#dc2626')
   })
+
+  it('shows Add Image only when UnixFS completion is available', () => {
+    const { rerender } = render(
+      <CanvasToolbar
+        tool="select"
+        onToolChange={vi.fn()}
+        actions={makeActions()}
+      />,
+    )
+    expect(screen.queryByLabelText('Add Image')).toBeNull()
+
+    rerender(
+      <CanvasToolbar
+        tool="select"
+        onToolChange={vi.fn()}
+        actions={makeActions()}
+        onAddImage={vi.fn()}
+      />,
+    )
+    expect(screen.getByLabelText('Add Image')).toBeTruthy()
+  })
 })

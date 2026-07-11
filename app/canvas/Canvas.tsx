@@ -61,6 +61,8 @@ interface CanvasProps {
   callbacks: CanvasCallbacks
   pendingMutations?: number
   objectSubItems?: SubItemsCallback
+  imageObjectKey?: string
+  imageSubItems?: SubItemsCallback
   focusNodeId?: string | null
   className?: string
 }
@@ -73,6 +75,8 @@ export function Canvas({
   callbacks,
   pendingMutations,
   objectSubItems,
+  imageObjectKey,
+  imageSubItems,
   focusNodeId,
   className,
 }: CanvasProps) {
@@ -361,6 +365,35 @@ export function Canvas({
     [callbacks, resolvePendingObjectInsertPoint],
   )
 
+  const addImageAt = useCallback(
+    (path: string) => {
+      if (!imageObjectKey) return
+      const point = getViewportCenterCanvasPosition()
+      const id = generateNodeId()
+      callbacks.onNodesChange?.(
+        new Map([
+          [
+            id,
+            {
+              id,
+              x: point.x - 200,
+              y: point.y - 150,
+              width: 400,
+              height: 300,
+              zIndex: 0,
+              type: 'world_object',
+              objectKey: imageObjectKey,
+              viewPath: path,
+              pinned: true,
+            },
+          ],
+        ]),
+      )
+      selection.toggleSelect(id, false)
+    },
+    [callbacks, getViewportCenterCanvasPosition, imageObjectKey, selection],
+  )
+
   const [contextMenuState, setContextMenuState] = useState<{
     position: { x: number; y: number }
     canvasPosition: { x: number; y: number }
@@ -406,7 +439,12 @@ export function Canvas({
     openCommand('canvas.add-object')
   }, [openCommand])
 
+  const handleToolbarAddImage = useCallback(() => {
+    openCommand('canvas.add-image')
+  }, [openCommand])
+
   const canAddObject = !!callbacks.onPinObject && !!objectSubItems
+  const canAddImage = !!imageObjectKey && !!imageSubItems
 
   const handleContextMenuFitView = useCallback(() => {
     closeContextMenu()
@@ -434,6 +472,8 @@ export function Canvas({
     onAddText: handleCommandAddText,
     onAddObject: addObjectAt,
     addObjectSubItems: objectSubItems,
+    onAddImage: addImageAt,
+    addImageSubItems: imageSubItems,
   })
 
   const handleBackgroundClick = useCallback(
@@ -609,6 +649,7 @@ export function Canvas({
         onColorChange={setDrawingColor}
         actions={actions}
         onAddObject={canAddObject ? handleToolbarAddObject : undefined}
+        onAddImage={canAddImage ? handleToolbarAddImage : undefined}
       />
       <div
         ref={viewportContainerRef}

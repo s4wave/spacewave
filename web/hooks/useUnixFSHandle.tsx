@@ -24,7 +24,7 @@ export { UnixFSTypeID }
 // This is the entry point for handle-based UnixFS operations.
 export function useUnixFSRootHandle(
   worldState: Resource<IWorldState>,
-  objectKey: string,
+  objectKey: string | null,
 ): Resource<FSHandle> {
   return useAccessTypedHandle(worldState, objectKey, FSHandle, UnixFSTypeID)
 }

@@ -19,6 +19,8 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { getObjectTypeLabel } from '@s4wave/web/space/object-tree.js'
+import { useUnixFSRootHandle } from '@s4wave/web/hooks/useUnixFSHandle.js'
+import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
 
 import { Canvas } from '../Canvas.js'
 import type {
@@ -44,6 +46,7 @@ import { CanvasObjectNode } from './CanvasObjectNode.js'
 import { deleteCanvasGraphLink } from './graphLinkActions.js'
 import { isCanvasInsertableObject } from './object-picker.js'
 import { CanvasTypeID } from '../type.js'
+import { getUnixFSImageSubItems } from '../unixfs-image-sub-items.js'
 
 export { CanvasTypeID }
 
@@ -208,6 +211,18 @@ export function CanvasViewer({
     string | null
   >(null)
 
+  const unixfsObjectKey =
+    spaceContainer?.spaceState.worldContents?.objects?.find(
+      (object) => object.objectType === UnixFSTypeID,
+    )?.objectKey ?? null
+  const unixfsRoot = useUnixFSRootHandle(worldState, unixfsObjectKey)
+  const imageSubItems: SubItemsCallback = useCallback(
+    (query, signal) =>
+      unixfsRoot.value
+        ? getUnixFSImageSubItems(unixfsRoot.value, query, signal)
+        : Promise.resolve([]),
+    [unixfsRoot.value],
+  )
   // Access the SRPC resource for this canvas object.
   const canvasResource = useAccessTypedHandle(
     worldState,
@@ -589,6 +604,10 @@ export function CanvasViewer({
         callbacks={callbacks}
         pendingMutations={pending}
         objectSubItems={spaceContainer ? objectSubItems : undefined}
+        imageObjectKey={
+          unixfsRoot.value ? (unixfsObjectKey ?? undefined) : undefined
+        }
+        imageSubItems={unixfsRoot.value ? imageSubItems : undefined}
         focusNodeId={focusNodeId}
         className="h-full w-full"
       />
