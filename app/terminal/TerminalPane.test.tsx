@@ -1,6 +1,6 @@
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 
 import {
   TerminalFrameKind,
@@ -21,6 +21,7 @@ const h = vi.hoisted(() => {
 
   return {
     open: vi.fn<(host: HTMLElement) => void>(),
+    focus: vi.fn<() => void>(),
     write: vi.fn<(data: string) => void>(),
     writeln: vi.fn<(data: string) => void>(),
     dispose: vi.fn<() => void>(),
@@ -78,6 +79,9 @@ vi.mock('@xterm/xterm', () => ({
     open(host: HTMLElement) {
       h.open(host)
     }
+    focus() {
+      h.focus()
+    }
     onData(callback: (data: string) => void) {
       h.onDataCallbacks.push(callback)
       return {
@@ -108,7 +112,11 @@ vi.mock('@xterm/addon-fit', () => ({
   },
 }))
 
-import { TerminalPane, type TerminalPaneConnector } from './TerminalPane.js'
+import {
+  TerminalPane,
+  type TerminalPaneConnector,
+  type TerminalPaneProps,
+} from './TerminalPane.js'
 
 async function collectClientFrames(
   frames: AsyncIterable<TerminalFrame>,
@@ -140,6 +148,7 @@ async function* terminalFrames(
 function renderTerminalPane(
   serverFrames: TerminalFrame[] = [],
   holdOpen = true,
+  statusActions: Pick<TerminalPaneProps, 'onRetry' | 'onBackToSettings'> = {},
 ) {
   const connectTerminal: TerminalPaneConnector = (frames, signal) => {
     signal.addEventListener('abort', () => h.events.push('rpc.abort'))
@@ -147,7 +156,9 @@ function renderTerminalPane(
     return terminalFrames(serverFrames, holdOpen)
   }
 
-  return render(<TerminalPane connectTerminal={connectTerminal} />)
+  return render(
+    <TerminalPane connectTerminal={connectTerminal} {...statusActions} />,
+  )
 }
 
 describe('TerminalPane', () => {
@@ -221,11 +232,10 @@ describe('TerminalPane', () => {
     await vi.waitFor(() =>
       expect(h.write).toHaveBeenCalledWith('deploy complete\n'),
     )
-
     unmount()
   })
 
-  it('writes terminal error frames as terminal lines', async () => {
+  it('projects terminal transport errors into safe persistent status UI', async () => {
     const { unmount } = renderTerminalPane(
       [
         {
@@ -234,16 +244,28 @@ describe('TerminalPane', () => {
         },
       ],
       false,
+      { onRetry: vi.fn(), onBackToSettings: vi.fn() },
     )
 
-    await vi.waitFor(() =>
-      expect(h.writeln).toHaveBeenCalledWith('\r\npermission denied'),
-    )
+    await vi.waitFor(() => {
+      expect(screen.getByText('CLI session failed')).toBeDefined()
+      expect(
+        screen.getByText(
+          'The terminal session could not start. Try again from the owning surface.',
+        ),
+      ).toBeDefined()
+    })
+    expect(screen.queryByText('permission denied')).toBeNull()
+    expect(h.writeln).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeDefined()
+    expect(
+      screen.getByRole('button', { name: 'Back to Settings' }),
+    ).toBeDefined()
 
     unmount()
   })
 
-  it('writes terminal exit frames as terminal lines', async () => {
+  it('projects terminal exit frames into a closed restart state', async () => {
     const { unmount } = renderTerminalPane(
       [
         {
@@ -252,11 +274,35 @@ describe('TerminalPane', () => {
         },
       ],
       false,
+      { onRetry: vi.fn() },
     )
 
     await vi.waitFor(() =>
-      expect(h.writeln).toHaveBeenCalledWith('\r\nprocess exited 137'),
+      expect(screen.getByText('CLI session ended')).toBeDefined(),
     )
+    expect(screen.getByRole('button', { name: 'Restart' })).toBeDefined()
+    expect(h.writeln).not.toHaveBeenCalled()
+
+    unmount()
+  })
+
+  it('waits for the ready prompt before removing the starting state', async () => {
+    const { container, unmount } = renderTerminalPane([
+      { kind: TerminalFrameKind.READY },
+      {
+        kind: TerminalFrameKind.OUTPUT,
+        data: terminalEncoder.encode('spacewave> '),
+      },
+    ])
+
+    expect(screen.getByText('Starting Spacewave CLI…')).toBeDefined()
+    await vi.waitFor(() =>
+      expect(container.querySelector('[data-terminal-state="ready"]')).not.toBe(
+        null,
+      ),
+    )
+    expect(screen.queryByText('Starting Spacewave CLI…')).toBeNull()
+    expect(h.focus).toHaveBeenCalled()
 
     unmount()
   })
@@ -295,7 +341,13 @@ describe('TerminalPane', () => {
     }
     releaseQueue()
 
-    await vi.waitFor(() => expect(h.clientFrames).toHaveLength(256))
+    await vi.waitFor(() =>
+      expect(
+        h.clientFrames.filter(
+          (frame) => frame.kind === TerminalFrameKind.INPUT,
+        ),
+      ).toHaveLength(256),
+    )
 
     const inputFrames = h.clientFrames.filter(
       (frame) => frame.kind === TerminalFrameKind.INPUT,

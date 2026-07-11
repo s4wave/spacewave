@@ -44,7 +44,7 @@ export function CliTerminalPage() {
       return async function* (): MessageStream<TerminalFrame> {
         yield {
           kind: TerminalFrameKind.ERROR,
-          error: 'Spacewave runtime context is unavailable.',
+          error: 'runtime-unavailable',
         }
       }
     }
@@ -75,7 +75,10 @@ export function CliTerminalPage() {
         buttonKey="session-cli-terminal"
         menuLabel="Terminal"
       >
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-zinc-950">
+        <div className="bg-background-dark flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="border-foreground/8 text-foreground-alt/70 flex h-7 shrink-0 items-center border-b px-3 text-xs">
+            Spacewave CLI · This session
+          </div>
           <TerminalPane connectTerminal={connectTerminal} />
         </div>
       </BottomBarLevel>

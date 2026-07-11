@@ -7,6 +7,7 @@ import {
   TerminalFrameKind,
   type TerminalFrame,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
+import { cn } from '@s4wave/web/style/utils.js'
 
 import { resolveTerminalTheme } from './terminalTheme.js'
 
@@ -14,6 +15,7 @@ const terminalEncoder = new TextEncoder()
 const maxQueuedTerminalFrames = 256
 
 const terminalDecoder = new TextDecoder()
+const cliPrompt = 'spacewave> '
 
 export type TerminalPaneConnector = (
   frames: MessageStream<TerminalFrame>,
@@ -28,7 +30,15 @@ export type TerminalPaneTrustChallengeRenderer = (
 export interface TerminalPaneProps {
   connectTerminal?: TerminalPaneConnector
   renderTrustChallenge?: TerminalPaneTrustChallengeRenderer
+  onRetry?: () => void
+  onBackToSettings?: () => void
 }
+
+type TerminalPaneStatus =
+  | { kind: 'starting' }
+  | { kind: 'ready' }
+  | { kind: 'failed'; detail: string }
+  | { kind: 'closed' }
 
 interface TerminalFrameQueue {
   push(frame: TerminalFrame): void
@@ -37,20 +47,33 @@ interface TerminalFrameQueue {
   stream(): MessageStream<TerminalFrame>
 }
 
+interface TerminalFrameStateHandlers {
+  onReady: () => void
+  onFailure: (detail: string) => void
+  onClosed: () => void
+}
+
+const startingStatus: TerminalPaneStatus = { kind: 'starting' }
+
 export function TerminalPane({
   connectTerminal,
   renderTrustChallenge,
+  onRetry,
+  onBackToSettings,
 }: TerminalPaneProps) {
   const terminalHostRef = useRef<HTMLDivElement | null>(null)
   const terminalQueueRef = useRef<TerminalFrameQueue | null>(null)
   const [trustChallenge, setTrustChallenge] = useState<TerminalFrame | null>(
     null,
   )
+  const [status, setStatus] = useState<TerminalPaneStatus>(startingStatus)
 
   useEffect(() => {
     const host = terminalHostRef.current
-    if (!connectTerminal || !host) return
+    if (!host) return
+    setStatus(startingStatus)
     setTrustChallenge(null)
+    if (!connectTerminal) return
 
     const rpcAbort = new AbortController()
     const renderAbort = new AbortController()
@@ -97,6 +120,11 @@ export function TerminalPane({
       term,
       renderAbort.signal,
       setTrustChallenge,
+      {
+        onReady: () => setStatus({ kind: 'ready' }),
+        onFailure: (detail) => setStatus({ kind: 'failed', detail }),
+        onClosed: () => setStatus({ kind: 'closed' }),
+      },
     )
 
     return () => {
@@ -133,10 +161,121 @@ export function TerminalPane({
       {trustChallenge &&
         renderTrustChallenge?.(trustChallenge, respondToSshTrust)}
       <div
-        ref={terminalHostRef}
-        className="bg-background-dark min-h-0 w-full min-w-0 flex-1 overflow-hidden"
-      />
+        className="bg-background-dark relative flex min-h-0 min-w-0 flex-1 overflow-hidden"
+        data-terminal-state={status.kind}
+      >
+        <div
+          ref={terminalHostRef}
+          className="min-h-0 w-full min-w-0 flex-1 overflow-hidden"
+        />
+        {status.kind !== 'ready' ? (
+          <TerminalPaneStatusLayer
+            status={status}
+            cliSession={!renderTrustChallenge}
+            onRetry={onRetry}
+            onBackToSettings={onBackToSettings}
+          />
+        ) : null}
+      </div>
     </>
+  )
+}
+
+function TerminalPaneStatusLayer({
+  status,
+  cliSession,
+  onRetry,
+  onBackToSettings,
+}: {
+  status: TerminalPaneStatus
+  cliSession: boolean
+  onRetry?: () => void
+  onBackToSettings?: () => void
+}) {
+  const failed = status.kind === 'failed'
+  const closed = status.kind === 'closed'
+  const sessionName = cliSession ? 'CLI session' : 'Terminal session'
+  const title = failed
+    ? `${sessionName} failed`
+    : closed
+      ? `${sessionName} ended`
+      : cliSession
+        ? 'Starting Spacewave CLI…'
+        : 'Starting terminal…'
+  const detail = failed
+    ? status.detail
+    : closed
+      ? 'The command prompt has ended.'
+      : cliSession
+        ? 'Preparing a session-local command prompt.'
+        : 'Connecting and waiting for the remote prompt.'
+
+  return (
+    <div
+      className="bg-background-dark/95 absolute inset-0 flex items-center justify-center p-4"
+      data-terminal-status-layer={status.kind}
+      role={failed ? 'alert' : undefined}
+      aria-live="polite"
+    >
+      <div
+        className={cn(
+          'border-foreground/8 bg-background-card/50 w-full max-w-sm rounded-lg border p-3.5',
+          failed && 'border-destructive/15 bg-destructive/5',
+        )}
+      >
+        <div className="flex items-start gap-3">
+          <div
+            aria-hidden="true"
+            className={cn(
+              'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md',
+              failed
+                ? 'bg-destructive/10 text-destructive'
+                : closed
+                  ? 'bg-foreground/5 text-foreground-alt'
+                  : 'bg-brand/10 text-brand',
+            )}
+          >
+            {failed ? (
+              '!'
+            ) : closed ? (
+              '×'
+            ) : (
+              <span className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-foreground text-sm font-semibold tracking-tight">
+              {title}
+            </h2>
+            <p className="text-foreground-alt/70 mt-0.5 text-xs leading-relaxed">
+              {detail}
+            </p>
+            {onRetry || (failed && onBackToSettings) ? (
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {onRetry && (
+                  <button
+                    type="button"
+                    className="border-foreground/10 bg-foreground/5 text-foreground hover:bg-foreground/10 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors"
+                    onClick={onRetry}
+                  >
+                    {closed ? 'Restart' : 'Retry'}
+                  </button>
+                )}
+                {failed && onBackToSettings ? (
+                  <button
+                    type="button"
+                    className="text-foreground-alt/70 hover:text-foreground rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
+                    onClick={onBackToSettings}
+                  >
+                    Back to Settings
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -145,17 +284,35 @@ async function readTerminalFrames(
   term: XTerm,
   signal: AbortSignal,
   onSshTrustChallenge: (frame: TerminalFrame | null) => void,
+  handlers: TerminalFrameStateHandlers,
 ) {
+  let receivedReady = false
+  let promptVisible = false
+  let readyAnnounced = false
+  const markReady = () => {
+    if (readyAnnounced || !receivedReady || !promptVisible || signal.aborted) {
+      return
+    }
+    readyAnnounced = true
+    term.focus?.()
+    handlers.onReady()
+  }
   try {
     for await (const frame of frames) {
       switch (frame.kind) {
-        case TerminalFrameKind.OUTPUT:
+        case TerminalFrameKind.OUTPUT: {
           if (!signal.aborted) {
-            term.write(terminalDecoder.decode(frame.data))
+            const output = terminalDecoder.decode(frame.data)
+            term.write(output)
+            promptVisible ||= containsTerminalPrompt(output)
+            markReady()
           }
           break
+        }
         case TerminalFrameKind.READY:
+          receivedReady = true
           onSshTrustChallenge(null)
+          markReady()
           break
         case TerminalFrameKind.SSH_HOST_KEY_TRUST_CHALLENGE:
           onSshTrustChallenge(frame)
@@ -163,22 +320,45 @@ async function readTerminalFrames(
         case TerminalFrameKind.ERROR:
           onSshTrustChallenge(null)
           if (!signal.aborted) {
-            term.writeln(`\r\n${frame.error || 'terminal error'}`)
+            handlers.onFailure(safeTerminalFailureDetail(frame.error))
           }
           return
         case TerminalFrameKind.EXIT:
           onSshTrustChallenge(null)
           if (!signal.aborted) {
-            term.writeln(`\r\nprocess exited ${frame.exitCode ?? 0}`)
+            handlers.onClosed()
           }
           return
       }
     }
-  } catch (err) {
+    if (!signal.aborted && (!receivedReady || !promptVisible)) {
+      handlers.onFailure(safeTerminalFailureDetail())
+    }
+  } catch {
     if (!signal.aborted) {
-      term.writeln(`\r\n${err instanceof Error ? err.message : String(err)}`)
+      handlers.onFailure(safeTerminalFailureDetail())
     }
   }
+}
+
+function containsTerminalPrompt(output: string): boolean {
+  return output
+    .split(/\r\n|\r|\n/)
+    .some((line) => line.includes(cliPrompt) || /[$#>%]\s*$/.test(line))
+}
+
+function safeTerminalFailureDetail(rawError?: string): string {
+  const normalized = rawError?.toLowerCase() ?? ''
+  if (normalized.includes('native runtime')) {
+    return 'SSH needs a native connector. Open this terminal in the desktop/native runtime or use a managed Device.'
+  }
+  if (
+    normalized.includes('runtime context') ||
+    normalized.includes('runtime-unavailable')
+  ) {
+    return 'The Spacewave runtime is unavailable in this session. Try again or return to Settings.'
+  }
+  return 'The terminal session could not start. Try again from the owning surface.'
 }
 
 function createTerminalFrameQueue(): TerminalFrameQueue {
