@@ -109,11 +109,7 @@ describe('browser startup progress surfaces', () => {
     await renderSurface(<AppLoadingScreen />)
 
     await expect
-      .element(
-        page.getByText(
-          'App: Downloading the app bundle. This can take a while the first time.',
-        ),
-      )
+      .element(page.getByText('App: Loading the application interface.'))
       .toBeInTheDocument()
     await expect
       .element(page.getByText('Prepare', { exact: true }))
@@ -144,13 +140,9 @@ describe('browser startup progress surfaces', () => {
     await renderSurface(<AppLoadingScreen />)
 
     await expect
-      .element(
-        page.getByText(
-          'App: Downloading the app bundle. This can take a while the first time.',
-        ),
-      )
+      .element(page.getByText('App: Opening the application.'))
       .toBeInTheDocument()
-    await expect.element(page.getByText('37%')).toBeInTheDocument()
+    await expect.element(page.getByText('87%')).toBeInTheDocument()
 
     await captureStartupEvidence('frame-download-progress-desktop')
   })
@@ -183,6 +175,9 @@ describe('browser startup progress surfaces', () => {
 
     await renderSurface(<AppLoadingScreen />)
 
+    await expect
+      .element(page.getByText('App: Loading the application interface.'))
+      .toBeInTheDocument()
     // The plugin row's label is unique to the download list.
     await expect
       .element(page.getByText('spacewave-app', { exact: true }))
@@ -191,16 +186,14 @@ describe('browser startup progress surfaces', () => {
     await expect
       .element(page.getByText('3.2 MiB / 8.5 MiB'))
       .toBeInTheDocument()
-    // The completed runtime download lands on a full bar.
-    await expect.element(page.getByText('8 MiB / 8 MiB')).toBeInTheDocument()
 
-    // One row per registered download, keyed by id.
+    // Completed downloads retire from the live list.
     expect(
       document.querySelectorAll('[data-sw-startup-download]'),
-    ).toHaveLength(3)
+    ).toHaveLength(2)
     expect(
       document.querySelector('[data-sw-startup-download="runtime"]'),
-    ).not.toBeNull()
+    ).toBeNull()
 
     await captureStartupEvidence('per-asset-download-breakdown-desktop')
   })
@@ -226,7 +219,7 @@ describe('browser startup progress surfaces', () => {
     await renderStaticSurface('/quickstart/drive', <QuickstartLoading />)
 
     await expect
-      .element(page.getByText('Prepare: Preparing browser files.'))
+      .element(page.getByText('Prepare: Loading the app shell.'))
       .toBeInTheDocument()
     await expect
       .element(page.getByText('Prepare', { exact: true }))
@@ -241,9 +234,7 @@ describe('browser startup progress surfaces', () => {
     await expect
       .element(page.getByText('Spacewave Pricing'))
       .toBeInTheDocument()
-    await expect
-      .element(page.getByText('Runtime: Starting the Spacewave runtime.'))
-      .not.toBeInTheDocument()
+    expect(document.querySelector('[aria-label="Startup phases"]')).toBeNull()
 
     await captureStartupEvidence('static-route-pricing-handoff')
   })
@@ -255,7 +246,7 @@ describe('browser startup progress surfaces', () => {
 
     await expect.element(page.getByText('Create a Drive')).toBeInTheDocument()
     await expect
-      .element(page.getByText('Connect: Connecting the app shell.'))
+      .element(page.getByText('Connect: Downloading the application.'))
       .toBeInTheDocument()
     await expect.element(page.getByText('Back to home')).toBeInTheDocument()
 
@@ -269,7 +260,7 @@ describe('browser startup progress surfaces', () => {
     await renderSurface(<AppLoadingScreen />)
 
     await expect
-      .element(page.getByText('Runtime: Starting the Spacewave runtime.'))
+      .element(page.getByText('Runtime: Loading the application interface.'))
       .toBeInTheDocument()
     await expect
       .element(
@@ -302,11 +293,7 @@ describe('browser startup progress surfaces', () => {
     await renderSurface(<AppLoadingScreen />)
 
     await expect
-      .element(
-        page.getByText(
-          'App: Downloading the app bundle. This can take a while the first time.',
-        ),
-      )
+      .element(page.getByText('App: Loading the application interface.'))
       .toBeInTheDocument()
     expect(
       document
@@ -326,11 +313,7 @@ describe('browser startup progress surfaces', () => {
     await renderSurface(<AppLoadingScreen />)
 
     await expect
-      .element(
-        page.getByText(
-          'App: Downloading the app bundle. This can take a while the first time.',
-        ),
-      )
+      .element(page.getByText('App: Loading the application interface.'))
       .toBeInTheDocument()
     await expect
       .element(page.getByText('Done', { exact: true }))
