@@ -44,13 +44,23 @@ const h = vi.hoisted(() => ({
     ): Promise<ApplyWorldOpResult> =>
       Promise.resolve({ seqno: 1n, sysErr: false }),
   ),
+  downloadURL: vi.fn((_url: string): Promise<void> => Promise.resolve()),
   navigateToObjects: vi.fn((_objectKeys: string[]) => undefined),
   openCommand: vi.fn((_commandId: string) => undefined),
   navigate: vi.fn((_opts: unknown) => undefined),
+  toast: { error: vi.fn(), success: vi.fn() },
   wizards: [] as unknown[],
   listWizards: vi.fn((_signal?: AbortSignal) =>
     Promise.resolve(h.wizards as never),
   ),
+}))
+
+vi.mock('@s4wave/web/download.js', () => ({
+  downloadURL: h.downloadURL,
+}))
+
+vi.mock('@s4wave/web/ui/toaster.js', () => ({
+  toast: h.toast,
 }))
 
 vi.mock('@s4wave/web/command/useCommand.js', () => ({
@@ -233,6 +243,19 @@ describe('SpaceCommands', () => {
     return shareSpaceCommand
   }
 
+  function getExportSpaceCommand() {
+    const exportSpaceCommand = [...registeredCommands]
+      .reverse()
+      .find((cmd) => cmd.commandId === 'spacewave.file.export')
+    if (!exportSpaceCommand) {
+      throw new Error('expected export-space command to be registered')
+    }
+    if (typeof exportSpaceCommand.handler !== 'function') {
+      throw new Error('expected export-space command handler')
+    }
+    return exportSpaceCommand
+  }
+
   function getCreateObjectCommandHandlers() {
     const createObjectCommand = [...registeredCommands]
       .reverse()
@@ -276,6 +299,21 @@ describe('SpaceCommands', () => {
     command.handler?.({})
 
     expect(onShareSpace).not.toHaveBeenCalled()
+  })
+
+  it('does not expose rejected export payloads in the error toast', async () => {
+    h.downloadURL.mockRejectedValueOnce(
+      '[{"id":"unixfs-demo","type":"world_object","objectKey":"files","viewPath":"/Screenshot 2026-05-12 at 9.28.36 PM.png"}]',
+    )
+    renderCommands()
+
+    getExportSpaceCommand().handler?.({})
+
+    await waitFor(() => {
+      expect(h.toast.error).toHaveBeenCalledWith('Export failed', {
+        description: 'Space export could not be prepared.',
+      })
+    })
   })
 
   it('re-acquires object wizards when the create-object palette opens after route transition', async () => {
