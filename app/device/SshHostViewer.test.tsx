@@ -119,21 +119,59 @@ describe('SshHostViewer', () => {
 
     expect(screen.getByText('Prod SSH')).toBeTruthy()
     expect(screen.getByText('SSH-only')).toBeTruthy()
-    expect(screen.getByText('Ready')).toBeTruthy()
+    expect(screen.getAllByText('Ready')).toHaveLength(2)
     expect(screen.getByText('prod.example.com:2222')).toBeTruthy()
     expect(screen.getByText('deploy')).toBeTruthy()
-    expect(screen.getByText('probe ok')).toBeTruthy()
-    expect(screen.getByText('secrets/ssh/prod-key')).toBeTruthy()
-    expect(screen.getByText('secrets/ssh/prod-passphrase')).toBeTruthy()
+    expect(screen.getByText('Connected and host key verified.')).toBeTruthy()
+    expect(screen.getAllByText('Private key linked')).toHaveLength(2)
+    expect(screen.getByText(/secrets\/ssh\/prod-key/)).toBeTruthy()
+    expect(screen.getByText(/secrets\/ssh\/prod-passphrase/)).toBeTruthy()
     expect(screen.getByText('SHA256:example')).toBeTruthy()
-    expect(screen.getAllByText('Linked')).toHaveLength(2)
-    expect(screen.getByText('Missing')).toBeTruthy()
     expect(screen.getByRole('button', { name: /open terminal/i })).toBeTruthy()
     const install = screen.getByRole('button', { name: /install agent/i })
     expect((install as HTMLButtonElement).disabled).toBe(true)
     expect(screen.queryByText('Online')).toBeNull()
     expect(screen.queryByText('Update')).toBeNull()
     expect(screen.queryByText(/Forge/)).toBeNull()
+  })
+
+  it('projects a timeout as Failed even when the probe state says Ready', () => {
+    currentState = {
+      ...defaultState(),
+      lastStatus: {
+        state: SshHostProbeState.READY,
+        error: 'context deadline exceeded',
+      },
+    }
+
+    render(
+      <SshHostViewer
+        objectInfo={{
+          info: {
+            case: 'worldObjectInfo',
+            value: {
+              objectKey: 'hosts/prod',
+              objectType: 'spacewave/ssh-host',
+            },
+          },
+        }}
+        worldState={{
+          value: null,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    expect(screen.getAllByText('Failed')).toHaveLength(2)
+    expect(screen.queryByText('Ready')).toBeNull()
+    expect(
+      screen.getByText(
+        'The last connection attempt timed out. Check the host and network, then try again.',
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByText('context deadline exceeded')).toBeNull()
   })
 
   it('creates a Terminal object with an SSH Host target', async () => {
