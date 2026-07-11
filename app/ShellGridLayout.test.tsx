@@ -42,6 +42,7 @@ interface MockOptimizedLayoutProps {
   onExternalDrag?: (event: unknown) => unknown
   onModelChange?: (model: MockOptimizedLayoutProps['model']) => void
   onRenderTab?: unknown
+  renderTab?: unknown
 }
 
 interface MockHasGridLayoutModel {
@@ -91,6 +92,7 @@ const mockOptimizedLayoutProps = vi.hoisted(() =>
 const mockHasGridLayout = vi.hoisted(() =>
   vi.fn((model: MockHasGridLayoutModel) => (model.tabsets?.length ?? 0) > 1),
 )
+const mockPanelMounts = vi.hoisted(() => new Map<string, number>())
 
 const mockJsonModel: MockJsonModel = {
   layout: {
@@ -121,7 +123,12 @@ vi.mock('@s4wave/web/router/router.js', () => ({
 }))
 
 vi.mock('./ShellGridPanel.js', () => ({
-  ShellGridPanel: ({ tabId }: { tabId: string }) => <div>{tabId}</div>,
+  ShellGridPanel: ({ tabId }: { tabId: string }) => {
+    React.useEffect(() => {
+      mockPanelMounts.set(tabId, (mockPanelMounts.get(tabId) ?? 0) + 1)
+    }, [tabId])
+    return <div>{tabId}</div>
+  },
 }))
 
 vi.mock('./ShellTabLabel.js', () => ({
@@ -341,6 +348,7 @@ vi.mock('@aptre/flex-layout', () => {
     onExternalDrag,
     onModelChange,
     onRenderTab,
+    renderTab,
   }: {
     model: MockModel
     onContextMenu?: (
@@ -353,6 +361,7 @@ vi.mock('@aptre/flex-layout', () => {
       node: MockTabNode,
       renderValues: { content?: React.ReactNode },
     ) => void
+    renderTab?: (node: MockTabNode) => React.ReactNode
   }) {
     mockOptimizedLayoutProps({
       model,
@@ -360,6 +369,7 @@ vi.mock('@aptre/flex-layout', () => {
       onExternalDrag,
       onModelChange,
       onRenderTab,
+      renderTab,
     })
     return (
       <div>
@@ -370,13 +380,15 @@ vi.mock('@aptre/flex-layout', () => {
           const renderValues: { content?: React.ReactNode } = {}
           onRenderTab?.(tab, renderValues)
           return (
-            <button
-              key={tab.id}
-              onContextMenu={(event) => onContextMenu?.(tab, event)}
-              type="button"
-            >
-              {renderValues.content ?? tab.getName()}
-            </button>
+            <React.Fragment key={tab.id}>
+              <button
+                onContextMenu={(event) => onContextMenu?.(tab, event)}
+                type="button"
+              >
+                {renderValues.content ?? tab.getName()}
+              </button>
+              {renderTab?.(tab)}
+            </React.Fragment>
           )
         })}
       </div>
@@ -494,6 +506,36 @@ function createUnixFSRowDragEnterEvent() {
   }
 }
 
+function TrackedNormalPane({ tabId }: { tabId: string }) {
+  React.useEffect(() => {
+    mockPanelMounts.set(tabId, (mockPanelMounts.get(tabId) ?? 0) + 1)
+  }, [tabId])
+  return <div>{tabId}</div>
+}
+
+function GridRouteHarness() {
+  const [path, setPath] = React.useState('/g/grid-layout')
+
+  React.useEffect(() => {
+    mockNavigate.mockImplementation(({ path: nextPath }: { path: string }) => {
+      setPath(nextPath)
+    })
+    return () => {
+      mockNavigate.mockReset()
+    }
+  }, [])
+
+  if (!path.startsWith('/g/')) {
+    return <TrackedNormalPane tabId="tab-3" />
+  }
+
+  return (
+    <ShellTabsProvider>
+      <ShellGridLayout />
+    </ShellTabsProvider>
+  )
+}
+
 describe('ShellGridLayout', () => {
   beforeEach(() => {
     delete mockJsonModel.borders
@@ -504,6 +546,7 @@ describe('ShellGridLayout', () => {
     mockHasGridLayout.mockImplementation(
       (model: MockHasGridLayoutModel) => (model.tabsets?.length ?? 0) > 1,
     )
+    mockPanelMounts.clear()
   })
 
   afterEach(() => {
@@ -639,7 +682,7 @@ describe('ShellGridLayout', () => {
     ])
   })
 
-  it('exits grid mode when pruning stale tabs collapses the decoded layout', async () => {
+  it('keeps grid ownership when pruning stale tabs collapses the decoded layout', () => {
     sessionStorage.setItem(
       SHELL_TABS_STORAGE_KEY,
       JSON.stringify({
@@ -657,15 +700,10 @@ describe('ShellGridLayout', () => {
       </ShellTabsProvider>,
     )
 
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith({
-        path: '/docs',
-        replace: true,
-      })
-    })
+    expect(mockNavigate).not.toHaveBeenCalled()
   })
 
-  it('uses shell tab state path when model changes collapse grid mode', () => {
+  it('keeps model changes in the grid route when the layout collapses', () => {
     sessionStorage.setItem(
       SHELL_TABS_STORAGE_KEY,
       JSON.stringify({
@@ -698,8 +736,44 @@ describe('ShellGridLayout', () => {
     })
 
     expect(mockNavigate).toHaveBeenCalledWith({
-      path: '/shell-docs',
+      path: '/g/encoded-grid',
       replace: true,
+    })
+  })
+
+  it('keeps a surviving pane mounted when closing its horizontal split sibling', async () => {
+    sessionStorage.setItem(
+      SHELL_TABS_STORAGE_KEY,
+      JSON.stringify({
+        tabs: [
+          { id: 'tab-1', name: 'Docs', path: '/docs' },
+          { id: 'tab-3', name: 'Terminal', path: '/u/7/settings/cli/terminal' },
+        ],
+        activeTabId: 'tab-1',
+      }),
+    )
+
+    render(<GridRouteHarness />)
+
+    await waitFor(() => {
+      expect(mockPanelMounts.get('tab-3')).toBe(1)
+    })
+
+    const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
+    const onModelChange = props?.onModelChange
+    if (typeof onModelChange !== 'function' || !props) {
+      throw new Error('grid layout did not provide onModelChange')
+    }
+
+    props.model.doAction?.({ type: 'deleteTab', tabId: 'tab-1' })
+    props.model.tabsets = [props.model.tabsets[1]]
+
+    act(() => {
+      onModelChange(props.model)
+    })
+
+    await waitFor(() => {
+      expect(mockPanelMounts.get('tab-3')).toBe(1)
     })
   })
 

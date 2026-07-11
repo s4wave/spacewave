@@ -128,24 +128,6 @@ export function ShellGridLayout() {
     }
   }, [layoutData, model, navigate])
 
-  // If stale decoded tabs were pruned during initialization, the repaired
-  // model may already be a single-tabset layout. Leave grid mode immediately
-  // instead of rendering a /g/ route whose structure is no longer a grid.
-  useEffect(() => {
-    if (!model || hasGridLayout(model)) return
-
-    const selectedId = getSelectedTabId(model)
-    const selectedTab =
-      findShellTab(tabs, selectedId) ??
-      findShellTab(tabs, activeTabId) ??
-      tabs[0]
-    selectShellTab(selectedTab?.id ?? selectedId ?? 'home')
-    structureRef.current = null
-    queueMicrotask(() =>
-      navigate({ path: selectedTab?.path ?? '/', replace: true }),
-    )
-  }, [activeTabId, model, navigate, selectShellTab, tabs])
-
   useEffect(() => {
     if (!model || !hasGridLayout(model)) return
 
@@ -176,7 +158,7 @@ export function ShellGridLayout() {
     [],
   )
 
-  // Handle model changes - detect exit from grid mode or update URL only for structural changes
+  // Handle model changes without replacing the grid layout owner.
   const handleModelChange = useCallback(
     (newModel: Model) => {
       setModel(newModel)
@@ -190,19 +172,6 @@ export function ShellGridLayout() {
       })
       retainShellTabs(modelTabIds, getSelectedTabId(newModel) ?? undefined)
 
-      if (!hasGridLayout(newModel)) {
-        // Collapsed to single tabset - exit grid mode
-        const selectedId = getSelectedTabId(newModel)
-        const selectedTab =
-          findShellTab(tabs, selectedId) ??
-          findShellTab(tabs, activeTabId) ??
-          tabs[0]
-        selectShellTab(selectedTab?.id ?? selectedId ?? 'home')
-        structureRef.current = null
-        navigate({ path: selectedTab?.path ?? '/', replace: true })
-        return
-      }
-
       // Check if structure changed (not just local state like tab selection)
       const newStructure = encodeGridLayoutStructure(newModel)
       if (newStructure !== structureRef.current) {
@@ -212,7 +181,7 @@ export function ShellGridLayout() {
         navigate({ path: `/g/${newLayoutData}`, replace: true })
       }
     },
-    [activeTabId, navigate, retainShellTabs, selectShellTab, tabs],
+    [navigate, retainShellTabs],
   )
 
   // Handle adding a new tab to the active tabset
