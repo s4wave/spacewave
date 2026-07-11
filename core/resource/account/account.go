@@ -1018,7 +1018,7 @@ func (r *AccountResource) GenerateBackupKey(
 	req *s4wave_account.GenerateBackupKeyRequest,
 ) (*s4wave_account.GenerateBackupKeyResponse, error) {
 	if r.localAccount != nil {
-		return r.generateLocalBackupKey(ctx, req)
+		return r.generateLocalBackupKey(ctx)
 	}
 	acc, err := r.requireCloudAccount()
 	if err != nil {
@@ -1136,21 +1136,7 @@ func (r *AccountResource) ChangePassword(
 
 func (r *AccountResource) generateLocalBackupKey(
 	ctx context.Context,
-	req *s4wave_account.GenerateBackupKeyRequest,
 ) (*s4wave_account.GenerateBackupKeyResponse, error) {
-	if cred := req.GetCredential(); cred != nil {
-		_, credentialPeerID, err := r.ResolveEntityKey(ctx, cred)
-		if err != nil {
-			return nil, err
-		}
-		if err := r.addLocalEntityKeypair(ctx, &session.EntityKeypair{
-			PeerId:     credentialPeerID.String(),
-			AuthMethod: localCredentialAuthMethod(cred),
-		}); err != nil {
-			return nil, errors.Wrap(err, "add credential keypair")
-		}
-	}
-
 	backupPeerID, pemData, err := generateBackupEntityKey()
 	if err != nil {
 		return nil, err
@@ -1234,13 +1220,6 @@ func generateBackupEntityKey() (peer.ID, []byte, error) {
 		return "", nil, errors.Wrap(err, "marshal PEM")
 	}
 	return backupPeerID, pemData, nil
-}
-
-func localCredentialAuthMethod(cred *session.EntityCredential) string {
-	if cred.GetPassword() != "" {
-		return auth_password.MethodID
-	}
-	return "pem"
 }
 
 // accountAPIPath builds a canonical account API route.

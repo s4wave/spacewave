@@ -11,9 +11,9 @@ file, block, or Space.
 
 ## Download a backup key
 
-Cloud accounts generate a backup PEM through the account resource. Local
-sessions export a PEM through the local session provider and require a password
-for the export. Store the PEM outside the device that holds the session.
+Cloud accounts ask for account proof before registering a backup key. In a
+local session, `Crypto & Keys` can add and download a backup key directly.
+Store the PEM outside the device that holds the session.
 
 Use a backup key to sign in with `spacewave login --pem-file`, add or recover an
 auth method, or reset a locked session when the reset flow asks for account

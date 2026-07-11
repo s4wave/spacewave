@@ -233,6 +233,46 @@ func TestGenerateBackupKeyLocalPersistsPEMKeypair(t *testing.T) {
 	}
 }
 
+func TestGenerateBackupKeyLocalDoesNotAddCredentialKeypair(t *testing.T) {
+	ctx := t.Context()
+
+	tb, _, _, acc, release := setupLocalProviderAccount(ctx, t)
+	defer release()
+
+	so, soRelease := mountLocalAccountSettingsSO(ctx, t, tb, acc)
+	defer soRelease()
+
+	ar := resource_account.NewAccountResource(acc)
+	if ar == nil {
+		t.Fatal("expected local account resource")
+	}
+
+	resp, err := ar.GenerateBackupKey(ctx, &s4wave_account.GenerateBackupKeyRequest{
+		Credential: &session.EntityCredential{
+			Credential: &session.EntityCredential_Password{
+				Password: "independent-backup-key",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	settings := waitForAccountSettings(ctx, t, so, func(settings *account_settings.AccountSettings) bool {
+		return hasEntityKeypair(settings, resp.GetPeerId(), "pem")
+	})
+	keypairs := settings.GetEntityKeypairs()
+	if len(keypairs) != 1 {
+		t.Fatalf("expected only the backup keypair, got %d keypairs", len(keypairs))
+	}
+	if keypairs[0].GetPeerId() != resp.GetPeerId() {
+		t.Fatalf("expected backup peer id %q, got %q", resp.GetPeerId(), keypairs[0].GetPeerId())
+	}
+	if keypairs[0].GetAuthMethod() != "pem" {
+		t.Fatalf("expected backup auth method %q, got %q", "pem", keypairs[0].GetAuthMethod())
+	}
+}
+
 func TestResolveEntityKeyLocalPasswordUsesAccountID(t *testing.T) {
 	if runtime.GOOS == "js" {
 		t.Skip("production-cost password scrypt is too slow under GoScript")

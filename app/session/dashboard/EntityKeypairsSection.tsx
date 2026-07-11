@@ -62,15 +62,13 @@ export function EntityKeypairsSection({
     setAdding(false)
   }, [session, cred])
 
-  const handleExportBackup = useCallback(async () => {
+  const handleAddBackup = useCallback(async () => {
     const account = accountResource.value
-    if (!account || !cred.credential) return
+    if (!account) return
     setExporting(true)
     setError(null)
     try {
-      const resp = await account.generateBackupKey({
-        credential: cred.credential,
-      })
+      const resp = await account.generateBackupKey({})
       if (resp.pemData) {
         const filename = `backup-key-${resp.peerId?.slice(0, 8) ?? 'key'}.pem`
         downloadPemFile(resp.pemData, filename)
@@ -78,7 +76,7 @@ export function EntityKeypairsSection({
       cred.reset()
       setShowAdd(false)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to export backup key')
+      setError(e instanceof Error ? e.message : 'Failed to add backup key')
     }
     setExporting(false)
   }, [accountResource.value, cred])
@@ -143,18 +141,27 @@ export function EntityKeypairsSection({
 
       {showAdd && (
         <div className="border-foreground/10 space-y-3 border-t pt-3">
-          <CredentialProofInput
-            password={cred.password}
-            onPasswordChange={cred.setPassword}
-            showPem={false}
-            passwordLabel="Password"
-            passwordPlaceholder="Enter password for entity key"
-            error={error}
-            disabled={busy}
-            focusOnMount
-          />
-          <div className="flex gap-2">
+          <div className="border-foreground/10 space-y-3 rounded-md border p-3">
+            <div>
+              <p className="text-foreground text-xs font-medium">
+                Password key
+              </p>
+              <p className="text-foreground-alt mt-1 text-xs">
+                Adds a key derived from this password. Use the password to
+                recover this local session if it becomes locked.
+              </p>
+            </div>
+            <CredentialProofInput
+              password={cred.password}
+              onPasswordChange={cred.setPassword}
+              showPem={false}
+              passwordLabel="Password"
+              passwordPlaceholder="Enter password for entity key"
+              disabled={busy}
+              focusOnMount
+            />
             <button
+              type="button"
               onClick={() => void handleAddPassword()}
               disabled={busy || !cred.hasCredential}
               className={cn(
@@ -163,31 +170,44 @@ export function EntityKeypairsSection({
                   'cursor-not-allowed opacity-50',
               )}
             >
-              {adding ? 'Adding...' : 'Add Password Key'}
+              {adding ? 'Adding…' : 'Add password key'}
             </button>
+          </div>
+          <div className="border-foreground/10 space-y-3 rounded-md border p-3">
+            <div>
+              <p className="text-foreground text-xs font-medium">Backup key</p>
+              <p className="text-foreground-alt mt-1 text-xs">
+                Creates and adds a separate backup key, then downloads its PEM
+                file. Use the file to recover this local session if the password
+                is unavailable. Store it somewhere safe.
+              </p>
+            </div>
             <button
-              onClick={() => void handleExportBackup()}
-              disabled={busy || !cred.password}
+              type="button"
+              onClick={() => void handleAddBackup()}
+              disabled={busy}
               className={cn(
                 'border-foreground/20 hover:border-brand/30 flex items-center gap-1 rounded border px-3 py-1.5 text-xs font-medium transition-colors',
-                (busy || !cred.password) && 'cursor-not-allowed opacity-50',
+                busy && 'cursor-not-allowed opacity-50',
               )}
             >
               <LuDownload className="size-3" />
-              {exporting ? 'Exporting...' : 'Export Backup PEM'}
-            </button>
-            <button
-              onClick={() => {
-                setShowAdd(false)
-                setError(null)
-                cred.reset()
-              }}
-              disabled={busy}
-              className="text-foreground-alt hover:text-foreground text-xs transition-colors"
-            >
-              Cancel
+              {exporting ? 'Adding…' : 'Add backup key'}
             </button>
           </div>
+          {error && <p className="text-destructive text-xs">{error}</p>}
+          <button
+            type="button"
+            onClick={() => {
+              setShowAdd(false)
+              setError(null)
+              cred.reset()
+            }}
+            disabled={busy}
+            className="text-foreground-alt hover:text-foreground text-xs transition-colors"
+          >
+            Cancel
+          </button>
         </div>
       )}
     </>
