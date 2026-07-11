@@ -256,6 +256,7 @@ function useUnixFSBrowserElement({
   const sessionIndex = useSessionIndex()
   const syncStatus = useSessionSyncStatus()
   const displayPath = currentPath || basePath || '/'
+  const canGoUp = displayPath !== '/'
 
   // Navigation history for back/forward support
   const history = useHistory()
@@ -352,10 +353,10 @@ function useUnixFSBrowserElement({
 
   // Handle navigating up one directory level
   const handleUp = useCallback(() => {
-    if (displayPath === '/') return
+    if (!canGoUp) return
     dispatch({ type: 'set-pending-name', name: null })
     navigate({ path: getUnixFSParentPath(displayPath) })
-  }, [displayPath, navigate])
+  }, [canGoUp, displayPath, navigate])
 
   // Handle path change from toolbar (user edited path directly)
   const handlePathChange = useCallback(
@@ -634,7 +635,7 @@ function useUnixFSBrowserElement({
     selectedEntries,
     canGoBack: history?.canGoBack ?? false,
     canGoForward: history?.canGoForward ?? false,
-    canGoUp: displayPath !== '/',
+    canGoUp,
     onNewFile: handleNewFile,
     onNewFolder: handleNewFolder,
     onUploadFiles: handleUploadFiles,
@@ -766,7 +767,7 @@ function useUnixFSBrowserElement({
     onUp: handleUp,
     canGoBack: history?.canGoBack ?? false,
     canGoForward: history?.canGoForward ?? false,
-    canGoUp: displayPath !== '/',
+    canGoUp,
     upDropPath: getUnixFSParentPath(displayPath),
     onPathTargetDragOver: handlePathTargetDragOver,
     onPathTargetDrop: handlePathTargetDrop,

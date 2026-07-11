@@ -696,6 +696,32 @@ describe('UnixFSBrowser drag gating', () => {
       expect(h.mockMkdirAll).toHaveBeenCalledWith(['Projects'])
     })
   })
+  it('disables navigate up at the UnixFS root and enables it in subdirectories', () => {
+    const view = render(
+      <UnixFSBrowser
+        unixfsId="files"
+        basePath="/"
+        currentPath="/"
+        worldState={buildResource({} as IWorldState)}
+      />,
+    )
+
+    expect(h.registeredCommands.get('spacewave.nav.up')?.enabled).toBe(false)
+
+    view.rerender(
+      <UnixFSBrowser
+        unixfsId="files"
+        basePath="/"
+        currentPath="/docs/images"
+        worldState={buildResource({} as IWorldState)}
+      />,
+    )
+
+    const navigateUp = h.registeredCommands.get('spacewave.nav.up')
+    expect(navigateUp?.enabled).toBe(true)
+    navigateUp?.handler?.()
+    expect(h.mockNavigate).toHaveBeenCalledWith({ path: '/docs' })
+  })
 
   it('renders owner-provided directory headers above the file list', async () => {
     h.mockFileEntries = [
