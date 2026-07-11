@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 import { ProviderAccountStatus } from '@s4wave/core/provider/provider.pb.js'
 import { SessionSelector } from './SessionSelector.js'
@@ -116,5 +116,26 @@ describe('SessionSelector', () => {
 
     expect(screen.getByText('Linked Local')).toBeTruthy()
     expect(screen.getByText('(linked)')).toBeTruthy()
+  })
+
+  it('selects an account through the shared session route', () => {
+    mockUseSessionList.mockReturnValue({
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+      value: {
+        sessions: [{ sessionIndex: 12 }],
+      },
+    })
+    mockUseSessionMetadata.mockReturnValue({
+      providerId: 'local',
+      displayName: 'Work',
+    })
+    mockUseSessionAccountStatuses.mockReturnValue(new Map())
+
+    render(<SessionSelector />)
+    fireEvent.click(screen.getByText('Work'))
+
+    expect(mockNavigate).toHaveBeenCalledWith({ path: '/u/12/' })
   })
 })

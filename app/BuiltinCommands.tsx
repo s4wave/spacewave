@@ -15,6 +15,7 @@ import { DISCORD_INVITE_URL, GITHUB_ISSUES_URL } from '@s4wave/app/github.js'
 import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
 import { useAddSpaceRootAlias } from '@s4wave/app/hooks/useAddSpaceRootAlias.js'
 import { useShellTabs } from '@s4wave/app/ShellTabContext.js'
+import { SelectAccountCommand } from '@s4wave/app/session/SelectAccountCommand.js'
 
 // BuiltinCommands registers built-in commands with the command registry.
 // Returns null (no UI).
@@ -198,6 +199,7 @@ export function BuiltinCommands() {
 
   return (
     <>
+      <SelectAccountCommand />
       {isDesktop && <DesktopBuiltinCommands />}
       <KeyboardShortcutsDialog
         open={shortcutsOpen}

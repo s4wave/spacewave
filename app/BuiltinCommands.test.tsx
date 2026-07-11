@@ -112,6 +112,10 @@ vi.mock('@s4wave/app/hooks/useAddSpaceRootAlias.js', () => ({
   }),
 }))
 
+vi.mock('@s4wave/app/session/SelectAccountCommand.js', () => ({
+  SelectAccountCommand: () => null,
+}))
+
 vi.mock('@s4wave/app/ShellTabContext.js', () => ({
   useShellTabs: () => ({
     activeTabId: 'home',

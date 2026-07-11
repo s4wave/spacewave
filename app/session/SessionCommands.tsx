@@ -77,19 +77,6 @@ export function SessionCommands() {
   })
 
   useCommand({
-    commandId: 'spacewave.session.switch',
-    label: 'Switch Account',
-    description: 'Switch to a different account',
-    menuPath: 'File/Switch Account',
-    menuGroup: 80,
-    menuOrder: 2,
-    active: isTabActive,
-    handler: useCallback(() => {
-      navigate({ path: '/sessions' })
-    }, [navigate]),
-  })
-
-  useCommand({
     commandId: 'spacewave.session.settings',
     label: 'Account Settings',
     description: 'Open the account settings panel',

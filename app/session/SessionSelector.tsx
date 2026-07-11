@@ -15,6 +15,7 @@ import { useSpaceRootRuntime } from '@s4wave/app/hooks/useSpaceRootRuntime.js'
 import { useSessionMetadata } from '@s4wave/app/hooks/useSessionMetadata.js'
 import { useSessionAccountStatuses } from '@s4wave/app/hooks/useSessionAccountStatuses.js'
 import { useSessionList } from '@s4wave/app/hooks/useSessionList.js'
+import { useSelectAccount } from '@s4wave/app/hooks/useSelectAccount.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { NavigatePath } from '@s4wave/web/router/NavigatePath.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
@@ -34,6 +35,8 @@ import {
   type SpaceRootAliasRecord,
   type WatchSpaceRootRuntimeResponse,
 } from '@s4wave/sdk/root/root.pb.js'
+
+import { accountDescription, accountTitle } from './account-presentation.js'
 
 // SessionSelector displays a full-page session picker for users with multiple sessions.
 export function SessionSelector() {
@@ -389,28 +392,19 @@ function SessionCard(props: {
   session: SessionListEntry
   accountStatus?: ProviderAccountStatus
 }) {
-  const navigate = useNavigate()
+  const selectAccount = useSelectAccount()
   const meta = useSessionMetadata(props.session.sessionIndex ?? null)
   const isCloudProvider = meta?.providerId === 'spacewave'
   const isLinked = meta?.providerId === 'local' && !!meta?.cloudAccountId
   const isInactive =
     props.accountStatus === ProviderAccountStatus.ProviderAccountStatus_DORMANT
-  const title =
-    meta?.displayName ||
-    meta?.cloudEntityId ||
-    `Session ${props.session.sessionIndex}`
-  const providerLabel =
-    meta?.providerDisplayName || (isCloudProvider ? 'Cloud' : 'Local')
-  const subtitle =
-    isCloudProvider && meta?.cloudEntityId && meta.cloudEntityId !== title
-      ? `${providerLabel} · ${meta.cloudEntityId}`
-      : !isCloudProvider && !meta?.displayName
-        ? `${providerLabel} · Session ${props.session.sessionIndex}`
-        : providerLabel
+  const sessionIndex = props.session.sessionIndex ?? 0
+  const title = accountTitle(meta, sessionIndex)
+  const subtitle = accountDescription(meta, sessionIndex)
 
   const handleSessionSelect = useCallback(() => {
-    navigate({ path: '/u/' + props.session.sessionIndex + '/' })
-  }, [navigate, props.session.sessionIndex])
+    if (sessionIndex) selectAccount(sessionIndex)
+  }, [selectAccount, sessionIndex])
 
   const handleSessionSelectKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
