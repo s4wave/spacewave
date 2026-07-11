@@ -220,6 +220,17 @@ describe('TerminalPane', () => {
 
     unmount()
   })
+  it('disables page text selection without changing the xterm host', () => {
+    const { container, unmount } = renderTerminalPane()
+    const pane = container.querySelector('[data-terminal-state]')
+
+    expect(pane?.classList.contains('select-none')).toBe(true)
+    expect(pane?.firstElementChild?.classList.contains('select-none')).toBe(
+      false,
+    )
+
+    unmount()
+  })
 
   it('writes output frame bytes to xterm', async () => {
     const { unmount } = renderTerminalPane([

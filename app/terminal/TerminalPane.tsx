@@ -161,7 +161,10 @@ export function TerminalPane({
       {trustChallenge &&
         renderTrustChallenge?.(trustChallenge, respondToSshTrust)}
       <div
-        className="bg-background-dark relative flex min-h-0 min-w-0 flex-1 overflow-hidden"
+        className={cn(
+          'bg-background-dark relative flex min-h-0 min-w-0 flex-1 overflow-hidden',
+          'select-none',
+        )}
         data-terminal-state={status.kind}
       >
         <div
