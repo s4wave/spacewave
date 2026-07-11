@@ -48,6 +48,29 @@ func TestRunCliSupportedWhoamiCommandWritesRunnerOutput(t *testing.T) {
 	assertContains(t, out, "Lock")
 	assertContains(t, out, "unlocked (auto)")
 	assertSuffix(t, out, "spacewave> ")
+	var sawCommandLineBreak bool
+	for _, frame := range terminalOutputFrames(strm) {
+		data := frame.GetData()
+		if bytes.Contains(data, []byte("session-1")) &&
+			bytes.Contains(data, []byte("\r\n")) {
+			sawCommandLineBreak = true
+		}
+		if bytes.Contains(data, []byte("\r\r\n")) {
+			t.Fatalf("output frame contains double-normalized CRLF: %q", data)
+		}
+		for i, b := range data {
+			if b != '\n' {
+				continue
+			}
+			if i == 0 || data[i-1] != '\r' {
+				t.Fatalf("output frame contains bare LF: %q", data)
+			}
+		}
+	}
+	if !sawCommandLineBreak {
+		t.Fatal("whoami output frame did not contain a CRLF line break")
+	}
+
 	if factory.newCalls != 1 {
 		t.Fatalf("NewClient calls = %d, want 1", factory.newCalls)
 	}

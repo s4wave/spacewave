@@ -462,13 +462,24 @@ func (s *promptSession) writeOutputBytes(output []byte) error {
 	if len(output) == 0 {
 		return nil
 	}
-	data := append([]byte(nil), output...)
+	data := normalizeTerminalOutput(output)
 	s.outMu.Lock()
 	defer s.outMu.Unlock()
 	return s.strm.Send(&s4wave_terminal.TerminalFrame{
 		Kind: s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_OUTPUT,
 		Data: data,
 	})
+}
+
+func normalizeTerminalOutput(output []byte) []byte {
+	data := make([]byte, 0, len(output))
+	for i, b := range output {
+		if b == '\n' && (i == 0 || output[i-1] != '\r') {
+			data = append(data, '\r')
+		}
+		data = append(data, b)
+	}
+	return data
 }
 
 func (s *promptSession) writeExit(code int32) error {
