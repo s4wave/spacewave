@@ -1,7 +1,11 @@
 import { useCallback, type ReactNode } from 'react'
 import {
+  LuArrowRight,
+  LuBox,
+  LuCircle,
   LuLayoutGrid,
   LuMaximize2,
+  LuMinus,
   LuMousePointer2,
   LuPencil,
   LuSquare,
@@ -77,6 +81,13 @@ export function CanvasToolbar({
 }: CanvasToolbarProps) {
   const setSelect = useCallback(() => onToolChange('select'), [onToolChange])
   const setDraw = useCallback(() => onToolChange('draw'), [onToolChange])
+  const setLine = useCallback(() => onToolChange('line'), [onToolChange])
+  const setArrow = useCallback(() => onToolChange('arrow'), [onToolChange])
+  const setRectangle = useCallback(
+    () => onToolChange('rectangle'),
+    [onToolChange],
+  )
+  const setEllipse = useCallback(() => onToolChange('ellipse'), [onToolChange])
   const setText = useCallback(() => onToolChange('text'), [onToolChange])
   const setObject = useCallback(() => onToolChange('object'), [onToolChange])
   const handleColorChange = useCallback(
@@ -101,6 +112,26 @@ export function CanvasToolbar({
       <ToolButton label="Draw (D)" active={tool === 'draw'} onClick={setDraw}>
         <LuPencil size={16} />
       </ToolButton>
+      <ToolButton label="Line" active={tool === 'line'} onClick={setLine}>
+        <LuMinus size={16} />
+      </ToolButton>
+      <ToolButton label="Arrow" active={tool === 'arrow'} onClick={setArrow}>
+        <LuArrowRight size={16} />
+      </ToolButton>
+      <ToolButton
+        label="Rectangle"
+        active={tool === 'rectangle'}
+        onClick={setRectangle}
+      >
+        <LuSquare size={16} />
+      </ToolButton>
+      <ToolButton
+        label="Ellipse"
+        active={tool === 'ellipse'}
+        onClick={setEllipse}
+      >
+        <LuCircle size={16} />
+      </ToolButton>
       <ToolButton label="Text (T)" active={tool === 'text'} onClick={setText}>
         <LuType size={16} />
       </ToolButton>
@@ -109,7 +140,7 @@ export function CanvasToolbar({
         active={tool === 'object'}
         onClick={setObject}
       >
-        <LuSquare size={16} />
+        <LuBox size={16} />
       </ToolButton>
 
       <CanvasColorPicker color={color} onColorChange={handleColorChange} />

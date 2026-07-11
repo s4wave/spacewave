@@ -95,7 +95,15 @@ export interface CanvasStateData {
 }
 
 // CanvasTool is the active tool in the toolbar.
-export type CanvasTool = 'select' | 'draw' | 'text' | 'object'
+export type CanvasTool =
+  | 'select'
+  | 'draw'
+  | 'line'
+  | 'arrow'
+  | 'rectangle'
+  | 'ellipse'
+  | 'text'
+  | 'object'
 
 // CanvasAction is a named action in the action map.
 export type CanvasAction =

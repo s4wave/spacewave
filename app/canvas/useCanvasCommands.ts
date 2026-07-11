@@ -374,6 +374,58 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
   })
 
   useCommand({
+    commandId: 'canvas.tool.line',
+    label: 'Line Tool',
+    menuPath: 'Tools/Line',
+    keybinding: 'l',
+    menuGroup: 1,
+    menuOrder: 3,
+    active: borderActive && !!onToolChange,
+    handler: useCallback(() => {
+      onToolChange?.('line')
+    }, [onToolChange]),
+  })
+
+  useCommand({
+    commandId: 'canvas.tool.arrow',
+    label: 'Arrow Tool',
+    menuPath: 'Tools/Arrow',
+    keybinding: 'a',
+    menuGroup: 1,
+    menuOrder: 4,
+    active: borderActive && !!onToolChange,
+    handler: useCallback(() => {
+      onToolChange?.('arrow')
+    }, [onToolChange]),
+  })
+
+  useCommand({
+    commandId: 'canvas.tool.rectangle',
+    label: 'Rectangle Tool',
+    menuPath: 'Tools/Rectangle',
+    keybinding: 'r',
+    menuGroup: 1,
+    menuOrder: 5,
+    active: borderActive && !!onToolChange,
+    handler: useCallback(() => {
+      onToolChange?.('rectangle')
+    }, [onToolChange]),
+  })
+
+  useCommand({
+    commandId: 'canvas.tool.ellipse',
+    label: 'Ellipse Tool',
+    menuPath: 'Tools/Ellipse',
+    keybinding: 'e',
+    menuGroup: 1,
+    menuOrder: 6,
+    active: borderActive && !!onToolChange,
+    handler: useCallback(() => {
+      onToolChange?.('ellipse')
+    }, [onToolChange]),
+  })
+
+  useCommand({
     commandId: 'canvas.tool.text',
     label: 'Text Tool',
     menuPath: 'Tools/Text',

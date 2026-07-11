@@ -30,7 +30,7 @@ describe('CanvasToolbar', () => {
     cleanup()
   })
 
-  it('renders all tool buttons', () => {
+  it('renders all drawing and object tool buttons', () => {
     const onToolChange = vi.fn()
     render(
       <CanvasToolbar
@@ -41,6 +41,10 @@ describe('CanvasToolbar', () => {
     )
     expect(screen.getByLabelText('Select (V)')).toBeTruthy()
     expect(screen.getByLabelText('Draw (D)')).toBeTruthy()
+    expect(screen.getByLabelText('Line')).toBeTruthy()
+    expect(screen.getByLabelText('Arrow')).toBeTruthy()
+    expect(screen.getByLabelText('Rectangle')).toBeTruthy()
+    expect(screen.getByLabelText('Ellipse')).toBeTruthy()
     expect(screen.getByLabelText('Text (T)')).toBeTruthy()
     expect(screen.getByLabelText('Object (O)')).toBeTruthy()
   })
@@ -72,6 +76,18 @@ describe('CanvasToolbar', () => {
 
     await user.click(screen.getByLabelText('Draw (D)'))
     expect(onToolChange).toHaveBeenCalledWith('draw')
+
+    await user.click(screen.getByLabelText('Line'))
+    expect(onToolChange).toHaveBeenCalledWith('line')
+
+    await user.click(screen.getByLabelText('Arrow'))
+    expect(onToolChange).toHaveBeenCalledWith('arrow')
+
+    await user.click(screen.getByLabelText('Rectangle'))
+    expect(onToolChange).toHaveBeenCalledWith('rectangle')
+
+    await user.click(screen.getByLabelText('Ellipse'))
+    expect(onToolChange).toHaveBeenCalledWith('ellipse')
 
     await user.click(screen.getByLabelText('Text (T)'))
     expect(onToolChange).toHaveBeenCalledWith('text')

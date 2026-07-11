@@ -365,7 +365,7 @@ export const CanvasNode = memo(function CanvasNode({
       )
     }
 
-    if (node.type === 'drawing' && node.shapeData) {
+    if ((node.type === 'drawing' || node.type === 'shape') && node.shapeData) {
       return <CanvasGeometryNode node={node} />
     }
 
@@ -404,7 +404,9 @@ export const CanvasNode = memo(function CanvasNode({
               : null,
         selected && 'shadow-md',
         !isOutlineOnly &&
-          (node.type === 'drawing' || node.type === 'text') &&
+          (node.type === 'drawing' ||
+            node.type === 'shape' ||
+            node.type === 'text') &&
           !selected &&
           'border-transparent bg-transparent shadow-none',
         !isOutlineOnly &&
