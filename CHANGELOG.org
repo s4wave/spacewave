@@ -1,5 +1,30 @@
 #+TITLE: Spacewave Changelog
 
+* v0.56.0
+<2026-07-10 Fri>
+
+Spacewave 0.56.0 makes cold browser starts faster by making startup checksum
+processing 55.7× faster and eliminating the largest measured cold-boot
+bottleneck. It also removes repeated file-storage integrity work, restores
+Terminal in browser builds, and reduces byte-copying during browser startup and
+data loading.
+
+** Fixes
+- Fixed Terminal in browser builds so it opens and reaches the command prompt
+  again.
+
+** Improvements
+- Cold browser starts are faster: startup checksum processing is 55.7× faster,
+  eliminating the largest measured cold-boot bottleneck.
+- Local file storage now avoids duplicate integrity work while preserving
+  compatibility with existing stored data, reducing repeated work during startup
+  and file access.
+- Browser startup and in-app data loading now avoid an unnecessary byte
+  conversion, reducing copying and memory pressure.
+- Release checks now verify existing local file storage compatibility and
+  confirm that browser builds include Terminal, reducing the chance of storage
+  or Terminal regressions.
+
 * v0.55.0
 <2026-07-10 Fri>
 
