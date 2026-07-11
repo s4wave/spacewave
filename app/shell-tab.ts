@@ -49,6 +49,13 @@ export function getTabNameFromPath(path: string): string {
   if (normalized.startsWith('changelog')) {
     return 'Changelog'
   }
+  if (normalized === 'pair' || normalized.startsWith('pair/')) {
+    return 'Pair device'
+  }
+
+  if (normalized === 'setup/link-device') {
+    return 'Link device'
+  }
   if (normalized === 'settings/cli/terminal') {
     return 'Terminal'
   }
@@ -64,8 +71,18 @@ export function getTabNameFromPath(path: string): string {
       }
       return 'Space'
     }
+    if (parts.length >= 3 && parts[2] === 'pair') {
+      return 'Pair device'
+    }
     if (parts.length >= 4 && parts[2] === 'devices') {
       return 'Devices'
+    }
+    if (
+      parts.length >= 4 &&
+      parts[2] === 'setup' &&
+      parts[3] === 'link-device'
+    ) {
+      return 'Link device'
     }
     if (
       parts.length >= 5 &&

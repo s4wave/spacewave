@@ -41,6 +41,7 @@ import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useOptionalLocalSessionOnboardingContext } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
+import { PairingChannelProgress } from './PairingChannelProgress.js'
 import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
 import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
@@ -651,25 +652,6 @@ function PairingStep({
         )}
       </div>
 
-      {!loading && code && !connectionError && (
-        <div className="flex flex-col items-center gap-1">
-          <div className="flex items-center justify-center gap-2">
-            <span className="bg-brand inline-block size-2 animate-pulse rounded-full" />
-            <span className="text-foreground-alt text-xs">
-              Waiting for connection…
-            </span>
-          </div>
-          <span
-            className={cn(
-              'text-xs',
-              secondsLeft <= 60 ? 'text-destructive' : 'text-foreground-alt',
-            )}
-          >
-            Code expires in {countdown}
-          </span>
-        </div>
-      )}
-
       {connectionError && (
         <div className="flex flex-col items-center gap-2">
           <p className="text-destructive text-center text-xs">
@@ -721,6 +703,24 @@ function PairingStep({
           <span className="text-foreground text-sm">Generate new code</span>
         </button>
       </div>
+      {!loading && code && !connectionError && (
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center justify-center gap-2">
+            <span className="bg-brand inline-block size-2 animate-pulse rounded-full" />
+            <span className="text-foreground-alt text-xs">
+              Waiting for connection…
+            </span>
+          </div>
+          <span
+            className={cn(
+              'text-xs',
+              secondsLeft <= 60 ? 'text-destructive' : 'text-foreground-alt',
+            )}
+          >
+            Code expires in {countdown}
+          </span>
+        </div>
+      )}
     </div>
   )
 }
@@ -934,7 +934,7 @@ function EnterCodeStep({
           <LuKeyboard className="text-brand size-5" />
         </div>
         <h2 className="text-foreground text-sm font-medium">
-          Enter pairing code
+          Pair another device
         </h2>
         <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
           Enter the 8-character code shown on your other device.
@@ -1134,20 +1134,7 @@ function VerifyStep({
   if (!emoji) {
     return (
       <div className="space-y-4">
-        <div className="flex flex-col items-center gap-2">
-          <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
-            <LuShieldCheck className="text-brand size-5" />
-          </div>
-          <h2 className="text-foreground text-sm font-medium">
-            Establishing secure channel
-          </h2>
-          <p className="text-foreground-alt text-xs leading-relaxed">
-            Setting up encrypted connection with your other device…
-          </p>
-        </div>
-        <div className="flex min-h-24 items-center justify-center">
-          <Spinner size="lg" className="text-foreground-alt" />
-        </div>
+        <PairingChannelProgress />
         <button
           onClick={onAbort}
           className={cn(
@@ -1223,7 +1210,7 @@ function WaitingForConnection({ onSkip, onAbort }: WaitingForConnectionProps) {
           Verify connection
         </h2>
         <p className="text-foreground-alt text-xs leading-relaxed">
-          Establishing secure connection with your desktop app…
+          Setting up the connection with your desktop app…
         </p>
       </div>
 

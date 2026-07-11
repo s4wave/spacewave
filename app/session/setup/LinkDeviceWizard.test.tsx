@@ -122,6 +122,15 @@ describe('LinkDeviceWizard', () => {
     expect(option).not.toBeNull()
     expect(option?.textContent).toContain('Generate code for another device')
   })
+  it('gives the pairing-code entry screen a descriptive heading', () => {
+    render(<LinkDeviceWizard />)
+
+    fireEvent.click(screen.getByText('Enter a code from another device'))
+
+    expect(
+      screen.getByRole('heading', { name: 'Pair another device' }),
+    ).toBeDefined()
+  })
 
   it('starts watching pairing status after the generated code resolves', async () => {
     const watchPairingStatus = vi.fn(async function* () {})
@@ -177,9 +186,18 @@ describe('LinkDeviceWizard', () => {
     })
     expect(screen.queryByText(/open the .*desktop app/i)).toBeNull()
     // The code renders as a grouped copyable chip.
-    expect(screen.getByText('ABCD 1234')).toBeDefined()
+    const codeButton = screen.getByRole('button', {
+      name: 'Copy pairing code',
+    })
+    expect(codeButton.textContent).toContain('ABCD 1234')
+    expect(screen.queryByTitle('Copy to clipboard')).toBeNull()
+    const generateButton = screen.getByRole('button', {
+      name: 'Generate new code',
+    })
+    const waitingMessage = screen.getByText('Waiting for connection…')
     expect(
-      screen.getByRole('button', { name: 'Copy pairing code' }),
-    ).toBeDefined()
+      generateButton.compareDocumentPosition(waitingMessage) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0)
   })
 })

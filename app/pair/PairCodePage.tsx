@@ -19,6 +19,7 @@ import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { createLocalSession } from '@s4wave/app/quickstart/create.js'
+import { PairingChannelProgress } from '@s4wave/app/session/setup/PairingChannelProgress.js'
 import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
 import type { Root } from '@s4wave/sdk/root'
 import type { Session } from '@s4wave/sdk/session/session.js'
@@ -201,7 +202,7 @@ export function PairCodePage(props: PairCodePageProps) {
                   <LuKeyboard className="text-brand size-5" />
                 </div>
                 <h2 className="text-foreground text-sm font-medium">
-                  Enter pairing code
+                  Pair another device
                 </h2>
                 <p className="text-foreground-alt mt-1 text-xs leading-relaxed">
                   Enter the 8-character code shown on your other device.
@@ -472,20 +473,7 @@ function PairVerifyStep({
   if (!emoji) {
     return (
       <div className="space-y-4">
-        <div className="flex flex-col items-center gap-2">
-          <div className="bg-brand/10 flex size-10 items-center justify-center rounded-full">
-            <LuShieldCheck className="text-brand size-5" />
-          </div>
-          <h2 className="text-foreground text-sm font-medium">
-            Establishing secure channel
-          </h2>
-          <p className="text-foreground-alt text-xs leading-relaxed">
-            Setting up encrypted connection…
-          </p>
-        </div>
-        <div className="flex min-h-24 items-center justify-center">
-          <Spinner size="md" className="text-foreground-alt" />
-        </div>
+        <PairingChannelProgress />
         <button
           onClick={onAbort}
           className={cn(

@@ -7,6 +7,16 @@ describe('getTabNameFromPath', () => {
     expect(getTabNameFromPath('/docs')).toBe('Docs')
     expect(getTabNameFromPath('/docs/developer/install')).toBe('Docs')
   })
+  it('labels pairing routes with a descriptive tab name', () => {
+    expect(getTabNameFromPath('/pair')).toBe('Pair device')
+    expect(getTabNameFromPath('/pair/ABCD1234')).toBe('Pair device')
+    expect(getTabNameFromPath('/u/1/pair')).toBe('Pair device')
+  })
+
+  it('labels link-device setup routes with a descriptive tab name', () => {
+    expect(getTabNameFromPath('/setup/link-device')).toBe('Link device')
+    expect(getTabNameFromPath('/u/1/setup/link-device')).toBe('Link device')
+  })
 
   it('uses built-in object labels for space object routes', () => {
     expect(getTabNameFromPath('/u/1/so/space/-/unixfs')).toBe('Files')
