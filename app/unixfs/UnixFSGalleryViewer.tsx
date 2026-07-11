@@ -261,7 +261,10 @@ function UnixFSGalleryBody({
               )
             }}
           >
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            <div
+              data-testid="unixfs-gallery-grid"
+              className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,12rem),1fr))] gap-3"
+            >
               {previewItems.map((item) => {
                 const supportsLightbox = !!item.previewURL
                 if (!supportsLightbox) {

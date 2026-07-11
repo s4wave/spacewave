@@ -222,6 +222,41 @@ describe('UnixFSGalleryViewer', () => {
     })
   })
 
+  it('lays out gallery tiles from the viewer frame width instead of viewport breakpoints', () => {
+    h.galleryState = buildGalleryState({
+      scopePath: '/gallery',
+      items: [
+        {
+          path: '/gallery/first.png',
+          name: 'first.png',
+          label: 'first.png',
+          mimeType: 'image/png',
+        },
+      ],
+      errors: [],
+      complete: true,
+    })
+
+    render(
+      <UnixFSGalleryViewer
+        objectInfo={{
+          info: {
+            case: 'unixfsObjectInfo',
+            value: {
+              unixfsId: 'files',
+              path: '/gallery',
+            },
+          },
+        }}
+        worldState={buildResource(null)}
+      />,
+    )
+
+    expect(screen.getByTestId('unixfs-gallery-grid').className).toContain(
+      'grid-cols-[repeat(auto-fill,minmax(min(100%,12rem),1fr))]',
+    )
+  })
+
   it('wires the lightbox toolbar actions to the current image', () => {
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
     h.lightboxIndex = 1
