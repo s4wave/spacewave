@@ -6,7 +6,6 @@ import {
   render,
   screen,
   waitFor,
-  within,
 } from '@testing-library/react'
 
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
@@ -73,19 +72,13 @@ describe('ComputersDashboardViewer', () => {
     vi.clearAllMocks()
   })
 
-  function getDeviceEmptyStateAddButton() {
-    const emptyState = screen.getByText('No Device objects yet').closest('div')
-    if (!emptyState) {
-      throw new Error('expected Device empty state')
-    }
-    const buttons = within(emptyState).getAllByRole('button', {
-      name: /add device/i,
-    })
+  function getHeaderAddDeviceButton() {
+    const buttons = screen.getAllByRole('button', { name: /add device/i })
     expect(buttons).toHaveLength(1)
     return buttons[0]
   }
 
-  it('lists Device objects and future host entries without hiding empty sections', () => {
+  it('consolidates Device and SSH Host objects into one inventory', () => {
     render(
       <ComputersDashboardViewer
         objectInfo={{}}
@@ -124,7 +117,7 @@ describe('ComputersDashboardViewer', () => {
       />,
     )
 
-    fireEvent.click(getDeviceEmptyStateAddButton())
+    fireEvent.click(getHeaderAddDeviceButton())
 
     await waitFor(() =>
       expect(h.navigateToObjects).toHaveBeenCalledWith([
@@ -148,7 +141,8 @@ describe('ComputersDashboardViewer', () => {
       />,
     )
 
-    fireEvent.click(getDeviceEmptyStateAddButton())
+    expect(screen.getByText('No computers added')).toBeTruthy()
+    fireEvent.click(getHeaderAddDeviceButton())
 
     expect(h.applyWorldOp).toHaveBeenCalledWith(
       CREATE_WIZARD_OBJECT_OP_ID,

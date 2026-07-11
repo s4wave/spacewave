@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { LuHardDrive, LuMonitor, LuPlus, LuServer } from 'react-icons/lu'
 
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
@@ -6,7 +6,9 @@ import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wiza
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
+import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
+import { cn } from '@s4wave/web/style/utils.js'
 import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import { SshHostTypeID } from '@s4wave/sdk/sshhost/sshhost.js'
 
@@ -20,6 +22,8 @@ import {
 import { ComputersDashboardTypeID } from './computers.js'
 
 export { ComputersDashboardTypeID }
+
+type InventoryFilter = 'all' | 'devices' | 'hosts'
 
 export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
   const { navigateToObjects, spaceState, spaceWorld } =
@@ -51,13 +55,23 @@ export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
   )
   const canCreateAddDeviceWizard = visibleWizardTypeSet.has(DeviceTypeID)
   const canAddDevice = !!seededAddDeviceWizardKey || canCreateAddDeviceWizard
+  const [opening, setOpening] = useState(false)
+  const [openingError, setOpeningError] = useState('')
+  const [filter, setFilter] = useState<InventoryFilter>('all')
 
   const handleAddDevice = useCallback(async () => {
+    if (opening) return
+    setOpeningError('')
+    setOpening(true)
     if (seededAddDeviceWizardKey) {
       navigateToObjects([seededAddDeviceWizardKey])
+      setOpening(false)
       return
     }
-    if (!canCreateAddDeviceWizard) return
+    if (!canCreateAddDeviceWizard) {
+      setOpening(false)
+      return
+    }
     const wizardKey = buildWizardObjectKey(
       AddDeviceDefaultName,
       existingObjectKeys,
@@ -73,18 +87,41 @@ export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
     try {
       await spaceWorld.applyWorldOp(CREATE_WIZARD_OBJECT_OP_ID, opData, '')
       navigateToObjects([wizardKey])
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to open Add Device',
-      )
+    } catch {
+      const message = 'Add Device could not be opened. Try again.'
+      setOpeningError(message)
+      toast.error(message)
+    } finally {
+      setOpening(false)
     }
   }, [
     canCreateAddDeviceWizard,
     existingObjectKeys,
     navigateToObjects,
+    opening,
     seededAddDeviceWizardKey,
     spaceWorld,
   ])
+
+  const inventory = useMemo(() => {
+    const entries = [
+      ...devices.map((obj) => ({
+        objectKey: obj.objectKey ?? '',
+        kind: 'Managed Device',
+        icon: <LuHardDrive className="size-3.5" />,
+      })),
+      ...hosts.map((obj) => ({
+        objectKey: obj.objectKey ?? '',
+        kind: 'SSH Host',
+        icon: <LuServer className="size-3.5" />,
+      })),
+    ]
+    if (filter === 'devices')
+      return entries.filter((entry) => entry.kind === 'Managed Device')
+    if (filter === 'hosts')
+      return entries.filter((entry) => entry.kind === 'SSH Host')
+    return entries
+  }, [devices, filter, hosts])
 
   return (
     <div className="bg-background-primary flex h-full w-full flex-col">
@@ -97,54 +134,100 @@ export function ComputersDashboardViewer(_props: ObjectViewerComponentProps) {
           <DashboardButton
             icon={<LuPlus className="size-3.5" />}
             onClick={() => void handleAddDevice()}
+            disabled={opening}
           >
-            Add Device
+            {opening ? 'Opening Add Device…' : 'Add Device'}
           </DashboardButton>
         )}
       </div>
-      <div className="min-h-0 flex-1 overflow-auto p-4">
+      <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
+          {openingError && (
+            <div
+              className="border-destructive/15 bg-destructive/5 text-destructive rounded-lg border p-3 text-xs leading-relaxed"
+              role="alert"
+            >
+              {openingError}
+            </div>
+          )}
           <section className="grid gap-3 sm:grid-cols-2">
-            <SummaryTile label="Devices" value={devices.length} />
-            <SummaryTile label="Hosts" value={hosts.length} />
+            <SummaryTile
+              icon={<LuHardDrive className="size-3.5" />}
+              label="Managed Devices"
+              value={devices.length}
+            />
+            <SummaryTile
+              icon={<LuServer className="size-3.5" />}
+              label="SSH Hosts"
+              value={hosts.length}
+            />
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-2">
-            <InventoryPanel
-              title="Devices"
-              icon={<LuHardDrive className="size-3.5" />}
-              entries={devices.map((obj) => obj.objectKey ?? '')}
-              empty="No Device objects yet"
-              onOpen={(objectKey) => navigateToObjects([objectKey])}
-              emptyAction={
-                canAddDevice ? (
-                  <DashboardButton
-                    icon={<LuPlus className="size-3.5" />}
-                    onClick={() => void handleAddDevice()}
+          {objects.length === 0 ? (
+            <InfoCard
+              icon={<LuMonitor className="text-foreground-alt/60 size-3.5" />}
+              title="No computers added"
+            >
+              <div className="flex flex-col items-start gap-3">
+                <p className="text-foreground-alt/70 text-xs leading-relaxed">
+                  Add a managed Device for persistent capabilities, or add an
+                  SSH Host for on-demand terminal access.
+                </p>
+              </div>
+            </InfoCard>
+          ) : (
+            <section className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium">
+                  <LuMonitor className="size-3.5" />
+                  Inventory
+                </h3>
+                <div className="flex items-center gap-1" role="tablist">
+                  <FilterButton
+                    active={filter === 'all'}
+                    onClick={() => setFilter('all')}
                   >
-                    Add Device
-                  </DashboardButton>
-                ) : undefined
-              }
-            />
-            <InventoryPanel
-              title="Hosts"
-              icon={<LuServer className="size-3.5" />}
-              entries={hosts.map((obj) => obj.objectKey ?? '')}
-              empty="No host entries yet"
-              onOpen={(objectKey) => navigateToObjects([objectKey])}
-            />
-          </section>
+                    All
+                  </FilterButton>
+                  <FilterButton
+                    active={filter === 'devices'}
+                    onClick={() => setFilter('devices')}
+                  >
+                    Devices
+                  </FilterButton>
+                  <FilterButton
+                    active={filter === 'hosts'}
+                    onClick={() => setFilter('hosts')}
+                  >
+                    SSH Hosts
+                  </FilterButton>
+                </div>
+              </div>
+              <InventoryPanel
+                entries={inventory}
+                onOpen={(objectKey) => navigateToObjects([objectKey])}
+              />
+            </section>
+          )}
         </div>
       </div>
     </div>
   )
 }
 
-function SummaryTile({ label, value }: { label: string; value: number }) {
+function SummaryTile({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode
+  label: string
+  value: number
+}) {
   return (
-    <div className="border-foreground/10 bg-background-secondary rounded-md border p-3">
-      <div className="text-muted-foreground text-xs font-medium uppercase">
+    <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+      <div className="text-foreground-alt/70 flex items-center gap-1.5 text-xs font-medium">
+        {icon}
         {label}
       </div>
       <div className="text-foreground mt-2 text-xl font-semibold">{value}</div>
@@ -152,45 +235,73 @@ function SummaryTile({ label, value }: { label: string; value: number }) {
   )
 }
 
+function FilterButton({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean
+  children: ReactNode
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        'h-7 rounded-md border px-2 text-xs font-medium transition-colors',
+        active
+          ? 'border-brand/30 bg-brand/10 text-foreground'
+          : 'border-foreground/10 text-foreground-alt/70 hover:border-foreground/20 hover:bg-foreground/5',
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
 function InventoryPanel({
-  title,
-  icon,
   entries,
-  empty,
-  emptyAction,
   onOpen,
 }: {
-  title: string
-  icon: ReactNode
-  entries: string[]
-  empty: string
-  emptyAction?: ReactNode
+  entries: Array<{
+    objectKey: string
+    kind: string
+    icon: ReactNode
+  }>
   onOpen: (objectKey: string) => void
 }) {
   return (
-    <div className="border-foreground/10 bg-background-secondary overflow-hidden rounded-md border">
-      <div className="border-foreground/8 flex h-9 items-center gap-2 border-b px-3">
-        <span className="text-muted-foreground">{icon}</span>
-        <span className="text-foreground text-sm font-medium">{title}</span>
-      </div>
+    <div className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border">
       {entries.length === 0 ? (
-        <div className="text-muted-foreground flex flex-col items-start gap-3 px-3 py-6 text-sm">
-          <span>{empty}</span>
-          {emptyAction}
+        <div className="text-foreground-alt/70 px-3.5 py-4 text-xs">
+          No computers match this filter.
         </div>
       ) : (
         <div className="divide-foreground/8 divide-y">
-          {entries.map((objectKey) => (
+          {entries.map((entry) => (
             <button
-              key={objectKey}
+              key={entry.objectKey}
               type="button"
-              onClick={() => onOpen(objectKey)}
-              className="hover:bg-foreground/5 flex w-full min-w-0 items-center justify-between gap-3 px-3 py-2 text-left transition-colors"
+              onClick={() => onOpen(entry.objectKey)}
+              className="hover:bg-foreground/5 flex w-full min-w-0 items-center justify-between gap-3 px-3.5 py-3 text-left transition-colors"
             >
-              <span className="text-foreground min-w-0 truncate text-sm font-medium">
-                {objectKey}
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="text-foreground-alt/60 shrink-0">
+                  {entry.icon}
+                </span>
+                <span className="min-w-0">
+                  <span className="text-foreground block truncate text-sm font-medium">
+                    {entry.kind}
+                  </span>
+                  <span className="text-foreground-alt/50 mt-0.5 block truncate font-mono text-[0.6rem]">
+                    {entry.objectKey}
+                  </span>
+                </span>
               </span>
-              <span className="text-muted-foreground shrink-0 text-xs">
+              <span className="text-foreground-alt/70 shrink-0 text-xs font-medium">
                 Open
               </span>
             </button>
