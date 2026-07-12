@@ -3,9 +3,11 @@ package resource_unixfs
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -668,6 +670,222 @@ func TestFSHandleResourceConcurrentUploadTreeCommitsPreserveSiblings(t *testing.
 			t.Fatalf("lookup %q: %v", path, err)
 		}
 	}
+}
+
+// TestFSHandleResourceUploadTreePreservesConcurrentSiblingRemove races a batch
+// tree upload against a per-op Remove of a disjoint sibling on the same world
+// object. The two writers touch different names, so a correct serialization of
+// the read-merge-publish yields one deterministic result regardless of commit
+// order: the removed sibling stays gone and the uploaded file is present. The
+// pre-fix lost update (each writer merges onto its own stale root snapshot and
+// the last publisher wins) would either resurrect the removed sibling or drop
+// the upload.
+func TestFSHandleResourceUploadTreePreservesConcurrentSiblingRemove(t *testing.T) {
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+
+	const iterations = 60
+	for i := range iterations {
+		victim := fmt.Sprintf("victim-%d.txt", i)
+		uploaded := fmt.Sprintf("report-%d.txt", i)
+
+		if _, err := rootSvc.Mknod(ctx, &s4wave_unixfs.HandleMknodRequest{
+			Names:    []string{victim},
+			NodeType: s4wave_unixfs.MknodType_MKNOD_TYPE_FILE,
+			Mode:     0o644,
+		}); err != nil {
+			t.Fatalf("iteration %d: create victim: %v", i, err)
+		}
+
+		strm, err := rootSvc.UploadTree(ctx)
+		if err != nil {
+			t.Fatalf("iteration %d: open upload: %v", i, err)
+		}
+		sendUploadTreeFile(t, strm, uploaded, []byte(uploaded))
+
+		start := make(chan struct{})
+		errs := make(chan error, 2)
+		go func() {
+			<-start
+			_, err := strm.CloseAndRecv()
+			errs <- err
+		}()
+		go func() {
+			<-start
+			_, err := rootSvc.Remove(ctx, &s4wave_unixfs.HandleRemoveRequest{
+				Names: []string{victim},
+			})
+			errs <- err
+		}()
+		close(start)
+		for range 2 {
+			if err := <-errs; err != nil {
+				t.Fatalf("iteration %d: concurrent op failed: %v", i, err)
+			}
+		}
+
+		if _, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{
+			Path: victim,
+		}); err == nil {
+			t.Fatalf("iteration %d: removed sibling %q resurrected by concurrent upload", i, victim)
+		}
+		if _, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{
+			Path: uploaded,
+		}); err != nil {
+			t.Fatalf("iteration %d: uploaded file %q lost to concurrent remove: %v", i, uploaded, err)
+		}
+		if _, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{
+			Path: "src/file.txt",
+		}); err != nil {
+			t.Fatalf("iteration %d: baseline sibling lost: %v", i, err)
+		}
+	}
+}
+
+// TestFSHandleResourceUploadTreeDoesNotResurrectDeletedParent races a tree
+// upload targeting a directory against a Remove of that same directory. The
+// upload commits its file entries against the parent it targets, so once the
+// parent is gone the commit must fail rather than merge onto a stale snapshot
+// that still holds the parent. The invariant: whenever the Remove reports
+// success, the parent directory is absent afterward. The pre-fix lost update
+// let the upload resurrect the deleted directory even though Remove succeeded.
+func TestFSHandleResourceUploadTreeDoesNotResurrectDeletedParent(t *testing.T) {
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+
+	const iterations = 60
+	for i := range iterations {
+		target := fmt.Sprintf("target-%d", i)
+
+		if _, err := rootSvc.MkdirAll(ctx, &s4wave_unixfs.HandleMkdirAllRequest{
+			PathParts: []string{target},
+			Mode:      0o755,
+		}); err != nil {
+			t.Fatalf("iteration %d: create target dir: %v", i, err)
+		}
+
+		targetResp, err := rootSvc.Lookup(ctx, &s4wave_unixfs.HandleLookupRequest{Name: target})
+		if err != nil {
+			t.Fatalf("iteration %d: lookup target: %v", i, err)
+		}
+		targetRef := resClient.CreateResourceReference(targetResp.GetResourceId())
+		targetClient, err := targetRef.GetClient()
+		if err != nil {
+			targetRef.Release()
+			t.Fatalf("iteration %d: target client: %v", i, err)
+		}
+		targetSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(targetClient)
+
+		strm, err := targetSvc.UploadTree(ctx)
+		if err != nil {
+			targetRef.Release()
+			t.Fatalf("iteration %d: open upload: %v", i, err)
+		}
+		sendUploadTreeFile(t, strm, "up.txt", []byte("up"))
+
+		start := make(chan struct{})
+		removeErr := make(chan error, 1)
+		go func() {
+			<-start
+			_, err := rootSvc.Remove(ctx, &s4wave_unixfs.HandleRemoveRequest{
+				Names: []string{target},
+			})
+			removeErr <- err
+		}()
+		close(start)
+		// The upload may legitimately fail when the parent it targets is
+		// removed before its commit; that is the delete winning the race.
+		_, _ = strm.CloseAndRecv()
+		rmErr := <-removeErr
+		targetRef.Release()
+
+		if rmErr == nil {
+			if _, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{
+				Path: target,
+			}); err == nil {
+				t.Fatalf("iteration %d: deleted parent %q resurrected by concurrent upload", i, target)
+			}
+		}
+	}
+}
+
+// TestFSHandleResourceReadDuringUploadReloadRaceFree drives read RPCs on the
+// same directory resource that a tree upload reloads its handle on, exercising
+// the reloadHandle pointer swap against unsynchronized readers. Run under -race
+// this fails if a read observes a torn handle pointer or uses a handle after
+// its cursor is released.
+func TestFSHandleResourceReadDuringUploadReloadRaceFree(t *testing.T) {
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			if _, err := rootSvc.GetFileInfo(ctx, &s4wave_unixfs.HandleGetFileInfoRequest{}); err != nil {
+				select {
+				case <-stop:
+				default:
+					t.Errorf("GetFileInfo during reload: %v", err)
+				}
+				return
+			}
+			if _, err := rootSvc.Lookup(ctx, &s4wave_unixfs.HandleLookupRequest{Name: "src"}); err != nil {
+				select {
+				case <-stop:
+				default:
+					t.Errorf("Lookup during reload: %v", err)
+				}
+				return
+			}
+		}
+	})
+
+	for i := range 25 {
+		strm, err := rootSvc.UploadTree(ctx)
+		if err != nil {
+			close(stop)
+			wg.Wait()
+			t.Fatalf("open upload %d: %v", i, err)
+		}
+		sendUploadTreeFile(t, strm, fmt.Sprintf("reload-%d.txt", i), []byte("x"))
+		if _, err := strm.CloseAndRecv(); err != nil {
+			close(stop)
+			wg.Wait()
+			t.Fatalf("upload %d: %v", i, err)
+		}
+	}
+	close(stop)
+	wg.Wait()
 }
 
 func TestFSHandleResourceUploadTreeMetrics(t *testing.T) {

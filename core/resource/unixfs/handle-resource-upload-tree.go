@@ -68,10 +68,13 @@ func (r *FSHandleResource) UploadTree(
 			return nil, err
 		}
 	}
-	// Blob ingestion can overlap, but root publication must rebase and commit
-	// against one current filesystem root at a time.
-	r.uploadMtx.Lock()
-	defer r.uploadMtx.Unlock()
+	// Blob ingestion can overlap, but the commit, reloadHandle swap, and change
+	// broadcast run under writeMtx so this root republication serializes against
+	// every other writer (per-op edits and other uploads) for this world object.
+	// Commit re-reads the current root under the lock and merges onto it, so a
+	// concurrent Remove/Rename that committed first is preserved instead of lost.
+	r.writeMtx.Lock()
+	defer r.writeMtx.Unlock()
 
 	recordUploadMetric(ctx, UploadMetric{Stage: "commit-start"})
 	if err := state.b.Commit(ctx); err != nil {
