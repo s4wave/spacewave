@@ -128,7 +128,7 @@ export function LinkDeviceWizard({ exitPath }: LinkDeviceWizardProps) {
   const directPairingSupported = providerId === 'local'
 
   return (
-    <SetupPageLayout title="Link My Device">
+    <SetupPageLayout title="Link My Device" showHeader={step === 'choose'}>
       <div>
         {sessionInfoError && (
           <UnsupportedLinkStep
@@ -634,11 +634,15 @@ function PairingStep({
   const instructions = pairingCodeInstructions(isDesktop)
 
   return (
-    <div className="space-y-4">
+    <div className="border-foreground/20 bg-background-get-started w-full rounded-lg border p-6 shadow-lg backdrop-blur-sm">
       <div className="text-center">
-        <h2 className="text-foreground text-sm font-medium">
+        <div className="mx-auto mb-2 flex size-10 items-center justify-center">
+          <LuLink className="text-brand size-5" />
+        </div>
+        <h2 className="text-foreground text-sm font-medium">Link My Device</h2>
+        <p className="text-foreground-alt mt-1 text-xs">
           {instructions.heading}
-        </h2>
+        </p>
         <p className="text-foreground-alt mt-1 text-xs">{instructions.hint}</p>
       </div>
 
@@ -931,7 +935,7 @@ function EnterCodeStep({
 
       <div className="text-center">
         <div className="mx-auto mb-2 flex size-10 items-center justify-center">
-          <LuKeyboard className="text-brand size-5" />
+          <LuLink className="text-brand size-5" />
         </div>
         <h2 className="text-foreground text-sm font-medium">
           Pair another device
@@ -1022,6 +1026,11 @@ function VerifyStep({
   const [emoji, setEmoji] = useState<string[] | null>(null)
   const [waitingForRemote, setWaitingForRemote] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pairingStatus, setPairingStatus] = useState(
+    remotePeerId
+      ? PairingStatus.PairingStatus_PEER_CONNECTED
+      : PairingStatus.PairingStatus_WAITING_FOR_PEER,
+  )
 
   // Watch pairing status for emoji data and confirmation states.
   useEffect(() => {
@@ -1030,6 +1039,9 @@ function VerifyStep({
     ;(async () => {
       for await (const resp of session.watchPairingStatus(controller.signal)) {
         if (controller.signal.aborted) break
+        setPairingStatus(
+          resp.status ?? PairingStatus.PairingStatus_WAITING_FOR_PEER,
+        )
         if (
           resp.status === PairingStatus.PairingStatus_VERIFYING_EMOJI &&
           resp.emoji &&
@@ -1134,7 +1146,7 @@ function VerifyStep({
   if (!emoji) {
     return (
       <div className="space-y-4">
-        <PairingChannelProgress />
+        <PairingChannelProgress status={pairingStatus} />
         <button
           onClick={onAbort}
           className={cn(

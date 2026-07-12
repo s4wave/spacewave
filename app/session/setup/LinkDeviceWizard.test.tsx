@@ -52,12 +52,14 @@ vi.mock('./SetupPageLayout.js', () => ({
   SetupPageLayout: ({
     children,
     title,
+    showHeader = true,
   }: {
     children: React.ReactNode
     title: string
+    showHeader?: boolean
   }) => (
     <div>
-      <h1>{title}</h1>
+      {showHeader && <h1>{title}</h1>}
       {children}
     </div>
   ),
@@ -191,6 +193,20 @@ describe('LinkDeviceWizard', () => {
     })
     expect(codeButton.textContent).toContain('ABCD 1234')
     expect(screen.queryByTitle('Copy to clipboard')).toBeNull()
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Link My Device' }),
+    ).toBeDefined()
+    expect(
+      screen.queryByRole('heading', { level: 1, name: 'Link My Device' }),
+    ).toBeNull()
+    let card: HTMLElement | null = codeButton
+    while (
+      card &&
+      !card.className.toString().includes('border-foreground/20')
+    ) {
+      card = card.parentElement
+    }
+    expect(card).not.toBeNull()
     const generateButton = screen.getByRole('button', {
       name: 'Generate new code',
     })

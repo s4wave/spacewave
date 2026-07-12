@@ -30,6 +30,8 @@ describe('PairingCodeChip', () => {
     setup()
     render(<PairingCodeChip code="ABCD1234" />)
     expect(screen.getByText('ABCD 1234')).toBeDefined()
+    const codeButton = screen.getByRole('button', { name: 'Copy pairing code' })
+    expect(codeButton.querySelector('svg')).not.toBeNull()
   })
 
   it('copies from the code itself and shows a brief confirmation', async () => {
@@ -43,7 +45,11 @@ describe('PairingCodeChip', () => {
     await waitFor(() => {
       expect(screen.getByText('Copied')).toBeDefined()
     })
+    expect(screen.getByText('Copied').closest('span')?.className).toContain(
+      'text-success',
+    )
     expect(codeButton.textContent).toContain('ABCD 1234')
+    expect(codeButton.querySelector('svg')).not.toBeNull()
     expect(screen.getAllByRole('button')).toHaveLength(1)
   })
 })

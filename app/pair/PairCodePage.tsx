@@ -5,7 +5,6 @@ import {
   LuCamera,
   LuCircleCheck,
   LuCopy,
-  LuKeyboard,
   LuLink,
   LuShieldCheck,
   LuWifi,
@@ -199,7 +198,7 @@ export function PairCodePage(props: PairCodePageProps) {
             <div className="space-y-4">
               <div className="text-center">
                 <div className="mx-auto mb-2 flex size-10 items-center justify-center">
-                  <LuKeyboard className="text-brand size-5" />
+                  <LuLink className="text-brand size-5" />
                 </div>
                 <h2 className="text-foreground text-sm font-medium">
                   Pair another device
@@ -349,6 +348,11 @@ function PairVerifyStep({
   const [emoji, setEmoji] = useState<string[] | null>(null)
   const [waitingForRemote, setWaitingForRemote] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pairingStatus, setPairingStatus] = useState(
+    remotePeerId
+      ? PairingStatus.PairingStatus_PEER_CONNECTED
+      : PairingStatus.PairingStatus_WAITING_FOR_PEER,
+  )
 
   // Watch pairing status for emoji data and confirmation states.
   useEffect(() => {
@@ -357,6 +361,9 @@ function PairVerifyStep({
     ;(async () => {
       for await (const resp of session.watchPairingStatus(controller.signal)) {
         if (controller.signal.aborted) break
+        setPairingStatus(
+          resp.status ?? PairingStatus.PairingStatus_WAITING_FOR_PEER,
+        )
         if (
           resp.status === PairingStatus.PairingStatus_VERIFYING_EMOJI &&
           resp.emoji &&
@@ -473,7 +480,7 @@ function PairVerifyStep({
   if (!emoji) {
     return (
       <div className="space-y-4">
-        <PairingChannelProgress />
+        <PairingChannelProgress status={pairingStatus} />
         <button
           onClick={onAbort}
           className={cn(

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { LuCheck } from 'react-icons/lu'
+import { LuCheck, LuCopy } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
@@ -31,15 +31,30 @@ export function PairingCodeChip({ code, className }: PairingCodeChipProps) {
         aria-label="Copy pairing code"
         className={cn(
           'border-foreground/20 bg-foreground/5 text-foreground rounded-md border font-mono text-2xl font-bold tracking-[0.2em]',
-          'flex h-14 items-center justify-center px-4 select-all',
-          'cursor-pointer transition-colors hover:border-foreground/40',
+          'flex h-14 items-center justify-center gap-3 px-4 select-all',
+          'cursor-pointer transition-colors hover:border-foreground/40 hover:bg-foreground/8',
           'focus-visible:border-brand/50 focus-visible:outline-none',
+          copied && 'border-success/40',
         )}
       >
-        {formatted}
+        <span>{formatted}</span>
+        {copied ? (
+          <LuCheck
+            className="text-success size-4 shrink-0"
+            aria-hidden="true"
+          />
+        ) : (
+          <LuCopy
+            className="text-foreground-alt size-4 shrink-0"
+            aria-hidden="true"
+          />
+        )}
       </button>
       <span
-        className={cn('text-xs', copied ? 'text-brand' : 'text-foreground-alt')}
+        className={cn(
+          'text-xs',
+          copied ? 'text-success' : 'text-foreground-alt',
+        )}
         aria-live="polite"
       >
         {copied ? (

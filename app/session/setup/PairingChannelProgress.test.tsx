@@ -1,22 +1,66 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { act, cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
 
 import { PairingChannelProgress } from './PairingChannelProgress.js'
 
 describe('PairingChannelProgress', () => {
-  it('presents channel setup as ordered progress phases', () => {
-    render(<PairingChannelProgress />)
+  afterEach(() => {
+    cleanup()
+    vi.useRealTimers()
+  })
+
+  it('binds the title to the active checklist step', () => {
+    render(
+      <PairingChannelProgress
+        status={PairingStatus.PairingStatus_PEER_CONNECTED}
+      />,
+    )
 
     expect(
       screen.getByRole('heading', { name: 'Establishing encrypted channel' }),
     ).toBeDefined()
-    expect(
-      screen.getByText('Setting up the connection with your other device…'),
-    ).toBeDefined()
-    expect(screen.getByText('Connecting to your other device')).toBeDefined()
     expect(screen.getAllByText('Establishing encrypted channel')).toHaveLength(
       2,
     )
-    expect(screen.getByText('Preparing connection verification')).toBeDefined()
+    expect(
+      screen.queryByRole('heading', {
+        name: 'Preparing connection verification',
+      }),
+    ).toBeNull()
+  })
+
+  it('shows a quiet stall line when the active step does not advance', () => {
+    vi.useFakeTimers()
+    render(<PairingChannelProgress stallTimeoutMs={500} />)
+
+    expect(
+      screen.queryByText('Still working… this is taking longer than usual'),
+    ).toBeNull()
+
+    act(() => {
+      vi.advanceTimersByTime(500)
+    })
+
+    expect(
+      screen.getByText('Still working… this is taking longer than usual'),
+    ).toBeDefined()
+  })
+
+  it('sets determinate progress from completed checklist steps', () => {
+    const { container, rerender } = render(<PairingChannelProgress />)
+
+    expect(container.querySelector('[data-progress="0"]')).not.toBeNull()
+    expect(screen.getByText('0%')).toBeDefined()
+
+    rerender(
+      <PairingChannelProgress
+        status={PairingStatus.PairingStatus_VERIFYING_EMOJI}
+      />,
+    )
+
+    expect(container.querySelector('[data-progress="67"]')).not.toBeNull()
+    expect(screen.getByText('67%')).toBeDefined()
   })
 })
