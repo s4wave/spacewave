@@ -1,118 +1,16 @@
-import Markdown from 'markdown-to-jsx'
 import { useCallback, useMemo, useRef, useState } from 'react'
-import type { AnchorHTMLAttributes } from 'react'
-import { LuArrowLeft, LuChevronDown, LuGithub } from 'react-icons/lu'
-import { Badge } from '@s4wave/web/ui/badge.js'
+import { LuArrowLeft, LuChevronDown } from 'react-icons/lu'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { LegalFooter } from './LegalFooter.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { ExternalLink } from './ExternalLink.js'
+import { ReleaseCard } from './ReleaseCard.js'
 import { useLandingBackNavigation } from './useLandingBackNavigation.js'
-import type {
-  Release,
-  ChangeEntry,
-} from '@s4wave/core/changelog/changelog.pb.js'
 
 export const metadata = {
   title: 'Changelog - Spacewave',
   description: 'See what is new in Spacewave.',
-}
-
-const markdownOptions = {
-  forceInline: true,
-  overrides: {
-    a: {
-      component: function ChangelogLink(
-        props: AnchorHTMLAttributes<HTMLAnchorElement>,
-      ) {
-        const { className, ...rest } = props
-        return (
-          <ExternalLink
-            {...rest}
-            className={cn(
-              'text-foreground underline decoration-white/20 underline-offset-3 transition-colors hover:text-white hover:decoration-white/60',
-              className,
-            )}
-          />
-        )
-      },
-    },
-  },
-} as const
-
-// CategorySection renders a list of change entries under a badge label.
-function CategorySection({
-  label,
-  entries,
-}: {
-  label: string
-  entries: ChangeEntry[] | undefined
-}) {
-  if (!entries || entries.length === 0) return null
-
-  return (
-    <div className="mt-4">
-      <Badge
-        variant="outline"
-        className="text-foreground-alt border-foreground/15 mb-2 text-xs"
-      >
-        {label}
-      </Badge>
-      <ul className="flex flex-col gap-2">
-        {entries.map((entry) => (
-          <li
-            key={entry.descriptionMarkdown || entry.description}
-            className="text-foreground-alt text-sm leading-relaxed"
-          >
-            <Markdown options={markdownOptions}>
-              {entry.descriptionMarkdown || entry.description || ''}
-            </Markdown>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
-// ReleaseCard renders a single release entry with version, date, summary, and categorized changes.
-function ReleaseCard({ release }: { release: Release }) {
-  return (
-    <div
-      id={`v${release.version}`}
-      className="border-foreground/8 bg-background-card/50 hover:border-foreground/20 hover:shadow-foreground/5 rounded-lg border p-5 backdrop-blur-sm transition-all duration-300 hover:shadow-md"
-    >
-      <div className="flex items-start justify-between">
-        <h2 className="text-foreground text-lg font-semibold">
-          v{release.version}
-        </h2>
-        {release.releaseUrl && (
-          <ExternalLink
-            href={release.releaseUrl}
-            className="text-foreground-alt/50 hover:text-foreground shrink-0 transition-colors"
-            title="View release"
-          >
-            <LuGithub className="size-5" />
-          </ExternalLink>
-        )}
-      </div>
-      {release.date && (
-        <p className="text-foreground-alt mt-1 text-sm">{release.date}</p>
-      )}
-      {release.summary && (
-        <div className="text-foreground-alt mt-3 text-sm leading-relaxed">
-          <Markdown options={markdownOptions}>
-            {release.summaryMarkdown || release.summary}
-          </Markdown>
-        </div>
-      )}
-      <CategorySection label="Features" entries={release.features} />
-      <CategorySection label="Fixes" entries={release.fixes} />
-      <CategorySection label="Improvements" entries={release.improvements} />
-      <CategorySection label="Security" entries={release.security} />
-    </div>
-  )
 }
 
 // Changelog renders the changelog landing page.
@@ -215,7 +113,7 @@ export function Changelog() {
       <section className="relative z-10 mx-auto w-full max-w-4xl px-4 pb-14 @lg:px-8 @lg:pb-16">
         <div className="flex flex-col gap-6">
           {releases.map((release) => (
-            <ReleaseCard key={release.version} release={release} />
+            <ReleaseCard key={release.version} release={release} linkToDetail />
           ))}
         </div>
         {changelogResource.loading && (

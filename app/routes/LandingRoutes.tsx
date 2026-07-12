@@ -18,6 +18,7 @@ import { Pricing } from '@s4wave/app/landing/Pricing.js'
 import { DMCA } from '@s4wave/app/landing/DMCA.js'
 import { Licenses } from '@s4wave/app/landing/Licenses.js'
 import { Changelog } from '@s4wave/app/landing/Changelog.js'
+import { ChangelogReleaseRoute } from '@s4wave/app/landing/ChangelogReleaseRoute.js'
 import { DownloadPage } from '@s4wave/app/download/DownloadPage.js'
 
 // LandingRoutes contains routes for landing pages and static informational pages.
@@ -76,6 +77,9 @@ export const LandingRoutes = (
     </Route>
     <Route path="/changelog">
       <Changelog />
+    </Route>
+    <Route path="/changelog/:version">
+      <ChangelogReleaseRoute />
     </Route>
     <Route path="/download">
       <DownloadPage />

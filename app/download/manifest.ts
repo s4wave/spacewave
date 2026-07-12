@@ -1,4 +1,4 @@
-import { GITHUB_RELEASES_URL } from '@s4wave/app/github.js'
+import { GITHUB_RELEASES_URL, GITHUB_REPO_URL } from '@s4wave/app/github.js'
 import type {
   DetectedPlatform,
   PlatformArch,
@@ -40,6 +40,30 @@ export interface DownloadEntry {
 // artifacts side by side.
 export function assetUrl(filename: string): string {
   return `${GITHUB_RELEASES_URL}/download/${filename}`
+}
+
+// releaseAssetUrl builds the asset URL for a specific release tag. The
+// default DOWNLOAD_MANIFEST urls resolve the latest release; the changelog
+// per-release page repoints them at the exact tag through this helper.
+export function releaseAssetUrl(filename: string, version: string): string {
+  return `${GITHUB_REPO_URL}/releases/download/v${version}/${filename}`
+}
+
+// resolveInstallerEntries returns the desktop installer entries. A null
+// version keeps the latest-release urls; a concrete version repoints every
+// url at that exact release tag so a changelog page can offer the build that
+// shipped with the notes being read.
+export function resolveInstallerEntries(
+  version: string | null,
+): DownloadEntry[] {
+  const installers = DOWNLOAD_MANIFEST.filter((e) => e.kind === 'installer')
+  if (!version) {
+    return installers.map((e) => ({ ...e }))
+  }
+  return installers.map((e) => ({
+    ...e,
+    url: releaseAssetUrl(e.filename, version),
+  }))
 }
 
 // resolvePrimaryEntry returns the manifest entry matching the detected

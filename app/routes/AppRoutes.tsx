@@ -89,6 +89,9 @@ export function AppRoutes() {
       <Route path="/changelog">
         <LazyRoute component={LazyLandingRoutes} />
       </Route>
+      <Route path="/changelog/*">
+        <LazyRoute component={LazyLandingRoutes} />
+      </Route>
       <Route path="/download/*">
         <LazyRoute component={LazyLandingRoutes} />
       </Route>

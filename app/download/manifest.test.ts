@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { DOWNLOAD_MANIFEST, resolvePrimaryEntry } from './manifest.js'
+import {
+  DOWNLOAD_MANIFEST,
+  releaseAssetUrl,
+  resolveInstallerEntries,
+  resolvePrimaryEntry,
+} from './manifest.js'
 
 describe('resolvePrimaryEntry', () => {
   it('returns null when detection missed', () => {
@@ -79,5 +84,40 @@ describe('resolvePrimaryEntry', () => {
       const expectedExt = e.os === 'linux' ? 'tar.gz' : 'zip'
       expect(e.ext).toBe(expectedExt)
     }
+  })
+})
+
+describe('releaseAssetUrl', () => {
+  it('points at the exact release tag download path', () => {
+    expect(releaseAssetUrl('spacewave-macos-arm64.dmg', '0.53.1')).toBe(
+      'https://github.com/s4wave/spacewave/releases/download/v0.53.1/spacewave-macos-arm64.dmg',
+    )
+  })
+})
+
+describe('resolveInstallerEntries', () => {
+  it('returns only installer entries with latest urls when version is null', () => {
+    const entries = resolveInstallerEntries(null)
+    expect(entries.length).toBeGreaterThan(0)
+    expect(entries.every((e) => e.kind === 'installer')).toBe(true)
+    for (const e of entries) {
+      expect(e.url).toContain('/releases/latest/download/')
+    }
+  })
+
+  it('repoints every installer url at the exact tag for a concrete version', () => {
+    const entries = resolveInstallerEntries('0.53.1')
+    expect(entries.every((e) => e.kind === 'installer')).toBe(true)
+    for (const e of entries) {
+      expect(e.url).toBe(
+        `https://github.com/s4wave/spacewave/releases/download/v0.53.1/${e.filename}`,
+      )
+    }
+  })
+
+  it('preserves the manifest arch/os matrix regardless of version', () => {
+    const latest = resolveInstallerEntries(null).map((e) => e.filename)
+    const pinned = resolveInstallerEntries('0.53.1').map((e) => e.filename)
+    expect(pinned.toSorted()).toEqual(latest.toSorted())
   })
 })
