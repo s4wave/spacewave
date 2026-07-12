@@ -8,13 +8,13 @@ fi
 
 format_files=$(printf "%s\n" "$files" | grep -E '^((app|web|core|sdk|net)/.*\.(ts|tsx|js|html|css|scss)|[^/]+\.json|\.github/.*\.(json|yml)|\.oxfmtrc\.json|\.golangci\.yml|tsconfig.*\.json)$' || true)
 if [ -n "$format_files" ]; then
-	printf "%s\n" "$format_files" | xargs bunx oxfmt
+	printf "%s\n" "$format_files" | xargs node_modules/.bin/oxfmt
 	printf "%s\n" "$format_files" | xargs git add
 fi
 
 js_files=$(printf "%s\n" "$files" | grep -E '\.(js|mjs|ts|tsx)$' || true)
 if [ -n "$js_files" ]; then
-	printf "%s\n" "$js_files" | xargs bunx oxlint --no-error-on-unmatched-pattern
+	printf "%s\n" "$js_files" | xargs node_modules/.bin/oxlint --no-error-on-unmatched-pattern
 fi
 
 go_files=$(printf "%s\n" "$files" | grep -E '\.go$' || true)
@@ -34,8 +34,25 @@ if [ -n "$go_files" ]; then
 		exit 1
 	fi
 
-	GOFLAGS="-mod=mod -tags=purego" go test -run '^$' $go_pkg_dirs
-	bun run go:aptre -- lint $go_pkg_dirs
+	# The compile check (tests included) and the aptre lint both read the same
+	# packages and share the purego build cache that go fix above just warmed, so
+	# run them in parallel. Capture each output and fail the commit if either
+	# fails, printing both logs.
+	compile_out=$(mktemp)
+	lint_out=$(mktemp)
+	GOFLAGS="-mod=mod -tags=purego" go test -run '^$' $go_pkg_dirs >"$compile_out" 2>&1 &
+	compile_pid=$!
+	bun run go:aptre -- lint $go_pkg_dirs >"$lint_out" 2>&1 &
+	lint_pid=$!
+	go_rc=0
+	wait "$compile_pid" || go_rc=1
+	wait "$lint_pid" || go_rc=1
+	if [ "$go_rc" -ne 0 ]; then
+		cat "$compile_out" "$lint_out" >&2
+		rm -f "$compile_out" "$lint_out"
+		exit 1
+	fi
+	rm -f "$compile_out" "$lint_out"
 fi
 
 if printf "%s\n" "$files" | grep -Eq '^go\.mod$'; then
