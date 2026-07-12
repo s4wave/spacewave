@@ -731,7 +731,7 @@ describe('SessionContainer', () => {
     mockUseBottomBarSetOpenMenu.mockReturnValue(undefined)
     mockUseRootResource.mockReturnValue({ value: null })
     mockStreams(null, {})
-    mockConsumePendingJoin.mockReturnValue('abc123')
+    mockConsumePendingJoin.mockReturnValue('bearer:abc123')
 
     render(
       <SessionContainer
@@ -750,7 +750,7 @@ describe('SessionContainer', () => {
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith({
-        path: './join/abc123',
+        path: './join/bearer:abc123',
         replace: true,
       })
     })
@@ -786,7 +786,10 @@ describe('SessionContainer', () => {
       },
     )
     mockConsumePendingJoin.mockReturnValue(null)
-    const acceptSpaceTargetedInvitation = vi.fn(async () => {})
+    const acceptSpaceTargetedInvitation = vi.fn(async () => ({
+      sharedObjectId: 'space-1',
+      joinResult: 'accepted',
+    }))
     const session = {
       spacewave: {
         watchOnboardingStatus: vi.fn(),
@@ -817,6 +820,7 @@ describe('SessionContainer', () => {
 
     await waitFor(() => {
       expect(acceptSpaceTargetedInvitation).toHaveBeenCalledWith('invite-1')
+      expect(mockNavigate).toHaveBeenCalledWith({ path: 'so/space-1' })
     })
   })
 

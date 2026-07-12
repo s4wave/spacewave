@@ -12,6 +12,7 @@ import { JoinSpaceViaInviteResult } from '@s4wave/sdk/session/session.pb.js'
 
 const mockLookupInviteCode = vi.hoisted(() => vi.fn())
 const mockJoinSpaceViaInvite = vi.hoisted(() => vi.fn())
+const mockAccepted = vi.hoisted(() => vi.fn())
 const mockUseSessionInfo = vi.hoisted(() => vi.fn())
 
 vi.mock('@aptre/bldr-sdk/hooks/useResource.js', () => ({
@@ -63,6 +64,7 @@ describe('JoinSpaceDialog', () => {
     cleanup()
     mockLookupInviteCode.mockReset()
     mockJoinSpaceViaInvite.mockReset()
+    mockAccepted.mockReset()
     mockUseSessionInfo.mockReset()
     mockUseSessionInfo.mockReturnValue({ isCloud: true })
     mockLookupInviteCode.mockResolvedValue({
@@ -80,6 +82,7 @@ describe('JoinSpaceDialog', () => {
   function renderDialog() {
     render(
       <JoinSpaceDialog
+        onAccepted={mockAccepted}
         open={true}
         onOpenChange={() => {}}
         initialCode="abc123"
@@ -99,9 +102,10 @@ describe('JoinSpaceDialog', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Awaiting owner approval')).toBeDefined()
+      expect(mockLookupInviteCode).toHaveBeenCalledWith('abc123')
       expect(
         screen.getByText(
-          'The owner still needs to process this invite before the space appears in your sidebar.',
+          'The owner must approve this invite before you can open the shared Space. Return here to retry after approval.',
         ),
       ).toBeDefined()
     })
@@ -117,10 +121,12 @@ describe('JoinSpaceDialog', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Joined successfully!')).toBeDefined()
-      expect(
-        screen.getByText('The space will appear in your sidebar.'),
-      ).toBeDefined()
+      expect(screen.getByText('Your shared Space is ready.')).toBeDefined()
     })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Open the shared Space' }),
+    )
+    expect(mockAccepted).toHaveBeenCalledWith('so-1')
   })
 
   it('renders rejected state for rejected invite results', async () => {

@@ -558,6 +558,7 @@ function TargetedInvitationInbox(props: {
     [],
   )
   const session = props.sessionResource.value
+  const navigate = useNavigate()
   const [processing, setProcessing] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const pending = useMemo(
@@ -575,7 +576,13 @@ function TargetedInvitationInbox(props: {
       setError(null)
       try {
         if (inv.purpose === TargetedInvitePurpose.SPACE) {
-          await session.spacewave.acceptSpaceTargetedInvitation(inv.id ?? '')
+          const response =
+            await session.spacewave.acceptSpaceTargetedInvitation(inv.id ?? '')
+          if (response.joinResult === 'accepted' && response.sharedObjectId) {
+            navigate({
+              path: `so/${encodeURIComponent(response.sharedObjectId)}`,
+            })
+          }
           return
         }
         if (inv.purpose === TargetedInvitePurpose.ORGANIZATION) {
@@ -594,7 +601,7 @@ function TargetedInvitationInbox(props: {
         setProcessing(null)
       }
     },
-    [processing, session],
+    [navigate, processing, session],
   )
 
   const handleDecline = useCallback(

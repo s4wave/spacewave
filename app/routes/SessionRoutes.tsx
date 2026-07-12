@@ -7,7 +7,7 @@ import { NavigatePath } from '@s4wave/web/router/NavigatePath.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 import { AppQuickstart } from '../AppQuickstart.js'
-import { storePendingJoin } from './pendingJoin.js'
+import { formatPendingJoin, storePendingJoin } from './pendingJoin.js'
 
 export { consumePendingJoin, storePendingJoin } from './pendingJoin.js'
 
@@ -41,7 +41,9 @@ function JoinRedirect() {
   }
 
   const idx = sessions[0].sessionIndex ?? 1
-  const target = code ? `/u/${idx}/join/${code}` : `/u/${idx}/join`
+  const target = code
+    ? `/u/${idx}/join/${formatPendingJoin(code)}`
+    : `/u/${idx}/join`
   return <NavigatePath to={target} replace />
 }
 

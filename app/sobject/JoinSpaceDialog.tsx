@@ -17,10 +17,12 @@ import {
 } from '@s4wave/web/ui/dialog.js'
 
 import { base58Decode } from '@s4wave/app/provider/spacewave/keypair-utils.js'
+import { PENDING_BEARER_INVITE_PREFIX } from '@s4wave/app/routes/pendingJoin.js'
 
 export interface JoinSpaceDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onAccepted: (sharedObjectId: string) => void
   initialCode?: string
 }
 
@@ -97,6 +99,7 @@ const phaseLabels: Record<JoinPhase, string> = {
 export function JoinSpaceDialog({
   open,
   onOpenChange,
+  onAccepted,
   initialCode,
 }: JoinSpaceDialogProps) {
   const session = useResourceValue(SessionContext.useContext())
@@ -127,9 +130,14 @@ export function JoinSpaceDialog({
         resp.result ??
         JoinSpaceViaInviteResult.JoinSpaceViaInviteResult_UNSPECIFIED
       ) {
-        case JoinSpaceViaInviteResult.JoinSpaceViaInviteResult_ACCEPTED:
-          dispatch({ type: 'enrolled', spaceId: resp.sharedObjectId ?? '' })
+        case JoinSpaceViaInviteResult.JoinSpaceViaInviteResult_ACCEPTED: {
+          const sharedObjectId = resp.sharedObjectId?.trim()
+          if (!sharedObjectId) {
+            throw new Error('Accepted invite did not return a shared Space')
+          }
+          dispatch({ type: 'enrolled', spaceId: sharedObjectId })
           return
+        }
         case JoinSpaceViaInviteResult.JoinSpaceViaInviteResult_PENDING_OWNER_APPROVAL:
           dispatch({ type: 'pending' })
           return
@@ -188,16 +196,18 @@ export function JoinSpaceDialog({
                 Joined successfully!
               </p>
               <p className="text-foreground-alt/60 mt-1 text-xs">
-                The space will appear in your sidebar.
+                Your shared Space is ready.
               </p>
               <button
-                onClick={() => handleOpenChange(false)}
+                onClick={() => {
+                  if (state.spaceId) onAccepted(state.spaceId)
+                }}
                 className={cn(
                   'mt-3 flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all',
                   'border-foreground/20 hover:border-foreground/40 hover:bg-foreground/5',
                 )}
               >
-                Close
+                Open the shared Space
               </button>
             </div>
           ) : state.phase === 'pending' ? (
@@ -206,8 +216,8 @@ export function JoinSpaceDialog({
                 Awaiting owner approval
               </p>
               <p className="text-foreground-alt/60 mt-1 text-xs">
-                The owner still needs to process this invite before the space
-                appears in your sidebar.
+                The owner must approve this invite before you can open the
+                shared Space. Return here to retry after approval.
               </p>
               <button
                 onClick={() => handleOpenChange(false)}
@@ -293,26 +303,29 @@ export function JoinSpaceDialog({
 }
 
 // resolveInvite resolves the user's input to an SOInviteMessage.
-// Accepts full invite links (with b58-encoded message) and, for cloud sessions,
-// short alphanumeric invite codes resolved via the spacewave lookup RPC.
+// Full links and pending bearer handoffs decode locally; unmarked inputs are
+// cloud short codes.
 async function resolveInvite(
   session: Session,
   input: string,
   isCloud: boolean,
 ): Promise<SOInviteMessage> {
-  // Check if input is a URL containing a b58-encoded invite.
+  let encoded: string | undefined
   if (input.startsWith('http')) {
     const url = new URL(input)
-    // Hash-router links have the path in the fragment (e.g. /#/join/{encoded}).
     const path = url.hash ? url.hash.slice(1) : url.pathname
     const segments = path.split('/')
-    const encoded = segments[segments.length - 1]
+    encoded = segments[segments.length - 1]
+  } else if (input.startsWith(PENDING_BEARER_INVITE_PREFIX)) {
+    encoded = input.slice(PENDING_BEARER_INVITE_PREFIX.length)
+  }
+
+  if (encoded !== undefined) {
     if (!encoded) throw new Error('Invalid invite link')
     const bytes = base58Decode(encoded)
     return SOInviteMessage.fromBinary(bytes)
   }
 
-  // Short codes require the cloud provider.
   if (!isCloud) {
     throw new Error(
       'Paste an invite link (short codes require a cloud account)',
