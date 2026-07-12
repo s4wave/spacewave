@@ -10,7 +10,9 @@ export default mergeConfig(
       environment: 'happy-dom',
       setupFiles: ['./web/test/setup.ts'],
       include: [
-        '{app,web,core,sdk,plugin,cmd,forge,net,bldr}/**/*.test.{ts,tsx}',
+        '{app,web,core,sdk,plugin,cmd,forge,net}/**/*.test.{ts,tsx}',
+        // Bldr's broader unit and browser suites use bldr/vitest.config.ts.
+        'bldr/web/bldr/storage-durability-owner.test.ts',
       ],
       exclude: [
         ...configDefaults.exclude,
