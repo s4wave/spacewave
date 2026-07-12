@@ -33,7 +33,7 @@
     "starpc": "0.49.18",
     "sonner": "^2.0.7",
     "ulid": "^3.0.2",
-    "vite": "8.1.3",
+    "vite": "8.1.4",
     "workbox-window": "^7.4.1"
   },
   "overrides": {

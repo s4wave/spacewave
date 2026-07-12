@@ -75,7 +75,7 @@ require (
 	github.com/pion/logging v0.2.4
 	github.com/pion/transport/v4 v4.0.2
 	go.starlark.net v0.0.0-20260708150628-5395d018f003
-	golang.org/x/exp v0.0.0-20260611194520-c48552f49976
+	golang.org/x/exp v0.0.0-20260709172345-9ea1abe57597
 	gonum.org/v1/gonum v0.17.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.31.2
