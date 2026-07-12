@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"io/fs"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
@@ -32,18 +33,19 @@ func validateUploadDataFrame(data []byte) error {
 // FSHandleResource implements FSHandleResourceService for a single FSHandle.
 // Each instance wraps exactly one hydra/unixfs.FSHandle with 1:1 mapping.
 type FSHandleResource struct {
-	handle *unixfs.FSHandle
-	mux    srpc.Mux
-	bcast  *broadcast.Broadcast
-	ws     world.WorldState
-	objKey string
-	fsType unixfs_world.FSType
-	path   []string
+	handle    *unixfs.FSHandle
+	mux       srpc.Mux
+	bcast     *broadcast.Broadcast
+	uploadMtx *sync.Mutex
+	ws        world.WorldState
+	objKey    string
+	fsType    unixfs_world.FSType
+	path      []string
 }
 
 // NewFSHandleResource creates a new FSHandleResource.
 func NewFSHandleResource(handle *unixfs.FSHandle) *FSHandleResource {
-	return newFSHandleResource(handle, nil, nil, "", 0, nil)
+	return newFSHandleResource(handle, nil, nil, nil, "", 0, nil)
 }
 
 // NewFSHandleObjectResource creates a new FSHandleResource bound to a world
@@ -56,12 +58,13 @@ func NewFSHandleObjectResource(
 	fsType unixfs_world.FSType,
 	path []string,
 ) *FSHandleResource {
-	return newFSHandleResource(handle, bcast, ws, objKey, fsType, path)
+	return newFSHandleResource(handle, bcast, nil, ws, objKey, fsType, path)
 }
 
 func newFSHandleResource(
 	handle *unixfs.FSHandle,
 	bcast *broadcast.Broadcast,
+	uploadMtx *sync.Mutex,
 	ws world.WorldState,
 	objKey string,
 	fsType unixfs_world.FSType,
@@ -70,13 +73,17 @@ func newFSHandleResource(
 	if bcast == nil {
 		bcast = &broadcast.Broadcast{}
 	}
+	if uploadMtx == nil {
+		uploadMtx = &sync.Mutex{}
+	}
 	r := &FSHandleResource{
-		handle: handle,
-		bcast:  bcast,
-		ws:     ws,
-		objKey: objKey,
-		fsType: fsType,
-		path:   append([]string(nil), path...),
+		handle:    handle,
+		bcast:     bcast,
+		uploadMtx: uploadMtx,
+		ws:        ws,
+		objKey:    objKey,
+		fsType:    fsType,
+		path:      append([]string(nil), path...),
 	}
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return s4wave_unixfs.SRPCRegisterFSHandleResourceService(mux, r)
@@ -109,6 +116,7 @@ func (r *FSHandleResource) registerChildResource(
 	childResource := newFSHandleResource(
 		childHandle,
 		r.bcast,
+		r.uploadMtx,
 		r.ws,
 		r.objKey,
 		r.fsType,

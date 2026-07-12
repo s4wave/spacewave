@@ -4,9 +4,6 @@ import { useUploadManager } from '@s4wave/app/unixfs/useUploadManager.js'
 import type { UploadManager } from '@s4wave/app/unixfs/useUploadManager.js'
 import { UploadProgressBottomBar } from '@s4wave/app/unixfs/UploadProgressBottomBar.js'
 
-// UPLOAD_CONCURRENCY caps concurrent upload groups per session.
-const UPLOAD_CONCURRENCY = 5
-
 // SessionUploadManagerContext holds the one upload manager for a session UI
 // tree. It is null outside a provider so presentation-only surfaces (display,
 // debug harnesses) that mount a UnixFS browser without a session simply have no
@@ -23,7 +20,7 @@ export function SessionUploadManagerProvider({
 }: {
   children: ReactNode
 }) {
-  const manager = useUploadManager(UPLOAD_CONCURRENCY)
+  const manager = useUploadManager()
 
   // Abort every in-flight upload on session teardown (provider unmount). Viewer
   // unmount never reaches here, which is the whole point: navigating away must

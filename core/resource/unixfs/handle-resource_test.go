@@ -118,6 +118,31 @@ func assertUploadTreeCounters(
 	}
 }
 
+func sendUploadTreeFile(
+	t *testing.T,
+	strm s4wave_unixfs.SRPCFSHandleResourceService_UploadTreeClient,
+	path string,
+	data []byte,
+) {
+	t.Helper()
+	if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{
+		Body: &s4wave_unixfs.HandleUploadTreeRequest_FileStart{
+			FileStart: &s4wave_unixfs.HandleUploadTreeFileStart{
+				Path:      path,
+				TotalSize: int64(len(data)),
+				Mode:      0o644,
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := strm.Send(&s4wave_unixfs.HandleUploadTreeRequest{
+		Body: &s4wave_unixfs.HandleUploadTreeRequest_Data{Data: data},
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func setupFSHandleResourceClient(
 	t *testing.T,
 ) (
@@ -541,6 +566,107 @@ func TestFSHandleResourceUploadTreeNested(t *testing.T) {
 		Path: "nested/empty",
 	}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestFSHandleResourceUploadTreePublishesEachStream(t *testing.T) {
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+
+	first, err := rootSvc.UploadTree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := rootSvc.UploadTree(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sendUploadTreeFile(t, first, "first.txt", []byte("first"))
+	sendUploadTreeFile(t, second, "second.txt", []byte("second"))
+
+	firstResp, err := first.CloseAndRecv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertUploadTreeCounters(t, firstResp, 5, 1, 0)
+	if _, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{
+		Path: "first.txt",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{
+		Path: "second.txt",
+	}); err == nil {
+		t.Fatal("second file published before its upload stream committed")
+	}
+
+	secondResp, err := second.CloseAndRecv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertUploadTreeCounters(t, secondResp, 6, 1, 0)
+	for _, path := range []string{"first.txt", "second.txt"} {
+		if _, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{
+			Path: path,
+		}); err != nil {
+			t.Fatalf("lookup %q: %v", path, err)
+		}
+	}
+}
+
+func TestFSHandleResourceConcurrentUploadTreeCommitsPreserveSiblings(t *testing.T) {
+	ctx, resClient, _, _, cleanup := setupFSHandleResourceClient(t)
+	defer cleanup()
+
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(rootClient)
+
+	paths := []string{"first.txt", "second.txt", "third.txt"}
+	streams := make([]s4wave_unixfs.SRPCFSHandleResourceService_UploadTreeClient, 0, len(paths))
+	for _, path := range paths {
+		strm, err := rootSvc.UploadTree(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		sendUploadTreeFile(t, strm, path, []byte(path))
+		streams = append(streams, strm)
+	}
+
+	start := make(chan struct{})
+	results := make(chan error, len(streams))
+	for _, strm := range streams {
+		go func() {
+			<-start
+			_, err := strm.CloseAndRecv()
+			results <- err
+		}()
+	}
+	close(start)
+	for range streams {
+		if err := <-results; err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	for _, path := range paths {
+		if _, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{
+			Path: path,
+		}); err != nil {
+			t.Fatalf("lookup %q: %v", path, err)
+		}
 	}
 }
 

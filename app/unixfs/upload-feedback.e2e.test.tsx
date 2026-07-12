@@ -14,15 +14,16 @@ import {
 import { IntroWizardOverlay } from '@s4wave/app/wizard/IntroWizardOverlay.js'
 import { driveIntroConfig } from '@s4wave/app/wizard/intro.js'
 
-// recordingHandle stands in for a UnixFS handle. It records the abort signal of
-// each upload so a test can prove the write was, or was not, aborted. When
-// resolveUpload is false the tree upload never settles, holding the upload
-// "uploading"; when true it resolves, firing the completion popover.
+// recordingHandle stands in for a UnixFS handle. It records each entry's abort
+// signal so a test can prove the writes were, or were not, aborted. When
+// resolveUpload is false each upload never settles; when true each resolves and
+// the manager fires the completion popover after both finish.
 function recordingHandle(resolveUpload: boolean): {
   handle: FSHandle
   signals: AbortSignal[]
 } {
   const signals: AbortSignal[] = []
+  const pending = Promise.withResolvers<never>()
   const uploadTree = (
     _entries: unknown,
     _opts: unknown,
@@ -32,10 +33,10 @@ function recordingHandle(resolveUpload: boolean): {
     return resolveUpload
       ? Promise.resolve({
           bytesWritten: 0n,
-          filesWritten: 2n,
+          filesWritten: 1n,
           directoriesWritten: 0n,
         })
-      : new Promise<never>(() => {})
+      : pending.promise
   }
   return { handle: { uploadTree } as unknown as FSHandle, signals }
 }
@@ -194,7 +195,7 @@ describe('upload feedback popovers', () => {
 
     // Upload is in flight: the indicator reports the active count.
     await expect.element(page.getByText('Uploading 2/2')).toBeInTheDocument()
-    expect(signals).toHaveLength(1)
+    expect(signals).toHaveLength(2)
 
     // Navigate away from the folder: the viewer unmounts, the session owner does
     // not. The indicator must persist and the write must not be aborted.
@@ -205,7 +206,7 @@ describe('upload feedback popovers', () => {
       .element(page.getByText('A different object'))
       .toBeInTheDocument()
     await expect.element(page.getByText('Uploading 2/2')).toBeInTheDocument()
-    expect(signals[0].aborted).toBe(false)
+    expect(signals.every((signal) => !signal.aborted)).toBe(true)
 
     await capture('survives-navigation')
     await cleanup()
@@ -222,7 +223,7 @@ describe('upload feedback popovers', () => {
     await expect
       .element(page.getByText('Uploading 2/2'))
       .not.toBeInTheDocument()
-    expect(signals[0].aborted).toBe(true)
+    expect(signals.every((signal) => signal.aborted)).toBe(true)
 
     await cleanup()
   })
@@ -234,21 +235,19 @@ describe('upload feedback popovers', () => {
     await expect.element(page.getByText('Uploading 2/2')).toBeInTheDocument()
     await expect.element(page.getByText('Upload started')).toBeInTheDocument()
     await expect.element(page.getByText('Add files')).toBeInTheDocument()
-    expect(signals).toHaveLength(1)
+    expect(signals).toHaveLength(2)
 
     await page.getByRole('button', { name: 'Next' }).click()
     await page.getByRole('button', { name: 'Next' }).click()
     await expect.element(page.getByText('Upload progress')).toBeInTheDocument()
 
-    await page
-      .getByRole('button', { name: 'Got it, start exploring' })
-      .click()
+    await page.getByRole('button', { name: 'Got it, start exploring' }).click()
 
     await expect
       .element(page.getByText('A different object'))
       .toBeInTheDocument()
     await expect.element(page.getByText('Uploading 2/2')).toBeInTheDocument()
-    expect(signals[0].aborted).toBe(false)
+    expect(signals.every((signal) => !signal.aborted)).toBe(true)
 
     await capture('survives-intro-finish')
     await cleanup()

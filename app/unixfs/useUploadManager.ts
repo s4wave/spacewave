@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FSHandle, TreeUploadEntry } from '@s4wave/sdk/unixfs/handle.js'
 
+import { TreeUploadPool } from '@s4wave/sdk/unixfs/upload-pool.js'
+
 // UploadStatus, UploadItem, UploadEvent, and UploadManager form the durable
 // contract this hook owns. The manager holds no viewer or route identity: each
 // upload group captures its own target handle at addFiles time, so the manager
@@ -55,10 +57,10 @@ export interface UploadManager {
   clearDone: () => void
 }
 
-// useUploadManager manages concurrent file uploads. It takes no handle: each
-// batch carries its own target handle (captured in addFiles), so one manager
-// instance can serve every folder view and outlive any single one.
-export function useUploadManager(concurrency = 1): UploadManager {
+// useUploadManager projects the session-owned SDK upload pool into React state.
+// Each addFiles call captures its target handle, so uploads can outlive the
+// folder view that started them.
+export function useUploadManager(): UploadManager {
   const [items, setItems] = useState<UploadItem[]>([])
   const [lastEvent, setLastEvent] = useState<UploadEvent | null>(null)
 
@@ -66,151 +68,21 @@ export function useUploadManager(concurrency = 1): UploadManager {
   const nextGroupIdRef = useRef(0)
   const eventSeqRef = useRef(0)
   const wasInProgressRef = useRef(false)
-  const startedRef = useRef(new Set<string>())
-  const groupDirsRef = useRef(new Map<string, string[]>())
-  const groupHandlesRef = useRef(new Map<string, FSHandle>())
+  const poolRef = useRef<TreeUploadPool | null>(null)
+  if (!poolRef.current) poolRef.current = new TreeUploadPool()
+  const pool = poolRef.current
 
   const activeCount = useMemo(
-    () => items.filter((i) => i.status === 'uploading').length,
+    () => items.filter((item) => item.status === 'uploading').length,
     [items],
   )
-
-  // processQueue marks queued items as uploading (state-only, no side effects).
-  const processQueue = useCallback(() => {
-    setItems((prev) => {
-      const active = new Set(
-        prev.flatMap((i) => (i.status === 'uploading' ? [i.groupId] : [])),
-      ).size
-      if (active >= concurrency) return prev
-
-      const slots = concurrency - active
-      const nextGroupIds: string[] = []
-      const nextGroupIdSet = new Set<string>()
-      for (const item of prev) {
-        if (item.status !== 'queued') continue
-        if (nextGroupIdSet.has(item.groupId)) continue
-        nextGroupIds.push(item.groupId)
-        nextGroupIdSet.add(item.groupId)
-        if (nextGroupIds.length >= slots) break
-      }
-      if (nextGroupIds.length === 0) return prev
-
-      const next = prev.map((item) =>
-        item.status === 'queued' && nextGroupIds.includes(item.groupId)
-          ? { ...item, status: 'uploading' as const }
-          : item,
-      )
-
-      return next
-    })
-  }, [concurrency])
-
-  // Process queue when items change.
-  useEffect(() => {
-    const queued = items.some((i) => i.status === 'queued')
-    const active = new Set(
-      items.flatMap((i) => (i.status === 'uploading' ? [i.groupId] : [])),
-    ).size
-    if (queued && active < concurrency) {
-      queueMicrotask(processQueue)
-    }
-  }, [items, concurrency, processQueue])
-
-  // Start uploads for groups marked uploading but not yet started.
-  useEffect(() => {
-    const groups = new Map<string, UploadItem[]>()
-    for (const item of items) {
-      if (item.status !== 'uploading') continue
-      const group = groups.get(item.groupId)
-      if (group) {
-        group.push(item)
-        continue
-      }
-      groups.set(item.groupId, [item])
-    }
-
-    for (const [groupId, groupItems] of groups) {
-      if (startedRef.current.has(groupId)) continue
-      startedRef.current.add(groupId)
-
-      const h = groupHandlesRef.current.get(groupId)
-      if (!h) {
-        setItems((cur) =>
-          cur.map((c) =>
-            c.groupId === groupId
-              ? { ...c, status: 'error' as const, error: 'No handle' }
-              : c,
-          ),
-        )
-        continue
-      }
-
-      const entries: TreeUploadEntry[] = []
-      const dirs = groupDirsRef.current.get(groupId) ?? []
-      entries.push(
-        ...dirs.map((dirPath) => ({
-          kind: 'directory' as const,
-          path: dirPath,
-        })),
-      )
-      entries.push(
-        ...groupItems.flatMap((item) =>
-          item.kind === 'file' && item.file !== null
-            ? [
-                {
-                  kind: 'file' as const,
-                  path: item.path,
-                  totalSize: BigInt(item.totalSize),
-                  stream: item.file.stream(),
-                  onProgress: (bytesWritten: bigint) => {
-                    setItems((cur) =>
-                      cur.map((c) =>
-                        c.id === item.id
-                          ? { ...c, bytesWritten: Number(bytesWritten) }
-                          : c,
-                      ),
-                    )
-                  },
-                },
-              ]
-            : [],
-        ),
-      )
-
-      h.uploadTree(entries, undefined, groupItems[0].abortController.signal)
-        .then(() => {
-          groupDirsRef.current.delete(groupId)
-          groupHandlesRef.current.delete(groupId)
-          setItems((cur) =>
-            cur.map((c) =>
-              c.groupId === groupId
-                ? { ...c, status: 'done' as const, bytesWritten: c.totalSize }
-                : c,
-            ),
-          )
-        })
-        .catch((err: unknown) => {
-          groupDirsRef.current.delete(groupId)
-          groupHandlesRef.current.delete(groupId)
-          if (groupItems[0].abortController.signal.aborted) return
-          const msg = err instanceof Error ? err.message : 'Upload failed'
-          setItems((cur) =>
-            cur.map((c) =>
-              c.groupId === groupId
-                ? { ...c, status: 'error' as const, error: msg }
-                : c,
-            ),
-          )
-        })
-    }
-  }, [items])
 
   // Emit a completion event on the transition from any in-progress items to
   // every item reaching a terminal state. Runs before the auto-clear below, so
   // items are still present and consumers can anchor feedback to the indicator.
   useEffect(() => {
     const inProgress = items.some(
-      (i) => i.status === 'queued' || i.status === 'uploading',
+      (item) => item.status === 'queued' || item.status === 'uploading',
     )
     if (inProgress) {
       wasInProgressRef.current = true
@@ -221,8 +93,8 @@ export function useUploadManager(concurrency = 1): UploadManager {
       return
     }
     wasInProgressRef.current = false
-    const fileCount = items.filter((i) => i.status === 'done').length
-    const errorCount = items.filter((i) => i.status === 'error').length
+    const fileCount = items.filter((item) => item.status === 'done').length
+    const errorCount = items.filter((item) => item.status === 'error').length
     setLastEvent({
       id: ++eventSeqRef.current,
       kind: 'completed',
@@ -235,21 +107,12 @@ export function useUploadManager(concurrency = 1): UploadManager {
   useEffect(() => {
     if (items.length === 0) return
     const allFinished = items.every(
-      (i) => i.status === 'done' || i.status === 'error',
+      (item) => item.status === 'done' || item.status === 'error',
     )
     if (!allFinished) return
 
     const timer = setTimeout(() => {
-      setItems((prev) => {
-        const kept = prev.filter((i) => i.status !== 'done')
-        for (const item of prev) {
-          if (item.status === 'done') {
-            startedRef.current.delete(item.groupId)
-            groupHandlesRef.current.delete(item.groupId)
-          }
-        }
-        return kept
-      })
+      setItems((prev) => prev.filter((item) => item.status !== 'done'))
     }, 3000)
     return () => clearTimeout(timer)
   }, [items])
@@ -257,9 +120,6 @@ export function useUploadManager(concurrency = 1): UploadManager {
   const addFiles = useCallback(
     (handle: FSHandle, files: File[], directories?: string[]) => {
       const groupId = `upload-group-${++nextGroupIdRef.current}`
-      const abortController = new AbortController()
-      groupHandlesRef.current.set(groupId, handle)
-      groupDirsRef.current.set(groupId, directories ?? [])
       const newItems: UploadItem[] = files.map((file) => ({
         id: `upload-${++nextIdRef.current}`,
         groupId,
@@ -271,8 +131,8 @@ export function useUploadManager(concurrency = 1): UploadManager {
           file.name,
         totalSize: file.size,
         bytesWritten: 0,
-        status: 'queued' as const,
-        abortController,
+        status: 'queued',
+        abortController: new AbortController(),
       }))
       for (const directory of directories ?? []) {
         newItems.push({
@@ -284,11 +144,12 @@ export function useUploadManager(concurrency = 1): UploadManager {
           path: directory,
           totalSize: 0,
           bytesWritten: 0,
-          status: 'queued' as const,
-          abortController,
+          status: 'queued',
+          abortController: new AbortController(),
         })
       }
       if (newItems.length === 0) return
+
       setItems((prev) => [...prev, ...newItems])
       const fileCount = files.length || (directories?.length ?? 0)
       setLastEvent({
@@ -297,51 +158,91 @@ export function useUploadManager(concurrency = 1): UploadManager {
         fileCount,
         errorCount: 0,
       })
+
+      for (const item of newItems) {
+        const entry: TreeUploadEntry =
+          item.kind === 'file' && item.file
+            ? {
+                kind: 'file',
+                path: item.path,
+                totalSize: BigInt(item.totalSize),
+                stream: item.file.stream(),
+                onProgress: (bytesWritten) => {
+                  setItems((cur) =>
+                    cur.map((current) =>
+                      current.id === item.id
+                        ? { ...current, bytesWritten: Number(bytesWritten) }
+                        : current,
+                    ),
+                  )
+                },
+              }
+            : { kind: 'directory', path: item.path }
+
+        pool.add(
+          handle,
+          entry,
+          {
+            onStart: () => {
+              setItems((cur) =>
+                cur.map((current) =>
+                  current.id === item.id
+                    ? { ...current, status: 'uploading' }
+                    : current,
+                ),
+              )
+            },
+            onComplete: () => {
+              setItems((cur) =>
+                cur.map((current) =>
+                  current.id === item.id
+                    ? {
+                        ...current,
+                        status: 'done',
+                        bytesWritten: current.totalSize,
+                      }
+                    : current,
+                ),
+              )
+            },
+            onError: (err) => {
+              const error = err instanceof Error ? err.message : 'Upload failed'
+              setItems((cur) =>
+                cur.map((current) =>
+                  current.id === item.id
+                    ? { ...current, status: 'error', error }
+                    : current,
+                ),
+              )
+            },
+          },
+          item.abortController.signal,
+        )
+      }
     },
-    [],
+    [pool],
   )
 
   const cancelUpload = useCallback((id: string) => {
     setItems((prev) => {
-      const item = prev.find((i) => i.id === id)
+      const item = prev.find((current) => current.id === id)
       if (!item) return prev
       if (item.status === 'queued' || item.status === 'uploading') {
         item.abortController.abort()
       }
-      startedRef.current.delete(item.groupId)
-      groupDirsRef.current.delete(item.groupId)
-      groupHandlesRef.current.delete(item.groupId)
-      return prev.filter((i) => i.groupId !== item.groupId)
+      return prev.filter((current) => current.id !== id)
     })
   }, [])
 
   const cancelAll = useCallback(() => {
-    startedRef.current.clear()
-    groupDirsRef.current.clear()
-    groupHandlesRef.current.clear()
     setItems((prev) => {
-      const abortControllers = new Set<AbortController>()
-      for (const item of prev) {
-        abortControllers.add(item.abortController)
-      }
-      for (const abortController of abortControllers) {
-        abortController.abort()
-      }
+      for (const item of prev) item.abortController.abort()
       return []
     })
   }, [])
 
   const clearDone = useCallback(() => {
-    setItems((prev) => {
-      const kept = prev.filter((i) => i.status !== 'done')
-      for (const item of prev) {
-        if (item.status === 'done') {
-          startedRef.current.delete(item.groupId)
-          groupHandlesRef.current.delete(item.groupId)
-        }
-      }
-      return kept
-    })
+    setItems((prev) => prev.filter((item) => item.status !== 'done'))
   }, [])
 
   return useMemo(

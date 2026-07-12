@@ -68,6 +68,11 @@ func (r *FSHandleResource) UploadTree(
 			return nil, err
 		}
 	}
+	// Blob ingestion can overlap, but root publication must rebase and commit
+	// against one current filesystem root at a time.
+	r.uploadMtx.Lock()
+	defer r.uploadMtx.Unlock()
+
 	recordUploadMetric(ctx, UploadMetric{Stage: "commit-start"})
 	if err := state.b.Commit(ctx); err != nil {
 		return nil, err
