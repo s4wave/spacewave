@@ -26,6 +26,7 @@ func buildTestbedHandle(t *testing.T) (*testbed.Testbed, world.WorldState, ExecC
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	t.Cleanup(tb.Release)
 	hydra_all.AddFactories(tb.Bus, tb.StaticResolver)
 
 	// construct & mount world controller
@@ -48,7 +49,7 @@ func buildTestbedHandle(t *testing.T) (*testbed.Testbed, world.WorldState, ExecC
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer worldCtrlRef.Release()
+	t.Cleanup(worldCtrlRef.Release)
 
 	wh, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
