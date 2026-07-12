@@ -9,6 +9,7 @@ import (
 	"io"
 	"slices"
 	"strconv"
+	"strings"
 	"syscall/js"
 	"testing"
 	"time"
@@ -258,6 +259,139 @@ func TestAsyncIOWriteAndRead(t *testing.T) {
 	}
 	if !found || string(val) != "mode" {
 		t.Fatalf("async get: found=%v val=%q want mode", found, val)
+	}
+}
+
+func TestPublishQuotaFailureCleansSplitSegments(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	settings.MaxSegmentDataBytes = 128
+	e, cleanup := newTestEngineWithSettings(
+		t,
+		"test-blockshard-quota-cleanup",
+		"test-blockshard-quota-cleanup",
+		settings,
+	)
+	defer cleanup()
+
+	shard := e.shards[0]
+	buildSegmentFile := shard.buildSegmentFile
+	buildCalls := 0
+	shard.buildSegmentFileFn = func(
+		ctx context.Context,
+		filename string,
+		writer *segment.Writer,
+	) (segment.BuildResult, error) {
+		buildCalls++
+		if buildCalls == 2 {
+			return segment.BuildResult{}, &opfs.JSError{
+				Name:    "QuotaExceededError",
+				Message: "injected quota limit",
+			}
+		}
+		return buildSegmentFile(ctx, filename, writer)
+	}
+
+	release, err := shard.AcquirePublishLock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = shard.Publish(context.Background(), []segment.Entry{
+		{Key: []byte("key-a"), Value: bytes.Repeat([]byte("a"), 96)},
+		{Key: []byte("key-b"), Value: bytes.Repeat([]byte("b"), 96)},
+	})
+	release()
+	if err == nil {
+		t.Fatal("Publish() error = nil, want quota failure")
+	}
+	var quotaErr *opfs.QuotaExceededError
+	if !errors.As(err, &quotaErr) {
+		t.Fatalf("Publish() error = %v, want *opfs.QuotaExceededError", err)
+	}
+	if buildCalls != 2 {
+		t.Fatalf("segment builds = %d, want 2", buildCalls)
+	}
+	if manifest := shard.Manifest(); manifest.Generation != 0 || len(manifest.Segments) != 0 {
+		t.Fatalf("manifest after failed publish = %+v, want empty generation 0", manifest)
+	}
+	names, err := opfs.ListDirectory(shard.dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names {
+		if strings.HasPrefix(name, "seg-") {
+			t.Fatalf("failed publish left orphan segment %q", name)
+		}
+	}
+}
+
+func TestCompactionQuotaFailureCleansPartialOutputs(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	settings.MaxSegmentDataBytes = 128
+	e, cleanup := newTestEngineWithSettings(
+		t,
+		"test-blockshard-compaction-quota-cleanup",
+		"test-blockshard-compaction-quota-cleanup",
+		settings,
+	)
+	defer cleanup()
+
+	shard := e.shards[0]
+	for i := range DefaultL0Trigger {
+		publishEntries(t, shard, []segment.Entry{{
+			Key:   []byte("key-" + strconv.Itoa(i)),
+			Value: bytes.Repeat([]byte{byte('a' + i)}, 96),
+		}})
+	}
+	before := shard.Manifest()
+	plan := PlanCompaction(shard, DefaultL0Trigger)
+	if plan == nil {
+		t.Fatal("PlanCompaction() = nil")
+	}
+
+	buildSegmentFile := shard.buildSegmentFile
+	buildCalls := 0
+	shard.buildSegmentFileFn = func(
+		ctx context.Context,
+		filename string,
+		writer *segment.Writer,
+	) (segment.BuildResult, error) {
+		buildCalls++
+		if buildCalls == 2 {
+			return segment.BuildResult{}, &opfs.JSError{
+				Name:    "QuotaExceededError",
+				Message: "injected compaction quota limit",
+			}
+		}
+		return buildSegmentFile(ctx, filename, writer)
+	}
+
+	release, err := shard.AcquirePublishLock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ExecuteCompaction(context.Background(), shard, plan)
+	release()
+	var quotaErr *opfs.QuotaExceededError
+	if !errors.As(err, &quotaErr) {
+		t.Fatalf("ExecuteCompaction() error = %v, want *opfs.QuotaExceededError", err)
+	}
+	after := shard.Manifest()
+	if after.Generation != before.Generation || len(after.Segments) != len(before.Segments) {
+		t.Fatalf("manifest after failed compaction = %+v, want generation %d with %d segments", after, before.Generation, len(before.Segments))
+	}
+	refs := after.ReferencedFiles()
+	names, err := opfs.ListDirectory(shard.dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names {
+		if strings.HasPrefix(name, "seg-") {
+			if _, ok := refs[name]; !ok {
+				t.Fatalf("failed compaction left orphan segment %q", name)
+			}
+		}
 	}
 }
 

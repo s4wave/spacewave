@@ -30,6 +30,7 @@ export type WasmSource =
 const tinyGoPromiseErrorUnknown = 0
 const tinyGoPromiseErrorNotFound = 1
 const tinyGoPromiseErrorNoModificationAllowed = 2
+const tinyGoPromiseErrorQuotaExceeded = 3
 const tinyGoFetchBodyMaxBytes = 2 * 1024 * 1024
 const tinyGoOPFSReadFileMaxBytes = 2 * 1024 * 1024
 const tinyGoBrowserWorkerBudgetBytes = 128 * 1024 * 1024
@@ -532,6 +533,9 @@ function tinyGoPromiseErrorCode(reason: unknown): number {
   }
   if (name.includes('NoModificationAllowedError')) {
     return tinyGoPromiseErrorNoModificationAllowed
+  }
+  if (name.includes('QuotaExceededError')) {
+    return tinyGoPromiseErrorQuotaExceeded
   }
   return tinyGoPromiseErrorUnknown
 }

@@ -75,7 +75,7 @@ func (BrowserDriver) SendBroadcastChannel(channel js.Value, msg BroadcastMessage
 	arr := jsutil.NewUint8Array(10)
 	arr.SetIndex(0, int(msg.ShardID>>8))
 	arr.SetIndex(1, int(msg.ShardID))
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		shift := uint((7 - i) * 8)
 		arr.SetIndex(2+i, int(byte(msg.Generation>>shift)))
 	}

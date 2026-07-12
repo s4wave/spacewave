@@ -55,7 +55,7 @@ func TestRemoteDriverWaitSwapWakesOnSwap(t *testing.T) {
 	go func() { result <- d.WaitSwap(context.Background()) }()
 
 	ports := []js.Value{makeBridgePort(t), makeBridgePort(t)}
-	for i := 0; i < 200; i++ {
+	for i := range 200 {
 		select {
 		case err := <-result:
 			if err != nil {

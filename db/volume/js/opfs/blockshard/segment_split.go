@@ -40,3 +40,11 @@ func estimateSegmentEntryDataBytes(entry segment.Entry) int {
 	}
 	return size
 }
+
+func estimateSegmentEntriesDataBytes(entries []segment.Entry) int {
+	size := 0
+	for i := range entries {
+		size += estimateSegmentEntryDataBytes(entries[i])
+	}
+	return size
+}

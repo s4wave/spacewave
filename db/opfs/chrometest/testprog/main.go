@@ -297,6 +297,8 @@ func run(ctx context.Context, c *config) error {
 		return runWorldLargeUnixFSUpload(ctx, c)
 	case "world-resource-large-unixfs-upload":
 		return runWorldResourceLargeUnixFSUpload(ctx, c)
+	case "world-resource-large-unixfs-write":
+		return runWorldResourceLargeUnixFSUpload(ctx, c)
 	case "world-resource-direct-upload-tree-large-unixfs-upload":
 		return runWorldResourceDirectUploadTreeLargeUnixFSUpload(ctx, c)
 	case "world-controller-resource-large-unixfs-upload":
@@ -654,6 +656,16 @@ func runLargeBlockBatch(ctx context.Context, c *config) error {
 	e, release, err := openBlockEngine(ctx, c)
 	if err != nil {
 		return err
+	}
+
+	estimate, err := opfs.EstimateStorage()
+	if err != nil {
+		release()
+		return errors.Wrap(err, "estimate worker storage")
+	}
+	if estimate.Quota <= estimate.Usage {
+		release()
+		return errors.Errorf("worker storage estimate has no headroom: usage=%d quota=%d", estimate.Usage, estimate.Quota)
 	}
 
 	totalSize, entriesCount := largeBlockShape(c)
@@ -3020,6 +3032,9 @@ func runWorldResourceLargeUnixFSUploadOnBucket(
 		return err
 	}
 	postProgress(c, "resource-upload-complete", totalSize, totalSize)
+	if c.scenario == "world-resource-large-unixfs-write" {
+		return nil
+	}
 
 	postProgress(c, "resource-lookup-start")
 	fileResp, err := rootSvc.LookupPath(ctx, &s4wave_unixfs.HandleLookupPathRequest{

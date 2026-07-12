@@ -3,6 +3,7 @@
 package opfs
 
 import (
+	"errors"
 	"io"
 	"slices"
 	"syscall/js"
@@ -94,6 +95,26 @@ func TestBrowserDriverReadWriteListDeleteClassify(t *testing.T) {
 	err = DefaultDriver.DeleteEntry(dir, "alpha", false)
 	if DefaultDriver.ClassifyError(err) != ErrorKindNotFound {
 		t.Fatalf("ClassifyError(%v) = %v, want ErrorKindNotFound", err, DefaultDriver.ClassifyError(err))
+	}
+}
+func TestQuotaExceededErrorClassification(t *testing.T) {
+	err := &JSError{
+		Name:    "QuotaExceededError",
+		Message: "the operation exceeded its storage quota",
+	}
+	if !IsQuotaExceeded(err) {
+		t.Fatalf("IsQuotaExceeded(%v) = false, want true", err)
+	}
+	if kind := ClassifyError(err); kind != ErrorKindQuotaExceeded {
+		t.Fatalf("ClassifyError(%v) = %v, want ErrorKindQuotaExceeded", err, kind)
+	}
+	wrapped := WithQuotaEstimate(err, 1024)
+	var quotaErr *QuotaExceededError
+	if !errors.As(wrapped, &quotaErr) {
+		t.Fatalf("WithQuotaEstimate(%v) = %T, want *QuotaExceededError", err, wrapped)
+	}
+	if quotaErr.Required != 1024 || quotaErr.Quota == 0 {
+		t.Fatalf("quota error = %+v, want required bytes and browser quota", quotaErr)
 	}
 }
 

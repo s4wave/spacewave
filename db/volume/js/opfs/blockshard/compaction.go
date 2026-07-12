@@ -70,6 +70,13 @@ func ExecuteCompaction(ctx context.Context, shard *Shard, plan *CompactionPlan) 
 		outputLevel:  plan.OutputLevel,
 		maxDataBytes: shard.maxSegmentDataBytes,
 	}
+	cleanupOutputs := func(err error) error {
+		err = opfs.WithQuotaEstimate(err, 0)
+		if cleanupErr := shard.cleanupWrittenSegments(writer.Outputs()); cleanupErr != nil {
+			return errors.Wrapf(err, "clean failed compaction segments: %v", cleanupErr)
+		}
+		return err
+	}
 	if err := mergeSegmentIterators(iters, func(entry segment.Entry) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -82,10 +89,10 @@ func ExecuteCompaction(ctx context.Context, shard *Shard, plan *CompactionPlan) 
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "merge segments")
+		return cleanupOutputs(errors.Wrap(err, "merge segments"))
 	}
 	if err := writer.Flush(); err != nil {
-		return errors.Wrap(err, "write compacted segment")
+		return cleanupOutputs(errors.Wrap(err, "write compacted segment"))
 	}
 	outputs := writer.Outputs()
 	outMetas := make([]SegmentMeta, len(outputs))
@@ -107,11 +114,11 @@ func ExecuteCompaction(ctx context.Context, shard *Shard, plan *CompactionPlan) 
 	)
 	shard.mu.Unlock()
 	if err != nil {
-		return err
+		return cleanupOutputs(err)
 	}
 
 	if err := shard.writeManifest(ctx, newManifest); err != nil {
-		return errors.Wrap(err, "write compaction manifest")
+		return cleanupOutputs(errors.Wrap(err, "write compaction manifest"))
 	}
 	for i := range outputs {
 		shard.cacheLookup(outputs[i].Meta.Filename, outputs[i].Lookup)

@@ -56,6 +56,13 @@ type chromeSession struct {
 	ctx  playwright.BrowserContext
 	page playwright.Page
 }
+type storageSnapshot struct {
+	usage     int64
+	quota     int64
+	opfsBytes int64
+	files     int64
+	persisted bool
+}
 
 // TIER: pr
 func TestMain(m *testing.M) {
@@ -507,6 +514,118 @@ func TestOpfsChromeTinyGoLargeBlockShardBatch(t *testing.T) {
 		batch:      96,
 		shards:     1,
 	})
+}
+func TestOpfsChromeBlockShardStorageAmplification(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	const sourceBytes = 68056093
+	root := "opfs-chrome-storage-amplification-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	before := s.readStorageSnapshot(t)
+	s.runWorker(t, workerArgs{
+		scenario:   "large-block-batch",
+		root:       root,
+		iterations: sourceBytes,
+		batch:      96,
+		shards:     1,
+	})
+	after := s.readStorageSnapshot(t)
+
+	opfsGrowth := after.opfsBytes - before.opfsBytes
+	usageGrowth := after.usage - before.usage
+	if opfsGrowth <= 0 {
+		t.Fatalf("OPFS growth = %d, want positive", opfsGrowth)
+	}
+	if opfsGrowth*100 > sourceBytes*101 {
+		t.Fatalf("OPFS amplification = %.6f, want at most 1.01", float64(opfsGrowth)/sourceBytes)
+	}
+	if usageGrowth*100 > sourceBytes*101 {
+		t.Fatalf("origin usage amplification = %.6f, want at most 1.01", float64(usageGrowth)/sourceBytes)
+	}
+	if after.quota <= after.usage {
+		t.Fatalf("storage estimate quota=%d usage=%d, want positive headroom", after.quota, after.usage)
+	}
+	t.Logf(
+		"storage estimate: source=%d quota=%d usage_before=%d usage_after=%d usage_growth=%d opfs_before=%d opfs_after=%d opfs_growth=%d files_before=%d files_after=%d persisted_before=%t persisted_after=%t opfs_amplification=%.6f usage_amplification=%.6f",
+		sourceBytes,
+		after.quota,
+		before.usage,
+		after.usage,
+		usageGrowth,
+		before.opfsBytes,
+		after.opfsBytes,
+		opfsGrowth,
+		before.files,
+		after.files,
+		before.persisted,
+		after.persisted,
+		float64(opfsGrowth)/float64(sourceBytes),
+		float64(usageGrowth)/float64(sourceBytes),
+	)
+}
+
+func TestOpfsChromeUnixFSStorageAmplification(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	const sourceBytes = 68056093
+	root := "opfs-chrome-unixfs-storage-amplification-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	before := s.readStorageSnapshot(t)
+	s.runWorker(t, workerArgs{
+		scenario:   "world-resource-large-unixfs-write",
+		root:       root,
+		iterations: sourceBytes,
+		batch:      262144,
+		shards:     defaultShards,
+	})
+	after := s.readStorageSnapshot(t)
+
+	opfsGrowth := after.opfsBytes - before.opfsBytes
+	usageGrowth := after.usage - before.usage
+	if opfsGrowth <= 0 {
+		t.Fatalf("OPFS growth = %d, want positive", opfsGrowth)
+	}
+	if opfsGrowth*100 > sourceBytes*120 {
+		t.Fatalf("UnixFS OPFS amplification = %.6f, want at most 1.20", float64(opfsGrowth)/sourceBytes)
+	}
+	if usageGrowth*100 > sourceBytes*120 {
+		t.Fatalf("UnixFS origin usage amplification = %.6f, want at most 1.20", float64(usageGrowth)/sourceBytes)
+	}
+	if after.quota <= after.usage {
+		t.Fatalf("storage estimate quota=%d usage=%d, want positive headroom", after.quota, after.usage)
+	}
+
+	t.Logf(
+		"unixfs storage estimate: source=%d quota=%d usage_before=%d usage_after=%d usage_growth=%d opfs_before=%d opfs_after=%d opfs_growth=%d files_before=%d files_after=%d persisted_before=%t persisted_after=%t opfs_amplification=%.6f usage_amplification=%.6f",
+		sourceBytes,
+		after.quota,
+		before.usage,
+		after.usage,
+		usageGrowth,
+		before.opfsBytes,
+		after.opfsBytes,
+		opfsGrowth,
+		before.files,
+		after.files,
+		before.persisted,
+		after.persisted,
+		float64(opfsGrowth)/float64(sourceBytes),
+		float64(usageGrowth)/float64(sourceBytes),
+	)
 }
 
 func TestOpfsChromeTinyGoLargeBlockShardMultiShardBatch(t *testing.T) {
@@ -1616,6 +1735,65 @@ func (s *chromeSession) openPage(t testing.TB, url string) {
 		t.Fatalf("GET / returned HTTP %d", resp.Status())
 	}
 	s.page = page
+}
+func (s *chromeSession) readStorageSnapshot(t testing.TB) storageSnapshot {
+	t.Helper()
+	raw, err := s.page.Evaluate(`async () => {
+	  const estimate = await navigator.storage.estimate()
+	  const root = await navigator.storage.getDirectory()
+	  let opfsBytes = 0
+	  let files = 0
+	  const walk = async (dir) => {
+	    for await (const [, handle] of dir.entries()) {
+	      if (handle.kind === 'directory') {
+	        await walk(handle)
+	        continue
+	      }
+	      const file = await handle.getFile()
+	      opfsBytes += file.size
+	      files++
+	    }
+	  }
+	  await walk(root)
+	  return {
+	    usage: estimate.usage ?? 0,
+	    quota: estimate.quota ?? 0,
+	    opfsBytes,
+	    files,
+	    persisted: await navigator.storage.persisted(),
+	  }
+	}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	values, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("storage snapshot returned %T", raw)
+	}
+	number := func(name string) int64 {
+		switch value := values[name].(type) {
+		case int:
+			return int64(value)
+		case int64:
+			return value
+		case float64:
+			return int64(value)
+		default:
+			t.Fatalf("storage snapshot %s returned %T", name, values[name])
+			return 0
+		}
+	}
+	persisted, ok := values["persisted"].(bool)
+	if !ok {
+		t.Fatalf("storage snapshot persisted returned %T", values["persisted"])
+	}
+	return storageSnapshot{
+		usage:     number("usage"),
+		quota:     number("quota"),
+		opfsBytes: number("opfsBytes"),
+		files:     number("files"),
+		persisted: persisted,
+	}
 }
 
 func (s *chromeSession) runWorker(t testing.TB, args workerArgs) workerResult {
@@ -2849,6 +3027,9 @@ self.BLDR_TINYGO_PROMISE_ERROR_CODE ??= (reason) => {
   }
   if (name.includes('NoModificationAllowedError')) {
     return 2
+  }
+  if (name.includes('QuotaExceededError')) {
+    return 3
   }
   return 0
 }

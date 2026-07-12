@@ -831,6 +831,15 @@ describe('installTinyGoJSHelpers', () => {
     })
     await expect(noModificationAllowed).resolves.toBe(2)
 
+    const quotaExceeded = new Promise<number>((resolve) => {
+      g.BLDR_TINYGO_PROMISE_AWAIT?.(
+        Promise.reject({ name: 'QuotaExceededError' }),
+        () => resolve(0),
+        (reason) => resolve(reason),
+      )
+    })
+    await expect(quotaExceeded).resolves.toBe(3)
+
     const stringNotFound = new Promise<number>((resolve) => {
       g.BLDR_TINYGO_PROMISE_AWAIT?.(
         Promise.reject(

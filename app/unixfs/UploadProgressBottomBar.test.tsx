@@ -249,4 +249,41 @@ describe('UploadProgressBottomBar', () => {
     expect(screen.getByText('Upload complete')).toBeTruthy()
     expect(screen.getByText('2 files added to this folder.')).toBeTruthy()
   })
+
+  it('replaces a quota error chain with actionable storage guidance', () => {
+    const uploadManager = buildUploadManager({
+      items: [
+        {
+          id: 'upload-quota',
+          groupId: 'group-quota',
+          kind: 'file',
+          file: null,
+          name: 'photo.jpg',
+          path: 'photos/photo.jpg',
+          totalSize: 100,
+          bytesWritten: 50,
+          status: 'error',
+          error:
+            'Server error: build segment: browser storage quota exceeded (usage 100 bytes, quota 150 bytes, available 50 bytes, write 100 bytes): QuotaExceededError',
+          abortController: new AbortController(),
+        },
+      ],
+    })
+
+    render(
+      <BottomBarRoot openMenu="upload-progress" setOpenMenu={() => {}}>
+        <UploadProgressBottomBar uploadManager={uploadManager} />
+        <ViewerFrame>
+          <div>Browser</div>
+        </ViewerFrame>
+      </BottomBarRoot>,
+    )
+
+    expect(
+      screen.getByText(
+        'Browser storage quota was exceeded (50 B available; 100 B needed). Free storage used by this site or device, then retry. Spacewave already requested persistent storage; persistence prevents eviction but does not increase capacity.',
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByText(/build segment/)).toBeNull()
+  })
 })

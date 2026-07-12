@@ -20,6 +20,7 @@ const (
 	jsErrorCodeUnknown = iota
 	jsErrorCodeNotFound
 	jsErrorCodeNoModificationAllowed
+	jsErrorCodeQuotaExceeded
 
 	browserDriverFileChunkSize = 1 << 20
 )
@@ -107,6 +108,8 @@ const (
 	// access to OPFS for this profile. On root acquisition this is a terminal
 	// storage-capability denial, not a transient failure.
 	ErrorKindSecurity
+	// ErrorKindQuotaExceeded is a DOMException QuotaExceededError.
+	ErrorKindQuotaExceeded
 )
 
 // JSError represents a JavaScript error or DOMException.
@@ -135,6 +138,11 @@ func IsSecurity(err error) bool {
 	return DefaultDriver.ClassifyError(err) == ErrorKindSecurity
 }
 
+// IsQuotaExceeded checks if an error is a "QuotaExceededError" DOMException.
+func IsQuotaExceeded(err error) bool {
+	return DefaultDriver.ClassifyError(err) == ErrorKindQuotaExceeded
+}
+
 // ClassifyError classifies an OPFS/browser error.
 func ClassifyError(err error) ErrorKind {
 	return DefaultDriver.ClassifyError(err)
@@ -153,6 +161,8 @@ func (BrowserDriver) ClassifyError(err error) ErrorKind {
 		return ErrorKindNoModificationAllowed
 	case "SecurityError":
 		return ErrorKindSecurity
+	case "QuotaExceededError":
+		return ErrorKindQuotaExceeded
 	default:
 		return ErrorKindUnknown
 	}
@@ -185,6 +195,8 @@ func newJSErrorCode(code int) *JSError {
 		return &JSError{Name: "NotFoundError", Message: "entry not found"}
 	case jsErrorCodeNoModificationAllowed:
 		return &JSError{Name: "NoModificationAllowedError", Message: "entry cannot be modified"}
+	case jsErrorCodeQuotaExceeded:
+		return &JSError{Name: "QuotaExceededError", Message: "storage quota exceeded"}
 	default:
 		return &JSError{Message: "promise rejected"}
 	}
@@ -435,10 +447,7 @@ func (BrowserDriver) readAsyncFileAt(f *AsyncFile, p []byte, off int64) (int, er
 		return 0, io.EOF
 	}
 
-	end := off + int64(len(p))
-	if end > int64(size) {
-		end = int64(size)
-	}
+	end := min(off+int64(len(p)), int64(size))
 
 	blob := jsutil.Call(file, "slice", off, end)
 	ab, err := AwaitPromise(jsutil.Call(blob, "arrayBuffer"))
@@ -498,7 +507,9 @@ func (BrowserDriver) writeAsyncFileAt(ctx context.Context, f *AsyncFile, p []byt
 		_, err := AwaitPromise(jsutil.Call(writable, "seek", off))
 		seekTask.End()
 		if err != nil {
-			AwaitPromise(jsutil.Call(writable, "close")) //nolint
+			if _, abortErr := AwaitPromise(jsutil.Call(writable, "abort")); abortErr != nil {
+				return 0, errors.Wrapf(err, "abort after seek failure: %v", abortErr)
+			}
 			return 0, errors.Wrap(err, "seek")
 		}
 	}
@@ -510,7 +521,9 @@ func (BrowserDriver) writeAsyncFileAt(ctx context.Context, f *AsyncFile, p []byt
 	_, err = AwaitPromise(jsutil.Call(writable, "write", arr))
 	writeDataTask.End()
 	if err != nil {
-		AwaitPromise(jsutil.Call(writable, "close")) //nolint
+		if _, abortErr := AwaitPromise(jsutil.Call(writable, "abort")); abortErr != nil {
+			return 0, errors.Wrapf(err, "abort failed write: %v", abortErr)
+		}
 		return 0, errors.Wrap(err, "write")
 	}
 
@@ -518,6 +531,9 @@ func (BrowserDriver) writeAsyncFileAt(ctx context.Context, f *AsyncFile, p []byt
 	_, err = AwaitPromise(jsutil.Call(writable, "close"))
 	closeTask.End()
 	if err != nil {
+		if _, abortErr := AwaitPromise(jsutil.Call(writable, "abort")); abortErr != nil {
+			return len(p), errors.Wrapf(err, "abort failed close: %v", abortErr)
+		}
 		return len(p), errors.Wrap(err, "close writable")
 	}
 	return len(p), nil
@@ -707,11 +723,16 @@ func (d BrowserDriver) WriteFile(dir js.Value, name string, data []byte) error {
 		arr := jsutil.NewUint8Array(len(data))
 		js.CopyBytesToJS(arr, data)
 		if _, err := AwaitPromise(jsutil.Call(writable, "write", arr)); err != nil {
-			AwaitPromise(jsutil.Call(writable, "close")) //nolint
+			if _, abortErr := AwaitPromise(jsutil.Call(writable, "abort")); abortErr != nil {
+				return errors.Wrapf(err, "abort failed write: %v", abortErr)
+			}
 			return errors.Wrap(err, "write")
 		}
 	}
 	if _, err := AwaitPromise(jsutil.Call(writable, "close")); err != nil {
+		if _, abortErr := AwaitPromise(jsutil.Call(writable, "abort")); abortErr != nil {
+			return errors.Wrapf(err, "abort failed close: %v", abortErr)
+		}
 		return errors.Wrap(err, "close writable")
 	}
 	return nil
@@ -812,10 +833,7 @@ func (d BrowserDriver) ReadFile(dir js.Value, name string) ([]byte, error) {
 	}
 	buf := make([]byte, int(size))
 	for off := int64(0); off < size; {
-		end := off + browserDriverFileChunkSize
-		if end > size {
-			end = size
-		}
+		end := min(off+browserDriverFileChunkSize, size)
 		n, err := f.ReadAt(buf[off:end], off)
 		if err != nil && err != io.EOF {
 			return nil, err
@@ -838,10 +856,7 @@ func (d BrowserDriver) writeFileChunked(dir js.Value, name string, data []byte) 
 		return err
 	}
 	for off := 0; off < len(data); off += browserDriverFileChunkSize {
-		end := off + browserDriverFileChunkSize
-		if end > len(data) {
-			end = len(data)
-		}
+		end := min(off+browserDriverFileChunkSize, len(data))
 		if _, err := f.WriteAt(data[off:end], int64(off)); err != nil {
 			return err
 		}
@@ -962,7 +977,7 @@ func decodeHelperNameList(buf []byte) ([]string, error) {
 	count := int(binary.BigEndian.Uint32(buf[:4]))
 	names := make([]string, 0, count)
 	buf = buf[4:]
-	for i := 0; i < count; i++ {
+	for range count {
 		if len(buf) < 4 {
 			return nil, errors.New("opfs list directory helper returned truncated name length")
 		}

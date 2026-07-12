@@ -32,6 +32,23 @@ function formatBytes(bytes: number, decimals = 1): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
 }
 
+function formatUploadError(error: string | undefined): string | undefined {
+  if (
+    !error?.includes('QuotaExceededError') &&
+    !error?.includes('browser storage quota exceeded')
+  ) {
+    return error
+  }
+  const available = error.match(/available (\d+) bytes/)
+  const required = error.match(/write (\d+) bytes/)
+  const headroom = available
+    ? ` (${formatBytes(Number(available[1]))} available${
+        required ? `; ${formatBytes(Number(required[1]))} needed` : ''
+      })`
+    : ''
+  return `Browser storage quota was exceeded${headroom}. Free storage used by this site or device, then retry. Spacewave already requested persistent storage; persistence prevents eviction but does not increase capacity.`
+}
+
 // UploadProgressOverlay renders the list of upload items with progress.
 function UploadProgressOverlay({
   uploadManager,
@@ -180,7 +197,7 @@ function UploadItemRow({
         ? 'Queued'
         : item.status === 'done'
           ? 'Complete'
-          : (item.error ?? 'Failed')
+          : (formatUploadError(item.error) ?? 'Failed')
 
   return (
     <div className="border-popover-border flex items-start gap-3 border-t px-5 py-4 first:border-t-0">

@@ -120,10 +120,10 @@ func runActorScenario(bursts, burstSize, bufferSize int, yield bool) actorMetric
 		doneCh <- summarizeActorSizes(sizes, 0)
 	}()
 
-	for burst := 0; burst < bursts; burst++ {
+	for range bursts {
 		var wg sync.WaitGroup
 		wg.Add(burstSize)
-		for i := 0; i < burstSize; i++ {
+		for range burstSize {
 			go func() {
 				defer wg.Done()
 				reqCh <- struct{}{}
@@ -171,7 +171,7 @@ func runMemoryScenario(size, iterations int, reuse bool) memoryMetrics {
 	}
 
 	var scratch []byte
-	for i := 0; i < iterations; i++ {
+	for i := range iterations {
 		var buf []byte
 		if reuse {
 			if cap(scratch) < size {

@@ -39,6 +39,7 @@ type Shard struct {
 	nowFn               func() time.Time
 	bloomFPR            float64
 	maxSegmentDataBytes int
+	buildSegmentFileFn  func(context.Context, string, *segment.Writer) (segment.BuildResult, error)
 
 	lookupCache      map[string]*segment.LookupMeta
 	segmentFileCache map[string]*cachedSegmentFile
@@ -110,6 +111,10 @@ func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
 	for i := range groups {
 		output, err := s.writeSegment(ctx, groups[i], 0)
 		if err != nil {
+			err = opfs.WithQuotaEstimate(err, uint64(estimateSegmentEntriesDataBytes(groups[i])))
+			if cleanupErr := s.cleanupWrittenSegments(outputs); cleanupErr != nil {
+				return errors.Wrapf(err, "clean failed publish segments: %v", cleanupErr)
+			}
 			return err
 		}
 		outputs = append(outputs, output)
@@ -126,6 +131,10 @@ func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
 
 	if err := s.writeManifest(ctx, newManifest); err != nil {
 		subtask.End()
+		err = opfs.WithQuotaEstimate(err, 0)
+		if cleanupErr := s.cleanupWrittenSegments(outputs); cleanupErr != nil {
+			return errors.Wrapf(err, "clean failed publish segments: %v", cleanupErr)
+		}
 		return err
 	}
 	for i := range outputs {
@@ -133,6 +142,16 @@ func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
 	}
 	subtask.End()
 	return nil
+}
+func (s *Shard) cleanupWrittenSegments(outputs []writtenSegment) error {
+	var cleanupErr error
+	for i := range outputs {
+		filename := outputs[i].Meta.Filename
+		if err := opfs.DeleteFile(s.dir, filename); err != nil && !opfs.IsNotFound(err) {
+			cleanupErr = errors.Wrapf(err, "delete %s", filename)
+		}
+	}
+	return cleanupErr
 }
 
 func (s *Shard) writeSegment(ctx context.Context, entries []segment.Entry, level uint8) (writtenSegment, error) {
@@ -161,7 +180,11 @@ func (s *Shard) writeSegment(ctx context.Context, entries []segment.Entry, level
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish/build-segment-file")
 	_, shardTask := trace.NewTask(taskCtx, publishShardTaskName(s.id))
 	_, entryTask := trace.NewTask(taskCtx, publishEntryCountTaskName(len(entries)))
-	result, err := s.buildSegmentFile(taskCtx, filename, w)
+	buildSegmentFile := s.buildSegmentFile
+	if s.buildSegmentFileFn != nil {
+		buildSegmentFile = s.buildSegmentFileFn
+	}
+	result, err := buildSegmentFile(taskCtx, filename, w)
 	_, sizeTask := trace.NewTask(taskCtx, publishSegmentSizeTaskName(int(result.Written)))
 	sizeTask.End()
 	if err != nil {
@@ -210,10 +233,15 @@ func (s *Shard) buildSegmentSyncFile(ctx context.Context, filename string, w *se
 	result, err := w.BuildWithMeta(f)
 	subtask.End()
 	if err != nil {
-		if closeErr := f.Close(); closeErr != nil {
+		closeErr := f.Close()
+		deleteErr := opfs.DeleteFile(s.dir, filename)
+		if closeErr != nil && deleteErr != nil && !opfs.IsNotFound(deleteErr) {
+			return result, errors.Wrapf(err, "close partial segment: %v; delete partial segment: %v", closeErr, deleteErr)
+		}
+		if closeErr != nil {
 			return result, errors.Wrapf(err, "close partial segment: %v", closeErr)
 		}
-		if deleteErr := opfs.DeleteFile(s.dir, filename); deleteErr != nil && !opfs.IsNotFound(deleteErr) {
+		if deleteErr != nil && !opfs.IsNotFound(deleteErr) {
 			return result, errors.Wrapf(err, "delete partial segment: %v", deleteErr)
 		}
 		return result, err
@@ -223,6 +251,9 @@ func (s *Shard) buildSegmentSyncFile(ctx context.Context, filename string, w *se
 	f.Flush()
 	subtask.End()
 	if err := f.Close(); err != nil {
+		if deleteErr := opfs.DeleteFile(s.dir, filename); deleteErr != nil && !opfs.IsNotFound(deleteErr) {
+			return result, errors.Wrapf(err, "delete failed segment: %v", deleteErr)
+		}
 		return result, err
 	}
 	return result, nil
@@ -240,18 +271,33 @@ func (s *Shard) buildSegmentAsyncFile(ctx context.Context, filename string, w *s
 	result, err := w.BuildWithMeta(f)
 	subtask.End()
 	if err != nil {
-		if abortErr := f.Abort(); abortErr != nil {
-			return result, errors.Wrapf(err, "abort partial segment: %v", abortErr)
+		if cleanupErr := s.cleanupAsyncSegment(f, filename); cleanupErr != nil {
+			return result, errors.Wrapf(err, "clean partial segment: %v", cleanupErr)
 		}
 		return result, err
 	}
 	if err := f.Close(); err != nil {
-		if abortErr := f.Abort(); abortErr != nil {
-			return result, errors.Wrapf(err, "abort failed close: %v", abortErr)
+		if cleanupErr := s.cleanupAsyncSegment(f, filename); cleanupErr != nil {
+			return result, errors.Wrapf(err, "clean failed segment: %v", cleanupErr)
 		}
 		return result, err
 	}
 	return result, nil
+}
+
+func (s *Shard) cleanupAsyncSegment(f *opfs.WriteStream, filename string) error {
+	abortErr := f.Abort()
+	deleteErr := opfs.DeleteFile(s.dir, filename)
+	if abortErr != nil && deleteErr != nil && !opfs.IsNotFound(deleteErr) {
+		return errors.Errorf("abort writable: %v; delete file: %v", abortErr, deleteErr)
+	}
+	if abortErr != nil {
+		return errors.Wrap(abortErr, "abort writable")
+	}
+	if deleteErr != nil && !opfs.IsNotFound(deleteErr) {
+		return errors.Wrap(deleteErr, "delete file")
+	}
+	return nil
 }
 
 // writeManifest writes a manifest to the alternate slot and commits in-memory.
