@@ -39,6 +39,7 @@ interface Global {
     pluginId: string,
     rootHash: string,
   ) => void
+  BLDR_NOTIFY_DURABLE_MUTATION?: () => void
 }
 
 const globalScope = self as unknown as Global
@@ -77,6 +78,9 @@ globalScope.BLDR_NOTIFY_STARTUP_MARK = (
 }
 globalScope.BLDR_NOTIFY_PLUGIN_MANIFEST_ROOT = (pluginId, rootHash) => {
   webRuntime.broadcastPluginManifestRoot(pluginId, rootHash)
+}
+globalScope.BLDR_NOTIFY_DURABLE_MUTATION = () => {
+  webRuntime.broadcastDurableMutation()
 }
 
 const goOpenStreamChannel = new MessageChannel()

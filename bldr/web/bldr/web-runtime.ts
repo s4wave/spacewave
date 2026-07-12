@@ -640,6 +640,20 @@ export class WebRuntime {
     }
   }
 
+  // broadcastDurableMutation notifies documents that a user-authored world
+  // mutation just fenced durable.
+  public broadcastDurableMutation(): void {
+    for (const client of Object.values(this.clients)) {
+      if (
+        client.init.clientType !==
+        WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT
+      ) {
+        continue
+      }
+      client.postMessage({ durableMutation: true })
+    }
+  }
+
   // broadcastPluginManifestRoot forwards selected root authority to documents.
   public broadcastPluginManifestRoot(pluginId: string, rootHash: string): void {
     for (const client of Object.values(this.clients)) {

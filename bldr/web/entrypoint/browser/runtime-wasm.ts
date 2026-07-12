@@ -31,6 +31,7 @@ interface Global {
     pluginId: string,
     rootHash: string,
   ) => void
+  BLDR_NOTIFY_DURABLE_MUTATION?: () => void
 }
 const global: Global = self as unknown as Global
 
@@ -52,6 +53,9 @@ const webRuntime = new WebRuntime(
 )
 global.BLDR_NOTIFY_PLUGIN_MANIFEST_ROOT = (pluginId, rootHash) => {
   webRuntime.broadcastPluginManifestRoot(pluginId, rootHash)
+}
+global.BLDR_NOTIFY_DURABLE_MUTATION = () => {
+  webRuntime.broadcastDurableMutation()
 }
 
 // baseURL is the base URL to use for paths.

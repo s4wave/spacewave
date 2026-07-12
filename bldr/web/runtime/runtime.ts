@@ -66,6 +66,9 @@ export interface WebRuntimeToClient {
     pluginId: string
     rootHash: string
   }
+  // durableMutation signals a user-authored world mutation fenced durable, so
+  // the document can request browser eviction protection on the first one.
+  durableMutation?: true
 }
 
 // WebDocumentToWebRuntime is a message sent to the WebRuntime from the WebDocument.

@@ -120,6 +120,9 @@ func (r *EngineResource) Sync(ctx context.Context, req *s4wave_world.SyncRequest
 	if err != nil {
 		return nil, err
 	}
+	if fenced {
+		notifyDurableMutationToBrowser()
+	}
 	return &s4wave_world.SyncResponse{Fenced: fenced}, nil
 }
 

@@ -132,6 +132,10 @@ export type OpenChannelFn = (init: WebRuntimeClientInit) => Promise<MessagePort>
 // HandleDisconnectedFn handles when the web runtime client was disconnected.
 export type HandleDisconnectedFn = (err?: Error) => Promise<void>
 
+// HandleDurableMutationFn handles a runtime signal that a user-authored world
+// mutation fenced durable.
+export type HandleDurableMutationFn = () => void
+
 // WaitForStreamOpenGateFn waits for a startup gate that must be ready before
 // stream-open can proceed.
 export type WaitForStreamOpenGateFn =
@@ -219,6 +223,7 @@ export class WebRuntimeClient {
     private disableWebLocks?: boolean,
     private logicalClientId?: string,
     private waitForStreamOpenGateFn?: WaitForStreamOpenGateFn,
+    private handleDurableMutation?: HandleDurableMutationFn,
   ) {
     this.rpcClient = new Client(this.openStream.bind(this))
     this.generation = {
@@ -498,6 +503,9 @@ export class WebRuntimeClient {
         clientType: this.clientType,
         ...msg.startupMark.detail,
       })
+    }
+    if (msg.durableMutation) {
+      this.handleDurableMutation?.()
     }
   }
 

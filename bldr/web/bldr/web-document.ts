@@ -91,6 +91,10 @@ import {
   type RuntimeClientStreamOpenGateResult,
 } from './web-runtime-client.js'
 import { markStartupBoundary } from './startup-marks.js'
+import {
+  StorageDurabilityOwner,
+  type StorageManagerLike,
+} from './storage-durability-owner.js'
 
 // CreateWebViewFunc is a function to create a WebView.
 export type CreateWebViewFunc = (
@@ -737,6 +741,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private runtimeOpfsBrokerPort?: MessagePort
   // webRuntimeClient is the client for the WebRuntime.
   private readonly webRuntimeClient: WebRuntimeClient | SaucerRuntimeClient
+  // storageDurabilityOwner requests browser eviction protection on the first
+  // user-authored durable write and records the observed persistence status.
+  private readonly storageDurabilityOwner: StorageDurabilityOwner
   // webDocumentHost is the RPC interface to the WebDocumentHost via the WebRuntime.
   private readonly webDocumentHost: WebDocumentHostClient
 
@@ -932,6 +939,18 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.sharedWorkerPath = opts?.sharedWorkerPath ?? '/shw.mjs'
     this.opfsWorkerPath = opts?.opfsWorkerPath ?? '/opfs-worker.mjs'
     this.crossTabManager = new CrossTabManager(this.webDocumentUuid)
+    this.storageDurabilityOwner = new StorageDurabilityOwner(
+      this.resolvePersistableStorage(),
+      (status) => {
+        markStartupBoundary('storage.persist-status', {
+          source: 'browser',
+          documentId: this.webDocumentUuid,
+          runtimeId: this.webRuntimeId,
+          persistent: status === 'persisted',
+          status,
+        })
+      },
+    )
 
     // Create the appropriate runtime client based on the environment.
     if (this.isSaucer) {
@@ -952,6 +971,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         this.isElectron,
         this.webDocumentUuid,
         this.waitForRuntimeConnected.bind(this),
+        () => this.storageDurabilityOwner.noteMeaningfulWrite(),
       )
     }
 
@@ -1018,7 +1038,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         return
       }
 
-      // request persistent storage
+      // Detect the storage mode for the startup timeline. Persistence itself is
+      // requested opportunistically on the first meaningful write by
+      // storageDurabilityOwner, not unconditionally at startup.
       markStartupBoundary('storage.mode-detected', {
         source: 'browser',
         documentId: this.webDocumentUuid,
@@ -1030,34 +1052,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         persistSupported: typeof navigator.storage?.persist === 'function',
         persistedSupported: typeof navigator.storage?.persisted === 'function',
       })
-      if (
-        !this.disableStoragePersist &&
-        'storage' in navigator &&
-        'persist' in navigator.storage
-      ) {
-        markStartupBoundary('storage.persist-request-start', {
-          source: 'browser',
-          documentId: this.webDocumentUuid,
-          runtimeId: this.webRuntimeId,
-        })
-        navigator.storage.persist().then((persistent) => {
-          markStartupBoundary('storage.persist-ready', {
-            source: 'browser',
-            documentId: this.webDocumentUuid,
-            runtimeId: this.webRuntimeId,
-            persistent,
-          })
-          if (persistent) {
-            console.log(
-              'WebDocument: user approved persist, storage will not be cleared except by explicit user action.',
-            )
-          } else {
-            console.log(
-              'WebDocument: user declined to persist, storage may be cleared by the UA under pressure!',
-            )
-          }
-        })
-      }
 
       // setup the Go runtime
       const runtimeJsURL = opts?.runtimeWorkerPath ?? './runtime-wasm.mjs'
@@ -2922,6 +2916,26 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         },
       )
     })
+  }
+
+  // resolvePersistableStorage returns navigator.storage when the browser
+  // supports eviction protection and this document has not disabled it.
+  private resolvePersistableStorage(): StorageManagerLike | null {
+    if (this.disableStoragePersist) {
+      return null
+    }
+    if (typeof navigator === 'undefined' || !('storage' in navigator)) {
+      return null
+    }
+    const storage = navigator.storage
+    if (
+      !storage ||
+      typeof storage.persist !== 'function' ||
+      typeof storage.persisted !== 'function'
+    ) {
+      return null
+    }
+    return storage
   }
 
   // handleWebRuntimeClientDisconnected handles if the WebRuntimeClient disconnects.
