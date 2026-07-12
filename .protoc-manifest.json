@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "a47a756dd5dc451fa7b682d62f615494ac64d1668e3e205ec81c9ade4fb6d129",
+  "protocFlagsHash": "1c28c09115aa511ff35b1be26994db5c0c847fc8e5879acca1694ab90f3ae614",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.15.0,starpc=v0.49.18,protobuf-es-lite=1.1.1",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {

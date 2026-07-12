@@ -113,36 +113,6 @@ struct CanvasRemoveEdgeOpDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CanvasRemoveEdgeOpDefaultTypeInternal _CanvasRemoveEdgeOp_default_instance_;
 
-inline constexpr SetSpaceSettingsOp::Impl_::Impl_(
-    ::_pbi::ConstantInitialized) noexcept
-      : _cached_size_{0},
-        object_key_(
-            &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()),
-        settings_{nullptr},
-        timestamp_{nullptr},
-        overwrite_{false} {}
-
-template <typename>
-PROTOBUF_CONSTEXPR SetSpaceSettingsOp::SetSpaceSettingsOp(::_pbi::ConstantInitialized)
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::Message(SetSpaceSettingsOp_class_data_.base()),
-#else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::Message(),
-#endif  // PROTOBUF_CUSTOM_VTABLE
-      _impl_(::_pbi::ConstantInitialized()) {
-}
-struct SetSpaceSettingsOpDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR SetSpaceSettingsOpDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~SetSpaceSettingsOpDefaultTypeInternal() {}
-  union {
-    SetSpaceSettingsOp _instance;
-  };
-};
-
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
-    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetSpaceSettingsOpDefaultTypeInternal _SetSpaceSettingsOp_default_instance_;
-
 inline constexpr InitUnixFSOp::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -338,6 +308,36 @@ struct CanvasAddEdgeOpDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CanvasAddEdgeOpDefaultTypeInternal _CanvasAddEdgeOp_default_instance_;
+
+inline constexpr SetSpaceSettingsOp::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        settings_{nullptr},
+        timestamp_{nullptr},
+        overwrite_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SetSpaceSettingsOp::SetSpaceSettingsOp(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SetSpaceSettingsOp_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SetSpaceSettingsOpDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SetSpaceSettingsOpDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SetSpaceSettingsOpDefaultTypeInternal() {}
+  union {
+    SetSpaceSettingsOp _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetSpaceSettingsOpDefaultTypeInternal _SetSpaceSettingsOp_default_instance_;
 }  // namespace ops
 }  // namespace world
 }  // namespace space

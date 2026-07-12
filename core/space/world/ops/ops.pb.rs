@@ -10,7 +10,7 @@ pub struct Config {
 }
 /// SetSpaceSettingsOp is an operation to set the space settings.
 /// Can be applied as either an object op or a world op.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SetSpaceSettingsOp {
     /// ObjectKey is the object key for the settings.
     /// If empty, defaults to "settings".
