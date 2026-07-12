@@ -21,6 +21,8 @@ export interface CollapsibleSectionProps {
   badge?: React.ReactNode
   // Optional actions rendered in the header outside the trigger button.
   headerActions?: React.ReactNode
+  // Tightens header and content padding for a narrow container. Off by default.
+  compact?: boolean
 }
 
 // CollapsibleSection wraps content in a glass card with a clickable
@@ -35,6 +37,7 @@ export function CollapsibleSection({
   className,
   badge,
   headerActions,
+  compact = false,
 }: CollapsibleSectionProps) {
   const toggle = useCallback(() => onOpenChange(!open), [open, onOpenChange])
 
@@ -48,7 +51,8 @@ export function CollapsibleSection({
       >
         <div
           className={cn(
-            'hover:bg-background-card/50 flex items-center gap-2 px-3.5 py-2.5 transition-colors',
+            'hover:bg-background-card/50 flex items-center gap-2 transition-colors',
+            compact ? 'px-2.5 py-1.5' : 'px-3.5 py-2.5',
             open && 'border-foreground/6 border-b',
           )}
         >
@@ -56,7 +60,10 @@ export function CollapsibleSection({
             <button
               type="button"
               onClick={toggle}
-              className="-my-2.5 flex min-w-0 flex-1 cursor-pointer items-center gap-2 self-stretch py-2.5 text-left"
+              className={cn(
+                'flex min-w-0 flex-1 cursor-pointer items-center gap-2 self-stretch text-left',
+                compact ? '-my-1.5 py-1.5' : '-my-2.5 py-2.5',
+              )}
             >
               {icon && (
                 <span className="text-foreground-alt/50 flex size-3.5 shrink-0 items-center justify-center">
@@ -80,7 +87,7 @@ export function CollapsibleSection({
           )}
         </div>
         <Collapsible.Content className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
-          <div className="p-3.5">{children}</div>
+          <div className={cn(compact ? 'p-2.5' : 'p-3.5')}>{children}</div>
         </Collapsible.Content>
       </section>
     </Collapsible.Root>

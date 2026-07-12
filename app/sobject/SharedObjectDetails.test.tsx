@@ -1,5 +1,5 @@
 import React from 'react'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, cleanup, fireEvent, screen } from '@testing-library/react'
 import { SharedObjectDetails } from './SharedObjectDetails.js'
 import { SharedObjectContext } from '@s4wave/web/contexts/contexts.js'
@@ -40,6 +40,33 @@ vi.mock('@s4wave/web/state/persist.js', () => ({
   useStateAtom: (_ns: unknown, _key: string, init: unknown) =>
     [init, vi.fn()] as const,
 }))
+
+// observedWidth is the inline width the mocked ResizeObserver reports, letting
+// each density test place the overlay in a small or large container.
+let observedWidth = 0
+
+class DensityResizeObserver {
+  private callback: ResizeObserverCallback
+
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback
+  }
+
+  observe(el: Element) {
+    const entry = {
+      target: el,
+      contentRect: new DOMRect(0, 0, observedWidth, 100),
+      borderBoxSize: [],
+      contentBoxSize: [{ inlineSize: observedWidth, blockSize: 100 }],
+      devicePixelContentBoxSize: [],
+    } as unknown as ResizeObserverEntry
+    this.callback([entry], this as unknown as ResizeObserver)
+  }
+
+  unobserve() {}
+
+  disconnect() {}
+}
 
 describe('SharedObjectDetails', () => {
   const mockMeta: MountSharedObjectResponse = {
@@ -436,6 +463,47 @@ describe('SharedObjectDetails', () => {
     it('does not render org info when not provided (personal space)', () => {
       renderWithContext(<SharedObjectDetails />)
       expect(screen.queryByText('Organization')).toBeNull()
+    })
+  })
+
+  describe('Responsive density', () => {
+    beforeEach(() => {
+      observedWidth = 0
+      vi.stubGlobal('ResizeObserver', DensityResizeObserver)
+    })
+
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    it('keeps secondary content in a comfortable (wide) container', () => {
+      observedWidth = 640
+      renderWithContext(<SharedObjectDetails />)
+      expect(screen.getByText('Untitled')).toBeDefined()
+      expect(screen.getByText(/counter/)).toBeDefined()
+      expect(screen.getByText('Download object contents')).toBeDefined()
+      expect(
+        screen.getByText('Permanently remove this object and all its data'),
+      ).toBeDefined()
+    })
+
+    it('keeps key information visible in a compact (narrow) container', () => {
+      observedWidth = 240
+      renderWithContext(<SharedObjectDetails />)
+      expect(screen.getByText('Untitled')).toBeDefined()
+      expect(screen.getByText('Export Data')).toBeDefined()
+      expect(screen.getByText('Delete Object')).toBeDefined()
+      expect(screen.getByText('test-object-id')).toBeDefined()
+    })
+
+    it('collapses lower-value content in a compact (narrow) container', () => {
+      observedWidth = 240
+      renderWithContext(<SharedObjectDetails />)
+      expect(screen.queryByText(/counter/)).toBeNull()
+      expect(screen.queryByText('Download object contents')).toBeNull()
+      expect(
+        screen.queryByText('Permanently remove this object and all its data'),
+      ).toBeNull()
     })
   })
 })

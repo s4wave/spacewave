@@ -107,8 +107,14 @@ function getMailboxEntryInviteLabel(entry: MailboxEntryInfo): string {
   return `via ${truncatePeerId(entry.inviteId)}`
 }
 
+// SpaceMembersPanelProps configures the members panel.
+export interface SpaceMembersPanelProps {
+  // Tightens the surrounding card padding for a narrow container.
+  compact?: boolean
+}
+
 // SpaceMembersPanel displays active members and invites for a space.
-export function SpaceMembersPanel() {
+export function SpaceMembersPanel({ compact = false }: SpaceMembersPanelProps) {
   const session = useResourceValue(SessionContext.useContext())
   const { spaceId, spaceSharingState } = SpaceContainerContext.useContext()
 
@@ -204,7 +210,7 @@ export function SpaceMembersPanel() {
   const showPendingRequests = mailboxEntries.length > 0 || invites.length > 0
 
   return (
-    <InfoCard>
+    <InfoCard compact={compact}>
       {!spaceSharingState && (
         <div className="p-1">
           <LoadingInline label="Loading sharing state" tone="muted" size="sm" />

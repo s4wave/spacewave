@@ -16,6 +16,7 @@ import { PiAppStoreLogoBold } from 'react-icons/pi'
 
 import { SpaceSoMeta } from '@s4wave/core/space/space.pb.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { useContainerDensity } from '@s4wave/web/hooks/useContainerDensity.js'
 import { SharedObjectContext } from '@s4wave/web/contexts/contexts.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
@@ -81,6 +82,8 @@ export function SharedObjectDetails({
   dataSection,
   pluginsSection,
 }: SharedObjectDetailsProps) {
+  const { ref: containerRef, density } = useContainerDensity()
+  const compact = density === 'compact'
   const sharedObject = useResourceValue(SharedObjectContext.useContext())
   const meta = sharedObject?.meta
 
@@ -118,10 +121,25 @@ export function SharedObjectDetails({
   }, [displayName, sharedObject])
 
   return (
-    <div className="bg-background-primary flex h-full w-full flex-col overflow-hidden">
-      <div className="border-foreground/8 flex min-h-9 shrink-0 items-center justify-between gap-3 border-b px-4 py-2">
-        <div className="text-foreground flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold select-none">
-          <PiAppStoreLogoBold className="size-4" />
+    <div
+      ref={containerRef}
+      className="bg-background-primary flex h-full w-full flex-col overflow-hidden"
+    >
+      <div
+        className={cn(
+          'border-foreground/8 flex shrink-0 items-center justify-between border-b',
+          compact ? 'min-h-8 gap-1.5 px-2.5 py-1.5' : 'min-h-9 gap-3 px-4 py-2',
+        )}
+      >
+        <div
+          className={cn(
+            'text-foreground flex min-w-0 flex-1 items-center gap-2 font-semibold select-none',
+            compact ? 'text-xs' : 'text-sm',
+          )}
+        >
+          <PiAppStoreLogoBold
+            className={cn('shrink-0', compact ? 'size-3.5' : 'size-4')}
+          />
           <span
             className={cn(
               'min-w-0 truncate tracking-tight',
@@ -141,9 +159,11 @@ export function SharedObjectDetails({
           >
             {objectName}
           </span>
-          <span className="text-foreground-alt/50 truncate">
-            · {bodyTypeName}
-          </span>
+          {!compact && (
+            <span className="text-foreground-alt/50 truncate">
+              · {bodyTypeName}
+            </span>
+          )}
           {orgIndicator}
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
@@ -174,8 +194,13 @@ export function SharedObjectDetails({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
-        <div className="space-y-3">
+      <div
+        className={cn(
+          'min-h-0 flex-1 overflow-auto',
+          compact ? 'px-2.5 py-2' : 'px-4 py-3',
+        )}
+      >
+        <div className={cn(compact ? 'space-y-2' : 'space-y-3')}>
           {objectsSection && (
             <CollapsibleSection
               title="Objects"
@@ -184,6 +209,7 @@ export function SharedObjectDetails({
               onOpenChange={handleSectionOpenChange('objects')}
               badge={objectsBadge}
               headerActions={objectsActions}
+              compact={compact}
             >
               {objectsSection}
             </CollapsibleSection>
@@ -193,6 +219,7 @@ export function SharedObjectDetails({
             icon={<LuUsers className="size-3.5" />}
             open={openSection === 'sharing'}
             onOpenChange={handleSectionOpenChange('sharing')}
+            compact={compact}
             headerActions={
               canShare && (
                 <Tooltip>
@@ -214,7 +241,7 @@ export function SharedObjectDetails({
               )
             }
           >
-            <SpaceMembersPanel />
+            <SpaceMembersPanel compact={compact} />
           </CollapsibleSection>
 
           {settingsSection && (
@@ -223,6 +250,7 @@ export function SharedObjectDetails({
               icon={<LuSettings className="size-3.5" />}
               open={openSection === 'settings'}
               onOpenChange={handleSectionOpenChange('settings')}
+              compact={compact}
             >
               {settingsSection}
             </CollapsibleSection>
@@ -233,6 +261,7 @@ export function SharedObjectDetails({
             icon={<LuDatabase className="size-3.5" />}
             open={openSection === 'data'}
             onOpenChange={handleSectionOpenChange('data')}
+            compact={compact}
           >
             <div className="space-y-2">
               <ActionCard
@@ -240,6 +269,7 @@ export function SharedObjectDetails({
                 label="Export Data"
                 description="Download object contents"
                 onClick={onExportClick}
+                compact={compact}
               />
               {dataSection}
             </div>
@@ -251,8 +281,9 @@ export function SharedObjectDetails({
               icon={<LuPuzzle className="size-3.5" />}
               open={openSection === 'plugins'}
               onOpenChange={handleSectionOpenChange('plugins')}
+              compact={compact}
             >
-              <InfoCard>{pluginsSection}</InfoCard>
+              <InfoCard compact={compact}>{pluginsSection}</InfoCard>
             </CollapsibleSection>
           )}
 
@@ -261,8 +292,9 @@ export function SharedObjectDetails({
             icon={<LuCpu className="size-3.5" />}
             open={openSection === 'identifiers'}
             onOpenChange={handleSectionOpenChange('identifiers')}
+            compact={compact}
           >
-            <InfoCard>
+            <InfoCard compact={compact}>
               <div className="space-y-2">
                 <CopyableField label="Object ID" value={sharedObjectId} />
                 <CopyableField label="Block Store" value={blockStoreId} />
@@ -276,25 +308,34 @@ export function SharedObjectDetails({
             title="Danger Zone"
             open={openSection === 'danger'}
             onOpenChange={handleSectionOpenChange('danger')}
+            compact={compact}
           >
             <button
               onClick={onDeleteClick}
               disabled={!onDeleteClick}
               className={cn(
-                'border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive/10 group flex w-full cursor-pointer items-center gap-3 rounded-lg border p-2.5 text-left transition-colors',
+                'border-destructive/30 bg-destructive/5 hover:border-destructive hover:bg-destructive/10 group flex w-full cursor-pointer items-center rounded-lg border text-left transition-colors',
+                compact ? 'gap-2 p-2' : 'gap-3 p-2.5',
                 !onDeleteClick && 'cursor-not-allowed opacity-50',
               )}
             >
-              <div className="bg-destructive/20 group-hover:bg-destructive/30 flex size-8 shrink-0 items-center justify-center rounded-md transition-colors">
+              <div
+                className={cn(
+                  'bg-destructive/20 group-hover:bg-destructive/30 flex shrink-0 items-center justify-center rounded-md transition-colors',
+                  compact ? 'size-7' : 'size-8',
+                )}
+              >
                 <LuTrash2 className="text-destructive size-3.5" />
               </div>
               <div className="flex min-w-0 flex-1 flex-col">
                 <h4 className="text-destructive text-xs font-medium select-none">
                   Delete Object
                 </h4>
-                <p className="text-destructive/80 text-[0.6rem] select-none">
-                  Permanently remove this object and all its data
-                </p>
+                {!compact && (
+                  <p className="text-destructive/80 text-[0.6rem] select-none">
+                    Permanently remove this object and all its data
+                  </p>
+                )}
               </div>
             </button>
           </CollapsibleSection>

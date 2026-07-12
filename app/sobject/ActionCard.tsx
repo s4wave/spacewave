@@ -9,6 +9,8 @@ export interface ActionCardProps {
   description: string
   onClick?: () => void
   variant?: 'default' | 'destructive'
+  // Tightens padding and drops the description for a narrow container.
+  compact?: boolean
 }
 
 export function ActionCard({
@@ -17,13 +19,15 @@ export function ActionCard({
   description,
   onClick,
   variant = 'default',
+  compact = false,
 }: ActionCardProps) {
   return (
     <button
       onClick={onClick}
       disabled={!onClick}
       className={cn(
-        'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 group flex w-full cursor-pointer items-center gap-3 rounded-lg border p-3 text-left backdrop-blur-sm transition-all',
+        'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 group flex w-full cursor-pointer items-center rounded-lg border text-left backdrop-blur-sm transition-all',
+        compact ? 'gap-2 p-2' : 'gap-3 p-3',
         variant === 'destructive' &&
           'hover:border-destructive/30 hover:bg-destructive/5',
         !onClick && 'cursor-not-allowed opacity-50',
@@ -31,7 +35,8 @@ export function ActionCard({
     >
       <div
         className={cn(
-          'bg-foreground/5 group-hover:bg-foreground/8 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors',
+          'bg-foreground/5 group-hover:bg-foreground/8 flex shrink-0 items-center justify-center rounded-md transition-colors',
+          compact ? 'h-7 w-7' : 'h-8 w-8',
           variant === 'destructive' &&
             'bg-destructive/10 group-hover:bg-destructive/15',
         )}
@@ -49,9 +54,11 @@ export function ActionCard({
         <h4 className="text-foreground text-xs font-medium select-none">
           {label}
         </h4>
-        <p className="text-foreground-alt/50 text-[0.6rem] select-none">
-          {description}
-        </p>
+        {!compact && (
+          <p className="text-foreground-alt/50 text-[0.6rem] select-none">
+            {description}
+          </p>
+        )}
       </div>
     </button>
   )
