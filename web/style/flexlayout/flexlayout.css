@@ -223,6 +223,10 @@
   padding: 0;
 }
 
+.space-flexlayout .flexlayout__tabset_tabbar_outer_top {
+  padding-left: 0;
+}
+
 .flexlayout__tabset_tabbar_inner {
   height: 22px;
   align-items: flex-end;
