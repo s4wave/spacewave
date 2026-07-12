@@ -139,7 +139,9 @@ export function Changelog() {
 
   const scrollToVersion = useCallback((version: string) => {
     setDropdownOpen(false)
-    const el = scrollRef.current?.querySelector(`#v${version}`)
+    // Version ids contain dots (e.g. v0.53.1), so escape them before
+    // building the id selector; a raw `#v0.53.1` is an invalid selector.
+    const el = scrollRef.current?.querySelector(`#${CSS.escape(`v${version}`)}`)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }

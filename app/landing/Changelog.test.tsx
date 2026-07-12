@@ -98,6 +98,33 @@ describe('Changelog', () => {
     )
   })
 
+  it('scrolls to a dotted version without an invalid-selector error', () => {
+    // jsdom does not implement scrollIntoView; stub it to observe the call.
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+    mockUseResource.mockReturnValue({
+      loading: false,
+      value: {
+        releases: [
+          { version: '0.53.1', date: '2026-07-05', summary: 'Latest' },
+          { version: '0.53.0', date: '2026-07-04', summary: 'Prior' },
+        ],
+      },
+    })
+
+    render(<Changelog />)
+
+    // Open the version dropdown via the latest-version toggle button.
+    fireEvent.click(screen.getByRole('button', { name: 'v0.53.1' }))
+
+    // Select the dotted version from the dropdown (the toggle is the first
+    // v0.53.1 button, the dropdown option is the last).
+    const dottedButtons = screen.getAllByRole('button', { name: 'v0.53.1' })
+    fireEvent.click(dottedButtons[dottedButtons.length - 1])
+
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+  })
+
   it('uses the landing back navigation callback', () => {
     mockUseResource.mockReturnValue({
       loading: false,
