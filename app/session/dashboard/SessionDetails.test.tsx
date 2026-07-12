@@ -16,6 +16,10 @@ vi.mock('@s4wave/web/hooks/usePromise.js', () => ({
   usePromise: vi.fn(),
 }))
 
+vi.mock('@s4wave/web/command/index.js', () => ({
+  useInvokeCommand: () => vi.fn(),
+}))
+
 // Mock tooltip components to simplify testing
 vi.mock('@s4wave/web/ui/tooltip.js', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -456,6 +460,13 @@ describe('SessionDetails', () => {
       expect(screen.getByText('Logout')).toBeDefined()
       expect(screen.getByText('Danger Zone')).toBeDefined()
       expect(screen.queryByText('Delete a Space')).toBeNull()
+    })
+
+    it('keeps the account Command Line action singular', () => {
+      renderWithContext(<SessionDetails />)
+      expect(screen.getAllByText('Command Line')).toHaveLength(1)
+      expect(screen.queryByText('Command Line Setup')).toBeNull()
+      expect(screen.queryByText('Open CLI Terminal')).toBeNull()
     })
 
     it('calls onChangeAccountClick when Change Account button is clicked', () => {

@@ -90,12 +90,10 @@ describe('SelectAccountCommand', () => {
     expect(command).toMatchObject({
       label: 'Select Account',
       description: 'Select an account to use',
-      menuPath: 'File/Select Account',
-      menuGroup: 80,
-      menuOrder: 2,
       active: true,
       hasSubItems: true,
     })
+    expect(command).not.toHaveProperty('menuPath')
 
     const items = await command.subItems?.('', new AbortController().signal)
     expect(items).toEqual([

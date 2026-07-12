@@ -46,9 +46,6 @@ function QuickstartCommand({
     commandId: `spacewave.create.${opt.id}`,
     label: opt.name,
     description: opt.description,
-    menuPath: `File/New Space/${opt.name}`,
-    menuGroup: 1,
-    menuOrder: 10,
     active: isTabActive,
     handler: useCallback(() => onQuickstart(opt), [onQuickstart, opt]),
   })

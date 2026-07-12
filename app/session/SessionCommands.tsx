@@ -67,9 +67,6 @@ export function SessionCommands() {
     commandId: 'spacewave.session.lock',
     label: 'Lock Session',
     description: 'Lock the current session and return to session list',
-    menuPath: 'File/Lock Session',
-    menuGroup: 80,
-    menuOrder: 1,
     active: isTabActive,
     handler: useCallback(() => {
       navigate({ path: '/sessions' })
@@ -80,9 +77,6 @@ export function SessionCommands() {
     commandId: 'spacewave.session.settings',
     label: 'Account Settings',
     description: 'Open the account settings panel',
-    menuPath: 'File/Account Settings',
-    menuGroup: 80,
-    menuOrder: 3,
     active: isTabActive,
     handler: useCallback(() => {
       setOpenMenu?.('account')
@@ -94,8 +88,8 @@ export function SessionCommands() {
     label: 'Join Space',
     description: 'Join a shared space via invite code or link',
     menuPath: 'File/Join Space',
-    menuGroup: 70,
-    menuOrder: 1,
+    menuGroup: 20,
+    menuOrder: 2,
     active: isTabActive,
     handler: useCallback(() => {
       navigateSession({ path: 'join' })
@@ -106,9 +100,6 @@ export function SessionCommands() {
     commandId: 'spacewave.session.cli-setup',
     label: 'Command Line Setup',
     description: 'Connect the spacewave CLI to this session',
-    menuPath: 'File/Command Line Setup',
-    menuGroup: 80,
-    menuOrder: 4,
     active: isTabActive,
     handler: useCallback(() => {
       navigateSession({ path: 'settings/cli' })
@@ -119,9 +110,6 @@ export function SessionCommands() {
     commandId: 'spacewave.session.open-cli-terminal',
     label: 'Open CLI terminal',
     description: 'Open the in-app browser CLI terminal',
-    menuPath: 'File/Open CLI Terminal',
-    menuGroup: 80,
-    menuOrder: 5,
     active: isTabActive,
     handler: useCallback(() => {
       const terminalPath =

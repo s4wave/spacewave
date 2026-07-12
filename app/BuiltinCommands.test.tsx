@@ -158,17 +158,15 @@ describe('BuiltinCommands', () => {
     expect(findCommand('spacewave.file.close-window')).toMatchObject({
       label: 'Close Window',
       keybinding: 'CmdOrCtrl+W',
-      menuPath: 'File/Close Window',
-      menuGroup: 90,
-      menuOrder: 1,
     })
+    expect(findCommand('spacewave.file.close-window')).not.toHaveProperty(
+      'menuPath',
+    )
     expect(findCommand('spacewave.file.quit')).toMatchObject({
       label: 'Quit',
       keybinding: 'CmdOrCtrl+Q',
-      menuPath: 'File/Quit',
-      menuGroup: 90,
-      menuOrder: 2,
     })
+    expect(findCommand('spacewave.file.quit')).not.toHaveProperty('menuPath')
   })
 
   it('omits desktop commands outside desktop mode', () => {
@@ -188,6 +186,7 @@ describe('BuiltinCommands', () => {
     expect(findCommand('spacewave.root.add')).toMatchObject({
       active: false,
     })
+    expect(findCommand('spacewave.root.add')).not.toHaveProperty('menuPath')
   })
 
   it('routes File Quit through the desktop runtime quit bridge', async () => {

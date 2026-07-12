@@ -55,9 +55,6 @@ export function BuiltinCommands() {
     commandId: 'spacewave.root.add',
     label: 'Add State Root',
     description: 'Register an existing .spacewave state directory',
-    menuPath: 'File/Add State Root',
-    menuGroup: 2,
-    menuOrder: 1,
     active: isDesktop,
     enabled: canAddRootAlias,
     handler: useCallback(() => {
@@ -229,9 +226,6 @@ function DesktopBuiltinCommands() {
     commandId: 'spacewave.file.close-window',
     label: 'Close Window',
     keybinding: 'CmdOrCtrl+W',
-    menuPath: 'File/Close Window',
-    menuGroup: 90,
-    menuOrder: 1,
     handler: useCallback(() => {
       window.close()
     }, []),
@@ -241,9 +235,6 @@ function DesktopBuiltinCommands() {
     commandId: 'spacewave.file.quit',
     label: 'Quit',
     keybinding: 'CmdOrCtrl+Q',
-    menuPath: 'File/Quit',
-    menuGroup: 90,
-    menuOrder: 2,
     handler: useCallback(() => {
       quitDesktopRuntime().catch((err: unknown) => {
         console.error('Quit desktop runtime failed:', err)

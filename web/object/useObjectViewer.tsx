@@ -483,8 +483,8 @@ export function useObjectViewer({
     label: 'Export Object',
     description: 'Download object contents',
     menuPath: 'File/Export Object',
-    menuGroup: 4,
-    menuOrder: 2,
+    menuGroup: 30,
+    menuOrder: 3,
     active: isTabActive && !!objectExportUrl,
     handler: useCallback(() => {
       if (!objectExportUrl) return

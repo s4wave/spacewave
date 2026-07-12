@@ -89,15 +89,25 @@ describe('SessionCommands', () => {
 
   afterEach(() => cleanup())
 
-  it('opens File/Open CLI Terminal in the active shell tabset for the current session', () => {
+  it('keeps account-owned session actions out of the File menu', () => {
     render(<SessionCommands />)
+
+    for (const commandId of [
+      'spacewave.session.lock',
+      'spacewave.session.settings',
+      'spacewave.session.cli-setup',
+      'spacewave.session.open-cli-terminal',
+    ]) {
+      expect(
+        h.registeredCommands.find((item) => item.commandId === commandId),
+      ).not.toHaveProperty('menuPath')
+    }
 
     const command = h.registeredCommands.find(
       (item) => item.commandId === 'spacewave.session.open-cli-terminal',
     )
     expect(command).toMatchObject({
       label: 'Open CLI terminal',
-      menuPath: 'File/Open CLI Terminal',
       active: true,
     })
 
