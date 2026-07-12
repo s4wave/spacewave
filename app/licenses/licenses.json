@@ -1670,7 +1670,7 @@
     },
     {
       "name": "golang.org/x/exp",
-      "version": "v0.0.0-20260611194520-c48552f49976",
+      "version": "v0.0.0-20260709172345-9ea1abe57597",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/exp",
