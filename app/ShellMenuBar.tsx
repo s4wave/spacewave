@@ -22,7 +22,7 @@ import {
 import { formatKeybindingHint } from '@s4wave/web/command/CommandPalette.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 import {
-  getCommandDisplayBindings,
+  getCommandMenuBinding,
   type KeybindingGraph,
 } from '@s4wave/web/command/KeybindingResolver.js'
 import { useKeybindingGraph } from '@s4wave/web/command/useKeybindingGraph.js'
@@ -44,7 +44,7 @@ interface MenuSeparatorNode {
 }
 
 // topLevelMenus defines the order of top-level menus.
-const topLevelMenus = ['File', 'Edit', 'View', 'Tools', 'Help']
+const topLevelMenus = ['File', 'Go', 'Edit', 'View', 'Tools', 'Help']
 
 // buildMenuTree builds a tree of MenuNode from the active commands.
 function buildMenuTree(
@@ -84,14 +84,11 @@ function buildMenuTree(
       if (i === segments.length - 1) {
         // Leaf node: the actual command.
         const nodeEnabled = cmd.enabled !== false
+        const menuBinding = getCommandMenuBinding(bindingGraph, commandId)
         parent.children.set(seg, {
           label: seg,
           commandId,
-          keybindings: getCommandDisplayBindings(
-            bindingGraph,
-            commandId,
-            'combo',
-          ),
+          keybindings: menuBinding ? [menuBinding] : [],
           hasSubItems: cmd.command?.hasSubItems,
           enabled: nodeEnabled,
           children: new Map(),

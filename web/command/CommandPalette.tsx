@@ -98,6 +98,8 @@ export function formatKeybinding(binding: string): string {
         break
       case 'Alt':
       case 'alt':
+      case 'Option':
+      case 'option':
         display.push(isMacPlatform ? '\u2325' : 'Alt')
         break
       default:
@@ -109,7 +111,7 @@ export function formatKeybinding(binding: string): string {
 }
 
 export function formatKeybindingHint(bindings: string[]): string {
-  return bindings.map(formatKeybinding).join(' / ')
+  return [...new Set(bindings.map(formatKeybinding))].join(' / ')
 }
 
 function commandSearchValue(

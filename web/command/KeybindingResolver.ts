@@ -235,6 +235,45 @@ export function getCommandDisplayBindings(
   )
 }
 
+// getCommandMenuBinding returns one canonical combo binding for a menu row.
+export function getCommandMenuBinding(
+  graph: KeybindingGraph,
+  commandId: string,
+): string | undefined {
+  const commandBindings = graph.bindingsByCommandId.get(commandId) ?? []
+  let binding: ResolvedCommandBinding | undefined
+  for (const candidate of commandBindings) {
+    if (candidate.kind !== 'combo') continue
+    if (
+      !binding ||
+      bindingLayerPrecedence(candidate) >= bindingLayerPrecedence(binding)
+    ) {
+      binding = candidate
+    }
+  }
+  if (!binding) return undefined
+
+  const allBindings = [...graph.bindingsByCommandId.values()]
+    .flat()
+    .filter((candidate) => candidate.kind === 'combo')
+  return bindingNeedsContextLabel(binding, allBindings)
+    ? `${binding.display} (${focusContextLabel(binding.context)})`
+    : binding.display
+}
+
+function bindingLayerPrecedence(binding: ResolvedCommandBinding): number {
+  switch (binding.sourceLayer) {
+    case 'space':
+      return 3
+    case 'account':
+      return 2
+    case 'local':
+      return 1
+    default:
+      return 0
+  }
+}
+
 export function focusContextLabel(context: CommandFocusContext): string {
   switch (context) {
     case CommandFocusContext.SHELL_TAB:

@@ -9,6 +9,7 @@ import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 import {
   contextKey,
   getCommandDisplayBindings,
+  getCommandMenuBinding,
   normalizeKeyCombo,
   resolveKeybindings,
   selectActiveComboMatch,
@@ -457,6 +458,60 @@ describe('KeybindingResolver', () => {
     expect(getCommandDisplayBindings(graph, 'notes.insert.link')).toEqual([
       'CmdOrCtrl+K (Editor)',
     ])
+  })
+
+  it('selects one highest-precedence combo for menu display', () => {
+    const graph = resolveKeybindings(
+      [
+        commandState(
+          command('spacewave.nav.back', {
+            defaultBindings: [
+              comboBinding('back-default', 'Alt+ArrowLeft'),
+              sequenceBinding('back-sequence', ['Leader', 'B']),
+            ],
+          }),
+        ),
+        commandState(
+          command('spacewave.nav.back', {
+            defaultBindings: [
+              comboBinding('back-browser-alias', 'Alt+ArrowLeft'),
+            ],
+          }),
+        ),
+        commandState(
+          command('spacewave.nav.back', {
+            defaultBindings: [
+              comboBinding('back-platform-alias', 'Alt+ArrowLeft'),
+            ],
+          }),
+        ),
+      ],
+      { platform: 'mac' },
+    )
+
+    expect(getCommandMenuBinding(graph, 'spacewave.nav.back')).toBe(
+      'Alt+ArrowLeft',
+    )
+  })
+
+  it('uses the last resolved combo when a command has different menu bindings', () => {
+    const graph = resolveKeybindings(
+      [
+        commandState(
+          command('spacewave.nav.forward', {
+            defaultBindings: [
+              comboBinding('forward-default', 'Alt+ArrowRight'),
+              comboBinding('forward-platform', 'Option+ArrowRight'),
+            ],
+          }),
+        ),
+      ],
+      { platform: 'mac' },
+    )
+
+    expect(getCommandMenuBinding(graph, 'spacewave.nav.forward')).toBe(
+      'Option+ArrowRight',
+    )
   })
 
   it('applies a local override layer above defaults for clearing, replacement, addition, disabling, and reset fallback', () => {

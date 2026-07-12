@@ -14,7 +14,11 @@ import {
 } from '@s4wave/sdk/command/command.pb.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 
-import { CommandPalette } from './CommandPalette.js'
+import {
+  CommandPalette,
+  formatKeybinding,
+  formatKeybindingHint,
+} from './CommandPalette.js'
 import { createSubItemQueryId } from './sub-item-navigation.js'
 
 if (typeof document === 'undefined') {
@@ -197,6 +201,58 @@ describe('CommandPalette', () => {
     expect(view.getByRole('dialog')).toBeTruthy()
     expect(view.getByText('Open Help')).toBeTruthy()
     expect(view.getByText(textContentMatches('⌃H', 'Ctrl+H'))).toBeTruthy()
+  })
+
+  it('renders one modifier-bearing hint for duplicate bindings', () => {
+    mockCommands = [
+      {
+        command: {
+          commandId: 'spacewave.nav.back',
+          label: 'Navigate Back',
+          menuPath: 'File/Navigate Back',
+          defaultBindings: [
+            {
+              id: 'back-default',
+              binding: { case: 'combo', value: { combo: 'Alt+ArrowLeft' } },
+            },
+            {
+              id: 'back-browser-alias',
+              binding: { case: 'combo', value: { combo: 'Alt+ArrowLeft' } },
+            },
+            {
+              id: 'back-platform-alias',
+              binding: { case: 'combo', value: { combo: 'Alt+ArrowLeft' } },
+            },
+          ],
+        },
+        active: true,
+        enabled: true,
+      },
+    ]
+
+    const view = render(<CommandPalette />)
+    act(() => paletteHandler?.())
+
+    expect(
+      view.getByText(textContentMatches('Alt+ArrowLeft', '\u2325ArrowLeft')),
+    ).toBeTruthy()
+    expect(
+      view.queryByText(
+        textContentMatches(
+          'Alt+ArrowLeft / Alt+ArrowLeft / Alt+ArrowLeft',
+          '\u2325ArrowLeft / \u2325ArrowLeft / \u2325ArrowLeft',
+        ),
+      ),
+    ).toBeNull()
+  })
+
+  it('formats Option as the platform Alt modifier', () => {
+    const formatted = formatKeybinding('Option+ArrowLeft')
+
+    expect(formatted).toMatch(/^(Alt\+ArrowLeft|\u2325ArrowLeft)$/)
+    expect(
+      formatKeybindingHint(['Alt+ArrowLeft', 'Alt+ArrowLeft', 'Alt+ArrowLeft']),
+    ).toMatch(/^(Alt\+ArrowLeft|\u2325ArrowLeft)$/)
   })
 
   it('shows plural typed default bindings on command rows', () => {

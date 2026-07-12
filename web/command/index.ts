@@ -59,6 +59,7 @@ export {
   comboFromKeyboardEvent,
   contextKey,
   getCommandDisplayBindings,
+  getCommandMenuBinding,
   createSequenceNode,
   normalizeKeyCombo,
   resolveKeybindings,
