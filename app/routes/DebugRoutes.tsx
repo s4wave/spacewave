@@ -1,4 +1,5 @@
 import { Route } from '@s4wave/web/router/router.js'
+import { KeybindingsDebug } from '@s4wave/app/debug/keybindings/KeybindingsDebug.js'
 import { CanvasGraphLinksDebug } from '@s4wave/web/debug/CanvasGraphLinksDebug.js'
 import { DebugDbBench } from '@s4wave/web/debug/DebugDbBench.js'
 import { ForgeViewerDebug } from '@s4wave/web/debug/ForgeViewerDebug.js'
@@ -29,6 +30,12 @@ const debugRouteEntries = [
     title: 'Layout',
     description: 'Inspect the base layout and panel fixtures.',
     element: <LayoutDebug />,
+  },
+  {
+    path: '/debug/ui/keybindings',
+    title: 'Keyboard shortcuts',
+    description: 'Compare interactive keybinding editor prototypes.',
+    element: <KeybindingsDebug />,
   },
   {
     path: '/debug/ui/layout/colors',

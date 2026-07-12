@@ -21,6 +21,10 @@ vi.mock('@s4wave/web/debug/HDRDebug.js', () => ({
   HDRDebug: () => <div data-testid="hdr-debug" />,
 }))
 
+vi.mock('@s4wave/app/debug/keybindings/KeybindingsDebug.js', () => ({
+  KeybindingsDebug: () => <div data-testid="keybindings-debug" />,
+}))
+
 vi.mock('@s4wave/web/debug/LayoutDebug.js', () => ({
   LayoutDebug: () => <div data-testid="layout-debug" />,
 }))
@@ -50,6 +54,7 @@ const debugChildRoutes = [
     path: '/debug/ui/canvas-graph-links',
     testId: 'canvas-graph-links-debug',
   },
+  { path: '/debug/ui/keybindings', testId: 'keybindings-debug' },
   { path: '/debug/ui/session-settings', testId: 'session-settings-debug' },
   { path: '/debug/ui/loading', testId: 'loading-debug' },
   { path: '/debug/ui/forge-viewer', testId: 'forge-viewer-debug' },
@@ -75,18 +80,19 @@ describe('DebugRoutes', () => {
     const links = screen.getAllByRole('link')
     const linkTargets = links.map((link) => link.getAttribute('href'))
     expect(linkTargets).toEqual(
-      expect.arrayContaining(
-        debugChildRoutes.map((route) => `#${route.path}`),
-      ),
+      expect.arrayContaining(debugChildRoutes.map((route) => `#${route.path}`)),
     )
     for (const link of links) {
       expect(link.textContent?.trim()).not.toBe('')
     }
   })
 
-  it.each(debugChildRoutes)('resolves $path to its debug child route', (route) => {
-    renderDebugRoute(route.path)
+  it.each(debugChildRoutes)(
+    'resolves $path to its debug child route',
+    (route) => {
+      renderDebugRoute(route.path)
 
-    expect(screen.getByTestId(route.testId)).toBeDefined()
-  })
+      expect(screen.getByTestId(route.testId)).toBeDefined()
+    },
+  )
 })
