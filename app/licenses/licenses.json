@@ -1060,7 +1060,7 @@
     },
     {
       "name": "github.com/go-git/go-billy/v6",
-      "version": "v6.0.0-alpha.1.0.20260702110057-606e1d5a143d",
+      "version": "v6.0.0-alpha.1.0.20260713095715-f9d937148de5",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/go-git/go-billy",
@@ -1504,7 +1504,7 @@
     },
     {
       "name": "github.com/s4wave/goscript",
-      "version": "v0.2.17-0.20260712073936-d662ef79b25d",
+      "version": "v0.2.18-0.20260713113507-b1949878f773",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/s4wave/goscript",
