@@ -39,6 +39,37 @@ std::pair<bool, starpc::Error> SRPCPeerInfoResourceServiceHandler::InvokeMethod(
   return {false, starpc::Error::OK};
 }
 
+starpc::Error SRPCQuicRwcFixtureResourceServiceClientImpl::RunQuicRwcFixture(const e2e::wasm::session::RunQuicRwcFixtureRequest& in, e2e::wasm::session::RunQuicRwcFixtureResponse* out) {
+  return cc_->ExecCall(service_id_, "RunQuicRwcFixture", in, out);
+}
+
+std::vector<std::string> SRPCQuicRwcFixtureResourceServiceHandler::GetMethodIDs() const {
+  return {
+    "RunQuicRwcFixture",
+  };
+}
+
+std::pair<bool, starpc::Error> SRPCQuicRwcFixtureResourceServiceHandler::InvokeMethod(
+    const std::string& service_id,
+    const std::string& method_id,
+    starpc::Stream* strm) {
+  if (!service_id.empty() && service_id != service_id_) {
+    return {false, starpc::Error::OK};
+  }
+
+  if (method_id == "RunQuicRwcFixture") {
+    e2e::wasm::session::RunQuicRwcFixtureRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    e2e::wasm::session::RunQuicRwcFixtureResponse resp;
+    err = impl_->RunQuicRwcFixture(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  }
+
+  return {false, starpc::Error::OK};
+}
+
 std::pair<std::unique_ptr<SRPCEstablishLinkResourceService_WatchStateClient>, starpc::Error> SRPCEstablishLinkResourceServiceClientImpl::WatchState(const e2e::wasm::session::WatchStateRequest& in) {
   auto [strm, err] = cc_->NewStream(service_id_, "WatchState", &in);
   if (err != starpc::Error::OK) {

@@ -10,20 +10,27 @@ import (
 	e2e_wasm_session "github.com/s4wave/spacewave/e2e/wasm/session"
 )
 
+// RelayProgress records one direction's cumulative signaling relay traffic.
+type RelayProgress struct {
+	Direction string
+	Messages  uint64
+	Bytes     uint64
+}
+
 // RelayCrossConnect forwards signaling messages between two SignalRelay
-// streams bidirectionally. It runs two goroutines that forward A.Recv to
-// B.Send and B.Recv to A.Send until the context is canceled or an error
-// occurs.
+// streams until the context is canceled or one direction fails.
 //
-// The returned channel receives the first error from either goroutine.
-// The caller should cancel the context to stop the cross-connect.
+// The progress channel reports cumulative message and byte counts for each
+// direction. The error channel receives the first forwarding error.
 func RelayCrossConnect(
 	ctx context.Context,
 	strmA, strmB e2e_wasm_session.SRPCSignalRelayService_SignalRelayClient,
-) <-chan error {
+) (<-chan RelayProgress, <-chan error) {
+	progressCh := make(chan RelayProgress, 16)
 	errCh := make(chan error, 2)
 
-	forward := func(src, dst e2e_wasm_session.SRPCSignalRelayService_SignalRelayClient) {
+	forward := func(direction string, src, dst e2e_wasm_session.SRPCSignalRelayService_SignalRelayClient) {
+		var messages, bytes uint64
 		for {
 			msg, err := src.Recv()
 			if err != nil {
@@ -39,10 +46,20 @@ func RelayCrossConnect(
 				errCh <- errors.Wrap(err, "relay send")
 				return
 			}
+			messages++
+			bytes += uint64(len(data))
+			select {
+			case progressCh <- RelayProgress{
+				Direction: direction,
+				Messages:  messages,
+				Bytes:     bytes,
+			}:
+			default:
+			}
 		}
 	}
 
-	go forward(strmA, strmB)
-	go forward(strmB, strmA)
-	return errCh
+	go forward("A->B", strmA, strmB)
+	go forward("B->A", strmB, strmA)
+	return progressCh, errCh
 }

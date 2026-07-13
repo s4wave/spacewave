@@ -5,6 +5,8 @@
 import {
   GetPeerInfoRequest,
   GetPeerInfoResponse,
+  RunQuicRwcFixtureRequest,
+  RunQuicRwcFixtureResponse,
   SignalRelayMessage,
   WatchStateRequest,
   WatchStateResponse,
@@ -74,6 +76,65 @@ export class PeerInfoResourceServiceClient implements PeerInfoResourceService {
       abortSignal || undefined,
     )
     return GetPeerInfoResponse.fromBinary(result)
+  }
+}
+/**
+ * @generated from service e2e.wasm.session.QuicRwcFixtureResourceService
+ */
+export const QuicRwcFixtureResourceServiceDefinition = {
+  typeName: 'e2e.wasm.session.QuicRwcFixtureResourceService',
+  methods: {
+    /**
+     * @generated from rpc e2e.wasm.session.QuicRwcFixtureResourceService.RunQuicRwcFixture
+     */
+    RunQuicRwcFixture: {
+      name: 'RunQuicRwcFixture',
+      I: RunQuicRwcFixtureRequest,
+      O: RunQuicRwcFixtureResponse,
+      kind: MethodKind.Unary,
+    },
+  },
+} as const
+
+/**
+ * @generated from service e2e.wasm.session.QuicRwcFixtureResourceService
+ */
+export interface QuicRwcFixtureResourceService {
+  /**
+   * @generated from rpc e2e.wasm.session.QuicRwcFixtureResourceService.RunQuicRwcFixture
+   */
+  RunQuicRwcFixture(
+    request: RunQuicRwcFixtureRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RunQuicRwcFixtureResponse>
+}
+
+export const QuicRwcFixtureResourceServiceServiceName =
+  QuicRwcFixtureResourceServiceDefinition.typeName
+
+export class QuicRwcFixtureResourceServiceClient implements QuicRwcFixtureResourceService {
+  private readonly rpc: ProtoRpc
+  private readonly service: string
+  constructor(rpc: ProtoRpc, opts?: { service?: string }) {
+    this.service = opts?.service || QuicRwcFixtureResourceServiceServiceName
+    this.rpc = rpc
+    this.RunQuicRwcFixture = this.RunQuicRwcFixture.bind(this)
+  }
+  /**
+   * @generated from rpc e2e.wasm.session.QuicRwcFixtureResourceService.RunQuicRwcFixture
+   */
+  async RunQuicRwcFixture(
+    request: RunQuicRwcFixtureRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RunQuicRwcFixtureResponse> {
+    const requestMsg = RunQuicRwcFixtureRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      QuicRwcFixtureResourceServiceDefinition.methods.RunQuicRwcFixture.name,
+      RunQuicRwcFixtureRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return RunQuicRwcFixtureResponse.fromBinary(result)
   }
 }
 /**

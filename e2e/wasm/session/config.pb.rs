@@ -15,6 +15,20 @@ pub struct GetPeerInfoResponse {
     #[prost(string, tag="1")]
     pub peer_id: ::prost::alloc::string::String,
 }
+/// RunQuicRwcFixtureRequest is the request type for RunQuicRwcFixture.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RunQuicRwcFixtureRequest {
+    /// Payload is the stream payload to echo.
+    #[prost(bytes="vec", tag="1")]
+    pub payload: ::prost::alloc::vec::Vec<u8>,
+}
+/// RunQuicRwcFixtureResponse is the response type for RunQuicRwcFixture.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RunQuicRwcFixtureResponse {
+    /// EchoedPayload is the payload returned over a QUIC stream.
+    #[prost(bytes="vec", tag="1")]
+    pub echoed_payload: ::prost::alloc::vec::Vec<u8>,
+}
 /// WatchStateRequest is the request type for WatchState.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchStateRequest {

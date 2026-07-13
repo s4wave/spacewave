@@ -114,6 +114,110 @@ type srpcPeerInfoResourceService_GetPeerInfoStream struct {
 	srpc.Stream
 }
 
+type SRPCQuicRwcFixtureResourceServiceClient interface {
+	// SRPCClient returns the underlying SRPC client.
+	SRPCClient() srpc.Client
+
+	RunQuicRwcFixture(ctx context.Context, in *RunQuicRwcFixtureRequest) (*RunQuicRwcFixtureResponse, error)
+}
+
+type srpcQuicRwcFixtureResourceServiceClient struct {
+	cc        srpc.Client
+	serviceID string
+}
+
+func NewSRPCQuicRwcFixtureResourceServiceClient(cc srpc.Client) SRPCQuicRwcFixtureResourceServiceClient {
+	return &srpcQuicRwcFixtureResourceServiceClient{cc: cc, serviceID: SRPCQuicRwcFixtureResourceServiceServiceID}
+}
+
+func NewSRPCQuicRwcFixtureResourceServiceClientWithServiceID(cc srpc.Client, serviceID string) SRPCQuicRwcFixtureResourceServiceClient {
+	if serviceID == "" {
+		serviceID = SRPCQuicRwcFixtureResourceServiceServiceID
+	}
+	return &srpcQuicRwcFixtureResourceServiceClient{cc: cc, serviceID: serviceID}
+}
+
+func (c *srpcQuicRwcFixtureResourceServiceClient) SRPCClient() srpc.Client { return c.cc }
+
+func (c *srpcQuicRwcFixtureResourceServiceClient) RunQuicRwcFixture(ctx context.Context, in *RunQuicRwcFixtureRequest) (*RunQuicRwcFixtureResponse, error) {
+	out := new(RunQuicRwcFixtureResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "RunQuicRwcFixture", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+type SRPCQuicRwcFixtureResourceServiceServer interface {
+	RunQuicRwcFixture(context.Context, *RunQuicRwcFixtureRequest) (*RunQuicRwcFixtureResponse, error)
+}
+
+const SRPCQuicRwcFixtureResourceServiceServiceID = "e2e.wasm.session.QuicRwcFixtureResourceService"
+
+type SRPCQuicRwcFixtureResourceServiceHandler struct {
+	serviceID string
+	impl      SRPCQuicRwcFixtureResourceServiceServer
+}
+
+// NewSRPCQuicRwcFixtureResourceServiceHandler constructs a new RPC handler.
+// serviceID: if empty, uses default: e2e.wasm.session.QuicRwcFixtureResourceService
+func NewSRPCQuicRwcFixtureResourceServiceHandler(impl SRPCQuicRwcFixtureResourceServiceServer, serviceID string) srpc.Handler {
+	if serviceID == "" {
+		serviceID = SRPCQuicRwcFixtureResourceServiceServiceID
+	}
+	return &SRPCQuicRwcFixtureResourceServiceHandler{impl: impl, serviceID: serviceID}
+}
+
+// SRPCRegisterQuicRwcFixtureResourceService registers the implementation with the mux.
+// Uses the default serviceID: e2e.wasm.session.QuicRwcFixtureResourceService
+func SRPCRegisterQuicRwcFixtureResourceService(mux srpc.Mux, impl SRPCQuicRwcFixtureResourceServiceServer) error {
+	return mux.Register(NewSRPCQuicRwcFixtureResourceServiceHandler(impl, ""))
+}
+
+func (d *SRPCQuicRwcFixtureResourceServiceHandler) GetServiceID() string { return d.serviceID }
+
+func (SRPCQuicRwcFixtureResourceServiceHandler) GetMethodIDs() []string {
+	return []string{
+		"RunQuicRwcFixture",
+	}
+}
+
+func (d *SRPCQuicRwcFixtureResourceServiceHandler) InvokeMethod(
+	serviceID, methodID string,
+	strm srpc.Stream,
+) (bool, error) {
+	if serviceID != "" && serviceID != d.GetServiceID() {
+		return false, nil
+	}
+
+	switch methodID {
+	case "RunQuicRwcFixture":
+		return true, d.InvokeMethod_RunQuicRwcFixture(d.impl, strm)
+	default:
+		return false, nil
+	}
+}
+
+func (SRPCQuicRwcFixtureResourceServiceHandler) InvokeMethod_RunQuicRwcFixture(impl SRPCQuicRwcFixtureResourceServiceServer, strm srpc.Stream) error {
+	req := new(RunQuicRwcFixtureRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RunQuicRwcFixture(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+type SRPCQuicRwcFixtureResourceService_RunQuicRwcFixtureStream interface {
+	srpc.Stream
+}
+
+type srpcQuicRwcFixtureResourceService_RunQuicRwcFixtureStream struct {
+	srpc.Stream
+}
+
 type SRPCEstablishLinkResourceServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client

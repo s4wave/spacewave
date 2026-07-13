@@ -152,6 +152,11 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 	localAddr := peer.NewNetAddr(s.w.peerID)
 	remoteAddr := peer.NewNetAddr(s.peerID)
 	pc := rwc.NewRwcPacketConn(dcRwc, localAddr, remoteAddr)
+	role := "client"
+	if s.offerer {
+		role = "server"
+	}
+	s.le.WithField("quic-role", role).Info("webrtc quic phase: data channel ready")
 
 	// Configure quic with settings specific to webRTC
 	linkOpts := s.w.conf.GetQuic().CloneVT()
@@ -182,6 +187,7 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 	// 6. A -> B: Answer dial quic
 	var sess *quic.Conn
 	var err error
+	s.le.WithField("quic-role", role).Info("webrtc quic phase: handshake starting")
 	if s.offerer {
 		sess, err = transport_quic.ListenSession(
 			ctx,
@@ -203,8 +209,13 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 		)
 	}
 	if err != nil {
+		s.le.WithFields(logrus.Fields{
+			"error":     err,
+			"quic-role": role,
+		}).Warn("webrtc quic phase: handshake failed")
 		return pkgerrors.Wrap(err, "construct quic session")
 	}
+	s.le.WithField("quic-role", role).Info("webrtc quic phase: handshake complete")
 
 	errCh := make(chan error, 1)
 	var nextLink *transport_quic.Link
@@ -237,6 +248,7 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 	if err != nil {
 		return pkgerrors.Wrap(err, "construct quic link")
 	}
+	s.le.WithField("quic-role", role).Info("webrtc quic phase: link constructed")
 
 	// Link established.
 	s.w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
@@ -244,6 +256,7 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 		broadcast()
 	})
 	s.w.handler.HandleLinkEstablished(nextLink)
+	s.le.WithField("quic-role", role).Info("webrtc quic phase: link published")
 
 	// Cleanup link on exit
 	defer func() {

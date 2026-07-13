@@ -53,6 +53,9 @@ func NewFactory(b bus.Bus) controller.Factory {
 			if err := SRPCRegisterPeerInfoResourceService(c.mux, c); err != nil {
 				return nil, err
 			}
+			if err := SRPCRegisterQuicRwcFixtureResourceService(c.mux, c); err != nil {
+				return nil, err
+			}
 			if err := SRPCRegisterSignalRelayService(c.mux, c); err != nil {
 				return nil, err
 			}
@@ -90,6 +93,7 @@ func (c *Controller) resolveLookupRpcService(
 ) ([]directive.Resolver, error) {
 	switch d.LookupRpcServiceID() {
 	case SRPCPeerInfoResourceServiceServiceID,
+		SRPCQuicRwcFixtureResourceServiceServiceID,
 		SRPCSignalRelayServiceServiceID,
 		SRPCEstablishLinkResourceServiceServiceID:
 		return directive.R(bifrost_rpc.NewLookupRpcServiceResolver(c), nil)
@@ -315,9 +319,10 @@ func (c *Controller) InvokeMethod(serviceID, methodID string, strm srpc.Stream) 
 
 // _ is a type assertion
 var (
-	_ controller.Controller                  = (*Controller)(nil)
-	_ srpc.Invoker                           = (*Controller)(nil)
-	_ SRPCPeerInfoResourceServiceServer      = (*Controller)(nil)
-	_ SRPCSignalRelayServiceServer           = (*Controller)(nil)
-	_ SRPCEstablishLinkResourceServiceServer = (*Controller)(nil)
+	_ controller.Controller                   = (*Controller)(nil)
+	_ srpc.Invoker                            = (*Controller)(nil)
+	_ SRPCPeerInfoResourceServiceServer       = (*Controller)(nil)
+	_ SRPCQuicRwcFixtureResourceServiceServer = (*Controller)(nil)
+	_ SRPCSignalRelayServiceServer            = (*Controller)(nil)
+	_ SRPCEstablishLinkResourceServiceServer  = (*Controller)(nil)
 )

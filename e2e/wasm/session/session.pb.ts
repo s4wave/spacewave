@@ -95,6 +95,52 @@ export const GetPeerInfoResponse: MessageType<GetPeerInfoResponse> =
   })
 
 /**
+ * RunQuicRwcFixtureRequest is the request type for RunQuicRwcFixture.
+ *
+ * @generated from message e2e.wasm.session.RunQuicRwcFixtureRequest
+ */
+export interface RunQuicRwcFixtureRequest {
+  /**
+   * Payload is the stream payload to echo.
+   *
+   * @generated from field: bytes payload = 1;
+   */
+  payload?: Uint8Array
+}
+
+export const RunQuicRwcFixtureRequest: MessageType<RunQuicRwcFixtureRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'e2e.wasm.session.RunQuicRwcFixtureRequest',
+    fields: [
+      { no: 1, name: 'payload', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RunQuicRwcFixtureResponse is the response type for RunQuicRwcFixture.
+ *
+ * @generated from message e2e.wasm.session.RunQuicRwcFixtureResponse
+ */
+export interface RunQuicRwcFixtureResponse {
+  /**
+   * EchoedPayload is the payload returned over a QUIC stream.
+   *
+   * @generated from field: bytes echoed_payload = 1;
+   */
+  echoedPayload?: Uint8Array
+}
+
+export const RunQuicRwcFixtureResponse: MessageType<RunQuicRwcFixtureResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'e2e.wasm.session.RunQuicRwcFixtureResponse',
+    fields: [
+      { no: 1, name: 'echoed_payload', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * WatchStateRequest is the request type for WatchState.
  *
  * @generated from message e2e.wasm.session.WatchStateRequest

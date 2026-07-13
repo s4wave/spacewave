@@ -89,6 +89,46 @@ func (x *GetPeerInfoResponse) GetPeerId() string {
 	return ""
 }
 
+// RunQuicRwcFixtureRequest is the request type for RunQuicRwcFixture.
+type RunQuicRwcFixtureRequest struct {
+	unknownFields []byte
+	// Payload is the stream payload to echo.
+	Payload []byte `protobuf:"bytes,1,opt,name=payload,proto3" json:"payload,omitempty"`
+}
+
+func (x *RunQuicRwcFixtureRequest) Reset() {
+	*x = RunQuicRwcFixtureRequest{}
+}
+
+func (*RunQuicRwcFixtureRequest) ProtoMessage() {}
+
+func (x *RunQuicRwcFixtureRequest) GetPayload() []byte {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+// RunQuicRwcFixtureResponse is the response type for RunQuicRwcFixture.
+type RunQuicRwcFixtureResponse struct {
+	unknownFields []byte
+	// EchoedPayload is the payload returned over a QUIC stream.
+	EchoedPayload []byte `protobuf:"bytes,1,opt,name=echoed_payload,json=echoedPayload,proto3" json:"echoedPayload,omitempty"`
+}
+
+func (x *RunQuicRwcFixtureResponse) Reset() {
+	*x = RunQuicRwcFixtureResponse{}
+}
+
+func (*RunQuicRwcFixtureResponse) ProtoMessage() {}
+
+func (x *RunQuicRwcFixtureResponse) GetEchoedPayload() []byte {
+	if x != nil {
+		return x.EchoedPayload
+	}
+	return nil
+}
+
 // WatchStateRequest is the request type for WatchState.
 type WatchStateRequest struct {
 	unknownFields []byte
@@ -236,6 +276,38 @@ func (m *GetPeerInfoResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *RunQuicRwcFixtureRequest) CloneVT() *RunQuicRwcFixtureRequest {
+	if m == nil {
+		return (*RunQuicRwcFixtureRequest)(nil)
+	}
+	r := new(RunQuicRwcFixtureRequest)
+	r.Payload = protobuf_go_lite.CloneBytes(m.Payload)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RunQuicRwcFixtureRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RunQuicRwcFixtureResponse) CloneVT() *RunQuicRwcFixtureResponse {
+	if m == nil {
+		return (*RunQuicRwcFixtureResponse)(nil)
+	}
+	r := new(RunQuicRwcFixtureResponse)
+	r.EchoedPayload = protobuf_go_lite.CloneBytes(m.EchoedPayload)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RunQuicRwcFixtureResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *WatchStateRequest) CloneVT() *WatchStateRequest {
 	if m == nil {
 		return (*WatchStateRequest)(nil)
@@ -361,6 +433,46 @@ func (this *GetPeerInfoResponse) EqualVT(that *GetPeerInfoResponse) bool {
 
 func (this *GetPeerInfoResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*GetPeerInfoResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RunQuicRwcFixtureRequest) EqualVT(that *RunQuicRwcFixtureRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Payload, that.Payload) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RunQuicRwcFixtureRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RunQuicRwcFixtureRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RunQuicRwcFixtureResponse) EqualVT(that *RunQuicRwcFixtureResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.EchoedPayload, that.EchoedPayload) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RunQuicRwcFixtureResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RunQuicRwcFixtureResponse)
 	if !ok {
 		return false
 	}
@@ -599,6 +711,90 @@ func (x *GetPeerInfoResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the GetPeerInfoResponse from JSON.
 func (x *GetPeerInfoResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RunQuicRwcFixtureRequest message to JSON.
+func (x *RunQuicRwcFixtureRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Payload) > 0 || s.HasField("payload") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("payload")
+		s.WriteBytes(x.Payload)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RunQuicRwcFixtureRequest to JSON.
+func (x *RunQuicRwcFixtureRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RunQuicRwcFixtureRequest message from JSON.
+func (x *RunQuicRwcFixtureRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "payload":
+			s.AddField("payload")
+			x.Payload = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RunQuicRwcFixtureRequest from JSON.
+func (x *RunQuicRwcFixtureRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RunQuicRwcFixtureResponse message to JSON.
+func (x *RunQuicRwcFixtureResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.EchoedPayload) > 0 || s.HasField("echoedPayload") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("echoedPayload")
+		s.WriteBytes(x.EchoedPayload)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RunQuicRwcFixtureResponse to JSON.
+func (x *RunQuicRwcFixtureResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RunQuicRwcFixtureResponse message from JSON.
+func (x *RunQuicRwcFixtureResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "echoed_payload", "echoedPayload":
+			s.AddField("echoed_payload")
+			x.EchoedPayload = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RunQuicRwcFixtureResponse from JSON.
+func (x *RunQuicRwcFixtureResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -857,6 +1053,80 @@ func (m *GetPeerInfoResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *RunQuicRwcFixtureRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RunQuicRwcFixtureRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RunQuicRwcFixtureRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Payload) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Payload)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RunQuicRwcFixtureResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RunQuicRwcFixtureResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RunQuicRwcFixtureResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.EchoedPayload) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.EchoedPayload)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchStateRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1067,6 +1337,28 @@ func (m *GetPeerInfoResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *RunQuicRwcFixtureRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Payload)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RunQuicRwcFixtureResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.EchoedPayload)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *WatchStateRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1163,6 +1455,34 @@ func (x *GetPeerInfoResponse) MarshalProtoText() string {
 }
 
 func (x *GetPeerInfoResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RunQuicRwcFixtureRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RunQuicRwcFixtureRequest")
+	if len(x.Payload) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "payload")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Payload)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RunQuicRwcFixtureRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RunQuicRwcFixtureResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RunQuicRwcFixtureResponse")
+	if len(x.EchoedPayload) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "echoed_payload")
+		protobuf_go_lite.TextWriteBytes(&sb, x.EchoedPayload)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RunQuicRwcFixtureResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1303,6 +1623,108 @@ func (m *GetPeerInfoResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PeerId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RunQuicRwcFixtureRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RunQuicRwcFixtureRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RunQuicRwcFixtureRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Payload", wireType)
+			}
+			m.Payload, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Payload, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RunQuicRwcFixtureResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RunQuicRwcFixtureResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RunQuicRwcFixtureResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EchoedPayload", wireType)
+			}
+			m.EchoedPayload, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.EchoedPayload, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

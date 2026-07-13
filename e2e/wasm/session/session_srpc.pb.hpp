@@ -97,6 +97,86 @@ inline std::pair<std::unique_ptr<SRPCPeerInfoResourceServiceHandler>, starpc::Er
   return {std::move(handler), starpc::Error::OK};
 }
 
+// Service ID for QuicRwcFixtureResourceService
+constexpr const char* kSRPCQuicRwcFixtureResourceServiceServiceID = "e2e.wasm.session.QuicRwcFixtureResourceService";
+
+
+// SRPCQuicRwcFixtureResourceServiceClient is the client API for QuicRwcFixtureResourceService service.
+class SRPCQuicRwcFixtureResourceServiceClient {
+ public:
+  virtual ~SRPCQuicRwcFixtureResourceServiceClient() = default;
+
+  // SRPCClient returns the underlying SRPC client.
+  virtual starpc::Client* SRPCClient() = 0;
+
+  // RunQuicRwcFixture
+  virtual starpc::Error RunQuicRwcFixture(const e2e::wasm::session::RunQuicRwcFixtureRequest& in, e2e::wasm::session::RunQuicRwcFixtureResponse* out) = 0;
+};
+
+// SRPCQuicRwcFixtureResourceServiceClientImpl implements SRPCQuicRwcFixtureResourceServiceClient.
+class SRPCQuicRwcFixtureResourceServiceClientImpl : public SRPCQuicRwcFixtureResourceServiceClient {
+ public:
+  explicit SRPCQuicRwcFixtureResourceServiceClientImpl(starpc::Client* cc, const std::string& service_id = "")
+      : cc_(cc), service_id_(service_id.empty() ? kSRPCQuicRwcFixtureResourceServiceServiceID : service_id) {}
+
+  starpc::Client* SRPCClient() override { return cc_; }
+
+  // RunQuicRwcFixture
+  virtual starpc::Error RunQuicRwcFixture(const e2e::wasm::session::RunQuicRwcFixtureRequest& in, e2e::wasm::session::RunQuicRwcFixtureResponse* out) override;
+
+ private:
+  starpc::Client* cc_;
+  std::string service_id_;
+};
+
+// NewSRPCQuicRwcFixtureResourceServiceClient creates a new client.
+inline std::unique_ptr<SRPCQuicRwcFixtureResourceServiceClient> NewSRPCQuicRwcFixtureResourceServiceClient(starpc::Client* cc) {
+  return std::make_unique<SRPCQuicRwcFixtureResourceServiceClientImpl>(cc);
+}
+
+// SRPCQuicRwcFixtureResourceServiceServer is the server API for QuicRwcFixtureResourceService service.
+class SRPCQuicRwcFixtureResourceServiceServer {
+ public:
+  virtual ~SRPCQuicRwcFixtureResourceServiceServer() = default;
+
+  // RunQuicRwcFixture
+  virtual starpc::Error RunQuicRwcFixture(const e2e::wasm::session::RunQuicRwcFixtureRequest& req, e2e::wasm::session::RunQuicRwcFixtureResponse* resp) = 0;
+};
+
+// SRPCQuicRwcFixtureResourceServiceHandler implements starpc::Handler for QuicRwcFixtureResourceService.
+class SRPCQuicRwcFixtureResourceServiceHandler : public starpc::Handler {
+ public:
+  SRPCQuicRwcFixtureResourceServiceHandler(SRPCQuicRwcFixtureResourceServiceServer* impl, const std::string& service_id = "")
+      : impl_(impl), service_id_(service_id.empty() ? kSRPCQuicRwcFixtureResourceServiceServiceID : service_id) {}
+
+  const std::string& GetServiceID() const override { return service_id_; }
+  std::vector<std::string> GetMethodIDs() const override;
+  std::pair<bool, starpc::Error> InvokeMethod(
+      const std::string& service_id,
+      const std::string& method_id,
+      starpc::Stream* strm) override;
+
+ private:
+  SRPCQuicRwcFixtureResourceServiceServer* impl_;
+  std::string service_id_;
+};
+
+// NewSRPCQuicRwcFixtureResourceServiceHandler creates a new handler for the given implementation.
+inline std::unique_ptr<SRPCQuicRwcFixtureResourceServiceHandler> NewSRPCQuicRwcFixtureResourceServiceHandler(SRPCQuicRwcFixtureResourceServiceServer* impl) {
+  return std::make_unique<SRPCQuicRwcFixtureResourceServiceHandler>(impl);
+}
+
+// SRPCRegisterQuicRwcFixtureResourceService registers the server implementation with the mux.
+// The returned handler must outlive the mux registration.
+inline std::pair<std::unique_ptr<SRPCQuicRwcFixtureResourceServiceHandler>, starpc::Error> SRPCRegisterQuicRwcFixtureResourceService(starpc::Mux* mux, SRPCQuicRwcFixtureResourceServiceServer* impl) {
+  auto handler = NewSRPCQuicRwcFixtureResourceServiceHandler(impl);
+  starpc::Error err = mux->Register(handler.get());
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::move(handler), starpc::Error::OK};
+}
+
 // Service ID for EstablishLinkResourceService
 constexpr const char* kSRPCEstablishLinkResourceServiceServiceID = "e2e.wasm.session.EstablishLinkResourceService";
 

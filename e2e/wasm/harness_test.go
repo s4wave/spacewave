@@ -232,6 +232,61 @@ func TestSessionHarnessPeerInfo(t *testing.T) {
 	t.Logf("session harness peer ID: %s", resp.GetPeerId())
 }
 
+const quicRwcFixtureDeadline = 45 * time.Second
+
+// TestBrowserWorkerQuicRwcFixture verifies both QUIC roles can handshake and
+// exchange a stream payload over detached RTCDataChannels transferred into one
+// browser worker.
+func TestBrowserWorkerQuicRwcFixture(t *testing.T) {
+	sess := harness(t).NewCleanSession(t)
+	ctx, cancel := context.WithTimeout(harness(t).Context(), quicRwcFixtureDeadline)
+	defer cancel()
+
+	payload := []byte("spacewave-quic-rwc-fixture")
+	type fixtureResult struct {
+		resp *e2e_wasm_session.RunQuicRwcFixtureResponse
+		err  error
+	}
+	resultCh := make(chan fixtureResult, 1)
+	client := newQuicRwcFixtureClient(sess)
+	go func() {
+		resp, err := client.RunQuicRwcFixture(ctx, &e2e_wasm_session.RunQuicRwcFixtureRequest{
+			Payload: payload,
+		})
+		resultCh <- fixtureResult{resp: resp, err: err}
+	}()
+
+	lastPhase := "RPC dispatch"
+	consoleCh, stopConsole := sess.WatchConsole()
+	defer stopConsole()
+	for {
+		select {
+		case <-ctx.Done():
+			t.Fatalf(
+				"no QUIC progress past %s within %s: %v",
+				lastPhase, quicRwcFixtureDeadline, ctx.Err(),
+			)
+		case msg, ok := <-consoleCh:
+			if !ok {
+				consoleCh = nil
+				continue
+			}
+			if strings.Contains(msg, "quic fixture phase:") {
+				lastPhase = msg
+				t.Logf("QUIC fixture progress: %s", msg)
+			}
+		case result := <-resultCh:
+			if result.err != nil {
+				t.Fatalf("QUIC fixture failed after %s: %v", lastPhase, result.err)
+			}
+			if !bytes.Equal(result.resp.GetEchoedPayload(), payload) {
+				t.Fatalf("QUIC fixture echo = %q, want %q", result.resp.GetEchoedPayload(), payload)
+			}
+			return
+		}
+	}
+}
+
 // TestMultiSessionPeerDiscovery verifies two browser sessions produce
 // distinct bifrost peers discoverable via the session harness.
 func TestMultiSessionPeerDiscovery(t *testing.T) {
@@ -313,7 +368,7 @@ func TestSignalRelayCrossConnect(t *testing.T) {
 	}
 
 	// Start cross-connect forwarding.
-	errCh := RelayCrossConnect(ctx, strmA, strmB)
+	_, errCh := RelayCrossConnect(ctx, strmA, strmB)
 
 	// The cross-connect goroutines are now running. If they fail immediately,
 	// catch the error. Otherwise the test succeeds (relay is wired).
@@ -327,6 +382,8 @@ func TestSignalRelayCrossConnect(t *testing.T) {
 		t.Log("relay cross-connect established successfully")
 	}
 }
+
+const linkEstablishmentDeadline = 45 * time.Second
 
 // TestEndToEndLinkEstablishment verifies two browser WASM sessions can
 // establish a bifrost link through the signaling relay cross-connect.
@@ -357,10 +414,8 @@ func TestEndToEndLinkEstablishment(t *testing.T) {
 	}
 	t.Logf("peer A: %s, peer B: %s", respA.GetPeerId(), respB.GetPeerId())
 
-	// Open SignalRelay streams: A targets B, B targets A.
 	relayA := newSignalRelayClient(sessA)
 	relayB := newSignalRelayClient(sessB)
-
 	strmA, err := relayA.SignalRelay(ctx)
 	if err != nil {
 		t.Fatalf("SignalRelay A: %v", err)
@@ -385,40 +440,113 @@ func TestEndToEndLinkEstablishment(t *testing.T) {
 		t.Fatalf("send init B: %v", err)
 	}
 
-	// Start cross-connect forwarding.
-	relayErrCh := RelayCrossConnect(ctx, strmA, strmB)
+	watchCtx, watchCancel := context.WithTimeout(ctx, linkEstablishmentDeadline)
+	t.Cleanup(watchCancel)
+	relayProgressCh, relayErrCh := RelayCrossConnect(watchCtx, strmA, strmB)
 
-	// Establish link from A targeting B.
+	consoleA, stopConsoleA := sessA.WatchConsole()
+	consoleB, stopConsoleB := sessB.WatchConsole()
+	t.Cleanup(stopConsoleA)
+	t.Cleanup(stopConsoleB)
+	quicProgressCh := make(chan string, 16)
+	forwardQuicProgress := func(side string, messages <-chan string) {
+		for {
+			select {
+			case <-watchCtx.Done():
+				return
+			case msg, ok := <-messages:
+				if !ok {
+					return
+				}
+				if !strings.Contains(msg, "webrtc quic phase:") {
+					continue
+				}
+				select {
+				case quicProgressCh <- side + ": " + msg:
+				case <-watchCtx.Done():
+					return
+				}
+			}
+		}
+	}
+	go forwardQuicProgress("A", consoleA)
+	go forwardQuicProgress("B", consoleB)
+
 	linkClient := newEstablishLinkClient(sessA)
-	watchStrm, err := linkClient.WatchState(ctx, &e2e_wasm_session.WatchStateRequest{
+	watchStrm, err := linkClient.WatchState(watchCtx, &e2e_wasm_session.WatchStateRequest{
 		TargetPeerId: respB.GetPeerId(),
 	})
 	if err != nil {
 		t.Fatalf("WatchState: %v", err)
 	}
 
-	// Read state updates until CONNECTED.
-	for {
+	type watchResult struct {
+		resp *e2e_wasm_session.WatchStateResponse
+		err  error
+	}
+	watchResultCh := make(chan watchResult, 1)
+	recvState := func() {
 		resp, err := watchStrm.Recv()
-		if err != nil {
-			// Check if relay died first.
-			select {
-			case relayErr := <-relayErrCh:
-				t.Fatalf("relay cross-connect error: %v (WatchState: %v)", relayErr, err)
-			default:
+		watchResultCh <- watchResult{resp: resp, err: err}
+	}
+	go recvState()
+
+	lastPhase := "WatchState started"
+	var relayAB, relayBA RelayProgress
+	for {
+		select {
+		case <-watchCtx.Done():
+			t.Fatalf(
+				"no QUIC progress past %s within %s; relay A->B=%d messages/%d bytes, B->A=%d messages/%d bytes",
+				lastPhase,
+				linkEstablishmentDeadline,
+				relayAB.Messages,
+				relayAB.Bytes,
+				relayBA.Messages,
+				relayBA.Bytes,
+			)
+		case relayErr := <-relayErrCh:
+			if watchCtx.Err() != nil {
+				continue
 			}
-			t.Fatalf("WatchState recv: %v", err)
-		}
+			t.Fatalf("relay cross-connect error after %s: %v", lastPhase, relayErr)
+		case progress := <-relayProgressCh:
+			switch progress.Direction {
+			case "A->B":
+				relayAB = progress
+			case "B->A":
+				relayBA = progress
+			}
+			t.Logf(
+				"signaling relay %s: %d messages, %d bytes",
+				progress.Direction,
+				progress.Messages,
+				progress.Bytes,
+			)
+		case phase := <-quicProgressCh:
+			lastPhase = phase
+			t.Logf("QUIC progress: %s", phase)
+		case result := <-watchResultCh:
+			if result.err != nil {
+				if watchCtx.Err() != nil {
+					watchResultCh = nil
+					continue
+				}
+				t.Fatalf("WatchState recv after %s: %v", lastPhase, result.err)
+			}
 
-		state := resp.GetState()
-		t.Logf("link state: %s", state.String())
-
-		switch state {
-		case e2e_wasm_session.EstablishLinkState_EstablishLinkState_CONNECTED:
-			t.Log("bifrost link established between two browser sessions")
-			return
-		case e2e_wasm_session.EstablishLinkState_EstablishLinkState_FAILED:
-			t.Fatal("link establishment failed")
+			state := result.resp.GetState()
+			t.Logf("link state: %s", state.String())
+			switch state {
+			case e2e_wasm_session.EstablishLinkState_EstablishLinkState_CONNECTED:
+				t.Log("bifrost link established between two browser sessions")
+				return
+			case e2e_wasm_session.EstablishLinkState_EstablishLinkState_FAILED:
+				t.Fatalf("link establishment failed after %s", lastPhase)
+			default:
+				lastPhase = state.String()
+				go recvState()
+			}
 		}
 	}
 }
@@ -2171,6 +2299,10 @@ func pluginServiceID(serviceID string) string {
 func newPeerInfoClient(s *TestSession) e2e_wasm_session.SRPCPeerInfoResourceServiceClient {
 	return e2e_wasm_session.NewSRPCPeerInfoResourceServiceClientWithServiceID(
 		s.BrowserClient(), pluginServiceID(e2e_wasm_session.SRPCPeerInfoResourceServiceServiceID))
+}
+func newQuicRwcFixtureClient(s *TestSession) e2e_wasm_session.SRPCQuicRwcFixtureResourceServiceClient {
+	return e2e_wasm_session.NewSRPCQuicRwcFixtureResourceServiceClientWithServiceID(
+		s.BrowserClient(), pluginServiceID(e2e_wasm_session.SRPCQuicRwcFixtureResourceServiceServiceID))
 }
 
 func newSignalRelayClient(s *TestSession) e2e_wasm_session.SRPCSignalRelayServiceClient {

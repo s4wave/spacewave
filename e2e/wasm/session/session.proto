@@ -15,6 +15,22 @@ message GetPeerInfoResponse {
   string peer_id = 1;
 }
 
+service QuicRwcFixtureResourceService {
+  rpc RunQuicRwcFixture(RunQuicRwcFixtureRequest) returns (RunQuicRwcFixtureResponse);
+}
+
+// RunQuicRwcFixtureRequest is the request type for RunQuicRwcFixture.
+message RunQuicRwcFixtureRequest {
+  // Payload is the stream payload to echo.
+  bytes payload = 1;
+}
+
+// RunQuicRwcFixtureResponse is the response type for RunQuicRwcFixture.
+message RunQuicRwcFixtureResponse {
+  // EchoedPayload is the payload returned over a QUIC stream.
+  bytes echoed_payload = 1;
+}
+
 service EstablishLinkResourceService {
   rpc WatchState(WatchStateRequest) returns (stream WatchStateResponse);
 }

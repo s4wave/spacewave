@@ -69,6 +69,14 @@ class GetPeerInfoResponse;
 struct GetPeerInfoResponseDefaultTypeInternal;
 extern GetPeerInfoResponseDefaultTypeInternal _GetPeerInfoResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull GetPeerInfoResponse_class_data_;
+class RunQuicRwcFixtureRequest;
+struct RunQuicRwcFixtureRequestDefaultTypeInternal;
+extern RunQuicRwcFixtureRequestDefaultTypeInternal _RunQuicRwcFixtureRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull RunQuicRwcFixtureRequest_class_data_;
+class RunQuicRwcFixtureResponse;
+struct RunQuicRwcFixtureResponseDefaultTypeInternal;
+extern RunQuicRwcFixtureResponseDefaultTypeInternal _RunQuicRwcFixtureResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull RunQuicRwcFixtureResponse_class_data_;
 class SignalRelayInit;
 struct SignalRelayInitDefaultTypeInternal;
 extern SignalRelayInitDefaultTypeInternal _SignalRelayInit_default_instance_;
@@ -198,7 +206,7 @@ class WatchStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchStateResponse*>(
         &_WatchStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(WatchStateResponse& a, WatchStateResponse& b) { a.Swap(&b); }
   inline void Swap(WatchStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -388,7 +396,7 @@ class WatchStateRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchStateRequest*>(
         &_WatchStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(WatchStateRequest& a, WatchStateRequest& b) { a.Swap(&b); }
   inline void Swap(WatchStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -583,7 +591,7 @@ class SignalRelayInit final : public ::google::protobuf::Message
     return *reinterpret_cast<const SignalRelayInit*>(
         &_SignalRelayInit_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(SignalRelayInit& a, SignalRelayInit& b) { a.Swap(&b); }
   inline void Swap(SignalRelayInit* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -721,6 +729,396 @@ class SignalRelayInit final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull SignalRelayInit_class_data_;
+// -------------------------------------------------------------------
+
+class RunQuicRwcFixtureResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:e2e.wasm.session.RunQuicRwcFixtureResponse) */ {
+ public:
+  inline RunQuicRwcFixtureResponse() : RunQuicRwcFixtureResponse(nullptr) {}
+  ~RunQuicRwcFixtureResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RunQuicRwcFixtureResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RunQuicRwcFixtureResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RunQuicRwcFixtureResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline RunQuicRwcFixtureResponse(const RunQuicRwcFixtureResponse& from) : RunQuicRwcFixtureResponse(nullptr, from) {}
+  inline RunQuicRwcFixtureResponse(RunQuicRwcFixtureResponse&& from) noexcept
+      : RunQuicRwcFixtureResponse(nullptr, ::std::move(from)) {}
+  inline RunQuicRwcFixtureResponse& operator=(const RunQuicRwcFixtureResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RunQuicRwcFixtureResponse& operator=(RunQuicRwcFixtureResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RunQuicRwcFixtureResponse& default_instance() {
+    return *reinterpret_cast<const RunQuicRwcFixtureResponse*>(
+        &_RunQuicRwcFixtureResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 3;
+  friend void swap(RunQuicRwcFixtureResponse& a, RunQuicRwcFixtureResponse& b) { a.Swap(&b); }
+  inline void Swap(RunQuicRwcFixtureResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RunQuicRwcFixtureResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RunQuicRwcFixtureResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<RunQuicRwcFixtureResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const RunQuicRwcFixtureResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const RunQuicRwcFixtureResponse& from) { RunQuicRwcFixtureResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(RunQuicRwcFixtureResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "e2e.wasm.session.RunQuicRwcFixtureResponse"; }
+
+  explicit RunQuicRwcFixtureResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RunQuicRwcFixtureResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RunQuicRwcFixtureResponse& from);
+  RunQuicRwcFixtureResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RunQuicRwcFixtureResponse&& from) noexcept
+      : RunQuicRwcFixtureResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kEchoedPayloadFieldNumber = 1,
+  };
+  // bytes echoed_payload = 1;
+  void clear_echoed_payload() ;
+  const ::std::string& echoed_payload() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_echoed_payload(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_echoed_payload();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_echoed_payload();
+  void set_allocated_echoed_payload(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_echoed_payload() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_echoed_payload(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_echoed_payload();
+
+  public:
+  // @@protoc_insertion_point(class_scope:e2e.wasm.session.RunQuicRwcFixtureResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const RunQuicRwcFixtureResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr echoed_payload_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fe2e_2fwasm_2fsession_2fsession_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RunQuicRwcFixtureResponse_class_data_;
+// -------------------------------------------------------------------
+
+class RunQuicRwcFixtureRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:e2e.wasm.session.RunQuicRwcFixtureRequest) */ {
+ public:
+  inline RunQuicRwcFixtureRequest() : RunQuicRwcFixtureRequest(nullptr) {}
+  ~RunQuicRwcFixtureRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(RunQuicRwcFixtureRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(RunQuicRwcFixtureRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR RunQuicRwcFixtureRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline RunQuicRwcFixtureRequest(const RunQuicRwcFixtureRequest& from) : RunQuicRwcFixtureRequest(nullptr, from) {}
+  inline RunQuicRwcFixtureRequest(RunQuicRwcFixtureRequest&& from) noexcept
+      : RunQuicRwcFixtureRequest(nullptr, ::std::move(from)) {}
+  inline RunQuicRwcFixtureRequest& operator=(const RunQuicRwcFixtureRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline RunQuicRwcFixtureRequest& operator=(RunQuicRwcFixtureRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const RunQuicRwcFixtureRequest& default_instance() {
+    return *reinterpret_cast<const RunQuicRwcFixtureRequest*>(
+        &_RunQuicRwcFixtureRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 2;
+  friend void swap(RunQuicRwcFixtureRequest& a, RunQuicRwcFixtureRequest& b) { a.Swap(&b); }
+  inline void Swap(RunQuicRwcFixtureRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(RunQuicRwcFixtureRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  RunQuicRwcFixtureRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<RunQuicRwcFixtureRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const RunQuicRwcFixtureRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const RunQuicRwcFixtureRequest& from) { RunQuicRwcFixtureRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(RunQuicRwcFixtureRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "e2e.wasm.session.RunQuicRwcFixtureRequest"; }
+
+  explicit RunQuicRwcFixtureRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  RunQuicRwcFixtureRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RunQuicRwcFixtureRequest& from);
+  RunQuicRwcFixtureRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, RunQuicRwcFixtureRequest&& from) noexcept
+      : RunQuicRwcFixtureRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPayloadFieldNumber = 1,
+  };
+  // bytes payload = 1;
+  void clear_payload() ;
+  const ::std::string& payload() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_payload(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_payload();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_payload();
+  void set_allocated_payload(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_payload() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_payload(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_payload();
+
+  public:
+  // @@protoc_insertion_point(class_scope:e2e.wasm.session.RunQuicRwcFixtureRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const RunQuicRwcFixtureRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr payload_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fe2e_2fwasm_2fsession_2fsession_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull RunQuicRwcFixtureRequest_class_data_;
 // -------------------------------------------------------------------
 
 class GetPeerInfoResponse final : public ::google::protobuf::Message
@@ -1112,7 +1510,7 @@ class SignalRelayMessage final : public ::google::protobuf::Message
     kData = 2,
     BODY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(SignalRelayMessage& a, SignalRelayMessage& b) { a.Swap(&b); }
   inline void Swap(SignalRelayMessage* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1366,6 +1764,144 @@ inline void GetPeerInfoResponse::set_allocated_peer_id(::std::string* PROTOBUF_N
     _impl_.peer_id_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:e2e.wasm.session.GetPeerInfoResponse.peer_id)
+}
+
+// -------------------------------------------------------------------
+
+// RunQuicRwcFixtureRequest
+
+// bytes payload = 1;
+inline void RunQuicRwcFixtureRequest::clear_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.payload_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& RunQuicRwcFixtureRequest::payload() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:e2e.wasm.session.RunQuicRwcFixtureRequest.payload)
+  return _internal_payload();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void RunQuicRwcFixtureRequest::set_payload(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.payload_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:e2e.wasm.session.RunQuicRwcFixtureRequest.payload)
+}
+inline ::std::string* PROTOBUF_NONNULL RunQuicRwcFixtureRequest::mutable_payload()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_payload();
+  // @@protoc_insertion_point(field_mutable:e2e.wasm.session.RunQuicRwcFixtureRequest.payload)
+  return _s;
+}
+inline const ::std::string& RunQuicRwcFixtureRequest::_internal_payload() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.payload_.Get();
+}
+inline void RunQuicRwcFixtureRequest::_internal_set_payload(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.payload_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL RunQuicRwcFixtureRequest::_internal_mutable_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.payload_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE RunQuicRwcFixtureRequest::release_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:e2e.wasm.session.RunQuicRwcFixtureRequest.payload)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.payload_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.payload_.Set("", GetArena());
+  }
+  return released;
+}
+inline void RunQuicRwcFixtureRequest::set_allocated_payload(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.payload_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.payload_.IsDefault()) {
+    _impl_.payload_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:e2e.wasm.session.RunQuicRwcFixtureRequest.payload)
+}
+
+// -------------------------------------------------------------------
+
+// RunQuicRwcFixtureResponse
+
+// bytes echoed_payload = 1;
+inline void RunQuicRwcFixtureResponse::clear_echoed_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.echoed_payload_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& RunQuicRwcFixtureResponse::echoed_payload() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:e2e.wasm.session.RunQuicRwcFixtureResponse.echoed_payload)
+  return _internal_echoed_payload();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void RunQuicRwcFixtureResponse::set_echoed_payload(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.echoed_payload_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:e2e.wasm.session.RunQuicRwcFixtureResponse.echoed_payload)
+}
+inline ::std::string* PROTOBUF_NONNULL RunQuicRwcFixtureResponse::mutable_echoed_payload()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_echoed_payload();
+  // @@protoc_insertion_point(field_mutable:e2e.wasm.session.RunQuicRwcFixtureResponse.echoed_payload)
+  return _s;
+}
+inline const ::std::string& RunQuicRwcFixtureResponse::_internal_echoed_payload() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.echoed_payload_.Get();
+}
+inline void RunQuicRwcFixtureResponse::_internal_set_echoed_payload(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.echoed_payload_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL RunQuicRwcFixtureResponse::_internal_mutable_echoed_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.echoed_payload_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE RunQuicRwcFixtureResponse::release_echoed_payload() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:e2e.wasm.session.RunQuicRwcFixtureResponse.echoed_payload)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.echoed_payload_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.echoed_payload_.Set("", GetArena());
+  }
+  return released;
+}
+inline void RunQuicRwcFixtureResponse::set_allocated_echoed_payload(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.echoed_payload_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.echoed_payload_.IsDefault()) {
+    _impl_.echoed_payload_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:e2e.wasm.session.RunQuicRwcFixtureResponse.echoed_payload)
 }
 
 // -------------------------------------------------------------------

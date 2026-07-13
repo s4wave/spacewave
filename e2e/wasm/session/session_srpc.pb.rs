@@ -101,6 +101,102 @@ impl<S: PeerInfoResourceServiceServer + 'static> starpc::Handler for PeerInfoRes
     }
 }
 
+/// Service ID for QuicRwcFixtureResourceService.
+pub const QUIC_RWC_FIXTURE_RESOURCE_SERVICE_SERVICE_ID: &str = "e2e.wasm.session.QuicRwcFixtureResourceService";
+
+/// Client trait for QuicRwcFixtureResourceService.
+#[starpc::async_trait]
+pub trait QuicRwcFixtureResourceServiceClient: Send + Sync {
+    /// RunQuicRwcFixture.
+    async fn run_quic_rwc_fixture(&self, request: &RunQuicRwcFixtureRequest) -> starpc::Result<RunQuicRwcFixtureResponse>;
+}
+
+/// Client implementation for QuicRwcFixtureResourceService.
+pub struct QuicRwcFixtureResourceServiceClientImpl<C> {
+    client: C,
+}
+
+impl<C: starpc::Client> QuicRwcFixtureResourceServiceClientImpl<C> {
+    /// Creates a new client.
+    pub fn new(client: C) -> Self {
+        Self { client }
+    }
+}
+
+#[starpc::async_trait]
+impl<C: starpc::Client + 'static> QuicRwcFixtureResourceServiceClient for QuicRwcFixtureResourceServiceClientImpl<C> {
+    async fn run_quic_rwc_fixture(&self, request: &RunQuicRwcFixtureRequest) -> starpc::Result<RunQuicRwcFixtureResponse> {
+        self.client.exec_call("e2e.wasm.session.QuicRwcFixtureResourceService", "RunQuicRwcFixture", request).await
+    }
+}
+
+/// Server trait for QuicRwcFixtureResourceService.
+#[starpc::async_trait]
+pub trait QuicRwcFixtureResourceServiceServer: Send + Sync {
+    /// RunQuicRwcFixture.
+    async fn run_quic_rwc_fixture(&self, request: RunQuicRwcFixtureRequest) -> starpc::Result<RunQuicRwcFixtureResponse>;
+}
+
+const QUIC_RWC_FIXTURE_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
+    "RunQuicRwcFixture",
+];
+
+/// Handler for QuicRwcFixtureResourceService.
+pub struct QuicRwcFixtureResourceServiceHandler<S: QuicRwcFixtureResourceServiceServer> {
+    server: std::sync::Arc<S>,
+}
+
+impl<S: QuicRwcFixtureResourceServiceServer + 'static> QuicRwcFixtureResourceServiceHandler<S> {
+    /// Creates a new handler wrapping the server implementation.
+    pub fn new(server: S) -> Self {
+        Self { server: std::sync::Arc::new(server) }
+    }
+
+    /// Creates a new handler with a shared server.
+    pub fn with_arc(server: std::sync::Arc<S>) -> Self {
+        Self { server }
+    }
+}
+
+#[starpc::async_trait]
+impl<S: QuicRwcFixtureResourceServiceServer + 'static> starpc::Invoker for QuicRwcFixtureResourceServiceHandler<S> {
+    async fn invoke_method(
+        &self,
+        _service_id: &str,
+        method_id: &str,
+        stream: Box<dyn starpc::Stream>,
+    ) -> (bool, starpc::Result<()>) {
+        match method_id {
+            "RunQuicRwcFixture" => {
+                let request: RunQuicRwcFixtureRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.run_quic_rwc_fixture(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            _ => (false, Err(starpc::Error::Unimplemented)),
+        }
+    }
+}
+
+impl<S: QuicRwcFixtureResourceServiceServer + 'static> starpc::Handler for QuicRwcFixtureResourceServiceHandler<S> {
+    fn service_id(&self) -> &'static str {
+        "e2e.wasm.session.QuicRwcFixtureResourceService"
+    }
+
+    fn method_ids(&self) -> &'static [&'static str] {
+        QUIC_RWC_FIXTURE_RESOURCE_SERVICE_METHOD_IDS
+    }
+}
+
 /// Service ID for EstablishLinkResourceService.
 pub const ESTABLISH_LINK_RESOURCE_SERVICE_SERVICE_ID: &str = "e2e.wasm.session.EstablishLinkResourceService";
 
