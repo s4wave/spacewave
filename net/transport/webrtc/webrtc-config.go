@@ -8,9 +8,12 @@ import (
 
 // ToWebRtcConfiguration converts the WebRtcConfig into a webrtc.Configuration.
 func (c *WebRtcConfig) ToWebRtcConfiguration() *webrtc.Configuration {
+	const maxICECandidatePoolSize = uint32(^uint8(0))
+	poolSize := min(c.GetIceCandidatePoolSize(), maxICECandidatePoolSize)
 	conf := &webrtc.Configuration{
-		ICETransportPolicy: c.GetIceTransportPolicy().ToICETransportPolicy(),
-		ICEServers:         make([]webrtc.ICEServer, 0, len(c.GetIceServers())),
+		ICECandidatePoolSize: uint8(poolSize),
+		ICETransportPolicy:   c.GetIceTransportPolicy().ToICETransportPolicy(),
+		ICEServers:           make([]webrtc.ICEServer, 0, len(c.GetIceServers())),
 	}
 	for _, iceServer := range c.GetIceServers() {
 		conf.ICEServers = append(conf.ICEServers, iceServer.ToICEServer())
