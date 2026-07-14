@@ -153,7 +153,6 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 
 	sess.seqno++
 	sess.broadcast()
-	waitCh := sess.getWaitCh()
 
 	s.mtx.Unlock()
 
@@ -306,23 +305,18 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 	}()
 
 	// Start write / monitor loop.
+	var waitCh <-chan struct{}
 	var prevSentOpenToLocal *uint64 // Tracks if we have sent open=true to the local peer.
 	for {
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case err := <-errCh:
-			return err
-		case <-waitCh:
-		}
-
 		s.mtx.Lock()
 		// Check if we are still the active session for this key.
 		currLocalPeer, currRemotePeer := sess.getCurrPeers(localIsPeerA)
 		currUserped := currLocalPeer != ourPeerTkr
 		var currOpen *uint64
+		var currOpenSeqno uint64
 		if currRemotePeer != nil {
 			currOpen = &sess.seqno
+			currOpenSeqno = sess.seqno
 		}
 		waitCh = sess.getWaitCh()
 
@@ -354,7 +348,7 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 			var err error
 			if currOpen != nil {
 				err = strm.Send(&signaling.SessionResponse{
-					Body: &signaling.SessionResponse_Opened{Opened: *currOpen},
+					Body: &signaling.SessionResponse_Opened{Opened: currOpenSeqno},
 				},
 				)
 			} else {
@@ -369,39 +363,44 @@ func (s *Server) Session(strm signaling.SRPCSignaling_SessionStream) error {
 			prevSentOpenToLocal = currOpen
 		}
 
-		// Nothing else to do if not open.
-		if currOpen == nil {
-			continue
-		}
+		if currOpen != nil {
+			// Ack msg
+			if msgToAck != nil {
+				// le.Debugf("signaling: server: sending ack msg: %v", *msgToAck)
+				if err := strm.Send(&signaling.SessionResponse{
+					Body: &signaling.SessionResponse_AckMsg{AckMsg: *msgToAck},
+				}); err != nil {
+					return err
+				}
+			}
 
-		// Ack msg
-		if msgToAck != nil {
-			// le.Debugf("signaling: server: sending ack msg: %v", *msgToAck)
-			if err := strm.Send(&signaling.SessionResponse{
-				Body: &signaling.SessionResponse_AckMsg{AckMsg: *msgToAck},
-			}); err != nil {
-				return err
+			// Clear msg
+			if msgToClear != nil {
+				// le.Debugf("signaling: server: sending clear msg: %v", *msgToClear)
+				if err := strm.Send(&signaling.SessionResponse{
+					Body: &signaling.SessionResponse_ClearMsg{ClearMsg: *msgToClear},
+				}); err != nil {
+					return err
+				}
+			}
+
+			// Tx message
+			if msgToRecv != nil {
+				// le.Debugf("signaling: server: sending tx msg: %v", msgToRecv.String())
+				if err := strm.Send(&signaling.SessionResponse{
+					Body: &signaling.SessionResponse_RecvMsg{RecvMsg: msgToRecv},
+				}); err != nil {
+					return err
+				}
 			}
 		}
 
-		// Clear msg
-		if msgToClear != nil {
-			// le.Debugf("signaling: server: sending clear msg: %v", *msgToClear)
-			if err := strm.Send(&signaling.SessionResponse{
-				Body: &signaling.SessionResponse_ClearMsg{ClearMsg: *msgToClear},
-			}); err != nil {
-				return err
-			}
-		}
-
-		// Tx message
-		if msgToRecv != nil {
-			// le.Debugf("signaling: server: sending tx msg: %v", msgToRecv.String())
-			if err := strm.Send(&signaling.SessionResponse{
-				Body: &signaling.SessionResponse_RecvMsg{RecvMsg: msgToRecv},
-			}); err != nil {
-				return err
-			}
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+		case err := <-errCh:
+			return err
+		case <-waitCh:
 		}
 	}
 }
