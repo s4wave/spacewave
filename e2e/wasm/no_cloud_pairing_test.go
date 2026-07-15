@@ -21,9 +21,9 @@ import (
 // offer/answer payloads through the Go test process (standing in for the QR
 // or paste-based out-of-band channel the UI normally uses).
 //
-// Success criterion: both sides observe PairingStatus_PEER_CONNECTED, which
-// is set by ProviderAccount.OnDirectPairingConnected once the WebRTC data
-// channel is open and the bifrost link is wired up.
+// Success criterion: both sides observe PEER_CONNECTED or a later successful
+// pairing phase, which proves the WebRTC data channel opened and bifrost link
+// wiring completed even when the snapshot stream coalesces a transition.
 func TestNoCloudPairingDirect(t *testing.T) {
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
@@ -55,10 +55,10 @@ func TestNoCloudPairingDirect(t *testing.T) {
 	}
 	defer watchB.Close()
 
-	// Drain the initial IDLE emission so the test only observes transitions
+	// Consume the initial IDLE snapshot so later reads only observe transitions
 	// caused by the offer/answer exchange.
-	drainPairingStatusUntil(watchA, s4wave_session.PairingStatus_PairingStatus_IDLE)
-	drainPairingStatusUntil(watchB, s4wave_session.PairingStatus_PairingStatus_IDLE)
+	expectInitialPairingStatus(t, "A", watchA, s4wave_session.PairingStatus_PairingStatus_IDLE)
+	expectInitialPairingStatus(t, "B", watchB, s4wave_session.PairingStatus_PairingStatus_IDLE)
 
 	offerResp, err := sdkA.CreateLocalPairingOffer(ctx)
 	if err != nil {
@@ -127,41 +127,63 @@ func mountFreshLocalSession(ctx context.Context, t *testing.T, sess *TestSession
 	return sdk
 }
 
-// drainPairingStatusUntil consumes pairing status messages non-blocking until
-// one matching want is observed or the channel has no further pending
-// messages. Used to skip the initial IDLE emission before asserting on a
-// state transition.
-func drainPairingStatusUntil(
+// expectInitialPairingStatus consumes and validates the watch's initial snapshot.
+func expectInitialPairingStatus(
+	t *testing.T,
+	side string,
 	stream s4wave_session.SRPCSessionResourceService_WatchPairingStatusClient,
 	want s4wave_session.PairingStatus,
 ) {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
-	done := make(chan struct{})
-	var resp *s4wave_session.WatchPairingStatusResponse
-	go func() {
-		defer close(done)
-		for {
-			r, err := stream.Recv()
-			if err != nil {
-				return
-			}
-			resp = r
-			if resp.GetStatus() == want {
-				return
-			}
-		}
-	}()
-
-	select {
-	case <-done:
-	case <-ctx.Done():
+	t.Helper()
+	resp, err := stream.Recv()
+	if err != nil {
+		t.Fatalf("initial WatchPairingStatus %s recv: %v", side, err)
+	}
+	if got := resp.GetStatus(); got != want {
+		t.Fatalf(
+			"initial pairing status %s = %s, want %s",
+			side,
+			got.String(),
+			want.String(),
+		)
 	}
 }
 
-// waitForPairingStatus blocks until the stream emits a response whose status
-// matches want, then returns. Fails the test on timeout or stream error.
+// pairingStatusReached reports whether got proves the requested successful phase.
+func pairingStatusReached(got, want s4wave_session.PairingStatus) bool {
+	if got == want {
+		return true
+	}
+	switch want {
+	case s4wave_session.PairingStatus_PairingStatus_PEER_CONNECTED:
+		switch got {
+		case s4wave_session.PairingStatus_PairingStatus_VERIFYING_EMOJI,
+			s4wave_session.PairingStatus_PairingStatus_VERIFIED,
+			s4wave_session.PairingStatus_PairingStatus_WAITING_FOR_REMOTE_CONFIRM,
+			s4wave_session.PairingStatus_PairingStatus_BOTH_CONFIRMED:
+			return true
+		}
+	case s4wave_session.PairingStatus_PairingStatus_VERIFYING_EMOJI:
+		switch got {
+		case s4wave_session.PairingStatus_PairingStatus_VERIFIED,
+			s4wave_session.PairingStatus_PairingStatus_WAITING_FOR_REMOTE_CONFIRM,
+			s4wave_session.PairingStatus_PairingStatus_BOTH_CONFIRMED:
+			return true
+		}
+	case s4wave_session.PairingStatus_PairingStatus_VERIFIED:
+		switch got {
+		case s4wave_session.PairingStatus_PairingStatus_WAITING_FOR_REMOTE_CONFIRM,
+			s4wave_session.PairingStatus_PairingStatus_BOTH_CONFIRMED:
+			return true
+		}
+	case s4wave_session.PairingStatus_PairingStatus_WAITING_FOR_REMOTE_CONFIRM:
+		return got == s4wave_session.PairingStatus_PairingStatus_BOTH_CONFIRMED
+	}
+	return false
+}
+
+// waitForPairingStatus blocks until a snapshot reaches the requested successful
+// phase, then returns. Fails the test on stream error or terminal pairing state.
 func waitForPairingStatus(
 	t *testing.T,
 	side string,
@@ -174,18 +196,21 @@ func waitForPairingStatus(
 		if err != nil {
 			t.Fatalf("WatchPairingStatus %s recv: %v", side, err)
 		}
-		t.Logf("pairing status %s: %s", side, resp.GetStatus().String())
-		switch resp.GetStatus() {
-		case want:
+		status := resp.GetStatus()
+		t.Logf("pairing status %s: %s", side, status.String())
+		if pairingStatusReached(status, want) {
 			return
+		}
+		switch status {
 		case s4wave_session.PairingStatus_PairingStatus_FAILED,
 			s4wave_session.PairingStatus_PairingStatus_SIGNALING_FAILED,
 			s4wave_session.PairingStatus_PairingStatus_CONNECTION_TIMEOUT,
-			s4wave_session.PairingStatus_PairingStatus_PAIRING_REJECTED:
+			s4wave_session.PairingStatus_PairingStatus_PAIRING_REJECTED,
+			s4wave_session.PairingStatus_PairingStatus_CONFIRMATION_TIMEOUT:
 			t.Fatalf(
 				"pairing %s reached error state %s before %s (msg=%q)",
 				side,
-				resp.GetStatus().String(),
+				status.String(),
 				want.String(),
 				resp.GetErrorMessage(),
 			)

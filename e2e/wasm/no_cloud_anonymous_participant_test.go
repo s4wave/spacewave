@@ -54,8 +54,8 @@ func TestNoCloudAnonymousParticipantSync(t *testing.T) {
 	}
 	defer watchB.Close()
 
-	drainPairingStatusUntil(watchA, s4wave_session.PairingStatus_PairingStatus_IDLE)
-	drainPairingStatusUntil(watchB, s4wave_session.PairingStatus_PairingStatus_IDLE)
+	expectInitialPairingStatus(t, "A", watchA, s4wave_session.PairingStatus_PairingStatus_IDLE)
+	expectInitialPairingStatus(t, "B", watchB, s4wave_session.PairingStatus_PairingStatus_IDLE)
 
 	offerResp, err := sdkA.CreateLocalPairingOffer(ctx)
 	if err != nil {
@@ -74,19 +74,15 @@ func TestNoCloudAnonymousParticipantSync(t *testing.T) {
 		t.Fatal("AcceptLocalPairingAnswer returned empty remote peer id on A")
 	}
 
-	// A already saw the PEER_CONNECTED transition implicitly via the answer
-	// exchange; consume its watch stream up to that point so subsequent waits
-	// observe BOTH_CONFIRMED rather than the prior emission.
-	waitForPairingStatus(t, "A", watchA, s4wave_session.PairingStatus_PairingStatus_PEER_CONNECTED)
-
+	// VERIFYING_EMOJI implies the link reached PEER_CONNECTED. Waiting for the
+	// durable phase avoids requiring the snapshot stream to expose both states.
+	waitForPairingStatus(t, "A", watchA, s4wave_session.PairingStatus_PairingStatus_VERIFYING_EMOJI)
 	remotePeerOnB := waitForPairingStatusRemotePeer(
-		t, "B", watchB, s4wave_session.PairingStatus_PairingStatus_PEER_CONNECTED,
+		t, "B", watchB, s4wave_session.PairingStatus_PairingStatus_VERIFYING_EMOJI,
 	)
 	if remotePeerOnB == "" {
-		t.Fatal("expected B to learn remote peer ID via PEER_CONNECTED status")
+		t.Fatal("expected B to learn remote peer ID during pairing verification")
 	}
-	waitForPairingStatus(t, "A", watchA, s4wave_session.PairingStatus_PairingStatus_VERIFYING_EMOJI)
-	waitForPairingStatus(t, "B", watchB, s4wave_session.PairingStatus_PairingStatus_VERIFYING_EMOJI)
 
 	emojiA, err := sdkA.GetSASEmoji(ctx, remotePeerOnA)
 	if err != nil {
@@ -192,9 +188,9 @@ func waitForSpaceInResourcesList(
 	}
 }
 
-// waitForPairingStatusRemotePeer blocks until the stream emits a response whose
-// status matches want, then returns the RemotePeerId from that response. Fails
-// the test on timeout, stream error, or terminal pairing failure.
+// waitForPairingStatusRemotePeer blocks until a snapshot reaches the requested
+// successful phase, then returns its RemotePeerId. It fails on stream error or
+// a terminal pairing state.
 func waitForPairingStatusRemotePeer(
 	t *testing.T,
 	side string,
@@ -207,10 +203,12 @@ func waitForPairingStatusRemotePeer(
 		if err != nil {
 			t.Fatalf("WatchPairingStatus %s recv: %v", side, err)
 		}
-		t.Logf("pairing status %s: %s remote=%s", side, resp.GetStatus().String(), resp.GetRemotePeerId())
-		switch resp.GetStatus() {
-		case want:
+		status := resp.GetStatus()
+		t.Logf("pairing status %s: %s remote=%s", side, status.String(), resp.GetRemotePeerId())
+		if pairingStatusReached(status, want) {
 			return resp.GetRemotePeerId()
+		}
+		switch status {
 		case s4wave_session.PairingStatus_PairingStatus_FAILED,
 			s4wave_session.PairingStatus_PairingStatus_SIGNALING_FAILED,
 			s4wave_session.PairingStatus_PairingStatus_CONNECTION_TIMEOUT,
@@ -219,7 +217,7 @@ func waitForPairingStatusRemotePeer(
 			t.Fatalf(
 				"pairing %s reached error state %s before %s (msg=%q)",
 				side,
-				resp.GetStatus().String(),
+				status.String(),
 				want.String(),
 				resp.GetErrorMessage(),
 			)
