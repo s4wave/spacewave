@@ -8,6 +8,7 @@ import (
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/blocktype"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
@@ -16,6 +17,12 @@ import (
 
 // V86ImageTypeID is the type identifier for V86Image objects.
 const V86ImageTypeID = "vm/image/v86"
+
+// V86ImageBlockType constructs V86Image blocks for typed cursor reads.
+var V86ImageBlockType = blocktype.NewBlockType(
+	V86ImageTypeID,
+	func() *V86Image { return &V86Image{} },
+)
 
 // PredV86ImageWasm is the graph predicate for the emulator WASM binary.
 var PredV86ImageWasm = quad.IRI("v86image/wasm")

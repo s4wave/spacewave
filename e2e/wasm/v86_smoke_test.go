@@ -448,12 +448,17 @@ func probeV86CdnMount(page playwright.Page) string {
 			stage: 'start',
 			browserEnv: globalThis.BLDR_RUNTIME_WASM_ENV ?? null,
 			cdnSpaceId: '',
+			rootId: 0,
+			cdnResourceId: 0,
+			spaceResourceId: 0,
+			worldResourceId: 0,
 			objectKeys: [],
 			v86ImageKeys: [],
 			error: '',
 			stack: '',
 		}
 		const root = globalThis.__s4wave_debug?.root
+		out.rootId = root?.id ?? 0
 		if (!root) {
 			out.stage = 'root'
 			out.error = 'missing debug root'
@@ -467,6 +472,7 @@ func probeV86CdnMount(page playwright.Page) string {
 			out.stage = 'getCdn'
 			const res = await root.getCdn('', signal)
 			cdn = res?.cdn
+			out.cdnResourceId = cdn?.id ?? 0
 			if (!cdn) {
 				out.error = 'getCdn returned no cdn'
 				return JSON.stringify(out, null, 2)
@@ -475,8 +481,10 @@ func probeV86CdnMount(page playwright.Page) string {
 			out.cdnSpaceId = await cdn.getCdnSpaceId(signal)
 			out.stage = 'mountCdnSpace'
 			space = await cdn.mountCdnSpace(signal)
+			out.spaceResourceId = space?.id ?? 0
 			out.stage = 'accessWorldState'
 			world = await space.accessWorldState(false, signal)
+			out.worldResourceId = world?.getResourceRef?.()?.resourceId ?? 0
 			out.stage = 'iterateObjects'
 			const iter = await world.iterateObjects('', false, signal)
 			try {
@@ -568,6 +576,16 @@ func readV86WizardDebug(page playwright.Page) string {
 				hasDebugRoot: !!globalThis.__s4wave_debug?.root,
 				quickstartTiming: globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null,
 			},
+			resource: (() => {
+				const debug = globalThis.__s4wave_debug
+				const root = debug?.root
+				const client = debug?.client
+				return {
+					rootId: root?.resourceRef?.resourceId ?? 0,
+					rootReleased: root?.released ?? false,
+					ids: client?.resources instanceof Map ? Array.from(client.resources.keys()) : [],
+				}
+			})(),
 		}, null, 2)
 	}`, nil)
 	if err != nil {

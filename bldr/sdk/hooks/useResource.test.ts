@@ -63,6 +63,22 @@ function TestHandle(props: {
   )
 }
 
+function TestChildResource(props: {
+  parent: Resource<FakeSDKHandle>
+  factory: (value: FakeSDKHandle, signal: AbortSignal) => Promise<string>
+}) {
+  const resource = useResource(
+    props.parent,
+    async (value, signal) => props.factory(value, signal),
+    [],
+  )
+
+  return React.createElement('div', {
+    'data-loading': String(resource.loading),
+    'data-value': resource.value ?? '',
+  })
+}
+
 function TestValue(props: {
   factory: (version: number) => Promise<string>
   version: number
@@ -315,6 +331,49 @@ describe('useResource', () => {
       '1',
     )
     expect(factory).toHaveBeenCalledTimes(1)
+  })
+
+  it('aborts child work when its SDK parent is released', async () => {
+    const client = new FakeResourceClient()
+    const parentValue = buildHandle(1)
+    const parent: Resource<FakeSDKHandle> = {
+      value: parentValue,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    }
+    let childSignal: AbortSignal | undefined
+    const childFactory = vi.fn(
+      async (_value: FakeSDKHandle, signal: AbortSignal): Promise<string> => {
+        childSignal = signal
+        await new Promise<string>(() => {})
+        return 'unreachable'
+      },
+    )
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    await act(async () => {
+      root?.render(
+        React.createElement(ResourcesProvider, {
+          client: client as never,
+          children: React.createElement(TestChildResource, {
+            parent,
+            factory: childFactory,
+          }),
+        }),
+      )
+      await flush()
+    })
+
+    expect(childFactory).toHaveBeenCalledOnce()
+    expect(childSignal?.aborted).toBe(false)
+
+    await act(async () => {
+      client.emit({ resourceId: 1, reason: 'client-released' })
+      expect(childSignal?.aborted).toBe(true)
+    })
   })
 
   it('keeps the previous resource value visible while a dependency reload is pending', async () => {

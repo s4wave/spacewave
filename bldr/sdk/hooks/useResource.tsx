@@ -14,6 +14,7 @@ import { useResourcesClient } from './useResourcesClient.js'
 import {
   useResourceTransitionState,
   useResourceTransitionVersion,
+  type ResourceTransitionRun,
 } from './resourceTransitionState.js'
 
 // Global counter for generating unique tracking IDs.
@@ -412,9 +413,37 @@ export function useResource<T>(
   }, [enabled, state.value, parsed.options])
   const pendingReleasedResourceRetryRef = useRef(false)
 
+  const activeRunRef = useRef<ResourceTransitionRun | null>(null)
+
+  const parentResourceIds = useMemo(
+    () =>
+      parent.values.flatMap((value) =>
+        value instanceof SDKResource ? [value.id] : [],
+      ),
+    [parent.values],
+  )
+
   useEffect(() => {
     pendingReleasedResourceRetryRef.current = false
   }, [retryCount, state.value])
+
+  useEffect(() => {
+    if (!resourcesClient || parentResourceIds.length === 0) return
+
+    return resourcesClient.onResourceReleased((event) => {
+      if (
+        event.reason !== 'server-released' &&
+        event.reason !== 'connection-lost' &&
+        event.reason !== 'client-released'
+      ) {
+        return
+      }
+      if (!parentResourceIds.includes(event.resourceId)) {
+        return
+      }
+      activeRunRef.current?.abort()
+    })
+  }, [parentResourceIds, resourcesClient])
 
   // DevTools: Extract parent tracking IDs from parent Resource objects.
   // Use spread-deps pattern (like useParentState's retries) so the array
@@ -494,9 +523,18 @@ export function useResource<T>(
     if (parent.loading) {
       return
     }
+    if (
+      parent.values.some(
+        (value) => value instanceof SDKResource && value.released,
+      )
+    ) {
+      settleNull(transitionVersion, true)
+      return
+    }
 
     const cleanupResources: { [Symbol.dispose](): void }[] = []
     const run = begin(transitionVersion)
+    activeRunRef.current = run
     let cleanedUp = false
 
     const registerCleanup: RegisterCleanup = (resource) => {
@@ -513,7 +551,6 @@ export function useResource<T>(
       cleanedUp = true
       cleanupResources.forEach((r) => r[Symbol.dispose]())
     }
-
     async function load() {
       try {
         const result = await callFactory(
@@ -536,6 +573,10 @@ export function useResource<T>(
         if (fail(run, errorObj)) {
           onError(errorObj)
         }
+      } finally {
+        if (activeRunRef.current === run) {
+          activeRunRef.current = null
+        }
       }
     }
 
@@ -543,6 +584,9 @@ export function useResource<T>(
 
     return () => {
       run.abort()
+      if (activeRunRef.current === run) {
+        activeRunRef.current = null
+      }
       disposeAll()
     }
     // Intentionally excluding parsed, parent.values, onSuccess, onError from deps:

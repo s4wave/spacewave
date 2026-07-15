@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
+import { V86ImageTypeID } from '@s4wave/sdk/vm/v86image.js'
 
 import type { Space } from '@s4wave/sdk/space/space.js'
 import { V86Image } from '@s4wave/sdk/vm/v86.pb.js'
-import { V86ImageTypeID } from '@s4wave/sdk/vm/v86image.js'
 
 import {
   getV86CatalogErrorCopy,
@@ -14,19 +14,16 @@ vi.mock('@s4wave/sdk/world/types/types.js', () => ({
 }))
 
 describe('loadCdnV86ImagesFromSpace', () => {
-  it('requests typed V86Image unmarshalling before decoding catalog metadata', async () => {
+  it('unmarshals typed V86Image metadata before decoding catalog entries', async () => {
     const typedData = V86Image.toBinary({
       name: 'Aperture Linux',
       platform: 'v86',
       tags: ['default'],
     })
-    const rawData = new Uint8Array([
-      0x0a, 0x07, 0x67, 0x61, 0x72, 0x62, 0x6c, 0x65, 0x64,
-    ])
     const unmarshal = vi.fn(
-      async (req: { blockType?: string }, _signal: AbortSignal) => ({
+      async (_req: { blockType?: string }, _signal: AbortSignal) => ({
         found: true,
-        data: req.blockType === V86ImageTypeID ? typedData : rawData,
+        data: typedData,
       }),
     )
     const cursor = {
@@ -39,6 +36,7 @@ describe('loadCdnV86ImagesFromSpace', () => {
     }
     const world = {
       getObject: vi.fn().mockResolvedValue(objectState),
+      [Symbol.dispose]: vi.fn(),
     }
     const space = {
       accessWorldState: vi.fn().mockResolvedValue(world),
@@ -51,6 +49,7 @@ describe('loadCdnV86ImagesFromSpace', () => {
       { blockType: V86ImageTypeID },
       signal,
     )
+    expect(world[Symbol.dispose]).toHaveBeenCalledOnce()
     expect(entries).toEqual([
       expect.objectContaining({
         objectKey: 'v86image-default',

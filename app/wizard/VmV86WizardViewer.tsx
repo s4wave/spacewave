@@ -36,7 +36,7 @@ import {
 } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 import { CREATE_VM_V86_OP_ID } from '@s4wave/sdk/vm/create-vm-v86.js'
 import { V86ImageTypeID } from '@s4wave/sdk/vm/v86image.js'
-import type { Root } from '@s4wave/sdk/root'
+import { Root } from '@s4wave/sdk/root/root.js'
 import { buildObjectKey } from '../space/create-op-builders.js'
 import { markQuickstartStartupBoundary } from '../quickstart/startup-boundary.js'
 import {
@@ -112,21 +112,30 @@ async function mountCdnImageSpace(
   cdnId: string,
   signal: AbortSignal,
 ): Promise<CdnImageSpaceHandle> {
-  const { cdn } = await root.getCdn(cdnId, signal)
+  // Keep a separate parent reference alive while child resources are created.
+  const ownedRoot = root.resourceRef.createResource(
+    root.resourceRef.resourceId,
+    Root,
+  )
+  let cdn: Cdn | undefined
   let space: Space | undefined
   try {
+    const response = await ownedRoot.getCdn(cdnId, signal)
+    cdn = response.cdn
     space = await cdn.mountCdnSpace(signal)
     return {
       cdn,
       space,
       [Symbol.dispose]() {
         space?.[Symbol.dispose]()
-        cdn[Symbol.dispose]()
+        cdn?.[Symbol.dispose]()
+        ownedRoot[Symbol.dispose]()
       },
     }
   } catch (err) {
     space?.[Symbol.dispose]()
-    cdn[Symbol.dispose]()
+    cdn?.[Symbol.dispose]()
+    ownedRoot[Symbol.dispose]()
     throw err
   }
 }
@@ -135,7 +144,7 @@ export async function loadCdnV86ImagesFromSpace(
   space: Space,
   signal: AbortSignal,
 ): Promise<CdnV86ImageEntry[]> {
-  const world = await space.accessWorldState(false, signal)
+  using world = await space.accessWorldState(false, signal)
   const keys = await listObjectsWithType(world, V86ImageTypeID, signal)
   const out: CdnV86ImageEntry[] = []
   for (const key of keys) {
@@ -170,7 +179,7 @@ async function loadCdnV86ImageFromSpace(
   signal: AbortSignal,
 ): Promise<CdnV86ImageEntry | undefined> {
   if (!objectKey) return undefined
-  const world = await space.accessWorldState(false, signal)
+  using world = await space.accessWorldState(false, signal)
   using obj = await world.getObject(objectKey, signal)
   if (!obj) return undefined
   using cursor = await obj.accessWorldState(undefined, signal)
@@ -198,8 +207,12 @@ async function loadCdnV86Images(
   cdnId: string,
   signal: AbortSignal,
 ): Promise<CdnV86ImageEntry[]> {
-  using handle = await mountCdnImageSpace(root, cdnId, signal)
-  return loadCdnV86ImagesFromSpace(handle.space, signal)
+  const handle = await mountCdnImageSpace(root, cdnId, signal)
+  try {
+    return await loadCdnV86ImagesFromSpace(handle.space, signal)
+  } finally {
+    handle[Symbol.dispose]()
+  }
 }
 
 async function loadCdnV86Image(
@@ -208,8 +221,12 @@ async function loadCdnV86Image(
   objectKey: string,
   signal: AbortSignal,
 ): Promise<CdnV86ImageEntry | undefined> {
-  using handle = await mountCdnImageSpace(root, cdnId, signal)
-  return loadCdnV86ImageFromSpace(handle.space, objectKey, signal)
+  const handle = await mountCdnImageSpace(root, cdnId, signal)
+  try {
+    return await loadCdnV86ImageFromSpace(handle.space, objectKey, signal)
+  } finally {
+    handle[Symbol.dispose]()
+  }
 }
 
 async function discoverDefaultCdnV86Image(
@@ -348,7 +365,11 @@ async function* runVmCreation(
     const root = request.root
     if (!root) throw new Error('root resource not ready')
     yield { stage: 'fetching' }
-    const { cdn } = await root.getCdn(request.cdnId, signal)
+    using ownedRoot = root.resourceRef.createResource(
+      root.resourceRef.resourceId,
+      Root,
+    )
+    const { cdn } = await ownedRoot.getCdn(request.cdnId, signal)
     using cdnHandle = cdn
     let copyCompleted = false
     for await (const progress of cdnHandle.copyV86ImageToSpace(
