@@ -1,4 +1,4 @@
-//go:build !tinygo && !goscript
+//go:build !tinygo
 
 package s4wave_session
 

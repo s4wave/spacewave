@@ -30,7 +30,7 @@ func DialSession(
 ) (*quic.Conn, crypto.PubKey, error) {
 	tlsConf, keyCh := identity.ConfigForPeer(rpeer)
 	tlsConf.NextProtos = []string{Alpn}
-	quicConfig := BuildQuicConfig(opts)
+	quicConfig := BuildQuicConfigWithLogger(opts, le)
 
 	sess, err := quic.Dial(ctx, pconn, addr, tlsConf, quicConfig)
 	if err != nil {
@@ -65,7 +65,7 @@ func DialSessionViaTransport(
 ) (*quic.Conn, crypto.PubKey, error) {
 	tlsConf, keyCh := identity.ConfigForPeer(rpeer)
 	tlsConf.NextProtos = []string{Alpn}
-	quicConfig := BuildQuicConfig(opts)
+	quicConfig := BuildQuicConfigWithLogger(opts, le)
 
 	sess, err := tpt.Dial(ctx, addr, tlsConf, quicConfig)
 	if err != nil {
@@ -97,7 +97,7 @@ func ListenSession(
 	identity *p2ptls.Identity,
 	rpeer peer.ID,
 ) (*quic.Conn, error) {
-	quicConfig := BuildQuicConfig(opts)
+	quicConfig := BuildQuicConfigWithLogger(opts, le)
 	tlsConf := BuildIncomingTlsConf(identity, rpeer)
 
 	le.Debug("listening for incoming handshake with quic + tls")
