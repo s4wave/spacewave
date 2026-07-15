@@ -350,6 +350,10 @@ func (c *Controller) HandleIncomingStream(
 		strm.Close()
 		return
 	}
+	go func() {
+		<-rctx.Done()
+		_ = mstrm.GetStream().Close()
+	}()
 
 	if err := mhnd.HandleMountedStream(rctx, mstrm); err != nil {
 		c.le.
