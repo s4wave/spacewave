@@ -97,6 +97,7 @@ func NewIdentity(privKey crypto.PrivKey, opts ...IdentityOption) (*Identity, err
 			InsecureSkipVerify: true, //nolint:gosec // Not insecure: we verify the cert chain ourselves.
 			ClientAuth:         tls.RequireAnyClientCert,
 			Certificates:       []tls.Certificate{*cert},
+			CurvePreferences:   browserCurvePreferences(),
 			VerifyConnection: func(_ tls.ConnectionState) error {
 				panic("tls config not specialized for peer")
 			},
