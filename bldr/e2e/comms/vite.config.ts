@@ -76,6 +76,9 @@ if (classicServiceWorkerEntry === undefined) {
 
 export default defineConfig({
   plugins: [goTsResolver(repoRoot)],
+  worker: {
+    plugins: () => [goTsResolver(repoRoot)],
+  },
   resolve: {
     alias: [
       ...buildGoAliases(repoRoot),
