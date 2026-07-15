@@ -26,13 +26,12 @@ const manualSignalDataChannelID = "bifrost-quic"
 // signaling channel, this gathers all ICE candidates before producing the
 // SDP, suitable for QR code or paste-based exchange.
 type ManualSignalTransport struct {
-	pc          *webrtc.PeerConnection
-	dc          *webrtc.DataChannel
-	identity    *p2ptls.Identity
-	localPeer   peer.ID
-	offerer     bool
-	le          *logrus.Entry
-	quicVerbose bool
+	pc        *webrtc.PeerConnection
+	dc        *webrtc.DataChannel
+	identity  *p2ptls.Identity
+	localPeer peer.ID
+	offerer   bool
+	le        *logrus.Entry
 
 	gatherDone <-chan struct{}
 	state      manualSignalTransportState
@@ -197,12 +196,6 @@ func NewManualSignalTransport(
 	return m, nil
 }
 
-// SetQuicVerbose enables verbose QUIC packet and frame logging.
-// It must be called before WaitLink.
-func (m *ManualSignalTransport) SetQuicVerbose(verbose bool) {
-	m.quicVerbose = verbose
-}
-
 // onDataChannelOpen detaches the datachannel for raw read/write access.
 func (m *ManualSignalTransport) onDataChannelOpen() {
 	dcRwc, err := m.dc.Detach()
@@ -210,9 +203,6 @@ func (m *ManualSignalTransport) onDataChannelOpen() {
 		m.le.WithError(err).Warn("datachannel detach failed")
 		m.state.fail(errors.Wrap(err, "detach datachannel"))
 		return
-	}
-	if m.quicVerbose {
-		m.le.Info("manual signal quic phase: data channel open")
 	}
 	m.onDataChannelReady(dcRwc)
 }
@@ -327,14 +317,6 @@ func (m *ManualSignalTransport) WaitLink(
 		DisableKeepAlive:        true,
 		DisablePathMtuDiscovery: true,
 		MaxIdleTimeoutDur:       "60s",
-		Verbose:                 m.quicVerbose,
-	}
-	if m.quicVerbose {
-		role := "client"
-		if m.offerer {
-			role = "server"
-		}
-		m.le.WithField("quic-role", role).Info("manual signal quic phase: handshake starting")
 	}
 
 	var sess *quic.Conn

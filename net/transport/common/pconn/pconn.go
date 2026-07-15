@@ -125,7 +125,7 @@ func NewTransport(
 		return nil, err
 	}
 
-	tpt.quicConfig = transport_quic.BuildQuicConfigWithLogger(opts.GetQuic(), le)
+	tpt.quicConfig = transport_quic.BuildQuicConfig(opts.GetQuic())
 	tpt.quicTpt = &quic.Transport{Conn: pc}
 
 	return tpt, nil

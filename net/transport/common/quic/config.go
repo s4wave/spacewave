@@ -1,29 +1,16 @@
 package transport_quic
 
 import (
-	"context"
 	"crypto/tls"
 	"time"
 
 	quic "github.com/quic-go/quic-go"
-	"github.com/quic-go/quic-go/qlogwriter"
 	p2ptls "github.com/s4wave/spacewave/net/crypto/tls"
 	"github.com/s4wave/spacewave/net/peer"
-	"github.com/sirupsen/logrus"
 )
 
-// BuildQuicConfig constructs the QUIC config without verbose packet logging.
+// BuildQuicConfig constructs the quic config.
 func BuildQuicConfig(opts *Opts) *quic.Config {
-	return buildQuicConfig(opts, nil)
-}
-
-// BuildQuicConfigWithLogger constructs the QUIC config and emits packet and
-// frame events through le when opts enables verbose logging.
-func BuildQuicConfigWithLogger(opts *Opts, le *logrus.Entry) *quic.Config {
-	return buildQuicConfig(opts, le)
-}
-
-func buildQuicConfig(opts *Opts, le *logrus.Entry) *quic.Config {
 	maxIdleTimeout := time.Second * 10
 	if ntDur := opts.GetMaxIdleTimeoutDur(); ntDur != "" {
 		nt, err := time.ParseDuration(ntDur)
@@ -47,7 +34,7 @@ func buildQuicConfig(opts *Opts, le *logrus.Entry) *quic.Config {
 		}
 	}
 
-	config := &quic.Config{
+	return &quic.Config{
 		// We don't use datagrams (yet), but this is necessary for WebTransport
 		EnableDatagrams:         !opts.GetDisableDatagrams(),
 		KeepAlivePeriod:         keepAlivePeriod,
@@ -57,16 +44,6 @@ func buildQuicConfig(opts *Opts, le *logrus.Entry) *quic.Config {
 		MaxIncomingStreams:    int64(maxIncStreams),
 		MaxIncomingUniStreams: -1, // disable unidirectional streams
 	}
-	if opts.GetVerbose() {
-		config.Tracer = func(
-			_ context.Context,
-			isClient bool,
-			connID quic.ConnectionID,
-		) qlogwriter.Trace {
-			return newLogQlogTrace(le, isClient, connID)
-		}
-	}
-	return config
 }
 
 // BuildIncomingTlsConf builds the tls config for incoming conns.
