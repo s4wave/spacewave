@@ -21,6 +21,7 @@ import { createLocalSession } from '@s4wave/app/quickstart/create.js'
 import { PairingChannelProgress } from '@s4wave/app/session/setup/PairingChannelProgress.js'
 import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
 import { pairingStatusReachedPeer } from '@s4wave/app/session/pairing-status.js'
+import { pairingStatusIsTerminalFailure } from '@s4wave/app/loading/status/pairing.js'
 import type { Root } from '@s4wave/sdk/root'
 import type { Session } from '@s4wave/sdk/session/session.js'
 import { Html5Qrcode } from 'html5-qrcode'
@@ -391,13 +392,8 @@ function PairVerifyStep({
           onConfirmed()
           break
         }
-        if (resp.status === PairingStatus.PairingStatus_PAIRING_REJECTED) {
-          setError(resp.errorMessage || 'Pairing was rejected')
-          setWaitingForRemote(false)
-          break
-        }
-        if (resp.status === PairingStatus.PairingStatus_CONFIRMATION_TIMEOUT) {
-          setError(resp.errorMessage || 'Confirmation timed out')
+        if (pairingStatusIsTerminalFailure(resp.status)) {
+          setError(resp.errorMessage || 'Pairing failed')
           setWaitingForRemote(false)
           break
         }
@@ -661,13 +657,6 @@ function PairDirectStep({
         if (controller.signal.aborted) break
         if (pairingStatusReachedPeer(resp.status) && resp.remotePeerId) {
           onRemotePeerResolved(resp.remotePeerId)
-          break
-        }
-        if (
-          resp.status === PairingStatus.PairingStatus_FAILED ||
-          resp.status === PairingStatus.PairingStatus_CONNECTION_TIMEOUT
-        ) {
-          setError(resp.errorMessage || 'Direct connection failed')
           break
         }
       }

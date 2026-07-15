@@ -43,6 +43,7 @@ import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useOptionalLocalSessionOnboardingContext } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
 import { PairingChannelProgress } from './PairingChannelProgress.js'
 import { pairingStatusReachedPeer } from '@s4wave/app/session/pairing-status.js'
+import { pairingStatusIsTerminalFailure } from '@s4wave/app/loading/status/pairing.js'
 import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
 import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
@@ -577,10 +578,6 @@ function PairingStep({
           setConnectionError(resp.errorMessage || 'Signaling connection failed')
           break
         }
-        if (resp.status === PairingStatus.PairingStatus_CONNECTION_TIMEOUT) {
-          setConnectionError(resp.errorMessage || 'Connection timed out')
-          break
-        }
         if (resp.status === PairingStatus.PairingStatus_FAILED) {
           setConnectionError(resp.errorMessage || 'Pairing failed')
           break
@@ -1060,13 +1057,8 @@ function VerifyStep({
           onContinue()
           break
         }
-        if (resp.status === PairingStatus.PairingStatus_PAIRING_REJECTED) {
-          setError(resp.errorMessage || 'Pairing was rejected')
-          setWaitingForRemote(false)
-          break
-        }
-        if (resp.status === PairingStatus.PairingStatus_CONFIRMATION_TIMEOUT) {
-          setError(resp.errorMessage || 'Confirmation timed out')
+        if (pairingStatusIsTerminalFailure(resp.status)) {
+          setError(resp.errorMessage || 'Pairing failed')
           setWaitingForRemote(false)
           break
         }
@@ -1528,13 +1520,6 @@ function DirectAnswerStep({
         if (controller.signal.aborted) break
         if (pairingStatusReachedPeer(resp.status) && resp.remotePeerId) {
           onRemotePeerResolved(resp.remotePeerId)
-          break
-        }
-        if (
-          resp.status === PairingStatus.PairingStatus_FAILED ||
-          resp.status === PairingStatus.PairingStatus_CONNECTION_TIMEOUT
-        ) {
-          setError(resp.errorMessage || 'Direct connection failed')
           break
         }
       }

@@ -9,6 +9,23 @@ interface PairingViewInput {
   onCancel?: () => void
 }
 
+// pairingStatusIsTerminalFailure reports whether status ends the pairing flow
+// unsuccessfully.
+export function pairingStatusIsTerminalFailure(
+  status?: PairingStatus,
+): boolean {
+  switch (status) {
+    case PairingStatus.PairingStatus_FAILED:
+    case PairingStatus.PairingStatus_SIGNALING_FAILED:
+    case PairingStatus.PairingStatus_CONNECTION_TIMEOUT:
+    case PairingStatus.PairingStatus_PAIRING_REJECTED:
+    case PairingStatus.PairingStatus_CONFIRMATION_TIMEOUT:
+      return true
+    default:
+      return false
+  }
+}
+
 // toPairingView maps all 13 PairingStatus substates into a LoadingView with
 // stage-specific detail text. Error substates (FAILED, SIGNALING_FAILED,
 // CONNECTION_TIMEOUT, PAIRING_REJECTED, CONFIRMATION_TIMEOUT) flip to

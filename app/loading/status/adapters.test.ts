@@ -13,7 +13,7 @@ import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { SessionSyncStatusView } from '@s4wave/app/session/SessionSyncStatusContext.js'
 
 import { toLockView } from './lock.js'
-import { toPairingView } from './pairing.js'
+import { pairingStatusIsTerminalFailure, toPairingView } from './pairing.js'
 import { toResourceView } from './resource.js'
 import { toSessionSyncView } from './session-sync.js'
 import { toSharedObjectView } from './shared-object.js'
@@ -168,6 +168,16 @@ describe('toPairingView', () => {
     })
     expect(view.state).toBe('error')
     expect(view.error).toBe('timeout waiting for peer')
+  })
+
+  it.each([
+    PairingStatus.PairingStatus_FAILED,
+    PairingStatus.PairingStatus_SIGNALING_FAILED,
+    PairingStatus.PairingStatus_CONNECTION_TIMEOUT,
+    PairingStatus.PairingStatus_PAIRING_REJECTED,
+    PairingStatus.PairingStatus_CONFIRMATION_TIMEOUT,
+  ])('recognizes terminal failure status %s', (status) => {
+    expect(pairingStatusIsTerminalFailure(status)).toBe(true)
   })
 
   it('embeds the pairing code in detail for CODE_GENERATED', () => {

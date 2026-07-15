@@ -6,6 +6,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
 
 const mockNavigate = vi.hoisted(() => vi.fn())
 const mockUseSessionInfo = vi.hoisted(() => vi.fn())
@@ -215,5 +216,35 @@ describe('LinkDeviceWizard', () => {
       generateButton.compareDocumentPosition(waitingMessage) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).not.toBe(0)
+  })
+
+  it('surfaces PAIRING_FAILED from the VerifyStep status watch', async () => {
+    const session = {
+      createLocalPairingOffer: vi.fn(async () => ({
+        offerPayload: 'offer-payload',
+      })),
+      acceptLocalPairingAnswer: vi.fn(async () => ({
+        remotePeerId: 'remote-peer',
+      })),
+      watchPairingStatus: vi.fn(async function* () {
+        yield {
+          status: PairingStatus.PairingStatus_FAILED,
+          errorMessage: 'unsupported cross-NAT topology',
+        }
+      }),
+    }
+    mockUseResourceValue.mockReturnValue(session)
+
+    render(<LinkDeviceWizard />)
+    fireEvent.click(screen.getByText('Show QR code'))
+    const answerInput = await screen.findByPlaceholderText(
+      'Paste answer payload here...',
+    )
+    fireEvent.change(answerInput, { target: { value: 'answer-payload' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }))
+
+    expect(await screen.findByText('Verification failed')).toBeDefined()
+    expect(screen.getByText('unsupported cross-NAT topology')).toBeDefined()
+    expect(screen.queryByText('Waiting for other device')).toBeNull()
   })
 })

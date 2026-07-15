@@ -101,6 +101,7 @@ func (r *SessionResource) CreateLocalPairingOffer(ctx context.Context, _ *s4wave
 	if err != nil {
 		return nil, errors.Wrap(err, "create identity")
 	}
+	p2ptls.LogBrowserCurvePreferenceWarning(r.le)
 
 	localPeerID := r.session.GetPeerId()
 	tpt, err := s4wave_session.NewManualSignalTransport(
@@ -151,6 +152,7 @@ func (r *SessionResource) AcceptLocalPairingOffer(ctx context.Context, req *s4wa
 	if err != nil {
 		return nil, errors.Wrap(err, "create identity")
 	}
+	p2ptls.LogBrowserCurvePreferenceWarning(r.le)
 
 	localPeerID := r.session.GetPeerId()
 	tpt, err := s4wave_session.NewManualSignalTransport(
