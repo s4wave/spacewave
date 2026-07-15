@@ -20,6 +20,7 @@ import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { createLocalSession } from '@s4wave/app/quickstart/create.js'
 import { PairingChannelProgress } from '@s4wave/app/session/setup/PairingChannelProgress.js'
 import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
+import { pairingStatusReachedPeer } from '@s4wave/app/session/pairing-status.js'
 import type { Root } from '@s4wave/sdk/root'
 import type { Session } from '@s4wave/sdk/session/session.js'
 import { Html5Qrcode } from 'html5-qrcode'
@@ -365,7 +366,7 @@ function PairVerifyStep({
           resp.status ?? PairingStatus.PairingStatus_WAITING_FOR_PEER,
         )
         if (
-          resp.status === PairingStatus.PairingStatus_VERIFYING_EMOJI &&
+          pairingStatusReachedPeer(resp.status) &&
           resp.emoji &&
           resp.emoji.length > 0
         ) {
@@ -383,6 +384,10 @@ function PairVerifyStep({
             await session.confirmPairing(remotePeerId, '', controller.signal)
           }
           if (controller.signal.aborted) break
+          onConfirmed()
+          break
+        }
+        if (resp.status === PairingStatus.PairingStatus_VERIFIED) {
           onConfirmed()
           break
         }
@@ -654,11 +659,7 @@ function PairDirectStep({
     ;(async () => {
       for await (const resp of sess.watchPairingStatus(controller.signal)) {
         if (controller.signal.aborted) break
-        if (
-          (resp.status === PairingStatus.PairingStatus_PEER_CONNECTED ||
-            resp.status === PairingStatus.PairingStatus_VERIFYING_EMOJI) &&
-          resp.remotePeerId
-        ) {
+        if (pairingStatusReachedPeer(resp.status) && resp.remotePeerId) {
           onRemotePeerResolved(resp.remotePeerId)
           break
         }

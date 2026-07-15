@@ -42,6 +42,7 @@ import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useOptionalLocalSessionOnboardingContext } from '@s4wave/app/session/setup/LocalSessionOnboardingContext.js'
 import { PairingChannelProgress } from './PairingChannelProgress.js'
+import { pairingStatusReachedPeer } from '@s4wave/app/session/pairing-status.js'
 import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
 import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
 import type { Session } from '@s4wave/sdk/session/session.js'
@@ -568,11 +569,7 @@ function PairingStep({
     ;(async () => {
       for await (const resp of session.watchPairingStatus(controller.signal)) {
         if (controller.signal.aborted) break
-        if (
-          (resp.status === PairingStatus.PairingStatus_PEER_CONNECTED ||
-            resp.status === PairingStatus.PairingStatus_VERIFYING_EMOJI) &&
-          resp.remotePeerId
-        ) {
+        if (pairingStatusReachedPeer(resp.status) && resp.remotePeerId) {
           onRemotePeerResolved(resp.remotePeerId)
           break
         }
@@ -1043,7 +1040,7 @@ function VerifyStep({
           resp.status ?? PairingStatus.PairingStatus_WAITING_FOR_PEER,
         )
         if (
-          resp.status === PairingStatus.PairingStatus_VERIFYING_EMOJI &&
+          pairingStatusReachedPeer(resp.status) &&
           resp.emoji &&
           resp.emoji.length > 0
         ) {
@@ -1056,7 +1053,10 @@ function VerifyStep({
         ) {
           setWaitingForRemote(true)
         }
-        if (resp.status === PairingStatus.PairingStatus_BOTH_CONFIRMED) {
+        if (
+          resp.status === PairingStatus.PairingStatus_BOTH_CONFIRMED ||
+          resp.status === PairingStatus.PairingStatus_VERIFIED
+        ) {
           onContinue()
           break
         }
@@ -1526,11 +1526,7 @@ function DirectAnswerStep({
     ;(async () => {
       for await (const resp of session.watchPairingStatus(controller.signal)) {
         if (controller.signal.aborted) break
-        if (
-          (resp.status === PairingStatus.PairingStatus_PEER_CONNECTED ||
-            resp.status === PairingStatus.PairingStatus_VERIFYING_EMOJI) &&
-          resp.remotePeerId
-        ) {
+        if (pairingStatusReachedPeer(resp.status) && resp.remotePeerId) {
           onRemotePeerResolved(resp.remotePeerId)
           break
         }
