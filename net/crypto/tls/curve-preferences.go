@@ -16,4 +16,3 @@ func browserCurvePreferences() []tls.CurveID {
 
 // LogBrowserCurvePreferenceWarning is a no-op outside the GoScript browser build.
 func LogBrowserCurvePreferenceWarning(_ *logrus.Entry) {}
-
