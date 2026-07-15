@@ -17,7 +17,8 @@ import (
 	playwright "github.com/mxschmitt/playwright-go"
 )
 
-const v86SmokeTimeoutMS = 600000
+const v86SmokeProbeTimeoutMS = 120000
+const v86SmokeStageTimeoutMS = 120000
 const v86SmokeDefaultCdnSpaceID = "01kpn3x0y79yr94ps1yae206vp"
 
 func TestQuickstartV86BootSmoke(t *testing.T) {
@@ -43,32 +44,63 @@ func TestQuickstartV86BootSmoke(t *testing.T) {
 	}()
 
 	page := sess.Page()
+	defer func() {
+		recordV86SmokeStage(t, page, "teardown")
+		t.Logf("v86 stage timeline: %s", readV86SmokeTimeline(page))
+		releaseV86CdnProbe(t, page)
+	}()
+
 	WaitForApp(t, page)
+	recordV86SmokeStage(t, page, "app ready")
 	AssertRootImportMap(t, harness(t), page)
 	cdnProbe := probeV86CdnMount(page)
 	t.Logf("v86 CDN direct probe: %s", cdnProbe)
 	if !strings.Contains(cdnProbe, `"defaultV86ImageFound": true`) {
-		t.Fatalf("v86 CDN probe did not find the default V86Image before wizard load: %s", cdnProbe)
+		t.Fatalf("v86 stage cdn probe failed: %s\n%s", cdnProbe, readV86WizardDebug(page))
 	}
-	NavigateHash(t, harness(t), page, "#/quickstart/v86")
-	WaitForApp(t, page)
+	recordV86SmokeStage(t, page, "cdn probe")
 
-	wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(v86SmokeTimeoutMS)}
-	if err := page.Locator("input[placeholder='e.g. debian-lab']").First().WaitFor(wait); err != nil {
-		t.Fatalf("wait for v86 wizard name input: %v", err)
+	NavigateHash(t, harness(t), page, "#/quickstart/v86")
+	recordV86SmokeStage(t, page, "quickstart navigation")
+	WaitForApp(t, page)
+	waitForV86StartupStage(
+		t,
+		page,
+		"wizard resource acquisition",
+		"v86.wizard.resource-acquired",
+	)
+	waitForV86StartupStage(
+		t,
+		page,
+		"catalog load",
+		"v86.wizard.catalog-loaded",
+	)
+	if err := page.Locator("text=/Catalog image: (Aperture Linux|v86image-01kszf4rsev1s7zkq2ms2y5r0w)/").First().WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(v86SmokeStageTimeoutMS)},
+	); err != nil {
+		t.Fatalf("v86 stage selected default image absent: %v\n%s", err, readV86WizardDebug(page))
 	}
-	if err := page.Locator("text=/Will copy from CDN: (Aperture Linux|v86image-01kszf4rsev1s7zkq2ms2y5r0w)/").First().WaitFor(wait); err != nil {
-		t.Fatalf("wait for selected CDN V86Image: %v\n%s", err, readV86WizardDebug(page))
+	recordV86SmokeStage(t, page, "selected default image")
+	waitForV86StartupStage(
+		t,
+		page,
+		"name input render",
+		"v86.wizard.name-rendered",
+	)
+	if err := page.Locator("input[placeholder='e.g. debian-lab']").First().WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(v86SmokeStageTimeoutMS)},
+	); err != nil {
+		t.Fatalf("v86 stage name input render failed: %v\n%s", err, readV86WizardDebug(page))
 	}
+	recordV86SmokeStage(t, page, "name input visible")
 	if err := page.Locator("input[placeholder='e.g. debian-lab']").First().Fill("v86 smoke"); err != nil {
 		t.Fatalf("fill v86 VM name: %v", err)
 	}
 	createButton := page.Locator("button:visible:has-text('Create'):not([disabled])").Last()
 	if err := createButton.Click(
-		playwright.LocatorClickOptions{Timeout: playwright.Float(v86SmokeTimeoutMS)},
+		playwright.LocatorClickOptions{Timeout: playwright.Float(v86SmokeStageTimeoutMS)},
 	); err != nil {
-		body, _ := page.Locator("body").TextContent()
-		t.Fatalf("create v86 VM: %v\nbody: %s", err, trimPageText(body))
+		t.Fatalf("v86 stage create click failed: %v\n%s", err, readV86WizardDebug(page))
 	}
 	if _, err := page.WaitForFunction(`() => {
 		const hash = window.location.hash || ''
@@ -91,6 +123,7 @@ func TestQuickstartV86BootSmoke(t *testing.T) {
 			t.Fatalf("retry create v86 VM click: %v\n%s", evalErr, readV86WizardDebug(page))
 		}
 	}
+	recordV86SmokeStage(t, page, "create")
 
 	vmKey := waitForV86ObjectRoute(t, page)
 	t.Logf("created VmV86 object %s", vmKey)
@@ -102,6 +135,73 @@ func TestQuickstartV86BootSmoke(t *testing.T) {
 	}
 	serial := waitForV86SerialOutput(t, page)
 	t.Logf("v86 serial output sample: %q", trimSerialSample(serial))
+}
+func recordV86SmokeStage(t testing.TB, page playwright.Page, stage string) {
+	t.Helper()
+	raw, err := page.Evaluate(`(stage) => {
+		const timeline = globalThis.__v86SmokeTimeline ?? {}
+		timeline[stage] = {
+			atMs: performance.now(),
+			hash: window.location.hash || '',
+		}
+		globalThis.__v86SmokeTimeline = timeline
+		return JSON.stringify(timeline[stage])
+	}`, stage)
+	if err != nil {
+		t.Logf("v86 stage %q timestamp unavailable: %v", stage, err)
+		return
+	}
+	t.Logf("v86 stage %q: %s", stage, asString(raw))
+}
+
+func readV86SmokeTimeline(page playwright.Page) string {
+	raw, err := page.Evaluate(
+		`() => JSON.stringify(globalThis.__v86SmokeTimeline ?? {}, null, 2)`,
+		nil,
+	)
+	if err != nil {
+		return "timeline unavailable: " + err.Error()
+	}
+	return asString(raw)
+}
+
+func waitForV86StartupStage(
+	t testing.TB,
+	page playwright.Page,
+	stage string,
+	label string,
+) {
+	t.Helper()
+	if _, err := page.WaitForFunction(`(label) => {
+		const marks = globalThis.__swStartupMarks ?? []
+		if (marks.some((mark) => mark.label === label)) return true
+		const prefix = label.replace(/-(?:loaded|acquired|rendered)$/, '')
+		const failure = marks.find((mark) => mark.label === prefix + '-error')
+		if (failure) {
+			const detail = failure.detail || {}
+			throw new Error(
+				failure.label + ': ' + (detail.error || JSON.stringify(detail)),
+			)
+		}
+		const timing =
+			globalThis.__s4waveQuickstartTiming ??
+			globalThis.__s4wave_debug?.quickstartTiming
+		if (timing?.state === 'error') {
+			throw new Error('quickstart error: ' + (timing.error || 'unknown'))
+		}
+		return false
+	}`, label, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(v86SmokeStageTimeoutMS),
+	}); err != nil {
+		t.Fatalf(
+			"v86 stage %q absent (first missing event %q): %v\n%s",
+			stage,
+			label,
+			err,
+			readV86WizardDebug(page),
+		)
+	}
+	recordV86SmokeStage(t, page, stage)
 }
 
 func installV86CdnMirrorRuntimeEnv(t testing.TB, sess *TestSession) {
@@ -244,22 +344,13 @@ func waitForV86ObjectRoute(t testing.TB, page playwright.Page) string {
 		const idx = hash.indexOf(marker)
 		if (idx === -1) return ''
 		const rest = decodeURIComponent(hash.slice(idx + marker.length).split(/[?#]/, 1)[0])
-		const body = document.body?.innerText || ''
-		if (
-			!rest ||
-			rest.startsWith('wizard/') ||
-			!/\bV86\b/.test(body) ||
-			!/Start/.test(body) ||
-			/No installed viewer handles this object type/.test(body)
-		) {
-			return ''
-		}
+		if (!rest || rest.startsWith('wizard/')) return ''
 		return rest
 	}`, nil, playwright.PageWaitForFunctionOptions{
-		Timeout: playwright.Float(v86SmokeTimeoutMS),
+		Timeout: playwright.Float(v86SmokeStageTimeoutMS),
 	})
 	if err != nil {
-		t.Fatalf("wait for v86 object route: %v\n%s", err, readV86WizardDebug(page))
+		t.Fatalf("v86 stage VM route absent: %v\n%s", err, readV86WizardDebug(page))
 	}
 	raw, err := handle.JSONValue()
 	if err != nil {
@@ -269,6 +360,20 @@ func waitForV86ObjectRoute(t testing.TB, page playwright.Page) string {
 	if !ok || strings.TrimSpace(vmKey) == "" {
 		t.Fatalf("unexpected v86 object key from route: %#v", raw)
 	}
+	recordV86SmokeStage(t, page, "VM route")
+
+	if _, err := page.WaitForFunction(`() => {
+		const body = document.body?.innerText || ''
+		if (/Runtime error|No installed viewer handles this object type/.test(body)) {
+			throw new Error(body.slice(0, 2000))
+		}
+		return /\bV86\b/.test(body) && /Start/.test(body)
+	}`, nil, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(v86SmokeStageTimeoutMS),
+	}); err != nil {
+		t.Fatalf("v86 stage plugin load absent: %v\n%s", err, readV86WizardDebug(page))
+	}
+	recordV86SmokeStage(t, page, "plugin load")
 	return vmKey
 }
 
@@ -297,38 +402,47 @@ func installV86SerialProbe(page playwright.Page, vmKey string) error {
 func waitForV86SerialOutput(t testing.TB, page playwright.Page) string {
 	t.Helper()
 
-	handle, err := page.WaitForFunction(`() => {
+	firstByte, err := page.WaitForFunction(`() => {
+		const text = globalThis.__v86SmokeSerial?.text || ''
+		if (text.length > 0) return text
+		const body = document.body?.innerText || ''
+		if (/Runtime error/.test(body)) throw new Error(body.slice(0, 2000))
+		return ''
+	}`, nil, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(v86SmokeStageTimeoutMS),
+	})
+	if err != nil {
+		t.Fatalf("v86 stage first serial byte absent: %v\n%s", err, readV86WizardDebug(page))
+	}
+	if _, err := firstByte.JSONValue(); err != nil {
+		t.Fatalf("read first v86 serial byte handle: %v", err)
+	}
+	recordV86SmokeStage(t, page, "first serial byte")
+
+	guestReady, err := page.WaitForFunction(`() => {
 		const text = globalThis.__v86SmokeSerial?.text || ''
 		if (/login:|# |\$ |Welcome|Linux version|Kernel command line/.test(text)) {
 			return text
 		}
 		const body = document.body?.innerText || ''
-		if (/Runtime error/.test(body)) {
-			throw new Error(body.slice(0, 2000))
-		}
+		if (/Runtime error/.test(body)) throw new Error(body.slice(0, 2000))
 		return ''
 	}`, nil, playwright.PageWaitForFunctionOptions{
-		Timeout: playwright.Float(v86SmokeTimeoutMS),
+		Timeout: playwright.Float(v86SmokeStageTimeoutMS),
 	})
 	if err != nil {
-		serial, _ := page.Evaluate(`() => globalThis.__v86SmokeSerial?.text || ''`, nil)
-		body, _ := page.Locator("body").TextContent()
-		t.Fatalf(
-			"wait for v86 serial output: %v\nserial: %s\nbody: %s",
-			err,
-			trimSerialSample(asString(serial)),
-			trimPageText(body),
-		)
+		t.Fatalf("v86 stage guest ready absent: %v\n%s", err, readV86WizardDebug(page))
 	}
-	raw, err := handle.JSONValue()
+	raw, err := guestReady.JSONValue()
 	if err != nil {
-		t.Fatalf("read v86 serial output handle: %v", err)
+		t.Fatalf("read v86 guest-ready handle: %v", err)
 	}
+	recordV86SmokeStage(t, page, "guest ready")
 	return asString(raw)
 }
 
 func probeV86CdnMount(page playwright.Page) string {
-	raw, err := page.Evaluate(`async () => {
+	raw, err := page.Evaluate(fmt.Sprintf(`async () => {
 		const out = {
 			ok: false,
 			stage: 'start',
@@ -345,7 +459,7 @@ func probeV86CdnMount(page playwright.Page) string {
 			out.error = 'missing debug root'
 			return JSON.stringify(out, null, 2)
 		}
-		const signal = AbortSignal.timeout(600000)
+		const signal = AbortSignal.timeout(%d)
 		let cdn
 		let space
 		let world
@@ -403,15 +517,29 @@ func probeV86CdnMount(page playwright.Page) string {
 			try {
 				space?.[Symbol.dispose]?.()
 			} catch {}
+			// Keep the probe's CDN reference alive until the wizard has acquired
+			// its own reference. Resource IDs can be reused before the queued
+			// release reaches the server.
 			try {
-				cdn?.[Symbol.dispose]?.()
+				if (cdn) globalThis.__v86SmokeHeldCdn = cdn
 			} catch {}
 		}
-	}`, nil)
+	}`, v86SmokeProbeTimeoutMS), nil)
 	if err != nil {
 		return "probe failed: " + err.Error()
 	}
 	return asString(raw)
+}
+
+func releaseV86CdnProbe(t testing.TB, page playwright.Page) {
+	t.Helper()
+	if _, err := page.Evaluate(`() => {
+		const cdn = globalThis.__v86SmokeHeldCdn
+		globalThis.__v86SmokeHeldCdn = undefined
+		cdn?.[Symbol.dispose]?.()
+	}`, nil); err != nil {
+		t.Logf("release v86 CDN probe resource: %v", err)
+	}
 }
 
 func readV86WizardDebug(page playwright.Page) string {
@@ -432,6 +560,9 @@ func readV86WizardDebug(page playwright.Page) string {
 				text: (button.innerText || button.textContent || '').trim().slice(0, 160),
 				disabled: button.disabled,
 			})),
+			timeline: globalThis.__v86SmokeTimeline ?? null,
+			startupMarks: globalThis.__swStartupMarks ?? [],
+			serial: globalThis.__v86SmokeSerial?.text ?? '',
 			startup: {
 				status: globalThis.__swBootStatus ?? null,
 				hasDebugRoot: !!globalThis.__s4wave_debug?.root,

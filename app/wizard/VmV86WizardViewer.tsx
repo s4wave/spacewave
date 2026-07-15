@@ -38,6 +38,7 @@ import { CREATE_VM_V86_OP_ID } from '@s4wave/sdk/vm/create-vm-v86.js'
 import { V86ImageTypeID } from '@s4wave/sdk/vm/v86image.js'
 import type { Root } from '@s4wave/sdk/root'
 import { buildObjectKey } from '../space/create-op-builders.js'
+import { markQuickstartStartupBoundary } from '../quickstart/startup-boundary.js'
 import {
   compareV86ImageNewestFirst,
   DEFAULT_V86_MEMORY_MB,
@@ -452,6 +453,14 @@ export function VmV86WizardViewer({
   )
 
   const cfg = useMemo(() => decodeConfig(configData), [configData])
+  const wizardResourceStageRef = useRef(false)
+  useEffect(() => {
+    if (wizardResourceStageRef.current || !wizardResource.value) return
+    wizardResourceStageRef.current = true
+    markQuickstartStartupBoundary('v86.wizard.resource-acquired', {
+      objectKey,
+    })
+  }, [objectKey, wizardResource.value])
 
   const inSpaceImagesResource = useResource(
     spaceWorldResource,
@@ -561,6 +570,33 @@ export function VmV86WizardViewer({
     },
     [cfg.source, cfg.cdnId, cfg.cdnSourceObjectKey],
   )
+  const catalogStageRef = useRef(false)
+  useEffect(() => {
+    if (
+      catalogStageRef.current ||
+      cfg.source !== V86WizardConfig_Source.COPY_FROM_CDN
+    ) {
+      return
+    }
+    if (defaultCdnImageResource.error) {
+      catalogStageRef.current = true
+      markQuickstartStartupBoundary('v86.wizard.catalog-error', {
+        error: defaultCdnImageResource.error.message,
+      })
+      return
+    }
+    if (!defaultCdnImageResource.loading && defaultCdnImageResource.value) {
+      catalogStageRef.current = true
+      markQuickstartStartupBoundary('v86.wizard.catalog-loaded', {
+        objectKey: defaultCdnImageResource.value.objectKey,
+      })
+    }
+  }, [
+    cfg.source,
+    defaultCdnImageResource.error,
+    defaultCdnImageResource.loading,
+    defaultCdnImageResource.value,
+  ])
 
   useEffect(() => {
     if (cfg.source !== V86WizardConfig_Source.COPY_FROM_CDN) return
@@ -574,6 +610,14 @@ export function VmV86WizardViewer({
       cdnId: cfg.cdnId ?? '',
     })
   }, [cfg, defaultCdnImageResource.value, persistConfig])
+  const nameStageRef = useRef(false)
+  useEffect(() => {
+    if (nameStageRef.current || state?.step !== 1) return
+    nameStageRef.current = true
+    markQuickstartStartupBoundary('v86.wizard.name-rendered', {
+      objectKey,
+    })
+  }, [objectKey, state?.step])
 
   const selectedImage = useMemo((): V86Image | undefined => {
     if (!cfg.imageObjectKey) return undefined

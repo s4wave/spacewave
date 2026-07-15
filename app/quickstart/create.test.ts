@@ -18,7 +18,12 @@ import {
   CANVAS_DEMO_OBJECT_KEY,
   INIT_CANVAS_DEMO_OP_ID,
 } from '@s4wave/core/space/world/ops/init-canvas-demo.js'
-import { V86_DEFAULT_CDN_IMAGE_OBJECT_KEY } from '@s4wave/app/vm/v86-wizard-config.js'
+import {
+  buildV86QuickstartWizardConfig,
+  V86_WIZARD_TARGET_KEY_PREFIX,
+  V86_WIZARD_TARGET_TYPE_ID,
+  V86_WIZARD_TYPE_ID,
+} from '@s4wave/app/vm/v86-wizard-config.js'
 import {
   CreateWizardObjectOp,
   IntroWizardConfig,
@@ -34,7 +39,6 @@ import {
   AddDeviceWizardTargetKeyPrefix,
   AddDeviceWizardTypeID,
 } from '@s4wave/app/device/add-device-wizard.js'
-import { CopyV86ImageToSpaceStage } from '@s4wave/sdk/cdn/cdn-resource.pb.js'
 import { InitChatDemoOp } from '@s4wave/sdk/chat/chat.pb.js'
 import {
   CHAT_DEMO_CHANNEL_KEY,
@@ -42,8 +46,7 @@ import {
 } from '@s4wave/sdk/chat/init-chat-demo.js'
 import { InitForgeQuickstartOp } from '@s4wave/core/forge/dashboard/dashboard.pb.js'
 import { INIT_FORGE_QUICKSTART_OP_ID } from '@s4wave/sdk/forge/dashboard/init-forge-quickstart.js'
-import { CreateVmV86Op, SetV86StateOp, VmState } from '@s4wave/sdk/vm/v86.pb.js'
-import { CREATE_VM_V86_OP_ID } from '@s4wave/sdk/vm/create-vm-v86.js'
+import { V86WizardConfig } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import type { QuickstartSpaceCreateId } from './options.js'
@@ -1500,12 +1503,7 @@ to try first.
     expect(applyWorldOp).not.toHaveBeenCalled()
   })
 
-  it('creates and starts the v86 quickstart from the default CDN image', async () => {
-    const copyV86ImageToSpace = vi.fn(async function* () {
-      yield {
-        stage: CopyV86ImageToSpaceStage.CopyV86ImageToSpaceStage_DONE,
-      }
-    })
+  it('creates a V86 wizard with the default catalog image selected', async () => {
     const putBlock = vi.fn((_arg: { data: Uint8Array }) =>
       Promise.resolve({ ref: {} }),
     )
@@ -1536,56 +1534,38 @@ to try first.
       ),
       createObject,
     }
-    const setProcessBinding = vi.fn().mockResolvedValue(undefined)
-    const cdnDispose = vi.fn()
-    const root = {
-      getCdn: vi.fn().mockResolvedValue({
-        cdn: {
-          copyV86ImageToSpace,
-          [Symbol.dispose]: cdnDispose,
-        },
-      }),
-    }
 
     await populateSpace(
       'v86',
       {
-        root,
-        sessionIndex: 7,
-        spaceResp: {
-          sharedObjectRef: { providerResourceRef: { id: 'space-1' } },
-        },
         spaceWorld,
-        spaceContents: { setProcessBinding },
       } as never,
       undefined,
     )
 
-    expect(root.getCdn).toHaveBeenCalledWith('', undefined)
-    expect(copyV86ImageToSpace).toHaveBeenCalledWith(
-      7,
-      'space-1',
-      V86_DEFAULT_CDN_IMAGE_OBJECT_KEY,
-      'vm-image/default',
-      undefined,
-    )
-    expect(cdnDispose).toHaveBeenCalledTimes(1)
-    expect(applyWorldOp).toHaveBeenCalledTimes(3)
-    const call = applyWorldOp.mock.calls[0]
-    if (!call) {
-      throw new Error('expected applyWorldOp call')
+    expect(applyWorldOp).toHaveBeenCalledTimes(2)
+    const wizardCall = applyWorldOp.mock.calls[0]
+    if (!wizardCall) {
+      throw new Error('expected wizard op call')
     }
-    const opTypeId = call[0]
-    const opData = call[1]
-    expect(opTypeId).toBe(CREATE_VM_V86_OP_ID)
-    const op = CreateVmV86Op.fromBinary(opData)
-    expect(op.objectKey).toMatch(/^v86-vm-[a-z0-9]+-\d+$/)
-    expect(op.name).toBe('V86 VM')
-    expect(op.imageObjectKey).toBe('vm-image/default')
-    expect(op.config?.memoryMb).toBe(256)
-    expect(op.config?.vgaMemoryMb).toBe(8)
-    expect(op.config?.networking ?? false).toBe(false)
-    expect(op.config?.serialEnabled).toBe(true)
+    expect(wizardCall[0]).toBe(CREATE_WIZARD_OBJECT_OP_ID)
+    const wizardOp = CreateWizardObjectOp.fromBinary(wizardCall[1])
+    expect(wizardOp.objectKey).toMatch(/^wizard\/v86-vm-[a-z0-9]+-\d+$/)
+    expect(wizardOp.wizardTypeId).toBe(V86_WIZARD_TYPE_ID)
+    expect(wizardOp.targetTypeId).toBe(V86_WIZARD_TARGET_TYPE_ID)
+    expect(wizardOp.targetKeyPrefix).toBe(V86_WIZARD_TARGET_KEY_PREFIX)
+    expect(wizardOp.name).toBe('V86 VM')
+    expect(wizardOp.initialStep).toBe(1)
+    const config = V86WizardConfig.fromBinary(wizardOp.initialConfigData)
+    const expectedConfig = buildV86QuickstartWizardConfig()
+    expect(config.memoryMb).toBe(expectedConfig.memoryMb)
+    expect(config.vgaMemoryMb).toBe(expectedConfig.vgaMemoryMb)
+    expect(config.networking ?? false).toBe(expectedConfig.networking ?? false)
+    expect(config.source).toBe(expectedConfig.source)
+    expect(config.imageObjectKey).toBe('vm-image/default')
+    expect(config.cdnSourceObjectKey).toBe(
+      'v86image-01kszf4rsev1s7zkq2ms2y5r0w',
+    )
 
     const settingsCall = applyWorldOp.mock.calls[1]
     if (!settingsCall) {
@@ -1596,23 +1576,8 @@ to try first.
     if (!settings) {
       throw new Error('expected settings')
     }
-    expect(settings.indexPath).toBe(op.objectKey)
+    expect(settings.indexPath).toBe(wizardOp.objectKey)
     expect(settings.pluginIds).toEqual(['spacewave-v86'])
-    expect(setProcessBinding).toHaveBeenCalledWith(
-      op.objectKey,
-      'vm/v86',
-      true,
-      undefined,
-    )
-
-    const startCall = applyWorldOp.mock.calls[2]
-    if (!startCall) {
-      throw new Error('expected start op call')
-    }
-    expect(startCall[0]).toBe('vm/v86/set-state')
-    const startOp = SetV86StateOp.fromBinary(startCall[1])
-    expect(startOp.objectKey).toBe(op.objectKey)
-    expect(startOp.state).toBe(VmState.VmState_STARTING)
   })
 
   it('seeds the Device quickstart with Computers and the Add Device wizard', async () => {
