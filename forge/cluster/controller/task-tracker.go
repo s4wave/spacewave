@@ -86,7 +86,7 @@ func (t *taskTracker) processState(
 	taskState := task.GetTaskState()
 	le.Debugf("task %q: %s", taskKey, taskState.String())
 
-	if t.prevState != taskState && t.prevState != 0 {
+	if t.prevState != taskState {
 		// re-scan job tasks to check if complete
 		t.jt.objLoop.Wake()
 	}
