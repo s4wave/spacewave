@@ -1,6 +1,7 @@
 import { WebRuntimeClientInit } from '../runtime/runtime.pb.js'
 import {
   ConnectWebRuntimeAck,
+  type DedicatedRuntimeHostConnectControl,
   WebDocumentToWorker,
 } from '../runtime/runtime.js'
 
@@ -21,6 +22,11 @@ export interface DedicatedWorkerHostCallbacks {
   promoteToHost(): void
 }
 
+interface DedicatedWorkerHostOpen {
+  port: MessagePort
+  reject(err: Error): void
+}
+
 export function buildDedicatedWorkerHostLockName(runtimeId: string): string {
   return `bldr-dedicated-runtime-host-${runtimeId}`
 }
@@ -35,6 +41,7 @@ export class DedicatedWorkerHostOwner {
   private closeLease?: () => void
   private standingAbort?: AbortController
   private callbacks?: DedicatedWorkerHostCallbacks
+  private readonly pendingClientChannels = new Set<DedicatedWorkerHostOpen>()
 
   constructor(
     private readonly webRuntimeId: string,
@@ -95,6 +102,9 @@ export class DedicatedWorkerHostOwner {
         runtimeId: this.webRuntimeId,
         error: err instanceof Error ? err.message : String(err),
       })
+      this.cancelPendingClientChannels(
+        'dedicated runtime host election failed',
+      )
       this.role = 'unavailable'
       callbacks.startUnavailable()
     })
@@ -141,6 +151,9 @@ export class DedicatedWorkerHostOwner {
       },
     )
     if (promoted) {
+      this.cancelPendingClientChannels(
+        'attached runtime host relay promoted to host',
+      )
       this.callbacks?.promoteToHost()
       return
     }
@@ -163,19 +176,27 @@ export class DedicatedWorkerHostOwner {
     }
 
     const ackChannel = new MessageChannel()
-    const ackPromise = new Promise<ConnectWebRuntimeAck>((resolve) => {
-      ackChannel.port1.onmessage = (ev) => {
-        const data: ConnectWebRuntimeAck = ev.data
-        if (!data || !data.from) {
-          return
-        }
-        if (!data.webRuntimePort && ev.ports?.[0]) {
-          data.webRuntimePort = ev.ports[0]
-        }
-        resolve(data)
+    const {
+      promise: ackPromise,
+      resolve: resolveAck,
+      reject: rejectAck,
+    } = Promise.withResolvers<ConnectWebRuntimeAck>()
+    const pendingChannel: DedicatedWorkerHostOpen = {
+      port: ackChannel.port1,
+      reject: rejectAck,
+    }
+    this.pendingClientChannels.add(pendingChannel)
+    ackChannel.port1.onmessage = (ev) => {
+      const data: ConnectWebRuntimeAck = ev.data
+      if (!data || !data.from) {
+        return
       }
-      ackChannel.port1.start()
-    })
+      if (!data.webRuntimePort && ev.ports?.[0]) {
+        data.webRuntimePort = ev.ports[0]
+      }
+      resolveAck(data)
+    }
+    ackChannel.port1.start()
 
     markStartupBoundary('dedicated-host.attach-open-start', {
       source: 'browser',
@@ -217,8 +238,20 @@ export class DedicatedWorkerHostOwner {
       })
       throw err
     } finally {
+      this.pendingClientChannels.delete(pendingChannel)
       ackChannel.port1.close()
     }
+  }
+
+  private cancelPendingClientChannels(reason: string): void {
+    const err = new DOMException(reason, 'AbortError')
+    for (const pending of this.pendingClientChannels) {
+      pending.port.postMessage({
+        cancelDedicatedRuntimeHostConnect: true,
+      } satisfies DedicatedRuntimeHostConnectControl)
+      pending.reject(err)
+    }
+    this.pendingClientChannels.clear()
   }
 
   public close(): void {
@@ -227,6 +260,7 @@ export class DedicatedWorkerHostOwner {
     }
     this.closed = true
     this.role = 'closed'
+    this.cancelPendingClientChannels('dedicated runtime host owner closed')
     this.standingAbort?.abort()
     this.standingAbort = undefined
     this.closeLease?.()

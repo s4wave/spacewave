@@ -205,6 +205,61 @@ describe('DedicatedWorkerHostOwner', () => {
     attached.close()
   })
 
+  it('cancels a pending attached relay when the document becomes host', async () => {
+    const locks = new TestLockManager()
+    const host = new DedicatedWorkerHostOwner('runtime-1', 'document-1')
+    vi.stubGlobal('navigator', { locks })
+    host.start(buildCallbacks())
+    await flushPromises()
+    const cancel = Promise.withResolvers<unknown>()
+    const postMessage = vi.fn((message: unknown, _transfer?: Transferable[]) => {
+      const requestMessage = message as {
+        connectDedicatedRuntimeHost?: { port: MessagePort }
+      }
+      const port = requestMessage.connectDedicatedRuntimeHost?.port
+      if (!port) {
+        throw new Error('dedicated runtime host request port missing')
+      }
+      port.onmessage = (ev: MessageEvent) => cancel.resolve(ev.data)
+      port.start()
+    })
+    vi.stubGlobal('navigator', {
+      locks,
+      serviceWorker: {
+        controller: {
+          postMessage,
+        },
+      },
+    })
+    const owner = new DedicatedWorkerHostOwner('runtime-1', 'document-2')
+    const callbacks = buildCallbacks()
+    owner.start(callbacks)
+    await flushPromises()
+
+    const opening = owner.openClientChannel({
+      webRuntimeId: 'runtime-1',
+      clientUuid: 'document-2',
+      clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+    })
+    const openingFailure = expect(opening).rejects.toThrow(
+      'attached runtime host relay promoted to host',
+    )
+    await vi.waitFor(() => {
+      expect(postMessage).toHaveBeenCalledOnce()
+    })
+    host.close()
+    await flushPromises()
+
+    await expect(cancel.promise).resolves.toEqual({
+      cancelDedicatedRuntimeHostConnect: true,
+    })
+    await openingFailure
+    expect(owner.role).toBe('host')
+    expect(callbacks.promoteToHost).toHaveBeenCalledOnce()
+
+    owner.close()
+  })
+
   it('close while pending aborts standing request', async () => {
     const locks = new TestLockManager()
     vi.stubGlobal('navigator', { locks })

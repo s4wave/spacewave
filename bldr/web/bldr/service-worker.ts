@@ -4,6 +4,7 @@ import { proxyFetch } from '../fetch/fetch.js'
 import { WebRuntimeClientType } from '../runtime/runtime.pb.js'
 import {
   ConnectWebRuntimeAck,
+  type DedicatedRuntimeHostConnectControl,
   WebDocumentToWorker,
 } from '../runtime/runtime.js'
 import { BLDR_URI_PREFIXES } from './constants.js'
@@ -1102,6 +1103,19 @@ async function handleDedicatedRuntimeHostConnectRequest(
     return
   }
 
+  const abortController = new AbortController()
+  request.port.onmessage = (
+    ev: MessageEvent<DedicatedRuntimeHostConnectControl | null>,
+  ) => {
+    const data = ev.data
+    if (data?.cancelDedicatedRuntimeHostConnect) {
+      abortController.abort(
+        new DOMException('dedicated runtime host connect canceled', 'AbortError'),
+      )
+    }
+  }
+  request.port.start()
+
   markStartupBoundary('dedicated-host.service-worker-connect-start', {
     source: 'service-worker',
     serviceWorkerId,
@@ -1110,8 +1124,16 @@ async function handleDedicatedRuntimeHostConnectRequest(
   })
   let runtimePort: MessagePort
   try {
-    runtimePort = await tracker.openWebRuntimePort(request.init, request.from)
+    runtimePort = await tracker.openWebRuntimePort(
+      request.init,
+      request.from,
+      abortController.signal,
+    )
   } catch (err) {
+    if (abortController.signal.aborted) {
+      request.port.close()
+      return
+    }
     const message = err instanceof Error ? err.message : String(err)
     postAck({
       from: serviceWorkerLogicalId,
@@ -1125,6 +1147,8 @@ async function handleDedicatedRuntimeHostConnectRequest(
       error: message,
     })
     return
+  } finally {
+    request.port.onmessage = null
   }
   postAck(
     {

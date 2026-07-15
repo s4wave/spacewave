@@ -177,6 +177,11 @@ export interface ConnectWebRuntimeAck {
   error?: string
 }
 
+// DedicatedRuntimeHostConnectControl controls an in-flight host relay lookup.
+export interface DedicatedRuntimeHostConnectControl {
+  cancelDedicatedRuntimeHostConnect?: boolean
+}
+
 // ConnectWebRtcBridgeAck is sent from WebDocument to worker with the bridge port.
 export interface ConnectWebRtcBridgeAck {
   // from is the identifier of the WebDocument.

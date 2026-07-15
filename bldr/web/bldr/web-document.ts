@@ -1744,6 +1744,18 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       attachSwMessageListener()
+      const controller = navigator.serviceWorker.controller
+      if (!controller || this.closed) {
+        return
+      }
+      // The elected DedicatedWorker lease outlives a ServiceWorker generation.
+      // Rebind immediately so the new tracker can route attached documents to
+      // the still-live host without waiting for a failed connection to solicit
+      // another registration.
+      this.initServiceWorkerPort(controller)
+      if (!this.runtimeConnected) {
+        this.taskEnsureWebRuntimeConn()
+      }
     })
 
     // register the service worker
@@ -1873,6 +1885,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
 
   // initServiceWorkerPort initializes & sends the ServiceWorker connection port.
   private initServiceWorkerPort(sw: ServiceWorker) {
+    if (this.closed) {
+      return
+    }
+    this.serviceWorkerPort?.close()
     const { port1: localPort, port2: clientPort } = new MessageChannel()
     localPort.onmessage = this.onWebDocumentClientMessage.bind(this)
     localPort.start()

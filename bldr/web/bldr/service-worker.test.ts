@@ -1600,6 +1600,7 @@ describe('service worker messages', () => {
     expect(tracker.openWebRuntimePort).toHaveBeenCalledWith(
       init,
       'attached-document',
+      expect.any(AbortSignal),
     )
     const ackEvent = await ack
     expect(ackEvent.data).toMatchObject({
@@ -1617,6 +1618,62 @@ describe('service worker messages', () => {
 
     openedPort.close()
     runtimeChannel.port2.close()
+    responseChannel.port1.close()
+  })
+
+  it('aborts a pending elected-host lookup when the requester cancels', async () => {
+    const responseChannel = new MessageChannel()
+    let connectSignal: AbortSignal | undefined
+    const openWebRuntimePort = vi.fn(
+      (_init: Uint8Array, _from?: string, signal?: AbortSignal) =>
+        new Promise<MessagePort>((_resolve, reject) => {
+          connectSignal = signal
+          signal?.addEventListener(
+            'abort',
+            () => {
+              const reason = signal.reason
+              reject(
+                reason instanceof Error
+                  ? reason
+                  : new DOMException('relay canceled', 'AbortError'),
+              )
+            },
+            { once: true },
+          )
+        }),
+    )
+    const deps = {
+      clients: buildTestClients(),
+      fetchTracker: {
+        abortClient: vi.fn(),
+      },
+      webDocumentTracker: {
+        handleWebDocumentMessage: vi.fn(),
+        openWebRuntimePort,
+      },
+      syncLatestBrowserRelease: vi.fn(),
+      refreshBrowserIndexCache: vi.fn(),
+      handleCrossTabMessage: vi.fn(),
+    }
+    const ev = buildMessageEvent({
+      from: 'attached-document',
+      connectDedicatedRuntimeHost: {
+        webRuntimeId: 'runtime-1',
+        init: new Uint8Array([1, 2, 3]),
+        port: responseChannel.port2,
+      },
+    })
+
+    handleServiceWorkerMessage(ev, deps)
+    await vi.waitFor(() => {
+      expect(connectSignal).toBeDefined()
+    })
+    responseChannel.port1.postMessage({
+      cancelDedicatedRuntimeHostConnect: true,
+    })
+    await vi.mocked(ev.waitUntil).mock.calls[0][0]
+
+    expect(connectSignal?.aborted).toBe(true)
     responseChannel.port1.close()
   })
 

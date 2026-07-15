@@ -307,11 +307,12 @@ export class WebDocumentTracker {
   public openWebRuntimePort(
     init: Uint8Array,
     excludedWebDocumentId?: string,
+    signal?: AbortSignal,
   ): Promise<MessagePort> {
     return this.openWebRuntimeClient(
       WebRuntimeClientInit.fromBinary(init),
       excludedWebDocumentId,
-      true,
+      signal,
     )
   }
 
@@ -513,8 +514,13 @@ export class WebDocumentTracker {
   private async openWebRuntimeClient(
     initMsg: Message<WebRuntimeClientInit>,
     excludedWebDocumentId?: string,
-    failWhenNoCandidate = false,
+    signal?: AbortSignal,
   ): Promise<MessagePort> {
+    if (signal?.aborted) {
+      throw signal.reason instanceof Error
+        ? signal.reason
+        : new DOMException('runtime host relay aborted', 'AbortError')
+    }
     if (this.closed) {
       throw new Error(
         `WebDocumentTracker: ${this.clientUuid}: closed while waiting for WebDocument`,
@@ -655,7 +661,7 @@ export class WebDocumentTracker {
       return this.openWebRuntimeClient(
         initMsg,
         excludedWebDocumentId,
-        failWhenNoCandidate,
+        signal,
       )
     }
 
@@ -666,46 +672,83 @@ export class WebDocumentTracker {
       console.log(
         'ServiceWorker: waiting for existing WebDocument to become ready',
       )
-      return new Promise<MessagePort>((resolve, reject) => {
-        this.webDocumentWaiters.push({
-          resume: () => {
-            resolve(
-              this.openWebRuntimeClient(
-                initMsg,
-                excludedWebDocumentId,
-                failWhenNoCandidate,
-              ),
-            )
-          },
-          reject,
-        })
-      })
-    }
-
-    if (failWhenNoCandidate) {
-      throw new Error(
-        `WebDocumentTracker: ${this.clientUuid}: no elected DedicatedWorker runtime host available`,
+      return this.waitForWebDocument(
+        () =>
+          this.openWebRuntimeClient(
+            initMsg,
+            excludedWebDocumentId,
+            signal,
+          ),
+        signal,
       )
     }
 
-    // construct a promise to catch any new incoming WebDocument client
-    const waitPromise = new Promise<MessagePort>((resolve, reject) => {
-      // try again once a new WebDocument is added.
-      this.webDocumentWaiters.push({
-        resume: () => {
-          resolve(this.openWebRuntimeClient(initMsg, excludedWebDocumentId))
-        },
-        reject,
-      })
-    })
+    const waitPromise = this.waitForWebDocument(
+      () =>
+        this.openWebRuntimeClient(initMsg, excludedWebDocumentId, signal),
+      signal,
+    )
 
     void waitPromise.catch(() => {})
 
-    // notify all WebDocument that we are looking for a connection to them.
+    // Rebuild the replacement ServiceWorker's in-memory tracker from live
+    // documents. The elected DedicatedWorker lease can outlive this worker.
     await this.onWebDocumentsExhausted()
 
     console.log('ServiceWorker: waiting for next WebDocument to proxy conn')
     return waitPromise
+  }
+
+  private waitForWebDocument<T>(
+    resume: () => Promise<T>,
+    signal?: AbortSignal,
+  ): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      let settled = false
+      const onAbort = () => {
+        if (!settle()) {
+          return
+        }
+        const reason = signal?.reason
+        reject(
+          reason instanceof Error
+            ? reason
+            : new DOMException('runtime host relay aborted', 'AbortError'),
+        )
+      }
+      const waiter: WebDocumentWaiter = {
+        resume: () => {
+          if (!settle()) {
+            return
+          }
+          resolve(resume())
+        },
+        reject: (err) => {
+          if (!settle()) {
+            return
+          }
+          reject(err)
+        },
+      }
+      const settle = () => {
+        if (settled) {
+          return false
+        }
+        settled = true
+        signal?.removeEventListener('abort', onAbort)
+        const idx = this.webDocumentWaiters.indexOf(waiter)
+        if (idx !== -1) {
+          this.webDocumentWaiters.splice(idx, 1)
+        }
+        return true
+      }
+      if (signal?.aborted) {
+        onAbort()
+        return
+      }
+      signal?.addEventListener('abort', onAbort, { once: true })
+      this.webDocumentWaiters.push(waiter)
+    })
   }
 
   // waitForWebDocumentDisconnect resolves when the web document liveness lock becomes available.

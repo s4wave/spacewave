@@ -388,50 +388,63 @@ describe('WebDocument service worker startup', () => {
     expect(reload).toHaveBeenCalledOnce()
   })
 
-  it('registers one ServiceWorker message listener across controller changes', async () => {
+  it('rebinds the tracker port without duplicating the ServiceWorker message listener', async () => {
     installSessionStorage()
     const messageListeners: Array<(ev: MessageEvent) => void> = []
     const controllerChangeListeners: Array<(ev: Event) => void> = []
-    const sw = { postMessage: vi.fn() } as unknown as ServiceWorker
-    vi.stubGlobal('navigator', {
-      serviceWorker: {
-        controller: sw,
-        addEventListener: vi.fn((type: string, listener: EventListener) => {
-          if (type === 'message') {
-            messageListeners.push(listener as (ev: MessageEvent) => void)
-          }
-          if (type === 'controllerchange') {
-            controllerChangeListeners.push(listener as (ev: Event) => void)
-          }
-        }),
-        register: vi.fn(),
-      },
-    })
+    const firstPostMessage = vi.fn()
+    const secondPostMessage = vi.fn()
+    const firstSw = {
+      postMessage: firstPostMessage,
+    } as unknown as ServiceWorker
+    const secondSw = {
+      postMessage: secondPostMessage,
+    } as unknown as ServiceWorker
+    const serviceWorker = {
+      controller: firstSw,
+      addEventListener: vi.fn((type: string, listener: EventListener) => {
+        if (type === 'message') {
+          messageListeners.push(listener as (ev: MessageEvent) => void)
+        }
+        if (type === 'controllerchange') {
+          controllerChangeListeners.push(listener as (ev: Event) => void)
+        }
+      }),
+      register: vi.fn(),
+    }
+    vi.stubGlobal('navigator', { serviceWorker })
     const doc = buildTestWebDocument()
-    const initServiceWorkerPort = vi
-      .spyOn(
-        doc as unknown as { initServiceWorkerPort: (sw: ServiceWorker) => void },
-        'initServiceWorkerPort',
-      )
-      .mockImplementation(() => {})
     const wb: TestWorkbox = {
       register: vi
         .fn()
         .mockResolvedValue({ scope: 'https://example.test/' } as ServiceWorkerRegistration),
       update: vi.fn().mockResolvedValue(undefined),
-      controlling: Promise.resolve(sw),
+      controlling: Promise.resolve(firstSw),
     }
 
     await doc.initServiceWorker(wb, '/sw.mjs')
-    initServiceWorkerPort.mockClear()
-    controllerChangeListeners[0](new Event('controllerchange'))
+    serviceWorker.controller = secondSw
     controllerChangeListeners[0](new Event('controllerchange'))
 
     expect(messageListeners).toHaveLength(1)
+    expect(secondPostMessage).toHaveBeenCalledOnce()
+    const [message, transfer] = secondPostMessage.mock.calls[0] as [
+      { from?: string; initPort?: MessagePort },
+      Transferable[],
+    ]
+    expect(message.from).toBeTypeOf('string')
+    expect(message.initPort).toBeDefined()
+    expect(transfer).toHaveLength(1)
+    expect(transfer[0]).toBe(message.initPort)
+
+    secondPostMessage.mockClear()
     messageListeners[0](
       new MessageEvent('message', { data: { from: 'sw', init: true } }),
     )
-    expect(initServiceWorkerPort).toHaveBeenCalledOnce()
+    expect(secondPostMessage).toHaveBeenCalledOnce()
+    doc.serviceWorkerPort?.close()
+    firstPostMessage.mockClear()
+    secondPostMessage.mockClear()
   })
 
   it('does not reload twice when the ServiceWorker controller is still missing', async () => {

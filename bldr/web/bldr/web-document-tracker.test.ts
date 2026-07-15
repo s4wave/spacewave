@@ -1050,7 +1050,7 @@ describe('WebDocumentTracker resume-ready gate', () => {
     runtimeChannel.port2.close()
   })
 
-  it('fails DedicatedWorker host relay when only the requester remains', async () => {
+  it('solicits and waits for the elected host when only the requester is registered', async () => {
     const onWebDocumentsExhausted = vi.fn().mockResolvedValue(undefined)
     const tracker = new WebDocumentTracker(
       'tracker-client',
@@ -1065,11 +1065,78 @@ describe('WebDocumentTracker resume-ready gate', () => {
       clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
     })
 
-    await expect(
-      tracker.openWebRuntimePort(init, 'requester-document'),
-    ).rejects.toThrow('no elected DedicatedWorker runtime host available')
-    expect(onWebDocumentsExhausted).not.toHaveBeenCalled()
+    const opening = tracker.openWebRuntimePort(init, 'requester-document')
+    const isSettled = markSettled(opening)
+    await vi.waitFor(() => {
+      expect(onWebDocumentsExhausted).toHaveBeenCalledOnce()
+    })
+    expect(isSettled()).toBe(false)
 
+    const runtimeChannel = new MessageChannel()
+    const hostChannel = new MessageChannel()
+    const hostPort = hostChannel.port2
+    hostPort.onmessage = (ev: MessageEvent<ClientToWebDocument>) => {
+      const ackPort = ev.data.connectWebRuntime?.port ?? ev.ports?.[0]
+      expect(ackPort).toBeDefined()
+      if (!ackPort) {
+        throw new Error('host relay ack port missing')
+      }
+      ackPort.postMessage(
+        {
+          from: 'host-document',
+          webRuntimePort: runtimeChannel.port1,
+        },
+        [runtimeChannel.port1],
+      )
+    }
+    hostPort.start()
+    tracker.handleWebDocumentMessage({
+      from: 'host-document',
+      initPort: hostChannel.port1,
+    })
+
+    const openedPort = await opening
+    const delivered = new Promise<unknown>((resolve) => {
+      runtimeChannel.port2.onmessage = (ev: MessageEvent) => resolve(ev.data)
+      runtimeChannel.port2.start()
+    })
+    openedPort.postMessage({ recovered: true })
+    await expect(delivered).resolves.toEqual({ recovered: true })
+
+    tracker.close()
+    requesterPort.close()
+    hostPort.close()
+    openedPort.close()
+    runtimeChannel.port2.close()
+  })
+
+  it('aborts an elected-host wait when the requester closes', async () => {
+    const onWebDocumentsExhausted = vi.fn().mockResolvedValue(undefined)
+    const tracker = new WebDocumentTracker(
+      'tracker-client',
+      WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
+      onWebDocumentsExhausted,
+      null,
+    )
+    const requesterPort = attachWebDocument(tracker, 'requester-document')
+    const init = WebRuntimeClientInit.toBinary({
+      webRuntimeId: 'runtime-1',
+      clientUuid: 'requester-document',
+      clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+    })
+    const abortController = new AbortController()
+    const opening = tracker.openWebRuntimePort(
+      init,
+      'requester-document',
+      abortController.signal,
+    )
+    await vi.waitFor(() => {
+      expect(onWebDocumentsExhausted).toHaveBeenCalledOnce()
+    })
+
+    abortController.abort(new Error('requesting document closed'))
+
+    await expect(opening).rejects.toThrow('requesting document closed')
     tracker.close()
     requesterPort.close()
   })
