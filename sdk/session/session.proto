@@ -21,6 +21,7 @@ service SessionResourceService {
   rpc RenameSpace(RenameSpaceRequest) returns (RenameSpaceResponse);
   rpc WatchLockState(WatchLockStateRequest) returns (stream WatchLockStateResponse);
   rpc SetLockMode(SetLockModeRequest) returns (SetLockModeResponse);
+  rpc SetDirectP2PEnabled(SetDirectP2PEnabledRequest) returns (SetDirectP2PEnabledResponse);
   rpc UnlockSession(UnlockSessionRequest) returns (UnlockSessionResponse);
   rpc LockSession(LockSessionRequest) returns (LockSessionResponse);
   rpc GeneratePairingCode(GeneratePairingCodeRequest) returns (GeneratePairingCodeResponse);
@@ -225,6 +226,44 @@ enum SyncP2PState {
   SyncP2PState_ACTIVE = 3;
   // SyncP2PState_ERROR means p2p lifecycle state has an error.
   SyncP2PState_ERROR = 4;
+  // SyncP2PState_DISABLED means direct P2P is disabled by Session policy.
+  SyncP2PState_DISABLED = 5;
+  // SyncP2PState_STARTING means direct P2P mechanics are starting.
+  SyncP2PState_STARTING = 6;
+  // SyncP2PState_FALLBACK_NO_PEER means a previously linked peer is absent.
+  SyncP2PState_FALLBACK_NO_PEER = 7;
+}
+
+// SyncBlockSource identifies the owner-observed source of a block read.
+enum SyncBlockSource {
+  // SyncBlockSource_UNKNOWN means no source has been observed.
+  SyncBlockSource_UNKNOWN = 0;
+  // SyncBlockSource_CACHE means the local upper cache satisfied the read.
+  SyncBlockSource_CACHE = 1;
+  // SyncBlockSource_DIRECT means demand-driven DEX satisfied the read.
+  SyncBlockSource_DIRECT = 2;
+  // SyncBlockSource_CLOUD means the Cloud packfile baseline satisfied the read.
+  SyncBlockSource_CLOUD = 3;
+}
+
+// SyncBlockStoreStatus projects source and convergence mechanics for one mounted block store.
+message SyncBlockStoreStatus {
+  // BlockStoreId is the mounted block store identifier.
+  string block_store_id = 1;
+  // DirectHitCount counts reads satisfied by demand-driven direct lookup.
+  uint64 direct_hit_count = 2;
+  // CloudHitCount counts reads satisfied by the Cloud lower store.
+  uint64 cloud_hit_count = 3;
+  // CacheHitCount counts reads satisfied by the local upper cache.
+  uint64 cache_hit_count = 4;
+  // LastSource is the latest observed source for this block store.
+  SyncBlockSource last_source = 5;
+  // AcceptedRootInnerSequence is the latest accepted SharedObject root sequence observed for this block store.
+  uint64 accepted_root_inner_sequence = 6;
+  // CloudRemoteSequence is the latest Cloud block-store sequence observed locally.
+  uint64 cloud_remote_sequence = 7;
+  // SharedObjectId identifies the SharedObject that supplied AcceptedRootInnerSequence.
+  string shared_object_id = 8;
 }
 
 // WatchSyncStatusResponse is the response type for WatchSyncStatus.
@@ -337,6 +376,11 @@ message WatchSyncStatusResponse {
   uint64 pack_index_tail_fetch_bytes = 50;
   // PackIndexTailResponseBytes is the number of bytes returned by index-tail range responses.
   uint64 pack_index_tail_response_bytes = 51;
+  // DirectP2PDisabled is the configured Session-local direct transport policy.
+  // The zero value preserves direct P2P for existing Sessions.
+  bool direct_p2p_disabled = 55;
+  // BlockStores contains owner-observed mechanics keyed by mounted block store.
+  repeated SyncBlockStoreStatus block_stores = 56;
 }
 
 // WatchStorageStatsResponse is the response type for WatchStorageStats.
@@ -370,6 +414,15 @@ message SetLockModeRequest {
 
 // SetLockModeResponse is the response type for SetLockMode.
 message SetLockModeResponse {}
+
+// SetDirectP2PEnabledRequest updates the durable Session-local direct transport policy.
+message SetDirectP2PEnabledRequest {
+  // Enabled controls whether direct Session transport mechanics may run.
+  bool enabled = 1;
+}
+
+// SetDirectP2PEnabledResponse acknowledges the persisted policy update.
+message SetDirectP2PEnabledResponse {}
 
 // UnlockSessionRequest is the request type for UnlockSession.
 message UnlockSessionRequest {

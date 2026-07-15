@@ -289,13 +289,7 @@ func TestSyncStatusSpacewaveAggregation(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			resp := syncStatusFromSpacewaveTelemetry(
-				test.telemetry,
-				status,
-				false,
-				&syncStatusRateState{},
-				time.Unix(20, 0),
-			)
+			resp := syncStatusFromSpacewaveTelemetry(test.telemetry, status, provider_spacewave.TransportCompositionSnapshot{}, &syncStatusRateState{}, time.Unix(20, 0))
 			if resp.GetState() != test.state {
 				t.Fatalf("state = %v, want %v", resp.GetState(), test.state)
 			}
@@ -411,44 +405,26 @@ func TestSyncStatusRateStateLimitsRateUpdates(t *testing.T) {
 	t.Parallel()
 
 	rate := &syncStatusRateState{}
-	first := syncStatusFromSpacewaveTelemetry(
-		provider_spacewave.SyncTelemetrySnapshot{
-			InFlightPushes: 1,
-			PushedBytes:    0,
-		},
-		provider.ProviderAccountStatus_ProviderAccountStatus_READY,
-		false,
-		rate,
-		time.Unix(30, 0),
-	)
+	first := syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
+		InFlightPushes: 1,
+		PushedBytes:    0,
+	}, provider.ProviderAccountStatus_ProviderAccountStatus_READY, provider_spacewave.TransportCompositionSnapshot{}, rate, time.Unix(30, 0))
 	if first.GetUploadBytesPerSecond() != 0 {
 		t.Fatalf("initial upload rate = %d, want 0", first.GetUploadBytesPerSecond())
 	}
 
-	limited := syncStatusFromSpacewaveTelemetry(
-		provider_spacewave.SyncTelemetrySnapshot{
-			InFlightPushes: 1,
-			PushedBytes:    512,
-		},
-		provider.ProviderAccountStatus_ProviderAccountStatus_READY,
-		false,
-		rate,
-		time.Unix(30, int64(500*time.Millisecond)),
-	)
+	limited := syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
+		InFlightPushes: 1,
+		PushedBytes:    512,
+	}, provider.ProviderAccountStatus_ProviderAccountStatus_READY, provider_spacewave.TransportCompositionSnapshot{}, rate, time.Unix(30, int64(500*time.Millisecond)))
 	if limited.GetUploadBytesPerSecond() != 0 {
 		t.Fatalf("limited upload rate = %d, want previous 0", limited.GetUploadBytesPerSecond())
 	}
 
-	updated := syncStatusFromSpacewaveTelemetry(
-		provider_spacewave.SyncTelemetrySnapshot{
-			InFlightPushes: 1,
-			PushedBytes:    1024,
-		},
-		provider.ProviderAccountStatus_ProviderAccountStatus_READY,
-		false,
-		rate,
-		time.Unix(31, 0),
-	)
+	updated := syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
+		InFlightPushes: 1,
+		PushedBytes:    1024,
+	}, provider.ProviderAccountStatus_ProviderAccountStatus_READY, provider_spacewave.TransportCompositionSnapshot{}, rate, time.Unix(31, 0))
 	if updated.GetUploadBytesPerSecond() != 1024 {
 		t.Fatalf("updated upload rate = %d, want 1024", updated.GetUploadBytesPerSecond())
 	}
@@ -458,29 +434,17 @@ func TestSyncStatusRateStateIncludesActiveUploadProgress(t *testing.T) {
 	t.Parallel()
 
 	rate := &syncStatusRateState{}
-	_ = syncStatusFromSpacewaveTelemetry(
-		provider_spacewave.SyncTelemetrySnapshot{
-			InFlightPushes:               1,
-			ActiveUploadBytes:            4096,
-			ActiveUploadTransferredBytes: 0,
-		},
-		provider.ProviderAccountStatus_ProviderAccountStatus_READY,
-		false,
-		rate,
-		time.Unix(40, 0),
-	)
+	_ = syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
+		InFlightPushes:               1,
+		ActiveUploadBytes:            4096,
+		ActiveUploadTransferredBytes: 0,
+	}, provider.ProviderAccountStatus_ProviderAccountStatus_READY, provider_spacewave.TransportCompositionSnapshot{}, rate, time.Unix(40, 0))
 
-	resp := syncStatusFromSpacewaveTelemetry(
-		provider_spacewave.SyncTelemetrySnapshot{
-			InFlightPushes:               1,
-			ActiveUploadBytes:            4096,
-			ActiveUploadTransferredBytes: 2048,
-		},
-		provider.ProviderAccountStatus_ProviderAccountStatus_READY,
-		false,
-		rate,
-		time.Unix(41, 0),
-	)
+	resp := syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
+		InFlightPushes:               1,
+		ActiveUploadBytes:            4096,
+		ActiveUploadTransferredBytes: 2048,
+	}, provider.ProviderAccountStatus_ProviderAccountStatus_READY, provider_spacewave.TransportCompositionSnapshot{}, rate, time.Unix(41, 0))
 	if resp.GetUploadBytesPerSecond() != 2048 {
 		t.Fatalf("active upload rate = %d, want 2048", resp.GetUploadBytesPerSecond())
 	}
@@ -489,49 +453,43 @@ func TestSyncStatusRateStateIncludesActiveUploadProgress(t *testing.T) {
 func TestSyncStatusSpacewavePackTelemetryFields(t *testing.T) {
 	t.Parallel()
 
-	resp := syncStatusFromSpacewaveTelemetry(
-		provider_spacewave.SyncTelemetrySnapshot{
-			RangeRequestCount:         3,
-			RangeResponseBytes:        3072,
-			FullResponseFallbackCount: 1,
-			FullResponseFallbackBytes: 16,
-			LastFullResponseFallback:  16,
-			ManifestEntries:           2,
-			PackBlockCountTotal:       12,
-			PackBlockCountMin:         2,
-			PackBlockCountMax:         10,
-			PackSizeBytesTotal:        4096,
-			PackSizeBytesMin:          1024,
-			PackSizeBytesMax:          3072,
-			BloomFilterCount:          2,
-			BloomParameterShapeCount:  1,
-			BloomMaxFalsePositiveRate: 0.02,
-			BloomRiskPackCount:        1,
-			LookupCount:               4,
-			CandidatePacks:            9,
-			OpenedPacks:               5,
-			NegativePacks:             3,
-			TargetHits:                1,
-			LastCandidatePacks:        3,
-			LastOpenedPacks:           2,
-			LastNegativePacks:         1,
-			LastTargetHit:             true,
-			IndexCacheHits:            6,
-			IndexCacheMisses:          7,
-			IndexCacheReadErrors:      1,
-			IndexCacheWriteErrors:     2,
-			RemoteIndexLoads:          8,
-			RemoteIndexBytes:          8192,
-			LastRemoteIndexBytes:      512,
-			IndexTailFetchCount:       9,
-			IndexTailFetchBytes:       2048,
-			IndexTailResponseBytes:    1024,
-		},
-		provider.ProviderAccountStatus_ProviderAccountStatus_READY,
-		false,
-		&syncStatusRateState{},
-		time.Unix(40, 0),
-	)
+	resp := syncStatusFromSpacewaveTelemetry(provider_spacewave.SyncTelemetrySnapshot{
+		RangeRequestCount:         3,
+		RangeResponseBytes:        3072,
+		FullResponseFallbackCount: 1,
+		FullResponseFallbackBytes: 16,
+		LastFullResponseFallback:  16,
+		ManifestEntries:           2,
+		PackBlockCountTotal:       12,
+		PackBlockCountMin:         2,
+		PackBlockCountMax:         10,
+		PackSizeBytesTotal:        4096,
+		PackSizeBytesMin:          1024,
+		PackSizeBytesMax:          3072,
+		BloomFilterCount:          2,
+		BloomParameterShapeCount:  1,
+		BloomMaxFalsePositiveRate: 0.02,
+		BloomRiskPackCount:        1,
+		LookupCount:               4,
+		CandidatePacks:            9,
+		OpenedPacks:               5,
+		NegativePacks:             3,
+		TargetHits:                1,
+		LastCandidatePacks:        3,
+		LastOpenedPacks:           2,
+		LastNegativePacks:         1,
+		LastTargetHit:             true,
+		IndexCacheHits:            6,
+		IndexCacheMisses:          7,
+		IndexCacheReadErrors:      1,
+		IndexCacheWriteErrors:     2,
+		RemoteIndexLoads:          8,
+		RemoteIndexBytes:          8192,
+		LastRemoteIndexBytes:      512,
+		IndexTailFetchCount:       9,
+		IndexTailFetchBytes:       2048,
+		IndexTailResponseBytes:    1024,
+	}, provider.ProviderAccountStatus_ProviderAccountStatus_READY, provider_spacewave.TransportCompositionSnapshot{}, &syncStatusRateState{}, time.Unix(40, 0))
 	if resp.GetPackRangeRequestCount() != 3 || resp.GetPackRangeResponseBytes() != 3072 {
 		t.Fatalf("unexpected range telemetry: %+v", resp)
 	}
@@ -561,6 +519,55 @@ func TestSyncStatusSpacewavePackTelemetryFields(t *testing.T) {
 		resp.GetPackIndexTailFetchBytes() != 2048 ||
 		resp.GetPackIndexTailResponseBytes() != 1024 {
 		t.Fatalf("unexpected index telemetry: %+v", resp)
+	}
+}
+
+func TestSyncStatusProjectsCloudCompositionAndSourceMechanics(t *testing.T) {
+	t.Parallel()
+
+	resp := syncStatusFromSpacewaveTelemetry(
+		provider_spacewave.SyncTelemetrySnapshot{
+			BlockStores: []provider_spacewave.SyncTelemetryBlockStoreSnapshot{{
+				BlockStoreID:              "store",
+				SharedObjectID:            "object",
+				DirectHitCount:            2,
+				CloudHitCount:             1,
+				CacheHitCount:             3,
+				LastSource:                provider_spacewave.SyncTelemetryBlockSourceDirect,
+				AcceptedRootInnerSequence: 7,
+				CloudRemoteSequence:       9,
+			}},
+		},
+		provider.ProviderAccountStatus_ProviderAccountStatus_READY,
+		provider_spacewave.TransportCompositionSnapshot{
+			DirectP2PEnabled: true,
+			P2PState:         provider_spacewave.TransportCompositionP2PStateFallbackNoPeer,
+		},
+		nil,
+		time.Time{},
+	)
+	if resp.GetTransportState() != s4wave_session.SyncTransportState_SyncTransportState_ONLINE {
+		t.Fatalf("Cloud transport = %s, want online", resp.GetTransportState())
+	}
+	if resp.GetDirectP2PDisabled() ||
+		resp.GetP2PState() != s4wave_session.SyncP2PState_SyncP2PState_FALLBACK_NO_PEER ||
+		resp.GetActivePeerCount() != 0 {
+		t.Fatalf("unexpected composition projection: %+v", resp)
+	}
+	stores := resp.GetBlockStores()
+	if len(stores) != 1 {
+		t.Fatalf("block store projections = %d, want 1", len(stores))
+	}
+	store := stores[0]
+	if store.GetBlockStoreId() != "store" ||
+		store.GetSharedObjectId() != "object" ||
+		store.GetDirectHitCount() != 2 ||
+		store.GetCloudHitCount() != 1 ||
+		store.GetCacheHitCount() != 3 ||
+		store.GetLastSource() != s4wave_session.SyncBlockSource_SyncBlockSource_DIRECT ||
+		store.GetAcceptedRootInnerSequence() != 7 ||
+		store.GetCloudRemoteSequence() != 9 {
+		t.Fatalf("unexpected block store projection: %+v", store)
 	}
 }
 

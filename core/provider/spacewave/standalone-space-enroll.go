@@ -2,6 +2,7 @@ package provider_spacewave
 
 import (
 	"context"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/session"
@@ -133,25 +134,20 @@ func (c *SessionClient) addStandaloneParticipant(
 		if err != nil {
 			return nil, err
 		}
-		var (
-			participantExists      bool
-			participantNeedsUpdate bool
-			participantIdx         int
-		)
-		for i, p := range currentCfg.GetParticipants() {
+		participantNeedsUpdate := false
+		participantIdx := slices.IndexFunc(currentCfg.GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
 			if p.GetPeerId() != targetPeerID {
-				continue
+				return false
 			}
-			participantExists = true
-			participantIdx = i
 			if p.GetRole() != role {
 				participantNeedsUpdate = true
 			}
 			if p.GetEntityId() == "" && accountID != "" {
 				participantNeedsUpdate = true
 			}
-			break
-		}
+			return true
+		})
+		participantExists := participantIdx >= 0
 		if existingRole := participantRoleForPeer(
 			currentCfg,
 			targetPeerID,

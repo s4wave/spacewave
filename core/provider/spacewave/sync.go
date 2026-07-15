@@ -837,7 +837,6 @@ func (s *syncController) flush(ctx context.Context, orderBlocks bool) error {
 			s.recalcDirtySize(ctx)
 			return err
 		}
-		loadedBlocks = nil
 		start = end
 	}
 
@@ -901,6 +900,7 @@ func (s *syncController) pull(ctx context.Context) error {
 				return errors.Wrap(err, "recording empty pull sequence")
 			}
 		}
+		s.recordSyncTelemetryRemoteSequence(latestSequence)
 		return nil
 	}
 
@@ -913,11 +913,18 @@ func (s *syncController) pull(ctx context.Context) error {
 		}
 	}
 	s.lower.UpdateManifest(s.mergedManifestEntries())
+	s.recordSyncTelemetryRemoteSequence(latestSequence)
 
 	s.le.WithField("entries", len(entries)).
 		WithField("replacement-events", len(events)).
 		Debug("pulled packfile delta")
 	return nil
+}
+
+func (s *syncController) recordSyncTelemetryRemoteSequence(sequence uint64) {
+	s.telemetrySafeCall(func(t *ProviderAccount, id string) {
+		t.setSyncTelemetryCloudRemoteSequence(id, sequence)
+	})
 }
 
 // telemetrySafeCall invokes fn against the attached telemetry account when

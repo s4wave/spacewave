@@ -21,16 +21,6 @@ func (a *ProviderAccount) TrackMailboxRequest(
 	})
 }
 
-// setMailboxRequestStatus stores a terminal mailbox status from a session event.
-func (a *ProviderAccount) setMailboxRequestStatus(
-	soID string,
-	inviteID string,
-	peerID string,
-	status string,
-) {
-	a.TrackMailboxRequest(soID, inviteID, peerID, status)
-}
-
 // WaitMailboxRequestDecision waits for a cloud invite mailbox request to leave
 // the pending state.
 func (a *ProviderAccount) WaitMailboxRequestDecision(

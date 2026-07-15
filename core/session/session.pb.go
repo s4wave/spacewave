@@ -213,6 +213,9 @@ type SessionMetadata struct {
 	ProviderId string `protobuf:"bytes,10,opt,name=provider_id,json=providerId,proto3" json:"providerId,omitempty"`
 	// RecoveryState reports whether the PIN reset path can recover this session.
 	RecoveryState SessionRecoveryState `protobuf:"varint,11,opt,name=recovery_state,json=recoveryState,proto3" json:"recoveryState,omitempty"`
+	// DirectP2PDisabled opts this Session out of direct peer transport.
+	// The zero value preserves direct P2P for existing Session metadata.
+	DirectP2PDisabled bool `protobuf:"varint,12,opt,name=direct_p2p_disabled,json=directP2pDisabled,proto3" json:"directP2pDisabled,omitempty"`
 }
 
 func (x *SessionMetadata) Reset() {
@@ -282,6 +285,13 @@ func (x *SessionMetadata) GetRecoveryState() SessionRecoveryState {
 		return x.RecoveryState
 	}
 	return SessionRecoveryState_SESSION_RECOVERY_STATE_UNKNOWN
+}
+
+func (x *SessionMetadata) GetDirectP2PDisabled() bool {
+	if x != nil {
+		return x.DirectP2PDisabled
+	}
+	return false
 }
 
 // EntityKeypair is a keypair associated with an entity for authentication.
@@ -426,6 +436,7 @@ func (m *SessionMetadata) CloneVT() *SessionMetadata {
 	r.CloudEntityId = m.CloudEntityId
 	r.ProviderId = m.ProviderId
 	r.RecoveryState = m.RecoveryState
+	r.DirectP2PDisabled = m.DirectP2PDisabled
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -574,6 +585,9 @@ func (this *SessionMetadata) EqualVT(that *SessionMetadata) bool {
 		return false
 	}
 	if this.RecoveryState != that.RecoveryState {
+		return false
+	}
+	if this.DirectP2PDisabled != that.DirectP2PDisabled {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -949,6 +963,11 @@ func (x *SessionMetadata) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("recoveryState")
 		x.RecoveryState.MarshalProtoJSON(s)
 	}
+	if x.DirectP2PDisabled || s.HasField("directP2pDisabled") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("directP2pDisabled")
+		s.WriteBool(x.DirectP2PDisabled)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -993,6 +1012,9 @@ func (x *SessionMetadata) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "recovery_state", "recoveryState":
 			s.AddField("recovery_state")
 			x.RecoveryState.UnmarshalProtoJSON(s)
+		case "direct_p2p_disabled", "directP2pDisabled":
+			s.AddField("direct_p2p_disabled")
+			x.DirectP2PDisabled = s.ReadBool()
 		}
 	})
 }
@@ -1234,6 +1256,11 @@ func (m *SessionMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.DirectP2PDisabled {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DirectP2PDisabled)
+		i--
+		dAtA[i] = 0x60
+	}
 	if m.RecoveryState != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RecoveryState))
 		i--
@@ -1440,6 +1467,7 @@ func (m *SessionMetadata) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CloudEntityId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ProviderId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.RecoveryState)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.DirectP2PDisabled)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1572,6 +1600,10 @@ func (x *SessionMetadata) MarshalProtoText() string {
 	if x.RecoveryState != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "recovery_state")
 		protobuf_go_lite.TextWriteStringer(&sb, SessionRecoveryState(x.RecoveryState))
+	}
+	if x.DirectP2PDisabled != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "direct_p2p_disabled")
+		protobuf_go_lite.TextWriteBool(&sb, x.DirectP2PDisabled)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1856,6 +1888,16 @@ func (m *SessionMetadata) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DirectP2PDisabled", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DirectP2PDisabled = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

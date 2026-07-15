@@ -204,7 +204,14 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 		if resp.GetError() != "" {
 			return nil, false, errors.New(resp.GetError())
 		}
-		return resp.GetData(), resp.GetFound(), nil
+		if !resp.GetFound() {
+			return nil, false, nil
+		}
+		data := resp.GetData()
+		if err := ref.VerifyData(data, true); err != nil {
+			return data, false, err
+		}
+		return data, true, nil
 	}
 }
 

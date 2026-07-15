@@ -17,6 +17,7 @@ import (
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
+	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/net/hash"
@@ -33,8 +34,17 @@ type wrapperForwardTestStore struct {
 	block.StoreOps
 	id                string
 	putBlockHits      int
+	getBlockHits      int
 	putBlockBatchHits int
 	existsBatchHits   int
+}
+
+type networkLookupTestStore struct {
+	block.StoreOps
+}
+
+func (s *networkLookupTestStore) GetBlockExists(context.Context, *block.BlockRef) (bool, error) {
+	return false, nil
 }
 
 func newProviderSpacewaveTestBlockStore(hashType hash.HashType) block.StoreOps {
@@ -51,6 +61,14 @@ func newWrapperForwardTestStore(id string, hashType hash.HashType) *wrapperForwa
 		StoreOps: newProviderSpacewaveTestBlockStore(hashType),
 		id:       id,
 	}
+}
+
+func (s *wrapperForwardTestStore) GetBlock(
+	ctx context.Context,
+	ref *block.BlockRef,
+) ([]byte, bool, error) {
+	s.getBlockHits++
+	return s.StoreOps.GetBlock(ctx, ref)
 }
 
 func TestBstoreTrackerDetectsPublicReadSpaceBlockStore(t *testing.T) {
@@ -158,7 +176,7 @@ func TestPublicReadRemoteRefreshInvalidatesDecodedCache(t *testing.T) {
 	}
 	decodedBlocks.Wait()
 
-	if err := inner.StoreOps.RmBlock(ctx, ref); err != nil {
+	if err := inner.RmBlock(ctx, ref); err != nil {
 		t.Fatal(err.Error())
 	}
 	tx, cursor = block.NewTransaction(store, nil, ref, nil)
@@ -737,6 +755,111 @@ func parseHTTPRangeHeader(h string, size int64) (start, end int64, ok bool) {
 		reqEnd = size - 1
 	}
 	return reqStart, reqEnd + 1, true
+}
+
+func TestCloudBlockStoreBucketKeepsAccountCacheLocalOnly(t *testing.T) {
+	t.Parallel()
+
+	tracker := &bstoreTracker{
+		a:  &ProviderAccount{accountID: "account"},
+		id: "block-store",
+	}
+	conf, err := tracker.buildBucketConf()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := conf.GetRev(); got != blockStoreBucketConfigRev {
+		t.Fatalf("bucket config revision = %d, want %d", got, blockStoreBucketConfigRev)
+	}
+	var lookupConf lookup_concurrent.Config
+	if err := lookupConf.UnmarshalJSON(conf.GetLookup().GetController().GetConfig()); err != nil {
+		t.Fatal(err)
+	}
+	if lookupConf.GetNotFoundBehavior() != lookup_concurrent.NotFoundBehavior_NotFoundBehavior_NONE ||
+		lookupConf.GetPutBlockBehavior() != lookup_concurrent.PutBlockBehavior_PutBlockBehavior_ALL ||
+		lookupConf.GetWritebackBehavior() != lookup_concurrent.WritebackBehavior_WritebackBehavior_ALL {
+		t.Fatalf("unexpected account cache lookup policy: %+v", lookupConf)
+	}
+}
+
+func TestCloudOverlayFallsThroughOnceAndRecordsCloudSource(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	acc := &ProviderAccount{}
+	data := []byte("cloud")
+	lower := newWrapperForwardTestStore("lower", hash.HashType_HashType_SHA256)
+	ref, _, err := lower.PutBlock(ctx, data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	upper := newWrapperForwardTestStore("upper", hash.HashType_HashType_SHA256)
+	sourceUpper := &sourceTrackingStore{
+		StoreOps:   upper,
+		account:    acc,
+		bstoreID:   "block-store",
+		source:     SyncTelemetryBlockSourceDirect,
+		upperCache: true,
+	}
+	sourceLower := &sourceTrackingStore{
+		StoreOps: lower,
+		account:  acc,
+		bstoreID: "block-store",
+		source:   SyncTelemetryBlockSourceCloud,
+	}
+
+	got, found, err := newCloudOverlay(ctx, nil, sourceLower, sourceUpper).GetBlock(ctx, ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || !bytes.Equal(got, data) {
+		t.Fatalf("Cloud fallback = %q/%v, want %q/true", got, found, data)
+	}
+	if upper.getBlockHits != 1 || lower.getBlockHits != 1 {
+		t.Fatalf("source reads = upper:%d lower:%d, want 1/1", upper.getBlockHits, lower.getBlockHits)
+	}
+	telemetry := acc.GetSyncTelemetrySnapshot()
+	if len(telemetry.BlockStores) != 1 ||
+		telemetry.BlockStores[0].CloudHitCount != 1 ||
+		telemetry.BlockStores[0].DirectHitCount != 0 ||
+		telemetry.BlockStores[0].LastSource != SyncTelemetryBlockSourceCloud {
+		t.Fatalf("unexpected source telemetry: %+v", telemetry.BlockStores)
+	}
+}
+
+func TestCloudOverlayRecordsDirectDemandSource(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	acc := &ProviderAccount{}
+	network := newProviderSpacewaveTestBlockStore(hash.HashType_HashType_SHA256)
+	data := []byte("direct")
+	ref, _, err := network.PutBlock(ctx, data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourceUpper := &sourceTrackingStore{
+		StoreOps:   &networkLookupTestStore{StoreOps: network},
+		account:    acc,
+		bstoreID:   "block-store",
+		source:     SyncTelemetryBlockSourceDirect,
+		upperCache: true,
+	}
+
+	got, found, err := sourceUpper.GetBlock(ctx, ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || !bytes.Equal(got, data) {
+		t.Fatalf("direct read = %q/%v, want %q/true", got, found, data)
+	}
+	telemetry := acc.GetSyncTelemetrySnapshot()
+	if len(telemetry.BlockStores) != 1 ||
+		telemetry.BlockStores[0].DirectHitCount != 1 ||
+		telemetry.BlockStores[0].CloudHitCount != 0 ||
+		telemetry.BlockStores[0].LastSource != SyncTelemetryBlockSourceDirect {
+		t.Fatalf("unexpected source telemetry: %+v", telemetry.BlockStores)
+	}
 }
 
 func TestNewCloudOverlayDoesNotDirtyLowerReads(t *testing.T) {

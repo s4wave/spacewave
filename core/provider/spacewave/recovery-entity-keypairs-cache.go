@@ -89,32 +89,3 @@ func (a *ProviderAccount) writeRecoveryEntityKeypairsCache(
 	}
 	return otx.Commit(ctx)
 }
-
-// deleteRecoveryEntityKeypairsCache removes the cached keypair set for
-// entityID. Missing entries (or a not-yet-mounted ObjectStore) are not an
-// error.
-func (a *ProviderAccount) deleteRecoveryEntityKeypairsCache(
-	ctx context.Context,
-	entityID string,
-) error {
-	if a.objStore == nil {
-		return nil
-	}
-	if entityID == "" {
-		return errors.New("entity id is required")
-	}
-
-	otx, err := a.objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return errors.Wrap(err, "open write transaction")
-	}
-	defer otx.Discard()
-
-	if err := otx.Delete(
-		ctx,
-		recoveryEntityKeypairsCacheKey(entityID),
-	); err != nil {
-		return errors.Wrap(err, "delete entity keypairs cache")
-	}
-	return otx.Commit(ctx)
-}

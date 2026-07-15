@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/configset"
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
@@ -24,6 +25,7 @@ import (
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
 	"github.com/s4wave/spacewave/db/bucket"
+	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
 	"github.com/s4wave/spacewave/db/volume"
 	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/net/hash"
@@ -35,6 +37,10 @@ const (
 	httpReaderPageSize        = 4 * 1024
 	forceSyncTimeout          = 30 * time.Second
 )
+
+// blockStoreBucketConfigRev 2 keeps the account-owned cache local-only.
+// SessionTransport child buses provide the optional direct lookup layer.
+const blockStoreBucketConfigRev = 2
 
 type decodedBlockRefInvalidator interface {
 	InvalidateDecodedBlockRef(context.Context, *block.BlockRef)
@@ -52,10 +58,14 @@ type BlockStore struct {
 	decodedBlocks *block.DecodedBlockCache
 	// forceSync flushes pending dirty blocks to the cloud immediately.
 	forceSync func(ctx context.Context) error
-	// refreshRemote pulls remote packfile metadata into the local lower store.
+	// refreshRemote pulls remote packfile metadata into the local read manifest.
 	refreshRemote func(ctx context.Context) error
 	// remoteSequence returns the local manifest's last-seen remote sequence.
 	remoteSequence func(ctx context.Context) (uint64, error)
+	// cacheStore is the account-owned non-dirty local cache read/write owner.
+	cacheStore block.StoreOps
+	// cloudStore is the account-owned Cloud read owner.
+	cloudStore block.StoreOps
 }
 
 // GetID returns the inner store id.
@@ -94,10 +104,11 @@ func (b *BlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 		scopedStore = block_store.NewStore(b.store.GetID(), store)
 	}
 	return &BlockStore{
-		store:         scopedStore,
-		decodedBlocks: b.decodedBlocks,
-		forceSync:     b.forceSync,
-		refreshRemote: b.refreshRemote,
+		store:          scopedStore,
+		decodedBlocks:  b.decodedBlocks,
+		forceSync:      b.forceSync,
+		refreshRemote:  b.refreshRemote,
+		remoteSequence: b.remoteSequence,
 	}, release, nil
 }
 
@@ -322,17 +333,33 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	// blocks already live in the cloud and must not be re-pushed by sync.
 	lower.SetWriteback(ctx, upper, 0)
 
-	// Wrap upper with dirty tracking for the sync controller.
-	dirtyUpper := &dirtyTrackingStore{store: upper}
+	// The upper wrapper distinguishes existing cache hits from blocks supplied
+	// by demand-driven DEX; the lower wrapper observes the single Cloud fallback.
+	sourceUpper := &sourceTrackingStore{
+		StoreOps:   upper,
+		account:    t.a,
+		bstoreID:   t.id,
+		source:     SyncTelemetryBlockSourceDirect,
+		upperCache: true,
+	}
+	sourceLower := &sourceTrackingStore{
+		StoreOps: lower,
+		account:  t.a,
+		bstoreID: t.id,
+		source:   SyncTelemetryBlockSourceCloud,
+	}
 
-	// Build overlay: upper-first cache lookups with lower reads handled by the
-	// packfile store's own non-dirty persistence path.
+	// Wrap upper with dirty tracking for the sync controller.
+	dirtyUpper := &dirtyTrackingStore{store: sourceUpper}
+
 	localID := BlockStoreID(accountID, t.id)
-	overlay := newCloudOverlay(ctx, le, lower, dirtyUpper)
+	overlay := newCloudOverlay(ctx, le, sourceLower, dirtyUpper)
 
 	bstoreHandle := &BlockStore{
 		store:         block_store.NewStore(localID, overlay),
 		decodedBlocks: decodedBlocks,
+		cacheStore:    sourceUpper,
+		cloudStore:    sourceLower,
 	}
 
 	// Build and register block store controller on the bus.
@@ -406,6 +433,11 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		}
 		return err
 	}
+	remoteSequence, err := sc.LastPullSequence(ctx)
+	if err != nil {
+		return errors.Wrap(err, "reading initial cloud remote sequence")
+	}
+	t.a.setSyncTelemetryCloudRemoteSequence(t.id, remoteSequence)
 
 	syncOwner := newBstoreSyncOwner(le, sc)
 	syncOwner.Start(ctx)
@@ -459,7 +491,61 @@ func newCloudOverlay(ctx context.Context, le *logrus.Entry, lower, upper block.S
 // buildBucketConf builds the bucket config for the block store cache.
 func (t *bstoreTracker) buildBucketConf() (*bucket.Config, error) {
 	bucketID := BlockStoreBucketID(t.a.accountID, t.id)
-	return bucket.NewConfig(bucketID, 1, &bucket.LookupConfig{})
+	lookupConf, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
+		NotFoundBehavior:  lookup_concurrent.NotFoundBehavior_NotFoundBehavior_NONE,
+		PutBlockBehavior:  lookup_concurrent.PutBlockBehavior_PutBlockBehavior_ALL,
+		WritebackBehavior: lookup_concurrent.WritebackBehavior_WritebackBehavior_ALL,
+	}))
+	if err != nil {
+		return nil, err
+	}
+	return bucket.NewConfig(bucketID, blockStoreBucketConfigRev, lookupConf)
+}
+
+// sourceTrackingStore records the source that satisfied completed block reads.
+type sourceTrackingStore struct {
+	block.StoreOps
+	account    *ProviderAccount
+	bstoreID   string
+	source     SyncTelemetryBlockSource
+	upperCache bool
+}
+
+// BeginReadOperation preserves source observation inside a scoped read.
+func (s *sourceTrackingStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	scoped, release, err := s.StoreOps.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &sourceTrackingStore{
+		StoreOps:   scoped,
+		account:    s.account,
+		bstoreID:   s.bstoreID,
+		source:     s.source,
+		upperCache: s.upperCache,
+	}, release, nil
+}
+
+// GetBlock records cache, direct, or Cloud ownership for a successful read.
+func (s *sourceTrackingStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	cached := false
+	if s.upperCache {
+		var err error
+		cached, err = s.GetBlockExists(ctx, ref)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+	data, found, err := s.StoreOps.GetBlock(ctx, ref)
+	if err != nil || !found {
+		return data, found, err
+	}
+	source := s.source
+	if cached {
+		source = SyncTelemetryBlockSourceCache
+	}
+	s.account.recordSyncTelemetryBlockSource(s.bstoreID, source)
+	return data, true, nil
 }
 
 // dirtyTrackingStore wraps block.StoreOps and calls markDirty on new PutBlock.

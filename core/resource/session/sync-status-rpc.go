@@ -90,9 +90,13 @@ func (r *SessionResource) buildSpacewaveSyncStatusSnapshot(
 	})
 
 	telemetry, telemetryCh := acc.GetSyncTelemetrySnapshotWithWait()
-	transportRunning, transportCh := acc.GetTransportSnapshotWithWait()
-	return syncStatusFromSpacewaveTelemetry(telemetry, status, transportRunning, rate, now),
-		[]<-chan struct{}{accountCh, telemetryCh, transportCh}
+	sessionID := ""
+	if ref := r.session.GetSessionRef(); ref != nil && ref.GetProviderResourceRef() != nil {
+		sessionID = ref.GetProviderResourceRef().GetId()
+	}
+	composition, compositionCh := acc.GetTransportCompositionSnapshotWithWait(sessionID)
+	return syncStatusFromSpacewaveTelemetry(telemetry, status, composition, rate, now),
+		[]<-chan struct{}{accountCh, telemetryCh, compositionCh}
 }
 
 func (r *SessionResource) buildLocalSyncStatusSnapshot(
@@ -112,15 +116,15 @@ func (r *SessionResource) buildLocalSyncStatusSnapshot(
 func syncStatusFromSpacewaveTelemetry(
 	telemetry provider_spacewave.SyncTelemetrySnapshot,
 	status provider.ProviderAccountStatus,
-	transportRunning bool,
+	composition provider_spacewave.TransportCompositionSnapshot,
 	rate *syncStatusRateState,
 	now time.Time,
 ) *s4wave_session.WatchSyncStatusResponse {
 	resp := &s4wave_session.WatchSyncStatusResponse{
 		State:                             s4wave_session.SyncStatusState_SyncStatusState_SYNCED,
 		Direction:                         syncStatusDirection(telemetry),
-		TransportState:                    syncStatusSpacewaveTransportState(status, transportRunning),
-		P2PState:                          syncStatusP2PState(transportRunning, false, false),
+		TransportState:                    syncStatusSpacewaveTransportState(status),
+		P2PState:                          syncStatusSpacewaveP2PState(composition.P2PState),
 		PendingUploadBytes:                nonNegativeUint64(telemetry.PendingUploadBytes),
 		PendingDownloadBytes:              0,
 		PendingUploadCount:                uint32(max(telemetry.PendingUploadCount, 0)),
@@ -129,6 +133,8 @@ func syncStatusFromSpacewaveTelemetry(
 		ActiveUploadTransferredBytes:      nonNegativeUint64(telemetry.ActiveUploadTransferredBytes),
 		InFlightUploadCount:               uint32(max(telemetry.InFlightPushes, 0)),
 		ActiveStoreCount:                  uint32(max(telemetry.StoreCount, 0)),
+		ActivePeerCount:                   composition.ActivePeerCount,
+		DirectP2PDisabled:                 !composition.DirectP2PEnabled,
 		LastError:                         telemetry.LastError,
 		PackRangeRequestCount:             telemetry.RangeRequestCount,
 		PackRangeResponseBytes:            nonNegativeUint64(telemetry.RangeResponseBytes),
@@ -168,13 +174,29 @@ func syncStatusFromSpacewaveTelemetry(
 		PackIndexTailFetchBytes:           nonNegativeUint64(telemetry.IndexTailFetchBytes),
 		PackIndexTailResponseBytes:        nonNegativeUint64(telemetry.IndexTailResponseBytes),
 	}
+	resp.BlockStores = make([]*s4wave_session.SyncBlockStoreStatus, 0, len(telemetry.BlockStores))
+	for _, store := range telemetry.BlockStores {
+		resp.BlockStores = append(resp.BlockStores, &s4wave_session.SyncBlockStoreStatus{
+			BlockStoreId:              store.BlockStoreID,
+			SharedObjectId:            store.SharedObjectID,
+			DirectHitCount:            store.DirectHitCount,
+			CloudHitCount:             store.CloudHitCount,
+			CacheHitCount:             store.CacheHitCount,
+			LastSource:                syncStatusBlockSource(store.LastSource),
+			AcceptedRootInnerSequence: store.AcceptedRootInnerSequence,
+			CloudRemoteSequence:       store.CloudRemoteSequence,
+		})
+	}
+	if composition.LastError != "" {
+		resp.LastError = composition.LastError
+	}
 	if !telemetry.LastActivityAt.IsZero() {
 		resp.LastActivityAt = timestamppb.New(telemetry.LastActivityAt)
 	}
 	if resp.Direction != s4wave_session.SyncActivityDirection_SyncActivityDirection_NONE {
 		resp.State = s4wave_session.SyncStatusState_SyncStatusState_ACTIVE
 	}
-	if telemetry.LastError != "" {
+	if resp.LastError != "" {
 		resp.State = s4wave_session.SyncStatusState_SyncStatusState_ERROR
 	}
 	if rate != nil {
@@ -226,11 +248,7 @@ func syncStatusDirection(
 
 func syncStatusSpacewaveTransportState(
 	status provider.ProviderAccountStatus,
-	transportRunning bool,
 ) s4wave_session.SyncTransportState {
-	if transportRunning {
-		return s4wave_session.SyncTransportState_SyncTransportState_ONLINE
-	}
 	switch status {
 	case provider.ProviderAccountStatus_ProviderAccountStatus_READY,
 		provider.ProviderAccountStatus_ProviderAccountStatus_DORMANT:
@@ -244,6 +262,44 @@ func syncStatusSpacewaveTransportState(
 		return s4wave_session.SyncTransportState_SyncTransportState_ERROR
 	default:
 		return s4wave_session.SyncTransportState_SyncTransportState_UNKNOWN
+	}
+}
+
+func syncStatusSpacewaveP2PState(
+	state provider_spacewave.TransportCompositionP2PState,
+) s4wave_session.SyncP2PState {
+	switch state {
+	case provider_spacewave.TransportCompositionP2PStateDisabled:
+		return s4wave_session.SyncP2PState_SyncP2PState_DISABLED
+	case provider_spacewave.TransportCompositionP2PStateStarting:
+		return s4wave_session.SyncP2PState_SyncP2PState_STARTING
+	case provider_spacewave.TransportCompositionP2PStateNoPeers:
+		return s4wave_session.SyncP2PState_SyncP2PState_NO_PEERS
+	case provider_spacewave.TransportCompositionP2PStateIdle:
+		return s4wave_session.SyncP2PState_SyncP2PState_IDLE
+	case provider_spacewave.TransportCompositionP2PStateActive:
+		return s4wave_session.SyncP2PState_SyncP2PState_ACTIVE
+	case provider_spacewave.TransportCompositionP2PStateFallbackNoPeer:
+		return s4wave_session.SyncP2PState_SyncP2PState_FALLBACK_NO_PEER
+	case provider_spacewave.TransportCompositionP2PStateError:
+		return s4wave_session.SyncP2PState_SyncP2PState_ERROR
+	default:
+		return s4wave_session.SyncP2PState_SyncP2PState_UNKNOWN
+	}
+}
+
+func syncStatusBlockSource(
+	source provider_spacewave.SyncTelemetryBlockSource,
+) s4wave_session.SyncBlockSource {
+	switch source {
+	case provider_spacewave.SyncTelemetryBlockSourceCache:
+		return s4wave_session.SyncBlockSource_SyncBlockSource_CACHE
+	case provider_spacewave.SyncTelemetryBlockSourceDirect:
+		return s4wave_session.SyncBlockSource_SyncBlockSource_DIRECT
+	case provider_spacewave.SyncTelemetryBlockSourceCloud:
+		return s4wave_session.SyncBlockSource_SyncBlockSource_CLOUD
+	default:
+		return s4wave_session.SyncBlockSource_SyncBlockSource_UNKNOWN
 	}
 }
 

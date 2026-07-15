@@ -38,8 +38,21 @@ type SessionTransport struct {
 	signalingURL string
 	// signingEnvPfx is the request-signing environment prefix.
 	signingEnvPfx string
-	// ready is closed when the child bus is created and base controllers started.
+	// bridgeFilter optionally excludes directives from the parent bridge.
+	bridgeFilter bus_bridge.FilterFn
+	// ready is closed when the child bus and base controllers started.
 	ready chan struct{}
+}
+
+// SessionTransportOption configures child-bus directive routing.
+type SessionTransportOption func(*SessionTransport)
+
+// WithBridgeDirectiveFilter excludes matching directives from the generic
+// child-to-parent bridge while preserving the transport package's ownership.
+func WithBridgeDirectiveFilter(filter bus_bridge.FilterFn) SessionTransportOption {
+	return func(t *SessionTransport) {
+		t.bridgeFilter = filter
+	}
 }
 
 // NewSessionTransport constructs a new session-scoped transport.
@@ -55,12 +68,13 @@ func NewSessionTransport(
 	sessionKey bifrost_crypto.PrivKey,
 	signalingURL string,
 	signingEnvPfx string,
+	opts ...SessionTransportOption,
 ) (*SessionTransport, error) {
 	pid, err := peer.IDFromPrivateKey(sessionKey)
 	if err != nil {
 		return nil, err
 	}
-	return &SessionTransport{
+	t := &SessionTransport{
 		le:            le.WithField("transport-peer", pid.String()[:8]),
 		parentBus:     parentBus,
 		sessionKey:    sessionKey,
@@ -68,7 +82,13 @@ func NewSessionTransport(
 		signalingURL:  signalingURL,
 		signingEnvPfx: signingEnvPfx,
 		ready:         make(chan struct{}),
-	}, nil
+	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(t)
+		}
+	}
+	return t, nil
 }
 
 // GetPeerID returns the transport's peer ID.
@@ -145,8 +165,13 @@ func (t *SessionTransport) Execute(ctx context.Context) error {
 	}()
 
 	// Bridge directives from child to parent.
-	// Exclude GetPeer since the child has its own peer controller.
 	bridge := bus_bridge.NewBusBridge(t.parentBus, func(di directive.Instance) (bool, error) {
+		if t.bridgeFilter != nil {
+			process, err := t.bridgeFilter(di)
+			if err != nil || !process {
+				return process, err
+			}
+		}
 		switch di.GetDirective().(type) {
 		case peer.GetPeer:
 			return false, nil

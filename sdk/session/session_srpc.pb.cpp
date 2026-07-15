@@ -92,6 +92,10 @@ starpc::Error SRPCSessionResourceServiceClientImpl::SetLockMode(const s4wave::se
   return cc_->ExecCall(service_id_, "SetLockMode", in, out);
 }
 
+starpc::Error SRPCSessionResourceServiceClientImpl::SetDirectP2PEnabled(const s4wave::session::SetDirectP2PEnabledRequest& in, s4wave::session::SetDirectP2PEnabledResponse* out) {
+  return cc_->ExecCall(service_id_, "SetDirectP2PEnabled", in, out);
+}
+
 starpc::Error SRPCSessionResourceServiceClientImpl::UnlockSession(const s4wave::session::UnlockSessionRequest& in, s4wave::session::UnlockSessionResponse* out) {
   return cc_->ExecCall(service_id_, "UnlockSession", in, out);
 }
@@ -245,6 +249,7 @@ std::vector<std::string> SRPCSessionResourceServiceHandler::GetMethodIDs() const
     "RenameSpace",
     "WatchLockState",
     "SetLockMode",
+    "SetDirectP2PEnabled",
     "UnlockSession",
     "LockSession",
     "GeneratePairingCode",
@@ -359,6 +364,14 @@ std::pair<bool, starpc::Error> SRPCSessionResourceServiceHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     s4wave::session::SetLockModeResponse resp;
     err = impl_->SetLockMode(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "SetDirectP2PEnabled") {
+    s4wave::session::SetDirectP2PEnabledRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    s4wave::session::SetDirectP2PEnabledResponse resp;
+    err = impl_->SetDirectP2PEnabled(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   } else if (method_id == "UnlockSession") {

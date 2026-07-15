@@ -3,6 +3,7 @@ package provider_spacewave
 import (
 	"context"
 	"path"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -376,6 +377,16 @@ func (t *sobjectTracker) executeSharedObjectTracker(rctx context.Context) (rerr 
 	)
 	host.refreshBlockManifest = cloudBlkStore.RefreshRemote
 	host.blockManifestSequence = cloudBlkStore.RemoteSequence
+	host.stateObserved = func(state *sobject.SOState) {
+		if state == nil || state.GetRoot() == nil {
+			return
+		}
+		t.a.setSyncTelemetryAcceptedRoot(
+			sobjectRef.GetBlockStoreId(),
+			sharedObjectID,
+			state.GetRoot().GetInnerSeqno(),
+		)
+	}
 	host.soHost.SetContext(ctx)
 
 	so := &SharedObject{
@@ -896,24 +907,20 @@ func (s *SharedObject) AddParticipant(ctx context.Context, targetPeerIDStr strin
 		if err != nil {
 			return nil, err
 		}
-		var (
-			participantExists      bool
-			participantNeedsUpdate bool
-			participantIdx         int
-		)
-		for i, p := range currentCfg.GetParticipants() {
-			if p.GetPeerId() == targetPeerIDStr {
-				participantExists = true
-				participantIdx = i
-				if p.GetRole() != sobject.MaxSOParticipantRole(p.GetRole(), role) {
-					participantNeedsUpdate = true
-				}
-				if p.GetEntityId() == "" && entityID != "" {
-					participantNeedsUpdate = true
-				}
-				break
+		participantNeedsUpdate := false
+		participantIdx := slices.IndexFunc(currentCfg.GetParticipants(), func(p *sobject.SOParticipantConfig) bool {
+			if p.GetPeerId() != targetPeerIDStr {
+				return false
 			}
-		}
+			if p.GetRole() != sobject.MaxSOParticipantRole(p.GetRole(), role) {
+				participantNeedsUpdate = true
+			}
+			if p.GetEntityId() == "" && entityID != "" {
+				participantNeedsUpdate = true
+			}
+			return true
+		})
+		participantExists := participantIdx >= 0
 		epoch := currentEpochWithFallback(state, epochs)
 		grantExists := soGrantSliceHasPeerID(state.GetRootGrants(), targetPeerIDStr)
 		if !grantExists && epoch != nil {

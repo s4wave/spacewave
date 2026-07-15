@@ -146,8 +146,9 @@ func TestMultiNodeDEX(
 	}
 
 	lookupConf := &lc.Config{
-		NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT,
-		PutBlockBehavior: lc.PutBlockBehavior_PutBlockBehavior_ALL,
+		NotFoundBehavior:  lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT,
+		PutBlockBehavior:  lc.PutBlockBehavior_PutBlockBehavior_ALL,
+		WritebackBehavior: lc.WritebackBehavior_WritebackBehavior_ALL,
 	}
 	cc, err := csp.NewControllerConfig(configset.NewControllerConfig(1, lookupConf), false)
 	if err != nil {
@@ -214,9 +215,10 @@ func TestMultiNodeDEX(
 
 	// data to transport
 	dataXfer := []byte("hello world")
+	dataUntouched := []byte("untouched")
 
 	// get bucket handle
-	var dataXferRef *block.BlockRef
+	var dataXferRef, untouchedRef *block.BlockRef
 	{
 		rootCursor, _, err := bucket_lookup.BuildEmptyCursor(
 			subCtx,
@@ -233,9 +235,14 @@ func TestMultiNodeDEX(
 		}
 		dataXferRef, _, err = rootCursor.PutBlock(ctx, dataXfer, nil)
 		if err != nil {
+			rootCursor.Release()
 			t.Fatal(err.Error())
 		}
+		untouchedRef, _, err = rootCursor.PutBlock(ctx, dataUntouched, nil)
 		rootCursor.Release()
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 
 	t.Logf(
@@ -289,5 +296,14 @@ func TestMultiNodeDEX(
 			t.Fatal("volume lookup on node 3 returned ok=false")
 		}
 		_ = dat // encrypted here
+		untouchedOK, err := bav.GetBucket().GetBlockExists(ctx, untouchedRef)
+		if err != nil {
+			avRel.Release()
+			t.Fatal(err.Error())
+		} else if untouchedOK {
+			avRel.Release()
+			t.Fatal("untouched block present in local storage after requested read")
+		}
+		avRel.Release()
 	}
 }

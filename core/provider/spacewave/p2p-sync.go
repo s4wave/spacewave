@@ -19,18 +19,53 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// p2pSyncState holds running P2P sync state for a provider account.
+// p2pSyncState holds running P2P sync state for one mounted Session.
 type p2pSyncState struct {
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
-	refs   []directive.Reference
-	relFns []func()
+	sessionID string
+	cancel    context.CancelFunc
+	wg        sync.WaitGroup
+	mtx       sync.Mutex
+	refs      []directive.Reference
+	relFns    []func()
+}
+
+func (s *p2pSyncState) addRef(ref directive.Reference) {
+	s.mtx.Lock()
+	s.refs = append(s.refs, ref)
+	s.mtx.Unlock()
+}
+
+func (s *p2pSyncState) addRelease(release func()) {
+	s.mtx.Lock()
+	s.relFns = append(s.relFns, release)
+	s.mtx.Unlock()
+}
+
+func (s *p2pSyncState) cleanup() {
+	s.mtx.Lock()
+	refs, relFns := s.refs, s.relFns
+	s.refs, s.relFns = nil, nil
+	s.mtx.Unlock()
+	for _, ref := range refs {
+		ref.Release()
+	}
+	for _, release := range relFns {
+		release()
+	}
 }
 
 // StartP2PSync starts SO sync, DEX block exchange, and the direct invite
-// server for the mounted cloud session transport.
+// server for the legacy default session transport.
 func (a *ProviderAccount) StartP2PSync(
 	ctx context.Context,
+	sessionTransport *transport.SessionTransport,
+) error {
+	return a.startP2PSyncForSession(ctx, "", sessionTransport)
+}
+
+func (a *ProviderAccount) startP2PSyncForSession(
+	ctx context.Context,
+	sessionID string,
 	sessionTransport *transport.SessionTransport,
 ) error {
 	childBus := sessionTransport.GetChildBus()
@@ -38,10 +73,17 @@ func (a *ProviderAccount) StartP2PSync(
 		return nil
 	}
 
-	a.StopP2PSync()
+	a.stopP2PSyncForSession(sessionID)
 
 	syncCtx, syncCancel := context.WithCancel(ctx)
-	state := &p2pSyncState{cancel: syncCancel}
+	state := &p2pSyncState{sessionID: sessionID, cancel: syncCancel}
+	mountCtrl := &sessionSharedObjectMountController{account: a, sessionID: sessionID}
+	releaseMountCtrl, err := childBus.AddController(syncCtx, mountCtrl, nil)
+	if err != nil {
+		syncCancel()
+		return errors.Wrap(err, "register session shared object mount")
+	}
+	state.addRelease(releaseMountCtrl)
 
 	soList := a.soListCtr.GetValue()
 	if soList != nil {
@@ -74,25 +116,33 @@ func (a *ProviderAccount) StartP2PSync(
 		a.le.WithError(err).Warn("failed to start invite server")
 	}
 
-	a.p2pSync = state
+	a.p2pSyncMtx.Lock()
+	if a.p2pSyncs == nil {
+		a.p2pSyncs = make(map[string]*p2pSyncState)
+	}
+	a.p2pSyncs[sessionID] = state
+	a.p2pSyncMtx.Unlock()
 	return nil
 }
 
-// StopP2PSync stops all P2P sync controllers, waits for goroutines
-// to finish, and releases references.
+// StopP2PSync stops the legacy default session's P2P controllers.
 func (a *ProviderAccount) StopP2PSync() {
-	if a.p2pSync == nil {
+	a.stopP2PSyncForSession("")
+}
+
+func (a *ProviderAccount) stopP2PSyncForSession(sessionID string) {
+	a.p2pSyncMtx.Lock()
+	state := a.p2pSyncs[sessionID]
+	if state != nil {
+		delete(a.p2pSyncs, sessionID)
+	}
+	a.p2pSyncMtx.Unlock()
+	if state == nil {
 		return
 	}
-	a.p2pSync.cancel()
-	a.p2pSync.wg.Wait()
-	for _, ref := range a.p2pSync.refs {
-		ref.Release()
-	}
-	for _, rel := range a.p2pSync.relFns {
-		rel()
-	}
-	a.p2pSync = nil
+	state.cancel()
+	state.wg.Wait()
+	state.cleanup()
 }
 
 // startSOSync mounts the shared object and starts an SOSync instance for it.
@@ -103,20 +153,20 @@ func (a *ProviderAccount) startSOSync(
 	soID string,
 	state *p2pSyncState,
 ) error {
-	so, relSO, err := a.MountSharedObject(ctx, ref, nil)
+	so, relSO, err := sobject.ExMountSharedObject(ctx, childBus, ref, false, nil)
 	if err != nil {
 		return err
 	}
 
-	swSO, ok := so.(*SharedObject)
+	swSO, ok := so.(*sessionSharedObject)
 	if !ok {
-		relSO()
-		return errors.New("unexpected shared object type")
+		relSO.Release()
+		return errors.New("unexpected session shared object type")
 	}
 
 	soSync := sobject_sync.NewSOSync(a.le, childBus, soID, swSO.GetSOHost())
 	state.wg.Go(func() {
-		defer relSO()
+		defer relSO.Release()
 		if err := soSync.Execute(ctx); err != nil && ctx.Err() == nil {
 			a.le.WithError(err).WithField("so-id", soID).Warn("so sync exited with error")
 		}
@@ -210,7 +260,7 @@ func (a *ProviderAccount) startInviteServer(
 	if err != nil {
 		return err
 	}
-	state.relFns = append(state.relFns, relCtrl)
+	state.addRelease(relCtrl)
 	return nil
 }
 
@@ -233,6 +283,6 @@ func (a *ProviderAccount) startDEXSolicit(
 	if err != nil {
 		return err
 	}
-	state.refs = append(state.refs, dexRef)
+	state.addRef(dexRef)
 	return nil
 }

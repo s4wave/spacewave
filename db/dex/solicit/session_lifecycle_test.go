@@ -7,7 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/dex"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/link"
 	link_solicit "github.com/s4wave/spacewave/net/link/solicit"
@@ -123,12 +125,51 @@ func TestPeerSessionCloseWakesPendingRequestsWithoutRunLoop(t *testing.T) {
 	}
 }
 
+func TestPeerSessionRejectsMismatchedBlockData(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	c := newTestDexSolicitController()
+	sess, remote, cleanup := newTestPeerSessionPair(c, peer.ID("corrupt-peer"))
+	defer cleanup()
+	sess.start(ctx)
+
+	remoteErr := make(chan error, 1)
+	go func() {
+		var req DexMessage
+		if err := remote.RecvMsg(&req); err != nil {
+			remoteErr <- err
+			return
+		}
+		remoteErr <- remote.SendMsg(&DexMessage{
+			RequestId:  req.GetRequestId(),
+			IsResponse: true,
+			Found:      true,
+			Data:       []byte("corrupt"),
+		})
+	}()
+
+	data, found, err := sess.requestBlock(ctx, testDexBlockRef(t, "expected"), 0)
+	if err == nil {
+		t.Fatal("mismatched block data returned no error")
+	}
+	if found {
+		t.Fatal("mismatched block data returned found=true")
+	}
+	if string(data) != "corrupt" {
+		t.Fatalf("diagnostic data = %q, want corrupt response bytes", data)
+	}
+	if remoteErr := recvTestDexValue(t, remoteErr, "corrupt block response"); remoteErr != nil {
+		t.Fatal(remoteErr)
+	}
+}
+
 func TestLookupResolverQueryPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	c := newTestDexSolicitController()
-	ref := testDexBlockRef(t, "query")
+	ref := testDexBlockRef(t, "fast-data")
 	fast, fastRemote, fastCleanup := newTestPeerSessionPair(c, peer.ID("fast"))
 	defer fastCleanup()
 	slow, slowRemote, slowCleanup := newTestPeerSessionPair(c, peer.ID("slow"))
@@ -210,6 +251,145 @@ func TestLookupResolverQueryPeersDeadlineClearsPendingRequests(t *testing.T) {
 	})
 }
 
+func TestLookupResolverCompletesDemandWithoutPeers(t *testing.T) {
+	handler := &testDexResolverHandler{}
+	resolver := &lookupResolver{
+		c:   newTestDexSolicitController(),
+		ref: testDexBlockRef(t, "no-peer"),
+	}
+
+	if err := resolver.Resolve(t.Context(), handler); err != nil {
+		t.Fatal(err)
+	}
+	assertTestDexNotFoundValue(t, handler)
+}
+
+func TestLookupResolverCompletesCurrentPeerMissOnce(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	c := newTestDexSolicitController()
+	remoteID := peer.ID("missing-peer")
+	sess, remote, cleanup := newTestPeerSessionPair(c, remoteID)
+	defer cleanup()
+	sess.start(ctx)
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.sessions[remoteID.String()] = sess
+		broadcast()
+	})
+
+	requests := make(chan *DexMessage, 1)
+	remoteErr := make(chan error, 1)
+	go func() {
+		var req DexMessage
+		if err := remote.RecvMsg(&req); err != nil {
+			remoteErr <- err
+			return
+		}
+		requests <- &req
+		remoteErr <- remote.SendMsg(&DexMessage{
+			RequestId:  req.GetRequestId(),
+			IsResponse: true,
+		})
+	}()
+
+	requested := testDexBlockRef(t, "missing")
+	untouched := testDexBlockRef(t, "untouched")
+	handler := &testDexResolverHandler{}
+	resolved := make(chan error, 1)
+	go func() {
+		resolved <- (&lookupResolver{
+			c:   c,
+			ref: requested,
+		}).Resolve(ctx, handler)
+	}()
+
+	req := recvTestDexValue(t, requests, "single missing block request")
+	if req.GetRequestId() == 0 {
+		t.Fatal("request id was not assigned")
+	}
+	if !req.GetRef().EqualsRef(requested) {
+		t.Fatalf("requested ref = %s, want %s", req.GetRef().MarshalString(), requested.MarshalString())
+	}
+	if req.GetRef().EqualsRef(untouched) {
+		t.Fatal("untouched ref was requested")
+	}
+	if err := recvTestDexValue(t, remoteErr, "missing block response"); err != nil {
+		t.Fatal(err)
+	}
+	if err := recvTestDexValue(t, resolved, "missing block demand completion"); err != nil {
+		t.Fatal(err)
+	}
+	assertTestDexNotFoundValue(t, handler)
+
+	extraRequests := make(chan *DexMessage, 1)
+	go func() {
+		var req DexMessage
+		if err := remote.RecvMsg(&req); err == nil {
+			extraRequests <- &req
+		}
+	}()
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		broadcast()
+	})
+	assertNoTestDexValue(t, extraRequests, "replayed block request after link-state change")
+}
+
+func TestLookupResolverReturnsPeerDataWithoutWritingStorage(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	c := newTestDexSolicitController()
+	remoteID := peer.ID("data-peer")
+	sess, remote, cleanup := newTestPeerSessionPair(c, remoteID)
+	defer cleanup()
+	sess.start(ctx)
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.sessions[remoteID.String()] = sess
+		broadcast()
+	})
+
+	want := []byte("peer-data")
+	remoteErr := make(chan error, 1)
+	go func() {
+		var req DexMessage
+		if err := remote.RecvMsg(&req); err != nil {
+			remoteErr <- err
+			return
+		}
+		remoteErr <- remote.SendMsg(&DexMessage{
+			RequestId:  req.GetRequestId(),
+			IsResponse: true,
+			Found:      true,
+			Data:       want,
+		})
+	}()
+
+	handler := &testDexResolverHandler{}
+	if err := (&lookupResolver{
+		c:   c,
+		ref: testDexBlockRef(t, string(want)),
+	}).Resolve(ctx, handler); err != nil {
+		t.Fatal(err)
+	}
+	if err := recvTestDexValue(t, remoteErr, "found block response"); err != nil {
+		t.Fatal(err)
+	}
+	if len(handler.values) != 1 {
+		t.Fatalf("values = %d, want 1", len(handler.values))
+	}
+	value, ok := handler.values[0].(dex.LookupBlockFromNetworkValue)
+	if !ok {
+		t.Fatalf("value type = %T, want LookupBlockFromNetworkValue", handler.values[0])
+	}
+	if string(value.GetData()) != string(want) {
+		t.Fatalf("data = %q, want %q", value.GetData(), want)
+	}
+	if err := value.GetError(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestControllerForwardToPeersExcludesOrigin(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -252,7 +432,7 @@ func TestControllerForwardToPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
 	defer cancel()
 
 	c := newTestDexSolicitController()
-	ref := testDexBlockRef(t, "forward")
+	ref := testDexBlockRef(t, "forward-data")
 	fast, fastRemote, fastCleanup := newTestPeerSessionPair(c, peer.ID("fast"))
 	defer fastCleanup()
 	slow, slowRemote, slowCleanup := newTestPeerSessionPair(c, peer.ID("slow"))
@@ -309,6 +489,71 @@ func TestControllerForwardToPeersCancelsLosersAfterFirstSuccess(t *testing.T) {
 		return testDexPendingLen(slow) == 0
 	})
 }
+
+type testDexResolverHandler struct {
+	values []directive.Value
+}
+
+func (h *testDexResolverHandler) AddValue(value directive.Value) (uint32, bool) {
+	h.values = append(h.values, value)
+	return uint32(len(h.values)), true
+}
+
+func (h *testDexResolverHandler) RemoveValue(id uint32) (directive.Value, bool) {
+	if id == 0 || int(id) > len(h.values) {
+		return nil, false
+	}
+	value := h.values[id-1]
+	h.values[id-1] = nil
+	return value, true
+}
+
+func (h *testDexResolverHandler) CountValues(bool) int {
+	return len(h.values)
+}
+
+func (h *testDexResolverHandler) ClearValues() []uint32 {
+	ids := make([]uint32, len(h.values))
+	for i := range h.values {
+		ids[i] = uint32(i + 1)
+	}
+	h.values = nil
+	return ids
+}
+
+func (h *testDexResolverHandler) MarkIdle(bool) {}
+
+func (h *testDexResolverHandler) AddValueRemovedCallback(uint32, func()) func() {
+	return func() {}
+}
+
+func (h *testDexResolverHandler) AddResolverRemovedCallback(func()) func() {
+	return func() {}
+}
+
+func (h *testDexResolverHandler) AddResolver(directive.Resolver, func()) func() {
+	return func() {}
+}
+
+func assertTestDexNotFoundValue(t *testing.T, handler *testDexResolverHandler) {
+	t.Helper()
+	if len(handler.values) != 1 {
+		t.Fatalf("values = %d, want 1", len(handler.values))
+	}
+	value, ok := handler.values[0].(dex.LookupBlockFromNetworkValue)
+	if !ok {
+		t.Fatalf("value type = %T, want LookupBlockFromNetworkValue", handler.values[0])
+	}
+	if len(value.GetData()) != 0 {
+		t.Fatalf("data = %q, want empty", value.GetData())
+	}
+	if err := value.GetError(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// _ is a type assertion.
+var _ directive.ResolverHandler = (*testDexResolverHandler)(nil)
 
 type testDexMountedLink struct {
 	remote peer.ID

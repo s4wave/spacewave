@@ -298,36 +298,34 @@ func (r *StatusResource) watchRecoveryLauncherChanges(ctx context.Context, notif
 	if ctrl == nil {
 		return
 	}
-	if ctr := ctrl.GetFetchStatusCtr(); ctr != nil {
-		current := ctr.GetValue()
-		go func() {
-			_ = ccontainer.WatchChanges(
-				ctx,
-				current,
-				ctr,
-				func(*spacewave_launcher.FetchStatus) error {
-					notify()
-					return nil
-				},
-				nil,
-			)
-		}()
-	}
-	if ctr := ctrl.GetLauncherInfoCtr(); ctr != nil {
-		current := ctr.GetValue()
-		go func() {
-			_ = ccontainer.WatchChanges(
-				ctx,
-				current,
-				ctr,
-				func(*spacewave_launcher.LauncherInfo) error {
-					notify()
-					return nil
-				},
-				nil,
-			)
-		}()
-	}
+	ctr := ctrl.GetFetchStatusCtr()
+	current := ctr.GetValue()
+	go func() {
+		_ = ccontainer.WatchChanges(
+			ctx,
+			current,
+			ctr,
+			func(*spacewave_launcher.FetchStatus) error {
+				notify()
+				return nil
+			},
+			nil,
+		)
+	}()
+	infoCtr := ctrl.GetLauncherInfoCtr()
+	infoCurrent := infoCtr.GetValue()
+	go func() {
+		_ = ccontainer.WatchChanges(
+			ctx,
+			infoCurrent,
+			infoCtr,
+			func(*spacewave_launcher.LauncherInfo) error {
+				notify()
+				return nil
+			},
+			nil,
+		)
+	}()
 }
 
 func (r *StatusResource) watchRecoveryPluginChanges(ctx context.Context, notify func()) {
@@ -530,14 +528,8 @@ func (r *StatusResource) buildLauncherRecoveryStatus() *s4wave_status.LauncherRe
 	if ctrl == nil {
 		return nil
 	}
-	var info *spacewave_launcher.LauncherInfo
-	if infoCtr := ctrl.GetLauncherInfoCtr(); infoCtr != nil {
-		info = infoCtr.GetValue()
-	}
-	var status *spacewave_launcher.FetchStatus
-	if statusCtr := ctrl.GetFetchStatusCtr(); statusCtr != nil {
-		status = statusCtr.GetValue()
-	}
+	info := ctrl.GetLauncherInfoCtr().GetValue()
+	status := ctrl.GetFetchStatusCtr().GetValue()
 	return buildLauncherRecoveryStatus(info, status)
 }
 

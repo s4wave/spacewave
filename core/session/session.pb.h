@@ -367,6 +367,7 @@ class SessionMetadata final : public ::google::protobuf::Message
     kCreatedAtFieldNumber = 5,
     kLockModeFieldNumber = 4,
     kRecoveryStateFieldNumber = 11,
+    kDirectP2PDisabledFieldNumber = 12,
   };
   // string display_name = 1;
   void clear_display_name() ;
@@ -488,11 +489,21 @@ class SessionMetadata final : public ::google::protobuf::Message
   void _internal_set_recovery_state(::session::SessionRecoveryState value);
 
   public:
+  // bool direct_p2p_disabled = 12;
+  void clear_direct_p2p_disabled() ;
+  bool direct_p2p_disabled() const;
+  void set_direct_p2p_disabled(bool value);
+
+  private:
+  bool _internal_direct_p2p_disabled() const;
+  void _internal_set_direct_p2p_disabled(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:session.SessionMetadata)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 9,
+  static const ::google::protobuf::internal::TcParseTable<4, 10,
                                    0, 134,
                                    2>
       _table_;
@@ -523,6 +534,7 @@ class SessionMetadata final : public ::google::protobuf::Message
     ::int64_t created_at_;
     int lock_mode_;
     int recovery_state_;
+    bool direct_p2p_disabled_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2095,6 +2107,31 @@ inline ::session::SessionRecoveryState SessionMetadata::_internal_recovery_state
 inline void SessionMetadata::_internal_set_recovery_state(::session::SessionRecoveryState value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.recovery_state_ = value;
+}
+
+// bool direct_p2p_disabled = 12;
+inline void SessionMetadata::clear_direct_p2p_disabled() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.direct_p2p_disabled_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline bool SessionMetadata::direct_p2p_disabled() const {
+  // @@protoc_insertion_point(field_get:session.SessionMetadata.direct_p2p_disabled)
+  return _internal_direct_p2p_disabled();
+}
+inline void SessionMetadata::set_direct_p2p_disabled(bool value) {
+  _internal_set_direct_p2p_disabled(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_set:session.SessionMetadata.direct_p2p_disabled)
+}
+inline bool SessionMetadata::_internal_direct_p2p_disabled() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.direct_p2p_disabled_;
+}
+inline void SessionMetadata::_internal_set_direct_p2p_disabled(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.direct_p2p_disabled_ = value;
 }
 
 // -------------------------------------------------------------------

@@ -10,7 +10,6 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/dex"
 	link_solicit "github.com/s4wave/spacewave/net/link/solicit"
 	"github.com/s4wave/spacewave/net/protocol"
@@ -186,33 +185,21 @@ type lookupResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *lookupResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	for {
-		// Snapshot current sessions and get wait channel atomically.
-		var sessions []*peerSession
-		var ch <-chan struct{}
-		r.c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			ch = getWaitCh()
-			for _, s := range r.c.sessions {
-				sessions = append(sessions, s)
-			}
-		})
-
-		// Query all known peers in parallel with a per-request timeout.
-		if data, found := r.queryPeers(ctx, sessions); found {
-			if storeErr := r.storeBlock(ctx, data, r.ref); storeErr != nil {
-				r.c.le.WithError(storeErr).Warn("failed to store received block")
-			}
-			handler.AddValue(dex.NewLookupBlockFromNetworkValue(data, nil))
-			return nil
+	var sessions []*peerSession
+	r.c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, s := range r.c.sessions {
+			sessions = append(sessions, s)
 		}
+	})
 
-		// Wait for session changes (new peer connections / disconnections).
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ch:
-		}
+	data, found := r.queryPeers(ctx, sessions)
+	if !found {
+		handler.AddValue(dex.NewLookupBlockFromNetworkValue(nil, nil))
+		return nil
 	}
+
+	handler.AddValue(dex.NewLookupBlockFromNetworkValue(data, nil))
+	return nil
 }
 
 // queryPeers queries all sessions in parallel for the block.
@@ -264,29 +251,6 @@ func (f peerBlockFanout) run(ctx context.Context) ([]byte, bool) {
 		}
 	}
 	return nil, false
-}
-
-// storeBlock stores a received block in the local bucket.
-func (r *lookupResolver) storeBlock(ctx context.Context, data []byte, ref *block.BlockRef) error {
-	lkv, _, lkRel, err := bucket_lookup.ExBuildBucketLookup(ctx, r.c.b, false, r.c.cc.GetBucketId(), nil)
-	if err != nil {
-		return err
-	}
-	defer lkRel.Release()
-
-	lk, err := lkv.GetLookup(ctx)
-	if err != nil {
-		return err
-	}
-	if lk == nil {
-		return nil
-	}
-
-	_, _, err = lk.PutBlock(ctx, data, &block.PutOpts{
-		HashType:      ref.GetHash().GetHashType(),
-		ForceBlockRef: ref.Clone(),
-	})
-	return err
 }
 
 // _ is a type assertion

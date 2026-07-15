@@ -169,6 +169,14 @@ export class Session extends Resource {
     await this.service.SetLockMode({ mode, pin }, abortSignal)
   }
 
+  // setDirectP2PEnabled updates the durable Session-local direct transport policy.
+  public async setDirectP2PEnabled(
+    enabled: boolean,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
+    await this.service.SetDirectP2PEnabled({ enabled }, abortSignal)
+  }
+
   // lockSession locks a running session, scrubbing the privkey and
   // requiring PIN re-entry. Only works when PIN mode is configured.
   public async lockSession(abortSignal?: AbortSignal): Promise<void> {

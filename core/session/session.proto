@@ -80,6 +80,9 @@ message SessionMetadata {
   string provider_id = 10;
   // RecoveryState reports whether the PIN reset path can recover this session.
   SessionRecoveryState recovery_state = 11;
+  // DirectP2PDisabled opts this Session out of direct peer transport.
+  // The zero value preserves direct P2P for existing Session metadata.
+  bool direct_p2p_disabled = 12;
 }
 
 // EntityKeypair is a keypair associated with an entity for authentication.

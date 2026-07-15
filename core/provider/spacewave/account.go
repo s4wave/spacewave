@@ -72,8 +72,10 @@ type ProviderAccount struct {
 	// sessionClientSessionID is the mounted session that owns sessionClient.
 	// Guarded by accountBcast after ProviderAccount construction.
 	sessionClientSessionID string
-	// sessionTransport is the running session-scoped transport for direct P2P.
-	sessionTransport *sessionTransportState
+	// sessionTransports contains direct transports keyed by mounted Session ID.
+	sessionTransports map[string]*sessionTransportState
+	// transportComposition is the per-Session direct-transport selection owner.
+	transportComposition transportCompositionOwner
 	// conf is the provider configuration
 	conf *Config
 	// sfs is the step factory set for block transforms
@@ -126,9 +128,8 @@ type ProviderAccount struct {
 	entityKeypairStepUp *entitykeystore.EntityKeypairStepUp
 	// managedBAsCache caches the billing accounts created by this caller.
 	managedBAsCache *managedbacache.Store
-	// p2pSync contains the direct invite / sync controllers bound to the
-	// current session transport.
-	p2pSync *p2pSyncState
+	// p2pSyncs contains direct invite / sync controllers keyed by Session ID.
+	p2pSyncs map[string]*p2pSyncState
 
 	// bstores contains the set of mounted block stores.
 	bstores *keyed.KeyedRefCount[string, *bstoreTracker]
@@ -143,10 +144,12 @@ type ProviderAccount struct {
 	// accountBcast fires when account state changes.
 	// Guards all fields in the accountState struct below.
 	accountBcast broadcast.Broadcast
-	// transportBcast guards sessionTransport.
+	// transportBcast guards sessionTransports.
 	transportBcast broadcast.Broadcast
 	// transportReplaceMtx serializes session transport create/replace/stop.
 	transportReplaceMtx sync.Mutex
+	// p2pSyncMtx guards p2pSyncs.
+	p2pSyncMtx sync.Mutex
 	// syncTelemetry stores sync activity snapshots keyed by block store id.
 	syncTelemetry synctelemetry.Store
 	// gcCleanupCollect overrides cleanup collection in tests.
@@ -188,34 +191,34 @@ type ProviderAccount struct {
 // WebSocket frames. Returns a release function that unsubscribes; callers
 // MUST release when the subscription is no longer needed. cb is invoked
 // from the WS read loop so it should be non-blocking or offload work.
-func (acc *ProviderAccount) RegisterCdnRootChangedCallback(cb func(spaceID string)) func() {
+func (a *ProviderAccount) RegisterCdnRootChangedCallback(cb func(spaceID string)) func() {
 	if cb == nil {
 		return func() {}
 	}
 	key := &cb
-	acc.cdnRootChangedMtx.Lock()
-	if acc.cdnRootChangedCbs == nil {
-		acc.cdnRootChangedCbs = make(map[*func(spaceID string)]struct{})
+	a.cdnRootChangedMtx.Lock()
+	if a.cdnRootChangedCbs == nil {
+		a.cdnRootChangedCbs = make(map[*func(spaceID string)]struct{})
 	}
-	acc.cdnRootChangedCbs[key] = struct{}{}
-	acc.cdnRootChangedMtx.Unlock()
+	a.cdnRootChangedCbs[key] = struct{}{}
+	a.cdnRootChangedMtx.Unlock()
 	return func() {
-		acc.cdnRootChangedMtx.Lock()
-		delete(acc.cdnRootChangedCbs, key)
-		acc.cdnRootChangedMtx.Unlock()
+		a.cdnRootChangedMtx.Lock()
+		delete(a.cdnRootChangedCbs, key)
+		a.cdnRootChangedMtx.Unlock()
 	}
 }
 
 // fireCdnRootChanged fans out a cdn-root-changed notification to every
 // registered callback. Callbacks are invoked under a snapshot so Register
 // and Release calls do not block the WS reader.
-func (acc *ProviderAccount) fireCdnRootChanged(spaceID string) {
+func (a *ProviderAccount) fireCdnRootChanged(spaceID string) {
 	var cbs []func(string)
-	acc.cdnRootChangedMtx.Lock()
-	for key := range acc.cdnRootChangedCbs {
+	a.cdnRootChangedMtx.Lock()
+	for key := range a.cdnRootChangedCbs {
 		cbs = append(cbs, *key)
 	}
-	acc.cdnRootChangedMtx.Unlock()
+	a.cdnRootChangedMtx.Unlock()
 	for _, cb := range cbs {
 		cb(spaceID)
 	}

@@ -248,6 +248,13 @@ export interface SessionMetadata {
    * @generated from field: session.SessionRecoveryState recovery_state = 11;
    */
   recoveryState?: SessionRecoveryState
+  /**
+   * DirectP2PDisabled opts this Session out of direct peer transport.
+   * The zero value preserves direct P2P for existing Session metadata.
+   *
+   * @generated from field: bool direct_p2p_disabled = 12;
+   */
+  directP2pDisabled?: boolean
 }
 
 export const SessionMetadata: MessageType<SessionMetadata> =
@@ -277,6 +284,12 @@ export const SessionMetadata: MessageType<SessionMetadata> =
         name: 'recovery_state',
         kind: 'enum',
         T: SessionRecoveryState_Enum,
+      },
+      {
+        no: 12,
+        name: 'direct_p2p_disabled',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,

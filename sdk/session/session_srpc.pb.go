@@ -36,6 +36,8 @@ type SRPCSessionResourceServiceClient interface {
 
 	SetLockMode(ctx context.Context, in *SetLockModeRequest) (*SetLockModeResponse, error)
 
+	SetDirectP2PEnabled(ctx context.Context, in *SetDirectP2PEnabledRequest) (*SetDirectP2PEnabledResponse, error)
+
 	UnlockSession(ctx context.Context, in *UnlockSessionRequest) (*UnlockSessionResponse, error)
 
 	LockSession(ctx context.Context, in *LockSessionRequest) (*LockSessionResponse, error)
@@ -327,6 +329,15 @@ func (x *srpcSessionResourceService_WatchLockStateClient) RecvTo(m *WatchLockSta
 func (c *srpcSessionResourceServiceClient) SetLockMode(ctx context.Context, in *SetLockModeRequest) (*SetLockModeResponse, error) {
 	out := new(SetLockModeResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "SetLockMode", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcSessionResourceServiceClient) SetDirectP2PEnabled(ctx context.Context, in *SetDirectP2PEnabledRequest) (*SetDirectP2PEnabledResponse, error) {
+	out := new(SetDirectP2PEnabledResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "SetDirectP2PEnabled", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -699,6 +710,8 @@ type SRPCSessionResourceServiceServer interface {
 
 	SetLockMode(context.Context, *SetLockModeRequest) (*SetLockModeResponse, error)
 
+	SetDirectP2PEnabled(context.Context, *SetDirectP2PEnabledRequest) (*SetDirectP2PEnabledResponse, error)
+
 	UnlockSession(context.Context, *UnlockSessionRequest) (*UnlockSessionResponse, error)
 
 	LockSession(context.Context, *LockSessionRequest) (*LockSessionResponse, error)
@@ -791,6 +804,7 @@ func (SRPCSessionResourceServiceHandler) GetMethodIDs() []string {
 		"RenameSpace",
 		"WatchLockState",
 		"SetLockMode",
+		"SetDirectP2PEnabled",
 		"UnlockSession",
 		"LockSession",
 		"GeneratePairingCode",
@@ -852,6 +866,8 @@ func (d *SRPCSessionResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchLockState(d.impl, strm)
 	case "SetLockMode":
 		return true, d.InvokeMethod_SetLockMode(d.impl, strm)
+	case "SetDirectP2PEnabled":
+		return true, d.InvokeMethod_SetDirectP2PEnabled(d.impl, strm)
 	case "UnlockSession":
 		return true, d.InvokeMethod_UnlockSession(d.impl, strm)
 	case "LockSession":
@@ -1022,6 +1038,18 @@ func (SRPCSessionResourceServiceHandler) InvokeMethod_SetLockMode(impl SRPCSessi
 		return err
 	}
 	out, err := impl.SetLockMode(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSessionResourceServiceHandler) InvokeMethod_SetDirectP2PEnabled(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(SetDirectP2PEnabledRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.SetDirectP2PEnabled(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -1500,6 +1528,14 @@ type SRPCSessionResourceService_SetLockModeStream interface {
 }
 
 type srpcSessionResourceService_SetLockModeStream struct {
+	srpc.Stream
+}
+
+type SRPCSessionResourceService_SetDirectP2PEnabledStream interface {
+	srpc.Stream
+}
+
+type srpcSessionResourceService_SetDirectP2PEnabledStream struct {
 	srpc.Stream
 }
 

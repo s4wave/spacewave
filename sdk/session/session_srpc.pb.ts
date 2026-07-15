@@ -53,6 +53,8 @@ import {
   RenameSpaceResponse,
   RevokeSpaceInviteRequest,
   RevokeSpaceInviteResponse,
+  SetDirectP2PEnabledRequest,
+  SetDirectP2PEnabledResponse,
   SetLockModeRequest,
   SetLockModeResponse,
   StartTransferRequest,
@@ -186,6 +188,15 @@ export const SessionResourceServiceDefinition = {
       name: 'SetLockMode',
       I: SetLockModeRequest,
       O: SetLockModeResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc s4wave.session.SessionResourceService.SetDirectP2PEnabled
+     */
+    SetDirectP2PEnabled: {
+      name: 'SetDirectP2PEnabled',
+      I: SetDirectP2PEnabledRequest,
+      O: SetDirectP2PEnabledResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -527,6 +538,14 @@ export interface SessionResourceService {
   ): Promise<SetLockModeResponse>
 
   /**
+   * @generated from rpc s4wave.session.SessionResourceService.SetDirectP2PEnabled
+   */
+  SetDirectP2PEnabled(
+    request: SetDirectP2PEnabledRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetDirectP2PEnabledResponse>
+
+  /**
    * @generated from rpc s4wave.session.SessionResourceService.UnlockSession
    */
   UnlockSession(
@@ -763,6 +782,7 @@ export class SessionResourceServiceClient implements SessionResourceService {
     this.RenameSpace = this.RenameSpace.bind(this)
     this.WatchLockState = this.WatchLockState.bind(this)
     this.SetLockMode = this.SetLockMode.bind(this)
+    this.SetDirectP2PEnabled = this.SetDirectP2PEnabled.bind(this)
     this.UnlockSession = this.UnlockSession.bind(this)
     this.LockSession = this.LockSession.bind(this)
     this.GeneratePairingCode = this.GeneratePairingCode.bind(this)
@@ -976,6 +996,23 @@ export class SessionResourceServiceClient implements SessionResourceService {
       abortSignal || undefined,
     )
     return SetLockModeResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.SetDirectP2PEnabled
+   */
+  async SetDirectP2PEnabled(
+    request: SetDirectP2PEnabledRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SetDirectP2PEnabledResponse> {
+    const requestMsg = SetDirectP2PEnabledRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SessionResourceServiceDefinition.methods.SetDirectP2PEnabled.name,
+      SetDirectP2PEnabledRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SetDirectP2PEnabledResponse.fromBinary(result)
   }
 
   /**

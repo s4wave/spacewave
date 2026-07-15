@@ -55,6 +55,10 @@ pub struct SessionMetadata {
     /// RecoveryState reports whether the PIN reset path can recover this session.
     #[prost(enumeration="SessionRecoveryState", tag="11")]
     pub recovery_state: i32,
+    /// DirectP2PDisabled opts this Session out of direct peer transport.
+    /// The zero value preserves direct P2P for existing Session metadata.
+    #[prost(bool, tag="12")]
+    pub direct_p2p_disabled: bool,
 }
 /// EntityKeypair is a keypair associated with an entity for authentication.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

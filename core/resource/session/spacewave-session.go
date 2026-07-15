@@ -884,8 +884,7 @@ func (r *SpacewaveSessionResource) loadOrganizationState(
 		}
 	}
 
-	var invites []*s4wave_provider_spacewave.OrgInviteInfo
-	invites = make([]*s4wave_provider_spacewave.OrgInviteInfo, len(inviteResp.GetInvites()))
+	invites := make([]*s4wave_provider_spacewave.OrgInviteInfo, len(inviteResp.GetInvites()))
 	for i, inv := range inviteResp.GetInvites() {
 		invites[i] = &s4wave_provider_spacewave.OrgInviteInfo{
 			Id:        inv.GetId(),

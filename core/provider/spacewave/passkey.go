@@ -106,7 +106,7 @@ func (c *SessionClient) PasskeyRegisterVerify(
 	prfSalt string,
 ) (string, error) {
 	req := &api.PasskeyRegisterVerifyRequest{
-		CredentialJson:   string(credentialJSON),
+		CredentialJson:   credentialJSON,
 		PrfCapable:       prfCapable,
 		EncryptedPrivkey: encryptedPrivkey,
 		PeerId:           peerID,
@@ -280,7 +280,7 @@ func PasskeyAuthOptions(
 // Unauthenticated (no signing).
 func PasskeyAuthVerify(ctx context.Context, httpCli *http.Client, endpoint string, credentialJSON string) (*api.PasskeyAuthVerifyResponse, error) {
 	req := &api.PasskeyAuthVerifyRequest{
-		CredentialJson: string(credentialJSON),
+		CredentialJson: credentialJSON,
 	}
 	body, err := req.MarshalVT()
 	if err != nil {

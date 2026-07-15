@@ -390,40 +390,6 @@ func (c *SignedHTTPClient) doPost(ctx context.Context, path string, contentType 
 	return respBody, nil
 }
 
-// doPostJSON signs and executes a POST request with JSON content type, returning the response body.
-// reason tags the request with X-Alpha-Seed-Reason when non-empty.
-func (c *SignedHTTPClient) doPostJSON(ctx context.Context, path string, body []byte, reason SeedReason) ([]byte, error) {
-	reqURL, err := url.JoinPath(c.baseURL, path)
-	if err != nil {
-		return nil, errors.Wrap(err, "build URL")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if reason != "" {
-		req.Header.Set(SeedReasonHeader, string(reason))
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := readResponseBody(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, parseCloudResponseError(resp, respBody)
-	}
-	return respBody, nil
-}
-
 // doPostBinary signs and executes a POST request with protobuf binary content
 // type, returning the response body. The body should be the marshaled proto
 // (Proto.MarshalVT()) and the response body is the raw proto-binary bytes for
@@ -451,49 +417,6 @@ func (c *SignedHTTPClient) doPostBinary(ctx context.Context, path string, body [
 	}
 
 	resp, err := c.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := readResponseBody(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, parseCloudResponseError(resp, respBody)
-	}
-	return respBody, nil
-}
-
-// doPostStream signs and executes a streaming POST request.
-// The bodyHash and contentLength are used for signing without reading the body into memory.
-// reason tags the request with X-Alpha-Seed-Reason when non-empty.
-func (c *SignedHTTPClient) doPostStream(ctx context.Context, path string, contentType string, body io.Reader, contentLength int64, bodyHash []byte, headers map[string]string, reason SeedReason) ([]byte, error) {
-	reqURL, err := url.JoinPath(c.baseURL, path)
-	if err != nil {
-		return nil, errors.Wrap(err, "build URL")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, body)
-	if err != nil {
-		return nil, err
-	}
-	req.ContentLength = contentLength
-	req.Header.Set("Content-Type", contentType)
-	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-	if reason != "" {
-		req.Header.Set(SeedReasonHeader, string(reason))
-	}
-
-	if err := c.signRequestPrecomputed(req, bodyHash, contentLength); err != nil {
-		return nil, err
-	}
-
-	resp, err := c.httpCli.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -1634,8 +1557,7 @@ func (c *SessionClient) syncPushDataWithProgress(
 	progress func(int64),
 ) error {
 	var respData []byte
-	var err error
-	err = c.executeRequiredWriteTicketAudience(
+	err := c.executeRequiredWriteTicketAudience(
 		ctx,
 		resourceID,
 		writeTicketAudienceBstoreSyncPush,

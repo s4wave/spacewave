@@ -162,6 +162,34 @@ pub struct WatchSyncStatusRequest {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchStorageStatsRequest {
 }
+/// SyncBlockStoreStatus projects source and convergence mechanics for one mounted block store.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SyncBlockStoreStatus {
+    /// BlockStoreId is the mounted block store identifier.
+    #[prost(string, tag="1")]
+    pub block_store_id: ::prost::alloc::string::String,
+    /// DirectHitCount counts reads satisfied by demand-driven direct lookup.
+    #[prost(uint64, tag="2")]
+    pub direct_hit_count: u64,
+    /// CloudHitCount counts reads satisfied by the Cloud lower store.
+    #[prost(uint64, tag="3")]
+    pub cloud_hit_count: u64,
+    /// CacheHitCount counts reads satisfied by the local upper cache.
+    #[prost(uint64, tag="4")]
+    pub cache_hit_count: u64,
+    /// LastSource is the latest observed source for this block store.
+    #[prost(enumeration="SyncBlockSource", tag="5")]
+    pub last_source: i32,
+    /// AcceptedRootInnerSequence is the latest accepted SharedObject root sequence observed for this block store.
+    #[prost(uint64, tag="6")]
+    pub accepted_root_inner_sequence: u64,
+    /// CloudRemoteSequence is the latest Cloud block-store sequence observed locally.
+    #[prost(uint64, tag="7")]
+    pub cloud_remote_sequence: u64,
+    /// SharedObjectId identifies the SharedObject that supplied AcceptedRootInnerSequence.
+    #[prost(string, tag="8")]
+    pub shared_object_id: ::prost::alloc::string::String,
+}
 /// WatchSyncStatusResponse is the response type for WatchSyncStatus.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct WatchSyncStatusResponse {
@@ -327,6 +355,13 @@ pub struct WatchSyncStatusResponse {
     /// PackIndexTailResponseBytes is the number of bytes returned by index-tail range responses.
     #[prost(uint64, tag="51")]
     pub pack_index_tail_response_bytes: u64,
+    /// DirectP2PDisabled is the configured Session-local direct transport policy.
+    /// The zero value preserves direct P2P for existing Sessions.
+    #[prost(bool, tag="55")]
+    pub direct_p2p_disabled: bool,
+    /// BlockStores contains owner-observed mechanics keyed by mounted block store.
+    #[prost(message, repeated, tag="56")]
+    pub block_stores: ::prost::alloc::vec::Vec<SyncBlockStoreStatus>,
 }
 /// WatchStorageStatsResponse is the response type for WatchStorageStats.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -368,6 +403,17 @@ pub struct SetLockModeRequest {
 /// SetLockModeResponse is the response type for SetLockMode.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SetLockModeResponse {
+}
+/// SetDirectP2PEnabledRequest updates the durable Session-local direct transport policy.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetDirectP2pEnabledRequest {
+    /// Enabled controls whether direct Session transport mechanics may run.
+    #[prost(bool, tag="1")]
+    pub enabled: bool,
+}
+/// SetDirectP2PEnabledResponse acknowledges the persisted policy update.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SetDirectP2pEnabledResponse {
 }
 /// UnlockSessionRequest is the request type for UnlockSession.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -919,6 +965,12 @@ pub enum SyncP2pState {
     Active = 3,
     /// SyncP2PState_ERROR means p2p lifecycle state has an error.
     Error = 4,
+    /// SyncP2PState_DISABLED means direct P2P is disabled by Session policy.
+    Disabled = 5,
+    /// SyncP2PState_STARTING means direct P2P mechanics are starting.
+    Starting = 6,
+    /// SyncP2PState_FALLBACK_NO_PEER means a previously linked peer is absent.
+    FallbackNoPeer = 7,
 }
 impl SyncP2pState {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -932,6 +984,9 @@ impl SyncP2pState {
             Self::Idle => "SyncP2PState_IDLE",
             Self::Active => "SyncP2PState_ACTIVE",
             Self::Error => "SyncP2PState_ERROR",
+            Self::Disabled => "SyncP2PState_DISABLED",
+            Self::Starting => "SyncP2PState_STARTING",
+            Self::FallbackNoPeer => "SyncP2PState_FALLBACK_NO_PEER",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -942,6 +997,46 @@ impl SyncP2pState {
             "SyncP2PState_IDLE" => Some(Self::Idle),
             "SyncP2PState_ACTIVE" => Some(Self::Active),
             "SyncP2PState_ERROR" => Some(Self::Error),
+            "SyncP2PState_DISABLED" => Some(Self::Disabled),
+            "SyncP2PState_STARTING" => Some(Self::Starting),
+            "SyncP2PState_FALLBACK_NO_PEER" => Some(Self::FallbackNoPeer),
+            _ => None,
+        }
+    }
+}
+/// SyncBlockSource identifies the owner-observed source of a block read.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SyncBlockSource {
+    /// SyncBlockSource_UNKNOWN means no source has been observed.
+    Unknown = 0,
+    /// SyncBlockSource_CACHE means the local upper cache satisfied the read.
+    Cache = 1,
+    /// SyncBlockSource_DIRECT means demand-driven DEX satisfied the read.
+    Direct = 2,
+    /// SyncBlockSource_CLOUD means the Cloud packfile baseline satisfied the read.
+    Cloud = 3,
+}
+impl SyncBlockSource {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "SyncBlockSource_UNKNOWN",
+            Self::Cache => "SyncBlockSource_CACHE",
+            Self::Direct => "SyncBlockSource_DIRECT",
+            Self::Cloud => "SyncBlockSource_CLOUD",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SyncBlockSource_UNKNOWN" => Some(Self::Unknown),
+            "SyncBlockSource_CACHE" => Some(Self::Cache),
+            "SyncBlockSource_DIRECT" => Some(Self::Direct),
+            "SyncBlockSource_CLOUD" => Some(Self::Cloud),
             _ => None,
         }
     }

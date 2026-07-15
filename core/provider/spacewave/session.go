@@ -37,15 +37,20 @@ type Session struct {
 	sessionPid          peer.ID
 	storageKey          [32]byte
 
+	// lifecycleCtx owns direct transport mechanics for this mounted Session.
+	lifecycleCtx context.Context
+
+	// directP2PEnabled is the persisted Session-local transport policy.
+	directP2PEnabled bool
 	// lockMode is the current lock mode, set during init and SetLockMode.
 	lockMode session_lock.SessionLockMode
-	// bcast guards lock state changes.
+	// bcast guards lock state and policy changes.
 	bcast broadcast.Broadcast
 }
 
-// GetBus returns the bus used for the session.
+// GetBus returns the live Session child bus, falling back to the account bus.
 func (s *Session) GetBus() bus.Bus {
-	return s.tkr.a.p.b
+	return s.tkr.a.getSessionBusForSession(s.tkr.id)
 }
 
 // GetSessionRef returns the ref to the session.
@@ -108,6 +113,46 @@ func (s *Session) GetLockState(ctx context.Context) (session.SessionLockMode, bo
 	return session.SessionLockMode(mode), locked, nil
 }
 
+// GetDirectP2PEnabled returns the persisted Session-local transport policy.
+func (s *Session) GetDirectP2PEnabled() bool {
+	var enabled bool
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		enabled = s.directP2PEnabled
+	})
+	return enabled
+}
+
+// SetDirectP2PEnabled persists and reconciles the Session-local transport policy.
+func (s *Session) SetDirectP2PEnabled(ctx context.Context, enabled bool) error {
+	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.GetBus(), "", false, nil)
+	if err != nil {
+		return err
+	}
+	defer sessionCtrlRef.Release()
+
+	ref := s.GetSessionRef()
+	meta, err := lookupSessionMetadata(ctx, sessionCtrl, ref)
+	if err != nil {
+		return err
+	}
+	if meta == nil {
+		meta = &session.SessionMetadata{
+			ProviderDisplayName: "Cloud",
+			ProviderId:          "spacewave",
+		}
+	}
+	meta.DirectP2PDisabled = !enabled
+	if err := sessionCtrl.UpdateSessionMetadata(ctx, ref, meta); err != nil {
+		return err
+	}
+
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.directP2PEnabled = enabled
+		broadcast()
+	})
+	return s.tkr.a.SetSessionDirectP2PEnabled(s.tkr.id, enabled)
+}
+
 // UnlockSession unlocks a PIN-locked session with the given PIN.
 // No-op if the session is already unlocked.
 func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
@@ -139,23 +184,24 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 
 	s.sessionPriv = privKey
 	s.tkr.a.maybeSetSessionClient(s.tkr.id, NewSessionClient(
+
 		s.tkr.a.p.httpCli,
 		s.tkr.a.p.endpoint,
 		s.tkr.a.p.signingEnvPfx,
 		privKey,
 		s.sessionPid.String(),
 	))
-	transportCtx := context.WithoutCancel(ctx)
-	if err := s.tkr.a.CreateSessionTransport(transportCtx, privKey, s.tkr.a.p.endpoint); err != nil {
+	if err := s.tkr.a.ConfigureSessionTransport(
+		s.lifecycleCtx,
+		s.tkr.id,
+		privKey,
+		s.tkr.a.p.endpoint,
+		s.GetDirectP2PEnabled(),
+	); err != nil {
 		if errors.Is(err, context.Canceled) {
 			return context.Canceled
 		}
-		s.tkr.a.le.WithError(err).Warn("failed to start session transport after unlock")
-	}
-	if st := s.tkr.a.GetSessionTransport(); st != nil {
-		if err := s.tkr.a.StartP2PSync(transportCtx, st); err != nil {
-			s.tkr.a.le.WithError(err).Warn("failed to start P2P sync after unlock")
-		}
+		s.tkr.a.le.WithError(err).Warn("failed to reconcile session transport after unlock")
 	}
 
 	// Broadcast unlocked state.
@@ -189,8 +235,7 @@ func (s *Session) LockSession(ctx context.Context) error {
 	s.tkr.unlockProm = promise.NewPromiseContainer[[]byte]()
 	s.tkr.releasePinnedRef()
 	s.tkr.a.dropSessionClientForSession(s.tkr.id)
-	s.tkr.a.StopP2PSync()
-	s.tkr.a.StopSessionTransport()
+	s.tkr.a.StopSessionTransportComposition(s.tkr.id)
 
 	// Broadcast locked=true so WatchLockState emits.
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -252,8 +297,8 @@ func (s *Session) updateSessionMetadata(ctx context.Context, mode session.Sessio
 	defer sessionCtrlRef.Release()
 
 	ref := s.GetSessionRef()
-	idx, meta := session.FindSessionMetadata(ctx, sessionCtrl, ref)
-	if idx == 0 {
+	meta, err := lookupSessionMetadata(ctx, sessionCtrl, ref)
+	if err != nil {
 		return
 	}
 	if meta == nil {
@@ -264,6 +309,28 @@ func (s *Session) updateSessionMetadata(ctx context.Context, mode session.Sessio
 	}
 	meta.LockMode = mode
 	_ = sessionCtrl.UpdateSessionMetadata(ctx, ref, meta)
+}
+
+func lookupSessionMetadata(
+	ctx context.Context,
+	ctrl session.SessionController,
+	ref *session.SessionRef,
+) (*session.SessionMetadata, error) {
+	entries, err := ctrl.ListSessions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, entry := range entries {
+		if !entry.GetSessionRef().EqualVT(ref) {
+			continue
+		}
+		return ctrl.GetSessionMetadata(ctx, entry.GetSessionIndex())
+	}
+	return nil, nil
+}
+
+func directP2PEnabledFromMetadata(meta *session.SessionMetadata) bool {
+	return meta == nil || !meta.GetDirectP2PDisabled()
 }
 
 // WatchLockState calls the callback with the current lock state and on changes.
@@ -525,6 +592,17 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		t.a.bumpSelfRejoinSweepGeneration()
 	}
 
+	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, t.a.p.b, "", false, nil)
+	if err != nil {
+		return errors.Wrap(err, "lookup session metadata owner")
+	}
+	sessionMeta, err := lookupSessionMetadata(ctx, sessionCtrl, sessionRef)
+	sessionCtrlRef.Release()
+	if err != nil {
+		return errors.Wrap(err, "load direct P2P policy")
+	}
+	directP2PEnabled := directP2PEnabledFromMetadata(sessionMeta)
+
 	// Create the Session once. Lock/unlock mutates its fields in place
 	// so existing references (MountSession directive, SessionResource)
 	// always see the current state.
@@ -535,6 +613,8 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		objStore:            objStore,
 		stateAtomMgr:        stateAtomMgr,
 		stateAtomStoreIndex: session.NewStateAtomStoreIndex(objStore),
+		lifecycleCtx:        ctx,
+		directP2PEnabled:    directP2PEnabled,
 		sessionPriv:         sessionPriv,
 		sessionPid:          sessionPeerID,
 		storageKey:          storageKey,
@@ -563,10 +643,15 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	// object store becomes invalid.
 	accountRef, _, _ := t.a.p.accountRc.AddKeyRef(t.a.accountID)
 	defer accountRef.Release()
-	defer t.a.StopP2PSync()
-	defer t.a.StopSessionTransport()
+	defer t.a.StopSessionTransportComposition(t.id)
 
-	if err := t.a.CreateSessionTransport(ctx, sessionPriv, t.a.p.endpoint); err != nil {
+	if err := t.a.ConfigureSessionTransport(
+		ctx,
+		t.id,
+		sessionPriv,
+		t.a.p.endpoint,
+		directP2PEnabled,
+	); err != nil {
 		if errors.Is(err, context.Canceled) {
 			return context.Canceled
 		}
@@ -577,22 +662,20 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 				le.WithError(rerr).Warn("failed to re-register rejected session")
 			} else if perr := t.a.UpsertSessionPresentation(ctx, sessionPeerID.String(), observed); perr != nil {
 				le.WithError(perr).Warn("failed to mirror session presentation metadata")
-			} else if terr := t.a.CreateSessionTransport(ctx, sessionPriv, t.a.p.endpoint); terr != nil {
+			} else if terr := t.a.ConfigureSessionTransport(
+				ctx,
+				t.id,
+				sessionPriv,
+				t.a.p.endpoint,
+				directP2PEnabled,
+			); terr != nil {
 				if errors.Is(terr, context.Canceled) {
 					return context.Canceled
 				}
-				le.WithError(terr).Warn("failed to start session transport after re-registration")
-			} else if st := t.a.GetSessionTransport(); st != nil {
-				if perr := t.a.StartP2PSync(ctx, st); perr != nil {
-					t.a.le.WithError(perr).Warn("failed to start P2P sync on session mount")
-				}
+				le.WithError(terr).Warn("failed to reconcile session transport after re-registration")
 			}
 		} else {
-			le.WithError(err).Warn("failed to start session transport")
-		}
-	} else if st := t.a.GetSessionTransport(); st != nil {
-		if err := t.a.StartP2PSync(ctx, st); err != nil {
-			le.WithError(err).Warn("failed to start P2P sync on session mount")
+			le.WithError(err).Warn("failed to reconcile session transport")
 		}
 	}
 

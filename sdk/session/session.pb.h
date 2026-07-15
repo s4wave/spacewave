@@ -71,6 +71,8 @@ enum PairingStatus : int;
 extern const uint32_t PairingStatus_internal_data_[];
 enum SyncActivityDirection : int;
 extern const uint32_t SyncActivityDirection_internal_data_[];
+enum SyncBlockSource : int;
+extern const uint32_t SyncBlockSource_internal_data_[];
 enum SyncP2PState : int;
 extern const uint32_t SyncP2PState_internal_data_[];
 enum SyncStatusState : int;
@@ -289,6 +291,14 @@ class SessionCryptoInfo;
 struct SessionCryptoInfoDefaultTypeInternal;
 extern SessionCryptoInfoDefaultTypeInternal _SessionCryptoInfo_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull SessionCryptoInfo_class_data_;
+class SetDirectP2PEnabledRequest;
+struct SetDirectP2PEnabledRequestDefaultTypeInternal;
+extern SetDirectP2PEnabledRequestDefaultTypeInternal _SetDirectP2PEnabledRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SetDirectP2PEnabledRequest_class_data_;
+class SetDirectP2PEnabledResponse;
+struct SetDirectP2PEnabledResponseDefaultTypeInternal;
+extern SetDirectP2PEnabledResponseDefaultTypeInternal _SetDirectP2PEnabledResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SetDirectP2PEnabledResponse_class_data_;
 class SetLockModeRequest;
 struct SetLockModeRequestDefaultTypeInternal;
 extern SetLockModeRequestDefaultTypeInternal _SetLockModeRequest_default_instance_;
@@ -305,6 +315,10 @@ class StartTransferResponse;
 struct StartTransferResponseDefaultTypeInternal;
 extern StartTransferResponseDefaultTypeInternal _StartTransferResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull StartTransferResponse_class_data_;
+class SyncBlockStoreStatus;
+struct SyncBlockStoreStatusDefaultTypeInternal;
+extern SyncBlockStoreStatusDefaultTypeInternal _SyncBlockStoreStatus_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SyncBlockStoreStatus_class_data_;
 class UnlinkDeviceRequest;
 struct UnlinkDeviceRequestDefaultTypeInternal;
 extern UnlinkDeviceRequestDefaultTypeInternal _UnlinkDeviceRequest_default_instance_;
@@ -406,6 +420,9 @@ internal::EnumTraitsT<::s4wave::session::PairingStatus_internal_data_>
 template <>
 internal::EnumTraitsT<::s4wave::session::SyncActivityDirection_internal_data_>
     internal::EnumTraitsImpl::value<::s4wave::session::SyncActivityDirection>;
+template <>
+internal::EnumTraitsT<::s4wave::session::SyncBlockSource_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::session::SyncBlockSource>;
 template <>
 internal::EnumTraitsT<::s4wave::session::SyncP2PState_internal_data_>
     internal::EnumTraitsImpl::value<::s4wave::session::SyncP2PState>;
@@ -540,6 +557,9 @@ enum SyncP2PState : int {
   SyncP2PState_IDLE = 2,
   SyncP2PState_ACTIVE = 3,
   SyncP2PState_ERROR = 4,
+  SyncP2PState_DISABLED = 5,
+  SyncP2PState_STARTING = 6,
+  SyncP2PState_FALLBACK_NO_PEER = 7,
   SyncP2PState_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   SyncP2PState_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -550,11 +570,11 @@ extern const uint32_t SyncP2PState_internal_data_[];
 inline constexpr SyncP2PState SyncP2PState_MIN =
     static_cast<SyncP2PState>(0);
 inline constexpr SyncP2PState SyncP2PState_MAX =
-    static_cast<SyncP2PState>(4);
+    static_cast<SyncP2PState>(7);
 inline bool SyncP2PState_IsValid(int value) {
-  return 0 <= value && value <= 4;
+  return 0 <= value && value <= 7;
 }
-inline constexpr int SyncP2PState_ARRAYSIZE = 4 + 1;
+inline constexpr int SyncP2PState_ARRAYSIZE = 7 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SyncP2PState_descriptor();
 template <typename T>
 const ::std::string& SyncP2PState_Name(T value) {
@@ -565,12 +585,50 @@ const ::std::string& SyncP2PState_Name(T value) {
 }
 template <>
 inline const ::std::string& SyncP2PState_Name(SyncP2PState value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<SyncP2PState_descriptor, 0, 4>(
+  return ::google::protobuf::internal::NameOfDenseEnum<SyncP2PState_descriptor, 0, 7>(
       static_cast<int>(value));
 }
 inline bool SyncP2PState_Parse(
     ::absl::string_view name, SyncP2PState* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<SyncP2PState>(SyncP2PState_descriptor(), name,
+                                           value);
+}
+enum SyncBlockSource : int {
+  SyncBlockSource_UNKNOWN = 0,
+  SyncBlockSource_CACHE = 1,
+  SyncBlockSource_DIRECT = 2,
+  SyncBlockSource_CLOUD = 3,
+  SyncBlockSource_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  SyncBlockSource_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t SyncBlockSource_internal_data_[];
+inline constexpr SyncBlockSource SyncBlockSource_MIN =
+    static_cast<SyncBlockSource>(0);
+inline constexpr SyncBlockSource SyncBlockSource_MAX =
+    static_cast<SyncBlockSource>(3);
+inline bool SyncBlockSource_IsValid(int value) {
+  return 0 <= value && value <= 3;
+}
+inline constexpr int SyncBlockSource_ARRAYSIZE = 3 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SyncBlockSource_descriptor();
+template <typename T>
+const ::std::string& SyncBlockSource_Name(T value) {
+  static_assert(::std::is_same<T, SyncBlockSource>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SyncBlockSource_Name().");
+  return SyncBlockSource_Name(static_cast<SyncBlockSource>(value));
+}
+template <>
+inline const ::std::string& SyncBlockSource_Name(SyncBlockSource value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<SyncBlockSource_descriptor, 0, 3>(
+      static_cast<int>(value));
+}
+inline bool SyncBlockSource_Parse(
+    ::absl::string_view name, SyncBlockSource* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SyncBlockSource>(SyncBlockSource_descriptor(), name,
                                            value);
 }
 enum PairingStatus : int {
@@ -719,7 +777,7 @@ class WatchTransferProgressRequest final : public ::google::protobuf::internal::
     return *reinterpret_cast<const WatchTransferProgressRequest*>(
         &_WatchTransferProgressRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 47;
+  static constexpr int kIndexInFileMessages = 50;
   friend void swap(WatchTransferProgressRequest& a, WatchTransferProgressRequest& b) { a.Swap(&b); }
   inline void Swap(WatchTransferProgressRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -988,7 +1046,7 @@ class WatchStorageStatsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchStorageStatsResponse*>(
         &_WatchStorageStatsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 18;
+  static constexpr int kIndexInFileMessages = 19;
   friend void swap(WatchStorageStatsResponse& a, WatchStorageStatsResponse& b) { a.Swap(&b); }
   inline void Swap(WatchStorageStatsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1531,7 +1589,7 @@ class WatchSessionStateAtomsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchSessionStateAtomsResponse*>(
         &_WatchSessionStateAtomsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 42;
+  static constexpr int kIndexInFileMessages = 45;
   friend void swap(WatchSessionStateAtomsResponse& a, WatchSessionStateAtomsResponse& b) { a.Swap(&b); }
   inline void Swap(WatchSessionStateAtomsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1744,7 +1802,7 @@ class WatchSessionStateAtomsRequest final : public ::google::protobuf::internal:
     return *reinterpret_cast<const WatchSessionStateAtomsRequest*>(
         &_WatchSessionStateAtomsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 41;
+  static constexpr int kIndexInFileMessages = 44;
   friend void swap(WatchSessionStateAtomsRequest& a, WatchSessionStateAtomsRequest& b) { a.Swap(&b); }
   inline void Swap(WatchSessionStateAtomsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2069,7 +2127,7 @@ class WatchPairingStatusResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchPairingStatusResponse*>(
         &_WatchPairingStatusResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 56;
+  static constexpr int kIndexInFileMessages = 59;
   friend void swap(WatchPairingStatusResponse& a, WatchPairingStatusResponse& b) { a.Swap(&b); }
   inline void Swap(WatchPairingStatusResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2333,7 +2391,7 @@ class WatchPairingStatusRequest final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const WatchPairingStatusRequest*>(
         &_WatchPairingStatusRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 55;
+  static constexpr int kIndexInFileMessages = 58;
   friend void swap(WatchPairingStatusRequest& a, WatchPairingStatusRequest& b) { a.Swap(&b); }
   inline void Swap(WatchPairingStatusRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2467,7 +2525,7 @@ class WatchPairedDevicesRequest final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const WatchPairedDevicesRequest*>(
         &_WatchPairedDevicesRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 51;
+  static constexpr int kIndexInFileMessages = 54;
   friend void swap(WatchPairedDevicesRequest& a, WatchPairedDevicesRequest& b) { a.Swap(&b); }
   inline void Swap(WatchPairedDevicesRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2602,7 +2660,7 @@ class WatchLockStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchLockStateResponse*>(
         &_WatchLockStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 20;
+  static constexpr int kIndexInFileMessages = 21;
   friend void swap(WatchLockStateResponse& a, WatchLockStateResponse& b) { a.Swap(&b); }
   inline void Swap(WatchLockStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2803,7 +2861,7 @@ class WatchLockStateRequest final : public ::google::protobuf::internal::ZeroFie
     return *reinterpret_cast<const WatchLockStateRequest*>(
         &_WatchLockStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 19;
+  static constexpr int kIndexInFileMessages = 20;
   friend void swap(WatchLockStateRequest& a, WatchLockStateRequest& b) { a.Swap(&b); }
   inline void Swap(WatchLockStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2937,7 +2995,7 @@ class UnlockSessionResponse final : public ::google::protobuf::internal::ZeroFie
     return *reinterpret_cast<const UnlockSessionResponse*>(
         &_UnlockSessionResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 24;
+  static constexpr int kIndexInFileMessages = 27;
   friend void swap(UnlockSessionResponse& a, UnlockSessionResponse& b) { a.Swap(&b); }
   inline void Swap(UnlockSessionResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3072,7 +3130,7 @@ class UnlockSessionRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const UnlockSessionRequest*>(
         &_UnlockSessionRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 23;
+  static constexpr int kIndexInFileMessages = 26;
   friend void swap(UnlockSessionRequest& a, UnlockSessionRequest& b) { a.Swap(&b); }
   inline void Swap(UnlockSessionRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3266,7 +3324,7 @@ class UnlinkDeviceResponse final : public ::google::protobuf::internal::ZeroFiel
     return *reinterpret_cast<const UnlinkDeviceResponse*>(
         &_UnlinkDeviceResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 54;
+  static constexpr int kIndexInFileMessages = 57;
   friend void swap(UnlinkDeviceResponse& a, UnlinkDeviceResponse& b) { a.Swap(&b); }
   inline void Swap(UnlinkDeviceResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3401,7 +3459,7 @@ class UnlinkDeviceRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const UnlinkDeviceRequest*>(
         &_UnlinkDeviceRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 53;
+  static constexpr int kIndexInFileMessages = 56;
   friend void swap(UnlinkDeviceRequest& a, UnlinkDeviceRequest& b) { a.Swap(&b); }
   inline void Swap(UnlinkDeviceRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3541,6 +3599,290 @@ class UnlinkDeviceRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull UnlinkDeviceRequest_class_data_;
 // -------------------------------------------------------------------
 
+class SyncBlockStoreStatus final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.session.SyncBlockStoreStatus) */ {
+ public:
+  inline SyncBlockStoreStatus() : SyncBlockStoreStatus(nullptr) {}
+  ~SyncBlockStoreStatus() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SyncBlockStoreStatus* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SyncBlockStoreStatus));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SyncBlockStoreStatus(::google::protobuf::internal::ConstantInitialized);
+
+  inline SyncBlockStoreStatus(const SyncBlockStoreStatus& from) : SyncBlockStoreStatus(nullptr, from) {}
+  inline SyncBlockStoreStatus(SyncBlockStoreStatus&& from) noexcept
+      : SyncBlockStoreStatus(nullptr, ::std::move(from)) {}
+  inline SyncBlockStoreStatus& operator=(const SyncBlockStoreStatus& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SyncBlockStoreStatus& operator=(SyncBlockStoreStatus&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SyncBlockStoreStatus& default_instance() {
+    return *reinterpret_cast<const SyncBlockStoreStatus*>(
+        &_SyncBlockStoreStatus_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 17;
+  friend void swap(SyncBlockStoreStatus& a, SyncBlockStoreStatus& b) { a.Swap(&b); }
+  inline void Swap(SyncBlockStoreStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SyncBlockStoreStatus* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SyncBlockStoreStatus* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SyncBlockStoreStatus>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SyncBlockStoreStatus& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SyncBlockStoreStatus& from) { SyncBlockStoreStatus::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SyncBlockStoreStatus* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.session.SyncBlockStoreStatus"; }
+
+  explicit SyncBlockStoreStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SyncBlockStoreStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SyncBlockStoreStatus& from);
+  SyncBlockStoreStatus(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SyncBlockStoreStatus&& from) noexcept
+      : SyncBlockStoreStatus(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kBlockStoreIdFieldNumber = 1,
+    kSharedObjectIdFieldNumber = 8,
+    kDirectHitCountFieldNumber = 2,
+    kCloudHitCountFieldNumber = 3,
+    kCacheHitCountFieldNumber = 4,
+    kAcceptedRootInnerSequenceFieldNumber = 6,
+    kCloudRemoteSequenceFieldNumber = 7,
+    kLastSourceFieldNumber = 5,
+  };
+  // string block_store_id = 1;
+  void clear_block_store_id() ;
+  const ::std::string& block_store_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_block_store_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_block_store_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_block_store_id();
+  void set_allocated_block_store_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_block_store_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_block_store_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_block_store_id();
+
+  public:
+  // string shared_object_id = 8;
+  void clear_shared_object_id() ;
+  const ::std::string& shared_object_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_shared_object_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_shared_object_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_shared_object_id();
+  void set_allocated_shared_object_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_shared_object_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_shared_object_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_shared_object_id();
+
+  public:
+  // uint64 direct_hit_count = 2;
+  void clear_direct_hit_count() ;
+  ::uint64_t direct_hit_count() const;
+  void set_direct_hit_count(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_direct_hit_count() const;
+  void _internal_set_direct_hit_count(::uint64_t value);
+
+  public:
+  // uint64 cloud_hit_count = 3;
+  void clear_cloud_hit_count() ;
+  ::uint64_t cloud_hit_count() const;
+  void set_cloud_hit_count(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_cloud_hit_count() const;
+  void _internal_set_cloud_hit_count(::uint64_t value);
+
+  public:
+  // uint64 cache_hit_count = 4;
+  void clear_cache_hit_count() ;
+  ::uint64_t cache_hit_count() const;
+  void set_cache_hit_count(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_cache_hit_count() const;
+  void _internal_set_cache_hit_count(::uint64_t value);
+
+  public:
+  // uint64 accepted_root_inner_sequence = 6;
+  void clear_accepted_root_inner_sequence() ;
+  ::uint64_t accepted_root_inner_sequence() const;
+  void set_accepted_root_inner_sequence(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_accepted_root_inner_sequence() const;
+  void _internal_set_accepted_root_inner_sequence(::uint64_t value);
+
+  public:
+  // uint64 cloud_remote_sequence = 7;
+  void clear_cloud_remote_sequence() ;
+  ::uint64_t cloud_remote_sequence() const;
+  void set_cloud_remote_sequence(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_cloud_remote_sequence() const;
+  void _internal_set_cloud_remote_sequence(::uint64_t value);
+
+  public:
+  // .s4wave.session.SyncBlockSource last_source = 5;
+  void clear_last_source() ;
+  ::s4wave::session::SyncBlockSource last_source() const;
+  void set_last_source(::s4wave::session::SyncBlockSource value);
+
+  private:
+  ::s4wave::session::SyncBlockSource _internal_last_source() const;
+  void _internal_set_last_source(::s4wave::session::SyncBlockSource value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.session.SyncBlockStoreStatus)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 8,
+                                   0, 82,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SyncBlockStoreStatus& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr block_store_id_;
+    ::google::protobuf::internal::ArenaStringPtr shared_object_id_;
+    ::uint64_t direct_hit_count_;
+    ::uint64_t cloud_hit_count_;
+    ::uint64_t cache_hit_count_;
+    ::uint64_t accepted_root_inner_sequence_;
+    ::uint64_t cloud_remote_sequence_;
+    int last_source_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SyncBlockStoreStatus_class_data_;
+// -------------------------------------------------------------------
+
 class StartTransferResponse final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:s4wave.session.StartTransferResponse) */ {
  public:
@@ -3595,7 +3937,7 @@ class StartTransferResponse final : public ::google::protobuf::internal::ZeroFie
     return *reinterpret_cast<const StartTransferResponse*>(
         &_StartTransferResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 46;
+  static constexpr int kIndexInFileMessages = 49;
   friend void swap(StartTransferResponse& a, StartTransferResponse& b) { a.Swap(&b); }
   inline void Swap(StartTransferResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3730,7 +4072,7 @@ class StartTransferRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const StartTransferRequest*>(
         &_StartTransferRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 45;
+  static constexpr int kIndexInFileMessages = 48;
   friend void swap(StartTransferRequest& a, StartTransferRequest& b) { a.Swap(&b); }
   inline void Swap(StartTransferRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3967,7 +4309,7 @@ class SetLockModeResponse final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const SetLockModeResponse*>(
         &_SetLockModeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 22;
+  static constexpr int kIndexInFileMessages = 23;
   friend void swap(SetLockModeResponse& a, SetLockModeResponse& b) { a.Swap(&b); }
   inline void Swap(SetLockModeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4102,7 +4444,7 @@ class SetLockModeRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetLockModeRequest*>(
         &_SetLockModeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 21;
+  static constexpr int kIndexInFileMessages = 22;
   friend void swap(SetLockModeRequest& a, SetLockModeRequest& b) { a.Swap(&b); }
   inline void Swap(SetLockModeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4252,6 +4594,330 @@ class SetLockModeRequest final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull SetLockModeRequest_class_data_;
+// -------------------------------------------------------------------
+
+class SetDirectP2PEnabledResponse final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:s4wave.session.SetDirectP2PEnabledResponse) */ {
+ public:
+  inline SetDirectP2PEnabledResponse() : SetDirectP2PEnabledResponse(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SetDirectP2PEnabledResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SetDirectP2PEnabledResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SetDirectP2PEnabledResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline SetDirectP2PEnabledResponse(const SetDirectP2PEnabledResponse& from) : SetDirectP2PEnabledResponse(nullptr, from) {}
+  inline SetDirectP2PEnabledResponse(SetDirectP2PEnabledResponse&& from) noexcept
+      : SetDirectP2PEnabledResponse(nullptr, ::std::move(from)) {}
+  inline SetDirectP2PEnabledResponse& operator=(const SetDirectP2PEnabledResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SetDirectP2PEnabledResponse& operator=(SetDirectP2PEnabledResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SetDirectP2PEnabledResponse& default_instance() {
+    return *reinterpret_cast<const SetDirectP2PEnabledResponse*>(
+        &_SetDirectP2PEnabledResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 25;
+  friend void swap(SetDirectP2PEnabledResponse& a, SetDirectP2PEnabledResponse& b) { a.Swap(&b); }
+  inline void Swap(SetDirectP2PEnabledResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SetDirectP2PEnabledResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SetDirectP2PEnabledResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<SetDirectP2PEnabledResponse>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const SetDirectP2PEnabledResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const SetDirectP2PEnabledResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.session.SetDirectP2PEnabledResponse"; }
+
+  explicit SetDirectP2PEnabledResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SetDirectP2PEnabledResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SetDirectP2PEnabledResponse& from);
+  SetDirectP2PEnabledResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SetDirectP2PEnabledResponse&& from) noexcept
+      : SetDirectP2PEnabledResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:s4wave.session.SetDirectP2PEnabledResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SetDirectP2PEnabledResponse_class_data_;
+// -------------------------------------------------------------------
+
+class SetDirectP2PEnabledRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.session.SetDirectP2PEnabledRequest) */ {
+ public:
+  inline SetDirectP2PEnabledRequest() : SetDirectP2PEnabledRequest(nullptr) {}
+  ~SetDirectP2PEnabledRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SetDirectP2PEnabledRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SetDirectP2PEnabledRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SetDirectP2PEnabledRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline SetDirectP2PEnabledRequest(const SetDirectP2PEnabledRequest& from) : SetDirectP2PEnabledRequest(nullptr, from) {}
+  inline SetDirectP2PEnabledRequest(SetDirectP2PEnabledRequest&& from) noexcept
+      : SetDirectP2PEnabledRequest(nullptr, ::std::move(from)) {}
+  inline SetDirectP2PEnabledRequest& operator=(const SetDirectP2PEnabledRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SetDirectP2PEnabledRequest& operator=(SetDirectP2PEnabledRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SetDirectP2PEnabledRequest& default_instance() {
+    return *reinterpret_cast<const SetDirectP2PEnabledRequest*>(
+        &_SetDirectP2PEnabledRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 24;
+  friend void swap(SetDirectP2PEnabledRequest& a, SetDirectP2PEnabledRequest& b) { a.Swap(&b); }
+  inline void Swap(SetDirectP2PEnabledRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SetDirectP2PEnabledRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SetDirectP2PEnabledRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SetDirectP2PEnabledRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SetDirectP2PEnabledRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SetDirectP2PEnabledRequest& from) { SetDirectP2PEnabledRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SetDirectP2PEnabledRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.session.SetDirectP2PEnabledRequest"; }
+
+  explicit SetDirectP2PEnabledRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SetDirectP2PEnabledRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SetDirectP2PEnabledRequest& from);
+  SetDirectP2PEnabledRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SetDirectP2PEnabledRequest&& from) noexcept
+      : SetDirectP2PEnabledRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kEnabledFieldNumber = 1,
+  };
+  // bool enabled = 1;
+  void clear_enabled() ;
+  bool enabled() const;
+  void set_enabled(bool value);
+
+  private:
+  bool _internal_enabled() const;
+  void _internal_set_enabled(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.session.SetDirectP2PEnabledRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SetDirectP2PEnabledRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    bool enabled_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SetDirectP2PEnabledRequest_class_data_;
 // -------------------------------------------------------------------
 
 class SessionCryptoInfo final : public ::google::protobuf::Message
@@ -4561,7 +5227,7 @@ class RevokeSpaceInviteResponse final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const RevokeSpaceInviteResponse*>(
         &_RevokeSpaceInviteResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 66;
+  static constexpr int kIndexInFileMessages = 69;
   friend void swap(RevokeSpaceInviteResponse& a, RevokeSpaceInviteResponse& b) { a.Swap(&b); }
   inline void Swap(RevokeSpaceInviteResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4696,7 +5362,7 @@ class RevokeSpaceInviteRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RevokeSpaceInviteRequest*>(
         &_RevokeSpaceInviteRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 65;
+  static constexpr int kIndexInFileMessages = 68;
   friend void swap(RevokeSpaceInviteRequest& a, RevokeSpaceInviteRequest& b) { a.Swap(&b); }
   inline void Swap(RevokeSpaceInviteRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5254,7 +5920,7 @@ class RemoveSpaceParticipantResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveSpaceParticipantResponse*>(
         &_RemoveSpaceParticipantResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 64;
+  static constexpr int kIndexInFileMessages = 67;
   friend void swap(RemoveSpaceParticipantResponse& a, RemoveSpaceParticipantResponse& b) { a.Swap(&b); }
   inline void Swap(RemoveSpaceParticipantResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5444,7 +6110,7 @@ class RemoveSpaceParticipantRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveSpaceParticipantRequest*>(
         &_RemoveSpaceParticipantRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 63;
+  static constexpr int kIndexInFileMessages = 66;
   friend void swap(RemoveSpaceParticipantRequest& a, RemoveSpaceParticipantRequest& b) { a.Swap(&b); }
   inline void Swap(RemoveSpaceParticipantRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5850,7 +6516,7 @@ class LockSessionResponse final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const LockSessionResponse*>(
         &_LockSessionResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 26;
+  static constexpr int kIndexInFileMessages = 29;
   friend void swap(LockSessionResponse& a, LockSessionResponse& b) { a.Swap(&b); }
   inline void Swap(LockSessionResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5984,7 +6650,7 @@ class LockSessionRequest final : public ::google::protobuf::internal::ZeroFields
     return *reinterpret_cast<const LockSessionRequest*>(
         &_LockSessionRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 25;
+  static constexpr int kIndexInFileMessages = 28;
   friend void swap(LockSessionRequest& a, LockSessionRequest& b) { a.Swap(&b); }
   inline void Swap(LockSessionRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6119,7 +6785,7 @@ class LocalPairingOffer final : public ::google::protobuf::Message
     return *reinterpret_cast<const LocalPairingOffer*>(
         &_LocalPairingOffer_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 71;
+  static constexpr int kIndexInFileMessages = 74;
   friend void swap(LocalPairingOffer& a, LocalPairingOffer& b) { a.Swap(&b); }
   inline void Swap(LocalPairingOffer* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6331,7 +6997,7 @@ class LocalPairingAnswer final : public ::google::protobuf::Message
     return *reinterpret_cast<const LocalPairingAnswer*>(
         &_LocalPairingAnswer_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 72;
+  static constexpr int kIndexInFileMessages = 75;
   friend void swap(LocalPairingAnswer& a, LocalPairingAnswer& b) { a.Swap(&b); }
   inline void Swap(LocalPairingAnswer* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6543,7 +7209,7 @@ class ListSpaceParticipantsRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListSpaceParticipantsRequest*>(
         &_ListSpaceParticipantsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 61;
+  static constexpr int kIndexInFileMessages = 64;
   friend void swap(ListSpaceParticipantsRequest& a, ListSpaceParticipantsRequest& b) { a.Swap(&b); }
   inline void Swap(ListSpaceParticipantsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6738,7 +7404,7 @@ class ListSpaceInvitesRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListSpaceInvitesRequest*>(
         &_ListSpaceInvitesRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 59;
+  static constexpr int kIndexInFileMessages = 62;
   friend void swap(ListSpaceInvitesRequest& a, ListSpaceInvitesRequest& b) { a.Swap(&b); }
   inline void Swap(ListSpaceInvitesRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6933,7 +7599,7 @@ class JoinSpaceViaInviteResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const JoinSpaceViaInviteResponse*>(
         &_JoinSpaceViaInviteResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 68;
+  static constexpr int kIndexInFileMessages = 71;
   friend void swap(JoinSpaceViaInviteResponse& a, JoinSpaceViaInviteResponse& b) { a.Swap(&b); }
   inline void Swap(JoinSpaceViaInviteResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7139,7 +7805,7 @@ class GetTransferStatusRequest final : public ::google::protobuf::internal::Zero
     return *reinterpret_cast<const GetTransferStatusRequest*>(
         &_GetTransferStatusRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 69;
+  static constexpr int kIndexInFileMessages = 72;
   friend void swap(GetTransferStatusRequest& a, GetTransferStatusRequest& b) { a.Swap(&b); }
   inline void Swap(GetTransferStatusRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7274,7 +7940,7 @@ class GetTransferInventoryRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetTransferInventoryRequest*>(
         &_GetTransferInventoryRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 43;
+  static constexpr int kIndexInFileMessages = 46;
   friend void swap(GetTransferInventoryRequest& a, GetTransferInventoryRequest& b) { a.Swap(&b); }
   inline void Swap(GetTransferInventoryRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7598,7 +8264,7 @@ class GetSASEmojiResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetSASEmojiResponse*>(
         &_GetSASEmojiResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 32;
+  static constexpr int kIndexInFileMessages = 35;
   friend void swap(GetSASEmojiResponse& a, GetSASEmojiResponse& b) { a.Swap(&b); }
   inline void Swap(GetSASEmojiResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7800,7 +8466,7 @@ class GetSASEmojiRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetSASEmojiRequest*>(
         &_GetSASEmojiRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 31;
+  static constexpr int kIndexInFileMessages = 34;
   friend void swap(GetSASEmojiRequest& a, GetSASEmojiRequest& b) { a.Swap(&b); }
   inline void Swap(GetSASEmojiRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7995,7 +8661,7 @@ class GeneratePairingCodeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GeneratePairingCodeResponse*>(
         &_GeneratePairingCodeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 28;
+  static constexpr int kIndexInFileMessages = 31;
   friend void swap(GeneratePairingCodeResponse& a, GeneratePairingCodeResponse& b) { a.Swap(&b); }
   inline void Swap(GeneratePairingCodeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8189,7 +8855,7 @@ class GeneratePairingCodeRequest final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const GeneratePairingCodeRequest*>(
         &_GeneratePairingCodeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 27;
+  static constexpr int kIndexInFileMessages = 30;
   friend void swap(GeneratePairingCodeRequest& a, GeneratePairingCodeRequest& b) { a.Swap(&b); }
   inline void Swap(GeneratePairingCodeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8652,7 +9318,7 @@ class DeleteAccountResponse final : public ::google::protobuf::internal::ZeroFie
     return *reinterpret_cast<const DeleteAccountResponse*>(
         &_DeleteAccountResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 38;
+  static constexpr int kIndexInFileMessages = 41;
   friend void swap(DeleteAccountResponse& a, DeleteAccountResponse& b) { a.Swap(&b); }
   inline void Swap(DeleteAccountResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8787,7 +9453,7 @@ class DeleteAccountRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteAccountRequest*>(
         &_DeleteAccountRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 37;
+  static constexpr int kIndexInFileMessages = 40;
   friend void swap(DeleteAccountRequest& a, DeleteAccountRequest& b) { a.Swap(&b); }
   inline void Swap(DeleteAccountRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9206,7 +9872,7 @@ class CreateLocalPairingOfferResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateLocalPairingOfferResponse*>(
         &_CreateLocalPairingOfferResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 74;
+  static constexpr int kIndexInFileMessages = 77;
   friend void swap(CreateLocalPairingOfferResponse& a, CreateLocalPairingOfferResponse& b) { a.Swap(&b); }
   inline void Swap(CreateLocalPairingOfferResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9400,7 +10066,7 @@ class CreateLocalPairingOfferRequest final : public ::google::protobuf::internal
     return *reinterpret_cast<const CreateLocalPairingOfferRequest*>(
         &_CreateLocalPairingOfferRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 73;
+  static constexpr int kIndexInFileMessages = 76;
   friend void swap(CreateLocalPairingOfferRequest& a, CreateLocalPairingOfferRequest& b) { a.Swap(&b); }
   inline void Swap(CreateLocalPairingOfferRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9534,7 +10200,7 @@ class ConfirmSASMatchResponse final : public ::google::protobuf::internal::ZeroF
     return *reinterpret_cast<const ConfirmSASMatchResponse*>(
         &_ConfirmSASMatchResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 34;
+  static constexpr int kIndexInFileMessages = 37;
   friend void swap(ConfirmSASMatchResponse& a, ConfirmSASMatchResponse& b) { a.Swap(&b); }
   inline void Swap(ConfirmSASMatchResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9669,7 +10335,7 @@ class ConfirmSASMatchRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ConfirmSASMatchRequest*>(
         &_ConfirmSASMatchRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 33;
+  static constexpr int kIndexInFileMessages = 36;
   friend void swap(ConfirmSASMatchRequest& a, ConfirmSASMatchRequest& b) { a.Swap(&b); }
   inline void Swap(ConfirmSASMatchRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9858,7 +10524,7 @@ class ConfirmPairingResponse final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const ConfirmPairingResponse*>(
         &_ConfirmPairingResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 36;
+  static constexpr int kIndexInFileMessages = 39;
   friend void swap(ConfirmPairingResponse& a, ConfirmPairingResponse& b) { a.Swap(&b); }
   inline void Swap(ConfirmPairingResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9993,7 +10659,7 @@ class ConfirmPairingRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ConfirmPairingRequest*>(
         &_ConfirmPairingRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 35;
+  static constexpr int kIndexInFileMessages = 38;
   friend void swap(ConfirmPairingRequest& a, ConfirmPairingRequest& b) { a.Swap(&b); }
   inline void Swap(ConfirmPairingRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10205,7 +10871,7 @@ class CompletePairingResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CompletePairingResponse*>(
         &_CompletePairingResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 30;
+  static constexpr int kIndexInFileMessages = 33;
   friend void swap(CompletePairingResponse& a, CompletePairingResponse& b) { a.Swap(&b); }
   inline void Swap(CompletePairingResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10400,7 +11066,7 @@ class CompletePairingRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CompletePairingRequest*>(
         &_CompletePairingRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 29;
+  static constexpr int kIndexInFileMessages = 32;
   friend void swap(CompletePairingRequest& a, CompletePairingRequest& b) { a.Swap(&b); }
   inline void Swap(CompletePairingRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10594,7 +11260,7 @@ class CancelTransferResponse final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const CancelTransferResponse*>(
         &_CancelTransferResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 50;
+  static constexpr int kIndexInFileMessages = 53;
   friend void swap(CancelTransferResponse& a, CancelTransferResponse& b) { a.Swap(&b); }
   inline void Swap(CancelTransferResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10728,7 +11394,7 @@ class CancelTransferRequest final : public ::google::protobuf::internal::ZeroFie
     return *reinterpret_cast<const CancelTransferRequest*>(
         &_CancelTransferRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 49;
+  static constexpr int kIndexInFileMessages = 52;
   friend void swap(CancelTransferRequest& a, CancelTransferRequest& b) { a.Swap(&b); }
   inline void Swap(CancelTransferRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10863,7 +11529,7 @@ class AccessSessionStateAtomResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessSessionStateAtomResponse*>(
         &_AccessSessionStateAtomResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 40;
+  static constexpr int kIndexInFileMessages = 43;
   friend void swap(AccessSessionStateAtomResponse& a, AccessSessionStateAtomResponse& b) { a.Swap(&b); }
   inline void Swap(AccessSessionStateAtomResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11053,7 +11719,7 @@ class AccessSessionStateAtomRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessSessionStateAtomRequest*>(
         &_AccessSessionStateAtomRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 39;
+  static constexpr int kIndexInFileMessages = 42;
   friend void swap(AccessSessionStateAtomRequest& a, AccessSessionStateAtomRequest& b) { a.Swap(&b); }
   inline void Swap(AccessSessionStateAtomRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11248,7 +11914,7 @@ class AcceptLocalPairingOfferResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AcceptLocalPairingOfferResponse*>(
         &_AcceptLocalPairingOfferResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 76;
+  static constexpr int kIndexInFileMessages = 79;
   friend void swap(AcceptLocalPairingOfferResponse& a, AcceptLocalPairingOfferResponse& b) { a.Swap(&b); }
   inline void Swap(AcceptLocalPairingOfferResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11443,7 +12109,7 @@ class AcceptLocalPairingOfferRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AcceptLocalPairingOfferRequest*>(
         &_AcceptLocalPairingOfferRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 75;
+  static constexpr int kIndexInFileMessages = 78;
   friend void swap(AcceptLocalPairingOfferRequest& a, AcceptLocalPairingOfferRequest& b) { a.Swap(&b); }
   inline void Swap(AcceptLocalPairingOfferRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11638,7 +12304,7 @@ class AcceptLocalPairingAnswerResponse final : public ::google::protobuf::Messag
     return *reinterpret_cast<const AcceptLocalPairingAnswerResponse*>(
         &_AcceptLocalPairingAnswerResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 78;
+  static constexpr int kIndexInFileMessages = 81;
   friend void swap(AcceptLocalPairingAnswerResponse& a, AcceptLocalPairingAnswerResponse& b) { a.Swap(&b); }
   inline void Swap(AcceptLocalPairingAnswerResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11833,7 +12499,7 @@ class AcceptLocalPairingAnswerRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AcceptLocalPairingAnswerRequest*>(
         &_AcceptLocalPairingAnswerRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 77;
+  static constexpr int kIndexInFileMessages = 80;
   friend void swap(AcceptLocalPairingAnswerRequest& a, AcceptLocalPairingAnswerRequest& b) { a.Swap(&b); }
   inline void Swap(AcceptLocalPairingAnswerRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12028,7 +12694,7 @@ class WatchSyncStatusResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchSyncStatusResponse*>(
         &_WatchSyncStatusResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 17;
+  static constexpr int kIndexInFileMessages = 18;
   friend void swap(WatchSyncStatusResponse& a, WatchSyncStatusResponse& b) { a.Swap(&b); }
   inline void Swap(WatchSyncStatusResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12146,6 +12812,7 @@ class WatchSyncStatusResponse final : public ::google::protobuf::Message
     kPackBloomInvalidCountFieldNumber = 29,
     kPackBloomMaxFalsePositiveRateFieldNumber = 31,
     kPackBloomParameterShapeCountFieldNumber = 30,
+    kBlockStoresFieldNumber = 56,
     kPackLookupCountFieldNumber = 33,
     kPackCandidatePacksFieldNumber = 34,
     kPackOpenedPacksFieldNumber = 35,
@@ -12161,11 +12828,12 @@ class WatchSyncStatusResponse final : public ::google::protobuf::Message
     kPackIndexCacheWriteErrorsFieldNumber = 45,
     kPackRemoteIndexLoadsFieldNumber = 46,
     kPackRemoteIndexBytesFieldNumber = 47,
-    kPackLastTargetHitFieldNumber = 41,
-    kInFlightUploadCountFieldNumber = 54,
     kPackLastRemoteIndexBytesFieldNumber = 48,
     kPackIndexTailFetchCountFieldNumber = 49,
     kPackIndexTailFetchBytesFieldNumber = 50,
+    kPackLastTargetHitFieldNumber = 41,
+    kDirectP2PDisabledFieldNumber = 55,
+    kInFlightUploadCountFieldNumber = 54,
     kPackIndexTailResponseBytesFieldNumber = 51,
     kActiveUploadBytesFieldNumber = 52,
     kActiveUploadTransferredBytesFieldNumber = 53,
@@ -12490,6 +13158,23 @@ class WatchSyncStatusResponse final : public ::google::protobuf::Message
   void _internal_set_pack_bloom_parameter_shape_count(::uint32_t value);
 
   public:
+  // repeated .s4wave.session.SyncBlockStoreStatus block_stores = 56;
+  int block_stores_size() const;
+  private:
+  int _internal_block_stores_size() const;
+
+  public:
+  void clear_block_stores() ;
+  ::s4wave::session::SyncBlockStoreStatus* PROTOBUF_NONNULL mutable_block_stores(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::session::SyncBlockStoreStatus>* PROTOBUF_NONNULL mutable_block_stores();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::session::SyncBlockStoreStatus>& _internal_block_stores() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::session::SyncBlockStoreStatus>* PROTOBUF_NONNULL _internal_mutable_block_stores();
+  public:
+  const ::s4wave::session::SyncBlockStoreStatus& block_stores(int index) const;
+  ::s4wave::session::SyncBlockStoreStatus* PROTOBUF_NONNULL add_block_stores();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::session::SyncBlockStoreStatus>& block_stores() const;
   // uint64 pack_lookup_count = 33;
   void clear_pack_lookup_count() ;
   ::uint64_t pack_lookup_count() const;
@@ -12640,26 +13325,6 @@ class WatchSyncStatusResponse final : public ::google::protobuf::Message
   void _internal_set_pack_remote_index_bytes(::uint64_t value);
 
   public:
-  // bool pack_last_target_hit = 41;
-  void clear_pack_last_target_hit() ;
-  bool pack_last_target_hit() const;
-  void set_pack_last_target_hit(bool value);
-
-  private:
-  bool _internal_pack_last_target_hit() const;
-  void _internal_set_pack_last_target_hit(bool value);
-
-  public:
-  // uint32 in_flight_upload_count = 54;
-  void clear_in_flight_upload_count() ;
-  ::uint32_t in_flight_upload_count() const;
-  void set_in_flight_upload_count(::uint32_t value);
-
-  private:
-  ::uint32_t _internal_in_flight_upload_count() const;
-  void _internal_set_in_flight_upload_count(::uint32_t value);
-
-  public:
   // uint64 pack_last_remote_index_bytes = 48;
   void clear_pack_last_remote_index_bytes() ;
   ::uint64_t pack_last_remote_index_bytes() const;
@@ -12688,6 +13353,36 @@ class WatchSyncStatusResponse final : public ::google::protobuf::Message
   private:
   ::uint64_t _internal_pack_index_tail_fetch_bytes() const;
   void _internal_set_pack_index_tail_fetch_bytes(::uint64_t value);
+
+  public:
+  // bool pack_last_target_hit = 41;
+  void clear_pack_last_target_hit() ;
+  bool pack_last_target_hit() const;
+  void set_pack_last_target_hit(bool value);
+
+  private:
+  bool _internal_pack_last_target_hit() const;
+  void _internal_set_pack_last_target_hit(bool value);
+
+  public:
+  // bool direct_p2p_disabled = 55;
+  void clear_direct_p2p_disabled() ;
+  bool direct_p2p_disabled() const;
+  void set_direct_p2p_disabled(bool value);
+
+  private:
+  bool _internal_direct_p2p_disabled() const;
+  void _internal_set_direct_p2p_disabled(bool value);
+
+  public:
+  // uint32 in_flight_upload_count = 54;
+  void clear_in_flight_upload_count() ;
+  ::uint32_t in_flight_upload_count() const;
+  void set_in_flight_upload_count(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_in_flight_upload_count() const;
+  void _internal_set_in_flight_upload_count(::uint32_t value);
 
   public:
   // uint64 pack_index_tail_response_bytes = 51;
@@ -12724,8 +13419,8 @@ class WatchSyncStatusResponse final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<5, 54,
-                                   1, 105,
+  static const ::google::protobuf::internal::TcParseTable<5, 56,
+                                   2, 113,
                                    9>
       _table_;
 
@@ -12777,6 +13472,7 @@ class WatchSyncStatusResponse final : public ::google::protobuf::Message
     ::uint32_t pack_bloom_invalid_count_;
     double pack_bloom_max_false_positive_rate_;
     ::uint32_t pack_bloom_parameter_shape_count_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::session::SyncBlockStoreStatus > block_stores_;
     ::uint64_t pack_lookup_count_;
     ::uint64_t pack_candidate_packs_;
     ::uint64_t pack_opened_packs_;
@@ -12792,11 +13488,12 @@ class WatchSyncStatusResponse final : public ::google::protobuf::Message
     ::uint64_t pack_index_cache_write_errors_;
     ::uint64_t pack_remote_index_loads_;
     ::uint64_t pack_remote_index_bytes_;
-    bool pack_last_target_hit_;
-    ::uint32_t in_flight_upload_count_;
     ::uint64_t pack_last_remote_index_bytes_;
     ::uint64_t pack_index_tail_fetch_count_;
     ::uint64_t pack_index_tail_fetch_bytes_;
+    bool pack_last_target_hit_;
+    bool direct_p2p_disabled_;
+    ::uint32_t in_flight_upload_count_;
     ::uint64_t pack_index_tail_response_bytes_;
     ::uint64_t active_upload_bytes_;
     ::uint64_t active_upload_transferred_bytes_;
@@ -13059,7 +13756,7 @@ class WatchPairedDevicesResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchPairedDevicesResponse*>(
         &_WatchPairedDevicesResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 52;
+  static constexpr int kIndexInFileMessages = 55;
   friend void swap(WatchPairedDevicesResponse& a, WatchPairedDevicesResponse& b) { a.Swap(&b); }
   inline void Swap(WatchPairedDevicesResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13550,7 +14247,7 @@ class ListSpaceParticipantsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListSpaceParticipantsResponse*>(
         &_ListSpaceParticipantsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 62;
+  static constexpr int kIndexInFileMessages = 65;
   friend void swap(ListSpaceParticipantsResponse& a, ListSpaceParticipantsResponse& b) { a.Swap(&b); }
   inline void Swap(ListSpaceParticipantsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13747,7 +14444,7 @@ class CreateSpaceInviteRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateSpaceInviteRequest*>(
         &_CreateSpaceInviteRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 57;
+  static constexpr int kIndexInFileMessages = 60;
   friend void swap(CreateSpaceInviteRequest& a, CreateSpaceInviteRequest& b) { a.Swap(&b); }
   inline void Swap(CreateSpaceInviteRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14000,7 +14697,7 @@ class ListSpaceInvitesResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListSpaceInvitesResponse*>(
         &_ListSpaceInvitesResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 60;
+  static constexpr int kIndexInFileMessages = 63;
   friend void swap(ListSpaceInvitesResponse& a, ListSpaceInvitesResponse& b) { a.Swap(&b); }
   inline void Swap(ListSpaceInvitesResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14197,7 +14894,7 @@ class JoinSpaceViaInviteRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const JoinSpaceViaInviteRequest*>(
         &_JoinSpaceViaInviteRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 67;
+  static constexpr int kIndexInFileMessages = 70;
   friend void swap(JoinSpaceViaInviteRequest& a, JoinSpaceViaInviteRequest& b) { a.Swap(&b); }
   inline void Swap(JoinSpaceViaInviteRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14891,7 +15588,7 @@ class CreateSpaceInviteResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateSpaceInviteResponse*>(
         &_CreateSpaceInviteResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 58;
+  static constexpr int kIndexInFileMessages = 61;
   friend void swap(CreateSpaceInviteResponse& a, CreateSpaceInviteResponse& b) { a.Swap(&b); }
   inline void Swap(CreateSpaceInviteResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15103,7 +15800,7 @@ class WatchTransferProgressResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchTransferProgressResponse*>(
         &_WatchTransferProgressResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 48;
+  static constexpr int kIndexInFileMessages = 51;
   friend void swap(WatchTransferProgressResponse& a, WatchTransferProgressResponse& b) { a.Swap(&b); }
   inline void Swap(WatchTransferProgressResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15298,7 +15995,7 @@ class GetTransferStatusResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetTransferStatusResponse*>(
         &_GetTransferStatusResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 70;
+  static constexpr int kIndexInFileMessages = 73;
   friend void swap(GetTransferStatusResponse& a, GetTransferStatusResponse& b) { a.Swap(&b); }
   inline void Swap(GetTransferStatusResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15714,7 +16411,7 @@ class GetTransferInventoryResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetTransferInventoryResponse*>(
         &_GetTransferInventoryResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 44;
+  static constexpr int kIndexInFileMessages = 47;
   friend void swap(GetTransferInventoryResponse& a, GetTransferInventoryResponse& b) { a.Swap(&b); }
   inline void Swap(GetTransferInventoryResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -17800,6 +18497,290 @@ inline void WatchSharedObjectHealthResponse::set_allocated_health(::sobject::Sha
 
 // -------------------------------------------------------------------
 
+// SyncBlockStoreStatus
+
+// string block_store_id = 1;
+inline void SyncBlockStoreStatus::clear_block_store_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.block_store_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SyncBlockStoreStatus::block_store_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.session.SyncBlockStoreStatus.block_store_id)
+  return _internal_block_store_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SyncBlockStoreStatus::set_block_store_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.block_store_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.session.SyncBlockStoreStatus.block_store_id)
+}
+inline ::std::string* PROTOBUF_NONNULL SyncBlockStoreStatus::mutable_block_store_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_block_store_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.session.SyncBlockStoreStatus.block_store_id)
+  return _s;
+}
+inline const ::std::string& SyncBlockStoreStatus::_internal_block_store_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.block_store_id_.Get();
+}
+inline void SyncBlockStoreStatus::_internal_set_block_store_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.block_store_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SyncBlockStoreStatus::_internal_mutable_block_store_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.block_store_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SyncBlockStoreStatus::release_block_store_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.session.SyncBlockStoreStatus.block_store_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.block_store_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.block_store_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SyncBlockStoreStatus::set_allocated_block_store_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.block_store_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.block_store_id_.IsDefault()) {
+    _impl_.block_store_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.session.SyncBlockStoreStatus.block_store_id)
+}
+
+// uint64 direct_hit_count = 2;
+inline void SyncBlockStoreStatus::clear_direct_hit_count() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.direct_hit_count_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t SyncBlockStoreStatus::direct_hit_count() const {
+  // @@protoc_insertion_point(field_get:s4wave.session.SyncBlockStoreStatus.direct_hit_count)
+  return _internal_direct_hit_count();
+}
+inline void SyncBlockStoreStatus::set_direct_hit_count(::uint64_t value) {
+  _internal_set_direct_hit_count(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.session.SyncBlockStoreStatus.direct_hit_count)
+}
+inline ::uint64_t SyncBlockStoreStatus::_internal_direct_hit_count() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.direct_hit_count_;
+}
+inline void SyncBlockStoreStatus::_internal_set_direct_hit_count(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.direct_hit_count_ = value;
+}
+
+// uint64 cloud_hit_count = 3;
+inline void SyncBlockStoreStatus::clear_cloud_hit_count() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cloud_hit_count_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::uint64_t SyncBlockStoreStatus::cloud_hit_count() const {
+  // @@protoc_insertion_point(field_get:s4wave.session.SyncBlockStoreStatus.cloud_hit_count)
+  return _internal_cloud_hit_count();
+}
+inline void SyncBlockStoreStatus::set_cloud_hit_count(::uint64_t value) {
+  _internal_set_cloud_hit_count(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.session.SyncBlockStoreStatus.cloud_hit_count)
+}
+inline ::uint64_t SyncBlockStoreStatus::_internal_cloud_hit_count() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.cloud_hit_count_;
+}
+inline void SyncBlockStoreStatus::_internal_set_cloud_hit_count(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cloud_hit_count_ = value;
+}
+
+// uint64 cache_hit_count = 4;
+inline void SyncBlockStoreStatus::clear_cache_hit_count() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cache_hit_count_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::uint64_t SyncBlockStoreStatus::cache_hit_count() const {
+  // @@protoc_insertion_point(field_get:s4wave.session.SyncBlockStoreStatus.cache_hit_count)
+  return _internal_cache_hit_count();
+}
+inline void SyncBlockStoreStatus::set_cache_hit_count(::uint64_t value) {
+  _internal_set_cache_hit_count(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:s4wave.session.SyncBlockStoreStatus.cache_hit_count)
+}
+inline ::uint64_t SyncBlockStoreStatus::_internal_cache_hit_count() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.cache_hit_count_;
+}
+inline void SyncBlockStoreStatus::_internal_set_cache_hit_count(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cache_hit_count_ = value;
+}
+
+// .s4wave.session.SyncBlockSource last_source = 5;
+inline void SyncBlockStoreStatus::clear_last_source() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.last_source_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline ::s4wave::session::SyncBlockSource SyncBlockStoreStatus::last_source() const {
+  // @@protoc_insertion_point(field_get:s4wave.session.SyncBlockStoreStatus.last_source)
+  return _internal_last_source();
+}
+inline void SyncBlockStoreStatus::set_last_source(::s4wave::session::SyncBlockSource value) {
+  _internal_set_last_source(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:s4wave.session.SyncBlockStoreStatus.last_source)
+}
+inline ::s4wave::session::SyncBlockSource SyncBlockStoreStatus::_internal_last_source() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::session::SyncBlockSource>(_impl_.last_source_);
+}
+inline void SyncBlockStoreStatus::_internal_set_last_source(::s4wave::session::SyncBlockSource value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.last_source_ = value;
+}
+
+// uint64 accepted_root_inner_sequence = 6;
+inline void SyncBlockStoreStatus::clear_accepted_root_inner_sequence() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.accepted_root_inner_sequence_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::uint64_t SyncBlockStoreStatus::accepted_root_inner_sequence() const {
+  // @@protoc_insertion_point(field_get:s4wave.session.SyncBlockStoreStatus.accepted_root_inner_sequence)
+  return _internal_accepted_root_inner_sequence();
+}
+inline void SyncBlockStoreStatus::set_accepted_root_inner_sequence(::uint64_t value) {
+  _internal_set_accepted_root_inner_sequence(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:s4wave.session.SyncBlockStoreStatus.accepted_root_inner_sequence)
+}
+inline ::uint64_t SyncBlockStoreStatus::_internal_accepted_root_inner_sequence() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.accepted_root_inner_sequence_;
+}
+inline void SyncBlockStoreStatus::_internal_set_accepted_root_inner_sequence(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.accepted_root_inner_sequence_ = value;
+}
+
+// uint64 cloud_remote_sequence = 7;
+inline void SyncBlockStoreStatus::clear_cloud_remote_sequence() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cloud_remote_sequence_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::uint64_t SyncBlockStoreStatus::cloud_remote_sequence() const {
+  // @@protoc_insertion_point(field_get:s4wave.session.SyncBlockStoreStatus.cloud_remote_sequence)
+  return _internal_cloud_remote_sequence();
+}
+inline void SyncBlockStoreStatus::set_cloud_remote_sequence(::uint64_t value) {
+  _internal_set_cloud_remote_sequence(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:s4wave.session.SyncBlockStoreStatus.cloud_remote_sequence)
+}
+inline ::uint64_t SyncBlockStoreStatus::_internal_cloud_remote_sequence() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.cloud_remote_sequence_;
+}
+inline void SyncBlockStoreStatus::_internal_set_cloud_remote_sequence(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cloud_remote_sequence_ = value;
+}
+
+// string shared_object_id = 8;
+inline void SyncBlockStoreStatus::clear_shared_object_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.shared_object_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SyncBlockStoreStatus::shared_object_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.session.SyncBlockStoreStatus.shared_object_id)
+  return _internal_shared_object_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SyncBlockStoreStatus::set_shared_object_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.shared_object_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.session.SyncBlockStoreStatus.shared_object_id)
+}
+inline ::std::string* PROTOBUF_NONNULL SyncBlockStoreStatus::mutable_shared_object_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_shared_object_id();
+  // @@protoc_insertion_point(field_mutable:s4wave.session.SyncBlockStoreStatus.shared_object_id)
+  return _s;
+}
+inline const ::std::string& SyncBlockStoreStatus::_internal_shared_object_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.shared_object_id_.Get();
+}
+inline void SyncBlockStoreStatus::_internal_set_shared_object_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.shared_object_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SyncBlockStoreStatus::_internal_mutable_shared_object_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.shared_object_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SyncBlockStoreStatus::release_shared_object_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.session.SyncBlockStoreStatus.shared_object_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.shared_object_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.shared_object_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SyncBlockStoreStatus::set_allocated_shared_object_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.shared_object_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.shared_object_id_.IsDefault()) {
+    _impl_.shared_object_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.session.SyncBlockStoreStatus.shared_object_id)
+}
+
+// -------------------------------------------------------------------
+
 // WatchSyncStatusResponse
 
 // .s4wave.session.SyncStatusState state = 1;
@@ -18057,7 +19038,7 @@ inline void WatchSyncStatusResponse::clear_active_upload_bytes() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.active_upload_bytes_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00100000U);
+                  0x00400000U);
 }
 inline ::uint64_t WatchSyncStatusResponse::active_upload_bytes() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.active_upload_bytes)
@@ -18065,7 +19046,7 @@ inline ::uint64_t WatchSyncStatusResponse::active_upload_bytes() const {
 }
 inline void WatchSyncStatusResponse::set_active_upload_bytes(::uint64_t value) {
   _internal_set_active_upload_bytes(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00100000U);
+  SetHasBit(_impl_._has_bits_[1], 0x00400000U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.active_upload_bytes)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_active_upload_bytes() const {
@@ -18082,7 +19063,7 @@ inline void WatchSyncStatusResponse::clear_active_upload_transferred_bytes() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.active_upload_transferred_bytes_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00200000U);
+                  0x00800000U);
 }
 inline ::uint64_t WatchSyncStatusResponse::active_upload_transferred_bytes() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.active_upload_transferred_bytes)
@@ -18090,7 +19071,7 @@ inline ::uint64_t WatchSyncStatusResponse::active_upload_transferred_bytes() con
 }
 inline void WatchSyncStatusResponse::set_active_upload_transferred_bytes(::uint64_t value) {
   _internal_set_active_upload_transferred_bytes(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00200000U);
+  SetHasBit(_impl_._has_bits_[1], 0x00800000U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.active_upload_transferred_bytes)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_active_upload_transferred_bytes() const {
@@ -18107,7 +19088,7 @@ inline void WatchSyncStatusResponse::clear_in_flight_upload_count() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.in_flight_upload_count_ = 0u;
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00008000U);
+                  0x00100000U);
 }
 inline ::uint32_t WatchSyncStatusResponse::in_flight_upload_count() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.in_flight_upload_count)
@@ -18115,7 +19096,7 @@ inline ::uint32_t WatchSyncStatusResponse::in_flight_upload_count() const {
 }
 inline void WatchSyncStatusResponse::set_in_flight_upload_count(::uint32_t value) {
   _internal_set_in_flight_upload_count(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00008000U);
+  SetHasBit(_impl_._has_bits_[1], 0x00100000U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.in_flight_upload_count)
 }
 inline ::uint32_t WatchSyncStatusResponse::_internal_in_flight_upload_count() const {
@@ -18765,7 +19746,7 @@ inline void WatchSyncStatusResponse::clear_pack_bloom_risk_pack_count() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_bloom_risk_pack_count_ = 0u;
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00000004U);
+                  0x00000008U);
 }
 inline ::uint32_t WatchSyncStatusResponse::pack_bloom_risk_pack_count() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_bloom_risk_pack_count)
@@ -18773,7 +19754,7 @@ inline ::uint32_t WatchSyncStatusResponse::pack_bloom_risk_pack_count() const {
 }
 inline void WatchSyncStatusResponse::set_pack_bloom_risk_pack_count(::uint32_t value) {
   _internal_set_pack_bloom_risk_pack_count(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[1], 0x00000008U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_bloom_risk_pack_count)
 }
 inline ::uint32_t WatchSyncStatusResponse::_internal_pack_bloom_risk_pack_count() const {
@@ -18789,8 +19770,8 @@ inline void WatchSyncStatusResponse::_internal_set_pack_bloom_risk_pack_count(::
 inline void WatchSyncStatusResponse::clear_pack_lookup_count() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_lookup_count_ = ::uint64_t{0u};
-  ClearHasBit(_impl_._has_bits_[0],
-                  0x80000000U);
+  ClearHasBit(_impl_._has_bits_[1],
+                  0x00000001U);
 }
 inline ::uint64_t WatchSyncStatusResponse::pack_lookup_count() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_lookup_count)
@@ -18798,7 +19779,7 @@ inline ::uint64_t WatchSyncStatusResponse::pack_lookup_count() const {
 }
 inline void WatchSyncStatusResponse::set_pack_lookup_count(::uint64_t value) {
   _internal_set_pack_lookup_count(value);
-  SetHasBit(_impl_._has_bits_[0], 0x80000000U);
+  SetHasBit(_impl_._has_bits_[1], 0x00000001U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_lookup_count)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_pack_lookup_count() const {
@@ -18815,7 +19796,7 @@ inline void WatchSyncStatusResponse::clear_pack_candidate_packs() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_candidate_packs_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00000001U);
+                  0x00000002U);
 }
 inline ::uint64_t WatchSyncStatusResponse::pack_candidate_packs() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_candidate_packs)
@@ -18823,7 +19804,7 @@ inline ::uint64_t WatchSyncStatusResponse::pack_candidate_packs() const {
 }
 inline void WatchSyncStatusResponse::set_pack_candidate_packs(::uint64_t value) {
   _internal_set_pack_candidate_packs(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[1], 0x00000002U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_candidate_packs)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_pack_candidate_packs() const {
@@ -18840,7 +19821,7 @@ inline void WatchSyncStatusResponse::clear_pack_opened_packs() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_opened_packs_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00000002U);
+                  0x00000004U);
 }
 inline ::uint64_t WatchSyncStatusResponse::pack_opened_packs() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_opened_packs)
@@ -18848,7 +19829,7 @@ inline ::uint64_t WatchSyncStatusResponse::pack_opened_packs() const {
 }
 inline void WatchSyncStatusResponse::set_pack_opened_packs(::uint64_t value) {
   _internal_set_pack_opened_packs(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[1], 0x00000004U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_opened_packs)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_pack_opened_packs() const {
@@ -18865,7 +19846,7 @@ inline void WatchSyncStatusResponse::clear_pack_negative_packs() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_negative_packs_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00000010U);
+                  0x00000020U);
 }
 inline ::uint64_t WatchSyncStatusResponse::pack_negative_packs() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_negative_packs)
@@ -18873,7 +19854,7 @@ inline ::uint64_t WatchSyncStatusResponse::pack_negative_packs() const {
 }
 inline void WatchSyncStatusResponse::set_pack_negative_packs(::uint64_t value) {
   _internal_set_pack_negative_packs(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[1], 0x00000020U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_negative_packs)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_pack_negative_packs() const {
@@ -18890,7 +19871,7 @@ inline void WatchSyncStatusResponse::clear_pack_target_hits() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_target_hits_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline ::uint64_t WatchSyncStatusResponse::pack_target_hits() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_target_hits)
@@ -18898,7 +19879,7 @@ inline ::uint64_t WatchSyncStatusResponse::pack_target_hits() const {
 }
 inline void WatchSyncStatusResponse::set_pack_target_hits(::uint64_t value) {
   _internal_set_pack_target_hits(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[1], 0x00000040U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_target_hits)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_pack_target_hits() const {
@@ -18915,7 +19896,7 @@ inline void WatchSyncStatusResponse::clear_pack_last_candidate_packs() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_last_candidate_packs_ = 0u;
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline ::uint32_t WatchSyncStatusResponse::pack_last_candidate_packs() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_last_candidate_packs)
@@ -18923,7 +19904,7 @@ inline ::uint32_t WatchSyncStatusResponse::pack_last_candidate_packs() const {
 }
 inline void WatchSyncStatusResponse::set_pack_last_candidate_packs(::uint32_t value) {
   _internal_set_pack_last_candidate_packs(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[1], 0x00000010U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_last_candidate_packs)
 }
 inline ::uint32_t WatchSyncStatusResponse::_internal_pack_last_candidate_packs() const {
@@ -18940,7 +19921,7 @@ inline void WatchSyncStatusResponse::clear_pack_last_opened_packs() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_last_opened_packs_ = 0u;
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00000040U);
+                  0x00000080U);
 }
 inline ::uint32_t WatchSyncStatusResponse::pack_last_opened_packs() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_last_opened_packs)
@@ -18948,7 +19929,7 @@ inline ::uint32_t WatchSyncStatusResponse::pack_last_opened_packs() const {
 }
 inline void WatchSyncStatusResponse::set_pack_last_opened_packs(::uint32_t value) {
   _internal_set_pack_last_opened_packs(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[1], 0x00000080U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_last_opened_packs)
 }
 inline ::uint32_t WatchSyncStatusResponse::_internal_pack_last_opened_packs() const {
@@ -18965,7 +19946,7 @@ inline void WatchSyncStatusResponse::clear_pack_last_negative_packs() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_last_negative_packs_ = 0u;
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00000080U);
+                  0x00000100U);
 }
 inline ::uint32_t WatchSyncStatusResponse::pack_last_negative_packs() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_last_negative_packs)
@@ -18973,7 +19954,7 @@ inline ::uint32_t WatchSyncStatusResponse::pack_last_negative_packs() const {
 }
 inline void WatchSyncStatusResponse::set_pack_last_negative_packs(::uint32_t value) {
   _internal_set_pack_last_negative_packs(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[1], 0x00000100U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_last_negative_packs)
 }
 inline ::uint32_t WatchSyncStatusResponse::_internal_pack_last_negative_packs() const {
@@ -18990,7 +19971,7 @@ inline void WatchSyncStatusResponse::clear_pack_last_target_hit() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_last_target_hit_ = false;
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00004000U);
+                  0x00040000U);
 }
 inline bool WatchSyncStatusResponse::pack_last_target_hit() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_last_target_hit)
@@ -18998,7 +19979,7 @@ inline bool WatchSyncStatusResponse::pack_last_target_hit() const {
 }
 inline void WatchSyncStatusResponse::set_pack_last_target_hit(bool value) {
   _internal_set_pack_last_target_hit(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00004000U);
+  SetHasBit(_impl_._has_bits_[1], 0x00040000U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_last_target_hit)
 }
 inline bool WatchSyncStatusResponse::_internal_pack_last_target_hit() const {
@@ -19015,7 +19996,7 @@ inline void WatchSyncStatusResponse::clear_pack_index_cache_hits() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_index_cache_hits_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00000100U);
+                  0x00000200U);
 }
 inline ::uint64_t WatchSyncStatusResponse::pack_index_cache_hits() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_index_cache_hits)
@@ -19023,7 +20004,7 @@ inline ::uint64_t WatchSyncStatusResponse::pack_index_cache_hits() const {
 }
 inline void WatchSyncStatusResponse::set_pack_index_cache_hits(::uint64_t value) {
   _internal_set_pack_index_cache_hits(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[1], 0x00000200U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_index_cache_hits)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_pack_index_cache_hits() const {
@@ -19040,7 +20021,7 @@ inline void WatchSyncStatusResponse::clear_pack_index_cache_misses() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_index_cache_misses_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00000200U);
+                  0x00000400U);
 }
 inline ::uint64_t WatchSyncStatusResponse::pack_index_cache_misses() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_index_cache_misses)
@@ -19048,7 +20029,7 @@ inline ::uint64_t WatchSyncStatusResponse::pack_index_cache_misses() const {
 }
 inline void WatchSyncStatusResponse::set_pack_index_cache_misses(::uint64_t value) {
   _internal_set_pack_index_cache_misses(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00000200U);
+  SetHasBit(_impl_._has_bits_[1], 0x00000400U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_index_cache_misses)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_pack_index_cache_misses() const {
@@ -19065,7 +20046,7 @@ inline void WatchSyncStatusResponse::clear_pack_index_cache_read_errors() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_index_cache_read_errors_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00000400U);
+                  0x00000800U);
 }
 inline ::uint64_t WatchSyncStatusResponse::pack_index_cache_read_errors() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_index_cache_read_errors)
@@ -19073,7 +20054,7 @@ inline ::uint64_t WatchSyncStatusResponse::pack_index_cache_read_errors() const 
 }
 inline void WatchSyncStatusResponse::set_pack_index_cache_read_errors(::uint64_t value) {
   _internal_set_pack_index_cache_read_errors(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00000400U);
+  SetHasBit(_impl_._has_bits_[1], 0x00000800U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_index_cache_read_errors)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_pack_index_cache_read_errors() const {
@@ -19090,7 +20071,7 @@ inline void WatchSyncStatusResponse::clear_pack_index_cache_write_errors() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_index_cache_write_errors_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00000800U);
+                  0x00001000U);
 }
 inline ::uint64_t WatchSyncStatusResponse::pack_index_cache_write_errors() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_index_cache_write_errors)
@@ -19098,7 +20079,7 @@ inline ::uint64_t WatchSyncStatusResponse::pack_index_cache_write_errors() const
 }
 inline void WatchSyncStatusResponse::set_pack_index_cache_write_errors(::uint64_t value) {
   _internal_set_pack_index_cache_write_errors(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00000800U);
+  SetHasBit(_impl_._has_bits_[1], 0x00001000U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_index_cache_write_errors)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_pack_index_cache_write_errors() const {
@@ -19115,7 +20096,7 @@ inline void WatchSyncStatusResponse::clear_pack_remote_index_loads() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_remote_index_loads_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00001000U);
+                  0x00002000U);
 }
 inline ::uint64_t WatchSyncStatusResponse::pack_remote_index_loads() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_remote_index_loads)
@@ -19123,7 +20104,7 @@ inline ::uint64_t WatchSyncStatusResponse::pack_remote_index_loads() const {
 }
 inline void WatchSyncStatusResponse::set_pack_remote_index_loads(::uint64_t value) {
   _internal_set_pack_remote_index_loads(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00001000U);
+  SetHasBit(_impl_._has_bits_[1], 0x00002000U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_remote_index_loads)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_pack_remote_index_loads() const {
@@ -19140,7 +20121,7 @@ inline void WatchSyncStatusResponse::clear_pack_remote_index_bytes() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_remote_index_bytes_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00002000U);
+                  0x00004000U);
 }
 inline ::uint64_t WatchSyncStatusResponse::pack_remote_index_bytes() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_remote_index_bytes)
@@ -19148,7 +20129,7 @@ inline ::uint64_t WatchSyncStatusResponse::pack_remote_index_bytes() const {
 }
 inline void WatchSyncStatusResponse::set_pack_remote_index_bytes(::uint64_t value) {
   _internal_set_pack_remote_index_bytes(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00002000U);
+  SetHasBit(_impl_._has_bits_[1], 0x00004000U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_remote_index_bytes)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_pack_remote_index_bytes() const {
@@ -19165,7 +20146,7 @@ inline void WatchSyncStatusResponse::clear_pack_last_remote_index_bytes() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_last_remote_index_bytes_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00010000U);
+                  0x00008000U);
 }
 inline ::uint64_t WatchSyncStatusResponse::pack_last_remote_index_bytes() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_last_remote_index_bytes)
@@ -19173,7 +20154,7 @@ inline ::uint64_t WatchSyncStatusResponse::pack_last_remote_index_bytes() const 
 }
 inline void WatchSyncStatusResponse::set_pack_last_remote_index_bytes(::uint64_t value) {
   _internal_set_pack_last_remote_index_bytes(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00010000U);
+  SetHasBit(_impl_._has_bits_[1], 0x00008000U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_last_remote_index_bytes)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_pack_last_remote_index_bytes() const {
@@ -19190,7 +20171,7 @@ inline void WatchSyncStatusResponse::clear_pack_index_tail_fetch_count() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_index_tail_fetch_count_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00020000U);
+                  0x00010000U);
 }
 inline ::uint64_t WatchSyncStatusResponse::pack_index_tail_fetch_count() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_index_tail_fetch_count)
@@ -19198,7 +20179,7 @@ inline ::uint64_t WatchSyncStatusResponse::pack_index_tail_fetch_count() const {
 }
 inline void WatchSyncStatusResponse::set_pack_index_tail_fetch_count(::uint64_t value) {
   _internal_set_pack_index_tail_fetch_count(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00020000U);
+  SetHasBit(_impl_._has_bits_[1], 0x00010000U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_index_tail_fetch_count)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_pack_index_tail_fetch_count() const {
@@ -19215,7 +20196,7 @@ inline void WatchSyncStatusResponse::clear_pack_index_tail_fetch_bytes() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_index_tail_fetch_bytes_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00040000U);
+                  0x00020000U);
 }
 inline ::uint64_t WatchSyncStatusResponse::pack_index_tail_fetch_bytes() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_index_tail_fetch_bytes)
@@ -19223,7 +20204,7 @@ inline ::uint64_t WatchSyncStatusResponse::pack_index_tail_fetch_bytes() const {
 }
 inline void WatchSyncStatusResponse::set_pack_index_tail_fetch_bytes(::uint64_t value) {
   _internal_set_pack_index_tail_fetch_bytes(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00040000U);
+  SetHasBit(_impl_._has_bits_[1], 0x00020000U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_index_tail_fetch_bytes)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_pack_index_tail_fetch_bytes() const {
@@ -19240,7 +20221,7 @@ inline void WatchSyncStatusResponse::clear_pack_index_tail_response_bytes() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_index_tail_response_bytes_ = ::uint64_t{0u};
   ClearHasBit(_impl_._has_bits_[1],
-                  0x00080000U);
+                  0x00200000U);
 }
 inline ::uint64_t WatchSyncStatusResponse::pack_index_tail_response_bytes() const {
   // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.pack_index_tail_response_bytes)
@@ -19248,7 +20229,7 @@ inline ::uint64_t WatchSyncStatusResponse::pack_index_tail_response_bytes() cons
 }
 inline void WatchSyncStatusResponse::set_pack_index_tail_response_bytes(::uint64_t value) {
   _internal_set_pack_index_tail_response_bytes(value);
-  SetHasBit(_impl_._has_bits_[1], 0x00080000U);
+  SetHasBit(_impl_._has_bits_[1], 0x00200000U);
   // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.pack_index_tail_response_bytes)
 }
 inline ::uint64_t WatchSyncStatusResponse::_internal_pack_index_tail_response_bytes() const {
@@ -19258,6 +20239,87 @@ inline ::uint64_t WatchSyncStatusResponse::_internal_pack_index_tail_response_by
 inline void WatchSyncStatusResponse::_internal_set_pack_index_tail_response_bytes(::uint64_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.pack_index_tail_response_bytes_ = value;
+}
+
+// bool direct_p2p_disabled = 55;
+inline void WatchSyncStatusResponse::clear_direct_p2p_disabled() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.direct_p2p_disabled_ = false;
+  ClearHasBit(_impl_._has_bits_[1],
+                  0x00080000U);
+}
+inline bool WatchSyncStatusResponse::direct_p2p_disabled() const {
+  // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.direct_p2p_disabled)
+  return _internal_direct_p2p_disabled();
+}
+inline void WatchSyncStatusResponse::set_direct_p2p_disabled(bool value) {
+  _internal_set_direct_p2p_disabled(value);
+  SetHasBit(_impl_._has_bits_[1], 0x00080000U);
+  // @@protoc_insertion_point(field_set:s4wave.session.WatchSyncStatusResponse.direct_p2p_disabled)
+}
+inline bool WatchSyncStatusResponse::_internal_direct_p2p_disabled() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.direct_p2p_disabled_;
+}
+inline void WatchSyncStatusResponse::_internal_set_direct_p2p_disabled(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.direct_p2p_disabled_ = value;
+}
+
+// repeated .s4wave.session.SyncBlockStoreStatus block_stores = 56;
+inline int WatchSyncStatusResponse::_internal_block_stores_size() const {
+  return _internal_block_stores().size();
+}
+inline int WatchSyncStatusResponse::block_stores_size() const {
+  return _internal_block_stores_size();
+}
+inline void WatchSyncStatusResponse::clear_block_stores() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.block_stores_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x80000000U);
+}
+inline ::s4wave::session::SyncBlockStoreStatus* PROTOBUF_NONNULL WatchSyncStatusResponse::mutable_block_stores(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.session.WatchSyncStatusResponse.block_stores)
+  return _internal_mutable_block_stores()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::session::SyncBlockStoreStatus>* PROTOBUF_NONNULL WatchSyncStatusResponse::mutable_block_stores()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x80000000U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.session.WatchSyncStatusResponse.block_stores)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_block_stores();
+}
+inline const ::s4wave::session::SyncBlockStoreStatus& WatchSyncStatusResponse::block_stores(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.session.WatchSyncStatusResponse.block_stores)
+  return _internal_block_stores().Get(index);
+}
+inline ::s4wave::session::SyncBlockStoreStatus* PROTOBUF_NONNULL WatchSyncStatusResponse::add_block_stores()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::session::SyncBlockStoreStatus* _add =
+      _internal_mutable_block_stores()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x80000000U);
+  // @@protoc_insertion_point(field_add:s4wave.session.WatchSyncStatusResponse.block_stores)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::session::SyncBlockStoreStatus>& WatchSyncStatusResponse::block_stores() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.session.WatchSyncStatusResponse.block_stores)
+  return _internal_block_stores();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::session::SyncBlockStoreStatus>&
+WatchSyncStatusResponse::_internal_block_stores() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.block_stores_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::session::SyncBlockStoreStatus>* PROTOBUF_NONNULL
+WatchSyncStatusResponse::_internal_mutable_block_stores() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.block_stores_;
 }
 
 // -------------------------------------------------------------------
@@ -19494,6 +20556,39 @@ inline void SetLockModeRequest::set_allocated_pin(::std::string* PROTOBUF_NULLAB
 // -------------------------------------------------------------------
 
 // SetLockModeResponse
+
+// -------------------------------------------------------------------
+
+// SetDirectP2PEnabledRequest
+
+// bool enabled = 1;
+inline void SetDirectP2PEnabledRequest::clear_enabled() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.enabled_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline bool SetDirectP2PEnabledRequest::enabled() const {
+  // @@protoc_insertion_point(field_get:s4wave.session.SetDirectP2PEnabledRequest.enabled)
+  return _internal_enabled();
+}
+inline void SetDirectP2PEnabledRequest::set_enabled(bool value) {
+  _internal_set_enabled(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:s4wave.session.SetDirectP2PEnabledRequest.enabled)
+}
+inline bool SetDirectP2PEnabledRequest::_internal_enabled() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.enabled_;
+}
+inline void SetDirectP2PEnabledRequest::_internal_set_enabled(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.enabled_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// SetDirectP2PEnabledResponse
 
 // -------------------------------------------------------------------
 
@@ -23234,6 +24329,12 @@ struct is_proto_enum<::s4wave::session::SyncP2PState> : std::true_type {};
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::session::SyncP2PState>() {
   return ::s4wave::session::SyncP2PState_descriptor();
+}
+template <>
+struct is_proto_enum<::s4wave::session::SyncBlockSource> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::session::SyncBlockSource>() {
+  return ::s4wave::session::SyncBlockSource_descriptor();
 }
 template <>
 struct is_proto_enum<::s4wave::session::PairingStatus> : std::true_type {};

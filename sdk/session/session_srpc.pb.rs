@@ -132,6 +132,8 @@ pub trait SessionResourceServiceClient: Send + Sync {
     async fn watch_lock_state(&self, request: &WatchLockStateRequest) -> starpc::Result<Box<dyn SessionResourceServiceWatchLockStateStream>>;
     /// SetLockMode.
     async fn set_lock_mode(&self, request: &SetLockModeRequest) -> starpc::Result<SetLockModeResponse>;
+    /// SetDirectP2PEnabled.
+    async fn set_direct_p2_p_enabled(&self, request: &SetDirectP2PEnabledRequest) -> starpc::Result<SetDirectP2PEnabledResponse>;
     /// UnlockSession.
     async fn unlock_session(&self, request: &UnlockSessionRequest) -> starpc::Result<UnlockSessionResponse>;
     /// LockSession.
@@ -254,6 +256,9 @@ impl<C: starpc::Client + 'static> SessionResourceServiceClient for SessionResour
     }
     async fn set_lock_mode(&self, request: &SetLockModeRequest) -> starpc::Result<SetLockModeResponse> {
         self.client.exec_call("s4wave.session.SessionResourceService", "SetLockMode", request).await
+    }
+    async fn set_direct_p2_p_enabled(&self, request: &SetDirectP2PEnabledRequest) -> starpc::Result<SetDirectP2PEnabledResponse> {
+        self.client.exec_call("s4wave.session.SessionResourceService", "SetDirectP2PEnabled", request).await
     }
     async fn unlock_session(&self, request: &UnlockSessionRequest) -> starpc::Result<UnlockSessionResponse> {
         self.client.exec_call("s4wave.session.SessionResourceService", "UnlockSession", request).await
@@ -532,6 +537,8 @@ pub trait SessionResourceServiceServer: Send + Sync {
     async fn watch_lock_state(&self, request: WatchLockStateRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// SetLockMode.
     async fn set_lock_mode(&self, request: SetLockModeRequest) -> starpc::Result<SetLockModeResponse>;
+    /// SetDirectP2PEnabled.
+    async fn set_direct_p2_p_enabled(&self, request: SetDirectP2PEnabledRequest) -> starpc::Result<SetDirectP2PEnabledResponse>;
     /// UnlockSession.
     async fn unlock_session(&self, request: UnlockSessionRequest) -> starpc::Result<UnlockSessionResponse>;
     /// LockSession.
@@ -600,6 +607,7 @@ const SESSION_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "RenameSpace",
     "WatchLockState",
     "SetLockMode",
+    "SetDirectP2PEnabled",
     "UnlockSession",
     "LockSession",
     "GeneratePairingCode",
@@ -771,6 +779,21 @@ impl<S: SessionResourceServiceServer + 'static> starpc::Invoker for SessionResou
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.set_lock_mode(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "SetDirectP2PEnabled" => {
+                let request: SetDirectP2PEnabledRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.set_direct_p2_p_enabled(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

@@ -410,6 +410,42 @@ struct UnlinkDeviceRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 UnlinkDeviceRequestDefaultTypeInternal _UnlinkDeviceRequest_default_instance_;
+
+inline constexpr SyncBlockStoreStatus::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        block_store_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        shared_object_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        direct_hit_count_{::uint64_t{0u}},
+        cloud_hit_count_{::uint64_t{0u}},
+        cache_hit_count_{::uint64_t{0u}},
+        accepted_root_inner_sequence_{::uint64_t{0u}},
+        cloud_remote_sequence_{::uint64_t{0u}},
+        last_source_{static_cast< ::s4wave::session::SyncBlockSource >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SyncBlockStoreStatus::SyncBlockStoreStatus(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SyncBlockStoreStatus_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SyncBlockStoreStatusDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SyncBlockStoreStatusDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SyncBlockStoreStatusDefaultTypeInternal() {}
+  union {
+    SyncBlockStoreStatus _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SyncBlockStoreStatusDefaultTypeInternal _SyncBlockStoreStatus_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR StartTransferResponse::StartTransferResponse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -502,6 +538,49 @@ struct SetLockModeRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetLockModeRequestDefaultTypeInternal _SetLockModeRequest_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR SetDirectP2PEnabledResponse::SetDirectP2PEnabledResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(SetDirectP2PEnabledResponse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct SetDirectP2PEnabledResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SetDirectP2PEnabledResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SetDirectP2PEnabledResponseDefaultTypeInternal() {}
+  union {
+    SetDirectP2PEnabledResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetDirectP2PEnabledResponseDefaultTypeInternal _SetDirectP2PEnabledResponse_default_instance_;
+
+inline constexpr SetDirectP2PEnabledRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        enabled_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SetDirectP2PEnabledRequest::SetDirectP2PEnabledRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SetDirectP2PEnabledRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SetDirectP2PEnabledRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SetDirectP2PEnabledRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SetDirectP2PEnabledRequestDefaultTypeInternal() {}
+  union {
+    SetDirectP2PEnabledRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetDirectP2PEnabledRequestDefaultTypeInternal _SetDirectP2PEnabledRequest_default_instance_;
 
 inline constexpr SessionCryptoInfo::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -1595,6 +1674,7 @@ inline constexpr WatchSyncStatusResponse::Impl_::Impl_(
         pack_bloom_invalid_count_{0u},
         pack_bloom_max_false_positive_rate_{0},
         pack_bloom_parameter_shape_count_{0u},
+        block_stores_{},
         pack_lookup_count_{::uint64_t{0u}},
         pack_candidate_packs_{::uint64_t{0u}},
         pack_opened_packs_{::uint64_t{0u}},
@@ -1610,11 +1690,12 @@ inline constexpr WatchSyncStatusResponse::Impl_::Impl_(
         pack_index_cache_write_errors_{::uint64_t{0u}},
         pack_remote_index_loads_{::uint64_t{0u}},
         pack_remote_index_bytes_{::uint64_t{0u}},
-        pack_last_target_hit_{false},
-        in_flight_upload_count_{0u},
         pack_last_remote_index_bytes_{::uint64_t{0u}},
         pack_index_tail_fetch_count_{::uint64_t{0u}},
         pack_index_tail_fetch_bytes_{::uint64_t{0u}},
+        pack_last_target_hit_{false},
+        direct_p2p_disabled_{false},
+        in_flight_upload_count_{0u},
         pack_index_tail_response_bytes_{::uint64_t{0u}},
         active_upload_bytes_{::uint64_t{0u}},
         active_upload_transferred_bytes_{::uint64_t{0u}} {}
@@ -2027,7 +2108,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace session
 }  // namespace s4wave
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto[6];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto[7];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto = nullptr;
 const ::uint32_t
@@ -2135,8 +2216,27 @@ const ::uint32_t
         0x000, // bitmap
         0x000, // bitmap
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::SyncBlockStoreStatus, _impl_._has_bits_),
+        11, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::SyncBlockStoreStatus, _impl_.block_store_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::SyncBlockStoreStatus, _impl_.direct_hit_count_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::SyncBlockStoreStatus, _impl_.cloud_hit_count_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::SyncBlockStoreStatus, _impl_.cache_hit_count_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::SyncBlockStoreStatus, _impl_.last_source_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::SyncBlockStoreStatus, _impl_.accepted_root_inner_sequence_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::SyncBlockStoreStatus, _impl_.cloud_remote_sequence_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::SyncBlockStoreStatus, _impl_.shared_object_id_),
+        0,
+        2,
+        3,
+        4,
+        7,
+        5,
+        6,
+        1,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchSyncStatusResponse, _impl_._has_bits_),
-        57, // hasbit index offset
+        59, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchSyncStatusResponse, _impl_.state_),
         PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchSyncStatusResponse, _impl_.direction_),
         PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchSyncStatusResponse, _impl_.transport_state_),
@@ -2191,6 +2291,8 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchSyncStatusResponse, _impl_.pack_index_tail_fetch_count_),
         PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchSyncStatusResponse, _impl_.pack_index_tail_fetch_bytes_),
         PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchSyncStatusResponse, _impl_.pack_index_tail_response_bytes_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchSyncStatusResponse, _impl_.direct_p2p_disabled_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchSyncStatusResponse, _impl_.block_stores_),
         2,
         3,
         4,
@@ -2201,9 +2303,9 @@ const ::uint32_t
         9,
         10,
         11,
+        54,
+        55,
         52,
-        53,
-        47,
         12,
         13,
         0,
@@ -2225,26 +2327,28 @@ const ::uint32_t
         28,
         30,
         29,
-        34,
-        31,
+        35,
         32,
         33,
-        36,
+        34,
         37,
-        35,
         38,
+        36,
         39,
-        46,
         40,
+        50,
         41,
         42,
         43,
         44,
         45,
+        46,
+        47,
         48,
         49,
-        50,
+        53,
         51,
+        31,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::session::WatchStorageStatsResponse, _impl_._has_bits_),
         6, // hasbit index offset
@@ -2268,6 +2372,12 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::session::SetLockModeRequest, _impl_.mode_),
         PROTOBUF_FIELD_OFFSET(::s4wave::session::SetLockModeRequest, _impl_.pin_),
         1,
+        0,
+        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::SetDirectP2PEnabledRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::session::SetDirectP2PEnabledRequest, _impl_.enabled_),
         0,
         0x000, // bitmap
         0x081, // bitmap
@@ -2545,68 +2655,71 @@ static const ::_pbi::MigrationSchema
         {94, sizeof(::s4wave::session::WatchSharedObjectHealthResponse)},
         {99, sizeof(::s4wave::session::WatchSyncStatusRequest)},
         {100, sizeof(::s4wave::session::WatchStorageStatsRequest)},
-        {101, sizeof(::s4wave::session::WatchSyncStatusResponse)},
-        {212, sizeof(::s4wave::session::WatchStorageStatsResponse)},
-        {221, sizeof(::s4wave::session::WatchLockStateRequest)},
-        {222, sizeof(::s4wave::session::WatchLockStateResponse)},
-        {229, sizeof(::s4wave::session::SetLockModeRequest)},
-        {236, sizeof(::s4wave::session::SetLockModeResponse)},
-        {237, sizeof(::s4wave::session::UnlockSessionRequest)},
-        {242, sizeof(::s4wave::session::UnlockSessionResponse)},
-        {243, sizeof(::s4wave::session::LockSessionRequest)},
-        {244, sizeof(::s4wave::session::LockSessionResponse)},
-        {245, sizeof(::s4wave::session::GeneratePairingCodeRequest)},
-        {246, sizeof(::s4wave::session::GeneratePairingCodeResponse)},
-        {251, sizeof(::s4wave::session::CompletePairingRequest)},
-        {256, sizeof(::s4wave::session::CompletePairingResponse)},
-        {261, sizeof(::s4wave::session::GetSASEmojiRequest)},
-        {266, sizeof(::s4wave::session::GetSASEmojiResponse)},
-        {271, sizeof(::s4wave::session::ConfirmSASMatchRequest)},
-        {276, sizeof(::s4wave::session::ConfirmSASMatchResponse)},
-        {277, sizeof(::s4wave::session::ConfirmPairingRequest)},
-        {284, sizeof(::s4wave::session::ConfirmPairingResponse)},
-        {285, sizeof(::s4wave::session::DeleteAccountRequest)},
-        {290, sizeof(::s4wave::session::DeleteAccountResponse)},
-        {291, sizeof(::s4wave::session::AccessSessionStateAtomRequest)},
-        {296, sizeof(::s4wave::session::AccessSessionStateAtomResponse)},
-        {301, sizeof(::s4wave::session::WatchSessionStateAtomsRequest)},
-        {302, sizeof(::s4wave::session::WatchSessionStateAtomsResponse)},
-        {309, sizeof(::s4wave::session::GetTransferInventoryRequest)},
-        {314, sizeof(::s4wave::session::GetTransferInventoryResponse)},
-        {319, sizeof(::s4wave::session::StartTransferRequest)},
-        {330, sizeof(::s4wave::session::StartTransferResponse)},
-        {331, sizeof(::s4wave::session::WatchTransferProgressRequest)},
-        {332, sizeof(::s4wave::session::WatchTransferProgressResponse)},
-        {337, sizeof(::s4wave::session::CancelTransferRequest)},
-        {338, sizeof(::s4wave::session::CancelTransferResponse)},
-        {339, sizeof(::s4wave::session::WatchPairedDevicesRequest)},
-        {340, sizeof(::s4wave::session::WatchPairedDevicesResponse)},
-        {347, sizeof(::s4wave::session::UnlinkDeviceRequest)},
-        {352, sizeof(::s4wave::session::UnlinkDeviceResponse)},
-        {353, sizeof(::s4wave::session::WatchPairingStatusRequest)},
-        {354, sizeof(::s4wave::session::WatchPairingStatusResponse)},
-        {367, sizeof(::s4wave::session::CreateSpaceInviteRequest)},
-        {380, sizeof(::s4wave::session::CreateSpaceInviteResponse)},
-        {387, sizeof(::s4wave::session::ListSpaceInvitesRequest)},
-        {392, sizeof(::s4wave::session::ListSpaceInvitesResponse)},
-        {397, sizeof(::s4wave::session::ListSpaceParticipantsRequest)},
-        {402, sizeof(::s4wave::session::ListSpaceParticipantsResponse)},
-        {407, sizeof(::s4wave::session::RemoveSpaceParticipantRequest)},
-        {414, sizeof(::s4wave::session::RemoveSpaceParticipantResponse)},
-        {419, sizeof(::s4wave::session::RevokeSpaceInviteRequest)},
-        {426, sizeof(::s4wave::session::RevokeSpaceInviteResponse)},
-        {427, sizeof(::s4wave::session::JoinSpaceViaInviteRequest)},
-        {434, sizeof(::s4wave::session::JoinSpaceViaInviteResponse)},
-        {441, sizeof(::s4wave::session::GetTransferStatusRequest)},
-        {442, sizeof(::s4wave::session::GetTransferStatusResponse)},
-        {451, sizeof(::s4wave::session::LocalPairingOffer)},
-        {458, sizeof(::s4wave::session::LocalPairingAnswer)},
-        {465, sizeof(::s4wave::session::CreateLocalPairingOfferRequest)},
-        {466, sizeof(::s4wave::session::CreateLocalPairingOfferResponse)},
-        {471, sizeof(::s4wave::session::AcceptLocalPairingOfferRequest)},
-        {476, sizeof(::s4wave::session::AcceptLocalPairingOfferResponse)},
-        {481, sizeof(::s4wave::session::AcceptLocalPairingAnswerRequest)},
-        {486, sizeof(::s4wave::session::AcceptLocalPairingAnswerResponse)},
+        {101, sizeof(::s4wave::session::SyncBlockStoreStatus)},
+        {120, sizeof(::s4wave::session::WatchSyncStatusResponse)},
+        {235, sizeof(::s4wave::session::WatchStorageStatsResponse)},
+        {244, sizeof(::s4wave::session::WatchLockStateRequest)},
+        {245, sizeof(::s4wave::session::WatchLockStateResponse)},
+        {252, sizeof(::s4wave::session::SetLockModeRequest)},
+        {259, sizeof(::s4wave::session::SetLockModeResponse)},
+        {260, sizeof(::s4wave::session::SetDirectP2PEnabledRequest)},
+        {265, sizeof(::s4wave::session::SetDirectP2PEnabledResponse)},
+        {266, sizeof(::s4wave::session::UnlockSessionRequest)},
+        {271, sizeof(::s4wave::session::UnlockSessionResponse)},
+        {272, sizeof(::s4wave::session::LockSessionRequest)},
+        {273, sizeof(::s4wave::session::LockSessionResponse)},
+        {274, sizeof(::s4wave::session::GeneratePairingCodeRequest)},
+        {275, sizeof(::s4wave::session::GeneratePairingCodeResponse)},
+        {280, sizeof(::s4wave::session::CompletePairingRequest)},
+        {285, sizeof(::s4wave::session::CompletePairingResponse)},
+        {290, sizeof(::s4wave::session::GetSASEmojiRequest)},
+        {295, sizeof(::s4wave::session::GetSASEmojiResponse)},
+        {300, sizeof(::s4wave::session::ConfirmSASMatchRequest)},
+        {305, sizeof(::s4wave::session::ConfirmSASMatchResponse)},
+        {306, sizeof(::s4wave::session::ConfirmPairingRequest)},
+        {313, sizeof(::s4wave::session::ConfirmPairingResponse)},
+        {314, sizeof(::s4wave::session::DeleteAccountRequest)},
+        {319, sizeof(::s4wave::session::DeleteAccountResponse)},
+        {320, sizeof(::s4wave::session::AccessSessionStateAtomRequest)},
+        {325, sizeof(::s4wave::session::AccessSessionStateAtomResponse)},
+        {330, sizeof(::s4wave::session::WatchSessionStateAtomsRequest)},
+        {331, sizeof(::s4wave::session::WatchSessionStateAtomsResponse)},
+        {338, sizeof(::s4wave::session::GetTransferInventoryRequest)},
+        {343, sizeof(::s4wave::session::GetTransferInventoryResponse)},
+        {348, sizeof(::s4wave::session::StartTransferRequest)},
+        {359, sizeof(::s4wave::session::StartTransferResponse)},
+        {360, sizeof(::s4wave::session::WatchTransferProgressRequest)},
+        {361, sizeof(::s4wave::session::WatchTransferProgressResponse)},
+        {366, sizeof(::s4wave::session::CancelTransferRequest)},
+        {367, sizeof(::s4wave::session::CancelTransferResponse)},
+        {368, sizeof(::s4wave::session::WatchPairedDevicesRequest)},
+        {369, sizeof(::s4wave::session::WatchPairedDevicesResponse)},
+        {376, sizeof(::s4wave::session::UnlinkDeviceRequest)},
+        {381, sizeof(::s4wave::session::UnlinkDeviceResponse)},
+        {382, sizeof(::s4wave::session::WatchPairingStatusRequest)},
+        {383, sizeof(::s4wave::session::WatchPairingStatusResponse)},
+        {396, sizeof(::s4wave::session::CreateSpaceInviteRequest)},
+        {409, sizeof(::s4wave::session::CreateSpaceInviteResponse)},
+        {416, sizeof(::s4wave::session::ListSpaceInvitesRequest)},
+        {421, sizeof(::s4wave::session::ListSpaceInvitesResponse)},
+        {426, sizeof(::s4wave::session::ListSpaceParticipantsRequest)},
+        {431, sizeof(::s4wave::session::ListSpaceParticipantsResponse)},
+        {436, sizeof(::s4wave::session::RemoveSpaceParticipantRequest)},
+        {443, sizeof(::s4wave::session::RemoveSpaceParticipantResponse)},
+        {448, sizeof(::s4wave::session::RevokeSpaceInviteRequest)},
+        {455, sizeof(::s4wave::session::RevokeSpaceInviteResponse)},
+        {456, sizeof(::s4wave::session::JoinSpaceViaInviteRequest)},
+        {463, sizeof(::s4wave::session::JoinSpaceViaInviteResponse)},
+        {470, sizeof(::s4wave::session::GetTransferStatusRequest)},
+        {471, sizeof(::s4wave::session::GetTransferStatusResponse)},
+        {480, sizeof(::s4wave::session::LocalPairingOffer)},
+        {487, sizeof(::s4wave::session::LocalPairingAnswer)},
+        {494, sizeof(::s4wave::session::CreateLocalPairingOfferRequest)},
+        {495, sizeof(::s4wave::session::CreateLocalPairingOfferResponse)},
+        {500, sizeof(::s4wave::session::AcceptLocalPairingOfferRequest)},
+        {505, sizeof(::s4wave::session::AcceptLocalPairingOfferResponse)},
+        {510, sizeof(::s4wave::session::AcceptLocalPairingAnswerRequest)},
+        {515, sizeof(::s4wave::session::AcceptLocalPairingAnswerResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::session::_GetSessionInfoRequest_default_instance_._instance,
@@ -2626,12 +2739,15 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::session::_WatchSharedObjectHealthResponse_default_instance_._instance,
     &::s4wave::session::_WatchSyncStatusRequest_default_instance_._instance,
     &::s4wave::session::_WatchStorageStatsRequest_default_instance_._instance,
+    &::s4wave::session::_SyncBlockStoreStatus_default_instance_._instance,
     &::s4wave::session::_WatchSyncStatusResponse_default_instance_._instance,
     &::s4wave::session::_WatchStorageStatsResponse_default_instance_._instance,
     &::s4wave::session::_WatchLockStateRequest_default_instance_._instance,
     &::s4wave::session::_WatchLockStateResponse_default_instance_._instance,
     &::s4wave::session::_SetLockModeRequest_default_instance_._instance,
     &::s4wave::session::_SetLockModeResponse_default_instance_._instance,
+    &::s4wave::session::_SetDirectP2PEnabledRequest_default_instance_._instance,
+    &::s4wave::session::_SetDirectP2PEnabledResponse_default_instance_._instance,
     &::s4wave::session::_UnlockSessionRequest_default_instance_._instance,
     &::s4wave::session::_UnlockSessionResponse_default_instance_._instance,
     &::s4wave::session::_LockSessionRequest_default_instance_._instance,
@@ -2737,277 +2853,296 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fs
     "\n\020shared_object_id\030\001 \001(\t\"N\n\037WatchSharedO"
     "bjectHealthResponse\022+\n\006health\030\001 \001(\0132\033.so"
     "bject.SharedObjectHealth\"\030\n\026WatchSyncSta"
-    "tusRequest\"\032\n\030WatchStorageStatsRequest\"\213"
-    "\017\n\027WatchSyncStatusResponse\022.\n\005state\030\001 \001("
-    "\0162\037.s4wave.session.SyncStatusState\0228\n\tdi"
-    "rection\030\002 \001(\0162%.s4wave.session.SyncActiv"
-    "ityDirection\022;\n\017transport_state\030\003 \001(\0162\"."
-    "s4wave.session.SyncTransportState\022/\n\tp2p"
-    "_state\030\004 \001(\0162\034.s4wave.session.SyncP2PSta"
-    "te\022\034\n\024pending_upload_bytes\030\005 \001(\004\022\036\n\026pend"
-    "ing_download_bytes\030\006 \001(\004\022\034\n\024pending_uplo"
-    "ad_count\030\007 \001(\r\022\036\n\026pending_download_count"
-    "\030\010 \001(\r\022\037\n\027upload_bytes_per_second\030\t \001(\004\022"
-    "!\n\031download_bytes_per_second\030\n \001(\004\022\033\n\023ac"
-    "tive_upload_bytes\0304 \001(\004\022\'\n\037active_upload"
-    "_transferred_bytes\0305 \001(\004\022\036\n\026in_flight_up"
-    "load_count\0306 \001(\r\022\032\n\022active_store_count\030\013"
-    " \001(\r\022\031\n\021active_peer_count\030\014 \001(\r\022\022\n\nlast_"
-    "error\030\r \001(\t\0224\n\020last_activity_at\030\016 \001(\0132\032."
-    "google.protobuf.Timestamp\022 \n\030pack_range_"
-    "request_count\030\017 \001(\004\022!\n\031pack_range_respon"
-    "se_bytes\030\020 \001(\004\022)\n!pack_full_response_fal"
-    "lback_count\030\021 \001(\004\022)\n!pack_full_response_"
-    "fallback_bytes\030\022 \001(\004\022.\n&pack_last_full_r"
-    "esponse_fallback_bytes\030\023 \001(\004\022\035\n\025pack_man"
-    "ifest_entries\030\024 \001(\r\022\036\n\026pack_block_count_"
-    "total\030\025 \001(\004\022\034\n\024pack_block_count_min\030\026 \001("
-    "\004\022\034\n\024pack_block_count_max\030\027 \001(\004\022\035\n\025pack_"
-    "size_bytes_total\030\030 \001(\004\022\033\n\023pack_size_byte"
-    "s_min\030\031 \001(\004\022\033\n\023pack_size_bytes_max\030\032 \001(\004"
-    "\022\037\n\027pack_bloom_filter_count\030\033 \001(\r\022 \n\030pac"
-    "k_bloom_missing_count\030\034 \001(\r\022 \n\030pack_bloo"
-    "m_invalid_count\030\035 \001(\r\022(\n pack_bloom_para"
-    "meter_shape_count\030\036 \001(\r\022*\n\"pack_bloom_ma"
-    "x_false_positive_rate\030\037 \001(\001\022\"\n\032pack_bloo"
-    "m_risk_pack_count\030  \001(\r\022\031\n\021pack_lookup_c"
-    "ount\030! \001(\004\022\034\n\024pack_candidate_packs\030\" \001(\004"
-    "\022\031\n\021pack_opened_packs\030# \001(\004\022\033\n\023pack_nega"
-    "tive_packs\030$ \001(\004\022\030\n\020pack_target_hits\030% \001"
-    "(\004\022!\n\031pack_last_candidate_packs\030& \001(\r\022\036\n"
-    "\026pack_last_opened_packs\030\' \001(\r\022 \n\030pack_la"
-    "st_negative_packs\030( \001(\r\022\034\n\024pack_last_tar"
-    "get_hit\030) \001(\010\022\035\n\025pack_index_cache_hits\030*"
-    " \001(\004\022\037\n\027pack_index_cache_misses\030+ \001(\004\022$\n"
-    "\034pack_index_cache_read_errors\030, \001(\004\022%\n\035p"
-    "ack_index_cache_write_errors\030- \001(\004\022\037\n\027pa"
-    "ck_remote_index_loads\030. \001(\004\022\037\n\027pack_remo"
-    "te_index_bytes\030/ \001(\004\022$\n\034pack_last_remote"
-    "_index_bytes\0300 \001(\004\022#\n\033pack_index_tail_fe"
-    "tch_count\0301 \001(\004\022#\n\033pack_index_tail_fetch"
-    "_bytes\0302 \001(\004\022&\n\036pack_index_tail_response"
-    "_bytes\0303 \001(\004\"X\n\031WatchStorageStatsRespons"
-    "e\022\021\n\tsupported\030\001 \001(\010\022\023\n\013total_bytes\030\002 \001("
-    "\004\022\023\n\013block_count\030\003 \001(\004\"\027\n\025WatchLockState"
-    "Request\"P\n\026WatchLockStateResponse\022&\n\004mod"
-    "e\030\001 \001(\0162\030.session.SessionLockMode\022\016\n\006loc"
-    "ked\030\002 \001(\010\"I\n\022SetLockModeRequest\022&\n\004mode\030"
-    "\001 \001(\0162\030.session.SessionLockMode\022\013\n\003pin\030\002"
-    " \001(\014\"\025\n\023SetLockModeResponse\"#\n\024UnlockSes"
-    "sionRequest\022\013\n\003pin\030\001 \001(\014\"\027\n\025UnlockSessio"
-    "nResponse\"\024\n\022LockSessionRequest\"\025\n\023LockS"
-    "essionResponse\"\034\n\032GeneratePairingCodeReq"
-    "uest\"+\n\033GeneratePairingCodeResponse\022\014\n\004c"
-    "ode\030\001 \001(\t\"&\n\026CompletePairingRequest\022\014\n\004c"
-    "ode\030\001 \001(\t\"1\n\027CompletePairingResponse\022\026\n\016"
-    "remote_peer_id\030\001 \001(\t\",\n\022GetSASEmojiReque"
-    "st\022\026\n\016remote_peer_id\030\001 \001(\t\"$\n\023GetSASEmoj"
-    "iResponse\022\r\n\005emoji\030\001 \003(\t\"+\n\026ConfirmSASMa"
-    "tchRequest\022\021\n\tconfirmed\030\001 \001(\010\"\031\n\027Confirm"
-    "SASMatchResponse\"E\n\025ConfirmPairingReques"
-    "t\022\026\n\016remote_peer_id\030\001 \001(\t\022\024\n\014display_nam"
-    "e\030\002 \001(\t\"\030\n\026ConfirmPairingResponse\"+\n\024Del"
-    "eteAccountRequest\022\023\n\013session_idx\030\001 \001(\r\"\027"
-    "\n\025DeleteAccountResponse\"1\n\035AccessSession"
-    "StateAtomRequest\022\020\n\010store_id\030\001 \001(\t\"5\n\036Ac"
-    "cessSessionStateAtomResponse\022\023\n\013resource"
-    "_id\030\001 \001(\r\"\037\n\035WatchSessionStateAtomsReque"
-    "st\"H\n\036WatchSessionStateAtomsResponse\022\021\n\t"
-    "store_ids\030\001 \003(\t\022\023\n\013store_count\030\002 \001(\r\"4\n\033"
-    "GetTransferInventoryRequest\022\025\n\rsession_i"
-    "ndex\030\001 \001(\r\"G\n\034GetTransferInventoryRespon"
-    "se\022\'\n\006spaces\030\001 \003(\0132\027.space.SpaceSoListEn"
-    "try\"\224\001\n\024StartTransferRequest\022\034\n\024source_s"
-    "ession_index\030\001 \001(\r\022\034\n\024target_session_ind"
-    "ex\030\002 \001(\r\022-\n\004mode\030\003 \001(\0162\037.provider.transf"
-    "er.TransferMode\022\021\n\tspace_ids\030\004 \003(\t\"\027\n\025St"
-    "artTransferResponse\"\036\n\034WatchTransferProg"
-    "ressRequest\"P\n\035WatchTransferProgressResp"
-    "onse\022/\n\005state\030\001 \001(\0132 .provider.transfer."
-    "TransferState\"\027\n\025CancelTransferRequest\"\030"
-    "\n\026CancelTransferResponse\"\033\n\031WatchPairedD"
-    "evicesRequest\"m\n\032WatchPairedDevicesRespo"
-    "nse\0226\n\016paired_devices\030\001 \003(\0132\036.account.se"
-    "ttings.PairedDevice\022\027\n\017online_peer_ids\030\002"
-    " \003(\t\"&\n\023UnlinkDeviceRequest\022\017\n\007peer_id\030\001"
-    " \001(\t\"\026\n\024UnlinkDeviceResponse\"\033\n\031WatchPai"
-    "ringStatusRequest\"\227\001\n\032WatchPairingStatus"
-    "Response\022-\n\006status\030\001 \001(\0162\035.s4wave.sessio"
-    "n.PairingStatus\022\026\n\016remote_peer_id\030\002 \001(\t\022"
-    "\014\n\004code\030\003 \001(\t\022\r\n\005emoji\030\004 \003(\t\022\025\n\rerror_me"
-    "ssage\030\005 \001(\t\"\260\001\n\030CreateSpaceInviteRequest"
-    "\022\020\n\010space_id\030\001 \001(\t\022(\n\004role\030\002 \001(\0162\032.sobje"
-    "ct.SOParticipantRole\022\026\n\016target_peer_id\030\003"
-    " \001(\t\022\020\n\010max_uses\030\004 \001(\r\022.\n\nexpires_at\030\005 \001"
-    "(\0132\032.google.protobuf.Timestamp\"a\n\031Create"
-    "SpaceInviteResponse\0220\n\016invite_message\030\001 "
-    "\001(\0132\030.sobject.SOInviteMessage\022\022\n\nshort_c"
-    "ode\030\002 \001(\t\"+\n\027ListSpaceInvitesRequest\022\020\n\010"
-    "space_id\030\001 \001(\t\">\n\030ListSpaceInvitesRespon"
-    "se\022\"\n\007invites\030\001 \003(\0132\021.sobject.SOInvite\"0"
-    "\n\034ListSpaceParticipantsRequest\022\020\n\010space_"
-    "id\030\001 \001(\t\"S\n\035ListSpaceParticipantsRespons"
-    "e\0222\n\014participants\030\001 \003(\0132\034.sobject.SOPart"
-    "icipantConfig\"B\n\035RemoveSpaceParticipantR"
-    "equest\022\020\n\010space_id\030\001 \001(\t\022\017\n\007peer_id\030\002 \001("
-    "\t\"1\n\036RemoveSpaceParticipantResponse\022\017\n\007r"
-    "emoved\030\001 \001(\010\"\?\n\030RevokeSpaceInviteRequest"
-    "\022\020\n\010space_id\030\001 \001(\t\022\021\n\tinvite_id\030\002 \001(\t\"\033\n"
-    "\031RevokeSpaceInviteResponse\"s\n\031JoinSpaceV"
-    "iaInviteRequest\0220\n\016invite_message\030\001 \001(\0132"
-    "\030.sobject.SOInviteMessage\022$\n\034targeted_in"
-    "vitation_envelope\030\002 \001(\014\"p\n\032JoinSpaceViaI"
-    "nviteResponse\022\030\n\020shared_object_id\030\001 \001(\t\022"
-    "8\n\006result\030\002 \001(\0162(.s4wave.session.JoinSpa"
-    "ceViaInviteResult\"\032\n\030GetTransferStatusRe"
-    "quest\"t\n\031GetTransferStatusResponse\022\016\n\006ac"
-    "tive\030\001 \001(\010\022\026\n\016has_checkpoint\030\002 \001(\010\022/\n\005st"
-    "ate\030\003 \001(\0132 .provider.transfer.TransferSt"
-    "ate\"1\n\021LocalPairingOffer\022\013\n\003sdp\030\001 \001(\t\022\017\n"
-    "\007peer_id\030\002 \001(\t\"2\n\022LocalPairingAnswer\022\013\n\003"
-    "sdp\030\001 \001(\t\022\017\n\007peer_id\030\002 \001(\t\" \n\036CreateLoca"
-    "lPairingOfferRequest\"8\n\037CreateLocalPairi"
-    "ngOfferResponse\022\025\n\roffer_payload\030\001 \001(\t\"7"
-    "\n\036AcceptLocalPairingOfferRequest\022\025\n\roffe"
-    "r_payload\030\001 \001(\t\"9\n\037AcceptLocalPairingOff"
-    "erResponse\022\026\n\016answer_payload\030\001 \001(\t\"9\n\037Ac"
-    "ceptLocalPairingAnswerRequest\022\026\n\016answer_"
-    "payload\030\001 \001(\t\":\n AcceptLocalPairingAnswe"
-    "rResponse\022\026\n\016remote_peer_id\030\001 \001(\t*d\n\017Syn"
-    "cStatusState\022\032\n\026SyncStatusState_SYNCED\020\000"
-    "\022\032\n\026SyncStatusState_ACTIVE\020\001\022\031\n\025SyncStat"
-    "usState_ERROR\020\002*\250\001\n\025SyncActivityDirectio"
-    "n\022\036\n\032SyncActivityDirection_NONE\020\000\022 \n\034Syn"
-    "cActivityDirection_UPLOAD\020\001\022\"\n\036SyncActiv"
-    "ityDirection_DOWNLOAD\020\002\022)\n%SyncActivityD"
-    "irection_UPLOAD_DOWNLOAD\020\003*\270\001\n\022SyncTrans"
-    "portState\022\036\n\032SyncTransportState_UNKNOWN\020"
-    "\000\022\"\n\036SyncTransportState_UNAVAILABLE\020\001\022!\n"
-    "\035SyncTransportState_CONNECTING\020\002\022\035\n\031Sync"
-    "TransportState_ONLINE\020\003\022\034\n\030SyncTransport"
-    "State_ERROR\020\004*\213\001\n\014SyncP2PState\022\030\n\024SyncP2"
-    "PState_UNKNOWN\020\000\022\031\n\025SyncP2PState_NO_PEER"
-    "S\020\001\022\025\n\021SyncP2PState_IDLE\020\002\022\027\n\023SyncP2PSta"
-    "te_ACTIVE\020\003\022\026\n\022SyncP2PState_ERROR\020\004*\316\003\n\r"
-    "PairingStatus\022\026\n\022PairingStatus_IDLE\020\000\022 \n"
-    "\034PairingStatus_CODE_GENERATED\020\001\022\"\n\036Pairi"
-    "ngStatus_WAITING_FOR_PEER\020\002\022 \n\034PairingSt"
-    "atus_PEER_CONNECTED\020\003\022!\n\035PairingStatus_V"
-    "ERIFYING_EMOJI\020\004\022\032\n\026PairingStatus_VERIFI"
-    "ED\020\005\022\030\n\024PairingStatus_FAILED\020\006\022\"\n\036Pairin"
-    "gStatus_SIGNALING_FAILED\020\007\022$\n PairingSta"
-    "tus_CONNECTION_TIMEOUT\020\010\022,\n(PairingStatu"
-    "s_WAITING_FOR_REMOTE_CONFIRM\020\t\022 \n\034Pairin"
-    "gStatus_BOTH_CONFIRMED\020\n\022\"\n\036PairingStatu"
-    "s_PAIRING_REJECTED\020\013\022&\n\"PairingStatus_CO"
-    "NFIRMATION_TIMEOUT\020\014*\372\001\n\030JoinSpaceViaInv"
-    "iteResult\022(\n$JoinSpaceViaInviteResult_UN"
-    "SPECIFIED\020\000\022%\n!JoinSpaceViaInviteResult_"
-    "ACCEPTED\020\001\0223\n/JoinSpaceViaInviteResult_P"
-    "ENDING_OWNER_APPROVAL\020\002\022%\n!JoinSpaceViaI"
-    "nviteResult_REJECTED\020\003\0221\n-JoinSpaceViaIn"
-    "viteResult_OWNER_MUST_BE_ONLINE\020\0042\255\037\n\026Se"
-    "ssionResourceService\022_\n\016GetSessionInfo\022%"
-    ".s4wave.session.GetSessionInfoRequest\032&."
-    "s4wave.session.GetSessionInfoResponse\022m\n"
-    "\022WatchResourcesList\022).s4wave.session.Wat"
-    "chResourcesListRequest\032*.s4wave.session."
-    "WatchResourcesListResponse0\001\022V\n\013CreateSp"
-    "ace\022\".s4wave.session.CreateSpaceRequest\032"
-    "#.s4wave.session.CreateSpaceResponse\022j\n\021"
-    "MountSharedObject\022(.s4wave.session.Mount"
-    "SharedObjectRequest\032).s4wave.session.Mou"
-    "ntSharedObjectResponse\"\000\022|\n\027WatchSharedO"
-    "bjectHealth\022..s4wave.session.WatchShared"
-    "ObjectHealthRequest\032/.s4wave.session.Wat"
-    "chSharedObjectHealthResponse0\001\022d\n\017WatchS"
-    "yncStatus\022&.s4wave.session.WatchSyncStat"
-    "usRequest\032\'.s4wave.session.WatchSyncStat"
-    "usResponse0\001\022j\n\021WatchStorageStats\022(.s4wa"
-    "ve.session.WatchStorageStatsRequest\032).s4"
-    "wave.session.WatchStorageStatsResponse0\001"
-    "\022V\n\013DeleteSpace\022\".s4wave.session.DeleteS"
-    "paceRequest\032#.s4wave.session.DeleteSpace"
-    "Response\022V\n\013RenameSpace\022\".s4wave.session"
-    ".RenameSpaceRequest\032#.s4wave.session.Ren"
-    "ameSpaceResponse\022a\n\016WatchLockState\022%.s4w"
-    "ave.session.WatchLockStateRequest\032&.s4wa"
-    "ve.session.WatchLockStateResponse0\001\022V\n\013S"
-    "etLockMode\022\".s4wave.session.SetLockModeR"
-    "equest\032#.s4wave.session.SetLockModeRespo"
-    "nse\022\\\n\rUnlockSession\022$.s4wave.session.Un"
-    "lockSessionRequest\032%.s4wave.session.Unlo"
-    "ckSessionResponse\022V\n\013LockSession\022\".s4wav"
-    "e.session.LockSessionRequest\032#.s4wave.se"
-    "ssion.LockSessionResponse\022n\n\023GeneratePai"
-    "ringCode\022*.s4wave.session.GeneratePairin"
-    "gCodeRequest\032+.s4wave.session.GeneratePa"
-    "iringCodeResponse\022b\n\017CompletePairing\022&.s"
-    "4wave.session.CompletePairingRequest\032\'.s"
-    "4wave.session.CompletePairingResponse\022V\n"
-    "\013GetSASEmoji\022\".s4wave.session.GetSASEmoj"
-    "iRequest\032#.s4wave.session.GetSASEmojiRes"
-    "ponse\022b\n\017ConfirmSASMatch\022&.s4wave.sessio"
-    "n.ConfirmSASMatchRequest\032\'.s4wave.sessio"
-    "n.ConfirmSASMatchResponse\022_\n\016ConfirmPair"
-    "ing\022%.s4wave.session.ConfirmPairingReque"
-    "st\032&.s4wave.session.ConfirmPairingRespon"
-    "se\022\\\n\rDeleteAccount\022$.s4wave.session.Del"
-    "eteAccountRequest\032%.s4wave.session.Delet"
-    "eAccountResponse\022p\n\017AccessStateAtom\022-.s4"
-    "wave.session.AccessSessionStateAtomReque"
-    "st\032..s4wave.session.AccessSessionStateAt"
-    "omResponse\022r\n\017WatchStateAtoms\022-.s4wave.s"
-    "ession.WatchSessionStateAtomsRequest\032..s"
-    "4wave.session.WatchSessionStateAtomsResp"
-    "onse0\001\022q\n\024GetTransferInventory\022+.s4wave."
-    "session.GetTransferInventoryRequest\032,.s4"
-    "wave.session.GetTransferInventoryRespons"
-    "e\022\\\n\rStartTransfer\022$.s4wave.session.Star"
-    "tTransferRequest\032%.s4wave.session.StartT"
-    "ransferResponse\022v\n\025WatchTransferProgress"
-    "\022,.s4wave.session.WatchTransferProgressR"
-    "equest\032-.s4wave.session.WatchTransferPro"
-    "gressResponse0\001\022_\n\016CancelTransfer\022%.s4wa"
-    "ve.session.CancelTransferRequest\032&.s4wav"
-    "e.session.CancelTransferResponse\022h\n\021GetT"
-    "ransferStatus\022(.s4wave.session.GetTransf"
-    "erStatusRequest\032).s4wave.session.GetTran"
-    "sferStatusResponse\022m\n\022WatchPairedDevices"
-    "\022).s4wave.session.WatchPairedDevicesRequ"
-    "est\032*.s4wave.session.WatchPairedDevicesR"
-    "esponse0\001\022m\n\022WatchPairingStatus\022).s4wave"
-    ".session.WatchPairingStatusRequest\032*.s4w"
-    "ave.session.WatchPairingStatusResponse0\001"
-    "\022Y\n\014UnlinkDevice\022#.s4wave.session.Unlink"
-    "DeviceRequest\032$.s4wave.session.UnlinkDev"
-    "iceResponse\022h\n\021CreateSpaceInvite\022(.s4wav"
-    "e.session.CreateSpaceInviteRequest\032).s4w"
-    "ave.session.CreateSpaceInviteResponse\022e\n"
-    "\020ListSpaceInvites\022\'.s4wave.session.ListS"
-    "paceInvitesRequest\032(.s4wave.session.List"
-    "SpaceInvitesResponse\022t\n\025ListSpacePartici"
-    "pants\022,.s4wave.session.ListSpaceParticip"
-    "antsRequest\032-.s4wave.session.ListSpacePa"
-    "rticipantsResponse\022w\n\026RemoveSpacePartici"
-    "pant\022-.s4wave.session.RemoveSpacePartici"
-    "pantRequest\032..s4wave.session.RemoveSpace"
-    "ParticipantResponse\022h\n\021RevokeSpaceInvite"
-    "\022(.s4wave.session.RevokeSpaceInviteReque"
-    "st\032).s4wave.session.RevokeSpaceInviteRes"
-    "ponse\022k\n\022JoinSpaceViaInvite\022).s4wave.ses"
-    "sion.JoinSpaceViaInviteRequest\032*.s4wave."
-    "session.JoinSpaceViaInviteResponse\022z\n\027Cr"
-    "eateLocalPairingOffer\022..s4wave.session.C"
-    "reateLocalPairingOfferRequest\032/.s4wave.s"
-    "ession.CreateLocalPairingOfferResponse\022z"
-    "\n\027AcceptLocalPairingOffer\022..s4wave.sessi"
-    "on.AcceptLocalPairingOfferRequest\032/.s4wa"
-    "ve.session.AcceptLocalPairingOfferRespon"
-    "se\022}\n\030AcceptLocalPairingAnswer\022/.s4wave."
-    "session.AcceptLocalPairingAnswerRequest\032"
-    "0.s4wave.session.AcceptLocalPairingAnswe"
-    "rResponseb\006proto3"
+    "tusRequest\"\032\n\030WatchStorageStatsRequest\"\217"
+    "\002\n\024SyncBlockStoreStatus\022\026\n\016block_store_i"
+    "d\030\001 \001(\t\022\030\n\020direct_hit_count\030\002 \001(\004\022\027\n\017clo"
+    "ud_hit_count\030\003 \001(\004\022\027\n\017cache_hit_count\030\004 "
+    "\001(\004\0224\n\013last_source\030\005 \001(\0162\037.s4wave.sessio"
+    "n.SyncBlockSource\022$\n\034accepted_root_inner"
+    "_sequence\030\006 \001(\004\022\035\n\025cloud_remote_sequence"
+    "\030\007 \001(\004\022\030\n\020shared_object_id\030\010 \001(\t\"\344\017\n\027Wat"
+    "chSyncStatusResponse\022.\n\005state\030\001 \001(\0162\037.s4"
+    "wave.session.SyncStatusState\0228\n\tdirectio"
+    "n\030\002 \001(\0162%.s4wave.session.SyncActivityDir"
+    "ection\022;\n\017transport_state\030\003 \001(\0162\".s4wave"
+    ".session.SyncTransportState\022/\n\tp2p_state"
+    "\030\004 \001(\0162\034.s4wave.session.SyncP2PState\022\034\n\024"
+    "pending_upload_bytes\030\005 \001(\004\022\036\n\026pending_do"
+    "wnload_bytes\030\006 \001(\004\022\034\n\024pending_upload_cou"
+    "nt\030\007 \001(\r\022\036\n\026pending_download_count\030\010 \001(\r"
+    "\022\037\n\027upload_bytes_per_second\030\t \001(\004\022!\n\031dow"
+    "nload_bytes_per_second\030\n \001(\004\022\033\n\023active_u"
+    "pload_bytes\0304 \001(\004\022\'\n\037active_upload_trans"
+    "ferred_bytes\0305 \001(\004\022\036\n\026in_flight_upload_c"
+    "ount\0306 \001(\r\022\032\n\022active_store_count\030\013 \001(\r\022\031"
+    "\n\021active_peer_count\030\014 \001(\r\022\022\n\nlast_error\030"
+    "\r \001(\t\0224\n\020last_activity_at\030\016 \001(\0132\032.google"
+    ".protobuf.Timestamp\022 \n\030pack_range_reques"
+    "t_count\030\017 \001(\004\022!\n\031pack_range_response_byt"
+    "es\030\020 \001(\004\022)\n!pack_full_response_fallback_"
+    "count\030\021 \001(\004\022)\n!pack_full_response_fallba"
+    "ck_bytes\030\022 \001(\004\022.\n&pack_last_full_respons"
+    "e_fallback_bytes\030\023 \001(\004\022\035\n\025pack_manifest_"
+    "entries\030\024 \001(\r\022\036\n\026pack_block_count_total\030"
+    "\025 \001(\004\022\034\n\024pack_block_count_min\030\026 \001(\004\022\034\n\024p"
+    "ack_block_count_max\030\027 \001(\004\022\035\n\025pack_size_b"
+    "ytes_total\030\030 \001(\004\022\033\n\023pack_size_bytes_min\030"
+    "\031 \001(\004\022\033\n\023pack_size_bytes_max\030\032 \001(\004\022\037\n\027pa"
+    "ck_bloom_filter_count\030\033 \001(\r\022 \n\030pack_bloo"
+    "m_missing_count\030\034 \001(\r\022 \n\030pack_bloom_inva"
+    "lid_count\030\035 \001(\r\022(\n pack_bloom_parameter_"
+    "shape_count\030\036 \001(\r\022*\n\"pack_bloom_max_fals"
+    "e_positive_rate\030\037 \001(\001\022\"\n\032pack_bloom_risk"
+    "_pack_count\030  \001(\r\022\031\n\021pack_lookup_count\030!"
+    " \001(\004\022\034\n\024pack_candidate_packs\030\" \001(\004\022\031\n\021pa"
+    "ck_opened_packs\030# \001(\004\022\033\n\023pack_negative_p"
+    "acks\030$ \001(\004\022\030\n\020pack_target_hits\030% \001(\004\022!\n\031"
+    "pack_last_candidate_packs\030& \001(\r\022\036\n\026pack_"
+    "last_opened_packs\030\' \001(\r\022 \n\030pack_last_neg"
+    "ative_packs\030( \001(\r\022\034\n\024pack_last_target_hi"
+    "t\030) \001(\010\022\035\n\025pack_index_cache_hits\030* \001(\004\022\037"
+    "\n\027pack_index_cache_misses\030+ \001(\004\022$\n\034pack_"
+    "index_cache_read_errors\030, \001(\004\022%\n\035pack_in"
+    "dex_cache_write_errors\030- \001(\004\022\037\n\027pack_rem"
+    "ote_index_loads\030. \001(\004\022\037\n\027pack_remote_ind"
+    "ex_bytes\030/ \001(\004\022$\n\034pack_last_remote_index"
+    "_bytes\0300 \001(\004\022#\n\033pack_index_tail_fetch_co"
+    "unt\0301 \001(\004\022#\n\033pack_index_tail_fetch_bytes"
+    "\0302 \001(\004\022&\n\036pack_index_tail_response_bytes"
+    "\0303 \001(\004\022\033\n\023direct_p2p_disabled\0307 \001(\010\022:\n\014b"
+    "lock_stores\0308 \003(\0132$.s4wave.session.SyncB"
+    "lockStoreStatus\"X\n\031WatchStorageStatsResp"
+    "onse\022\021\n\tsupported\030\001 \001(\010\022\023\n\013total_bytes\030\002"
+    " \001(\004\022\023\n\013block_count\030\003 \001(\004\"\027\n\025WatchLockSt"
+    "ateRequest\"P\n\026WatchLockStateResponse\022&\n\004"
+    "mode\030\001 \001(\0162\030.session.SessionLockMode\022\016\n\006"
+    "locked\030\002 \001(\010\"I\n\022SetLockModeRequest\022&\n\004mo"
+    "de\030\001 \001(\0162\030.session.SessionLockMode\022\013\n\003pi"
+    "n\030\002 \001(\014\"\025\n\023SetLockModeResponse\"-\n\032SetDir"
+    "ectP2PEnabledRequest\022\017\n\007enabled\030\001 \001(\010\"\035\n"
+    "\033SetDirectP2PEnabledResponse\"#\n\024UnlockSe"
+    "ssionRequest\022\013\n\003pin\030\001 \001(\014\"\027\n\025UnlockSessi"
+    "onResponse\"\024\n\022LockSessionRequest\"\025\n\023Lock"
+    "SessionResponse\"\034\n\032GeneratePairingCodeRe"
+    "quest\"+\n\033GeneratePairingCodeResponse\022\014\n\004"
+    "code\030\001 \001(\t\"&\n\026CompletePairingRequest\022\014\n\004"
+    "code\030\001 \001(\t\"1\n\027CompletePairingResponse\022\026\n"
+    "\016remote_peer_id\030\001 \001(\t\",\n\022GetSASEmojiRequ"
+    "est\022\026\n\016remote_peer_id\030\001 \001(\t\"$\n\023GetSASEmo"
+    "jiResponse\022\r\n\005emoji\030\001 \003(\t\"+\n\026ConfirmSASM"
+    "atchRequest\022\021\n\tconfirmed\030\001 \001(\010\"\031\n\027Confir"
+    "mSASMatchResponse\"E\n\025ConfirmPairingReque"
+    "st\022\026\n\016remote_peer_id\030\001 \001(\t\022\024\n\014display_na"
+    "me\030\002 \001(\t\"\030\n\026ConfirmPairingResponse\"+\n\024De"
+    "leteAccountRequest\022\023\n\013session_idx\030\001 \001(\r\""
+    "\027\n\025DeleteAccountResponse\"1\n\035AccessSessio"
+    "nStateAtomRequest\022\020\n\010store_id\030\001 \001(\t\"5\n\036A"
+    "ccessSessionStateAtomResponse\022\023\n\013resourc"
+    "e_id\030\001 \001(\r\"\037\n\035WatchSessionStateAtomsRequ"
+    "est\"H\n\036WatchSessionStateAtomsResponse\022\021\n"
+    "\tstore_ids\030\001 \003(\t\022\023\n\013store_count\030\002 \001(\r\"4\n"
+    "\033GetTransferInventoryRequest\022\025\n\rsession_"
+    "index\030\001 \001(\r\"G\n\034GetTransferInventoryRespo"
+    "nse\022\'\n\006spaces\030\001 \003(\0132\027.space.SpaceSoListE"
+    "ntry\"\224\001\n\024StartTransferRequest\022\034\n\024source_"
+    "session_index\030\001 \001(\r\022\034\n\024target_session_in"
+    "dex\030\002 \001(\r\022-\n\004mode\030\003 \001(\0162\037.provider.trans"
+    "fer.TransferMode\022\021\n\tspace_ids\030\004 \003(\t\"\027\n\025S"
+    "tartTransferResponse\"\036\n\034WatchTransferPro"
+    "gressRequest\"P\n\035WatchTransferProgressRes"
+    "ponse\022/\n\005state\030\001 \001(\0132 .provider.transfer"
+    ".TransferState\"\027\n\025CancelTransferRequest\""
+    "\030\n\026CancelTransferResponse\"\033\n\031WatchPaired"
+    "DevicesRequest\"m\n\032WatchPairedDevicesResp"
+    "onse\0226\n\016paired_devices\030\001 \003(\0132\036.account.s"
+    "ettings.PairedDevice\022\027\n\017online_peer_ids\030"
+    "\002 \003(\t\"&\n\023UnlinkDeviceRequest\022\017\n\007peer_id\030"
+    "\001 \001(\t\"\026\n\024UnlinkDeviceResponse\"\033\n\031WatchPa"
+    "iringStatusRequest\"\227\001\n\032WatchPairingStatu"
+    "sResponse\022-\n\006status\030\001 \001(\0162\035.s4wave.sessi"
+    "on.PairingStatus\022\026\n\016remote_peer_id\030\002 \001(\t"
+    "\022\014\n\004code\030\003 \001(\t\022\r\n\005emoji\030\004 \003(\t\022\025\n\rerror_m"
+    "essage\030\005 \001(\t\"\260\001\n\030CreateSpaceInviteReques"
+    "t\022\020\n\010space_id\030\001 \001(\t\022(\n\004role\030\002 \001(\0162\032.sobj"
+    "ect.SOParticipantRole\022\026\n\016target_peer_id\030"
+    "\003 \001(\t\022\020\n\010max_uses\030\004 \001(\r\022.\n\nexpires_at\030\005 "
+    "\001(\0132\032.google.protobuf.Timestamp\"a\n\031Creat"
+    "eSpaceInviteResponse\0220\n\016invite_message\030\001"
+    " \001(\0132\030.sobject.SOInviteMessage\022\022\n\nshort_"
+    "code\030\002 \001(\t\"+\n\027ListSpaceInvitesRequest\022\020\n"
+    "\010space_id\030\001 \001(\t\">\n\030ListSpaceInvitesRespo"
+    "nse\022\"\n\007invites\030\001 \003(\0132\021.sobject.SOInvite\""
+    "0\n\034ListSpaceParticipantsRequest\022\020\n\010space"
+    "_id\030\001 \001(\t\"S\n\035ListSpaceParticipantsRespon"
+    "se\0222\n\014participants\030\001 \003(\0132\034.sobject.SOPar"
+    "ticipantConfig\"B\n\035RemoveSpaceParticipant"
+    "Request\022\020\n\010space_id\030\001 \001(\t\022\017\n\007peer_id\030\002 \001"
+    "(\t\"1\n\036RemoveSpaceParticipantResponse\022\017\n\007"
+    "removed\030\001 \001(\010\"\?\n\030RevokeSpaceInviteReques"
+    "t\022\020\n\010space_id\030\001 \001(\t\022\021\n\tinvite_id\030\002 \001(\t\"\033"
+    "\n\031RevokeSpaceInviteResponse\"s\n\031JoinSpace"
+    "ViaInviteRequest\0220\n\016invite_message\030\001 \001(\013"
+    "2\030.sobject.SOInviteMessage\022$\n\034targeted_i"
+    "nvitation_envelope\030\002 \001(\014\"p\n\032JoinSpaceVia"
+    "InviteResponse\022\030\n\020shared_object_id\030\001 \001(\t"
+    "\0228\n\006result\030\002 \001(\0162(.s4wave.session.JoinSp"
+    "aceViaInviteResult\"\032\n\030GetTransferStatusR"
+    "equest\"t\n\031GetTransferStatusResponse\022\016\n\006a"
+    "ctive\030\001 \001(\010\022\026\n\016has_checkpoint\030\002 \001(\010\022/\n\005s"
+    "tate\030\003 \001(\0132 .provider.transfer.TransferS"
+    "tate\"1\n\021LocalPairingOffer\022\013\n\003sdp\030\001 \001(\t\022\017"
+    "\n\007peer_id\030\002 \001(\t\"2\n\022LocalPairingAnswer\022\013\n"
+    "\003sdp\030\001 \001(\t\022\017\n\007peer_id\030\002 \001(\t\" \n\036CreateLoc"
+    "alPairingOfferRequest\"8\n\037CreateLocalPair"
+    "ingOfferResponse\022\025\n\roffer_payload\030\001 \001(\t\""
+    "7\n\036AcceptLocalPairingOfferRequest\022\025\n\roff"
+    "er_payload\030\001 \001(\t\"9\n\037AcceptLocalPairingOf"
+    "ferResponse\022\026\n\016answer_payload\030\001 \001(\t\"9\n\037A"
+    "cceptLocalPairingAnswerRequest\022\026\n\016answer"
+    "_payload\030\001 \001(\t\":\n AcceptLocalPairingAnsw"
+    "erResponse\022\026\n\016remote_peer_id\030\001 \001(\t*d\n\017Sy"
+    "ncStatusState\022\032\n\026SyncStatusState_SYNCED\020"
+    "\000\022\032\n\026SyncStatusState_ACTIVE\020\001\022\031\n\025SyncSta"
+    "tusState_ERROR\020\002*\250\001\n\025SyncActivityDirecti"
+    "on\022\036\n\032SyncActivityDirection_NONE\020\000\022 \n\034Sy"
+    "ncActivityDirection_UPLOAD\020\001\022\"\n\036SyncActi"
+    "vityDirection_DOWNLOAD\020\002\022)\n%SyncActivity"
+    "Direction_UPLOAD_DOWNLOAD\020\003*\270\001\n\022SyncTran"
+    "sportState\022\036\n\032SyncTransportState_UNKNOWN"
+    "\020\000\022\"\n\036SyncTransportState_UNAVAILABLE\020\001\022!"
+    "\n\035SyncTransportState_CONNECTING\020\002\022\035\n\031Syn"
+    "cTransportState_ONLINE\020\003\022\034\n\030SyncTranspor"
+    "tState_ERROR\020\004*\344\001\n\014SyncP2PState\022\030\n\024SyncP"
+    "2PState_UNKNOWN\020\000\022\031\n\025SyncP2PState_NO_PEE"
+    "RS\020\001\022\025\n\021SyncP2PState_IDLE\020\002\022\027\n\023SyncP2PSt"
+    "ate_ACTIVE\020\003\022\026\n\022SyncP2PState_ERROR\020\004\022\031\n\025"
+    "SyncP2PState_DISABLED\020\005\022\031\n\025SyncP2PState_"
+    "STARTING\020\006\022!\n\035SyncP2PState_FALLBACK_NO_P"
+    "EER\020\007*\200\001\n\017SyncBlockSource\022\033\n\027SyncBlockSo"
+    "urce_UNKNOWN\020\000\022\031\n\025SyncBlockSource_CACHE\020"
+    "\001\022\032\n\026SyncBlockSource_DIRECT\020\002\022\031\n\025SyncBlo"
+    "ckSource_CLOUD\020\003*\316\003\n\rPairingStatus\022\026\n\022Pa"
+    "iringStatus_IDLE\020\000\022 \n\034PairingStatus_CODE"
+    "_GENERATED\020\001\022\"\n\036PairingStatus_WAITING_FO"
+    "R_PEER\020\002\022 \n\034PairingStatus_PEER_CONNECTED"
+    "\020\003\022!\n\035PairingStatus_VERIFYING_EMOJI\020\004\022\032\n"
+    "\026PairingStatus_VERIFIED\020\005\022\030\n\024PairingStat"
+    "us_FAILED\020\006\022\"\n\036PairingStatus_SIGNALING_F"
+    "AILED\020\007\022$\n PairingStatus_CONNECTION_TIME"
+    "OUT\020\010\022,\n(PairingStatus_WAITING_FOR_REMOT"
+    "E_CONFIRM\020\t\022 \n\034PairingStatus_BOTH_CONFIR"
+    "MED\020\n\022\"\n\036PairingStatus_PAIRING_REJECTED\020"
+    "\013\022&\n\"PairingStatus_CONFIRMATION_TIMEOUT\020"
+    "\014*\372\001\n\030JoinSpaceViaInviteResult\022(\n$JoinSp"
+    "aceViaInviteResult_UNSPECIFIED\020\000\022%\n!Join"
+    "SpaceViaInviteResult_ACCEPTED\020\001\0223\n/JoinS"
+    "paceViaInviteResult_PENDING_OWNER_APPROV"
+    "AL\020\002\022%\n!JoinSpaceViaInviteResult_REJECTE"
+    "D\020\003\0221\n-JoinSpaceViaInviteResult_OWNER_MU"
+    "ST_BE_ONLINE\020\0042\235 \n\026SessionResourceServic"
+    "e\022_\n\016GetSessionInfo\022%.s4wave.session.Get"
+    "SessionInfoRequest\032&.s4wave.session.GetS"
+    "essionInfoResponse\022m\n\022WatchResourcesList"
+    "\022).s4wave.session.WatchResourcesListRequ"
+    "est\032*.s4wave.session.WatchResourcesListR"
+    "esponse0\001\022V\n\013CreateSpace\022\".s4wave.sessio"
+    "n.CreateSpaceRequest\032#.s4wave.session.Cr"
+    "eateSpaceResponse\022j\n\021MountSharedObject\022("
+    ".s4wave.session.MountSharedObjectRequest"
+    "\032).s4wave.session.MountSharedObjectRespo"
+    "nse\"\000\022|\n\027WatchSharedObjectHealth\022..s4wav"
+    "e.session.WatchSharedObjectHealthRequest"
+    "\032/.s4wave.session.WatchSharedObjectHealt"
+    "hResponse0\001\022d\n\017WatchSyncStatus\022&.s4wave."
+    "session.WatchSyncStatusRequest\032\'.s4wave."
+    "session.WatchSyncStatusResponse0\001\022j\n\021Wat"
+    "chStorageStats\022(.s4wave.session.WatchSto"
+    "rageStatsRequest\032).s4wave.session.WatchS"
+    "torageStatsResponse0\001\022V\n\013DeleteSpace\022\".s"
+    "4wave.session.DeleteSpaceRequest\032#.s4wav"
+    "e.session.DeleteSpaceResponse\022V\n\013RenameS"
+    "pace\022\".s4wave.session.RenameSpaceRequest"
+    "\032#.s4wave.session.RenameSpaceResponse\022a\n"
+    "\016WatchLockState\022%.s4wave.session.WatchLo"
+    "ckStateRequest\032&.s4wave.session.WatchLoc"
+    "kStateResponse0\001\022V\n\013SetLockMode\022\".s4wave"
+    ".session.SetLockModeRequest\032#.s4wave.ses"
+    "sion.SetLockModeResponse\022n\n\023SetDirectP2P"
+    "Enabled\022*.s4wave.session.SetDirectP2PEna"
+    "bledRequest\032+.s4wave.session.SetDirectP2"
+    "PEnabledResponse\022\\\n\rUnlockSession\022$.s4wa"
+    "ve.session.UnlockSessionRequest\032%.s4wave"
+    ".session.UnlockSessionResponse\022V\n\013LockSe"
+    "ssion\022\".s4wave.session.LockSessionReques"
+    "t\032#.s4wave.session.LockSessionResponse\022n"
+    "\n\023GeneratePairingCode\022*.s4wave.session.G"
+    "eneratePairingCodeRequest\032+.s4wave.sessi"
+    "on.GeneratePairingCodeResponse\022b\n\017Comple"
+    "tePairing\022&.s4wave.session.CompletePairi"
+    "ngRequest\032\'.s4wave.session.CompletePairi"
+    "ngResponse\022V\n\013GetSASEmoji\022\".s4wave.sessi"
+    "on.GetSASEmojiRequest\032#.s4wave.session.G"
+    "etSASEmojiResponse\022b\n\017ConfirmSASMatch\022&."
+    "s4wave.session.ConfirmSASMatchRequest\032\'."
+    "s4wave.session.ConfirmSASMatchResponse\022_"
+    "\n\016ConfirmPairing\022%.s4wave.session.Confir"
+    "mPairingRequest\032&.s4wave.session.Confirm"
+    "PairingResponse\022\\\n\rDeleteAccount\022$.s4wav"
+    "e.session.DeleteAccountRequest\032%.s4wave."
+    "session.DeleteAccountResponse\022p\n\017AccessS"
+    "tateAtom\022-.s4wave.session.AccessSessionS"
+    "tateAtomRequest\032..s4wave.session.AccessS"
+    "essionStateAtomResponse\022r\n\017WatchStateAto"
+    "ms\022-.s4wave.session.WatchSessionStateAto"
+    "msRequest\032..s4wave.session.WatchSessionS"
+    "tateAtomsResponse0\001\022q\n\024GetTransferInvent"
+    "ory\022+.s4wave.session.GetTransferInventor"
+    "yRequest\032,.s4wave.session.GetTransferInv"
+    "entoryResponse\022\\\n\rStartTransfer\022$.s4wave"
+    ".session.StartTransferRequest\032%.s4wave.s"
+    "ession.StartTransferResponse\022v\n\025WatchTra"
+    "nsferProgress\022,.s4wave.session.WatchTran"
+    "sferProgressRequest\032-.s4wave.session.Wat"
+    "chTransferProgressResponse0\001\022_\n\016CancelTr"
+    "ansfer\022%.s4wave.session.CancelTransferRe"
+    "quest\032&.s4wave.session.CancelTransferRes"
+    "ponse\022h\n\021GetTransferStatus\022(.s4wave.sess"
+    "ion.GetTransferStatusRequest\032).s4wave.se"
+    "ssion.GetTransferStatusResponse\022m\n\022Watch"
+    "PairedDevices\022).s4wave.session.WatchPair"
+    "edDevicesRequest\032*.s4wave.session.WatchP"
+    "airedDevicesResponse0\001\022m\n\022WatchPairingSt"
+    "atus\022).s4wave.session.WatchPairingStatus"
+    "Request\032*.s4wave.session.WatchPairingSta"
+    "tusResponse0\001\022Y\n\014UnlinkDevice\022#.s4wave.s"
+    "ession.UnlinkDeviceRequest\032$.s4wave.sess"
+    "ion.UnlinkDeviceResponse\022h\n\021CreateSpaceI"
+    "nvite\022(.s4wave.session.CreateSpaceInvite"
+    "Request\032).s4wave.session.CreateSpaceInvi"
+    "teResponse\022e\n\020ListSpaceInvites\022\'.s4wave."
+    "session.ListSpaceInvitesRequest\032(.s4wave"
+    ".session.ListSpaceInvitesResponse\022t\n\025Lis"
+    "tSpaceParticipants\022,.s4wave.session.List"
+    "SpaceParticipantsRequest\032-.s4wave.sessio"
+    "n.ListSpaceParticipantsResponse\022w\n\026Remov"
+    "eSpaceParticipant\022-.s4wave.session.Remov"
+    "eSpaceParticipantRequest\032..s4wave.sessio"
+    "n.RemoveSpaceParticipantResponse\022h\n\021Revo"
+    "keSpaceInvite\022(.s4wave.session.RevokeSpa"
+    "ceInviteRequest\032).s4wave.session.RevokeS"
+    "paceInviteResponse\022k\n\022JoinSpaceViaInvite"
+    "\022).s4wave.session.JoinSpaceViaInviteRequ"
+    "est\032*.s4wave.session.JoinSpaceViaInviteR"
+    "esponse\022z\n\027CreateLocalPairingOffer\022..s4w"
+    "ave.session.CreateLocalPairingOfferReque"
+    "st\032/.s4wave.session.CreateLocalPairingOf"
+    "ferResponse\022z\n\027AcceptLocalPairingOffer\022."
+    ".s4wave.session.AcceptLocalPairingOfferR"
+    "equest\032/.s4wave.session.AcceptLocalPairi"
+    "ngOfferResponse\022}\n\030AcceptLocalPairingAns"
+    "wer\022/.s4wave.session.AcceptLocalPairingA"
+    "nswerRequest\0320.s4wave.session.AcceptLoca"
+    "lPairingAnswerResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto_deps[7] = {
@@ -3023,13 +3158,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto = {
     false,
     false,
-    12657,
+    13430,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto,
     "github.com/s4wave/spacewave/sdk/session/session.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto_deps,
     7,
-    79,
+    82,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto::offsets,
@@ -3061,16 +3196,22 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SyncP2PState_descript
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto[3];
 }
 PROTOBUF_CONSTINIT const uint32_t SyncP2PState_internal_data_[] = {
-    327680u, 0u, };
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL PairingStatus_descriptor() {
+    524288u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SyncBlockSource_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto);
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto[4];
+}
+PROTOBUF_CONSTINIT const uint32_t SyncBlockSource_internal_data_[] = {
+    262144u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL PairingStatus_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto[5];
 }
 PROTOBUF_CONSTINIT const uint32_t PairingStatus_internal_data_[] = {
     851968u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL JoinSpaceViaInviteResult_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto[5];
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto[6];
 }
 PROTOBUF_CONSTINIT const uint32_t JoinSpaceViaInviteResult_internal_data_[] = {
     327680u, 0u, };
@@ -7675,6 +7816,512 @@ WatchStorageStatsRequest::_table_ = {
 }
 // ===================================================================
 
+class SyncBlockStoreStatus::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SyncBlockStoreStatus>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_._has_bits_);
+};
+
+SyncBlockStoreStatus::SyncBlockStoreStatus(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SyncBlockStoreStatus_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.session.SyncBlockStoreStatus)
+}
+PROTOBUF_NDEBUG_INLINE SyncBlockStoreStatus::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::session::SyncBlockStoreStatus& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        block_store_id_(arena, from.block_store_id_),
+        shared_object_id_(arena, from.shared_object_id_) {}
+
+SyncBlockStoreStatus::SyncBlockStoreStatus(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SyncBlockStoreStatus& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SyncBlockStoreStatus_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SyncBlockStoreStatus* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, direct_hit_count_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, direct_hit_count_),
+           offsetof(Impl_, last_source_) -
+               offsetof(Impl_, direct_hit_count_) +
+               sizeof(Impl_::last_source_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.session.SyncBlockStoreStatus)
+}
+PROTOBUF_NDEBUG_INLINE SyncBlockStoreStatus::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        block_store_id_(arena),
+        shared_object_id_(arena) {}
+
+inline void SyncBlockStoreStatus::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, direct_hit_count_),
+           0,
+           offsetof(Impl_, last_source_) -
+               offsetof(Impl_, direct_hit_count_) +
+               sizeof(Impl_::last_source_));
+}
+SyncBlockStoreStatus::~SyncBlockStoreStatus() {
+  // @@protoc_insertion_point(destructor:s4wave.session.SyncBlockStoreStatus)
+  SharedDtor(*this);
+}
+inline void SyncBlockStoreStatus::SharedDtor(MessageLite& self) {
+  SyncBlockStoreStatus& this_ = static_cast<SyncBlockStoreStatus&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.block_store_id_.Destroy();
+  this_._impl_.shared_object_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SyncBlockStoreStatus::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SyncBlockStoreStatus(arena);
+}
+constexpr auto SyncBlockStoreStatus::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SyncBlockStoreStatus),
+                                            alignof(SyncBlockStoreStatus));
+}
+constexpr auto SyncBlockStoreStatus::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SyncBlockStoreStatus_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SyncBlockStoreStatus::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SyncBlockStoreStatus>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SyncBlockStoreStatus::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SyncBlockStoreStatus>(), &SyncBlockStoreStatus::ByteSizeLong,
+              &SyncBlockStoreStatus::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_._cached_size_),
+          false,
+      },
+      &SyncBlockStoreStatus::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SyncBlockStoreStatus_class_data_ =
+        SyncBlockStoreStatus::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SyncBlockStoreStatus::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SyncBlockStoreStatus_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SyncBlockStoreStatus_class_data_.tc_table);
+  return SyncBlockStoreStatus_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 8, 0, 82, 2>
+SyncBlockStoreStatus::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_._has_bits_),
+    0, // no _extensions_
+    8, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967040,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    8,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    SyncBlockStoreStatus_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::session::SyncBlockStoreStatus>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string shared_object_id = 8;
+    {::_pbi::TcParser::FastUS1,
+     {66, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.shared_object_id_)}},
+    // string block_store_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.block_store_id_)}},
+    // uint64 direct_hit_count = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SyncBlockStoreStatus, _impl_.direct_hit_count_), 2>(),
+     {16, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.direct_hit_count_)}},
+    // uint64 cloud_hit_count = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SyncBlockStoreStatus, _impl_.cloud_hit_count_), 3>(),
+     {24, 3, 0,
+      PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.cloud_hit_count_)}},
+    // uint64 cache_hit_count = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SyncBlockStoreStatus, _impl_.cache_hit_count_), 4>(),
+     {32, 4, 0,
+      PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.cache_hit_count_)}},
+    // .s4wave.session.SyncBlockSource last_source = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SyncBlockStoreStatus, _impl_.last_source_), 7>(),
+     {40, 7, 0,
+      PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.last_source_)}},
+    // uint64 accepted_root_inner_sequence = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SyncBlockStoreStatus, _impl_.accepted_root_inner_sequence_), 5>(),
+     {48, 5, 0,
+      PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.accepted_root_inner_sequence_)}},
+    // uint64 cloud_remote_sequence = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SyncBlockStoreStatus, _impl_.cloud_remote_sequence_), 6>(),
+     {56, 6, 0,
+      PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.cloud_remote_sequence_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string block_store_id = 1;
+    {PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.block_store_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint64 direct_hit_count = 2;
+    {PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.direct_hit_count_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // uint64 cloud_hit_count = 3;
+    {PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.cloud_hit_count_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // uint64 cache_hit_count = 4;
+    {PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.cache_hit_count_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // .s4wave.session.SyncBlockSource last_source = 5;
+    {PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.last_source_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // uint64 accepted_root_inner_sequence = 6;
+    {PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.accepted_root_inner_sequence_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // uint64 cloud_remote_sequence = 7;
+    {PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.cloud_remote_sequence_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // string shared_object_id = 8;
+    {PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.shared_object_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\43\16\0\0\0\0\0\0\20\0\0\0\0\0\0\0"
+    "s4wave.session.SyncBlockStoreStatus"
+    "block_store_id"
+    "shared_object_id"
+  }},
+};
+PROTOBUF_NOINLINE void SyncBlockStoreStatus::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.session.SyncBlockStoreStatus)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.block_store_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.shared_object_id_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x000000fcU)) {
+    ::memset(&_impl_.direct_hit_count_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.last_source_) -
+        reinterpret_cast<char*>(&_impl_.direct_hit_count_)) + sizeof(_impl_.last_source_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SyncBlockStoreStatus::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SyncBlockStoreStatus& this_ = static_cast<const SyncBlockStoreStatus&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SyncBlockStoreStatus::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SyncBlockStoreStatus& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.session.SyncBlockStoreStatus)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string block_store_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_block_store_id().empty()) {
+      const ::std::string& _s = this_._internal_block_store_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.session.SyncBlockStoreStatus.block_store_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // uint64 direct_hit_count = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_direct_hit_count() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          2, this_._internal_direct_hit_count(), target);
+    }
+  }
+
+  // uint64 cloud_hit_count = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_cloud_hit_count() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          3, this_._internal_cloud_hit_count(), target);
+    }
+  }
+
+  // uint64 cache_hit_count = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_cache_hit_count() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          4, this_._internal_cache_hit_count(), target);
+    }
+  }
+
+  // .s4wave.session.SyncBlockSource last_source = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (this_._internal_last_source() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          5, this_._internal_last_source(), target);
+    }
+  }
+
+  // uint64 accepted_root_inner_sequence = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_accepted_root_inner_sequence() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          6, this_._internal_accepted_root_inner_sequence(), target);
+    }
+  }
+
+  // uint64 cloud_remote_sequence = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_cloud_remote_sequence() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          7, this_._internal_cloud_remote_sequence(), target);
+    }
+  }
+
+  // string shared_object_id = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_shared_object_id().empty()) {
+      const ::std::string& _s = this_._internal_shared_object_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.session.SyncBlockStoreStatus.shared_object_id");
+      target = stream->WriteStringMaybeAliased(8, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.session.SyncBlockStoreStatus)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SyncBlockStoreStatus::ByteSizeLong(const MessageLite& base) {
+  const SyncBlockStoreStatus& this_ = static_cast<const SyncBlockStoreStatus&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SyncBlockStoreStatus::ByteSizeLong() const {
+  const SyncBlockStoreStatus& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.session.SyncBlockStoreStatus)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // string block_store_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_block_store_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_block_store_id());
+      }
+    }
+    // string shared_object_id = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_shared_object_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_shared_object_id());
+      }
+    }
+    // uint64 direct_hit_count = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_direct_hit_count() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_direct_hit_count());
+      }
+    }
+    // uint64 cloud_hit_count = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_cloud_hit_count() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_cloud_hit_count());
+      }
+    }
+    // uint64 cache_hit_count = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_cache_hit_count() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_cache_hit_count());
+      }
+    }
+    // uint64 accepted_root_inner_sequence = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_accepted_root_inner_sequence() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_accepted_root_inner_sequence());
+      }
+    }
+    // uint64 cloud_remote_sequence = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_cloud_remote_sequence() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_cloud_remote_sequence());
+      }
+    }
+    // .s4wave.session.SyncBlockSource last_source = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (this_._internal_last_source() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_last_source());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SyncBlockStoreStatus::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SyncBlockStoreStatus*>(&to_msg);
+  auto& from = static_cast<const SyncBlockStoreStatus&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.session.SyncBlockStoreStatus)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_block_store_id().empty()) {
+        _this->_internal_set_block_store_id(from._internal_block_store_id());
+      } else {
+        if (_this->_impl_.block_store_id_.IsDefault()) {
+          _this->_internal_set_block_store_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_shared_object_id().empty()) {
+        _this->_internal_set_shared_object_id(from._internal_shared_object_id());
+      } else {
+        if (_this->_impl_.shared_object_id_.IsDefault()) {
+          _this->_internal_set_shared_object_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_direct_hit_count() != 0) {
+        _this->_impl_.direct_hit_count_ = from._impl_.direct_hit_count_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_cloud_hit_count() != 0) {
+        _this->_impl_.cloud_hit_count_ = from._impl_.cloud_hit_count_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_cache_hit_count() != 0) {
+        _this->_impl_.cache_hit_count_ = from._impl_.cache_hit_count_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_accepted_root_inner_sequence() != 0) {
+        _this->_impl_.accepted_root_inner_sequence_ = from._impl_.accepted_root_inner_sequence_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_cloud_remote_sequence() != 0) {
+        _this->_impl_.cloud_remote_sequence_ = from._impl_.cloud_remote_sequence_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (from._internal_last_source() != 0) {
+        _this->_impl_.last_source_ = from._impl_.last_source_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SyncBlockStoreStatus::CopyFrom(const SyncBlockStoreStatus& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.session.SyncBlockStoreStatus)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SyncBlockStoreStatus::InternalSwap(SyncBlockStoreStatus* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.block_store_id_, &other->_impl_.block_store_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.shared_object_id_, &other->_impl_.shared_object_id_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.last_source_)
+      + sizeof(SyncBlockStoreStatus::_impl_.last_source_)
+      - PROTOBUF_FIELD_OFFSET(SyncBlockStoreStatus, _impl_.direct_hit_count_)>(
+          reinterpret_cast<char*>(&_impl_.direct_hit_count_),
+          reinterpret_cast<char*>(&other->_impl_.direct_hit_count_));
+}
+
+::google::protobuf::Metadata SyncBlockStoreStatus::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
 class WatchSyncStatusResponse::_Internal {
  public:
   using HasBits =
@@ -7704,7 +8351,8 @@ PROTOBUF_NDEBUG_INLINE WatchSyncStatusResponse::Impl_::Impl_(
     [[maybe_unused]] const ::s4wave::session::WatchSyncStatusResponse& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        last_error_(arena, from.last_error_) {}
+        last_error_(arena, from.last_error_),
+        block_stores_{visibility, arena, from.block_stores_} {}
 
 WatchSyncStatusResponse::WatchSyncStatusResponse(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -7727,8 +8375,15 @@ WatchSyncStatusResponse::WatchSyncStatusResponse(
                offsetof(Impl_, state_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, state_),
-           offsetof(Impl_, active_upload_transferred_bytes_) -
+           offsetof(Impl_, pack_bloom_parameter_shape_count_) -
                offsetof(Impl_, state_) +
+               sizeof(Impl_::pack_bloom_parameter_shape_count_));
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, pack_lookup_count_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, pack_lookup_count_),
+           offsetof(Impl_, active_upload_transferred_bytes_) -
+               offsetof(Impl_, pack_lookup_count_) +
                sizeof(Impl_::active_upload_transferred_bytes_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.session.WatchSyncStatusResponse)
@@ -7737,15 +8392,22 @@ PROTOBUF_NDEBUG_INLINE WatchSyncStatusResponse::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
-        last_error_(arena) {}
+        last_error_(arena),
+        block_stores_{visibility, arena} {}
 
 inline void WatchSyncStatusResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, last_activity_at_),
            0,
-           offsetof(Impl_, active_upload_transferred_bytes_) -
+           offsetof(Impl_, pack_bloom_parameter_shape_count_) -
                offsetof(Impl_, last_activity_at_) +
+               sizeof(Impl_::pack_bloom_parameter_shape_count_));
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, pack_lookup_count_),
+           0,
+           offsetof(Impl_, active_upload_transferred_bytes_) -
+               offsetof(Impl_, pack_lookup_count_) +
                sizeof(Impl_::active_upload_transferred_bytes_));
 }
 WatchSyncStatusResponse::~WatchSyncStatusResponse() {
@@ -7770,8 +8432,20 @@ inline void* PROTOBUF_NONNULL WatchSyncStatusResponse::PlacementNew_(
   return ::new (mem) WatchSyncStatusResponse(arena);
 }
 constexpr auto WatchSyncStatusResponse::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(WatchSyncStatusResponse),
-                                            alignof(WatchSyncStatusResponse));
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.block_stores_) +
+          decltype(WatchSyncStatusResponse::_impl_.block_stores_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(WatchSyncStatusResponse), alignof(WatchSyncStatusResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&WatchSyncStatusResponse::PlacementNew_,
+                                 sizeof(WatchSyncStatusResponse),
+                                 alignof(WatchSyncStatusResponse));
+  }
 }
 constexpr auto WatchSyncStatusResponse::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
@@ -7807,17 +8481,17 @@ WatchSyncStatusResponse::GetClassData() const {
   return WatchSyncStatusResponse_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<5, 54, 1, 105, 9>
+const ::_pbi::TcParseTable<5, 56, 2, 113, 9>
 WatchSyncStatusResponse::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_._has_bits_),
     0, // no _extensions_
-    54, 248,  // max_field_number, fast_idx_mask
+    56, 248,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
     0,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    54,  // num_field_entries
-    1,  // num_aux_entries
+    56,  // num_field_entries
+    2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     WatchSyncStatusResponse_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -7954,7 +8628,7 @@ WatchSyncStatusResponse::_table_ = {
   }}, {{
     33, 0, 2,
     0, 32,
-    65472, 48,
+    65280, 48,
     65535, 65535
   }}, {{
     // .s4wave.session.SyncStatusState state = 1;
@@ -8020,57 +8694,62 @@ WatchSyncStatusResponse::_table_ = {
     // double pack_bloom_max_false_positive_rate = 31;
     {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_bloom_max_false_positive_rate_), _Internal::kHasBitsOffset + 29, 0, (0 | ::_fl::kFcOptional | ::_fl::kDouble)},
     // uint32 pack_bloom_risk_pack_count = 32;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_bloom_risk_pack_count_), _Internal::kHasBitsOffset + 34, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_bloom_risk_pack_count_), _Internal::kHasBitsOffset + 35, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // uint64 pack_lookup_count = 33;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_lookup_count_), _Internal::kHasBitsOffset + 31, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_lookup_count_), _Internal::kHasBitsOffset + 32, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint64 pack_candidate_packs = 34;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_candidate_packs_), _Internal::kHasBitsOffset + 32, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_candidate_packs_), _Internal::kHasBitsOffset + 33, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint64 pack_opened_packs = 35;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_opened_packs_), _Internal::kHasBitsOffset + 33, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_opened_packs_), _Internal::kHasBitsOffset + 34, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint64 pack_negative_packs = 36;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_negative_packs_), _Internal::kHasBitsOffset + 36, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_negative_packs_), _Internal::kHasBitsOffset + 37, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint64 pack_target_hits = 37;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_target_hits_), _Internal::kHasBitsOffset + 37, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_target_hits_), _Internal::kHasBitsOffset + 38, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint32 pack_last_candidate_packs = 38;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_last_candidate_packs_), _Internal::kHasBitsOffset + 35, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_last_candidate_packs_), _Internal::kHasBitsOffset + 36, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // uint32 pack_last_opened_packs = 39;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_last_opened_packs_), _Internal::kHasBitsOffset + 38, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_last_opened_packs_), _Internal::kHasBitsOffset + 39, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // uint32 pack_last_negative_packs = 40;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_last_negative_packs_), _Internal::kHasBitsOffset + 39, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_last_negative_packs_), _Internal::kHasBitsOffset + 40, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // bool pack_last_target_hit = 41;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_last_target_hit_), _Internal::kHasBitsOffset + 46, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_last_target_hit_), _Internal::kHasBitsOffset + 50, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // uint64 pack_index_cache_hits = 42;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_index_cache_hits_), _Internal::kHasBitsOffset + 40, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_index_cache_hits_), _Internal::kHasBitsOffset + 41, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint64 pack_index_cache_misses = 43;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_index_cache_misses_), _Internal::kHasBitsOffset + 41, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_index_cache_misses_), _Internal::kHasBitsOffset + 42, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint64 pack_index_cache_read_errors = 44;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_index_cache_read_errors_), _Internal::kHasBitsOffset + 42, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_index_cache_read_errors_), _Internal::kHasBitsOffset + 43, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint64 pack_index_cache_write_errors = 45;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_index_cache_write_errors_), _Internal::kHasBitsOffset + 43, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_index_cache_write_errors_), _Internal::kHasBitsOffset + 44, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint64 pack_remote_index_loads = 46;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_remote_index_loads_), _Internal::kHasBitsOffset + 44, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_remote_index_loads_), _Internal::kHasBitsOffset + 45, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint64 pack_remote_index_bytes = 47;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_remote_index_bytes_), _Internal::kHasBitsOffset + 45, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_remote_index_bytes_), _Internal::kHasBitsOffset + 46, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint64 pack_last_remote_index_bytes = 48;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_last_remote_index_bytes_), _Internal::kHasBitsOffset + 48, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_last_remote_index_bytes_), _Internal::kHasBitsOffset + 47, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint64 pack_index_tail_fetch_count = 49;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_index_tail_fetch_count_), _Internal::kHasBitsOffset + 49, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_index_tail_fetch_count_), _Internal::kHasBitsOffset + 48, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint64 pack_index_tail_fetch_bytes = 50;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_index_tail_fetch_bytes_), _Internal::kHasBitsOffset + 50, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_index_tail_fetch_bytes_), _Internal::kHasBitsOffset + 49, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint64 pack_index_tail_response_bytes = 51;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_index_tail_response_bytes_), _Internal::kHasBitsOffset + 51, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_index_tail_response_bytes_), _Internal::kHasBitsOffset + 53, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint64 active_upload_bytes = 52;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.active_upload_bytes_), _Internal::kHasBitsOffset + 52, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.active_upload_bytes_), _Internal::kHasBitsOffset + 54, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint64 active_upload_transferred_bytes = 53;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.active_upload_transferred_bytes_), _Internal::kHasBitsOffset + 53, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.active_upload_transferred_bytes_), _Internal::kHasBitsOffset + 55, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
     // uint32 in_flight_upload_count = 54;
-    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.in_flight_upload_count_), _Internal::kHasBitsOffset + 47, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.in_flight_upload_count_), _Internal::kHasBitsOffset + 52, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // bool direct_p2p_disabled = 55;
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.direct_p2p_disabled_), _Internal::kHasBitsOffset + 51, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // repeated .s4wave.session.SyncBlockStoreStatus block_stores = 56;
+    {PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.block_stores_), _Internal::kHasBitsOffset + 31, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::google::protobuf::Timestamp>()},
+      {::_pbi::TcParser::GetTable<::s4wave::session::SyncBlockStoreStatus>()},
   }},
   {{
-    "\46\0\0\0\0\0\0\0\0\0\0\0\0\12\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+    "\46\0\0\0\0\0\0\0\0\0\0\0\0\12\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
     "s4wave.session.WatchSyncStatusResponse"
     "last_error"
   }},
@@ -8109,24 +8788,27 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
   if (BatchCheckHasBit(cached_has_bits, 0xff000000U)) {
     ::memset(&_impl_.pack_size_bytes_total_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.pack_lookup_count_) -
-        reinterpret_cast<char*>(&_impl_.pack_size_bytes_total_)) + sizeof(_impl_.pack_lookup_count_));
+        reinterpret_cast<char*>(&_impl_.pack_bloom_parameter_shape_count_) -
+        reinterpret_cast<char*>(&_impl_.pack_size_bytes_total_)) + sizeof(_impl_.pack_bloom_parameter_shape_count_));
+    if (CheckHasBitForRepeated(cached_has_bits, 0x80000000U)) {
+      _impl_.block_stores_.Clear();
+    }
   }
   cached_has_bits = _impl_._has_bits_[1];
   if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
-    ::memset(&_impl_.pack_candidate_packs_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.pack_last_negative_packs_) -
-        reinterpret_cast<char*>(&_impl_.pack_candidate_packs_)) + sizeof(_impl_.pack_last_negative_packs_));
+    ::memset(&_impl_.pack_lookup_count_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.pack_last_opened_packs_) -
+        reinterpret_cast<char*>(&_impl_.pack_lookup_count_)) + sizeof(_impl_.pack_last_opened_packs_));
   }
   if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
-    ::memset(&_impl_.pack_index_cache_hits_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.in_flight_upload_count_) -
-        reinterpret_cast<char*>(&_impl_.pack_index_cache_hits_)) + sizeof(_impl_.in_flight_upload_count_));
+    ::memset(&_impl_.pack_last_negative_packs_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.pack_last_remote_index_bytes_) -
+        reinterpret_cast<char*>(&_impl_.pack_last_negative_packs_)) + sizeof(_impl_.pack_last_remote_index_bytes_));
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x003f0000U)) {
-    ::memset(&_impl_.pack_last_remote_index_bytes_, 0, static_cast<::size_t>(
+  if (BatchCheckHasBit(cached_has_bits, 0x00ff0000U)) {
+    ::memset(&_impl_.pack_index_tail_fetch_count_, 0, static_cast<::size_t>(
         reinterpret_cast<char*>(&_impl_.active_upload_transferred_bytes_) -
-        reinterpret_cast<char*>(&_impl_.pack_last_remote_index_bytes_)) + sizeof(_impl_.active_upload_transferred_bytes_));
+        reinterpret_cast<char*>(&_impl_.pack_index_tail_fetch_count_)) + sizeof(_impl_.active_upload_transferred_bytes_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -8431,7 +9113,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[1];
   // uint32 pack_bloom_risk_pack_count = 32;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     if (this_._internal_pack_bloom_risk_pack_count() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -8439,9 +9121,8 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
     }
   }
 
-  cached_has_bits = this_._impl_._has_bits_[0];
   // uint64 pack_lookup_count = 33;
-  if (CheckHasBit(cached_has_bits, 0x80000000U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
     if (this_._internal_pack_lookup_count() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8449,9 +9130,8 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
     }
   }
 
-  cached_has_bits = this_._impl_._has_bits_[1];
   // uint64 pack_candidate_packs = 34;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     if (this_._internal_pack_candidate_packs() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8460,7 +9140,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint64 pack_opened_packs = 35;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
     if (this_._internal_pack_opened_packs() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8469,7 +9149,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint64 pack_negative_packs = 36;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     if (this_._internal_pack_negative_packs() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8478,7 +9158,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint64 pack_target_hits = 37;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (this_._internal_pack_target_hits() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8487,7 +9167,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint32 pack_last_candidate_packs = 38;
-  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_pack_last_candidate_packs() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -8496,7 +9176,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint32 pack_last_opened_packs = 39;
-  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
     if (this_._internal_pack_last_opened_packs() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -8505,7 +9185,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint32 pack_last_negative_packs = 40;
-  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
     if (this_._internal_pack_last_negative_packs() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
@@ -8514,7 +9194,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // bool pack_last_target_hit = 41;
-  if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+  if (CheckHasBit(cached_has_bits, 0x00040000U)) {
     if (this_._internal_pack_last_target_hit() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -8523,7 +9203,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint64 pack_index_cache_hits = 42;
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
     if (this_._internal_pack_index_cache_hits() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8532,7 +9212,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint64 pack_index_cache_misses = 43;
-  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
     if (this_._internal_pack_index_cache_misses() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8541,7 +9221,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint64 pack_index_cache_read_errors = 44;
-  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
     if (this_._internal_pack_index_cache_read_errors() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8550,7 +9230,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint64 pack_index_cache_write_errors = 45;
-  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
     if (this_._internal_pack_index_cache_write_errors() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8559,7 +9239,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint64 pack_remote_index_loads = 46;
-  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+  if (CheckHasBit(cached_has_bits, 0x00002000U)) {
     if (this_._internal_pack_remote_index_loads() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8568,7 +9248,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint64 pack_remote_index_bytes = 47;
-  if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+  if (CheckHasBit(cached_has_bits, 0x00004000U)) {
     if (this_._internal_pack_remote_index_bytes() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8577,7 +9257,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint64 pack_last_remote_index_bytes = 48;
-  if (CheckHasBit(cached_has_bits, 0x00010000U)) {
+  if (CheckHasBit(cached_has_bits, 0x00008000U)) {
     if (this_._internal_pack_last_remote_index_bytes() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8586,7 +9266,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint64 pack_index_tail_fetch_count = 49;
-  if (CheckHasBit(cached_has_bits, 0x00020000U)) {
+  if (CheckHasBit(cached_has_bits, 0x00010000U)) {
     if (this_._internal_pack_index_tail_fetch_count() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8595,7 +9275,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint64 pack_index_tail_fetch_bytes = 50;
-  if (CheckHasBit(cached_has_bits, 0x00040000U)) {
+  if (CheckHasBit(cached_has_bits, 0x00020000U)) {
     if (this_._internal_pack_index_tail_fetch_bytes() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8604,7 +9284,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint64 pack_index_tail_response_bytes = 51;
-  if (CheckHasBit(cached_has_bits, 0x00080000U)) {
+  if (CheckHasBit(cached_has_bits, 0x00200000U)) {
     if (this_._internal_pack_index_tail_response_bytes() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8613,7 +9293,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint64 active_upload_bytes = 52;
-  if (CheckHasBit(cached_has_bits, 0x00100000U)) {
+  if (CheckHasBit(cached_has_bits, 0x00400000U)) {
     if (this_._internal_active_upload_bytes() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8622,7 +9302,7 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint64 active_upload_transferred_bytes = 53;
-  if (CheckHasBit(cached_has_bits, 0x00200000U)) {
+  if (CheckHasBit(cached_has_bits, 0x00800000U)) {
     if (this_._internal_active_upload_transferred_bytes() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
@@ -8631,11 +9311,34 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
   }
 
   // uint32 in_flight_upload_count = 54;
-  if (CheckHasBit(cached_has_bits, 0x00008000U)) {
+  if (CheckHasBit(cached_has_bits, 0x00100000U)) {
     if (this_._internal_in_flight_upload_count() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
           54, this_._internal_in_flight_upload_count(), target);
+    }
+  }
+
+  // bool direct_p2p_disabled = 55;
+  if (CheckHasBit(cached_has_bits, 0x00080000U)) {
+    if (this_._internal_direct_p2p_disabled() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          55, this_._internal_direct_p2p_disabled(), target);
+    }
+  }
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated .s4wave.session.SyncBlockStoreStatus block_stores = 56;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x80000000U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_block_stores_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_block_stores().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              56, repfield, repfield.GetCachedSize(),
+              target, stream);
     }
   }
 
@@ -8885,168 +9588,181 @@ PROTOBUF_NOINLINE void WatchSyncStatusResponse::Clear() {
                                         this_._internal_pack_bloom_parameter_shape_count());
       }
     }
-    // uint64 pack_lookup_count = 33;
-    if (CheckHasBit(cached_has_bits, 0x80000000U)) {
-      if (this_._internal_pack_lookup_count() != 0) {
-        total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
-                                        this_._internal_pack_lookup_count());
+    // repeated .s4wave.session.SyncBlockStoreStatus block_stores = 56;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x80000000U)) {
+      total_size += 2UL * this_._internal_block_stores_size();
+      for (const auto& msg : this_._internal_block_stores()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
       }
     }
   }
   cached_has_bits = this_._impl_._has_bits_[1];
   if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
-    // uint64 pack_candidate_packs = 34;
+    // uint64 pack_lookup_count = 33;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_pack_lookup_count() != 0) {
+        total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                        this_._internal_pack_lookup_count());
+      }
+    }
+    // uint64 pack_candidate_packs = 34;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (this_._internal_pack_candidate_packs() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_pack_candidate_packs());
       }
     }
     // uint64 pack_opened_packs = 35;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (this_._internal_pack_opened_packs() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_pack_opened_packs());
       }
     }
     // uint32 pack_bloom_risk_pack_count = 32;
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (this_._internal_pack_bloom_risk_pack_count() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt32Size(
                                         this_._internal_pack_bloom_risk_pack_count());
       }
     }
     // uint32 pack_last_candidate_packs = 38;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_pack_last_candidate_packs() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt32Size(
                                         this_._internal_pack_last_candidate_packs());
       }
     }
     // uint64 pack_negative_packs = 36;
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (this_._internal_pack_negative_packs() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_pack_negative_packs());
       }
     }
     // uint64 pack_target_hits = 37;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (this_._internal_pack_target_hits() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_pack_target_hits());
       }
     }
     // uint32 pack_last_opened_packs = 39;
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (this_._internal_pack_last_opened_packs() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt32Size(
                                         this_._internal_pack_last_opened_packs());
       }
     }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
     // uint32 pack_last_negative_packs = 40;
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_pack_last_negative_packs() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt32Size(
                                         this_._internal_pack_last_negative_packs());
       }
     }
-  }
-  if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
     // uint64 pack_index_cache_hits = 42;
-    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (this_._internal_pack_index_cache_hits() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_pack_index_cache_hits());
       }
     }
     // uint64 pack_index_cache_misses = 43;
-    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (this_._internal_pack_index_cache_misses() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_pack_index_cache_misses());
       }
     }
     // uint64 pack_index_cache_read_errors = 44;
-    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (this_._internal_pack_index_cache_read_errors() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_pack_index_cache_read_errors());
       }
     }
     // uint64 pack_index_cache_write_errors = 45;
-    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (this_._internal_pack_index_cache_write_errors() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_pack_index_cache_write_errors());
       }
     }
     // uint64 pack_remote_index_loads = 46;
-    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
       if (this_._internal_pack_remote_index_loads() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_pack_remote_index_loads());
       }
     }
     // uint64 pack_remote_index_bytes = 47;
-    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
       if (this_._internal_pack_remote_index_bytes() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_pack_remote_index_bytes());
       }
     }
-    // bool pack_last_target_hit = 41;
-    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
-      if (this_._internal_pack_last_target_hit() != 0) {
-        total_size += 3;
-      }
-    }
-    // uint32 in_flight_upload_count = 54;
-    if (CheckHasBit(cached_has_bits, 0x00008000U)) {
-      if (this_._internal_in_flight_upload_count() != 0) {
-        total_size += 2 + ::_pbi::WireFormatLite::UInt32Size(
-                                        this_._internal_in_flight_upload_count());
-      }
-    }
-  }
-  if (BatchCheckHasBit(cached_has_bits, 0x003f0000U)) {
     // uint64 pack_last_remote_index_bytes = 48;
-    if (CheckHasBit(cached_has_bits, 0x00010000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00008000U)) {
       if (this_._internal_pack_last_remote_index_bytes() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_pack_last_remote_index_bytes());
       }
     }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00ff0000U)) {
     // uint64 pack_index_tail_fetch_count = 49;
-    if (CheckHasBit(cached_has_bits, 0x00020000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00010000U)) {
       if (this_._internal_pack_index_tail_fetch_count() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_pack_index_tail_fetch_count());
       }
     }
     // uint64 pack_index_tail_fetch_bytes = 50;
-    if (CheckHasBit(cached_has_bits, 0x00040000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00020000U)) {
       if (this_._internal_pack_index_tail_fetch_bytes() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_pack_index_tail_fetch_bytes());
       }
     }
-    // uint64 pack_index_tail_response_bytes = 51;
+    // bool pack_last_target_hit = 41;
+    if (CheckHasBit(cached_has_bits, 0x00040000U)) {
+      if (this_._internal_pack_last_target_hit() != 0) {
+        total_size += 3;
+      }
+    }
+    // bool direct_p2p_disabled = 55;
     if (CheckHasBit(cached_has_bits, 0x00080000U)) {
+      if (this_._internal_direct_p2p_disabled() != 0) {
+        total_size += 3;
+      }
+    }
+    // uint32 in_flight_upload_count = 54;
+    if (CheckHasBit(cached_has_bits, 0x00100000U)) {
+      if (this_._internal_in_flight_upload_count() != 0) {
+        total_size += 2 + ::_pbi::WireFormatLite::UInt32Size(
+                                        this_._internal_in_flight_upload_count());
+      }
+    }
+    // uint64 pack_index_tail_response_bytes = 51;
+    if (CheckHasBit(cached_has_bits, 0x00200000U)) {
       if (this_._internal_pack_index_tail_response_bytes() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_pack_index_tail_response_bytes());
       }
     }
     // uint64 active_upload_bytes = 52;
-    if (CheckHasBit(cached_has_bits, 0x00100000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00400000U)) {
       if (this_._internal_active_upload_bytes() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_active_upload_bytes());
       }
     }
     // uint64 active_upload_transferred_bytes = 53;
-    if (CheckHasBit(cached_has_bits, 0x00200000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00800000U)) {
       if (this_._internal_active_upload_transferred_bytes() != 0) {
         total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
                                         this_._internal_active_upload_transferred_bytes());
@@ -9241,124 +9957,134 @@ void WatchSyncStatusResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.pack_bloom_parameter_shape_count_ = from._impl_.pack_bloom_parameter_shape_count_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x80000000U)) {
-      if (from._internal_pack_lookup_count() != 0) {
-        _this->_impl_.pack_lookup_count_ = from._impl_.pack_lookup_count_;
-      }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x80000000U)) {
+      _this->_internal_mutable_block_stores()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_block_stores());
     }
   }
   cached_has_bits = from._impl_._has_bits_[1];
   if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (from._internal_pack_lookup_count() != 0) {
+        _this->_impl_.pack_lookup_count_ = from._impl_.pack_lookup_count_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (from._internal_pack_candidate_packs() != 0) {
         _this->_impl_.pack_candidate_packs_ = from._impl_.pack_candidate_packs_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       if (from._internal_pack_opened_packs() != 0) {
         _this->_impl_.pack_opened_packs_ = from._impl_.pack_opened_packs_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (from._internal_pack_bloom_risk_pack_count() != 0) {
         _this->_impl_.pack_bloom_risk_pack_count_ = from._impl_.pack_bloom_risk_pack_count_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (from._internal_pack_last_candidate_packs() != 0) {
         _this->_impl_.pack_last_candidate_packs_ = from._impl_.pack_last_candidate_packs_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (from._internal_pack_negative_packs() != 0) {
         _this->_impl_.pack_negative_packs_ = from._impl_.pack_negative_packs_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (from._internal_pack_target_hits() != 0) {
         _this->_impl_.pack_target_hits_ = from._impl_.pack_target_hits_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
       if (from._internal_pack_last_opened_packs() != 0) {
         _this->_impl_.pack_last_opened_packs_ = from._impl_.pack_last_opened_packs_;
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
-      if (from._internal_pack_last_negative_packs() != 0) {
-        _this->_impl_.pack_last_negative_packs_ = from._impl_.pack_last_negative_packs_;
       }
     }
   }
   if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (from._internal_pack_last_negative_packs() != 0) {
+        _this->_impl_.pack_last_negative_packs_ = from._impl_.pack_last_negative_packs_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
       if (from._internal_pack_index_cache_hits() != 0) {
         _this->_impl_.pack_index_cache_hits_ = from._impl_.pack_index_cache_hits_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
       if (from._internal_pack_index_cache_misses() != 0) {
         _this->_impl_.pack_index_cache_misses_ = from._impl_.pack_index_cache_misses_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
       if (from._internal_pack_index_cache_read_errors() != 0) {
         _this->_impl_.pack_index_cache_read_errors_ = from._impl_.pack_index_cache_read_errors_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
       if (from._internal_pack_index_cache_write_errors() != 0) {
         _this->_impl_.pack_index_cache_write_errors_ = from._impl_.pack_index_cache_write_errors_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
       if (from._internal_pack_remote_index_loads() != 0) {
         _this->_impl_.pack_remote_index_loads_ = from._impl_.pack_remote_index_loads_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
       if (from._internal_pack_remote_index_bytes() != 0) {
         _this->_impl_.pack_remote_index_bytes_ = from._impl_.pack_remote_index_bytes_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
-      if (from._internal_pack_last_target_hit() != 0) {
-        _this->_impl_.pack_last_target_hit_ = from._impl_.pack_last_target_hit_;
-      }
-    }
     if (CheckHasBit(cached_has_bits, 0x00008000U)) {
-      if (from._internal_in_flight_upload_count() != 0) {
-        _this->_impl_.in_flight_upload_count_ = from._impl_.in_flight_upload_count_;
-      }
-    }
-  }
-  if (BatchCheckHasBit(cached_has_bits, 0x003f0000U)) {
-    if (CheckHasBit(cached_has_bits, 0x00010000U)) {
       if (from._internal_pack_last_remote_index_bytes() != 0) {
         _this->_impl_.pack_last_remote_index_bytes_ = from._impl_.pack_last_remote_index_bytes_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00020000U)) {
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00ff0000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00010000U)) {
       if (from._internal_pack_index_tail_fetch_count() != 0) {
         _this->_impl_.pack_index_tail_fetch_count_ = from._impl_.pack_index_tail_fetch_count_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00040000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00020000U)) {
       if (from._internal_pack_index_tail_fetch_bytes() != 0) {
         _this->_impl_.pack_index_tail_fetch_bytes_ = from._impl_.pack_index_tail_fetch_bytes_;
       }
     }
+    if (CheckHasBit(cached_has_bits, 0x00040000U)) {
+      if (from._internal_pack_last_target_hit() != 0) {
+        _this->_impl_.pack_last_target_hit_ = from._impl_.pack_last_target_hit_;
+      }
+    }
     if (CheckHasBit(cached_has_bits, 0x00080000U)) {
+      if (from._internal_direct_p2p_disabled() != 0) {
+        _this->_impl_.direct_p2p_disabled_ = from._impl_.direct_p2p_disabled_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00100000U)) {
+      if (from._internal_in_flight_upload_count() != 0) {
+        _this->_impl_.in_flight_upload_count_ = from._impl_.in_flight_upload_count_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00200000U)) {
       if (from._internal_pack_index_tail_response_bytes() != 0) {
         _this->_impl_.pack_index_tail_response_bytes_ = from._impl_.pack_index_tail_response_bytes_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00100000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00400000U)) {
       if (from._internal_active_upload_bytes() != 0) {
         _this->_impl_.active_upload_bytes_ = from._impl_.active_upload_bytes_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00200000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00800000U)) {
       if (from._internal_active_upload_transferred_bytes() != 0) {
         _this->_impl_.active_upload_transferred_bytes_ = from._impl_.active_upload_transferred_bytes_;
       }
@@ -9386,11 +10112,18 @@ void WatchSyncStatusResponse::InternalSwap(WatchSyncStatusResponse* PROTOBUF_RES
   swap(_impl_._has_bits_[1], other->_impl_._has_bits_[1]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.last_error_, &other->_impl_.last_error_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.active_upload_transferred_bytes_)
-      + sizeof(WatchSyncStatusResponse::_impl_.active_upload_transferred_bytes_)
+      PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_bloom_parameter_shape_count_)
+      + sizeof(WatchSyncStatusResponse::_impl_.pack_bloom_parameter_shape_count_)
       - PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.last_activity_at_)>(
           reinterpret_cast<char*>(&_impl_.last_activity_at_),
           reinterpret_cast<char*>(&other->_impl_.last_activity_at_));
+  _impl_.block_stores_.InternalSwap(&other->_impl_.block_stores_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.active_upload_transferred_bytes_)
+      + sizeof(WatchSyncStatusResponse::_impl_.active_upload_transferred_bytes_)
+      - PROTOBUF_FIELD_OFFSET(WatchSyncStatusResponse, _impl_.pack_lookup_count_)>(
+          reinterpret_cast<char*>(&_impl_.pack_lookup_count_),
+          reinterpret_cast<char*>(&other->_impl_.pack_lookup_count_));
 }
 
 ::google::protobuf::Metadata WatchSyncStatusResponse::GetMetadata() const {
@@ -10528,6 +11261,362 @@ SetLockModeResponse::_table_ = {
 
 
 ::google::protobuf::Metadata SetLockModeResponse::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SetDirectP2PEnabledRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SetDirectP2PEnabledRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SetDirectP2PEnabledRequest, _impl_._has_bits_);
+};
+
+SetDirectP2PEnabledRequest::SetDirectP2PEnabledRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SetDirectP2PEnabledRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.session.SetDirectP2PEnabledRequest)
+}
+SetDirectP2PEnabledRequest::SetDirectP2PEnabledRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SetDirectP2PEnabledRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SetDirectP2PEnabledRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE SetDirectP2PEnabledRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void SetDirectP2PEnabledRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.enabled_ = {};
+}
+SetDirectP2PEnabledRequest::~SetDirectP2PEnabledRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.session.SetDirectP2PEnabledRequest)
+  SharedDtor(*this);
+}
+inline void SetDirectP2PEnabledRequest::SharedDtor(MessageLite& self) {
+  SetDirectP2PEnabledRequest& this_ = static_cast<SetDirectP2PEnabledRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SetDirectP2PEnabledRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SetDirectP2PEnabledRequest(arena);
+}
+constexpr auto SetDirectP2PEnabledRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(SetDirectP2PEnabledRequest),
+                                            alignof(SetDirectP2PEnabledRequest));
+}
+constexpr auto SetDirectP2PEnabledRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SetDirectP2PEnabledRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SetDirectP2PEnabledRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SetDirectP2PEnabledRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SetDirectP2PEnabledRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SetDirectP2PEnabledRequest>(), &SetDirectP2PEnabledRequest::ByteSizeLong,
+              &SetDirectP2PEnabledRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SetDirectP2PEnabledRequest, _impl_._cached_size_),
+          false,
+      },
+      &SetDirectP2PEnabledRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SetDirectP2PEnabledRequest_class_data_ =
+        SetDirectP2PEnabledRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SetDirectP2PEnabledRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SetDirectP2PEnabledRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SetDirectP2PEnabledRequest_class_data_.tc_table);
+  return SetDirectP2PEnabledRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+SetDirectP2PEnabledRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SetDirectP2PEnabledRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    SetDirectP2PEnabledRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::session::SetDirectP2PEnabledRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // bool enabled = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SetDirectP2PEnabledRequest, _impl_.enabled_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SetDirectP2PEnabledRequest, _impl_.enabled_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bool enabled = 1;
+    {PROTOBUF_FIELD_OFFSET(SetDirectP2PEnabledRequest, _impl_.enabled_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SetDirectP2PEnabledRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.session.SetDirectP2PEnabledRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.enabled_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SetDirectP2PEnabledRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SetDirectP2PEnabledRequest& this_ = static_cast<const SetDirectP2PEnabledRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SetDirectP2PEnabledRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SetDirectP2PEnabledRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.session.SetDirectP2PEnabledRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bool enabled = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_enabled() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          1, this_._internal_enabled(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.session.SetDirectP2PEnabledRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SetDirectP2PEnabledRequest::ByteSizeLong(const MessageLite& base) {
+  const SetDirectP2PEnabledRequest& this_ = static_cast<const SetDirectP2PEnabledRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SetDirectP2PEnabledRequest::ByteSizeLong() const {
+  const SetDirectP2PEnabledRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.session.SetDirectP2PEnabledRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // bool enabled = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_enabled() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SetDirectP2PEnabledRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SetDirectP2PEnabledRequest*>(&to_msg);
+  auto& from = static_cast<const SetDirectP2PEnabledRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.session.SetDirectP2PEnabledRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_enabled() != 0) {
+      _this->_impl_.enabled_ = from._impl_.enabled_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SetDirectP2PEnabledRequest::CopyFrom(const SetDirectP2PEnabledRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.session.SetDirectP2PEnabledRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SetDirectP2PEnabledRequest::InternalSwap(SetDirectP2PEnabledRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.enabled_, other->_impl_.enabled_);
+}
+
+::google::protobuf::Metadata SetDirectP2PEnabledRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SetDirectP2PEnabledResponse::_Internal {
+ public:
+};
+
+SetDirectP2PEnabledResponse::SetDirectP2PEnabledResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, SetDirectP2PEnabledResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:s4wave.session.SetDirectP2PEnabledResponse)
+}
+SetDirectP2PEnabledResponse::SetDirectP2PEnabledResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SetDirectP2PEnabledResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, SetDirectP2PEnabledResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SetDirectP2PEnabledResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.session.SetDirectP2PEnabledResponse)
+}
+
+inline void* PROTOBUF_NONNULL SetDirectP2PEnabledResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SetDirectP2PEnabledResponse(arena);
+}
+constexpr auto SetDirectP2PEnabledResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(SetDirectP2PEnabledResponse),
+                                            alignof(SetDirectP2PEnabledResponse));
+}
+constexpr auto SetDirectP2PEnabledResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SetDirectP2PEnabledResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SetDirectP2PEnabledResponse::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<SetDirectP2PEnabledResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SetDirectP2PEnabledResponse::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<SetDirectP2PEnabledResponse>(), &SetDirectP2PEnabledResponse::ByteSizeLong,
+              &SetDirectP2PEnabledResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SetDirectP2PEnabledResponse, _impl_._cached_size_),
+          false,
+      },
+      &SetDirectP2PEnabledResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fsession_2fsession_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SetDirectP2PEnabledResponse_class_data_ =
+        SetDirectP2PEnabledResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SetDirectP2PEnabledResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SetDirectP2PEnabledResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SetDirectP2PEnabledResponse_class_data_.tc_table);
+  return SetDirectP2PEnabledResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+SetDirectP2PEnabledResponse::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    SetDirectP2PEnabledResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::session::SetDirectP2PEnabledResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata SetDirectP2PEnabledResponse::GetMetadata() const {
   return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

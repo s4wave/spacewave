@@ -213,6 +213,27 @@ export enum SyncP2PState {
    * @generated from enum value: SyncP2PState_ERROR = 4;
    */
   SyncP2PState_ERROR = 4,
+
+  /**
+   * SyncP2PState_DISABLED means direct P2P is disabled by Session policy.
+   *
+   * @generated from enum value: SyncP2PState_DISABLED = 5;
+   */
+  SyncP2PState_DISABLED = 5,
+
+  /**
+   * SyncP2PState_STARTING means direct P2P mechanics are starting.
+   *
+   * @generated from enum value: SyncP2PState_STARTING = 6;
+   */
+  SyncP2PState_STARTING = 6,
+
+  /**
+   * SyncP2PState_FALLBACK_NO_PEER means a previously linked peer is absent.
+   *
+   * @generated from enum value: SyncP2PState_FALLBACK_NO_PEER = 7;
+   */
+  SyncP2PState_FALLBACK_NO_PEER = 7,
 }
 
 export const SyncP2PState_Enum = /* @__PURE__ */ createEnumType(
@@ -223,6 +244,54 @@ export const SyncP2PState_Enum = /* @__PURE__ */ createEnumType(
     [2, 'SyncP2PState_IDLE'],
     [3, 'SyncP2PState_ACTIVE'],
     [4, 'SyncP2PState_ERROR'],
+    [5, 'SyncP2PState_DISABLED'],
+    [6, 'SyncP2PState_STARTING'],
+    [7, 'SyncP2PState_FALLBACK_NO_PEER'],
+  ],
+)
+
+/**
+ * SyncBlockSource identifies the owner-observed source of a block read.
+ *
+ * @generated from enum s4wave.session.SyncBlockSource
+ */
+export enum SyncBlockSource {
+  /**
+   * SyncBlockSource_UNKNOWN means no source has been observed.
+   *
+   * @generated from enum value: SyncBlockSource_UNKNOWN = 0;
+   */
+  SyncBlockSource_UNKNOWN = 0,
+
+  /**
+   * SyncBlockSource_CACHE means the local upper cache satisfied the read.
+   *
+   * @generated from enum value: SyncBlockSource_CACHE = 1;
+   */
+  SyncBlockSource_CACHE = 1,
+
+  /**
+   * SyncBlockSource_DIRECT means demand-driven DEX satisfied the read.
+   *
+   * @generated from enum value: SyncBlockSource_DIRECT = 2;
+   */
+  SyncBlockSource_DIRECT = 2,
+
+  /**
+   * SyncBlockSource_CLOUD means the Cloud packfile baseline satisfied the read.
+   *
+   * @generated from enum value: SyncBlockSource_CLOUD = 3;
+   */
+  SyncBlockSource_CLOUD = 3,
+}
+
+export const SyncBlockSource_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.session.SyncBlockSource',
+  [
+    [0, 'SyncBlockSource_UNKNOWN'],
+    [1, 'SyncBlockSource_CACHE'],
+    [2, 'SyncBlockSource_DIRECT'],
+    [3, 'SyncBlockSource_CLOUD'],
   ],
 )
 
@@ -930,6 +999,88 @@ export const WatchStorageStatsRequest: MessageType<WatchStorageStatsRequest> =
   )
 
 /**
+ * SyncBlockStoreStatus projects source and convergence mechanics for one mounted block store.
+ *
+ * @generated from message s4wave.session.SyncBlockStoreStatus
+ */
+export interface SyncBlockStoreStatus {
+  /**
+   * BlockStoreId is the mounted block store identifier.
+   *
+   * @generated from field: string block_store_id = 1;
+   */
+  blockStoreId?: string
+  /**
+   * DirectHitCount counts reads satisfied by demand-driven direct lookup.
+   *
+   * @generated from field: uint64 direct_hit_count = 2;
+   */
+  directHitCount?: bigint
+  /**
+   * CloudHitCount counts reads satisfied by the Cloud lower store.
+   *
+   * @generated from field: uint64 cloud_hit_count = 3;
+   */
+  cloudHitCount?: bigint
+  /**
+   * CacheHitCount counts reads satisfied by the local upper cache.
+   *
+   * @generated from field: uint64 cache_hit_count = 4;
+   */
+  cacheHitCount?: bigint
+  /**
+   * LastSource is the latest observed source for this block store.
+   *
+   * @generated from field: s4wave.session.SyncBlockSource last_source = 5;
+   */
+  lastSource?: SyncBlockSource
+  /**
+   * AcceptedRootInnerSequence is the latest accepted SharedObject root sequence observed for this block store.
+   *
+   * @generated from field: uint64 accepted_root_inner_sequence = 6;
+   */
+  acceptedRootInnerSequence?: bigint
+  /**
+   * CloudRemoteSequence is the latest Cloud block-store sequence observed locally.
+   *
+   * @generated from field: uint64 cloud_remote_sequence = 7;
+   */
+  cloudRemoteSequence?: bigint
+  /**
+   * SharedObjectId identifies the SharedObject that supplied AcceptedRootInnerSequence.
+   *
+   * @generated from field: string shared_object_id = 8;
+   */
+  sharedObjectId?: string
+}
+
+export const SyncBlockStoreStatus: MessageType<SyncBlockStoreStatus> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.SyncBlockStoreStatus',
+    fields: [
+      { no: 1, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'direct_hit_count', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'cloud_hit_count', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'cache_hit_count', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 5, name: 'last_source', kind: 'enum', T: SyncBlockSource_Enum },
+      {
+        no: 6,
+        name: 'accepted_root_inner_sequence',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      {
+        no: 7,
+        name: 'cloud_remote_sequence',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      { no: 8, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * WatchSyncStatusResponse is the response type for WatchSyncStatus.
  *
  * @generated from message s4wave.session.WatchSyncStatusResponse
@@ -1259,6 +1410,19 @@ export interface WatchSyncStatusResponse {
    * @generated from field: uint64 pack_index_tail_response_bytes = 51;
    */
   packIndexTailResponseBytes?: bigint
+  /**
+   * DirectP2PDisabled is the configured Session-local direct transport policy.
+   * The zero value preserves direct P2P for existing Sessions.
+   *
+   * @generated from field: bool direct_p2p_disabled = 55;
+   */
+  directP2pDisabled?: boolean
+  /**
+   * BlockStores contains owner-observed mechanics keyed by mounted block store.
+   *
+   * @generated from field: repeated s4wave.session.SyncBlockStoreStatus block_stores = 56;
+   */
+  blockStores?: SyncBlockStoreStatus[]
 }
 
 export const WatchSyncStatusResponse: MessageType<WatchSyncStatusResponse> =
@@ -1564,6 +1728,19 @@ export const WatchSyncStatusResponse: MessageType<WatchSyncStatusResponse> =
         kind: 'scalar',
         T: ScalarType.UINT64,
       },
+      {
+        no: 55,
+        name: 'direct_p2p_disabled',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
+      {
+        no: 56,
+        name: 'block_stores',
+        kind: 'message',
+        T: () => SyncBlockStoreStatus,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -1688,6 +1865,42 @@ export interface SetLockModeResponse {}
 export const SetLockModeResponse: MessageType<SetLockModeResponse> =
   /* @__PURE__ */ createEmptyMessageType<SetLockModeResponse>(
     's4wave.session.SetLockModeResponse',
+    true,
+  )
+
+/**
+ * SetDirectP2PEnabledRequest updates the durable Session-local direct transport policy.
+ *
+ * @generated from message s4wave.session.SetDirectP2PEnabledRequest
+ */
+export interface SetDirectP2PEnabledRequest {
+  /**
+   * Enabled controls whether direct Session transport mechanics may run.
+   *
+   * @generated from field: bool enabled = 1;
+   */
+  enabled?: boolean
+}
+
+export const SetDirectP2PEnabledRequest: MessageType<SetDirectP2PEnabledRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.SetDirectP2PEnabledRequest',
+    fields: [
+      { no: 1, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SetDirectP2PEnabledResponse acknowledges the persisted policy update.
+ *
+ * @generated from message s4wave.session.SetDirectP2PEnabledResponse
+ */
+export interface SetDirectP2PEnabledResponse {}
+
+export const SetDirectP2PEnabledResponse: MessageType<SetDirectP2PEnabledResponse> =
+  /* @__PURE__ */ createEmptyMessageType<SetDirectP2PEnabledResponse>(
+    's4wave.session.SetDirectP2PEnabledResponse',
     true,
   )
 

@@ -23,6 +23,23 @@ const (
 // SyncTelemetrySnapshot describes Spacewave cloud sync activity.
 type SyncTelemetrySnapshot = synctelemetry.Snapshot
 
+// SyncTelemetryBlockStoreSnapshot describes one mounted block store.
+type SyncTelemetryBlockStoreSnapshot = synctelemetry.BlockStoreSnapshot
+
+// SyncTelemetryBlockSource identifies the owner-observed source of a block read.
+type SyncTelemetryBlockSource = synctelemetry.BlockSource
+
+const (
+	// SyncTelemetryBlockSourceUnknown means no source has been observed.
+	SyncTelemetryBlockSourceUnknown = synctelemetry.BlockSourceUnknown
+	// SyncTelemetryBlockSourceCache means the local cache satisfied the read.
+	SyncTelemetryBlockSourceCache = synctelemetry.BlockSourceCache
+	// SyncTelemetryBlockSourceDirect means demand-driven DEX satisfied the read.
+	SyncTelemetryBlockSourceDirect = synctelemetry.BlockSourceDirect
+	// SyncTelemetryBlockSourceCloud means the Cloud baseline satisfied the read.
+	SyncTelemetryBlockSourceCloud = synctelemetry.BlockSourceCloud
+)
+
 type syncTelemetryFetchStatsProvider = synctelemetry.FetchStatsProvider
 
 // GetSyncTelemetryBroadcast returns the broadcast guarding Spacewave sync telemetry.
@@ -81,6 +98,18 @@ func (a *ProviderAccount) finishSyncTelemetryPull(bstoreID string, err error) {
 
 func (a *ProviderAccount) recordSyncTelemetryError(bstoreID string, err error) {
 	a.syncTelemetry.RecordError(bstoreID, err)
+}
+
+func (a *ProviderAccount) recordSyncTelemetryBlockSource(bstoreID string, source SyncTelemetryBlockSource) {
+	a.syncTelemetry.RecordBlockSource(bstoreID, source)
+}
+
+func (a *ProviderAccount) setSyncTelemetryAcceptedRoot(bstoreID, sharedObjectID string, sequence uint64) {
+	a.syncTelemetry.SetAcceptedRoot(bstoreID, sharedObjectID, sequence)
+}
+
+func (a *ProviderAccount) setSyncTelemetryCloudRemoteSequence(bstoreID string, sequence uint64) {
+	a.syncTelemetry.SetCloudRemoteSequence(bstoreID, sequence)
 }
 
 // _ is a type assertion

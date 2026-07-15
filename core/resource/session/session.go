@@ -884,6 +884,23 @@ func (r *SessionResource) SetLockMode(ctx context.Context, req *s4wave_session.S
 	return &s4wave_session.SetLockModeResponse{}, nil
 }
 
+// SetDirectP2PEnabled updates the durable Cloud Session transport policy.
+func (r *SessionResource) SetDirectP2PEnabled(
+	ctx context.Context,
+	req *s4wave_session.SetDirectP2PEnabledRequest,
+) (*s4wave_session.SetDirectP2PEnabledResponse, error) {
+	configurable, ok := r.session.(interface {
+		SetDirectP2PEnabled(context.Context, bool) error
+	})
+	if !ok {
+		return nil, errors.New("direct P2P policy is not supported for this provider")
+	}
+	if err := configurable.SetDirectP2PEnabled(ctx, req.GetEnabled()); err != nil {
+		return nil, err
+	}
+	return &s4wave_session.SetDirectP2PEnabledResponse{}, nil
+}
+
 // UnlockSession unlocks a PIN-locked session.
 func (r *SessionResource) UnlockSession(ctx context.Context, req *s4wave_session.UnlockSessionRequest) (*s4wave_session.UnlockSessionResponse, error) {
 	if err := r.session.UnlockSession(ctx, req.GetPin()); err != nil {

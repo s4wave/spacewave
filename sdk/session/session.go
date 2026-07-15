@@ -112,6 +112,12 @@ func (s *Session) SetLockMode(ctx context.Context, mode session.SessionLockMode,
 	return err
 }
 
+// SetDirectP2PEnabled updates the durable Session-local direct transport policy.
+func (s *Session) SetDirectP2PEnabled(ctx context.Context, enabled bool) error {
+	_, err := s.service.SetDirectP2PEnabled(ctx, &SetDirectP2PEnabledRequest{Enabled: enabled})
+	return err
+}
+
 // UnlockSession unlocks a PIN-locked session with the given PIN.
 func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 	_, err := s.service.UnlockSession(ctx, &UnlockSessionRequest{Pin: pin})

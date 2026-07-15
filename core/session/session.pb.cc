@@ -51,7 +51,8 @@ inline constexpr SessionMetadata::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         created_at_{::int64_t{0}},
         lock_mode_{static_cast< ::session::SessionLockMode >(0)},
-        recovery_state_{static_cast< ::session::SessionRecoveryState >(0)} {}
+        recovery_state_{static_cast< ::session::SessionRecoveryState >(0)},
+        direct_p2p_disabled_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR SessionMetadata::SessionMetadata(::_pbi::ConstantInitialized)
@@ -204,7 +205,7 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::session::SessionMetadata, _impl_._has_bits_),
-        12, // hasbit index offset
+        13, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::session::SessionMetadata, _impl_.display_name_),
         PROTOBUF_FIELD_OFFSET(::session::SessionMetadata, _impl_.provider_display_name_),
         PROTOBUF_FIELD_OFFSET(::session::SessionMetadata, _impl_.provider_account_id_),
@@ -214,6 +215,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::session::SessionMetadata, _impl_.cloud_entity_id_),
         PROTOBUF_FIELD_OFFSET(::session::SessionMetadata, _impl_.provider_id_),
         PROTOBUF_FIELD_OFFSET(::session::SessionMetadata, _impl_.recovery_state_),
+        PROTOBUF_FIELD_OFFSET(::session::SessionMetadata, _impl_.direct_p2p_disabled_),
         0,
         1,
         2,
@@ -223,6 +225,7 @@ const ::uint32_t
         4,
         5,
         8,
+        9,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::session::EntityKeypair, _impl_._has_bits_),
         6, // hasbit index offset
@@ -244,8 +247,8 @@ static const ::_pbi::MigrationSchema
         {0, sizeof(::session::SessionRef)},
         {5, sizeof(::session::SessionListEntry)},
         {12, sizeof(::session::SessionMetadata)},
-        {33, sizeof(::session::EntityKeypair)},
-        {42, sizeof(::session::EntityCredential)},
+        {35, sizeof(::session::EntityKeypair)},
+        {44, sizeof(::session::EntityCredential)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::session::_SessionRef_default_instance_._instance,
@@ -263,27 +266,28 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     "ef\030\001 \001(\0132\035.provider.ProviderResourceRef\""
     "S\n\020SessionListEntry\022\025\n\rsession_index\030\001 \001"
     "(\r\022(\n\013session_ref\030\002 \001(\0132\023.session.Sessio"
-    "nRef\"\257\002\n\017SessionMetadata\022\024\n\014display_name"
+    "nRef\"\314\002\n\017SessionMetadata\022\024\n\014display_name"
     "\030\001 \001(\t\022\035\n\025provider_display_name\030\002 \001(\t\022\033\n"
     "\023provider_account_id\030\003 \001(\t\022+\n\tlock_mode\030"
     "\004 \001(\0162\030.session.SessionLockMode\022\022\n\ncreat"
     "ed_at\030\005 \001(\003\022\030\n\020cloud_account_id\030\007 \001(\t\022\027\n"
     "\017cloud_entity_id\030\010 \001(\t\022\023\n\013provider_id\030\n "
     "\001(\t\0225\n\016recovery_state\030\013 \001(\0162\035.session.Se"
-    "ssionRecoveryStateJ\004\010\006\020\007J\004\010\t\020\n\"J\n\rEntity"
-    "Keypair\022\017\n\007peer_id\030\001 \001(\t\022\023\n\013auth_method\030"
-    "\002 \001(\t\022\023\n\013auth_params\030\003 \001(\014\"O\n\020EntityCred"
-    "ential\022\022\n\010password\030\001 \001(\tH\000\022\031\n\017pem_privat"
-    "e_key\030\002 \001(\014H\000B\014\n\ncredential*m\n\013SessionTy"
-    "pe\022\030\n\024SESSION_TYPE_UNKNOWN\020\000\022\025\n\021SESSION_"
-    "TYPE_USER\020\001\022\024\n\020SESSION_TYPE_APP\020\002\022\027\n\023SES"
-    "SION_TYPE_DEVICE\020\003*Y\n\017SessionLockMode\022!\n"
-    "\035SESSION_LOCK_MODE_AUTO_UNLOCK\020\000\022#\n\037SESS"
-    "ION_LOCK_MODE_PIN_ENCRYPTED\020\001*\210\001\n\024Sessio"
-    "nRecoveryState\022\"\n\036SESSION_RECOVERY_STATE"
-    "_UNKNOWN\020\000\022$\n SESSION_RECOVERY_STATE_AVA"
-    "ILABLE\020\001\022&\n\"SESSION_RECOVERY_STATE_UNAVA"
-    "ILABLE\020\002b\006proto3"
+    "ssionRecoveryState\022\033\n\023direct_p2p_disable"
+    "d\030\014 \001(\010J\004\010\006\020\007J\004\010\t\020\n\"J\n\rEntityKeypair\022\017\n\007"
+    "peer_id\030\001 \001(\t\022\023\n\013auth_method\030\002 \001(\t\022\023\n\013au"
+    "th_params\030\003 \001(\014\"O\n\020EntityCredential\022\022\n\010p"
+    "assword\030\001 \001(\tH\000\022\031\n\017pem_private_key\030\002 \001(\014"
+    "H\000B\014\n\ncredential*m\n\013SessionType\022\030\n\024SESSI"
+    "ON_TYPE_UNKNOWN\020\000\022\025\n\021SESSION_TYPE_USER\020\001"
+    "\022\024\n\020SESSION_TYPE_APP\020\002\022\027\n\023SESSION_TYPE_D"
+    "EVICE\020\003*Y\n\017SessionLockMode\022!\n\035SESSION_LO"
+    "CK_MODE_AUTO_UNLOCK\020\000\022#\n\037SESSION_LOCK_MO"
+    "DE_PIN_ENCRYPTED\020\001*\210\001\n\024SessionRecoverySt"
+    "ate\022\"\n\036SESSION_RECOVERY_STATE_UNKNOWN\020\000\022"
+    "$\n SESSION_RECOVERY_STATE_AVAILABLE\020\001\022&\n"
+    "\"SESSION_RECOVERY_STATE_UNAVAILABLE\020\002b\006p"
+    "roto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsession_2fsession_2eproto_deps[1] = {
@@ -293,7 +297,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fco
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsession_2fsession_2eproto = {
     false,
     false,
-    1096,
+    1125,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsession_2fsession_2eproto,
     "github.com/s4wave/spacewave/core/session/session.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsession_2fsession_2eproto_once,
@@ -964,9 +968,9 @@ SessionMetadata::SessionMetadata(
                offsetof(Impl_, created_at_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, created_at_),
-           offsetof(Impl_, recovery_state_) -
+           offsetof(Impl_, direct_p2p_disabled_) -
                offsetof(Impl_, created_at_) +
-               sizeof(Impl_::recovery_state_));
+               sizeof(Impl_::direct_p2p_disabled_));
 
   // @@protoc_insertion_point(copy_constructor:session.SessionMetadata)
 }
@@ -986,9 +990,9 @@ inline void SessionMetadata::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, created_at_),
            0,
-           offsetof(Impl_, recovery_state_) -
+           offsetof(Impl_, direct_p2p_disabled_) -
                offsetof(Impl_, created_at_) +
-               sizeof(Impl_::recovery_state_));
+               sizeof(Impl_::direct_p2p_disabled_));
 }
 SessionMetadata::~SessionMetadata() {
   // @@protoc_insertion_point(destructor:session.SessionMetadata)
@@ -1053,16 +1057,16 @@ SessionMetadata::GetClassData() const {
   return SessionMetadata_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 9, 0, 134, 2>
+const ::_pbi::TcParseTable<4, 10, 0, 134, 2>
 SessionMetadata::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(SessionMetadata, _impl_._has_bits_),
     0, // no _extensions_
-    11, 120,  // max_field_number, fast_idx_mask
+    12, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294965536,  // skipmap
+    4294963488,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    9,  // num_field_entries
+    10,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     SessionMetadata_class_data_.base(),
@@ -1111,7 +1115,10 @@ SessionMetadata::_table_ = {
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SessionMetadata, _impl_.recovery_state_), 8>(),
      {88, 8, 0,
       PROTOBUF_FIELD_OFFSET(SessionMetadata, _impl_.recovery_state_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // bool direct_p2p_disabled = 12;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SessionMetadata, _impl_.direct_p2p_disabled_), 9>(),
+     {96, 9, 0,
+      PROTOBUF_FIELD_OFFSET(SessionMetadata, _impl_.direct_p2p_disabled_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -1136,6 +1143,8 @@ SessionMetadata::_table_ = {
     {PROTOBUF_FIELD_OFFSET(SessionMetadata, _impl_.provider_id_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // .session.SessionRecoveryState recovery_state = 11;
     {PROTOBUF_FIELD_OFFSET(SessionMetadata, _impl_.recovery_state_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // bool direct_p2p_disabled = 12;
+    {PROTOBUF_FIELD_OFFSET(SessionMetadata, _impl_.direct_p2p_disabled_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
   }},
   // no aux_entries
   {{
@@ -1182,7 +1191,11 @@ PROTOBUF_NOINLINE void SessionMetadata::Clear() {
         reinterpret_cast<char*>(&_impl_.lock_mode_) -
         reinterpret_cast<char*>(&_impl_.created_at_)) + sizeof(_impl_.lock_mode_));
   }
-  _impl_.recovery_state_ = 0;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    ::memset(&_impl_.recovery_state_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.direct_p2p_disabled_) -
+        reinterpret_cast<char*>(&_impl_.recovery_state_)) + sizeof(_impl_.direct_p2p_disabled_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -1293,6 +1306,15 @@ PROTOBUF_NOINLINE void SessionMetadata::Clear() {
     }
   }
 
+  // bool direct_p2p_disabled = 12;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (this_._internal_direct_p2p_disabled() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          12, this_._internal_direct_p2p_disabled(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1376,12 +1398,18 @@ PROTOBUF_NOINLINE void SessionMetadata::Clear() {
       }
     }
   }
-   {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
     // .session.SessionRecoveryState recovery_state = 11;
     if (CheckHasBit(cached_has_bits, 0x00000100U)) {
       if (this_._internal_recovery_state() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_recovery_state());
+      }
+    }
+    // bool direct_p2p_disabled = 12;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (this_._internal_direct_p2p_disabled() != 0) {
+        total_size += 2;
       }
     }
   }
@@ -1469,9 +1497,16 @@ void SessionMetadata::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
   }
-  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
-    if (from._internal_recovery_state() != 0) {
-      _this->_impl_.recovery_state_ = from._impl_.recovery_state_;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (from._internal_recovery_state() != 0) {
+        _this->_impl_.recovery_state_ = from._impl_.recovery_state_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (from._internal_direct_p2p_disabled() != 0) {
+        _this->_impl_.direct_p2p_disabled_ = from._impl_.direct_p2p_disabled_;
+      }
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -1500,8 +1535,8 @@ void SessionMetadata::InternalSwap(SessionMetadata* PROTOBUF_RESTRICT PROTOBUF_N
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.cloud_entity_id_, &other->_impl_.cloud_entity_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.provider_id_, &other->_impl_.provider_id_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(SessionMetadata, _impl_.recovery_state_)
-      + sizeof(SessionMetadata::_impl_.recovery_state_)
+      PROTOBUF_FIELD_OFFSET(SessionMetadata, _impl_.direct_p2p_disabled_)
+      + sizeof(SessionMetadata::_impl_.direct_p2p_disabled_)
       - PROTOBUF_FIELD_OFFSET(SessionMetadata, _impl_.created_at_)>(
           reinterpret_cast<char*>(&_impl_.created_at_),
           reinterpret_cast<char*>(&other->_impl_.created_at_));

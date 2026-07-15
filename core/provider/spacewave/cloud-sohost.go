@@ -66,6 +66,8 @@ type cloudSOHost struct {
 	genesisHash []byte
 	// persistVerifiedStateCache stores verified SO config state for restart hydration.
 	persistVerifiedStateCache func(context.Context, *api.VerifiedSOStateCache) error
+	// stateObserved projects accepted root mechanics without owning state.
+	stateObserved func(*sobject.SOState)
 	// bcast guards lastSeqno and stateCtr updates
 	bcast broadcast.Broadcast
 	// writeMu serializes local writes to prevent self-nonce conflicts
@@ -241,6 +243,9 @@ func (h *cloudSOHost) runSnapDeriver(ctx context.Context) error {
 			return err
 		}
 		prev = next
+		if h.stateObserved != nil {
+			h.stateObserved(next)
+		}
 		snap := sobject.NewSOStateParticipantHandle(
 			h.le,
 			h.sfs,

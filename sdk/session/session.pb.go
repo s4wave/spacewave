@@ -168,6 +168,12 @@ const (
 	SyncP2PState_SyncP2PState_ACTIVE SyncP2PState = 3
 	// SyncP2PState_ERROR means p2p lifecycle state has an error.
 	SyncP2PState_SyncP2PState_ERROR SyncP2PState = 4
+	// SyncP2PState_DISABLED means direct P2P is disabled by Session policy.
+	SyncP2PState_SyncP2PState_DISABLED SyncP2PState = 5
+	// SyncP2PState_STARTING means direct P2P mechanics are starting.
+	SyncP2PState_SyncP2PState_STARTING SyncP2PState = 6
+	// SyncP2PState_FALLBACK_NO_PEER means a previously linked peer is absent.
+	SyncP2PState_SyncP2PState_FALLBACK_NO_PEER SyncP2PState = 7
 )
 
 // Enum value maps for SyncP2PState.
@@ -178,13 +184,19 @@ var (
 		2: "SyncP2PState_IDLE",
 		3: "SyncP2PState_ACTIVE",
 		4: "SyncP2PState_ERROR",
+		5: "SyncP2PState_DISABLED",
+		6: "SyncP2PState_STARTING",
+		7: "SyncP2PState_FALLBACK_NO_PEER",
 	}
 	SyncP2PState_value = map[string]int32{
-		"SyncP2PState_UNKNOWN":  0,
-		"SyncP2PState_NO_PEERS": 1,
-		"SyncP2PState_IDLE":     2,
-		"SyncP2PState_ACTIVE":   3,
-		"SyncP2PState_ERROR":    4,
+		"SyncP2PState_UNKNOWN":          0,
+		"SyncP2PState_NO_PEERS":         1,
+		"SyncP2PState_IDLE":             2,
+		"SyncP2PState_ACTIVE":           3,
+		"SyncP2PState_ERROR":            4,
+		"SyncP2PState_DISABLED":         5,
+		"SyncP2PState_STARTING":         6,
+		"SyncP2PState_FALLBACK_NO_PEER": 7,
 	}
 )
 
@@ -196,6 +208,50 @@ func (x SyncP2PState) Enum() *SyncP2PState {
 
 func (x SyncP2PState) String() string {
 	name, valid := SyncP2PState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// SyncBlockSource identifies the owner-observed source of a block read.
+type SyncBlockSource int32
+
+const (
+	// SyncBlockSource_UNKNOWN means no source has been observed.
+	SyncBlockSource_SyncBlockSource_UNKNOWN SyncBlockSource = 0
+	// SyncBlockSource_CACHE means the local upper cache satisfied the read.
+	SyncBlockSource_SyncBlockSource_CACHE SyncBlockSource = 1
+	// SyncBlockSource_DIRECT means demand-driven DEX satisfied the read.
+	SyncBlockSource_SyncBlockSource_DIRECT SyncBlockSource = 2
+	// SyncBlockSource_CLOUD means the Cloud packfile baseline satisfied the read.
+	SyncBlockSource_SyncBlockSource_CLOUD SyncBlockSource = 3
+)
+
+// Enum value maps for SyncBlockSource.
+var (
+	SyncBlockSource_name = map[int32]string{
+		0: "SyncBlockSource_UNKNOWN",
+		1: "SyncBlockSource_CACHE",
+		2: "SyncBlockSource_DIRECT",
+		3: "SyncBlockSource_CLOUD",
+	}
+	SyncBlockSource_value = map[string]int32{
+		"SyncBlockSource_UNKNOWN": 0,
+		"SyncBlockSource_CACHE":   1,
+		"SyncBlockSource_DIRECT":  2,
+		"SyncBlockSource_CLOUD":   3,
+	}
+)
+
+func (x SyncBlockSource) Enum() *SyncBlockSource {
+	p := new(SyncBlockSource)
+	*p = x
+	return p
+}
+
+func (x SyncBlockSource) String() string {
+	name, valid := SyncBlockSource_name[int32(x)]
 	if valid {
 		return name
 	}
@@ -797,6 +853,89 @@ func (x *WatchStorageStatsRequest) Reset() {
 
 func (*WatchStorageStatsRequest) ProtoMessage() {}
 
+// SyncBlockStoreStatus projects source and convergence mechanics for one mounted block store.
+type SyncBlockStoreStatus struct {
+	unknownFields []byte
+	// BlockStoreId is the mounted block store identifier.
+	BlockStoreId string `protobuf:"bytes,1,opt,name=block_store_id,json=blockStoreId,proto3" json:"blockStoreId,omitempty"`
+	// DirectHitCount counts reads satisfied by demand-driven direct lookup.
+	DirectHitCount uint64 `protobuf:"varint,2,opt,name=direct_hit_count,json=directHitCount,proto3" json:"directHitCount,omitempty"`
+	// CloudHitCount counts reads satisfied by the Cloud lower store.
+	CloudHitCount uint64 `protobuf:"varint,3,opt,name=cloud_hit_count,json=cloudHitCount,proto3" json:"cloudHitCount,omitempty"`
+	// CacheHitCount counts reads satisfied by the local upper cache.
+	CacheHitCount uint64 `protobuf:"varint,4,opt,name=cache_hit_count,json=cacheHitCount,proto3" json:"cacheHitCount,omitempty"`
+	// LastSource is the latest observed source for this block store.
+	LastSource SyncBlockSource `protobuf:"varint,5,opt,name=last_source,json=lastSource,proto3" json:"lastSource,omitempty"`
+	// AcceptedRootInnerSequence is the latest accepted SharedObject root sequence observed for this block store.
+	AcceptedRootInnerSequence uint64 `protobuf:"varint,6,opt,name=accepted_root_inner_sequence,json=acceptedRootInnerSequence,proto3" json:"acceptedRootInnerSequence,omitempty"`
+	// CloudRemoteSequence is the latest Cloud block-store sequence observed locally.
+	CloudRemoteSequence uint64 `protobuf:"varint,7,opt,name=cloud_remote_sequence,json=cloudRemoteSequence,proto3" json:"cloudRemoteSequence,omitempty"`
+	// SharedObjectId identifies the SharedObject that supplied AcceptedRootInnerSequence.
+	SharedObjectId string `protobuf:"bytes,8,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
+}
+
+func (x *SyncBlockStoreStatus) Reset() {
+	*x = SyncBlockStoreStatus{}
+}
+
+func (*SyncBlockStoreStatus) ProtoMessage() {}
+
+func (x *SyncBlockStoreStatus) GetBlockStoreId() string {
+	if x != nil {
+		return x.BlockStoreId
+	}
+	return ""
+}
+
+func (x *SyncBlockStoreStatus) GetDirectHitCount() uint64 {
+	if x != nil {
+		return x.DirectHitCount
+	}
+	return 0
+}
+
+func (x *SyncBlockStoreStatus) GetCloudHitCount() uint64 {
+	if x != nil {
+		return x.CloudHitCount
+	}
+	return 0
+}
+
+func (x *SyncBlockStoreStatus) GetCacheHitCount() uint64 {
+	if x != nil {
+		return x.CacheHitCount
+	}
+	return 0
+}
+
+func (x *SyncBlockStoreStatus) GetLastSource() SyncBlockSource {
+	if x != nil {
+		return x.LastSource
+	}
+	return SyncBlockSource_SyncBlockSource_UNKNOWN
+}
+
+func (x *SyncBlockStoreStatus) GetAcceptedRootInnerSequence() uint64 {
+	if x != nil {
+		return x.AcceptedRootInnerSequence
+	}
+	return 0
+}
+
+func (x *SyncBlockStoreStatus) GetCloudRemoteSequence() uint64 {
+	if x != nil {
+		return x.CloudRemoteSequence
+	}
+	return 0
+}
+
+func (x *SyncBlockStoreStatus) GetSharedObjectId() string {
+	if x != nil {
+		return x.SharedObjectId
+	}
+	return ""
+}
+
 // WatchSyncStatusResponse is the response type for WatchSyncStatus.
 type WatchSyncStatusResponse struct {
 	unknownFields []byte
@@ -908,6 +1047,11 @@ type WatchSyncStatusResponse struct {
 	PackIndexTailFetchBytes uint64 `protobuf:"varint,50,opt,name=pack_index_tail_fetch_bytes,json=packIndexTailFetchBytes,proto3" json:"packIndexTailFetchBytes,omitempty"`
 	// PackIndexTailResponseBytes is the number of bytes returned by index-tail range responses.
 	PackIndexTailResponseBytes uint64 `protobuf:"varint,51,opt,name=pack_index_tail_response_bytes,json=packIndexTailResponseBytes,proto3" json:"packIndexTailResponseBytes,omitempty"`
+	// DirectP2PDisabled is the configured Session-local direct transport policy.
+	// The zero value preserves direct P2P for existing Sessions.
+	DirectP2PDisabled bool `protobuf:"varint,55,opt,name=direct_p2p_disabled,json=directP2pDisabled,proto3" json:"directP2pDisabled,omitempty"`
+	// BlockStores contains owner-observed mechanics keyed by mounted block store.
+	BlockStores []*SyncBlockStoreStatus `protobuf:"bytes,56,rep,name=block_stores,json=blockStores,proto3" json:"blockStores,omitempty"`
 }
 
 func (x *WatchSyncStatusResponse) Reset() {
@@ -1294,6 +1438,20 @@ func (x *WatchSyncStatusResponse) GetPackIndexTailResponseBytes() uint64 {
 	return 0
 }
 
+func (x *WatchSyncStatusResponse) GetDirectP2PDisabled() bool {
+	if x != nil {
+		return x.DirectP2PDisabled
+	}
+	return false
+}
+
+func (x *WatchSyncStatusResponse) GetBlockStores() []*SyncBlockStoreStatus {
+	if x != nil {
+		return x.BlockStores
+	}
+	return nil
+}
+
 // WatchStorageStatsResponse is the response type for WatchStorageStats.
 type WatchStorageStatsResponse struct {
 	unknownFields []byte
@@ -1411,6 +1569,37 @@ func (x *SetLockModeResponse) Reset() {
 }
 
 func (*SetLockModeResponse) ProtoMessage() {}
+
+// SetDirectP2PEnabledRequest updates the durable Session-local direct transport policy.
+type SetDirectP2PEnabledRequest struct {
+	unknownFields []byte
+	// Enabled controls whether direct Session transport mechanics may run.
+	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+}
+
+func (x *SetDirectP2PEnabledRequest) Reset() {
+	*x = SetDirectP2PEnabledRequest{}
+}
+
+func (*SetDirectP2PEnabledRequest) ProtoMessage() {}
+
+func (x *SetDirectP2PEnabledRequest) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+// SetDirectP2PEnabledResponse acknowledges the persisted policy update.
+type SetDirectP2PEnabledResponse struct {
+	unknownFields []byte
+}
+
+func (x *SetDirectP2PEnabledResponse) Reset() {
+	*x = SetDirectP2PEnabledResponse{}
+}
+
+func (*SetDirectP2PEnabledResponse) ProtoMessage() {}
 
 // UnlockSessionRequest is the request type for UnlockSession.
 type UnlockSessionRequest struct {
@@ -2876,6 +3065,29 @@ func (m *WatchStorageStatsRequest) CloneMessageVT() protobuf_go_lite.CloneMessag
 	return m.CloneVT()
 }
 
+func (m *SyncBlockStoreStatus) CloneVT() *SyncBlockStoreStatus {
+	if m == nil {
+		return (*SyncBlockStoreStatus)(nil)
+	}
+	r := new(SyncBlockStoreStatus)
+	r.BlockStoreId = m.BlockStoreId
+	r.DirectHitCount = m.DirectHitCount
+	r.CloudHitCount = m.CloudHitCount
+	r.CacheHitCount = m.CacheHitCount
+	r.LastSource = m.LastSource
+	r.AcceptedRootInnerSequence = m.AcceptedRootInnerSequence
+	r.CloudRemoteSequence = m.CloudRemoteSequence
+	r.SharedObjectId = m.SharedObjectId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SyncBlockStoreStatus) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *WatchSyncStatusResponse) CloneVT() *WatchSyncStatusResponse {
 	if m == nil {
 		return (*WatchSyncStatusResponse)(nil)
@@ -2934,7 +3146,9 @@ func (m *WatchSyncStatusResponse) CloneVT() *WatchSyncStatusResponse {
 	r.PackIndexTailFetchCount = m.PackIndexTailFetchCount
 	r.PackIndexTailFetchBytes = m.PackIndexTailFetchBytes
 	r.PackIndexTailResponseBytes = m.PackIndexTailResponseBytes
+	r.DirectP2PDisabled = m.DirectP2PDisabled
 	r.LastActivityAt = protobuf_go_lite.CloneVTValue(m.LastActivityAt)
+	r.BlockStores = protobuf_go_lite.CloneVTSlice(m.BlockStores)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -3024,6 +3238,37 @@ func (m *SetLockModeResponse) CloneVT() *SetLockModeResponse {
 }
 
 func (m *SetLockModeResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetDirectP2PEnabledRequest) CloneVT() *SetDirectP2PEnabledRequest {
+	if m == nil {
+		return (*SetDirectP2PEnabledRequest)(nil)
+	}
+	r := new(SetDirectP2PEnabledRequest)
+	r.Enabled = m.Enabled
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetDirectP2PEnabledRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetDirectP2PEnabledResponse) CloneVT() *SetDirectP2PEnabledResponse {
+	if m == nil {
+		return (*SetDirectP2PEnabledResponse)(nil)
+	}
+	r := new(SetDirectP2PEnabledResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetDirectP2PEnabledResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -4307,6 +4552,47 @@ func (this *WatchStorageStatsRequest) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *SyncBlockStoreStatus) EqualVT(that *SyncBlockStoreStatus) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.BlockStoreId != that.BlockStoreId {
+		return false
+	}
+	if this.DirectHitCount != that.DirectHitCount {
+		return false
+	}
+	if this.CloudHitCount != that.CloudHitCount {
+		return false
+	}
+	if this.CacheHitCount != that.CacheHitCount {
+		return false
+	}
+	if this.LastSource != that.LastSource {
+		return false
+	}
+	if this.AcceptedRootInnerSequence != that.AcceptedRootInnerSequence {
+		return false
+	}
+	if this.CloudRemoteSequence != that.CloudRemoteSequence {
+		return false
+	}
+	if this.SharedObjectId != that.SharedObjectId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SyncBlockStoreStatus) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SyncBlockStoreStatus)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *WatchSyncStatusResponse) EqualVT(that *WatchSyncStatusResponse) bool {
 	if this == that {
 		return true
@@ -4475,6 +4761,12 @@ func (this *WatchSyncStatusResponse) EqualVT(that *WatchSyncStatusResponse) bool
 	if this.InFlightUploadCount != that.InFlightUploadCount {
 		return false
 	}
+	if this.DirectP2PDisabled != that.DirectP2PDisabled {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.BlockStores, that.BlockStores, func() *SyncBlockStoreStatus { return &SyncBlockStoreStatus{} }) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -4586,6 +4878,43 @@ func (this *SetLockModeResponse) EqualVT(that *SetLockModeResponse) bool {
 
 func (this *SetLockModeResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SetLockModeResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetDirectP2PEnabledRequest) EqualVT(that *SetDirectP2PEnabledRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Enabled != that.Enabled {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetDirectP2PEnabledRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetDirectP2PEnabledRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetDirectP2PEnabledResponse) EqualVT(that *SetDirectP2PEnabledResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetDirectP2PEnabledResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetDirectP2PEnabledResponse)
 	if !ok {
 		return false
 	}
@@ -5887,6 +6216,46 @@ func (x *SyncP2PState) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SyncBlockSource to JSON.
+func (x SyncBlockSource) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SyncBlockSource_name)
+}
+
+// MarshalText marshals the SyncBlockSource to text.
+func (x SyncBlockSource) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SyncBlockSource_name)), nil
+}
+
+// MarshalJSON marshals the SyncBlockSource to JSON.
+func (x SyncBlockSource) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SyncBlockSource from JSON.
+func (x *SyncBlockSource) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SyncBlockSource_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SyncBlockSource enum: %v", err)
+		return
+	}
+	*x = SyncBlockSource(v)
+}
+
+// UnmarshalText unmarshals the SyncBlockSource from text.
+func (x *SyncBlockSource) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SyncBlockSource_value)
+	if err != nil {
+		return err
+	}
+	*x = SyncBlockSource(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SyncBlockSource from JSON.
+func (x *SyncBlockSource) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the PairingStatus to JSON.
 func (x PairingStatus) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteEnum(int32(x), PairingStatus_name)
@@ -6814,6 +7183,104 @@ func (x *WatchStorageStatsRequest) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SyncBlockStoreStatus message to JSON.
+func (x *SyncBlockStoreStatus) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.BlockStoreId != "" || s.HasField("blockStoreId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blockStoreId")
+		s.WriteString(x.BlockStoreId)
+	}
+	if x.DirectHitCount != 0 || s.HasField("directHitCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("directHitCount")
+		s.WriteUint64(x.DirectHitCount)
+	}
+	if x.CloudHitCount != 0 || s.HasField("cloudHitCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cloudHitCount")
+		s.WriteUint64(x.CloudHitCount)
+	}
+	if x.CacheHitCount != 0 || s.HasField("cacheHitCount") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cacheHitCount")
+		s.WriteUint64(x.CacheHitCount)
+	}
+	if x.LastSource != 0 || s.HasField("lastSource") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lastSource")
+		x.LastSource.MarshalProtoJSON(s)
+	}
+	if x.AcceptedRootInnerSequence != 0 || s.HasField("acceptedRootInnerSequence") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("acceptedRootInnerSequence")
+		s.WriteUint64(x.AcceptedRootInnerSequence)
+	}
+	if x.CloudRemoteSequence != 0 || s.HasField("cloudRemoteSequence") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cloudRemoteSequence")
+		s.WriteUint64(x.CloudRemoteSequence)
+	}
+	if x.SharedObjectId != "" || s.HasField("sharedObjectId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sharedObjectId")
+		s.WriteString(x.SharedObjectId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SyncBlockStoreStatus to JSON.
+func (x *SyncBlockStoreStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SyncBlockStoreStatus message from JSON.
+func (x *SyncBlockStoreStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "block_store_id", "blockStoreId":
+			s.AddField("block_store_id")
+			x.BlockStoreId = s.ReadString()
+		case "direct_hit_count", "directHitCount":
+			s.AddField("direct_hit_count")
+			x.DirectHitCount = s.ReadUint64()
+		case "cloud_hit_count", "cloudHitCount":
+			s.AddField("cloud_hit_count")
+			x.CloudHitCount = s.ReadUint64()
+		case "cache_hit_count", "cacheHitCount":
+			s.AddField("cache_hit_count")
+			x.CacheHitCount = s.ReadUint64()
+		case "last_source", "lastSource":
+			s.AddField("last_source")
+			x.LastSource.UnmarshalProtoJSON(s)
+		case "accepted_root_inner_sequence", "acceptedRootInnerSequence":
+			s.AddField("accepted_root_inner_sequence")
+			x.AcceptedRootInnerSequence = s.ReadUint64()
+		case "cloud_remote_sequence", "cloudRemoteSequence":
+			s.AddField("cloud_remote_sequence")
+			x.CloudRemoteSequence = s.ReadUint64()
+		case "shared_object_id", "sharedObjectId":
+			s.AddField("shared_object_id")
+			x.SharedObjectId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SyncBlockStoreStatus from JSON.
+func (x *SyncBlockStoreStatus) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the WatchSyncStatusResponse message to JSON.
 func (x *WatchSyncStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -7092,6 +7559,22 @@ func (x *WatchSyncStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("inFlightUploadCount")
 		s.WriteUint32(x.InFlightUploadCount)
 	}
+	if x.DirectP2PDisabled || s.HasField("directP2pDisabled") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("directP2pDisabled")
+		s.WriteBool(x.DirectP2PDisabled)
+	}
+	if len(x.BlockStores) > 0 || s.HasField("blockStores") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("blockStores")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.BlockStores {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("blockStores"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -7275,6 +7758,27 @@ func (x *WatchSyncStatusResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "in_flight_upload_count", "inFlightUploadCount":
 			s.AddField("in_flight_upload_count")
 			x.InFlightUploadCount = s.ReadUint32()
+		case "direct_p2p_disabled", "directP2pDisabled":
+			s.AddField("direct_p2p_disabled")
+			x.DirectP2PDisabled = s.ReadBool()
+		case "block_stores", "blockStores":
+			s.AddField("block_stores")
+			if s.ReadNil() {
+				x.BlockStores = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.BlockStores = append(x.BlockStores, nil)
+					return
+				}
+				v := &SyncBlockStoreStatus{}
+				v.UnmarshalProtoJSON(s.WithField("block_stores", false))
+				if s.Err() != nil {
+					return
+				}
+				x.BlockStores = append(x.BlockStores, v)
+			})
 		}
 	})
 }
@@ -7499,6 +8003,78 @@ func (x *SetLockModeResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the SetLockModeResponse from JSON.
 func (x *SetLockModeResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetDirectP2PEnabledRequest message to JSON.
+func (x *SetDirectP2PEnabledRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Enabled || s.HasField("enabled") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("enabled")
+		s.WriteBool(x.Enabled)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetDirectP2PEnabledRequest to JSON.
+func (x *SetDirectP2PEnabledRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetDirectP2PEnabledRequest message from JSON.
+func (x *SetDirectP2PEnabledRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "enabled":
+			s.AddField("enabled")
+			x.Enabled = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetDirectP2PEnabledRequest from JSON.
+func (x *SetDirectP2PEnabledRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetDirectP2PEnabledResponse message to JSON.
+func (x *SetDirectP2PEnabledResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetDirectP2PEnabledResponse to JSON.
+func (x *SetDirectP2PEnabledResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetDirectP2PEnabledResponse message from JSON.
+func (x *SetDirectP2PEnabledResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the SetDirectP2PEnabledResponse from JSON.
+func (x *SetDirectP2PEnabledResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -10682,6 +11258,78 @@ func (m *WatchStorageStatsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	return len(dAtA) - i, nil
 }
 
+func (m *SyncBlockStoreStatus) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SyncBlockStoreStatus) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SyncBlockStoreStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.SharedObjectId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SharedObjectId)
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.CloudRemoteSequence != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CloudRemoteSequence))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.AcceptedRootInnerSequence != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AcceptedRootInnerSequence))
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.LastSource != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.LastSource))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.CacheHitCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CacheHitCount))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.CloudHitCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CloudHitCount))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.DirectHitCount != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.DirectHitCount))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.BlockStoreId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.BlockStoreId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WatchSyncStatusResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -10710,6 +11358,27 @@ func (m *WatchSyncStatusResponse) MarshalToSizedBufferVT(dAtA []byte) (int, erro
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.BlockStores) > 0 {
+		for iNdEx := len(m.BlockStores) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.BlockStores[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x3
+			i--
+			dAtA[i] = 0xc2
+		}
+	}
+	if m.DirectP2PDisabled {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DirectP2PDisabled)
+		i--
+		dAtA[i] = 0x3
+		i--
+		dAtA[i] = 0xb8
 	}
 	if m.InFlightUploadCount != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.InFlightUploadCount))
@@ -11249,6 +11918,75 @@ func (m *SetLockModeResponse) MarshalToVT(dAtA []byte) (int, error) {
 }
 
 func (m *SetLockModeResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetDirectP2PEnabledRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetDirectP2PEnabledRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetDirectP2PEnabledRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Enabled {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Enabled)
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetDirectP2PEnabledResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetDirectP2PEnabledResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetDirectP2PEnabledResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m == nil {
 		return 0, nil
 	}
@@ -13646,6 +14384,24 @@ func (m *WatchStorageStatsRequest) SizeVT() (n int) {
 	return n
 }
 
+func (m *SyncBlockStoreStatus) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BlockStoreId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.DirectHitCount)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CloudHitCount)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CacheHitCount)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.LastSource)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.AcceptedRootInnerSequence)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CloudRemoteSequence)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *WatchSyncStatusResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -13709,6 +14465,11 @@ func (m *WatchSyncStatusResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.ActiveUploadBytes)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.ActiveUploadTransferredBytes)
 	n += protobuf_go_lite.SizeVarintNonZero(2, m.InFlightUploadCount)
+	n += protobuf_go_lite.SizeBoolNonZero(2, m.DirectP2PDisabled)
+	for _, e := range m.BlockStores {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(2, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -13761,6 +14522,27 @@ func (m *SetLockModeRequest) SizeVT() (n int) {
 }
 
 func (m *SetLockModeResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetDirectP2PEnabledRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Enabled)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetDirectP2PEnabledResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -14434,6 +15216,10 @@ func (x SyncP2PState) MarshalProtoText() string {
 	return x.String()
 }
 
+func (x SyncBlockSource) MarshalProtoText() string {
+	return x.String()
+}
+
 func (x PairingStatus) MarshalProtoText() string {
 	return x.String()
 }
@@ -14740,6 +15526,48 @@ func (x *WatchStorageStatsRequest) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *SyncBlockStoreStatus) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SyncBlockStoreStatus")
+	if x.BlockStoreId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "block_store_id")
+		protobuf_go_lite.TextWriteString(&sb, x.BlockStoreId)
+	}
+	if x.DirectHitCount != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "direct_hit_count")
+		protobuf_go_lite.TextWriteUint(&sb, x.DirectHitCount)
+	}
+	if x.CloudHitCount != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cloud_hit_count")
+		protobuf_go_lite.TextWriteUint(&sb, x.CloudHitCount)
+	}
+	if x.CacheHitCount != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cache_hit_count")
+		protobuf_go_lite.TextWriteUint(&sb, x.CacheHitCount)
+	}
+	if x.LastSource != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "last_source")
+		protobuf_go_lite.TextWriteStringer(&sb, SyncBlockSource(x.LastSource))
+	}
+	if x.AcceptedRootInnerSequence != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "accepted_root_inner_sequence")
+		protobuf_go_lite.TextWriteUint(&sb, x.AcceptedRootInnerSequence)
+	}
+	if x.CloudRemoteSequence != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cloud_remote_sequence")
+		protobuf_go_lite.TextWriteUint(&sb, x.CloudRemoteSequence)
+	}
+	if x.SharedObjectId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "shared_object_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SharedObjectId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SyncBlockStoreStatus) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *WatchSyncStatusResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchSyncStatusResponse")
@@ -14959,6 +15787,22 @@ func (x *WatchSyncStatusResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "in_flight_upload_count")
 		protobuf_go_lite.TextWriteUint(&sb, x.InFlightUploadCount)
 	}
+	if x.DirectP2PDisabled != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "direct_p2p_disabled")
+		protobuf_go_lite.TextWriteBool(&sb, x.DirectP2PDisabled)
+	}
+	if len(x.BlockStores) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "block_stores")
+		for i, v := range x.BlockStores {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SyncBlockStoreStatus{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -15041,6 +15885,30 @@ func (x *SetLockModeResponse) MarshalProtoText() string {
 }
 
 func (x *SetLockModeResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetDirectP2PEnabledRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetDirectP2PEnabledRequest")
+	if x.Enabled != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "enabled")
+		protobuf_go_lite.TextWriteBool(&sb, x.Enabled)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetDirectP2PEnabledRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetDirectP2PEnabledResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "SetDirectP2PEnabledResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetDirectP2PEnabledResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -16965,6 +17833,125 @@ func (m *WatchStorageStatsRequest) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
+func (m *SyncBlockStoreStatus) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SyncBlockStoreStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SyncBlockStoreStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockStoreId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.BlockStoreId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DirectHitCount", wireType)
+			}
+			m.DirectHitCount = 0
+			m.DirectHitCount, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CloudHitCount", wireType)
+			}
+			m.CloudHitCount = 0
+			m.CloudHitCount, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CacheHitCount", wireType)
+			}
+			m.CacheHitCount = 0
+			m.CacheHitCount, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastSource", wireType)
+			}
+			m.LastSource = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.LastSource = SyncBlockSource(_v)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AcceptedRootInnerSequence", wireType)
+			}
+			m.AcceptedRootInnerSequence = 0
+			m.AcceptedRootInnerSequence, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CloudRemoteSequence", wireType)
+			}
+			m.CloudRemoteSequence = 0
+			m.CloudRemoteSequence, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SharedObjectId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SharedObjectId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -17490,6 +18477,29 @@ func (m *WatchSyncStatusResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 55:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DirectP2PDisabled", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DirectP2PDisabled = bool(v)
+		case 56:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockStores", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.BlockStores = append(m.BlockStores, &SyncBlockStoreStatus{})
+			if err := m.BlockStores[len(m.BlockStores)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -17771,6 +18781,102 @@ func (m *SetLockModeResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: SetLockModeResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetDirectP2PEnabledRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetDirectP2PEnabledRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetDirectP2PEnabledRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Enabled", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Enabled = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetDirectP2PEnabledResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetDirectP2PEnabledResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetDirectP2PEnabledResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:

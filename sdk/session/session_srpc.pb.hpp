@@ -69,6 +69,8 @@ class SRPCSessionResourceServiceClient {
   virtual std::pair<std::unique_ptr<SRPCSessionResourceService_WatchLockStateClient>, starpc::Error> WatchLockState(const s4wave::session::WatchLockStateRequest& in) = 0;
   // SetLockMode
   virtual starpc::Error SetLockMode(const s4wave::session::SetLockModeRequest& in, s4wave::session::SetLockModeResponse* out) = 0;
+  // SetDirectP2PEnabled
+  virtual starpc::Error SetDirectP2PEnabled(const s4wave::session::SetDirectP2PEnabledRequest& in, s4wave::session::SetDirectP2PEnabledResponse* out) = 0;
   // UnlockSession
   virtual starpc::Error UnlockSession(const s4wave::session::UnlockSessionRequest& in, s4wave::session::UnlockSessionResponse* out) = 0;
   // LockSession
@@ -155,6 +157,8 @@ class SRPCSessionResourceServiceClientImpl : public SRPCSessionResourceServiceCl
   virtual std::pair<std::unique_ptr<SRPCSessionResourceService_WatchLockStateClient>, starpc::Error> WatchLockState(const s4wave::session::WatchLockStateRequest& in) override;
   // SetLockMode
   virtual starpc::Error SetLockMode(const s4wave::session::SetLockModeRequest& in, s4wave::session::SetLockModeResponse* out) override;
+  // SetDirectP2PEnabled
+  virtual starpc::Error SetDirectP2PEnabled(const s4wave::session::SetDirectP2PEnabledRequest& in, s4wave::session::SetDirectP2PEnabledResponse* out) override;
   // UnlockSession
   virtual starpc::Error UnlockSession(const s4wave::session::UnlockSessionRequest& in, s4wave::session::UnlockSessionResponse* out) override;
   // LockSession
@@ -247,6 +251,8 @@ class SRPCSessionResourceServiceServer {
   virtual starpc::Error WatchLockState(const s4wave::session::WatchLockStateRequest& req, SRPCSessionResourceService_WatchLockStateStream* strm) = 0;
   // SetLockMode
   virtual starpc::Error SetLockMode(const s4wave::session::SetLockModeRequest& req, s4wave::session::SetLockModeResponse* resp) = 0;
+  // SetDirectP2PEnabled
+  virtual starpc::Error SetDirectP2PEnabled(const s4wave::session::SetDirectP2PEnabledRequest& req, s4wave::session::SetDirectP2PEnabledResponse* resp) = 0;
   // UnlockSession
   virtual starpc::Error UnlockSession(const s4wave::session::UnlockSessionRequest& req, s4wave::session::UnlockSessionResponse* resp) = 0;
   // LockSession

@@ -4,6 +4,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
 	"github.com/aperturerobotics/util/ccontainer"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -11,10 +16,6 @@ import (
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
 )
 
 const testSharedObjectID = "test-shared-object"
