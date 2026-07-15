@@ -12,41 +12,41 @@ import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 export const protobufPackage = 's4wave.vm'
 
 /**
- * VmState is the state of a virtual machine instance.
+ * VmState is the desired state of a virtual machine instance.
  *
  * @generated from enum s4wave.vm.VmState
  */
 export enum VmState {
   /**
-   * VmState_STOPPED means the VM is not running.
+   * VmState_STOPPED means the VM should not be running.
    *
    * @generated from enum value: VmState_STOPPED = 0;
    */
   VmState_STOPPED = 0,
 
   /**
-   * VmState_STARTING means the VM is booting up.
+   * VmState_STARTING is retained as a start-request compatibility value.
    *
    * @generated from enum value: VmState_STARTING = 1;
    */
   VmState_STARTING = 1,
 
   /**
-   * VmState_RUNNING means the VM is running normally.
+   * VmState_RUNNING means the VM should be running.
    *
    * @generated from enum value: VmState_RUNNING = 2;
    */
   VmState_RUNNING = 2,
 
   /**
-   * VmState_STOPPING means the VM is shutting down.
+   * VmState_STOPPING is retained as a stop-request compatibility value.
    *
    * @generated from enum value: VmState_STOPPING = 3;
    */
   VmState_STOPPING = 3,
 
   /**
-   * VmState_ERROR means the VM exited with an error.
+   * VmState_ERROR is reserved for observed runtime failures.
    *
    * @generated from enum value: VmState_ERROR = 4;
    */
@@ -61,6 +61,59 @@ export const VmState_Enum = /* @__PURE__ */ createEnumType(
     [2, 'VmState_RUNNING'],
     [3, 'VmState_STOPPING'],
     [4, 'VmState_ERROR'],
+  ],
+)
+
+/**
+ * V86RuntimeStatus is a status reported by an instanced V86 runtime plugin.
+ *
+ * @generated from enum s4wave.vm.V86RuntimeStatus
+ */
+export enum V86RuntimeStatus {
+  /**
+   * V86RuntimeStatus_UNKNOWN is unset.
+   *
+   * @generated from enum value: V86RuntimeStatus_UNKNOWN = 0;
+   */
+  V86RuntimeStatus_UNKNOWN = 0,
+
+  /**
+   * V86RuntimeStatus_BOOTING means the emulator is loading or booting.
+   *
+   * @generated from enum value: V86RuntimeStatus_BOOTING = 1;
+   */
+  V86RuntimeStatus_BOOTING = 1,
+
+  /**
+   * V86RuntimeStatus_READY means the v86min guest-ready marker was observed.
+   *
+   * @generated from enum value: V86RuntimeStatus_READY = 2;
+   */
+  V86RuntimeStatus_READY = 2,
+
+  /**
+   * V86RuntimeStatus_STOPPED means the emulator stopped cleanly.
+   *
+   * @generated from enum value: V86RuntimeStatus_STOPPED = 3;
+   */
+  V86RuntimeStatus_STOPPED = 3,
+
+  /**
+   * V86RuntimeStatus_ERROR means the emulator reached a terminal failure.
+   *
+   * @generated from enum value: V86RuntimeStatus_ERROR = 4;
+   */
+  V86RuntimeStatus_ERROR = 4,
+}
+
+export const V86RuntimeStatus_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.vm.V86RuntimeStatus',
+  [
+    [0, 'V86RuntimeStatus_UNKNOWN'],
+    [1, 'V86RuntimeStatus_BOOTING'],
+    [2, 'V86RuntimeStatus_READY'],
+    [3, 'V86RuntimeStatus_STOPPED'],
+    [4, 'V86RuntimeStatus_ERROR'],
   ],
 )
 
@@ -185,7 +238,7 @@ export const V86Config: MessageType<V86Config> =
  */
 export interface VmV86 {
   /**
-   * State is the current VM state.
+   * State is the desired VM state. Runtime observations are in observed_state.
    *
    * @generated from field: s4wave.vm.VmState state = 1;
    */
@@ -209,8 +262,19 @@ export interface VmV86 {
    */
   createdAt?: Date
   /**
-   * ErrorMessage is a diagnostic attached when State is VmState_ERROR.
-   * Cleared on any successful transition away from VmState_ERROR.
+   * ErrorMessage is the terminal diagnostic for the observed generation.
+   *
+   * @generated from field: string error_message = 5;
+   */
+  errorMessage?: string
+  /**
+   * ObservedState is the runtime state committed by the VM resource owner.
+   *
+   * @generated from field: s4wave.vm.VmState observed_state = 6;
+   */
+  observedState?: VmState
+  /**
+   * RunGeneration fences runtime reports from prior starts or stops.
    *
    * Links (via graph edges, not proto fields):
    *   v86/image           -> V86Image object (required; supplies default
@@ -222,9 +286,9 @@ export interface VmV86 {
    *   v86/bios-override   -> UnixFS object (optional, per-VM BIOS override)
    *   v86/wasm-override   -> UnixFS object (optional, per-VM emulator override)
    *
-   * @generated from field: string error_message = 5;
+   * @generated from field: uint64 run_generation = 7;
    */
-  errorMessage?: string
+  runGeneration?: bigint
 }
 
 export const VmV86: MessageType<VmV86> = /* @__PURE__ */ createMessageType({
@@ -235,6 +299,8 @@ export const VmV86: MessageType<VmV86> = /* @__PURE__ */ createMessageType({
     { no: 3, name: 'config', kind: 'message', T: () => V86Config },
     { no: 4, name: 'created_at', kind: 'message', T: () => Timestamp },
     { no: 5, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
+    { no: 6, name: 'observed_state', kind: 'enum', T: VmState_Enum },
+    { no: 7, name: 'run_generation', kind: 'scalar', T: ScalarType.UINT64 },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -377,8 +443,9 @@ export const SetV86ConfigOp: MessageType<SetV86ConfigOp> =
   })
 
 /**
- * SetV86StateOp transitions the state of an existing VmV86 object.
- * Valid transitions are enforced by the op's state machine.
+ * SetV86StateOp changes the desired state of an existing VmV86 object.
+ * STARTING and STOPPING are accepted as compatibility aliases for RUNNING
+ * and STOPPED.
  *
  * @generated from message s4wave.vm.SetV86StateOp
  */
@@ -396,8 +463,8 @@ export interface SetV86StateOp {
    */
   state?: VmState
   /**
-   * ErrorMessage is an optional diagnostic stored when transitioning to
-   * VmState_ERROR. Ignored for non-ERROR transitions.
+   * ErrorMessage is an optional diagnostic for legacy callers. Runtime
+   * diagnostics are written by the resource owner.
    *
    * @generated from field: string error_message = 3;
    */
@@ -411,6 +478,88 @@ export const SetV86StateOp: MessageType<SetV86StateOp> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'state', kind: 'enum', T: VmState_Enum },
       { no: 3, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ReportV86RuntimeStatusRequest is a typed status report from an instanced
+ * V86 runtime plugin.
+ *
+ * @generated from message s4wave.vm.ReportV86RuntimeStatusRequest
+ */
+export interface ReportV86RuntimeStatusRequest {
+  /**
+   * ObjectKey identifies the VM resource receiving the report.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * RunGeneration fences reports from prior runtime instances.
+   *
+   * @generated from field: uint64 run_generation = 2;
+   */
+  runGeneration?: bigint
+  /**
+   * Status is the runtime observation being reported.
+   *
+   * @generated from field: s4wave.vm.V86RuntimeStatus status = 3;
+   */
+  status?: V86RuntimeStatus
+  /**
+   * ErrorMessage is required for V86RuntimeStatus_ERROR.
+   *
+   * @generated from field: string error_message = 4;
+   */
+  errorMessage?: string
+}
+
+export const ReportV86RuntimeStatusRequest: MessageType<ReportV86RuntimeStatusRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.vm.ReportV86RuntimeStatusRequest',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'run_generation', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'status', kind: 'enum', T: V86RuntimeStatus_Enum },
+      { no: 4, name: 'error_message', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ReportV86RuntimeStatusResponse acknowledges a runtime status report.
+ *
+ * @generated from message s4wave.vm.ReportV86RuntimeStatusResponse
+ */
+export interface ReportV86RuntimeStatusResponse {
+  /**
+   * Accepted is false when the report does not match the active generation.
+   *
+   * @generated from field: bool accepted = 1;
+   */
+  accepted?: boolean
+  /**
+   * RunGeneration is the route generation used for the report.
+   *
+   * @generated from field: uint64 run_generation = 2;
+   */
+  runGeneration?: bigint
+  /**
+   * Rejection explains why a report was not accepted.
+   *
+   * @generated from field: string rejection = 3;
+   */
+  rejection?: string
+}
+
+export const ReportV86RuntimeStatusResponse: MessageType<ReportV86RuntimeStatusResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.vm.ReportV86RuntimeStatusResponse',
+    fields: [
+      { no: 1, name: 'accepted', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'run_generation', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'rejection', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

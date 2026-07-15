@@ -351,18 +351,20 @@ func TestVmV86TypedObject(t *testing.T) {
 			tx.Release()
 		}
 
-		// STOPPED -> STARTING is the only valid first step.
-		apply(s4wave_vm.VmState_VmState_RUNNING, false)
+		// STARTING is a compatibility alias that stores desired RUNNING.
 		apply(s4wave_vm.VmState_VmState_STARTING, true)
-		// STARTING -> STOPPING rejected; STARTING -> RUNNING accepted.
-		apply(s4wave_vm.VmState_VmState_STOPPING, false)
-		apply(s4wave_vm.VmState_VmState_RUNNING, true)
-		// RUNNING -> STOPPED is explicitly allowed by the state machine.
+		// A repeated RUNNING request is rejected until the observed runtime
+		// state changes or the caller requests STOPPED.
+		apply(s4wave_vm.VmState_VmState_RUNNING, false)
+		apply(s4wave_vm.VmState_VmState_STOPPING, true)
+		// STOPPING is a compatibility alias that stores desired STOPPED;
+		// STOPPED completes the observed stop.
 		apply(s4wave_vm.VmState_VmState_STOPPED, true)
-		// Any -> ERROR.
-		apply(s4wave_vm.VmState_VmState_ERROR, true)
-		// ERROR -> STOPPED clears.
+		// A new STARTING request creates a new run generation.
+		apply(s4wave_vm.VmState_VmState_STARTING, true)
 		apply(s4wave_vm.VmState_VmState_STOPPED, true)
+		// ERROR is an observed-only state and is not a desired-state request.
+		apply(s4wave_vm.VmState_VmState_ERROR, false)
 	})
 
 	t.Run("V86ImageCreateAndSetMetadata", func(t *testing.T) {
@@ -542,9 +544,6 @@ func TestVmV86TypedObject(t *testing.T) {
 			t.Fatal("plugin directive closed while VM is still running")
 		}
 
-		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_RUNNING, "")
-		expectStatusSequence(t, stream, s4wave_process.ExecutionState_ExecutionState_RUNNING)
-
 		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_STOPPED, "")
 		expectStatusSequence(t, stream, s4wave_process.ExecutionState_ExecutionState_STOPPED)
 		if !req.inst.CloseIfUnreferenced(false) {
@@ -619,8 +618,7 @@ func TestVmV86TypedObject(t *testing.T) {
 			s4wave_process.ExecutionState_ExecutionState_ERROR,
 		)
 
-		// Clear back to STOPPED via ERROR -> STOPPED: handler must re-emit STOPPED.
-		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_ERROR, "")
+		// Clear the failed run by requesting STOPPED; the owner re-emits it.
 		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_STOPPED, "")
 		expectStatusSequence(t, stream,
 			s4wave_process.ExecutionState_ExecutionState_STOPPED,

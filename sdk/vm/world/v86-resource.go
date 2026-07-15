@@ -24,6 +24,7 @@ import (
 const defaultVmPluginID = "spacewave-v86"
 
 const v86RuntimeV86fsServicePrefix = "vm/v86-runtime/v86fs/"
+const v86RuntimeStatusServicePrefix = "vm/v86-runtime/status/"
 
 // v86Resource implements PersistentExecutionService for a VmV86 object.
 type v86Resource struct {
@@ -39,36 +40,40 @@ func newV86Resource(le *logrus.Entry, objectKey string, ws world.WorldState, b b
 	return &v86Resource{le: le, objectKey: objectKey, ws: ws, b: b, v86fsServer: v86fsServer}
 }
 
-// Execute implements SRPCPersistentExecutionServiceServer.
+// Execute reconciles desired VM state with the instanced runtime plugin.
 //
-// Reads the requested state from the VmV86 block and reconciles the plugin
-// lifecycle to match:
-//   - STARTING / RUNNING: verify boot mounts resolve, load the plugin
-//     SharedWorker, emit RUNNING. Mount or plugin load failure emits ERROR and
-//     leaves the handler idle until the stored state changes again.
-//   - STOPPED / STOPPING / ERROR: release any held plugin ref, emit the matching
-//     status.
+// It exposes generation-fenced v86fs and runtime-status routes before loading
+// the plugin. The plugin reports BOOTING, READY, ERROR, or STOPPED; only the
+// accepted report committed to World becomes the observed state and process
+// status. Mount or plugin-load failure is committed as ERROR.
 //
 // Reacts to SetV86StateOp by waiting on the object's revision via WaitRev;
-// every transition flips the stored state and wakes the handler.
+// every transition updates desired state and wakes the handler.
 func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_process.SRPCPersistentExecutionService_ExecuteStream) error {
 	ctx := stream.Context()
 
 	var rpRef directive.Reference
 	var v86fsRouteRelease func()
-	defer func() {
+	var statusRouteRelease func()
+	releaseRuntime := func() {
 		if rpRef != nil {
 			rpRef.Release()
+			rpRef = nil
+		}
+		if statusRouteRelease != nil {
+			statusRouteRelease()
+			statusRouteRelease = nil
 		}
 		if v86fsRouteRelease != nil {
 			v86fsRouteRelease()
+			v86fsRouteRelease = nil
 		}
-	}()
+	}
+	defer releaseRuntime()
 
-	// sentinel means "nothing emitted yet"; any real state will differ.
 	lastEmitted := s4wave_process.ExecutionState(-1)
 	emit := func(s s4wave_process.ExecutionState, errMsg string) error {
-		if s == lastEmitted {
+		if s == lastEmitted && errMsg == "" {
 			return nil
 		}
 		if err := stream.Send(&s4wave_process.ExecuteStatus{State: s, Error: errMsg}); err != nil {
@@ -88,14 +93,7 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 			return err
 		}
 		if !found {
-			if rpRef != nil {
-				rpRef.Release()
-				rpRef = nil
-			}
-			if v86fsRouteRelease != nil {
-				v86fsRouteRelease()
-				v86fsRouteRelease = nil
-			}
+			releaseRuntime()
 			if err := emit(s4wave_process.ExecutionState_ExecutionState_STOPPED, ""); err != nil {
 				return err
 			}
@@ -107,7 +105,10 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 			return err
 		}
 
-		storedState := s4wave_vm.VmState_VmState_STOPPED
+		desired := s4wave_vm.VmState_VmState_STOPPED
+		observed := s4wave_vm.VmState_VmState_STOPPED
+		generation := uint64(0)
+		errorMessage := ""
 		runtimePluginID := defaultVmPluginID
 		_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
 			vm, unmarshalErr := block.UnmarshalBlock[*s4wave_vm.VmV86](ctx, bcs, func() block.Block {
@@ -116,96 +117,142 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 			if unmarshalErr != nil {
 				return unmarshalErr
 			}
-			if vm != nil {
-				storedState = vm.GetState()
-				if pluginID := vm.GetConfig().GetRuntimePluginId(); pluginID != "" {
-					runtimePluginID = pluginID
-				}
+			if vm == nil {
+				return errors.New("vm-v86 block missing on object")
+			}
+			desired = vm.GetState()
+			observed = vm.GetObservedState()
+			errorMessage = vm.GetErrorMessage()
+			generation = vm.GetRunGeneration()
+			if pluginID := vm.GetConfig().GetRuntimePluginId(); pluginID != "" {
+				runtimePluginID = pluginID
 			}
 			return nil
 		})
 		if err != nil {
 			return err
 		}
-
-		desired := mapVmState(storedState)
 		switch desired {
-		case s4wave_process.ExecutionState_ExecutionState_STARTING,
-			s4wave_process.ExecutionState_ExecutionState_RUNNING:
-			if rpRef == nil {
-				if err := emit(s4wave_process.ExecutionState_ExecutionState_STARTING, ""); err != nil {
+		case s4wave_vm.VmState_VmState_STARTING:
+			desired = s4wave_vm.VmState_VmState_RUNNING
+		case s4wave_vm.VmState_VmState_STOPPING:
+			desired = s4wave_vm.VmState_VmState_STOPPED
+		case s4wave_vm.VmState_VmState_ERROR:
+			desired = s4wave_vm.VmState_VmState_STOPPED
+			observed = s4wave_vm.VmState_VmState_ERROR
+		}
+		if desired == s4wave_vm.VmState_VmState_RUNNING && generation == 0 {
+			generation, err = r.ensureRuntimeGeneration(ctx)
+			if err != nil {
+				return err
+			}
+		}
+
+		switch desired {
+		case s4wave_vm.VmState_VmState_RUNNING:
+			if observed == s4wave_vm.VmState_VmState_ERROR {
+				releaseRuntime()
+				if err := emit(s4wave_process.ExecutionState_ExecutionState_ERROR, errorMessage); err != nil {
 					return err
 				}
+				break
+			}
+			if observed != s4wave_vm.VmState_VmState_STARTING &&
+				observed != s4wave_vm.VmState_VmState_RUNNING {
+				changed, accepted, err := r.updateObservedState(ctx, generation, s4wave_vm.VmState_VmState_STARTING, "")
+				if err != nil {
+					return err
+				}
+				if !accepted {
+					continue
+				}
+				if changed {
+					continue
+				}
+			}
+			if err := emit(mapVmState(observed), ""); err != nil {
+				return err
+			}
+			if rpRef == nil {
 				if mountErr := r.verifyBootMounts(ctx); mountErr != nil {
-					if err := emit(s4wave_process.ExecutionState_ExecutionState_ERROR, mountErr.Error()); err != nil {
-						return err
-					}
-				} else if homeErr := ensureHomeMount(ctx, r.ws, r.objectKey); homeErr != nil {
-					if err := emit(s4wave_process.ExecutionState_ExecutionState_ERROR, homeErr.Error()); err != nil {
-						return err
-					}
-				} else {
-					_, rev, err = objState.GetRootRef(ctx)
+					_, _, err := r.updateObservedState(ctx, generation, s4wave_vm.VmState_VmState_ERROR, mountErr.Error())
 					if err != nil {
 						return err
 					}
-					newV86fsRouteRelease, routeErr := r.exposeV86fsToRuntimePlugin(ctx, runtimePluginID)
-					if routeErr != nil {
-						if err := emit(s4wave_process.ExecutionState_ExecutionState_ERROR, routeErr.Error()); err != nil {
-							return err
-						}
-						break
+					continue
+				}
+				if homeErr := ensureHomeMount(ctx, r.ws, r.objectKey); homeErr != nil {
+					_, _, err := r.updateObservedState(ctx, generation, s4wave_vm.VmState_VmState_ERROR, homeErr.Error())
+					if err != nil {
+						return err
 					}
-					// returnIfIdle=true so missing plugin hosts surface as a
-					// nil value rather than blocking the handler forever.
-					plugin, _, newRef, loadErr := bldr_plugin.ExLoadPluginInstanced(ctx, r.b, true, runtimePluginID, r.objectKey, nil)
-					if loadErr != nil || plugin == nil {
-						if newRef != nil {
-							newRef.Release()
-						}
-						newV86fsRouteRelease()
-						errMsg := "v86 runtime plugin unavailable"
-						if loadErr != nil {
-							errMsg = loadErr.Error()
-						}
-						if err := emit(s4wave_process.ExecutionState_ExecutionState_ERROR, errMsg); err != nil {
-							return err
-						}
-					} else {
-						rpRef = newRef
-						v86fsRouteRelease = newV86fsRouteRelease
-						loadedState := desired
-						if storedState == s4wave_vm.VmState_VmState_STARTING {
-							loadedState = s4wave_process.ExecutionState_ExecutionState_STARTING
-						}
-						if err := emit(loadedState, ""); err != nil {
-							rpRef.Release()
-							rpRef = nil
-							return err
-						}
+					continue
+				}
+				newV86fsRouteRelease, routeErr := r.exposeV86fsToRuntimePlugin(ctx, runtimePluginID)
+				if routeErr != nil {
+					_, _, err := r.updateObservedState(ctx, generation, s4wave_vm.VmState_VmState_ERROR, routeErr.Error())
+					if err != nil {
+						return err
 					}
+					continue
 				}
-			} else {
-				loadedState := desired
-				if storedState == s4wave_vm.VmState_VmState_STARTING {
-					loadedState = s4wave_process.ExecutionState_ExecutionState_STARTING
+				newStatusRouteRelease, statusErr := r.exposeV86RuntimeStatus(ctx, runtimePluginID, generation)
+				if statusErr != nil {
+					newV86fsRouteRelease()
+					_, _, err := r.updateObservedState(ctx, generation, s4wave_vm.VmState_VmState_ERROR, statusErr.Error())
+					if err != nil {
+						return err
+					}
+					continue
 				}
-				if err := emit(loadedState, ""); err != nil {
-					return err
+
+				plugin, _, newRef, loadErr := bldr_plugin.ExLoadPluginInstanced(ctx, r.b, true, runtimePluginID, r.objectKey, nil)
+				if loadErr != nil || plugin == nil || newRef == nil {
+					if newRef != nil {
+						newRef.Release()
+					}
+					newStatusRouteRelease()
+					newV86fsRouteRelease()
+					errMsg := "v86 runtime plugin unavailable"
+					if loadErr != nil {
+						errMsg = loadErr.Error()
+					}
+					_, _, err := r.updateObservedState(ctx, generation, s4wave_vm.VmState_VmState_ERROR, errMsg)
+					if err != nil {
+						return err
+					}
+					continue
 				}
+				rpRef = newRef
+				v86fsRouteRelease = newV86fsRouteRelease
+				statusRouteRelease = newStatusRouteRelease
 			}
-		default:
-			if rpRef != nil {
-				rpRef.Release()
-				rpRef = nil
-			}
-			if v86fsRouteRelease != nil {
-				v86fsRouteRelease()
-				v86fsRouteRelease = nil
-			}
-			if err := emit(desired, ""); err != nil {
+			if err := emit(mapVmState(observed), ""); err != nil {
 				return err
 			}
+		case s4wave_vm.VmState_VmState_STOPPED:
+			releaseRuntime()
+			if observed != s4wave_vm.VmState_VmState_STOPPED {
+				changed, accepted, err := r.updateObservedState(ctx, generation, s4wave_vm.VmState_VmState_STOPPED, "")
+				if err != nil {
+					return err
+				}
+				if !accepted {
+					continue
+				}
+				if changed {
+					continue
+				}
+			}
+			if err := emit(s4wave_process.ExecutionState_ExecutionState_STOPPED, ""); err != nil {
+				return err
+			}
+		default:
+			_, _, err := r.updateObservedState(ctx, generation, s4wave_vm.VmState_VmState_ERROR, "invalid desired v86 state")
+			if err != nil {
+				return err
+			}
+			continue
 		}
 
 		if _, err := objState.WaitRev(ctx, rev+1, false); err != nil {
@@ -213,19 +260,222 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 				return ctx.Err()
 			}
 			if errors.Is(err, world.ErrObjectNotFound) {
-				if rpRef != nil {
-					rpRef.Release()
-					rpRef = nil
-				}
-				if v86fsRouteRelease != nil {
-					v86fsRouteRelease()
-					v86fsRouteRelease = nil
-				}
+				releaseRuntime()
 				return nil
 			}
 			return err
 		}
 	}
+}
+
+func (r *v86Resource) ensureRuntimeGeneration(ctx context.Context) (uint64, error) {
+	objState, found, err := r.ws.GetObject(ctx, r.objectKey)
+	if err != nil {
+		return 0, err
+	}
+	if !found {
+		return 0, world.ErrObjectNotFound
+	}
+
+	generation := uint64(0)
+	_, _, err = world.AccessObjectState(ctx, objState, true, func(bcs *block.Cursor) error {
+		vm, unmarshalErr := block.UnmarshalBlock[*s4wave_vm.VmV86](ctx, bcs, func() block.Block {
+			return &s4wave_vm.VmV86{}
+		})
+		if unmarshalErr != nil {
+			return unmarshalErr
+		}
+		if vm == nil {
+			return errors.New("vm-v86 block missing on object")
+		}
+		generation = vm.GetRunGeneration()
+		if generation == 0 {
+			generation = 1
+			vm.RunGeneration = generation
+			bcs.SetBlock(vm, true)
+		}
+		return nil
+	})
+	return generation, err
+}
+
+type v86RuntimeStatusServer struct {
+	resource   *v86Resource
+	generation uint64
+}
+
+func (s *v86RuntimeStatusServer) ReportStatus(
+	ctx context.Context,
+	req *s4wave_vm.ReportV86RuntimeStatusRequest,
+) (*s4wave_vm.ReportV86RuntimeStatusResponse, error) {
+	return s.resource.applyRuntimeStatus(ctx, s.generation, req)
+}
+
+func (r *v86Resource) updateObservedState(
+	ctx context.Context,
+	generation uint64,
+	state s4wave_vm.VmState,
+	errorMessage string,
+) (changed bool, accepted bool, err error) {
+	objState, found, err := r.ws.GetObject(ctx, r.objectKey)
+	if err != nil {
+		return false, false, err
+	}
+	if !found {
+		return false, false, world.ErrObjectNotFound
+	}
+
+	_, _, err = world.AccessObjectState(ctx, objState, true, func(bcs *block.Cursor) error {
+		vm, unmarshalErr := block.UnmarshalBlock[*s4wave_vm.VmV86](ctx, bcs, func() block.Block {
+			return &s4wave_vm.VmV86{}
+		})
+		if unmarshalErr != nil {
+			return unmarshalErr
+		}
+		if vm == nil || vm.GetRunGeneration() != generation {
+			return nil
+		}
+		accepted = true
+		if vm.GetObservedState() == state && vm.GetErrorMessage() == errorMessage {
+			return nil
+		}
+		vm.ObservedState = state
+		if state == s4wave_vm.VmState_VmState_ERROR {
+			vm.ErrorMessage = errorMessage
+		} else {
+			vm.ErrorMessage = ""
+		}
+		bcs.SetBlock(vm, true)
+		changed = true
+		return nil
+	})
+	return changed, accepted, err
+}
+
+func (r *v86Resource) applyRuntimeStatus(
+	ctx context.Context,
+	generation uint64,
+	req *s4wave_vm.ReportV86RuntimeStatusRequest,
+) (*s4wave_vm.ReportV86RuntimeStatusResponse, error) {
+	resp := &s4wave_vm.ReportV86RuntimeStatusResponse{RunGeneration: generation}
+	reject := func(message string) (*s4wave_vm.ReportV86RuntimeStatusResponse, error) {
+		resp.Rejection = message
+		return resp, nil
+	}
+	if req == nil || req.GetObjectKey() != r.objectKey {
+		return reject("runtime status object key does not match resource")
+	}
+	if req.GetRunGeneration() == 0 {
+		if req.GetStatus() != s4wave_vm.V86RuntimeStatus_V86RuntimeStatus_BOOTING {
+			return reject("runtime status generation is required")
+		}
+	} else if req.GetRunGeneration() != generation {
+		return reject("stale runtime status generation")
+	}
+
+	objState, found, err := r.ws.GetObject(ctx, r.objectKey)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return reject("vm object is gone")
+	}
+	var desired s4wave_vm.VmState
+	var observed s4wave_vm.VmState
+	var storedGeneration uint64
+	_, _, err = world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
+		vm, unmarshalErr := block.UnmarshalBlock[*s4wave_vm.VmV86](ctx, bcs, func() block.Block {
+			return &s4wave_vm.VmV86{}
+		})
+		if unmarshalErr != nil {
+			return unmarshalErr
+		}
+		if vm == nil {
+			return errors.New("vm-v86 block missing on object")
+		}
+		desired = vm.GetState()
+		observed = vm.GetObservedState()
+		storedGeneration = vm.GetRunGeneration()
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if storedGeneration != generation {
+		return reject("stale runtime status generation")
+	}
+	if req.GetRunGeneration() == 0 && observed != s4wave_vm.VmState_VmState_STARTING {
+		return reject("bootstrap runtime status is not for a starting generation")
+	}
+	if desired != s4wave_vm.VmState_VmState_RUNNING &&
+		req.GetStatus() != s4wave_vm.V86RuntimeStatus_V86RuntimeStatus_STOPPED {
+		return reject("runtime status is not valid for the desired state")
+	}
+
+	var state s4wave_vm.VmState
+	errorMessage := ""
+	switch req.GetStatus() {
+	case s4wave_vm.V86RuntimeStatus_V86RuntimeStatus_BOOTING:
+		state = s4wave_vm.VmState_VmState_STARTING
+	case s4wave_vm.V86RuntimeStatus_V86RuntimeStatus_READY:
+		state = s4wave_vm.VmState_VmState_RUNNING
+	case s4wave_vm.V86RuntimeStatus_V86RuntimeStatus_STOPPED:
+		state = s4wave_vm.VmState_VmState_STOPPED
+	case s4wave_vm.V86RuntimeStatus_V86RuntimeStatus_ERROR:
+		state = s4wave_vm.VmState_VmState_ERROR
+		errorMessage = req.GetErrorMessage()
+		if errorMessage == "" {
+			errorMessage = "v86 runtime reported an error"
+		}
+	default:
+		return reject("unknown runtime status")
+	}
+	_, accepted, err := r.updateObservedState(ctx, generation, state, errorMessage)
+	if err != nil {
+		return nil, err
+	}
+	if !accepted {
+		return reject("stale runtime status generation")
+	}
+	resp.Accepted = true
+	return resp, nil
+}
+
+func (r *v86Resource) exposeV86RuntimeStatus(
+	ctx context.Context,
+	pluginID string,
+	generation uint64,
+) (func(), error) {
+	servicePrefix := v86RuntimeStatusServicePrefix + r.objectKey + "/"
+	mux := srpc.NewMux(nil)
+	if err := s4wave_vm.SRPCRegisterV86RuntimeStatusService(
+		mux,
+		&v86RuntimeStatusServer{resource: r, generation: generation},
+	); err != nil {
+		return nil, err
+	}
+	pluginServerID := bldr_plugin.PluginServerID(pluginID, "")
+	workerServerID := "web-worker/" + bldr_plugin.PluginServerID(pluginID, r.objectKey)
+	rpcServiceCtrl := bifrost_rpc.NewRpcServiceController(
+		controller.NewInfo(
+			"sdk/vm/world/v86/"+r.objectKey+"/runtime-status-route",
+			controller.MustParseVersion("0.0.1"),
+			"runtime status route for VmV86 runtime plugin",
+		),
+		func(ctx context.Context, released func()) (srpc.Invoker, func(), error) {
+			return v86fsRuntimeRouteInvoker{le: r.le, inv: mux}, nil, nil
+		},
+		[]string{servicePrefix},
+		true,
+		nil,
+		nil,
+		regexp.MustCompile("^(?:"+regexp.QuoteMeta(pluginServerID)+"|"+regexp.QuoteMeta(workerServerID)+")$"),
+	)
+	release, err := r.b.AddController(ctx, rpcServiceCtrl, nil)
+	if err != nil {
+		return nil, err
+	}
+	return release, nil
 }
 
 func (r *v86Resource) exposeV86fsToRuntimePlugin(ctx context.Context, pluginID string) (func(), error) {

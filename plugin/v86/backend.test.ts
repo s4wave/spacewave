@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { V86RuntimeStatus } from '@s4wave/sdk/vm/v86.pb.js'
 
 const h = vi.hoisted(() => ({
   buildPluginOpenStream: vi.fn(),
@@ -14,6 +15,10 @@ const h = vi.hoisted(() => ({
   }>,
   v86BootWaiters: [] as Array<() => void>,
   serialOutputListener: undefined as ((byte: number) => void) | undefined,
+  runtimeStatusReports: [] as Array<{
+    service: string
+    request: Record<string, unknown>
+  }>,
   broadcastChannels: [] as Array<{
     name: string
     messages: unknown[]
@@ -123,6 +128,25 @@ vi.mock('./v86fs-bridge.js', () => ({
     return bridge
   }),
 }))
+vi.mock('@s4wave/sdk/vm/v86_srpc.pb.js', () => ({
+  V86RuntimeStatusServiceClient: class {
+    private readonly service: string
+
+    constructor(_client: unknown, options?: { service?: string }) {
+      this.service = options?.service ?? ''
+    }
+
+    ReportStatus(request: Record<string, unknown>) {
+      h.runtimeStatusReports.push({ service: this.service, request })
+      return Promise.resolve({
+        accepted: true,
+        runGeneration:
+          request.runGeneration === 0n ? 17n : request.runGeneration,
+      })
+    }
+  },
+  V86RuntimeStatusServiceServiceName: 's4wave.vm.V86RuntimeStatusService',
+}))
 
 vi.mock('@aptre/v86', () => ({
   V86: class {
@@ -225,6 +249,7 @@ describe('v86 backend registration', () => {
     h.v86Instances.length = 0
     h.v86BootWaiters.length = 0
     h.serialOutputListener = undefined
+    h.runtimeStatusReports.length = 0
     h.broadcastChannels.length = 0
     h.v86fsBridges.length = 0
     h.retainedRefs.length = 0
@@ -271,6 +296,20 @@ describe('v86 backend registration', () => {
         autostart: true,
       }),
     )
+    for (const byte of 'login: '.split('').map((char) => char.charCodeAt(0))) {
+      h.serialOutputListener?.(byte)
+    }
+    await vi.waitFor(() => {
+      expect(h.runtimeStatusReports).toHaveLength(2)
+    })
+    expect(h.runtimeStatusReports.map(({ request }) => request.status)).toEqual(
+      [
+        V86RuntimeStatus.V86RuntimeStatus_BOOTING,
+        V86RuntimeStatus.V86RuntimeStatus_READY,
+      ],
+    )
+    expect(h.v86fsBridges[0]?.close).not.toHaveBeenCalled()
+    h.broadcastChannels[0]?.messages.splice(0)
 
     const channel = h.broadcastChannels[0]
     expect(channel?.name).toBe('v86-serial-vm/v86/test')
@@ -281,6 +320,9 @@ describe('v86 backend registration', () => {
 
     abort.abort()
     await running
+    expect(h.runtimeStatusReports.at(-1)?.request.status).toBe(
+      V86RuntimeStatus.V86RuntimeStatus_STOPPED,
+    )
 
     expect(channel?.close).toHaveBeenCalledTimes(1)
     expect(h.v86Instances[0]?.stop).toHaveBeenCalledTimes(1)
@@ -288,6 +330,26 @@ describe('v86 backend registration', () => {
     expect(h.v86fsBridges[0]?.close).toHaveBeenCalledTimes(1)
     expect(h.retainedRefs[0]?.ref[Symbol.dispose]).toHaveBeenCalledTimes(1)
     expect(h.rootRef[Symbol.dispose]).toHaveBeenCalledTimes(1)
+  })
+  it('stops startup when the runtime is aborted before guest readiness', async () => {
+    vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
+    const abort = new AbortController()
+    const running = main(
+      buildApi('spacewave-v86', 'vm/v86/test') as never,
+      abort.signal,
+    )
+    await waitForV86Boot()
+    abort.abort()
+    await running
+
+    expect(h.v86Instances[0]?.stop).toHaveBeenCalledTimes(1)
+    expect(h.v86Instances[0]?.destroy).toHaveBeenCalledTimes(1)
+    expect(h.runtimeStatusReports.map(({ request }) => request.status)).toEqual(
+      [
+        V86RuntimeStatus.V86RuntimeStatus_BOOTING,
+        V86RuntimeStatus.V86RuntimeStatus_STOPPED,
+      ],
+    )
   })
 
   it('propagates runtime boot failures after cleaning up the V86 bridge', async () => {
@@ -309,6 +371,12 @@ describe('v86 backend registration', () => {
     expect(errorSpy).toHaveBeenCalledWith(
       '[spacewave-v86] runtime failed:',
       'spacewave-v86 browser runner requires BroadcastChannel for the viewer serial bridge',
+    )
+    expect(h.runtimeStatusReports.map(({ request }) => request.status)).toEqual(
+      [
+        V86RuntimeStatus.V86RuntimeStatus_BOOTING,
+        V86RuntimeStatus.V86RuntimeStatus_ERROR,
+      ],
     )
   })
 

@@ -2,6 +2,7 @@ package world_test
 
 import (
 	"context"
+	"maps"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -308,9 +309,7 @@ func (txs *staleRetryTx) Commit(ctx context.Context) error {
 		txs.engine.staleCommit--
 		return coord.ErrStaleGeneration
 	}
-	for key, ref := range txs.pending {
-		txs.engine.objects[key] = ref
-	}
+	maps.Copy(txs.engine.objects, txs.pending)
 	return nil
 }
 

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "eddeb9b10f977108ab712fd8ae7fbf13d82d668656b3317eea3d7833661182b5",
+  "protocFlagsHash": "7021ea09921f76676813dbb3385388fadb471498c06cf5b670b83b531f65083f",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.15.0,starpc=v0.49.18,protobuf-es-lite=1.1.1",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -4561,7 +4561,7 @@
       "protoFiles": ["sdk/viewer/registry/registry.proto"]
     },
     "github.com/s4wave/spacewave/sdk/vm": {
-      "hash": "23d01faadf18cebb4471cc9840ef8deb442ab2e923351bac8485fd18c6f53cfa",
+      "hash": "9e685d76405e22c4670ed34371cc75c70540afd5c34dece9dc2940f8402147f7",
       "generatedFiles": [
         "sdk/vm/v86-wizard.pb.cc",
         "sdk/vm/v86-wizard.pb.go",
@@ -4577,7 +4577,12 @@
         "sdk/vm/v86.pb.go",
         "sdk/vm/v86.pb.h",
         "sdk/vm/v86.pb.rs",
-        "sdk/vm/v86.pb.ts"
+        "sdk/vm/v86.pb.ts",
+        "sdk/vm/v86_srpc.pb.cpp",
+        "sdk/vm/v86_srpc.pb.go",
+        "sdk/vm/v86_srpc.pb.hpp",
+        "sdk/vm/v86_srpc.pb.rs",
+        "sdk/vm/v86_srpc.pb.ts"
       ],
       "protoFiles": ["sdk/vm/v86-wizard.proto", "sdk/vm/v86.proto"]
     },

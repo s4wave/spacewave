@@ -127,7 +127,13 @@ describe('browser V86 runner contract', () => {
     )
     expect(runtime.serialChannelName).toBe('v86-serial-vm/v86/test')
 
+    for (const byte of 'login: '.split('').map((char) => char.charCodeAt(0))) {
+      h.serialOutputListener?.(byte)
+    }
+    await runtime.ready
+
     const channel = h.broadcastChannels[0]
+    channel?.messages.splice(0)
     h.serialOutputListener?.(65)
     expect(channel?.messages).toEqual([{ dir: 'out', byte: 65 }])
     channel?.onmessage?.({ data: { dir: 'in', text: 'help\n' } })
@@ -138,6 +144,26 @@ describe('browser V86 runner contract', () => {
     expect(channel?.close).toHaveBeenCalledTimes(1)
     expect(h.instances[0]?.stop).toHaveBeenCalledTimes(1)
     expect(h.instances[0]?.destroy).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects readiness when the guest reaches a terminal boot failure', async () => {
+    vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
+    const runtime = await startBrowserV86Runtime(
+      {
+        assets: bootAssets(),
+        instanceKey: 'vm/v86/test',
+        v86fsAdapter: {} as never,
+      },
+      () => Promise.resolve({ V86: FakeV86 }),
+    )
+
+    for (const byte of 'kernel panic'
+      .split('')
+      .map((char) => char.charCodeAt(0))) {
+      h.serialOutputListener?.(byte)
+    }
+    await expect(runtime.ready).rejects.toThrow('v86min guest boot failed')
+    runtime.stop()
   })
 
   it('pre-grows the imported v86 wasm memory before instantiation', async () => {
@@ -162,9 +188,7 @@ describe('browser V86 runner contract', () => {
 
     await wasmFn({ env: { memory } })
 
-    expect(memory.buffer.byteLength).toBeGreaterThanOrEqual(
-      274 * 1024 * 1024,
-    )
+    expect(memory.buffer.byteLength).toBeGreaterThanOrEqual(274 * 1024 * 1024)
     expect(instantiate).toHaveBeenCalledWith(bootAssets().wasm.buffer, {
       env: { memory },
     })

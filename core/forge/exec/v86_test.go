@@ -143,8 +143,15 @@ func TestV86ExecuteSetsStartingAndStreamsLogs(t *testing.T) {
 	if execFake.stateAtExecute != s4wave_vm.VmState_VmState_STARTING {
 		t.Fatalf("state at service Execute = %s, want STARTING", execFake.stateAtExecute.String())
 	}
-	if got := readTestV86State(t, ctx, tb.WorldState, vmKey); got != s4wave_vm.VmState_VmState_STARTING {
-		t.Fatalf("stored state after Execute = %s, want STARTING", got.String())
+	if got := readTestV86ObservedState(t, ctx, tb.WorldState, vmKey); got != s4wave_vm.VmState_VmState_STARTING {
+		t.Fatalf("stored observed state after Execute = %s, want STARTING", got.String())
+	}
+	desired, _, err := readV86States(ctx, tb.WorldState, vmKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if desired != s4wave_vm.VmState_VmState_RUNNING {
+		t.Fatalf("stored desired state after Execute = %s, want RUNNING", desired.String())
 	}
 	wantStates := []s4wave_process.ExecutionState{
 		s4wave_process.ExecutionState_ExecutionState_STARTING,
@@ -186,11 +193,12 @@ func (f *v86PersistentExecutionServiceFake) Execute(
 		defer close(f.done)
 	}
 	f.called = true
-	state, err := readV86State(stream.Context(), f.ws, f.objectKey)
+	_, observed, err := readV86States(stream.Context(), f.ws, f.objectKey)
 	if err != nil {
 		return err
 	}
-	f.stateAtExecute = state
+	f.stateAtExecute = observed
+
 	for _, state := range f.states {
 		f.sentStates = append(f.sentStates, state)
 		if err := stream.Send(&s4wave_process.ExecuteStatus{State: state}); err != nil {
@@ -221,25 +229,25 @@ func createTestV86VM(t *testing.T, ctx context.Context, ws world.WorldState, obj
 	}
 }
 
-func readTestV86State(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) s4wave_vm.VmState {
+func readTestV86ObservedState(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) s4wave_vm.VmState {
 	t.Helper()
-	state, err := readV86State(ctx, ws, objectKey)
+	_, observed, err := readV86States(ctx, ws, objectKey)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return state
+	return observed
 }
 
-func readV86State(ctx context.Context, ws world.WorldState, objectKey string) (s4wave_vm.VmState, error) {
+func readV86States(ctx context.Context, ws world.WorldState, objectKey string) (s4wave_vm.VmState, s4wave_vm.VmState, error) {
 	obj, found, err := ws.GetObject(ctx, objectKey)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	if !found {
-		return 0, errors.Errorf("VM %q not found", objectKey)
+		return 0, 0, errors.Errorf("VM %q not found", objectKey)
 	}
 
-	var state s4wave_vm.VmState
+	var desired, observed s4wave_vm.VmState
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		vm, err := block.UnmarshalBlock[*s4wave_vm.VmV86](ctx, bcs, func() block.Block {
 			return &s4wave_vm.VmV86{}
@@ -250,11 +258,12 @@ func readV86State(ctx context.Context, ws world.WorldState, objectKey string) (s
 		if vm == nil {
 			return errors.Errorf("VM %q block missing", objectKey)
 		}
-		state = vm.GetState()
+		desired = vm.GetState()
+		observed = vm.GetObservedState()
 		return nil
 	})
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
-	return state, nil
+	return desired, observed, nil
 }

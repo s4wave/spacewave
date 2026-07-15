@@ -91,6 +91,67 @@ struct SetV86StateOpDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SetV86StateOpDefaultTypeInternal _SetV86StateOp_default_instance_;
 
+inline constexpr ReportV86RuntimeStatusResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        rejection_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        run_generation_{::uint64_t{0u}},
+        accepted_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ReportV86RuntimeStatusResponse::ReportV86RuntimeStatusResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ReportV86RuntimeStatusResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ReportV86RuntimeStatusResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ReportV86RuntimeStatusResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ReportV86RuntimeStatusResponseDefaultTypeInternal() {}
+  union {
+    ReportV86RuntimeStatusResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReportV86RuntimeStatusResponseDefaultTypeInternal _ReportV86RuntimeStatusResponse_default_instance_;
+
+inline constexpr ReportV86RuntimeStatusRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        error_message_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        run_generation_{::uint64_t{0u}},
+        status_{static_cast< ::s4wave::vm::V86RuntimeStatus >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ReportV86RuntimeStatusRequest::ReportV86RuntimeStatusRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ReportV86RuntimeStatusRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ReportV86RuntimeStatusRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ReportV86RuntimeStatusRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ReportV86RuntimeStatusRequestDefaultTypeInternal() {}
+  union {
+    ReportV86RuntimeStatusRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReportV86RuntimeStatusRequestDefaultTypeInternal _ReportV86RuntimeStatusRequest_default_instance_;
+
 inline constexpr V86Image::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -181,7 +242,9 @@ inline constexpr VmV86::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         config_{nullptr},
         created_at_{nullptr},
-        state_{static_cast< ::s4wave::vm::VmState >(0)} {}
+        state_{static_cast< ::s4wave::vm::VmState >(0)},
+        observed_state_{static_cast< ::s4wave::vm::VmState >(0)},
+        run_generation_{::uint64_t{0u}} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR VmV86::VmV86(::_pbi::ConstantInitialized)
@@ -337,7 +400,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace vm
 }  // namespace s4wave
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto[1];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto[2];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto = nullptr;
 const ::uint32_t
@@ -371,17 +434,21 @@ const ::uint32_t
         2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmV86, _impl_._has_bits_),
-        8, // hasbit index offset
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmV86, _impl_.state_),
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmV86, _impl_.name_),
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmV86, _impl_.config_),
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmV86, _impl_.created_at_),
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmV86, _impl_.error_message_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmV86, _impl_.observed_state_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::VmV86, _impl_.run_generation_),
         4,
         0,
         2,
         3,
         1,
+        5,
+        6,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::CreateVmV86Op, _impl_._has_bits_),
         12, // hasbit index offset
@@ -419,6 +486,26 @@ const ::uint32_t
         0,
         2,
         1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::ReportV86RuntimeStatusRequest, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::ReportV86RuntimeStatusRequest, _impl_.object_key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::ReportV86RuntimeStatusRequest, _impl_.run_generation_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::ReportV86RuntimeStatusRequest, _impl_.status_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::ReportV86RuntimeStatusRequest, _impl_.error_message_),
+        0,
+        2,
+        3,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::ReportV86RuntimeStatusResponse, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::ReportV86RuntimeStatusResponse, _impl_.accepted_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::ReportV86RuntimeStatusResponse, _impl_.run_generation_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::vm::ReportV86RuntimeStatusResponse, _impl_.rejection_),
+        2,
+        1,
+        0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::vm::V86Image, _impl_._has_bits_),
         11, // hasbit index offset
@@ -461,12 +548,14 @@ static const ::_pbi::MigrationSchema
         {0, sizeof(::s4wave::vm::V86Config)},
         {17, sizeof(::s4wave::vm::VmMount)},
         {26, sizeof(::s4wave::vm::VmV86)},
-        {39, sizeof(::s4wave::vm::CreateVmV86Op)},
-        {60, sizeof(::s4wave::vm::SetV86ConfigOp)},
-        {67, sizeof(::s4wave::vm::SetV86StateOp)},
-        {76, sizeof(::s4wave::vm::V86Image)},
-        {95, sizeof(::s4wave::vm::CreateV86ImageOp)},
-        {104, sizeof(::s4wave::vm::SetV86ImageMetadataOp)},
+        {43, sizeof(::s4wave::vm::CreateVmV86Op)},
+        {64, sizeof(::s4wave::vm::SetV86ConfigOp)},
+        {71, sizeof(::s4wave::vm::SetV86StateOp)},
+        {80, sizeof(::s4wave::vm::ReportV86RuntimeStatusRequest)},
+        {91, sizeof(::s4wave::vm::ReportV86RuntimeStatusResponse)},
+        {100, sizeof(::s4wave::vm::V86Image)},
+        {119, sizeof(::s4wave::vm::CreateV86ImageOp)},
+        {128, sizeof(::s4wave::vm::SetV86ImageMetadataOp)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::vm::_V86Config_default_instance_._instance,
@@ -475,6 +564,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::vm::_CreateVmV86Op_default_instance_._instance,
     &::s4wave::vm::_SetV86ConfigOp_default_instance_._instance,
     &::s4wave::vm::_SetV86StateOp_default_instance_._instance,
+    &::s4wave::vm::_ReportV86RuntimeStatusRequest_default_instance_._instance,
+    &::s4wave::vm::_ReportV86RuntimeStatusResponse_default_instance_._instance,
     &::s4wave::vm::_V86Image_default_instance_._instance,
     &::s4wave::vm::_CreateV86ImageOp_default_instance_._instance,
     &::s4wave::vm::_SetV86ImageMetadataOp_default_instance_._instance,
@@ -489,37 +580,52 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fv
     "rgs\030\005 \001(\t\022\"\n\006mounts\030\006 \003(\0132\022.s4wave.vm.Vm"
     "Mount\022\031\n\021runtime_plugin_id\030\007 \001(\t\"=\n\007VmMo"
     "unt\022\014\n\004path\030\001 \001(\t\022\022\n\nobject_key\030\002 \001(\t\022\020\n"
-    "\010writable\030\003 \001(\010\"\245\001\n\005VmV86\022!\n\005state\030\001 \001(\016"
+    "\010writable\030\003 \001(\010\"\351\001\n\005VmV86\022!\n\005state\030\001 \001(\016"
     "2\022.s4wave.vm.VmState\022\014\n\004name\030\002 \001(\t\022$\n\006co"
     "nfig\030\003 \001(\0132\024.s4wave.vm.V86Config\022.\n\ncrea"
     "ted_at\030\004 \001(\0132\032.google.protobuf.Timestamp"
-    "\022\025\n\rerror_message\030\005 \001(\t\"\254\002\n\rCreateVmV86O"
-    "p\022\022\n\nobject_key\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022$\n\006c"
-    "onfig\030\003 \001(\0132\024.s4wave.vm.V86Config\022-\n\ttim"
-    "estamp\030\004 \001(\0132\032.google.protobuf.Timestamp"
-    "\022\030\n\020image_object_key\030\005 \001(\t\022\"\n\032kernel_ove"
-    "rride_object_key\030\006 \001(\t\022\"\n\032rootfs_overrid"
-    "e_object_key\030\007 \001(\t\022 \n\030bios_override_obje"
-    "ct_key\030\010 \001(\t\022 \n\030wasm_override_object_key"
-    "\030\t \001(\t\"J\n\016SetV86ConfigOp\022\022\n\nobject_key\030\001"
-    " \001(\t\022$\n\006config\030\002 \001(\0132\024.s4wave.vm.V86Conf"
-    "ig\"]\n\rSetV86StateOp\022\022\n\nobject_key\030\001 \001(\t\022"
-    "!\n\005state\030\002 \001(\0162\022.s4wave.vm.VmState\022\025\n\rer"
-    "ror_message\030\003 \001(\t\"\266\001\n\010V86Image\022\014\n\004name\030\001"
-    " \001(\t\022\017\n\007version\030\002 \001(\t\022\020\n\010platform\030\003 \001(\t\022"
-    "\016\n\006distro\030\004 \001(\t\022\026\n\016kernel_version\030\005 \001(\t\022"
-    "\023\n\013description\030\006 \001(\t\022\014\n\004tags\030\007 \003(\t\022.\n\ncr"
-    "eated_at\030\010 \001(\0132\032.google.protobuf.Timesta"
-    "mp\"y\n\020CreateV86ImageOp\022\022\n\nobject_key\030\001 \001"
-    "(\t\022\"\n\005image\030\002 \001(\0132\023.s4wave.vm.V86Image\022-"
-    "\n\ttimestamp\030\003 \001(\0132\032.google.protobuf.Time"
-    "stamp\"O\n\025SetV86ImageMetadataOp\022\022\n\nobject"
-    "_key\030\001 \001(\t\022\"\n\005image\030\002 \001(\0132\023.s4wave.vm.V8"
-    "6Image*r\n\007VmState\022\023\n\017VmState_STOPPED\020\000\022\024"
-    "\n\020VmState_STARTING\020\001\022\023\n\017VmState_RUNNING\020"
-    "\002\022\024\n\020VmState_STOPPING\020\003\022\021\n\rVmState_ERROR"
-    "\020\004B.Z,github.com/s4wave/spacewave/sdk/vm"
-    ";s4wave_vmb\006proto3"
+    "\022\025\n\rerror_message\030\005 \001(\t\022*\n\016observed_stat"
+    "e\030\006 \001(\0162\022.s4wave.vm.VmState\022\026\n\016run_gener"
+    "ation\030\007 \001(\004\"\254\002\n\rCreateVmV86Op\022\022\n\nobject_"
+    "key\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\022$\n\006config\030\003 \001(\0132"
+    "\024.s4wave.vm.V86Config\022-\n\ttimestamp\030\004 \001(\013"
+    "2\032.google.protobuf.Timestamp\022\030\n\020image_ob"
+    "ject_key\030\005 \001(\t\022\"\n\032kernel_override_object"
+    "_key\030\006 \001(\t\022\"\n\032rootfs_override_object_key"
+    "\030\007 \001(\t\022 \n\030bios_override_object_key\030\010 \001(\t"
+    "\022 \n\030wasm_override_object_key\030\t \001(\t\"J\n\016Se"
+    "tV86ConfigOp\022\022\n\nobject_key\030\001 \001(\t\022$\n\006conf"
+    "ig\030\002 \001(\0132\024.s4wave.vm.V86Config\"]\n\rSetV86"
+    "StateOp\022\022\n\nobject_key\030\001 \001(\t\022!\n\005state\030\002 \001"
+    "(\0162\022.s4wave.vm.VmState\022\025\n\rerror_message\030"
+    "\003 \001(\t\"\217\001\n\035ReportV86RuntimeStatusRequest\022"
+    "\022\n\nobject_key\030\001 \001(\t\022\026\n\016run_generation\030\002 "
+    "\001(\004\022+\n\006status\030\003 \001(\0162\033.s4wave.vm.V86Runti"
+    "meStatus\022\025\n\rerror_message\030\004 \001(\t\"]\n\036Repor"
+    "tV86RuntimeStatusResponse\022\020\n\010accepted\030\001 "
+    "\001(\010\022\026\n\016run_generation\030\002 \001(\004\022\021\n\trejection"
+    "\030\003 \001(\t\"\266\001\n\010V86Image\022\014\n\004name\030\001 \001(\t\022\017\n\007ver"
+    "sion\030\002 \001(\t\022\020\n\010platform\030\003 \001(\t\022\016\n\006distro\030\004"
+    " \001(\t\022\026\n\016kernel_version\030\005 \001(\t\022\023\n\013descript"
+    "ion\030\006 \001(\t\022\014\n\004tags\030\007 \003(\t\022.\n\ncreated_at\030\010 "
+    "\001(\0132\032.google.protobuf.Timestamp\"y\n\020Creat"
+    "eV86ImageOp\022\022\n\nobject_key\030\001 \001(\t\022\"\n\005image"
+    "\030\002 \001(\0132\023.s4wave.vm.V86Image\022-\n\ttimestamp"
+    "\030\003 \001(\0132\032.google.protobuf.Timestamp\"O\n\025Se"
+    "tV86ImageMetadataOp\022\022\n\nobject_key\030\001 \001(\t\022"
+    "\"\n\005image\030\002 \001(\0132\023.s4wave.vm.V86Image*r\n\007V"
+    "mState\022\023\n\017VmState_STOPPED\020\000\022\024\n\020VmState_S"
+    "TARTING\020\001\022\023\n\017VmState_RUNNING\020\002\022\024\n\020VmStat"
+    "e_STOPPING\020\003\022\021\n\rVmState_ERROR\020\004*\244\001\n\020V86R"
+    "untimeStatus\022\034\n\030V86RuntimeStatus_UNKNOWN"
+    "\020\000\022\034\n\030V86RuntimeStatus_BOOTING\020\001\022\032\n\026V86R"
+    "untimeStatus_READY\020\002\022\034\n\030V86RuntimeStatus"
+    "_STOPPED\020\003\022\032\n\026V86RuntimeStatus_ERROR\020\0042~"
+    "\n\027V86RuntimeStatusService\022c\n\014ReportStatu"
+    "s\022(.s4wave.vm.ReportV86RuntimeStatusRequ"
+    "est\032).s4wave.vm.ReportV86RuntimeStatusRe"
+    "sponseB.Z,github.com/s4wave/spacewave/sd"
+    "k/vm;s4wave_vmb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto_deps[1] = {
@@ -529,13 +635,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto = {
     false,
     false,
-    1538,
+    2142,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto,
     "github.com/s4wave/spacewave/sdk/vm/v86.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto_deps,
     1,
-    9,
+    11,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto::offsets,
@@ -549,6 +655,12 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL VmState_descriptor() 
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t VmState_internal_data_[] = {
+    327680u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL V86RuntimeStatus_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto[1];
+}
+PROTOBUF_CONSTINIT const uint32_t V86RuntimeStatus_internal_data_[] = {
     327680u, 0u, };
 // ===================================================================
 
@@ -1458,7 +1570,13 @@ VmV86::VmV86(
   _impl_.created_at_ = (CheckHasBit(cached_has_bits, 0x00000008U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.created_at_)
                 : nullptr;
-  _impl_.state_ = from._impl_.state_;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, state_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, state_),
+           offsetof(Impl_, run_generation_) -
+               offsetof(Impl_, state_) +
+               sizeof(Impl_::run_generation_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.vm.VmV86)
 }
@@ -1474,9 +1592,9 @@ inline void VmV86::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, config_),
            0,
-           offsetof(Impl_, state_) -
+           offsetof(Impl_, run_generation_) -
                offsetof(Impl_, config_) +
-               sizeof(Impl_::state_));
+               sizeof(Impl_::run_generation_));
 }
 VmV86::~VmV86() {
   // @@protoc_insertion_point(destructor:s4wave.vm.VmV86)
@@ -1539,16 +1657,16 @@ VmV86::GetClassData() const {
   return VmV86_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 5, 2, 41, 2>
+const ::_pbi::TcParseTable<3, 7, 2, 41, 2>
 VmV86::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(VmV86, _impl_._has_bits_),
     0, // no _extensions_
-    5, 56,  // max_field_number, fast_idx_mask
+    7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967264,  // skipmap
+    4294967168,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    5,  // num_field_entries
+    7,  // num_field_entries
     2,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     VmV86_class_data_.base(),
@@ -1579,8 +1697,14 @@ VmV86::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {42, 1, 0,
       PROTOBUF_FIELD_OFFSET(VmV86, _impl_.error_message_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.vm.VmState observed_state = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(VmV86, _impl_.observed_state_), 5>(),
+     {48, 5, 0,
+      PROTOBUF_FIELD_OFFSET(VmV86, _impl_.observed_state_)}},
+    // uint64 run_generation = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(VmV86, _impl_.run_generation_), 6>(),
+     {56, 6, 0,
+      PROTOBUF_FIELD_OFFSET(VmV86, _impl_.run_generation_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -1594,6 +1718,10 @@ VmV86::_table_ = {
     {PROTOBUF_FIELD_OFFSET(VmV86, _impl_.created_at_), _Internal::kHasBitsOffset + 3, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // string error_message = 5;
     {PROTOBUF_FIELD_OFFSET(VmV86, _impl_.error_message_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.vm.VmState observed_state = 6;
+    {PROTOBUF_FIELD_OFFSET(VmV86, _impl_.observed_state_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // uint64 run_generation = 7;
+    {PROTOBUF_FIELD_OFFSET(VmV86, _impl_.run_generation_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::s4wave::vm::V86Config>()},
@@ -1630,7 +1758,11 @@ PROTOBUF_NOINLINE void VmV86::Clear() {
       _impl_.created_at_->Clear();
     }
   }
-  _impl_.state_ = 0;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000070U)) {
+    ::memset(&_impl_.state_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.run_generation_) -
+        reinterpret_cast<char*>(&_impl_.state_)) + sizeof(_impl_.run_generation_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -1697,6 +1829,24 @@ PROTOBUF_NOINLINE void VmV86::Clear() {
     }
   }
 
+  // .s4wave.vm.VmState observed_state = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_observed_state() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          6, this_._internal_observed_state(), target);
+    }
+  }
+
+  // uint64 run_generation = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_run_generation() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          7, this_._internal_run_generation(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1722,7 +1872,7 @@ PROTOBUF_NOINLINE void VmV86::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     // string name = 2;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_name().empty()) {
@@ -1754,6 +1904,20 @@ PROTOBUF_NOINLINE void VmV86::Clear() {
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_state());
       }
     }
+    // .s4wave.vm.VmState observed_state = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_observed_state() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_observed_state());
+      }
+    }
+    // uint64 run_generation = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_run_generation() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_run_generation());
+      }
+    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -1774,7 +1938,7 @@ void VmV86::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_name().empty()) {
         _this->_internal_set_name(from._internal_name());
@@ -1814,6 +1978,16 @@ void VmV86::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.state_ = from._impl_.state_;
       }
     }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_observed_state() != 0) {
+        _this->_impl_.observed_state_ = from._impl_.observed_state_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_run_generation() != 0) {
+        _this->_impl_.run_generation_ = from._impl_.run_generation_;
+      }
+    }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -1837,8 +2011,8 @@ void VmV86::InternalSwap(VmV86* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, &other->_impl_.name_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_message_, &other->_impl_.error_message_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(VmV86, _impl_.state_)
-      + sizeof(VmV86::_impl_.state_)
+      PROTOBUF_FIELD_OFFSET(VmV86, _impl_.run_generation_)
+      + sizeof(VmV86::_impl_.run_generation_)
       - PROTOBUF_FIELD_OFFSET(VmV86, _impl_.config_)>(
           reinterpret_cast<char*>(&_impl_.config_),
           reinterpret_cast<char*>(&other->_impl_.config_));
@@ -3137,6 +3311,760 @@ void SetV86StateOp::InternalSwap(SetV86StateOp* PROTOBUF_RESTRICT PROTOBUF_NONNU
 }
 
 ::google::protobuf::Metadata SetV86StateOp::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ReportV86RuntimeStatusRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ReportV86RuntimeStatusRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusRequest, _impl_._has_bits_);
+};
+
+ReportV86RuntimeStatusRequest::ReportV86RuntimeStatusRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReportV86RuntimeStatusRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.vm.ReportV86RuntimeStatusRequest)
+}
+PROTOBUF_NDEBUG_INLINE ReportV86RuntimeStatusRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::vm::ReportV86RuntimeStatusRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        object_key_(arena, from.object_key_),
+        error_message_(arena, from.error_message_) {}
+
+ReportV86RuntimeStatusRequest::ReportV86RuntimeStatusRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ReportV86RuntimeStatusRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReportV86RuntimeStatusRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ReportV86RuntimeStatusRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, run_generation_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, run_generation_),
+           offsetof(Impl_, status_) -
+               offsetof(Impl_, run_generation_) +
+               sizeof(Impl_::status_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.vm.ReportV86RuntimeStatusRequest)
+}
+PROTOBUF_NDEBUG_INLINE ReportV86RuntimeStatusRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        object_key_(arena),
+        error_message_(arena) {}
+
+inline void ReportV86RuntimeStatusRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, run_generation_),
+           0,
+           offsetof(Impl_, status_) -
+               offsetof(Impl_, run_generation_) +
+               sizeof(Impl_::status_));
+}
+ReportV86RuntimeStatusRequest::~ReportV86RuntimeStatusRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.vm.ReportV86RuntimeStatusRequest)
+  SharedDtor(*this);
+}
+inline void ReportV86RuntimeStatusRequest::SharedDtor(MessageLite& self) {
+  ReportV86RuntimeStatusRequest& this_ = static_cast<ReportV86RuntimeStatusRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.object_key_.Destroy();
+  this_._impl_.error_message_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ReportV86RuntimeStatusRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ReportV86RuntimeStatusRequest(arena);
+}
+constexpr auto ReportV86RuntimeStatusRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ReportV86RuntimeStatusRequest),
+                                            alignof(ReportV86RuntimeStatusRequest));
+}
+constexpr auto ReportV86RuntimeStatusRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ReportV86RuntimeStatusRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ReportV86RuntimeStatusRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ReportV86RuntimeStatusRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ReportV86RuntimeStatusRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ReportV86RuntimeStatusRequest>(), &ReportV86RuntimeStatusRequest::ByteSizeLong,
+              &ReportV86RuntimeStatusRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusRequest, _impl_._cached_size_),
+          false,
+      },
+      &ReportV86RuntimeStatusRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ReportV86RuntimeStatusRequest_class_data_ =
+        ReportV86RuntimeStatusRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ReportV86RuntimeStatusRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ReportV86RuntimeStatusRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ReportV86RuntimeStatusRequest_class_data_.tc_table);
+  return ReportV86RuntimeStatusRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 0, 71, 2>
+ReportV86RuntimeStatusRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ReportV86RuntimeStatusRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::vm::ReportV86RuntimeStatusRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string error_message = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusRequest, _impl_.error_message_)}},
+    // string object_key = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusRequest, _impl_.object_key_)}},
+    // uint64 run_generation = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(ReportV86RuntimeStatusRequest, _impl_.run_generation_), 2>(),
+     {16, 2, 0,
+      PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusRequest, _impl_.run_generation_)}},
+    // .s4wave.vm.V86RuntimeStatus status = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ReportV86RuntimeStatusRequest, _impl_.status_), 3>(),
+     {24, 3, 0,
+      PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusRequest, _impl_.status_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string object_key = 1;
+    {PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusRequest, _impl_.object_key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint64 run_generation = 2;
+    {PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusRequest, _impl_.run_generation_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // .s4wave.vm.V86RuntimeStatus status = 3;
+    {PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusRequest, _impl_.status_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string error_message = 4;
+    {PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusRequest, _impl_.error_message_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\47\12\0\0\15\0\0\0"
+    "s4wave.vm.ReportV86RuntimeStatusRequest"
+    "object_key"
+    "error_message"
+  }},
+};
+PROTOBUF_NOINLINE void ReportV86RuntimeStatusRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.vm.ReportV86RuntimeStatusRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.object_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.error_message_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000cU)) {
+    ::memset(&_impl_.run_generation_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.status_) -
+        reinterpret_cast<char*>(&_impl_.run_generation_)) + sizeof(_impl_.status_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ReportV86RuntimeStatusRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ReportV86RuntimeStatusRequest& this_ = static_cast<const ReportV86RuntimeStatusRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ReportV86RuntimeStatusRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ReportV86RuntimeStatusRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.vm.ReportV86RuntimeStatusRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string object_key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_object_key().empty()) {
+      const ::std::string& _s = this_._internal_object_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.ReportV86RuntimeStatusRequest.object_key");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // uint64 run_generation = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_run_generation() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          2, this_._internal_run_generation(), target);
+    }
+  }
+
+  // .s4wave.vm.V86RuntimeStatus status = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_status() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          3, this_._internal_status(), target);
+    }
+  }
+
+  // string error_message = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_error_message().empty()) {
+      const ::std::string& _s = this_._internal_error_message();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.ReportV86RuntimeStatusRequest.error_message");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.vm.ReportV86RuntimeStatusRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ReportV86RuntimeStatusRequest::ByteSizeLong(const MessageLite& base) {
+  const ReportV86RuntimeStatusRequest& this_ = static_cast<const ReportV86RuntimeStatusRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ReportV86RuntimeStatusRequest::ByteSizeLong() const {
+  const ReportV86RuntimeStatusRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.vm.ReportV86RuntimeStatusRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // string object_key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_object_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_object_key());
+      }
+    }
+    // string error_message = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_error_message().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_error_message());
+      }
+    }
+    // uint64 run_generation = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_run_generation() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_run_generation());
+      }
+    }
+    // .s4wave.vm.V86RuntimeStatus status = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_status() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_status());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ReportV86RuntimeStatusRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ReportV86RuntimeStatusRequest*>(&to_msg);
+  auto& from = static_cast<const ReportV86RuntimeStatusRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.vm.ReportV86RuntimeStatusRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_object_key().empty()) {
+        _this->_internal_set_object_key(from._internal_object_key());
+      } else {
+        if (_this->_impl_.object_key_.IsDefault()) {
+          _this->_internal_set_object_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_error_message().empty()) {
+        _this->_internal_set_error_message(from._internal_error_message());
+      } else {
+        if (_this->_impl_.error_message_.IsDefault()) {
+          _this->_internal_set_error_message("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_run_generation() != 0) {
+        _this->_impl_.run_generation_ = from._impl_.run_generation_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_status() != 0) {
+        _this->_impl_.status_ = from._impl_.status_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ReportV86RuntimeStatusRequest::CopyFrom(const ReportV86RuntimeStatusRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.vm.ReportV86RuntimeStatusRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ReportV86RuntimeStatusRequest::InternalSwap(ReportV86RuntimeStatusRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_message_, &other->_impl_.error_message_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusRequest, _impl_.status_)
+      + sizeof(ReportV86RuntimeStatusRequest::_impl_.status_)
+      - PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusRequest, _impl_.run_generation_)>(
+          reinterpret_cast<char*>(&_impl_.run_generation_),
+          reinterpret_cast<char*>(&other->_impl_.run_generation_));
+}
+
+::google::protobuf::Metadata ReportV86RuntimeStatusRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ReportV86RuntimeStatusResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ReportV86RuntimeStatusResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusResponse, _impl_._has_bits_);
+};
+
+ReportV86RuntimeStatusResponse::ReportV86RuntimeStatusResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReportV86RuntimeStatusResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.vm.ReportV86RuntimeStatusResponse)
+}
+PROTOBUF_NDEBUG_INLINE ReportV86RuntimeStatusResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::vm::ReportV86RuntimeStatusResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        rejection_(arena, from.rejection_) {}
+
+ReportV86RuntimeStatusResponse::ReportV86RuntimeStatusResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ReportV86RuntimeStatusResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReportV86RuntimeStatusResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ReportV86RuntimeStatusResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, run_generation_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, run_generation_),
+           offsetof(Impl_, accepted_) -
+               offsetof(Impl_, run_generation_) +
+               sizeof(Impl_::accepted_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.vm.ReportV86RuntimeStatusResponse)
+}
+PROTOBUF_NDEBUG_INLINE ReportV86RuntimeStatusResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        rejection_(arena) {}
+
+inline void ReportV86RuntimeStatusResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, run_generation_),
+           0,
+           offsetof(Impl_, accepted_) -
+               offsetof(Impl_, run_generation_) +
+               sizeof(Impl_::accepted_));
+}
+ReportV86RuntimeStatusResponse::~ReportV86RuntimeStatusResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.vm.ReportV86RuntimeStatusResponse)
+  SharedDtor(*this);
+}
+inline void ReportV86RuntimeStatusResponse::SharedDtor(MessageLite& self) {
+  ReportV86RuntimeStatusResponse& this_ = static_cast<ReportV86RuntimeStatusResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.rejection_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ReportV86RuntimeStatusResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ReportV86RuntimeStatusResponse(arena);
+}
+constexpr auto ReportV86RuntimeStatusResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ReportV86RuntimeStatusResponse),
+                                            alignof(ReportV86RuntimeStatusResponse));
+}
+constexpr auto ReportV86RuntimeStatusResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ReportV86RuntimeStatusResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ReportV86RuntimeStatusResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ReportV86RuntimeStatusResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ReportV86RuntimeStatusResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ReportV86RuntimeStatusResponse>(), &ReportV86RuntimeStatusResponse::ByteSizeLong,
+              &ReportV86RuntimeStatusResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusResponse, _impl_._cached_size_),
+          false,
+      },
+      &ReportV86RuntimeStatusResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ReportV86RuntimeStatusResponse_class_data_ =
+        ReportV86RuntimeStatusResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ReportV86RuntimeStatusResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ReportV86RuntimeStatusResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ReportV86RuntimeStatusResponse_class_data_.tc_table);
+  return ReportV86RuntimeStatusResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 0, 58, 2>
+ReportV86RuntimeStatusResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ReportV86RuntimeStatusResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::vm::ReportV86RuntimeStatusResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // bool accepted = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ReportV86RuntimeStatusResponse, _impl_.accepted_), 2>(),
+     {8, 2, 0,
+      PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusResponse, _impl_.accepted_)}},
+    // uint64 run_generation = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(ReportV86RuntimeStatusResponse, _impl_.run_generation_), 1>(),
+     {16, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusResponse, _impl_.run_generation_)}},
+    // string rejection = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusResponse, _impl_.rejection_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bool accepted = 1;
+    {PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusResponse, _impl_.accepted_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // uint64 run_generation = 2;
+    {PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusResponse, _impl_.run_generation_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // string rejection = 3;
+    {PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusResponse, _impl_.rejection_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\50\0\0\11\0\0\0\0"
+    "s4wave.vm.ReportV86RuntimeStatusResponse"
+    "rejection"
+  }},
+};
+PROTOBUF_NOINLINE void ReportV86RuntimeStatusResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.vm.ReportV86RuntimeStatusResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.rejection_.ClearNonDefaultToEmpty();
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000006U)) {
+    ::memset(&_impl_.run_generation_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.accepted_) -
+        reinterpret_cast<char*>(&_impl_.run_generation_)) + sizeof(_impl_.accepted_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ReportV86RuntimeStatusResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ReportV86RuntimeStatusResponse& this_ = static_cast<const ReportV86RuntimeStatusResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ReportV86RuntimeStatusResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ReportV86RuntimeStatusResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.vm.ReportV86RuntimeStatusResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bool accepted = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_accepted() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          1, this_._internal_accepted(), target);
+    }
+  }
+
+  // uint64 run_generation = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_run_generation() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          2, this_._internal_run_generation(), target);
+    }
+  }
+
+  // string rejection = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_rejection().empty()) {
+      const ::std::string& _s = this_._internal_rejection();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.vm.ReportV86RuntimeStatusResponse.rejection");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.vm.ReportV86RuntimeStatusResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ReportV86RuntimeStatusResponse::ByteSizeLong(const MessageLite& base) {
+  const ReportV86RuntimeStatusResponse& this_ = static_cast<const ReportV86RuntimeStatusResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ReportV86RuntimeStatusResponse::ByteSizeLong() const {
+  const ReportV86RuntimeStatusResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.vm.ReportV86RuntimeStatusResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // string rejection = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_rejection().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_rejection());
+      }
+    }
+    // uint64 run_generation = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_run_generation() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_run_generation());
+      }
+    }
+    // bool accepted = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_accepted() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ReportV86RuntimeStatusResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ReportV86RuntimeStatusResponse*>(&to_msg);
+  auto& from = static_cast<const ReportV86RuntimeStatusResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.vm.ReportV86RuntimeStatusResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_rejection().empty()) {
+        _this->_internal_set_rejection(from._internal_rejection());
+      } else {
+        if (_this->_impl_.rejection_.IsDefault()) {
+          _this->_internal_set_rejection("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_run_generation() != 0) {
+        _this->_impl_.run_generation_ = from._impl_.run_generation_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_accepted() != 0) {
+        _this->_impl_.accepted_ = from._impl_.accepted_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ReportV86RuntimeStatusResponse::CopyFrom(const ReportV86RuntimeStatusResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.vm.ReportV86RuntimeStatusResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ReportV86RuntimeStatusResponse::InternalSwap(ReportV86RuntimeStatusResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.rejection_, &other->_impl_.rejection_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusResponse, _impl_.accepted_)
+      + sizeof(ReportV86RuntimeStatusResponse::_impl_.accepted_)
+      - PROTOBUF_FIELD_OFFSET(ReportV86RuntimeStatusResponse, _impl_.run_generation_)>(
+          reinterpret_cast<char*>(&_impl_.run_generation_),
+          reinterpret_cast<char*>(&other->_impl_.run_generation_));
+}
+
+::google::protobuf::Metadata ReportV86RuntimeStatusResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

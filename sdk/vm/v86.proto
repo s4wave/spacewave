@@ -5,18 +5,32 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/s4wave/spacewave/sdk/vm;s4wave_vm";
 
-// VmState is the state of a virtual machine instance.
+// VmState is the desired state of a virtual machine instance.
 enum VmState {
-  // VmState_STOPPED means the VM is not running.
+  // VmState_STOPPED means the VM should not be running.
   VmState_STOPPED = 0;
-  // VmState_STARTING means the VM is booting up.
+  // VmState_STARTING is retained as a start-request compatibility value.
   VmState_STARTING = 1;
-  // VmState_RUNNING means the VM is running normally.
+  // VmState_RUNNING means the VM should be running.
   VmState_RUNNING = 2;
-  // VmState_STOPPING means the VM is shutting down.
+  // VmState_STOPPING is retained as a stop-request compatibility value.
   VmState_STOPPING = 3;
-  // VmState_ERROR means the VM exited with an error.
+  // VmState_ERROR is reserved for observed runtime failures.
   VmState_ERROR = 4;
+}
+
+// V86RuntimeStatus is a status reported by an instanced V86 runtime plugin.
+enum V86RuntimeStatus {
+  // V86RuntimeStatus_UNKNOWN is unset.
+  V86RuntimeStatus_UNKNOWN = 0;
+  // V86RuntimeStatus_BOOTING means the emulator is loading or booting.
+  V86RuntimeStatus_BOOTING = 1;
+  // V86RuntimeStatus_READY means the v86min guest-ready marker was observed.
+  V86RuntimeStatus_READY = 2;
+  // V86RuntimeStatus_STOPPED means the emulator stopped cleanly.
+  V86RuntimeStatus_STOPPED = 3;
+  // V86RuntimeStatus_ERROR means the emulator reached a terminal failure.
+  V86RuntimeStatus_ERROR = 4;
 }
 
 // V86Config contains configuration for a V86 virtual machine.
@@ -51,7 +65,7 @@ message VmMount {
 // VmV86 represents an x86 virtual machine instance via v86 emulation.
 // Linked to BIOS, kernel, and rootfs images via graph edges.
 message VmV86 {
-  // State is the current VM state.
+  // State is the desired VM state. Runtime observations are in observed_state.
   VmState state = 1;
   // Name is the human-readable name of this VM instance.
   string name = 2;
@@ -59,9 +73,12 @@ message VmV86 {
   V86Config config = 3;
   // CreatedAt is the creation timestamp.
   .google.protobuf.Timestamp created_at = 4;
-  // ErrorMessage is a diagnostic attached when State is VmState_ERROR.
-  // Cleared on any successful transition away from VmState_ERROR.
+  // ErrorMessage is the terminal diagnostic for the observed generation.
   string error_message = 5;
+  // ObservedState is the runtime state committed by the VM resource owner.
+  VmState observed_state = 6;
+  // RunGeneration fences runtime reports from prior starts or stops.
+  uint64 run_generation = 7;
   // Links (via graph edges, not proto fields):
   //   v86/image           -> V86Image object (required; supplies default
   //                           v86image/wasm, v86image/bios/seabios,
@@ -111,16 +128,47 @@ message SetV86ConfigOp {
   V86Config config = 2;
 }
 
-// SetV86StateOp transitions the state of an existing VmV86 object.
-// Valid transitions are enforced by the op's state machine.
+// SetV86StateOp changes the desired state of an existing VmV86 object.
+// STARTING and STOPPING are accepted as compatibility aliases for RUNNING
+// and STOPPED.
 message SetV86StateOp {
   // ObjectKey is the object key of the VmV86 to update.
   string object_key = 1;
   // State is the target state to transition to.
   VmState state = 2;
-  // ErrorMessage is an optional diagnostic stored when transitioning to
-  // VmState_ERROR. Ignored for non-ERROR transitions.
+  // ErrorMessage is an optional diagnostic for legacy callers. Runtime
+  // diagnostics are written by the resource owner.
   string error_message = 3;
+}
+
+// V86RuntimeStatusService reports generation-fenced runtime observations.
+service V86RuntimeStatusService {
+  // ReportStatus records a runtime status for the owning VM generation.
+  rpc ReportStatus(ReportV86RuntimeStatusRequest)
+      returns (ReportV86RuntimeStatusResponse);
+}
+
+// ReportV86RuntimeStatusRequest is a typed status report from an instanced
+// V86 runtime plugin.
+message ReportV86RuntimeStatusRequest {
+  // ObjectKey identifies the VM resource receiving the report.
+  string object_key = 1;
+  // RunGeneration fences reports from prior runtime instances.
+  uint64 run_generation = 2;
+  // Status is the runtime observation being reported.
+  V86RuntimeStatus status = 3;
+  // ErrorMessage is required for V86RuntimeStatus_ERROR.
+  string error_message = 4;
+}
+
+// ReportV86RuntimeStatusResponse acknowledges a runtime status report.
+message ReportV86RuntimeStatusResponse {
+  // Accepted is false when the report does not match the active generation.
+  bool accepted = 1;
+  // RunGeneration is the route generation used for the report.
+  uint64 run_generation = 2;
+  // Rejection explains why a report was not accepted.
+  string rejection = 3;
 }
 
 // V86Image is a curated bundle of v86 assets (WASM emulator, SeaBIOS, VGA BIOS,

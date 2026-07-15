@@ -9,6 +9,7 @@ import {
   useResource,
   useResourceValue,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { SpaceContentsContext } from '@s4wave/web/contexts/contexts.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
@@ -20,6 +21,7 @@ import {
   type V86Config,
 } from '@s4wave/sdk/vm/v86.pb.js'
 import { keyToIRI, iriToKey } from '@s4wave/sdk/world/graph-utils.js'
+import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
 import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
@@ -83,6 +85,34 @@ function vmStateBadgeClass(state: VmState | undefined): string {
       return 'bg-muted text-muted-foreground'
   }
 }
+async function readVmV86(
+  objectState: IObjectState,
+  signal: AbortSignal,
+): Promise<VmV86 | null> {
+  using cursor = await objectState.accessWorldState(undefined, signal)
+  const blockResp = await cursor.getBlock({}, signal)
+  if (!blockResp.found || !blockResp.data) return null
+  return VmV86.fromBinary(blockResp.data)
+}
+
+async function* watchVmV86(
+  world: IWorldState,
+  objectKey: string,
+  signal: AbortSignal,
+): AsyncIterable<VmV86> {
+  if (!objectKey) return
+  const objectState = await world.getObject(objectKey, signal)
+  if (!objectState) return
+  using object = objectState
+  let revision = (await object.getRootRef(signal)).rev ?? 0n
+  for (;;) {
+    const vm = await readVmV86(object, signal)
+    if (!vm) return
+    yield vm
+    revision =
+      (await object.waitRev(revision + 1n, false, signal)).rev ?? revision
+  }
+}
 
 // VmV86Viewer displays a V86 virtual machine: an xterm-backed serial console,
 // Start/Stop controls bound to SetV86StateOp, a list of configured mounts,
@@ -97,25 +127,19 @@ export default function VmV86Viewer({
   const contentsResource = spaceContents ?? contextContentsResource
   const contents = useResourceValue(contentsResource)
 
-  // One-shot read of the VmV86 block. Re-runs when the underlying worldState
-  // resource rotates.
-  const vmState = useResource(
+  const vmState = useStreamingResource(
     worldState,
-    async (world, signal) => {
-      if (!world || !objectKey) return null
-      const objState = await world.getObject(objectKey, signal)
-      if (!objState) return null
-      using _ = objState
-      using cursor = await objState.accessWorldState(undefined, signal)
-      const blockResp = await cursor.getBlock({}, signal)
-      if (!blockResp.found || !blockResp.data) return null
-      return VmV86.fromBinary(blockResp.data)
-    },
-    [objectKey],
+    useCallback(
+      (world: IWorldState, signal: AbortSignal) =>
+        watchVmV86(world, objectKey, signal),
+      [objectKey],
+    ),
+    [],
   )
 
   const vm = vmState.value
-  const vmStateValue = vm?.state
+  const desiredState = vm?.state
+  const vmStateValue = vm?.observedState ?? VmState.VmState_STOPPED
   const vmErrorMessage = vm?.errorMessage?.trim() ?? ''
   const cfg: V86Config | undefined = vm?.config
   const mounts: VmMount[] = cfg?.mounts ?? []
@@ -130,7 +154,7 @@ export default function VmV86Viewer({
     async (target: VmState) => {
       const world = worldState.value
       if (!world || !objectKey) return
-      if (contents && target === VmState.VmState_STARTING) {
+      if (contents && target === VmState.VmState_RUNNING) {
         await contents.setProcessBinding(objectKey, VmV86TypeID, true)
       }
       const op = SetV86StateOp.create({
@@ -146,6 +170,12 @@ export default function VmV86Viewer({
     },
     [contents, worldState, objectKey],
   )
+  const [operationError, setOperationError] = useState('')
+  const captureActionError = useCallback((action: Promise<void>) => {
+    void action.catch((err: unknown) => {
+      setOperationError(err instanceof Error ? err.message : String(err))
+    })
+  }, [])
 
   // Settings panel toggle.
   const [showSettings, setShowSettings] = useState(false)
@@ -226,20 +256,25 @@ export default function VmV86Viewer({
   )
 
   const isRunningLike =
+    desiredState === VmState.VmState_RUNNING ||
     vmStateValue === VmState.VmState_RUNNING ||
-    vmStateValue === VmState.VmState_STARTING
+    vmStateValue === VmState.VmState_STARTING ||
+    vmStateValue === VmState.VmState_STOPPING
 
   const handleStart = useCallback(() => {
-    void applyVmState(VmState.VmState_STARTING)
-  }, [applyVmState])
+    setOperationError('')
+    captureActionError(applyVmState(VmState.VmState_RUNNING))
+  }, [applyVmState, captureActionError])
 
   const handleStop = useCallback(() => {
-    void applyVmState(VmState.VmState_STOPPED)
-  }, [applyVmState])
+    setOperationError('')
+    captureActionError(applyVmState(VmState.VmState_STOPPED))
+  }, [applyVmState, captureActionError])
 
   const handleReset = useCallback(() => {
-    void applyVmState(VmState.VmState_STOPPED)
-  }, [applyVmState])
+    setOperationError('')
+    captureActionError(applyVmState(VmState.VmState_STOPPED))
+  }, [applyVmState, captureActionError])
 
   const startedLabel = useMemo(() => {
     if (!isRunningLike || !createdAtMs) return '-'
@@ -265,6 +300,9 @@ export default function VmV86Viewer({
       />
       {vmStateValue === VmState.VmState_ERROR && (
         <VmErrorBanner message={vmErrorMessage} />
+      )}
+      {operationError && (
+        <VmErrorBanner title="Operation error" message={operationError} />
       )}
       <SerialTerminal objectKey={objectKey} />
       <VmInfoBar
@@ -379,10 +417,16 @@ function VmHeader({
   )
 }
 
-function VmErrorBanner({ message }: { message: string }) {
+function VmErrorBanner({
+  title = 'Runtime error',
+  message,
+}: {
+  title?: string
+  message: string
+}) {
   return (
     <div className="flex shrink-0 items-start gap-2 border-b border-red-500/20 bg-red-500/5 px-4 py-2 text-xs text-red-500">
-      <span className="font-medium">Runtime error</span>
+      <span className="font-medium">{title}</span>
       <span className="text-foreground-alt min-w-0 flex-1">
         {message || 'The VM stopped with an error.'}
       </span>

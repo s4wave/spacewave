@@ -15,19 +15,19 @@ import (
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 )
 
-// VmState is the state of a virtual machine instance.
+// VmState is the desired state of a virtual machine instance.
 type VmState int32
 
 const (
-	// VmState_STOPPED means the VM is not running.
+	// VmState_STOPPED means the VM should not be running.
 	VmState_VmState_STOPPED VmState = 0
-	// VmState_STARTING means the VM is booting up.
+	// VmState_STARTING is retained as a start-request compatibility value.
 	VmState_VmState_STARTING VmState = 1
-	// VmState_RUNNING means the VM is running normally.
+	// VmState_RUNNING means the VM should be running.
 	VmState_VmState_RUNNING VmState = 2
-	// VmState_STOPPING means the VM is shutting down.
+	// VmState_STOPPING is retained as a stop-request compatibility value.
 	VmState_VmState_STOPPING VmState = 3
-	// VmState_ERROR means the VM exited with an error.
+	// VmState_ERROR is reserved for observed runtime failures.
 	VmState_VmState_ERROR VmState = 4
 )
 
@@ -57,6 +57,54 @@ func (x VmState) Enum() *VmState {
 
 func (x VmState) String() string {
 	name, valid := VmState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// V86RuntimeStatus is a status reported by an instanced V86 runtime plugin.
+type V86RuntimeStatus int32
+
+const (
+	// V86RuntimeStatus_UNKNOWN is unset.
+	V86RuntimeStatus_V86RuntimeStatus_UNKNOWN V86RuntimeStatus = 0
+	// V86RuntimeStatus_BOOTING means the emulator is loading or booting.
+	V86RuntimeStatus_V86RuntimeStatus_BOOTING V86RuntimeStatus = 1
+	// V86RuntimeStatus_READY means the v86min guest-ready marker was observed.
+	V86RuntimeStatus_V86RuntimeStatus_READY V86RuntimeStatus = 2
+	// V86RuntimeStatus_STOPPED means the emulator stopped cleanly.
+	V86RuntimeStatus_V86RuntimeStatus_STOPPED V86RuntimeStatus = 3
+	// V86RuntimeStatus_ERROR means the emulator reached a terminal failure.
+	V86RuntimeStatus_V86RuntimeStatus_ERROR V86RuntimeStatus = 4
+)
+
+// Enum value maps for V86RuntimeStatus.
+var (
+	V86RuntimeStatus_name = map[int32]string{
+		0: "V86RuntimeStatus_UNKNOWN",
+		1: "V86RuntimeStatus_BOOTING",
+		2: "V86RuntimeStatus_READY",
+		3: "V86RuntimeStatus_STOPPED",
+		4: "V86RuntimeStatus_ERROR",
+	}
+	V86RuntimeStatus_value = map[string]int32{
+		"V86RuntimeStatus_UNKNOWN": 0,
+		"V86RuntimeStatus_BOOTING": 1,
+		"V86RuntimeStatus_READY":   2,
+		"V86RuntimeStatus_STOPPED": 3,
+		"V86RuntimeStatus_ERROR":   4,
+	}
+)
+
+func (x V86RuntimeStatus) Enum() *V86RuntimeStatus {
+	p := new(V86RuntimeStatus)
+	*p = x
+	return p
+}
+
+func (x V86RuntimeStatus) String() string {
+	name, valid := V86RuntimeStatus_name[int32(x)]
 	if valid {
 		return name
 	}
@@ -180,7 +228,7 @@ func (x *VmMount) GetWritable() bool {
 // Linked to BIOS, kernel, and rootfs images via graph edges.
 type VmV86 struct {
 	unknownFields []byte
-	// State is the current VM state.
+	// State is the desired VM state. Runtime observations are in observed_state.
 	State VmState `protobuf:"varint,1,opt,name=state,proto3" json:"state,omitempty"`
 	// Name is the human-readable name of this VM instance.
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
@@ -188,9 +236,12 @@ type VmV86 struct {
 	Config *V86Config `protobuf:"bytes,3,opt,name=config,proto3" json:"config,omitempty"`
 	// CreatedAt is the creation timestamp.
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
-	// ErrorMessage is a diagnostic attached when State is VmState_ERROR.
-	// Cleared on any successful transition away from VmState_ERROR.
+	// ErrorMessage is the terminal diagnostic for the observed generation.
 	ErrorMessage string `protobuf:"bytes,5,opt,name=error_message,json=errorMessage,proto3" json:"errorMessage,omitempty"`
+	// ObservedState is the runtime state committed by the VM resource owner.
+	ObservedState VmState `protobuf:"varint,6,opt,name=observed_state,json=observedState,proto3" json:"observedState,omitempty"`
+	// RunGeneration fences runtime reports from prior starts or stops.
+	RunGeneration uint64 `protobuf:"varint,7,opt,name=run_generation,json=runGeneration,proto3" json:"runGeneration,omitempty"`
 }
 
 func (x *VmV86) Reset() {
@@ -232,6 +283,20 @@ func (x *VmV86) GetErrorMessage() string {
 		return x.ErrorMessage
 	}
 	return ""
+}
+
+func (x *VmV86) GetObservedState() VmState {
+	if x != nil {
+		return x.ObservedState
+	}
+	return VmState_VmState_STOPPED
+}
+
+func (x *VmV86) GetRunGeneration() uint64 {
+	if x != nil {
+		return x.RunGeneration
+	}
+	return 0
 }
 
 // CreateVmV86Op creates a new VmV86 world object. The V86Image at
@@ -363,16 +428,17 @@ func (x *SetV86ConfigOp) GetConfig() *V86Config {
 	return nil
 }
 
-// SetV86StateOp transitions the state of an existing VmV86 object.
-// Valid transitions are enforced by the op's state machine.
+// SetV86StateOp changes the desired state of an existing VmV86 object.
+// STARTING and STOPPING are accepted as compatibility aliases for RUNNING
+// and STOPPED.
 type SetV86StateOp struct {
 	unknownFields []byte
 	// ObjectKey is the object key of the VmV86 to update.
 	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
 	// State is the target state to transition to.
 	State VmState `protobuf:"varint,2,opt,name=state,proto3" json:"state,omitempty"`
-	// ErrorMessage is an optional diagnostic stored when transitioning to
-	// VmState_ERROR. Ignored for non-ERROR transitions.
+	// ErrorMessage is an optional diagnostic for legacy callers. Runtime
+	// diagnostics are written by the resource owner.
 	ErrorMessage string `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"errorMessage,omitempty"`
 }
 
@@ -399,6 +465,92 @@ func (x *SetV86StateOp) GetState() VmState {
 func (x *SetV86StateOp) GetErrorMessage() string {
 	if x != nil {
 		return x.ErrorMessage
+	}
+	return ""
+}
+
+// ReportV86RuntimeStatusRequest is a typed status report from an instanced
+// V86 runtime plugin.
+type ReportV86RuntimeStatusRequest struct {
+	unknownFields []byte
+	// ObjectKey identifies the VM resource receiving the report.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// RunGeneration fences reports from prior runtime instances.
+	RunGeneration uint64 `protobuf:"varint,2,opt,name=run_generation,json=runGeneration,proto3" json:"runGeneration,omitempty"`
+	// Status is the runtime observation being reported.
+	Status V86RuntimeStatus `protobuf:"varint,3,opt,name=status,proto3" json:"status,omitempty"`
+	// ErrorMessage is required for V86RuntimeStatus_ERROR.
+	ErrorMessage string `protobuf:"bytes,4,opt,name=error_message,json=errorMessage,proto3" json:"errorMessage,omitempty"`
+}
+
+func (x *ReportV86RuntimeStatusRequest) Reset() {
+	*x = ReportV86RuntimeStatusRequest{}
+}
+
+func (*ReportV86RuntimeStatusRequest) ProtoMessage() {}
+
+func (x *ReportV86RuntimeStatusRequest) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *ReportV86RuntimeStatusRequest) GetRunGeneration() uint64 {
+	if x != nil {
+		return x.RunGeneration
+	}
+	return 0
+}
+
+func (x *ReportV86RuntimeStatusRequest) GetStatus() V86RuntimeStatus {
+	if x != nil {
+		return x.Status
+	}
+	return V86RuntimeStatus_V86RuntimeStatus_UNKNOWN
+}
+
+func (x *ReportV86RuntimeStatusRequest) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+// ReportV86RuntimeStatusResponse acknowledges a runtime status report.
+type ReportV86RuntimeStatusResponse struct {
+	unknownFields []byte
+	// Accepted is false when the report does not match the active generation.
+	Accepted bool `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	// RunGeneration is the route generation used for the report.
+	RunGeneration uint64 `protobuf:"varint,2,opt,name=run_generation,json=runGeneration,proto3" json:"runGeneration,omitempty"`
+	// Rejection explains why a report was not accepted.
+	Rejection string `protobuf:"bytes,3,opt,name=rejection,proto3" json:"rejection,omitempty"`
+}
+
+func (x *ReportV86RuntimeStatusResponse) Reset() {
+	*x = ReportV86RuntimeStatusResponse{}
+}
+
+func (*ReportV86RuntimeStatusResponse) ProtoMessage() {}
+
+func (x *ReportV86RuntimeStatusResponse) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+func (x *ReportV86RuntimeStatusResponse) GetRunGeneration() uint64 {
+	if x != nil {
+		return x.RunGeneration
+	}
+	return 0
+}
+
+func (x *ReportV86RuntimeStatusResponse) GetRejection() string {
+	if x != nil {
+		return x.Rejection
 	}
 	return ""
 }
@@ -609,6 +761,8 @@ func (m *VmV86) CloneVT() *VmV86 {
 	r.State = m.State
 	r.Name = m.Name
 	r.ErrorMessage = m.ErrorMessage
+	r.ObservedState = m.ObservedState
+	r.RunGeneration = m.RunGeneration
 	r.Config = protobuf_go_lite.CloneVTValue(m.Config)
 	r.CreatedAt = protobuf_go_lite.CloneVTValue(m.CreatedAt)
 	if len(m.unknownFields) > 0 {
@@ -677,6 +831,43 @@ func (m *SetV86StateOp) CloneVT() *SetV86StateOp {
 }
 
 func (m *SetV86StateOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReportV86RuntimeStatusRequest) CloneVT() *ReportV86RuntimeStatusRequest {
+	if m == nil {
+		return (*ReportV86RuntimeStatusRequest)(nil)
+	}
+	r := new(ReportV86RuntimeStatusRequest)
+	r.ObjectKey = m.ObjectKey
+	r.RunGeneration = m.RunGeneration
+	r.Status = m.Status
+	r.ErrorMessage = m.ErrorMessage
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReportV86RuntimeStatusRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReportV86RuntimeStatusResponse) CloneVT() *ReportV86RuntimeStatusResponse {
+	if m == nil {
+		return (*ReportV86RuntimeStatusResponse)(nil)
+	}
+	r := new(ReportV86RuntimeStatusResponse)
+	r.Accepted = m.Accepted
+	r.RunGeneration = m.RunGeneration
+	r.Rejection = m.Rejection
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReportV86RuntimeStatusResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -823,6 +1014,12 @@ func (this *VmV86) EqualVT(that *VmV86) bool {
 	if this.ErrorMessage != that.ErrorMessage {
 		return false
 	}
+	if this.ObservedState != that.ObservedState {
+		return false
+	}
+	if this.RunGeneration != that.RunGeneration {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -921,6 +1118,61 @@ func (this *SetV86StateOp) EqualVT(that *SetV86StateOp) bool {
 
 func (this *SetV86StateOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*SetV86StateOp)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReportV86RuntimeStatusRequest) EqualVT(that *ReportV86RuntimeStatusRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if this.RunGeneration != that.RunGeneration {
+		return false
+	}
+	if this.Status != that.Status {
+		return false
+	}
+	if this.ErrorMessage != that.ErrorMessage {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReportV86RuntimeStatusRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReportV86RuntimeStatusRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReportV86RuntimeStatusResponse) EqualVT(that *ReportV86RuntimeStatusResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Accepted != that.Accepted {
+		return false
+	}
+	if this.RunGeneration != that.RunGeneration {
+		return false
+	}
+	if this.Rejection != that.Rejection {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReportV86RuntimeStatusResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReportV86RuntimeStatusResponse)
 	if !ok {
 		return false
 	}
@@ -1054,6 +1306,46 @@ func (x *VmState) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the VmState from JSON.
 func (x *VmState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the V86RuntimeStatus to JSON.
+func (x V86RuntimeStatus) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), V86RuntimeStatus_name)
+}
+
+// MarshalText marshals the V86RuntimeStatus to text.
+func (x V86RuntimeStatus) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), V86RuntimeStatus_name)), nil
+}
+
+// MarshalJSON marshals the V86RuntimeStatus to JSON.
+func (x V86RuntimeStatus) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the V86RuntimeStatus from JSON.
+func (x *V86RuntimeStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(V86RuntimeStatus_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read V86RuntimeStatus enum: %v", err)
+		return
+	}
+	*x = V86RuntimeStatus(v)
+}
+
+// UnmarshalText unmarshals the V86RuntimeStatus from text.
+func (x *V86RuntimeStatus) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), V86RuntimeStatus_value)
+	if err != nil {
+		return err
+	}
+	*x = V86RuntimeStatus(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the V86RuntimeStatus from JSON.
+func (x *V86RuntimeStatus) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1259,6 +1551,16 @@ func (x *VmV86) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("errorMessage")
 		s.WriteString(x.ErrorMessage)
 	}
+	if x.ObservedState != 0 || s.HasField("observedState") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("observedState")
+		x.ObservedState.MarshalProtoJSON(s)
+	}
+	if x.RunGeneration != 0 || s.HasField("runGeneration") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("runGeneration")
+		s.WriteUint64(x.RunGeneration)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1299,6 +1601,12 @@ func (x *VmV86) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "error_message", "errorMessage":
 			s.AddField("error_message")
 			x.ErrorMessage = s.ReadString()
+		case "observed_state", "observedState":
+			s.AddField("observed_state")
+			x.ObservedState.UnmarshalProtoJSON(s)
+		case "run_generation", "runGeneration":
+			s.AddField("run_generation")
+			x.RunGeneration = s.ReadUint64()
 		}
 	})
 }
@@ -1531,6 +1839,130 @@ func (x *SetV86StateOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the SetV86StateOp from JSON.
 func (x *SetV86StateOp) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReportV86RuntimeStatusRequest message to JSON.
+func (x *ReportV86RuntimeStatusRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if x.RunGeneration != 0 || s.HasField("runGeneration") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("runGeneration")
+		s.WriteUint64(x.RunGeneration)
+	}
+	if x.Status != 0 || s.HasField("status") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("status")
+		x.Status.MarshalProtoJSON(s)
+	}
+	if x.ErrorMessage != "" || s.HasField("errorMessage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("errorMessage")
+		s.WriteString(x.ErrorMessage)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReportV86RuntimeStatusRequest to JSON.
+func (x *ReportV86RuntimeStatusRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReportV86RuntimeStatusRequest message from JSON.
+func (x *ReportV86RuntimeStatusRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "run_generation", "runGeneration":
+			s.AddField("run_generation")
+			x.RunGeneration = s.ReadUint64()
+		case "status":
+			s.AddField("status")
+			x.Status.UnmarshalProtoJSON(s)
+		case "error_message", "errorMessage":
+			s.AddField("error_message")
+			x.ErrorMessage = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReportV86RuntimeStatusRequest from JSON.
+func (x *ReportV86RuntimeStatusRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReportV86RuntimeStatusResponse message to JSON.
+func (x *ReportV86RuntimeStatusResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Accepted || s.HasField("accepted") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("accepted")
+		s.WriteBool(x.Accepted)
+	}
+	if x.RunGeneration != 0 || s.HasField("runGeneration") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("runGeneration")
+		s.WriteUint64(x.RunGeneration)
+	}
+	if x.Rejection != "" || s.HasField("rejection") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rejection")
+		s.WriteString(x.Rejection)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReportV86RuntimeStatusResponse to JSON.
+func (x *ReportV86RuntimeStatusResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReportV86RuntimeStatusResponse message from JSON.
+func (x *ReportV86RuntimeStatusResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "accepted":
+			s.AddField("accepted")
+			x.Accepted = s.ReadBool()
+		case "run_generation", "runGeneration":
+			s.AddField("run_generation")
+			x.RunGeneration = s.ReadUint64()
+		case "rejection":
+			s.AddField("rejection")
+			x.Rejection = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReportV86RuntimeStatusResponse from JSON.
+func (x *ReportV86RuntimeStatusResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1910,6 +2342,16 @@ func (m *VmV86) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.RunGeneration != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RunGeneration))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.ObservedState != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ObservedState))
+		i--
+		dAtA[i] = 0x30
+	}
 	if len(m.ErrorMessage) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ErrorMessage)
 		i--
@@ -2125,6 +2567,105 @@ func (m *SetV86StateOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReportV86RuntimeStatusRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReportV86RuntimeStatusRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReportV86RuntimeStatusRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ErrorMessage) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ErrorMessage)
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Status != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Status))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.RunGeneration != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RunGeneration))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReportV86RuntimeStatusResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReportV86RuntimeStatusResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReportV86RuntimeStatusResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Rejection) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Rejection)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.RunGeneration != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RunGeneration))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Accepted {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Accepted)
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -2362,6 +2903,8 @@ func (m *VmV86) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ErrorMessage)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ObservedState)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RunGeneration)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2415,6 +2958,33 @@ func (m *SetV86StateOp) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ErrorMessage)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReportV86RuntimeStatusRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RunGeneration)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Status)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ErrorMessage)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReportV86RuntimeStatusResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Accepted)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RunGeneration)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Rejection)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2475,6 +3045,10 @@ func (m *SetV86ImageMetadataOp) SizeVT() (n int) {
 }
 
 func (x VmState) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x V86RuntimeStatus) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -2569,6 +3143,14 @@ func (x *VmV86) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_message")
 		protobuf_go_lite.TextWriteString(&sb, x.ErrorMessage)
 	}
+	if x.ObservedState != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "observed_state")
+		protobuf_go_lite.TextWriteStringer(&sb, VmState(x.ObservedState))
+	}
+	if x.RunGeneration != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "run_generation")
+		protobuf_go_lite.TextWriteUint(&sb, x.RunGeneration)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -2659,6 +3241,54 @@ func (x *SetV86StateOp) MarshalProtoText() string {
 }
 
 func (x *SetV86StateOp) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReportV86RuntimeStatusRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReportV86RuntimeStatusRequest")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	if x.RunGeneration != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "run_generation")
+		protobuf_go_lite.TextWriteUint(&sb, x.RunGeneration)
+	}
+	if x.Status != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "status")
+		protobuf_go_lite.TextWriteStringer(&sb, V86RuntimeStatus(x.Status))
+	}
+	if x.ErrorMessage != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error_message")
+		protobuf_go_lite.TextWriteString(&sb, x.ErrorMessage)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReportV86RuntimeStatusRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReportV86RuntimeStatusResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReportV86RuntimeStatusResponse")
+	if x.Accepted != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "accepted")
+		protobuf_go_lite.TextWriteBool(&sb, x.Accepted)
+	}
+	if x.RunGeneration != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "run_generation")
+		protobuf_go_lite.TextWriteUint(&sb, x.RunGeneration)
+	}
+	if x.Rejection != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "rejection")
+		protobuf_go_lite.TextWriteString(&sb, x.Rejection)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReportV86RuntimeStatusResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3016,6 +3646,26 @@ func (m *VmV86) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ErrorMessage = v
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObservedState", wireType)
+			}
+			m.ObservedState = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.ObservedState = VmState(_v)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunGeneration", wireType)
+			}
+			m.RunGeneration = 0
+			m.RunGeneration, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3301,6 +3951,161 @@ func (m *SetV86StateOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ErrorMessage = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReportV86RuntimeStatusRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReportV86RuntimeStatusRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReportV86RuntimeStatusRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunGeneration", wireType)
+			}
+			m.RunGeneration = 0
+			m.RunGeneration, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Status = V86RuntimeStatus(_v)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ErrorMessage", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ErrorMessage = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReportV86RuntimeStatusResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReportV86RuntimeStatusResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReportV86RuntimeStatusResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Accepted", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Accepted = bool(v)
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RunGeneration", wireType)
+			}
+			m.RunGeneration = 0
+			m.RunGeneration, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Rejection", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Rejection = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

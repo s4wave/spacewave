@@ -15,6 +15,12 @@ const mockContents = vi.hoisted(() => ({
 const mockContentsResourceState = vi.hoisted(() => ({
   value: mockContents as typeof mockContents | null,
 }))
+const mockVmResource = vi.hoisted(() => ({
+  value: null as VmV86 | null,
+  loading: false,
+  error: null as Error | null,
+  retry: vi.fn(),
+}))
 
 vi.mock('@aptre/bldr-sdk/hooks/useResource.js', async () => {
   const actual = await vi.importActual<
@@ -26,6 +32,9 @@ vi.mock('@aptre/bldr-sdk/hooks/useResource.js', async () => {
   }
 })
 
+vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
+  useStreamingResource: () => mockVmResource,
+}))
 vi.mock('@s4wave/web/contexts/contexts.js', () => ({
   SpaceContentsContext: {
     useContext: () => mockContents,
@@ -66,6 +75,7 @@ function disposable<T extends object>(
 }
 
 function buildWorld(vm: VmV86) {
+  mockVmResource.value = vm
   const applyWorldOp = vi.fn(() => Promise.resolve({ sysErr: false }))
   const world = {
     getObject: vi.fn(() =>
@@ -115,7 +125,8 @@ describe('VmV86Viewer', () => {
   it('shows the stored runtime error and resets before start is available', async () => {
     const { world, applyWorldOp } = buildWorld(
       VmV86.create({
-        state: VmState.VmState_ERROR,
+        state: VmState.VmState_RUNNING,
+        observedState: VmState.VmState_ERROR,
         errorMessage: 'missing V86 BIOS image',
       }),
     )
@@ -189,10 +200,41 @@ describe('VmV86Viewer', () => {
     const [, opData] = applyWorldOp.mock.calls[0] as [string, Uint8Array]
     const op = SetV86StateOp.fromBinary(opData)
     expect(op.objectKey).toBe('vm/v86/test')
-    expect(op.state ?? VmState.VmState_STOPPED).toBe(VmState.VmState_STARTING)
+    expect(op.state ?? VmState.VmState_STOPPED).toBe(VmState.VmState_RUNNING)
     expect(
       mockContents.setProcessBinding.mock.invocationCallOrder[0],
     ).toBeLessThan(applyWorldOp.mock.invocationCallOrder[0] ?? 0)
+  })
+  it('renders start operation errors without changing observed state', async () => {
+    const { world, applyWorldOp } = buildWorld(
+      VmV86.create({
+        state: VmState.VmState_STOPPED,
+        observedState: VmState.VmState_STOPPED,
+      }),
+    )
+    applyWorldOp.mockRejectedValueOnce(new Error('state request failed'))
+
+    render(
+      <VmV86Viewer
+        objectInfo={{
+          info: {
+            case: 'worldObjectInfo',
+            value: { objectKey: 'vm/v86/test', objectType: 'vm/v86' },
+          },
+        }}
+        worldState={{
+          value: world,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Start' }))
+    expect(await screen.findByText('Operation error')).toBeDefined()
+    expect(screen.getByText('state request failed')).toBeDefined()
+    expect(screen.getAllByText('stopped')).not.toHaveLength(0)
   })
 
   it('keeps start unavailable until process controls are ready', async () => {

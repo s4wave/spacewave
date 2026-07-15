@@ -250,8 +250,11 @@ var _ world.Operation = ((*SetV86ConfigOp)(nil))
 var SetV86StateOpId = "vm/v86/set-state"
 
 // IsValidV86StateTransition reports whether transitioning a VmV86 from src to
-// dst is permitted by the state machine. Same-state transitions are rejected
-// so that ops observably advance state.
+// dst is permitted by the legacy state graph.
+//
+// New state operations store desired state in VmV86.State and runtime
+// observations in VmV86.ObservedState. This helper remains for callers that
+// validate the pre-fenced graph.
 func IsValidV86StateTransition(src, dst VmState) bool {
 	if src == dst {
 		return false
@@ -275,6 +278,19 @@ func IsValidV86StateTransition(src, dst VmState) bool {
 		return dst == VmState_VmState_STOPPED
 	}
 	return false
+}
+
+func normalizeV86DesiredState(state VmState) (VmState, error) {
+	switch state {
+	case VmState_VmState_STARTING:
+		return VmState_VmState_RUNNING, nil
+	case VmState_VmState_STOPPING:
+		return VmState_VmState_STOPPED, nil
+	case VmState_VmState_STOPPED, VmState_VmState_RUNNING:
+		return state, nil
+	default:
+		return VmState_VmState_STOPPED, errors.Errorf("invalid desired v86 state %s", state.String())
+	}
 }
 
 // NewSetV86StateOp constructs a new SetV86StateOp.
@@ -332,7 +348,10 @@ func (o *SetV86StateOp) ApplyWorldOp(
 		return false, errors.Errorf("object %q is not a VmV86 (type=%q)", objKey, typeID)
 	}
 
-	target := o.GetState()
+	target, err := normalizeV86DesiredState(o.GetState())
+	if err != nil {
+		return false, err
+	}
 	_, _, err = world.AccessObjectState(ctx, objState, true, func(bcs *block.Cursor) error {
 		vm, unmarshalErr := block.UnmarshalBlock[*VmV86](ctx, bcs, func() block.Block {
 			return &VmV86{}
@@ -343,16 +362,30 @@ func (o *SetV86StateOp) ApplyWorldOp(
 		if vm == nil {
 			return errors.New("vm-v86 block missing on object")
 		}
-		if !IsValidV86StateTransition(vm.GetState(), target) {
-			return errors.Errorf("invalid v86 state transition %s -> %s", vm.GetState().String(), target.String())
+
+		current := vm.GetState()
+		if current == VmState_VmState_ERROR {
+			current = VmState_VmState_STOPPED
+		} else if normalized, normalizeErr := normalizeV86DesiredState(current); normalizeErr == nil {
+			current = normalized
 		}
+		observed := vm.GetObservedState()
+		if target == current &&
+			(target != VmState_VmState_RUNNING || observed != VmState_VmState_ERROR) &&
+			(target != VmState_VmState_STOPPED || observed == VmState_VmState_STOPPED) {
+			return errors.Errorf("v86 desired state already %s", target.String())
+		}
+
 		vm.State = target
-		if target == VmState_VmState_ERROR {
-			vm.ErrorMessage = o.GetErrorMessage()
-			bcs.SetBlock(vm, true)
-			return nil
-		}
+		vm.RunGeneration++
 		vm.ErrorMessage = ""
+		if target == VmState_VmState_RUNNING {
+			vm.ObservedState = VmState_VmState_STARTING
+		} else if observed != VmState_VmState_STOPPED {
+			vm.ObservedState = VmState_VmState_STOPPING
+		} else {
+			vm.ObservedState = VmState_VmState_STOPPED
+		}
 		bcs.SetBlock(vm, true)
 		return nil
 	})

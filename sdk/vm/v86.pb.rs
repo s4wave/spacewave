@@ -21,6 +21,10 @@ pub struct V86Config {
     /// Mounts lists workspace/home/other v86fs mounts to attach after boot.
     #[prost(message, repeated, tag="6")]
     pub mounts: ::prost::alloc::vec::Vec<VmMount>,
+    /// RuntimePluginId is the plugin that hosts the instanced V86 runtime.
+    /// Empty defaults to spacewave-v86.
+    #[prost(string, tag="7")]
+    pub runtime_plugin_id: ::prost::alloc::string::String,
 }
 /// VmMount is a v86fs mount bound to a UnixFS object in the Space.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -39,7 +43,7 @@ pub struct VmMount {
 /// Linked to BIOS, kernel, and rootfs images via graph edges.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VmV86 {
-    /// State is the current VM state.
+    /// State is the desired VM state. Runtime observations are in observed_state.
     #[prost(enumeration="VmState", tag="1")]
     pub state: i32,
     /// Name is the human-readable name of this VM instance.
@@ -51,25 +55,30 @@ pub struct VmV86 {
     /// CreatedAt is the creation timestamp.
     #[prost(message, optional, tag="4")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    /// ErrorMessage is a diagnostic attached when State is VmState_ERROR.
-    /// Cleared on any successful transition away from VmState_ERROR.
+    /// ErrorMessage is the terminal diagnostic for the observed generation.
+    #[prost(string, tag="5")]
+    pub error_message: ::prost::alloc::string::String,
+    /// ObservedState is the runtime state committed by the VM resource owner.
+    #[prost(enumeration="VmState", tag="6")]
+    pub observed_state: i32,
+    /// RunGeneration fences runtime reports from prior starts or stops.
     ///
     /// Links (via graph edges, not proto fields):
-    ///    v86/image           -> VmImage object (required; supplies default
-    ///                            vmimage/wasm, vmimage/bios/seabios,
-    ///                            vmimage/bios/vgabios, vmimage/kernel,
-    ///                            vmimage/rootfs edges)
+    ///    v86/image           -> V86Image object (required; supplies default
+    ///                            v86image/wasm, v86image/bios/seabios,
+    ///                            v86image/bios/vgabios, v86image/kernel,
+    ///                            v86image/rootfs edges)
     ///    v86/kernel-override -> UnixFS object (optional, per-VM kernel override)
     ///    v86/rootfs-override -> UnixFS object (optional, per-VM rootfs override)
     ///    v86/bios-override   -> UnixFS object (optional, per-VM BIOS override)
     ///    v86/wasm-override   -> UnixFS object (optional, per-VM emulator override)
-    #[prost(string, tag="5")]
-    pub error_message: ::prost::alloc::string::String,
+    #[prost(uint64, tag="7")]
+    pub run_generation: u64,
 }
-/// CreateVmV86Op creates a new VmV86 world object. The VmImage at
+/// CreateVmV86Op creates a new VmV86 world object. The V86Image at
 /// =image_object_key= supplies the four UnixFS asset edges (WASM, BIOS, kernel,
 /// rootfs). Optional per-asset =*_override_object_key= fields override the
-/// corresponding asset at resolve time without rewriting the VmImage.
+/// corresponding asset at resolve time without rewriting the V86Image.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateVmV86Op {
     /// ObjectKey is the key to create the VM at.
@@ -84,23 +93,23 @@ pub struct CreateVmV86Op {
     /// Timestamp is the creation timestamp.
     #[prost(message, optional, tag="4")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
-    /// ImageObjectKey points at a VmImage providing default asset edges. Required.
+    /// ImageObjectKey points at a V86Image providing default asset edges. Required.
     #[prost(string, tag="5")]
     pub image_object_key: ::prost::alloc::string::String,
     /// KernelOverrideObjectKey optionally overrides the kernel resolved from the
-    /// linked VmImage. Points at a UnixFS object.
+    /// linked V86Image. Points at a UnixFS object.
     #[prost(string, tag="6")]
     pub kernel_override_object_key: ::prost::alloc::string::String,
     /// RootfsOverrideObjectKey optionally overrides the rootfs resolved from the
-    /// linked VmImage. Points at a UnixFS object.
+    /// linked V86Image. Points at a UnixFS object.
     #[prost(string, tag="7")]
     pub rootfs_override_object_key: ::prost::alloc::string::String,
     /// BiosOverrideObjectKey optionally overrides the BIOS resolved from the
-    /// linked VmImage. Points at a UnixFS object.
+    /// linked V86Image. Points at a UnixFS object.
     #[prost(string, tag="8")]
     pub bios_override_object_key: ::prost::alloc::string::String,
     /// WasmOverrideObjectKey optionally overrides the emulator WASM resolved from
-    /// the linked VmImage. Points at a UnixFS object.
+    /// the linked V86Image. Points at a UnixFS object.
     #[prost(string, tag="9")]
     pub wasm_override_object_key: ::prost::alloc::string::String,
 }
@@ -115,8 +124,9 @@ pub struct SetV86ConfigOp {
     #[prost(message, optional, tag="2")]
     pub config: ::core::option::Option<V86Config>,
 }
-/// SetV86StateOp transitions the state of an existing VmV86 object.
-/// Valid transitions are enforced by the op's state machine.
+/// SetV86StateOp changes the desired state of an existing VmV86 object.
+/// STARTING and STOPPING are accepted as compatibility aliases for RUNNING
+/// and STOPPED.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SetV86StateOp {
     /// ObjectKey is the object key of the VmV86 to update.
@@ -125,24 +135,54 @@ pub struct SetV86StateOp {
     /// State is the target state to transition to.
     #[prost(enumeration="VmState", tag="2")]
     pub state: i32,
-    /// ErrorMessage is an optional diagnostic stored when transitioning to
-    /// VmState_ERROR. Ignored for non-ERROR transitions.
+    /// ErrorMessage is an optional diagnostic for legacy callers. Runtime
+    /// diagnostics are written by the resource owner.
     #[prost(string, tag="3")]
     pub error_message: ::prost::alloc::string::String,
 }
-/// VmImage is a curated bundle of VM assets (WASM emulator, SeaBIOS, VGA BIOS,
-/// kernel, rootfs) linked through graph edges. The object itself carries
-/// metadata; the five UnixFS targets are attached via vmimage/wasm,
-/// vmimage/bios/seabios, vmimage/bios/vgabios, vmimage/kernel, vmimage/rootfs.
+/// ReportV86RuntimeStatusRequest is a typed status report from an instanced
+/// V86 runtime plugin.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct VmImage {
+pub struct ReportV86RuntimeStatusRequest {
+    /// ObjectKey identifies the VM resource receiving the report.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// RunGeneration fences reports from prior runtime instances.
+    #[prost(uint64, tag="2")]
+    pub run_generation: u64,
+    /// Status is the runtime observation being reported.
+    #[prost(enumeration="V86RuntimeStatus", tag="3")]
+    pub status: i32,
+    /// ErrorMessage is required for V86RuntimeStatus_ERROR.
+    #[prost(string, tag="4")]
+    pub error_message: ::prost::alloc::string::String,
+}
+/// ReportV86RuntimeStatusResponse acknowledges a runtime status report.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReportV86RuntimeStatusResponse {
+    /// Accepted is false when the report does not match the active generation.
+    #[prost(bool, tag="1")]
+    pub accepted: bool,
+    /// RunGeneration is the route generation used for the report.
+    #[prost(uint64, tag="2")]
+    pub run_generation: u64,
+    /// Rejection explains why a report was not accepted.
+    #[prost(string, tag="3")]
+    pub rejection: ::prost::alloc::string::String,
+}
+/// V86Image is a curated bundle of v86 assets (WASM emulator, SeaBIOS, VGA BIOS,
+/// kernel, rootfs) linked through graph edges. The object itself carries
+/// metadata; the five UnixFS targets are attached via v86image/wasm,
+/// v86image/bios/seabios, v86image/bios/vgabios, v86image/kernel, v86image/rootfs.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct V86Image {
     /// Name is the human-readable name of the image.
     #[prost(string, tag="1")]
     pub name: ::prost::alloc::string::String,
     /// Version identifies this revision of the image.
     #[prost(string, tag="2")]
     pub version: ::prost::alloc::string::String,
-    /// Platform identifies the target VM platform, e.g. "v86".
+    /// Platform identifies the target VM platform. Must be "v86".
     #[prost(string, tag="3")]
     pub platform: ::prost::alloc::string::String,
     /// Distro is the distribution name, e.g. "debian".
@@ -160,55 +200,55 @@ pub struct VmImage {
     /// CreatedAt is the creation timestamp.
     ///
     /// Links (via graph edges, not proto fields):
-    ///    vmimage/wasm          -> UnixFS object (emulator WASM binary)
-    ///    vmimage/bios/seabios  -> UnixFS object (SeaBIOS)
-    ///    vmimage/bios/vgabios  -> UnixFS object (VGA BIOS)
-    ///    vmimage/kernel        -> UnixFS object (kernel image)
-    ///    vmimage/rootfs        -> UnixFS object (rootfs archive)
+    ///    v86image/wasm          -> UnixFS object (emulator WASM binary)
+    ///    v86image/bios/seabios  -> UnixFS object (SeaBIOS)
+    ///    v86image/bios/vgabios  -> UnixFS object (VGA BIOS)
+    ///    v86image/kernel        -> UnixFS object (kernel image)
+    ///    v86image/rootfs        -> UnixFS object (rootfs archive)
     #[prost(message, optional, tag="8")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
 }
-/// CreateVmImageOp creates a new VmImage world object. Metadata is supplied
+/// CreateV86ImageOp creates a new V86Image world object. Metadata is supplied
 /// inline; the five UnixFS edges are set separately via SetGraphQuad.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CreateVmImageOp {
-    /// ObjectKey is the key to create the VmImage at.
+pub struct CreateV86ImageOp {
+    /// ObjectKey is the key to create the V86Image at.
     #[prost(string, tag="1")]
     pub object_key: ::prost::alloc::string::String,
-    /// Image carries the metadata for the new VmImage. Name / platform / tags
+    /// Image carries the metadata for the new V86Image. Name / platform / tags
     /// are required; the remaining fields are optional.
     #[prost(message, optional, tag="2")]
-    pub image: ::core::option::Option<VmImage>,
+    pub image: ::core::option::Option<V86Image>,
     /// Timestamp is the creation timestamp. Stored on the block as CreatedAt.
     #[prost(message, optional, tag="3")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
 }
-/// SetVmImageMetadataOp replaces the metadata fields on an existing VmImage.
+/// SetV86ImageMetadataOp replaces the metadata fields on an existing V86Image.
 /// The four UnixFS edges are immutable post-create; use graph-quad ops on a
-/// fresh VmImage to change asset bindings.
+/// fresh V86Image to change asset bindings.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SetVmImageMetadataOp {
-    /// ObjectKey is the key of the VmImage to update.
+pub struct SetV86ImageMetadataOp {
+    /// ObjectKey is the key of the V86Image to update.
     #[prost(string, tag="1")]
     pub object_key: ::prost::alloc::string::String,
     /// Image carries the new metadata. CreatedAt is preserved from the stored
-    /// block; any CreatedAt on the supplied VmImage is ignored.
+    /// block; any CreatedAt on the supplied V86Image is ignored.
     #[prost(message, optional, tag="2")]
-    pub image: ::core::option::Option<VmImage>,
+    pub image: ::core::option::Option<V86Image>,
 }
-/// VmState is the state of a virtual machine instance.
+/// VmState is the desired state of a virtual machine instance.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum VmState {
-    /// VmState_STOPPED means the VM is not running.
+    /// VmState_STOPPED means the VM should not be running.
     Stopped = 0,
-    /// VmState_STARTING means the VM is booting up.
+    /// VmState_STARTING is retained as a start-request compatibility value.
     Starting = 1,
-    /// VmState_RUNNING means the VM is running normally.
+    /// VmState_RUNNING means the VM should be running.
     Running = 2,
-    /// VmState_STOPPING means the VM is shutting down.
+    /// VmState_STOPPING is retained as a stop-request compatibility value.
     Stopping = 3,
-    /// VmState_ERROR means the VM exited with an error.
+    /// VmState_ERROR is reserved for observed runtime failures.
     Error = 4,
 }
 impl VmState {
@@ -233,6 +273,47 @@ impl VmState {
             "VmState_RUNNING" => Some(Self::Running),
             "VmState_STOPPING" => Some(Self::Stopping),
             "VmState_ERROR" => Some(Self::Error),
+            _ => None,
+        }
+    }
+}
+/// V86RuntimeStatus is a status reported by an instanced V86 runtime plugin.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum V86RuntimeStatus {
+    /// V86RuntimeStatus_UNKNOWN is unset.
+    Unknown = 0,
+    /// V86RuntimeStatus_BOOTING means the emulator is loading or booting.
+    Booting = 1,
+    /// V86RuntimeStatus_READY means the v86min guest-ready marker was observed.
+    Ready = 2,
+    /// V86RuntimeStatus_STOPPED means the emulator stopped cleanly.
+    Stopped = 3,
+    /// V86RuntimeStatus_ERROR means the emulator reached a terminal failure.
+    Error = 4,
+}
+impl V86RuntimeStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "V86RuntimeStatus_UNKNOWN",
+            Self::Booting => "V86RuntimeStatus_BOOTING",
+            Self::Ready => "V86RuntimeStatus_READY",
+            Self::Stopped => "V86RuntimeStatus_STOPPED",
+            Self::Error => "V86RuntimeStatus_ERROR",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "V86RuntimeStatus_UNKNOWN" => Some(Self::Unknown),
+            "V86RuntimeStatus_BOOTING" => Some(Self::Booting),
+            "V86RuntimeStatus_READY" => Some(Self::Ready),
+            "V86RuntimeStatus_STOPPED" => Some(Self::Stopped),
+            "V86RuntimeStatus_ERROR" => Some(Self::Error),
             _ => None,
         }
     }

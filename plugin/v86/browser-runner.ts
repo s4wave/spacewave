@@ -45,6 +45,7 @@ export type V86RunnerContract = {
 
 export type BrowserV86Runtime = {
   serialChannelName: string
+  ready: Promise<void>
   stop(): void
 }
 
@@ -58,6 +59,11 @@ const wasmPageBytes = 64 * 1024
 const v86GuestMemoryBytes = 256 * 1024 * 1024
 const v86VgaMemoryBytes = 2 * 1024 * 1024
 const v86WasmMemoryHeadroomBytes = 16 * 1024 * 1024
+// v86minBootReadyMarker identifies the first guest output that proves the
+// kernel and init path reached an interactive boot state.
+export const v86minBootReadyMarker = /(?:login:|# |\$ |Welcome)/
+
+const v86GuestFailureMarker = /(?:kernel panic|panic:|v86 runtime error)/i
 
 function defaultV86ModuleLoader(): Promise<V86Module> {
   return import('@aptre/v86')
@@ -71,9 +77,7 @@ export function detectV86RuntimeEnvironment(
   const hasWindow = typeof values.window !== 'undefined'
   const hasSelf = typeof values.self !== 'undefined'
   const executionOwner =
-    hasDocument && hasWindow ? 'main-document'
-    : hasSelf ? 'worker'
-    : 'unknown'
+    hasDocument && hasWindow ? 'main-document' : hasSelf ? 'worker' : 'unknown'
 
   return {
     executionOwner,
@@ -171,6 +175,21 @@ export async function startBrowserV86Runtime(
   const serialChannel = new BroadcastChannel(serialChannelName)
   let stopped = false
   let emulator: V86Emulator | undefined
+  let serialText = ''
+  let readySettled = false
+  const readyResolvers = Promise.withResolvers<void>()
+  const ready = readyResolvers.promise
+  const resolveReady = readyResolvers.resolve
+  const rejectReady = readyResolvers.reject
+  const settleReady = (error?: Error) => {
+    if (readySettled) return
+    readySettled = true
+    if (error) {
+      rejectReady(error)
+    } else {
+      resolveReady()
+    }
+  }
 
   try {
     const minimumWasmMemoryBytes =
@@ -178,15 +197,18 @@ export async function startBrowserV86Runtime(
 
     emulator = new V86({
       wasm_fn: ({ env }: { env: WebAssembly.ModuleImports }) =>
-        instantiateV86Wasm(options.assets.wasm, { env }, minimumWasmMemoryBytes),
+        instantiateV86Wasm(
+          options.assets.wasm,
+          { env },
+          minimumWasmMemoryBytes,
+        ),
       memory_size: v86GuestMemoryBytes,
       vga_memory_size: v86VgaMemoryBytes,
       bios: { buffer: viewBuffer(options.assets.bios) },
       vga_bios: { buffer: viewBuffer(options.assets.vgaBios) },
       bzimage: { buffer: viewBuffer(options.assets.kernel) },
       // Boot through /sbin/init so busybox gives ttyS0 job control; bash PID 1 breaks Ctrl-C/SIGINT.
-      cmdline:
-        'rw init=/sbin/init root=v86fs rootfstype=v86fs console=ttyS0',
+      cmdline: 'rw init=/sbin/init root=v86fs rootfstype=v86fs console=ttyS0',
       virtio_v86fs: true,
       virtio_v86fs_adapter: options.v86fsAdapter,
       disable_keyboard: true,
@@ -197,6 +219,12 @@ export async function startBrowserV86Runtime(
 
     emulator.add_listener('serial0-output-byte', (byte: number) => {
       serialChannel.postMessage({ dir: 'out', byte })
+      serialText = (serialText + String.fromCharCode(byte)).slice(-8192)
+      if (v86GuestFailureMarker.test(serialText)) {
+        settleReady(new Error('v86min guest boot failed'))
+      } else if (v86minBootReadyMarker.test(serialText)) {
+        settleReady()
+      }
     })
     serialChannel.onmessage = (ev: MessageEvent<SerialFrame>) => {
       const frame = ev.data
@@ -208,15 +236,18 @@ export async function startBrowserV86Runtime(
 
     return {
       serialChannelName,
+      ready,
       stop() {
         if (stopped) return
         stopped = true
+        settleReady()
         serialChannel.close()
         emulator.stop()
         emulator.destroy()
       },
     }
   } catch (err) {
+    settleReady(err instanceof Error ? err : new Error(String(err)))
     serialChannel.close()
     emulator?.stop()
     emulator?.destroy()

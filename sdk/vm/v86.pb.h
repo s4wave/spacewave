@@ -58,6 +58,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 }  // extern "C"
 namespace s4wave {
 namespace vm {
+enum V86RuntimeStatus : int;
+extern const uint32_t V86RuntimeStatus_internal_data_[];
 enum VmState : int;
 extern const uint32_t VmState_internal_data_[];
 class CreateV86ImageOp;
@@ -68,6 +70,14 @@ class CreateVmV86Op;
 struct CreateVmV86OpDefaultTypeInternal;
 extern CreateVmV86OpDefaultTypeInternal _CreateVmV86Op_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull CreateVmV86Op_class_data_;
+class ReportV86RuntimeStatusRequest;
+struct ReportV86RuntimeStatusRequestDefaultTypeInternal;
+extern ReportV86RuntimeStatusRequestDefaultTypeInternal _ReportV86RuntimeStatusRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ReportV86RuntimeStatusRequest_class_data_;
+class ReportV86RuntimeStatusResponse;
+struct ReportV86RuntimeStatusResponseDefaultTypeInternal;
+extern ReportV86RuntimeStatusResponseDefaultTypeInternal _ReportV86RuntimeStatusResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ReportV86RuntimeStatusResponse_class_data_;
 class SetV86ConfigOp;
 struct SetV86ConfigOpDefaultTypeInternal;
 extern SetV86ConfigOpDefaultTypeInternal _SetV86ConfigOp_default_instance_;
@@ -100,6 +110,9 @@ extern const ::google::protobuf::internal::ClassDataFull VmV86_class_data_;
 }  // namespace s4wave
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::s4wave::vm::V86RuntimeStatus_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::vm::V86RuntimeStatus>;
 template <>
 internal::EnumTraitsT<::s4wave::vm::VmState_internal_data_>
     internal::EnumTraitsImpl::value<::s4wave::vm::VmState>;
@@ -145,6 +158,45 @@ inline const ::std::string& VmState_Name(VmState value) {
 inline bool VmState_Parse(
     ::absl::string_view name, VmState* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<VmState>(VmState_descriptor(), name,
+                                           value);
+}
+enum V86RuntimeStatus : int {
+  V86RuntimeStatus_UNKNOWN = 0,
+  V86RuntimeStatus_BOOTING = 1,
+  V86RuntimeStatus_READY = 2,
+  V86RuntimeStatus_STOPPED = 3,
+  V86RuntimeStatus_ERROR = 4,
+  V86RuntimeStatus_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  V86RuntimeStatus_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t V86RuntimeStatus_internal_data_[];
+inline constexpr V86RuntimeStatus V86RuntimeStatus_MIN =
+    static_cast<V86RuntimeStatus>(0);
+inline constexpr V86RuntimeStatus V86RuntimeStatus_MAX =
+    static_cast<V86RuntimeStatus>(4);
+inline bool V86RuntimeStatus_IsValid(int value) {
+  return 0 <= value && value <= 4;
+}
+inline constexpr int V86RuntimeStatus_ARRAYSIZE = 4 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL V86RuntimeStatus_descriptor();
+template <typename T>
+const ::std::string& V86RuntimeStatus_Name(T value) {
+  static_assert(::std::is_same<T, V86RuntimeStatus>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to V86RuntimeStatus_Name().");
+  return V86RuntimeStatus_Name(static_cast<V86RuntimeStatus>(value));
+}
+template <>
+inline const ::std::string& V86RuntimeStatus_Name(V86RuntimeStatus value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<V86RuntimeStatus_descriptor, 0, 4>(
+      static_cast<int>(value));
+}
+inline bool V86RuntimeStatus_Parse(
+    ::absl::string_view name, V86RuntimeStatus* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<V86RuntimeStatus>(V86RuntimeStatus_descriptor(), name,
                                            value);
 }
 
@@ -601,6 +653,461 @@ class SetV86StateOp final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull SetV86StateOp_class_data_;
 // -------------------------------------------------------------------
 
+class ReportV86RuntimeStatusResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.vm.ReportV86RuntimeStatusResponse) */ {
+ public:
+  inline ReportV86RuntimeStatusResponse() : ReportV86RuntimeStatusResponse(nullptr) {}
+  ~ReportV86RuntimeStatusResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ReportV86RuntimeStatusResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ReportV86RuntimeStatusResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ReportV86RuntimeStatusResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline ReportV86RuntimeStatusResponse(const ReportV86RuntimeStatusResponse& from) : ReportV86RuntimeStatusResponse(nullptr, from) {}
+  inline ReportV86RuntimeStatusResponse(ReportV86RuntimeStatusResponse&& from) noexcept
+      : ReportV86RuntimeStatusResponse(nullptr, ::std::move(from)) {}
+  inline ReportV86RuntimeStatusResponse& operator=(const ReportV86RuntimeStatusResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ReportV86RuntimeStatusResponse& operator=(ReportV86RuntimeStatusResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ReportV86RuntimeStatusResponse& default_instance() {
+    return *reinterpret_cast<const ReportV86RuntimeStatusResponse*>(
+        &_ReportV86RuntimeStatusResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 7;
+  friend void swap(ReportV86RuntimeStatusResponse& a, ReportV86RuntimeStatusResponse& b) { a.Swap(&b); }
+  inline void Swap(ReportV86RuntimeStatusResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ReportV86RuntimeStatusResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ReportV86RuntimeStatusResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ReportV86RuntimeStatusResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ReportV86RuntimeStatusResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ReportV86RuntimeStatusResponse& from) { ReportV86RuntimeStatusResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ReportV86RuntimeStatusResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.vm.ReportV86RuntimeStatusResponse"; }
+
+  explicit ReportV86RuntimeStatusResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ReportV86RuntimeStatusResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ReportV86RuntimeStatusResponse& from);
+  ReportV86RuntimeStatusResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ReportV86RuntimeStatusResponse&& from) noexcept
+      : ReportV86RuntimeStatusResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kRejectionFieldNumber = 3,
+    kRunGenerationFieldNumber = 2,
+    kAcceptedFieldNumber = 1,
+  };
+  // string rejection = 3;
+  void clear_rejection() ;
+  const ::std::string& rejection() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_rejection(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_rejection();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_rejection();
+  void set_allocated_rejection(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_rejection() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_rejection(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_rejection();
+
+  public:
+  // uint64 run_generation = 2;
+  void clear_run_generation() ;
+  ::uint64_t run_generation() const;
+  void set_run_generation(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_run_generation() const;
+  void _internal_set_run_generation(::uint64_t value);
+
+  public:
+  // bool accepted = 1;
+  void clear_accepted() ;
+  bool accepted() const;
+  void set_accepted(bool value);
+
+  private:
+  bool _internal_accepted() const;
+  void _internal_set_accepted(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.vm.ReportV86RuntimeStatusResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 58,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ReportV86RuntimeStatusResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr rejection_;
+    ::uint64_t run_generation_;
+    bool accepted_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ReportV86RuntimeStatusResponse_class_data_;
+// -------------------------------------------------------------------
+
+class ReportV86RuntimeStatusRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.vm.ReportV86RuntimeStatusRequest) */ {
+ public:
+  inline ReportV86RuntimeStatusRequest() : ReportV86RuntimeStatusRequest(nullptr) {}
+  ~ReportV86RuntimeStatusRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ReportV86RuntimeStatusRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ReportV86RuntimeStatusRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ReportV86RuntimeStatusRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline ReportV86RuntimeStatusRequest(const ReportV86RuntimeStatusRequest& from) : ReportV86RuntimeStatusRequest(nullptr, from) {}
+  inline ReportV86RuntimeStatusRequest(ReportV86RuntimeStatusRequest&& from) noexcept
+      : ReportV86RuntimeStatusRequest(nullptr, ::std::move(from)) {}
+  inline ReportV86RuntimeStatusRequest& operator=(const ReportV86RuntimeStatusRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ReportV86RuntimeStatusRequest& operator=(ReportV86RuntimeStatusRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ReportV86RuntimeStatusRequest& default_instance() {
+    return *reinterpret_cast<const ReportV86RuntimeStatusRequest*>(
+        &_ReportV86RuntimeStatusRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 6;
+  friend void swap(ReportV86RuntimeStatusRequest& a, ReportV86RuntimeStatusRequest& b) { a.Swap(&b); }
+  inline void Swap(ReportV86RuntimeStatusRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ReportV86RuntimeStatusRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ReportV86RuntimeStatusRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ReportV86RuntimeStatusRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ReportV86RuntimeStatusRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ReportV86RuntimeStatusRequest& from) { ReportV86RuntimeStatusRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ReportV86RuntimeStatusRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.vm.ReportV86RuntimeStatusRequest"; }
+
+  explicit ReportV86RuntimeStatusRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ReportV86RuntimeStatusRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ReportV86RuntimeStatusRequest& from);
+  ReportV86RuntimeStatusRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ReportV86RuntimeStatusRequest&& from) noexcept
+      : ReportV86RuntimeStatusRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kObjectKeyFieldNumber = 1,
+    kErrorMessageFieldNumber = 4,
+    kRunGenerationFieldNumber = 2,
+    kStatusFieldNumber = 3,
+  };
+  // string object_key = 1;
+  void clear_object_key() ;
+  const ::std::string& object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_object_key();
+  void set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
+
+  public:
+  // string error_message = 4;
+  void clear_error_message() ;
+  const ::std::string& error_message() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_error_message(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_error_message();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_error_message();
+  void set_allocated_error_message(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_error_message() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_error_message(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_error_message();
+
+  public:
+  // uint64 run_generation = 2;
+  void clear_run_generation() ;
+  ::uint64_t run_generation() const;
+  void set_run_generation(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_run_generation() const;
+  void _internal_set_run_generation(::uint64_t value);
+
+  public:
+  // .s4wave.vm.V86RuntimeStatus status = 3;
+  void clear_status() ;
+  ::s4wave::vm::V86RuntimeStatus status() const;
+  void set_status(::s4wave::vm::V86RuntimeStatus value);
+
+  private:
+  ::s4wave::vm::V86RuntimeStatus _internal_status() const;
+  void _internal_set_status(::s4wave::vm::V86RuntimeStatus value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.vm.ReportV86RuntimeStatusRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   0, 71,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ReportV86RuntimeStatusRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr object_key_;
+    ::google::protobuf::internal::ArenaStringPtr error_message_;
+    ::uint64_t run_generation_;
+    int status_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fvm_2fv86_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ReportV86RuntimeStatusRequest_class_data_;
+// -------------------------------------------------------------------
+
 class V86Image final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.vm.V86Image) */ {
  public:
@@ -656,7 +1163,7 @@ class V86Image final : public ::google::protobuf::Message
     return *reinterpret_cast<const V86Image*>(
         &_V86Image_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(V86Image& a, V86Image& b) { a.Swap(&b); }
   inline void Swap(V86Image* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1348,6 +1855,8 @@ class VmV86 final : public ::google::protobuf::Message
     kConfigFieldNumber = 3,
     kCreatedAtFieldNumber = 4,
     kStateFieldNumber = 1,
+    kObservedStateFieldNumber = 6,
+    kRunGenerationFieldNumber = 7,
   };
   // string name = 2;
   void clear_name() ;
@@ -1419,11 +1928,31 @@ class VmV86 final : public ::google::protobuf::Message
   void _internal_set_state(::s4wave::vm::VmState value);
 
   public:
+  // .s4wave.vm.VmState observed_state = 6;
+  void clear_observed_state() ;
+  ::s4wave::vm::VmState observed_state() const;
+  void set_observed_state(::s4wave::vm::VmState value);
+
+  private:
+  ::s4wave::vm::VmState _internal_observed_state() const;
+  void _internal_set_observed_state(::s4wave::vm::VmState value);
+
+  public:
+  // uint64 run_generation = 7;
+  void clear_run_generation() ;
+  ::uint64_t run_generation() const;
+  void set_run_generation(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_run_generation() const;
+  void _internal_set_run_generation(::uint64_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.vm.VmV86)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 5,
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
                                    2, 41,
                                    2>
       _table_;
@@ -1450,6 +1979,8 @@ class VmV86 final : public ::google::protobuf::Message
     ::s4wave::vm::V86Config* PROTOBUF_NULLABLE config_;
     ::google::protobuf::Timestamp* PROTOBUF_NULLABLE created_at_;
     int state_;
+    int observed_state_;
+    ::uint64_t run_generation_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1514,7 +2045,7 @@ class SetV86ImageMetadataOp final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetV86ImageMetadataOp*>(
         &_SetV86ImageMetadataOp_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(SetV86ImageMetadataOp& a, SetV86ImageMetadataOp& b) { a.Swap(&b); }
   inline void Swap(SetV86ImageMetadataOp* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2269,7 +2800,7 @@ class CreateV86ImageOp final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateV86ImageOp*>(
         &_CreateV86ImageOp_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(CreateV86ImageOp& a, CreateV86ImageOp& b) { a.Swap(&b); }
   inline void Swap(CreateV86ImageOp* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3254,6 +3785,56 @@ inline void VmV86::set_allocated_error_message(::std::string* PROTOBUF_NULLABLE 
   // @@protoc_insertion_point(field_set_allocated:s4wave.vm.VmV86.error_message)
 }
 
+// .s4wave.vm.VmState observed_state = 6;
+inline void VmV86::clear_observed_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.observed_state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::s4wave::vm::VmState VmV86::observed_state() const {
+  // @@protoc_insertion_point(field_get:s4wave.vm.VmV86.observed_state)
+  return _internal_observed_state();
+}
+inline void VmV86::set_observed_state(::s4wave::vm::VmState value) {
+  _internal_set_observed_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:s4wave.vm.VmV86.observed_state)
+}
+inline ::s4wave::vm::VmState VmV86::_internal_observed_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::vm::VmState>(_impl_.observed_state_);
+}
+inline void VmV86::_internal_set_observed_state(::s4wave::vm::VmState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.observed_state_ = value;
+}
+
+// uint64 run_generation = 7;
+inline void VmV86::clear_run_generation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.run_generation_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::uint64_t VmV86::run_generation() const {
+  // @@protoc_insertion_point(field_get:s4wave.vm.VmV86.run_generation)
+  return _internal_run_generation();
+}
+inline void VmV86::set_run_generation(::uint64_t value) {
+  _internal_set_run_generation(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:s4wave.vm.VmV86.run_generation)
+}
+inline ::uint64_t VmV86::_internal_run_generation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.run_generation_;
+}
+inline void VmV86::_internal_set_run_generation(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.run_generation_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // CreateVmV86Op
@@ -4230,6 +4811,309 @@ inline void SetV86StateOp::set_allocated_error_message(::std::string* PROTOBUF_N
     _impl_.error_message_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:s4wave.vm.SetV86StateOp.error_message)
+}
+
+// -------------------------------------------------------------------
+
+// ReportV86RuntimeStatusRequest
+
+// string object_key = 1;
+inline void ReportV86RuntimeStatusRequest::clear_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ReportV86RuntimeStatusRequest::object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.vm.ReportV86RuntimeStatusRequest.object_key)
+  return _internal_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ReportV86RuntimeStatusRequest::set_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.vm.ReportV86RuntimeStatusRequest.object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL ReportV86RuntimeStatusRequest::mutable_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_object_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.ReportV86RuntimeStatusRequest.object_key)
+  return _s;
+}
+inline const ::std::string& ReportV86RuntimeStatusRequest::_internal_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_key_.Get();
+}
+inline void ReportV86RuntimeStatusRequest::_internal_set_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ReportV86RuntimeStatusRequest::_internal_mutable_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ReportV86RuntimeStatusRequest::release_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.vm.ReportV86RuntimeStatusRequest.object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ReportV86RuntimeStatusRequest::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_key_.IsDefault()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.ReportV86RuntimeStatusRequest.object_key)
+}
+
+// uint64 run_generation = 2;
+inline void ReportV86RuntimeStatusRequest::clear_run_generation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.run_generation_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t ReportV86RuntimeStatusRequest::run_generation() const {
+  // @@protoc_insertion_point(field_get:s4wave.vm.ReportV86RuntimeStatusRequest.run_generation)
+  return _internal_run_generation();
+}
+inline void ReportV86RuntimeStatusRequest::set_run_generation(::uint64_t value) {
+  _internal_set_run_generation(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.vm.ReportV86RuntimeStatusRequest.run_generation)
+}
+inline ::uint64_t ReportV86RuntimeStatusRequest::_internal_run_generation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.run_generation_;
+}
+inline void ReportV86RuntimeStatusRequest::_internal_set_run_generation(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.run_generation_ = value;
+}
+
+// .s4wave.vm.V86RuntimeStatus status = 3;
+inline void ReportV86RuntimeStatusRequest::clear_status() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::s4wave::vm::V86RuntimeStatus ReportV86RuntimeStatusRequest::status() const {
+  // @@protoc_insertion_point(field_get:s4wave.vm.ReportV86RuntimeStatusRequest.status)
+  return _internal_status();
+}
+inline void ReportV86RuntimeStatusRequest::set_status(::s4wave::vm::V86RuntimeStatus value) {
+  _internal_set_status(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:s4wave.vm.ReportV86RuntimeStatusRequest.status)
+}
+inline ::s4wave::vm::V86RuntimeStatus ReportV86RuntimeStatusRequest::_internal_status() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::vm::V86RuntimeStatus>(_impl_.status_);
+}
+inline void ReportV86RuntimeStatusRequest::_internal_set_status(::s4wave::vm::V86RuntimeStatus value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.status_ = value;
+}
+
+// string error_message = 4;
+inline void ReportV86RuntimeStatusRequest::clear_error_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_message_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& ReportV86RuntimeStatusRequest::error_message() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.vm.ReportV86RuntimeStatusRequest.error_message)
+  return _internal_error_message();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ReportV86RuntimeStatusRequest::set_error_message(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.error_message_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.vm.ReportV86RuntimeStatusRequest.error_message)
+}
+inline ::std::string* PROTOBUF_NONNULL ReportV86RuntimeStatusRequest::mutable_error_message()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_error_message();
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.ReportV86RuntimeStatusRequest.error_message)
+  return _s;
+}
+inline const ::std::string& ReportV86RuntimeStatusRequest::_internal_error_message() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.error_message_.Get();
+}
+inline void ReportV86RuntimeStatusRequest::_internal_set_error_message(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_message_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ReportV86RuntimeStatusRequest::_internal_mutable_error_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.error_message_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ReportV86RuntimeStatusRequest::release_error_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.vm.ReportV86RuntimeStatusRequest.error_message)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.error_message_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.error_message_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ReportV86RuntimeStatusRequest::set_allocated_error_message(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.error_message_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_message_.IsDefault()) {
+    _impl_.error_message_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.ReportV86RuntimeStatusRequest.error_message)
+}
+
+// -------------------------------------------------------------------
+
+// ReportV86RuntimeStatusResponse
+
+// bool accepted = 1;
+inline void ReportV86RuntimeStatusResponse::clear_accepted() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.accepted_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline bool ReportV86RuntimeStatusResponse::accepted() const {
+  // @@protoc_insertion_point(field_get:s4wave.vm.ReportV86RuntimeStatusResponse.accepted)
+  return _internal_accepted();
+}
+inline void ReportV86RuntimeStatusResponse::set_accepted(bool value) {
+  _internal_set_accepted(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.vm.ReportV86RuntimeStatusResponse.accepted)
+}
+inline bool ReportV86RuntimeStatusResponse::_internal_accepted() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.accepted_;
+}
+inline void ReportV86RuntimeStatusResponse::_internal_set_accepted(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.accepted_ = value;
+}
+
+// uint64 run_generation = 2;
+inline void ReportV86RuntimeStatusResponse::clear_run_generation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.run_generation_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::uint64_t ReportV86RuntimeStatusResponse::run_generation() const {
+  // @@protoc_insertion_point(field_get:s4wave.vm.ReportV86RuntimeStatusResponse.run_generation)
+  return _internal_run_generation();
+}
+inline void ReportV86RuntimeStatusResponse::set_run_generation(::uint64_t value) {
+  _internal_set_run_generation(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:s4wave.vm.ReportV86RuntimeStatusResponse.run_generation)
+}
+inline ::uint64_t ReportV86RuntimeStatusResponse::_internal_run_generation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.run_generation_;
+}
+inline void ReportV86RuntimeStatusResponse::_internal_set_run_generation(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.run_generation_ = value;
+}
+
+// string rejection = 3;
+inline void ReportV86RuntimeStatusResponse::clear_rejection() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.rejection_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ReportV86RuntimeStatusResponse::rejection() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.vm.ReportV86RuntimeStatusResponse.rejection)
+  return _internal_rejection();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ReportV86RuntimeStatusResponse::set_rejection(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.rejection_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.vm.ReportV86RuntimeStatusResponse.rejection)
+}
+inline ::std::string* PROTOBUF_NONNULL ReportV86RuntimeStatusResponse::mutable_rejection()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_rejection();
+  // @@protoc_insertion_point(field_mutable:s4wave.vm.ReportV86RuntimeStatusResponse.rejection)
+  return _s;
+}
+inline const ::std::string& ReportV86RuntimeStatusResponse::_internal_rejection() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.rejection_.Get();
+}
+inline void ReportV86RuntimeStatusResponse::_internal_set_rejection(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.rejection_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ReportV86RuntimeStatusResponse::_internal_mutable_rejection() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.rejection_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ReportV86RuntimeStatusResponse::release_rejection() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.vm.ReportV86RuntimeStatusResponse.rejection)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.rejection_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.rejection_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ReportV86RuntimeStatusResponse::set_allocated_rejection(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.rejection_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.rejection_.IsDefault()) {
+    _impl_.rejection_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.vm.ReportV86RuntimeStatusResponse.rejection)
 }
 
 // -------------------------------------------------------------------
@@ -5237,6 +6121,12 @@ struct is_proto_enum<::s4wave::vm::VmState> : std::true_type {};
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::vm::VmState>() {
   return ::s4wave::vm::VmState_descriptor();
+}
+template <>
+struct is_proto_enum<::s4wave::vm::V86RuntimeStatus> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::vm::V86RuntimeStatus>() {
+  return ::s4wave::vm::V86RuntimeStatus_descriptor();
 }
 
 }  // namespace protobuf

@@ -107,7 +107,7 @@ pub struct VmMount {
 /// Linked to BIOS, kernel, and rootfs images via graph edges.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VmV86 {
-    /// State is the current VM state.
+    /// State is the desired VM state. Runtime observations are in observed_state.
     #[prost(enumeration="VmState", tag="1")]
     pub state: i32,
     /// Name is the human-readable name of this VM instance.
@@ -119,8 +119,13 @@ pub struct VmV86 {
     /// CreatedAt is the creation timestamp.
     #[prost(message, optional, tag="4")]
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
-    /// ErrorMessage is a diagnostic attached when State is VmState_ERROR.
-    /// Cleared on any successful transition away from VmState_ERROR.
+    /// ErrorMessage is the terminal diagnostic for the observed generation.
+    #[prost(string, tag="5")]
+    pub error_message: ::prost::alloc::string::String,
+    /// ObservedState is the runtime state committed by the VM resource owner.
+    #[prost(enumeration="VmState", tag="6")]
+    pub observed_state: i32,
+    /// RunGeneration fences runtime reports from prior starts or stops.
     ///
     /// Links (via graph edges, not proto fields):
     ///    v86/image           -> V86Image object (required; supplies default
@@ -131,8 +136,8 @@ pub struct VmV86 {
     ///    v86/rootfs-override -> UnixFS object (optional, per-VM rootfs override)
     ///    v86/bios-override   -> UnixFS object (optional, per-VM BIOS override)
     ///    v86/wasm-override   -> UnixFS object (optional, per-VM emulator override)
-    #[prost(string, tag="5")]
-    pub error_message: ::prost::alloc::string::String,
+    #[prost(uint64, tag="7")]
+    pub run_generation: u64,
 }
 /// CreateVmV86Op creates a new VmV86 world object. The V86Image at
 /// =image_object_key= supplies the four UnixFS asset edges (WASM, BIOS, kernel,
@@ -183,8 +188,9 @@ pub struct SetV86ConfigOp {
     #[prost(message, optional, tag="2")]
     pub config: ::core::option::Option<V86Config>,
 }
-/// SetV86StateOp transitions the state of an existing VmV86 object.
-/// Valid transitions are enforced by the op's state machine.
+/// SetV86StateOp changes the desired state of an existing VmV86 object.
+/// STARTING and STOPPING are accepted as compatibility aliases for RUNNING
+/// and STOPPED.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SetV86StateOp {
     /// ObjectKey is the object key of the VmV86 to update.
@@ -193,10 +199,40 @@ pub struct SetV86StateOp {
     /// State is the target state to transition to.
     #[prost(enumeration="VmState", tag="2")]
     pub state: i32,
-    /// ErrorMessage is an optional diagnostic stored when transitioning to
-    /// VmState_ERROR. Ignored for non-ERROR transitions.
+    /// ErrorMessage is an optional diagnostic for legacy callers. Runtime
+    /// diagnostics are written by the resource owner.
     #[prost(string, tag="3")]
     pub error_message: ::prost::alloc::string::String,
+}
+/// ReportV86RuntimeStatusRequest is a typed status report from an instanced
+/// V86 runtime plugin.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReportV86RuntimeStatusRequest {
+    /// ObjectKey identifies the VM resource receiving the report.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// RunGeneration fences reports from prior runtime instances.
+    #[prost(uint64, tag="2")]
+    pub run_generation: u64,
+    /// Status is the runtime observation being reported.
+    #[prost(enumeration="V86RuntimeStatus", tag="3")]
+    pub status: i32,
+    /// ErrorMessage is required for V86RuntimeStatus_ERROR.
+    #[prost(string, tag="4")]
+    pub error_message: ::prost::alloc::string::String,
+}
+/// ReportV86RuntimeStatusResponse acknowledges a runtime status report.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReportV86RuntimeStatusResponse {
+    /// Accepted is false when the report does not match the active generation.
+    #[prost(bool, tag="1")]
+    pub accepted: bool,
+    /// RunGeneration is the route generation used for the report.
+    #[prost(uint64, tag="2")]
+    pub run_generation: u64,
+    /// Rejection explains why a report was not accepted.
+    #[prost(string, tag="3")]
+    pub rejection: ::prost::alloc::string::String,
 }
 /// V86Image is a curated bundle of v86 assets (WASM emulator, SeaBIOS, VGA BIOS,
 /// kernel, rootfs) linked through graph edges. The object itself carries
@@ -264,19 +300,19 @@ pub struct SetV86ImageMetadataOp {
     #[prost(message, optional, tag="2")]
     pub image: ::core::option::Option<V86Image>,
 }
-/// VmState is the state of a virtual machine instance.
+/// VmState is the desired state of a virtual machine instance.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum VmState {
-    /// VmState_STOPPED means the VM is not running.
+    /// VmState_STOPPED means the VM should not be running.
     Stopped = 0,
-    /// VmState_STARTING means the VM is booting up.
+    /// VmState_STARTING is retained as a start-request compatibility value.
     Starting = 1,
-    /// VmState_RUNNING means the VM is running normally.
+    /// VmState_RUNNING means the VM should be running.
     Running = 2,
-    /// VmState_STOPPING means the VM is shutting down.
+    /// VmState_STOPPING is retained as a stop-request compatibility value.
     Stopping = 3,
-    /// VmState_ERROR means the VM exited with an error.
+    /// VmState_ERROR is reserved for observed runtime failures.
     Error = 4,
 }
 impl VmState {
@@ -301,6 +337,47 @@ impl VmState {
             "VmState_RUNNING" => Some(Self::Running),
             "VmState_STOPPING" => Some(Self::Stopping),
             "VmState_ERROR" => Some(Self::Error),
+            _ => None,
+        }
+    }
+}
+/// V86RuntimeStatus is a status reported by an instanced V86 runtime plugin.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum V86RuntimeStatus {
+    /// V86RuntimeStatus_UNKNOWN is unset.
+    Unknown = 0,
+    /// V86RuntimeStatus_BOOTING means the emulator is loading or booting.
+    Booting = 1,
+    /// V86RuntimeStatus_READY means the v86min guest-ready marker was observed.
+    Ready = 2,
+    /// V86RuntimeStatus_STOPPED means the emulator stopped cleanly.
+    Stopped = 3,
+    /// V86RuntimeStatus_ERROR means the emulator reached a terminal failure.
+    Error = 4,
+}
+impl V86RuntimeStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "V86RuntimeStatus_UNKNOWN",
+            Self::Booting => "V86RuntimeStatus_BOOTING",
+            Self::Ready => "V86RuntimeStatus_READY",
+            Self::Stopped => "V86RuntimeStatus_STOPPED",
+            Self::Error => "V86RuntimeStatus_ERROR",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "V86RuntimeStatus_UNKNOWN" => Some(Self::Unknown),
+            "V86RuntimeStatus_BOOTING" => Some(Self::Booting),
+            "V86RuntimeStatus_READY" => Some(Self::Ready),
+            "V86RuntimeStatus_STOPPED" => Some(Self::Stopped),
+            "V86RuntimeStatus_ERROR" => Some(Self::Error),
             _ => None,
         }
     }
