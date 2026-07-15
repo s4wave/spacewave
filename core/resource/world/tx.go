@@ -46,7 +46,14 @@ func NewTxResource(
 	_ = s4wave_world.SRPCRegisterTxResourceService(mux, txResource)
 	// Register TypedObjectResourceService if engine is available
 	if engine != nil {
-		typedResource := NewTypedObjectResource(le, b, tx, engine)
+		typedResource := newTypedObjectResourceWithSessionPeerID(
+			le,
+			b,
+			tx,
+			engine,
+			wsResource.sessionPeerID,
+			wsResource.sessionPeerIDBound,
+		)
 		txResource.typedResource = typedResource
 		_ = s4wave_world.SRPCRegisterTypedObjectResourceService(mux, typedResource)
 	}

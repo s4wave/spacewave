@@ -14,6 +14,7 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	"github.com/s4wave/spacewave/net/peer"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/sirupsen/logrus"
 )
@@ -26,12 +27,14 @@ type WorldStateResource struct {
 	ws       world.WorldState
 	lookupOp world.LookupOp
 
-	operationObserver WorldStateOperationObserver
+	sessionPeerID      peer.ID
+	sessionPeerIDBound bool
+	operationObserver  WorldStateOperationObserver
 }
 
 // NewWorldStateResource creates a new WorldStateResource.
 //
-// lookupOp may be nil
+// lookupOp may be nil.
 func NewWorldStateResource(
 	le *logrus.Entry,
 	b bus.Bus,
@@ -63,18 +66,21 @@ func newWorldStateResource(
 	opts ...WorldStateResourceOption,
 ) *WorldStateResource {
 	wsResource := &WorldStateResource{le: le, b: b, ws: ws, lookupOp: lookupOp}
-	for _, opt := range opts {
-		if opt != nil {
-			opt(wsResource)
-		}
-	}
+	applyWorldStateResourceOptions(wsResource, opts...)
 	register := []func(srpc.Mux) error{
 		func(mux srpc.Mux) error {
 			return s4wave_world.SRPCRegisterWorldStateResourceService(mux, wsResource)
 		},
 	}
 	if engine != nil {
-		typedResource := NewTypedObjectResource(le, b, ws, engine)
+		typedResource := newTypedObjectResourceWithSessionPeerID(
+			le,
+			b,
+			ws,
+			engine,
+			wsResource.sessionPeerID,
+			wsResource.sessionPeerIDBound,
+		)
 		register = append(register, func(mux srpc.Mux) error {
 			return s4wave_world.SRPCRegisterTypedObjectResourceService(mux, typedResource)
 		})

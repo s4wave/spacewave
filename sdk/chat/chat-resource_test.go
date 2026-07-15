@@ -208,7 +208,38 @@ func TestChatResourceListMessagesClampsLimitAcrossPages(t *testing.T) {
 	}
 }
 
-func TestChatResourceAnonymousSenderWhenLocalPeerUnavailable(t *testing.T) {
+func TestChatResourceAllowsAnonymousConstructionAndRead(t *testing.T) {
+	ctx := t.Context()
+	wtb, err := db_world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(wtb.Release)
+
+	ws := world.NewEngineWorldState(wtb.Engine, true)
+	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
+
+	resource := NewChatResource(ws, nil, GeneralChannelKey, "")
+	if resource == nil {
+		t.Fatal("NewChatResource returned nil")
+	}
+	info, err := resource.GetChannelInfo(ctx, &spacewave_chat_rpc.GetChannelInfoRequest{})
+	if err != nil {
+		t.Fatalf("GetChannelInfo: %v", err)
+	}
+	if info.GetName() != "General" {
+		t.Fatalf("channel name = %q, want General", info.GetName())
+	}
+	listResp, err := resource.ListMessages(ctx, &spacewave_chat_rpc.ListMessagesRequest{})
+	if err != nil {
+		t.Fatalf("ListMessages: %v", err)
+	}
+	if len(listResp.GetMessages()) != 0 {
+		t.Fatalf("ListMessages returned %d messages, want 0", len(listResp.GetMessages()))
+	}
+}
+
+func TestChatResourceRejectsAnonymousSender(t *testing.T) {
 	ctx := t.Context()
 	wtb, err := db_world_testbed.Default(ctx)
 	if err != nil {
@@ -220,15 +251,10 @@ func TestChatResourceAnonymousSenderWhenLocalPeerUnavailable(t *testing.T) {
 	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
 
 	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "")
-	sendResp, err := resource.SendMessage(ctx, &spacewave_chat_rpc.SendMessageRequest{Text: "anonymous"})
-	if err != nil {
-		t.Fatalf("SendMessage: %v", err)
+	_, err = resource.SendMessage(ctx, &spacewave_chat_rpc.SendMessageRequest{Text: "anonymous"})
+	if err != ErrChatAuthorIdentityRequired {
+		t.Fatalf("SendMessage error = %v, want %v", err, ErrChatAuthorIdentityRequired)
 	}
-	listResp, err := resource.ListMessages(ctx, &spacewave_chat_rpc.ListMessagesRequest{})
-	if err != nil {
-		t.Fatalf("ListMessages: %v", err)
-	}
-	requireChatMessages(t, listResp.GetMessages(), sendResp.GetMessageKey(), "anonymous", "")
 }
 
 func createChatChannel(t *testing.T, ctx context.Context, ws world.WorldState, objectKey, name string) {

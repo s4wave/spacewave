@@ -19,6 +19,9 @@ const defaultMessageListLimit = 50
 const maxMessageListLimit = 50
 const chatMessagePageSize = 64
 
+// ErrChatAuthorIdentityRequired is returned when a message has no authenticated author.
+var ErrChatAuthorIdentityRequired = errors.New("chat author identity required")
+
 // ChatResource serves ChatResourceService for a single chat channel object.
 type ChatResource struct {
 	ws          world.WorldState
@@ -166,6 +169,9 @@ func (r *ChatResource) SendMessage(
 	if r.engine == nil {
 		return nil, errors.New("chat resource is read-only")
 	}
+	if r.localPeerID == "" {
+		return nil, ErrChatAuthorIdentityRequired
+	}
 
 	wtx, err := r.engine.NewTransaction(ctx, true)
 	if err != nil {
@@ -205,18 +211,16 @@ func (r *ChatResource) SendMessage(
 		wtx.Discard()
 		return nil, err
 	}
-	if r.localPeerID != "" {
-		peerKey := "peer/" + r.localPeerID
-		_, found, err := wtx.GetObject(ctx, peerKey)
-		if err != nil {
+	peerKey := "peer/" + r.localPeerID
+	_, found, err := wtx.GetObject(ctx, peerKey)
+	if err != nil {
+		wtx.Discard()
+		return nil, err
+	}
+	if found {
+		if err := wtx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(msgKey, PredMessageSender.String(), peerKey, "")); err != nil {
 			wtx.Discard()
 			return nil, err
-		}
-		if found {
-			if err := wtx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(msgKey, PredMessageSender.String(), peerKey, "")); err != nil {
-				wtx.Discard()
-				return nil, err
-			}
 		}
 	}
 	if err := wtx.Commit(ctx); err != nil {

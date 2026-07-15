@@ -35,6 +35,7 @@ func NewEngineResource(
 	engineInfo *s4wave_world.EngineInfo,
 	opts ...WorldStateResourceOption,
 ) *EngineResource {
+	sessionPeerID, sessionPeerIDBound := worldStateResourceSessionPeerID(opts...)
 	engineResource := &EngineResource{
 		le:                le,
 		b:                 b,
@@ -43,7 +44,14 @@ func NewEngineResource(
 		engineInfo:        engineInfo,
 		worldStateOptions: opts,
 	}
-	engineResource.typedResource = NewTypedObjectResource(le, b, world.NewEngineWorldState(w, true), w)
+	engineResource.typedResource = newTypedObjectResourceWithSessionPeerID(
+		le,
+		b,
+		world.NewEngineWorldState(w, true),
+		w,
+		sessionPeerID,
+		sessionPeerIDBound,
+	)
 	engineResource.mux = resource_server.NewResourceMux(
 		func(mux srpc.Mux) error { return s4wave_world.SRPCRegisterEngineResourceService(mux, engineResource) },
 		func(mux srpc.Mux) error {

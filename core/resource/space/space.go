@@ -17,6 +17,7 @@ import (
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
@@ -278,13 +279,27 @@ func (r *SpaceResource) AccessWorld(
 	if err != nil {
 		return nil, err
 	}
+	sessionPeerID := peer.ID("")
+	if r.sessionPeerID != "" {
+		sessionPeerID, err = peer.IDB58Decode(r.sessionPeerID)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	lookupOp := space_world_optypes.BuildSpaceLookupOp(r.b, r.le, r.space.GetWorldEngineID())
 	engineInfo := &s4wave_world.EngineInfo{
 		EngineId: r.space.GetWorldEngineID(),
 		BucketId: r.space.GetWorldEngineBucketID(),
 	}
-	worldResource := resource_world.NewEngineResource(r.le, r.b, r.space.GetWorldEngine(), lookupOp, engineInfo)
+	worldResource := resource_world.NewEngineResource(
+		r.le,
+		r.b,
+		r.space.GetWorldEngine(),
+		lookupOp,
+		engineInfo,
+		resource_world.WithSessionPeerID(sessionPeerID),
+	)
 	id, err := resourceCtx.AddResource(worldResource.GetMux(), func() {})
 	if err != nil {
 		return nil, err

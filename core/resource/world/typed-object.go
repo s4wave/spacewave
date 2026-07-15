@@ -23,19 +23,21 @@ import (
 // TypedObjectResource implements TypedObjectResourceService.
 // It provides access to typed resources from world objects.
 type TypedObjectResource struct {
-	le              *logrus.Entry
-	b               bus.Bus
-	ws              world.WorldState
-	engine          world.Engine
-	lifecycleCtx    context.Context
-	lifecycleCancel context.CancelFunc
-	closeOnce       sync.Once
-	objects         *keyed.KeyedRefCount[typedObjectResourceKey, *typedObjectHandle]
+	le                 *logrus.Entry
+	b                  bus.Bus
+	ws                 world.WorldState
+	engine             world.Engine
+	sessionPeerID      peer.ID
+	sessionPeerIDBound bool
+	lifecycleCtx       context.Context
+	lifecycleCancel    context.CancelFunc
+	closeOnce          sync.Once
+	objects            *keyed.KeyedRefCount[typedObjectResourceKey, *typedObjectHandle]
 }
 
 // NewTypedObjectResource creates a new TypedObjectResource.
 func NewTypedObjectResource(le *logrus.Entry, b bus.Bus, ws world.WorldState, engine world.Engine) *TypedObjectResource {
-	return NewTypedObjectResourceWithContext(context.Background(), le, b, ws, engine)
+	return newTypedObjectResourceWithContextAndSessionPeerID(context.Background(), le, b, ws, engine, peer.ID(""), false)
 }
 
 // NewTypedObjectResourceWithContext creates a TypedObjectResource with a parent lifecycle context.
@@ -46,17 +48,50 @@ func NewTypedObjectResourceWithContext(
 	ws world.WorldState,
 	engine world.Engine,
 ) *TypedObjectResource {
+	return newTypedObjectResourceWithContextAndSessionPeerID(ctx, le, b, ws, engine, peer.ID(""), false)
+}
+
+func newTypedObjectResourceWithSessionPeerID(
+	le *logrus.Entry,
+	b bus.Bus,
+	ws world.WorldState,
+	engine world.Engine,
+	sessionPeerID peer.ID,
+	sessionPeerIDBound bool,
+) *TypedObjectResource {
+	return newTypedObjectResourceWithContextAndSessionPeerID(
+		context.Background(),
+		le,
+		b,
+		ws,
+		engine,
+		sessionPeerID,
+		sessionPeerIDBound,
+	)
+}
+
+func newTypedObjectResourceWithContextAndSessionPeerID(
+	ctx context.Context,
+	le *logrus.Entry,
+	b bus.Bus,
+	ws world.WorldState,
+	engine world.Engine,
+	sessionPeerID peer.ID,
+	sessionPeerIDBound bool,
+) *TypedObjectResource {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	lifecycleCtx, lifecycleCancel := context.WithCancel(ctx)
 	r := &TypedObjectResource{
-		le:              le,
-		b:               b,
-		ws:              ws,
-		engine:          engine,
-		lifecycleCtx:    lifecycleCtx,
-		lifecycleCancel: lifecycleCancel,
+		le:                 le,
+		b:                  b,
+		ws:                 ws,
+		engine:             engine,
+		lifecycleCtx:       lifecycleCtx,
+		lifecycleCancel:    lifecycleCancel,
+		sessionPeerID:      sessionPeerID,
+		sessionPeerIDBound: sessionPeerIDBound,
 	}
 	r.objects = keyed.NewKeyedRefCount(
 		r.buildTypedObjectHandle,
@@ -129,11 +164,15 @@ func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave
 		return nil, world_types.ErrUnknownObjectType
 	}
 
+	sessionPeerID := objecttype.SessionPeerIDFromContext(ctx)
+	if r.sessionPeerIDBound {
+		sessionPeerID = r.sessionPeerID
+	}
 	key := typedObjectResourceKey{
 		typeID:        typeID,
 		objectKey:     objectKey,
 		readOnly:      ws.GetReadOnly(),
-		sessionPeerID: objecttype.SessionPeerIDFromContext(ctx),
+		sessionPeerID: sessionPeerID,
 		engineID:      objecttype.EngineIDFromContext(ctx),
 	}
 	ref, handle, _ := r.objects.AddKeyRef(key)

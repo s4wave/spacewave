@@ -1,6 +1,10 @@
 package resource_world
 
-import "time"
+import (
+	"time"
+
+	"github.com/s4wave/spacewave/net/peer"
+)
 
 // WorldStateOperationRecord describes one WorldStateResource operation.
 type WorldStateOperationRecord struct {
@@ -71,4 +75,25 @@ func WithWorldStateOperationObserver(observer WorldStateOperationObserver) World
 	return func(r *WorldStateResource) {
 		r.operationObserver = observer
 	}
+}
+
+// WithSessionPeerID configures the trusted session peer for typed object access.
+func WithSessionPeerID(sessionPeerID peer.ID) WorldStateResourceOption {
+	return func(r *WorldStateResource) {
+		r.sessionPeerID = sessionPeerID
+		r.sessionPeerIDBound = true
+	}
+}
+
+func applyWorldStateResourceOptions(r *WorldStateResource, opts ...WorldStateResourceOption) {
+	for _, opt := range opts {
+		if opt != nil {
+			opt(r)
+		}
+	}
+}
+func worldStateResourceSessionPeerID(opts ...WorldStateResourceOption) (peer.ID, bool) {
+	r := new(WorldStateResource)
+	applyWorldStateResourceOptions(r, opts...)
+	return r.sessionPeerID, r.sessionPeerIDBound
 }
