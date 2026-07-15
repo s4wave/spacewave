@@ -1026,6 +1026,14 @@ class VerifiedSOStateCache;
 struct VerifiedSOStateCacheDefaultTypeInternal;
 extern VerifiedSOStateCacheDefaultTypeInternal _VerifiedSOStateCache_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull VerifiedSOStateCache_class_data_;
+class VerifyFacetsLaunchGrantRequest;
+struct VerifyFacetsLaunchGrantRequestDefaultTypeInternal;
+extern VerifyFacetsLaunchGrantRequestDefaultTypeInternal _VerifyFacetsLaunchGrantRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull VerifyFacetsLaunchGrantRequest_class_data_;
+class VerifyFacetsLaunchGrantResponse;
+struct VerifyFacetsLaunchGrantResponseDefaultTypeInternal;
+extern VerifyFacetsLaunchGrantResponseDefaultTypeInternal _VerifyFacetsLaunchGrantResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull VerifyFacetsLaunchGrantResponse_class_data_;
 class WriteTicketBundleResponse;
 struct WriteTicketBundleResponseDefaultTypeInternal;
 extern WriteTicketBundleResponseDefaultTypeInternal _WriteTicketBundleResponse_default_instance_;
@@ -2003,6 +2011,403 @@ class WriteTicketBundleResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull WriteTicketBundleResponse_class_data_;
+// -------------------------------------------------------------------
+
+class VerifyFacetsLaunchGrantResponse final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:provider.spacewave.api.VerifyFacetsLaunchGrantResponse) */ {
+ public:
+  inline VerifyFacetsLaunchGrantResponse() : VerifyFacetsLaunchGrantResponse(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(VerifyFacetsLaunchGrantResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(VerifyFacetsLaunchGrantResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR VerifyFacetsLaunchGrantResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline VerifyFacetsLaunchGrantResponse(const VerifyFacetsLaunchGrantResponse& from) : VerifyFacetsLaunchGrantResponse(nullptr, from) {}
+  inline VerifyFacetsLaunchGrantResponse(VerifyFacetsLaunchGrantResponse&& from) noexcept
+      : VerifyFacetsLaunchGrantResponse(nullptr, ::std::move(from)) {}
+  inline VerifyFacetsLaunchGrantResponse& operator=(const VerifyFacetsLaunchGrantResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline VerifyFacetsLaunchGrantResponse& operator=(VerifyFacetsLaunchGrantResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const VerifyFacetsLaunchGrantResponse& default_instance() {
+    return *reinterpret_cast<const VerifyFacetsLaunchGrantResponse*>(
+        &_VerifyFacetsLaunchGrantResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 240;
+  friend void swap(VerifyFacetsLaunchGrantResponse& a, VerifyFacetsLaunchGrantResponse& b) { a.Swap(&b); }
+  inline void Swap(VerifyFacetsLaunchGrantResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(VerifyFacetsLaunchGrantResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  VerifyFacetsLaunchGrantResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<VerifyFacetsLaunchGrantResponse>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const VerifyFacetsLaunchGrantResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const VerifyFacetsLaunchGrantResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.VerifyFacetsLaunchGrantResponse"; }
+
+  explicit VerifyFacetsLaunchGrantResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  VerifyFacetsLaunchGrantResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const VerifyFacetsLaunchGrantResponse& from);
+  VerifyFacetsLaunchGrantResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, VerifyFacetsLaunchGrantResponse&& from) noexcept
+      : VerifyFacetsLaunchGrantResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:provider.spacewave.api.VerifyFacetsLaunchGrantResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull VerifyFacetsLaunchGrantResponse_class_data_;
+// -------------------------------------------------------------------
+
+class VerifyFacetsLaunchGrantRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:provider.spacewave.api.VerifyFacetsLaunchGrantRequest) */ {
+ public:
+  inline VerifyFacetsLaunchGrantRequest() : VerifyFacetsLaunchGrantRequest(nullptr) {}
+  ~VerifyFacetsLaunchGrantRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(VerifyFacetsLaunchGrantRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(VerifyFacetsLaunchGrantRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR VerifyFacetsLaunchGrantRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline VerifyFacetsLaunchGrantRequest(const VerifyFacetsLaunchGrantRequest& from) : VerifyFacetsLaunchGrantRequest(nullptr, from) {}
+  inline VerifyFacetsLaunchGrantRequest(VerifyFacetsLaunchGrantRequest&& from) noexcept
+      : VerifyFacetsLaunchGrantRequest(nullptr, ::std::move(from)) {}
+  inline VerifyFacetsLaunchGrantRequest& operator=(const VerifyFacetsLaunchGrantRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline VerifyFacetsLaunchGrantRequest& operator=(VerifyFacetsLaunchGrantRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const VerifyFacetsLaunchGrantRequest& default_instance() {
+    return *reinterpret_cast<const VerifyFacetsLaunchGrantRequest*>(
+        &_VerifyFacetsLaunchGrantRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 239;
+  friend void swap(VerifyFacetsLaunchGrantRequest& a, VerifyFacetsLaunchGrantRequest& b) { a.Swap(&b); }
+  inline void Swap(VerifyFacetsLaunchGrantRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(VerifyFacetsLaunchGrantRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  VerifyFacetsLaunchGrantRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<VerifyFacetsLaunchGrantRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const VerifyFacetsLaunchGrantRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const VerifyFacetsLaunchGrantRequest& from) { VerifyFacetsLaunchGrantRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(VerifyFacetsLaunchGrantRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.VerifyFacetsLaunchGrantRequest"; }
+
+  explicit VerifyFacetsLaunchGrantRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  VerifyFacetsLaunchGrantRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const VerifyFacetsLaunchGrantRequest& from);
+  VerifyFacetsLaunchGrantRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, VerifyFacetsLaunchGrantRequest&& from) noexcept
+      : VerifyFacetsLaunchGrantRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kTokenFieldNumber = 1,
+    kAccountIdFieldNumber = 2,
+    kOrganizationIdFieldNumber = 3,
+    kPackageDigestFieldNumber = 4,
+    kCapabilityFieldNumber = 5,
+  };
+  // string token = 1;
+  void clear_token() ;
+  const ::std::string& token() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_token(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_token();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_token();
+  void set_allocated_token(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_token() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_token(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_token();
+
+  public:
+  // string account_id = 2;
+  void clear_account_id() ;
+  const ::std::string& account_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_account_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_account_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_account_id();
+  void set_allocated_account_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_account_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_account_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_account_id();
+
+  public:
+  // string organization_id = 3;
+  void clear_organization_id() ;
+  const ::std::string& organization_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_organization_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_organization_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_organization_id();
+  void set_allocated_organization_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_organization_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_organization_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_organization_id();
+
+  public:
+  // string package_digest = 4;
+  void clear_package_digest() ;
+  const ::std::string& package_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_package_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_package_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_package_digest();
+  void set_allocated_package_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_package_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_package_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_package_digest();
+
+  public:
+  // string capability = 5;
+  void clear_capability() ;
+  const ::std::string& capability() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_capability(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_capability();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_capability();
+  void set_allocated_capability(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_capability() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_capability(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_capability();
+
+  public:
+  // @@protoc_insertion_point(class_scope:provider.spacewave.api.VerifyFacetsLaunchGrantRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
+                                   0, 116,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const VerifyFacetsLaunchGrantRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr token_;
+    ::google::protobuf::internal::ArenaStringPtr account_id_;
+    ::google::protobuf::internal::ArenaStringPtr organization_id_;
+    ::google::protobuf::internal::ArenaStringPtr package_digest_;
+    ::google::protobuf::internal::ArenaStringPtr capability_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull VerifyFacetsLaunchGrantRequest_class_data_;
 // -------------------------------------------------------------------
 
 class UpdateThresholdAction final : public ::google::protobuf::Message
@@ -5372,7 +5777,7 @@ class SsoCallbackResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const SsoCallbackResult*>(
         &_SsoCallbackResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 239;
+  static constexpr int kIndexInFileMessages = 241;
   friend void swap(SsoCallbackResult& a, SsoCallbackResult& b) { a.Swap(&b); }
   inline void Swap(SsoCallbackResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -40917,7 +41322,7 @@ class WsBillingCheckoutServerFrame final : public ::google::protobuf::Message
     kStatus = 1,
     BODY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 242;
+  static constexpr int kIndexInFileMessages = 244;
   friend void swap(WsBillingCheckoutServerFrame& a, WsBillingCheckoutServerFrame& b) { a.Swap(&b); }
   inline void Swap(WsBillingCheckoutServerFrame* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -48649,7 +49054,7 @@ class PasskeyRelay final : public ::google::protobuf::Message
     kReauthRelay = 7,
     RELAY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 240;
+  static constexpr int kIndexInFileMessages = 242;
   friend void swap(PasskeyRelay& a, PasskeyRelay& b) { a.Swap(&b); }
   inline void Swap(PasskeyRelay* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -51130,7 +51535,7 @@ class WsAuthSessionServerFrame final : public ::google::protobuf::Message
     kSsoLink = 4,
     BODY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 241;
+  static constexpr int kIndexInFileMessages = 243;
   friend void swap(WsAuthSessionServerFrame& a, WsAuthSessionServerFrame& b) { a.Swap(&b); }
   inline void Swap(WsAuthSessionServerFrame* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -89496,6 +89901,339 @@ inline void ClientErrorReportResponse::_internal_set_retry_after_seconds(::uint3
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.retry_after_seconds_ = value;
 }
+
+// -------------------------------------------------------------------
+
+// VerifyFacetsLaunchGrantRequest
+
+// string token = 1;
+inline void VerifyFacetsLaunchGrantRequest::clear_token() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.token_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& VerifyFacetsLaunchGrantRequest::token() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.token)
+  return _internal_token();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void VerifyFacetsLaunchGrantRequest::set_token(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.token_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.token)
+}
+inline ::std::string* PROTOBUF_NONNULL VerifyFacetsLaunchGrantRequest::mutable_token()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_token();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.token)
+  return _s;
+}
+inline const ::std::string& VerifyFacetsLaunchGrantRequest::_internal_token() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.token_.Get();
+}
+inline void VerifyFacetsLaunchGrantRequest::_internal_set_token(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.token_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL VerifyFacetsLaunchGrantRequest::_internal_mutable_token() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.token_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE VerifyFacetsLaunchGrantRequest::release_token() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.token)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.token_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.token_.Set("", GetArena());
+  }
+  return released;
+}
+inline void VerifyFacetsLaunchGrantRequest::set_allocated_token(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.token_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.token_.IsDefault()) {
+    _impl_.token_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.token)
+}
+
+// string account_id = 2;
+inline void VerifyFacetsLaunchGrantRequest::clear_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.account_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& VerifyFacetsLaunchGrantRequest::account_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.account_id)
+  return _internal_account_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void VerifyFacetsLaunchGrantRequest::set_account_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.account_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.account_id)
+}
+inline ::std::string* PROTOBUF_NONNULL VerifyFacetsLaunchGrantRequest::mutable_account_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_account_id();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.account_id)
+  return _s;
+}
+inline const ::std::string& VerifyFacetsLaunchGrantRequest::_internal_account_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.account_id_.Get();
+}
+inline void VerifyFacetsLaunchGrantRequest::_internal_set_account_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.account_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL VerifyFacetsLaunchGrantRequest::_internal_mutable_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.account_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE VerifyFacetsLaunchGrantRequest::release_account_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.account_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.account_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.account_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void VerifyFacetsLaunchGrantRequest::set_allocated_account_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.account_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.account_id_.IsDefault()) {
+    _impl_.account_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.account_id)
+}
+
+// string organization_id = 3;
+inline void VerifyFacetsLaunchGrantRequest::clear_organization_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.organization_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& VerifyFacetsLaunchGrantRequest::organization_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.organization_id)
+  return _internal_organization_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void VerifyFacetsLaunchGrantRequest::set_organization_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.organization_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.organization_id)
+}
+inline ::std::string* PROTOBUF_NONNULL VerifyFacetsLaunchGrantRequest::mutable_organization_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_organization_id();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.organization_id)
+  return _s;
+}
+inline const ::std::string& VerifyFacetsLaunchGrantRequest::_internal_organization_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.organization_id_.Get();
+}
+inline void VerifyFacetsLaunchGrantRequest::_internal_set_organization_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.organization_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL VerifyFacetsLaunchGrantRequest::_internal_mutable_organization_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.organization_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE VerifyFacetsLaunchGrantRequest::release_organization_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.organization_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.organization_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.organization_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void VerifyFacetsLaunchGrantRequest::set_allocated_organization_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.organization_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.organization_id_.IsDefault()) {
+    _impl_.organization_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.organization_id)
+}
+
+// string package_digest = 4;
+inline void VerifyFacetsLaunchGrantRequest::clear_package_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.package_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& VerifyFacetsLaunchGrantRequest::package_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.package_digest)
+  return _internal_package_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void VerifyFacetsLaunchGrantRequest::set_package_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.package_digest_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.package_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL VerifyFacetsLaunchGrantRequest::mutable_package_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_package_digest();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.package_digest)
+  return _s;
+}
+inline const ::std::string& VerifyFacetsLaunchGrantRequest::_internal_package_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.package_digest_.Get();
+}
+inline void VerifyFacetsLaunchGrantRequest::_internal_set_package_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.package_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL VerifyFacetsLaunchGrantRequest::_internal_mutable_package_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.package_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE VerifyFacetsLaunchGrantRequest::release_package_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.package_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.package_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.package_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void VerifyFacetsLaunchGrantRequest::set_allocated_package_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.package_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.package_digest_.IsDefault()) {
+    _impl_.package_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.package_digest)
+}
+
+// string capability = 5;
+inline void VerifyFacetsLaunchGrantRequest::clear_capability() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.capability_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& VerifyFacetsLaunchGrantRequest::capability() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.capability)
+  return _internal_capability();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void VerifyFacetsLaunchGrantRequest::set_capability(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.capability_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.capability)
+}
+inline ::std::string* PROTOBUF_NONNULL VerifyFacetsLaunchGrantRequest::mutable_capability()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_capability();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.capability)
+  return _s;
+}
+inline const ::std::string& VerifyFacetsLaunchGrantRequest::_internal_capability() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.capability_.Get();
+}
+inline void VerifyFacetsLaunchGrantRequest::_internal_set_capability(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.capability_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL VerifyFacetsLaunchGrantRequest::_internal_mutable_capability() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.capability_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE VerifyFacetsLaunchGrantRequest::release_capability() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.capability)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.capability_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.capability_.Set("", GetArena());
+  }
+  return released;
+}
+inline void VerifyFacetsLaunchGrantRequest::set_allocated_capability(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.capability_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.capability_.IsDefault()) {
+    _impl_.capability_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.VerifyFacetsLaunchGrantRequest.capability)
+}
+
+// -------------------------------------------------------------------
+
+// VerifyFacetsLaunchGrantResponse
 
 // -------------------------------------------------------------------
 

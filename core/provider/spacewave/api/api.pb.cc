@@ -133,6 +133,63 @@ struct WriteTicketBundleResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WriteTicketBundleResponseDefaultTypeInternal _WriteTicketBundleResponse_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR VerifyFacetsLaunchGrantResponse::VerifyFacetsLaunchGrantResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(VerifyFacetsLaunchGrantResponse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct VerifyFacetsLaunchGrantResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR VerifyFacetsLaunchGrantResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~VerifyFacetsLaunchGrantResponseDefaultTypeInternal() {}
+  union {
+    VerifyFacetsLaunchGrantResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 VerifyFacetsLaunchGrantResponseDefaultTypeInternal _VerifyFacetsLaunchGrantResponse_default_instance_;
+
+inline constexpr VerifyFacetsLaunchGrantRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        token_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        account_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        organization_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        package_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        capability_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR VerifyFacetsLaunchGrantRequest::VerifyFacetsLaunchGrantRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(VerifyFacetsLaunchGrantRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct VerifyFacetsLaunchGrantRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR VerifyFacetsLaunchGrantRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~VerifyFacetsLaunchGrantRequestDefaultTypeInternal() {}
+  union {
+    VerifyFacetsLaunchGrantRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 VerifyFacetsLaunchGrantRequestDefaultTypeInternal _VerifyFacetsLaunchGrantRequest_default_instance_;
 
 inline constexpr UpdateThresholdAction::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -8974,6 +9031,20 @@ const ::uint32_t
         0,
         1,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::VerifyFacetsLaunchGrantRequest, _impl_._has_bits_),
+        8, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::VerifyFacetsLaunchGrantRequest, _impl_.token_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::VerifyFacetsLaunchGrantRequest, _impl_.account_id_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::VerifyFacetsLaunchGrantRequest, _impl_.organization_id_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::VerifyFacetsLaunchGrantRequest, _impl_.package_digest_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::VerifyFacetsLaunchGrantRequest, _impl_.capability_),
+        0,
+        1,
+        2,
+        3,
+        4,
+        0x000, // bitmap
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SsoCallbackResult, _impl_._has_bits_),
         15, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::api::SsoCallbackResult, _impl_.linked_),
@@ -9264,10 +9335,12 @@ static const ::_pbi::MigrationSchema
         {1861, sizeof(::provider::spacewave::api::ReactivateBillingResponse)},
         {1866, sizeof(::provider::spacewave::api::ClientErrorReportRequest)},
         {1879, sizeof(::provider::spacewave::api::ClientErrorReportResponse)},
-        {1886, sizeof(::provider::spacewave::api::SsoCallbackResult)},
-        {1913, sizeof(::provider::spacewave::api::PasskeyRelay)},
-        {1923, sizeof(::provider::spacewave::api::WsAuthSessionServerFrame)},
-        {1930, sizeof(::provider::spacewave::api::WsBillingCheckoutServerFrame)},
+        {1886, sizeof(::provider::spacewave::api::VerifyFacetsLaunchGrantRequest)},
+        {1899, sizeof(::provider::spacewave::api::VerifyFacetsLaunchGrantResponse)},
+        {1900, sizeof(::provider::spacewave::api::SsoCallbackResult)},
+        {1927, sizeof(::provider::spacewave::api::PasskeyRelay)},
+        {1937, sizeof(::provider::spacewave::api::WsAuthSessionServerFrame)},
+        {1944, sizeof(::provider::spacewave::api::WsBillingCheckoutServerFrame)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::provider::spacewave::api::_RegisterAccountRequest_default_instance_._instance,
@@ -9509,6 +9582,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::provider::spacewave::api::_ReactivateBillingResponse_default_instance_._instance,
     &::provider::spacewave::api::_ClientErrorReportRequest_default_instance_._instance,
     &::provider::spacewave::api::_ClientErrorReportResponse_default_instance_._instance,
+    &::provider::spacewave::api::_VerifyFacetsLaunchGrantRequest_default_instance_._instance,
+    &::provider::spacewave::api::_VerifyFacetsLaunchGrantResponse_default_instance_._instance,
     &::provider::spacewave::api::_SsoCallbackResult_default_instance_._instance,
     &::provider::spacewave::api::_PasskeyRelay_default_instance_._instance,
     &::provider::spacewave::api::_WsAuthSessionServerFrame_default_instance_._instance,
@@ -10102,72 +10177,77 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     "\021\n\tcomponent\030\002 \001(\t\022\025\n\rresource_type\030\003 \001("
     "\t\022\023\n\013resource_id\030\004 \001(\t\022\016\n\006detail\030\005 \001(\t\"J"
     "\n\031ClientErrorReportResponse\022\020\n\010accepted\030"
-    "\001 \001(\010\022\033\n\023retry_after_seconds\030\002 \001(\r\"\365\001\n\021S"
-    "soCallbackResult\022\016\n\006linked\030\001 \001(\010\022\020\n\010prov"
-    "ider\030\002 \001(\t\022\r\n\005email\030\003 \001(\t\022\013\n\003sub\030\004 \001(\t\022\022"
-    "\n\naccount_id\030\005 \001(\t\022\021\n\tentity_id\030\006 \001(\t\022\020\n"
-    "\010username\030\007 \001(\t\022\026\n\016encrypted_blob\030\010 \001(\t\022"
-    "\023\n\013pin_wrapped\030\t \001(\010\022\023\n\013auth_params\030\n \001("
-    "\t\022\r\n\005error\030\013 \001(\t\022\030\n\020device_encrypted\030\014 \001"
-    "(\010\"\273\004\n\014PasskeyRelay\022D\n\006linked\030\001 \001(\01322.pr"
-    "ovider.spacewave.api.DesktopPasskeyLinke"
-    "dResultH\000\022M\n\013new_account\030\002 \001(\01326.provide"
-    "r.spacewave.api.DesktopPasskeyNewAccount"
-    "ResultH\000\022I\n\014relay_result\030\003 \001(\01321.provide"
-    "r.spacewave.api.DesktopPasskeyRelayResul"
-    "tH\000\022O\n\017register_result\030\004 \001(\01324.provider."
-    "spacewave.api.DesktopPasskeyRegisterResu"
-    "ltH\000\022S\n\016register_relay\030\005 \001(\01329.provider."
-    "spacewave.api.DesktopPasskeyRegisterRela"
-    "yResultH\000\022K\n\rreauth_result\030\006 \001(\01322.provi"
-    "der.spacewave.api.DesktopPasskeyReauthRe"
-    "sultH\000\022O\n\014reauth_relay\030\007 \001(\01327.provider."
-    "spacewave.api.DesktopPasskeyReauthRelayR"
-    "esultH\000B\007\n\005relay\"\240\002\n\030WsAuthSessionServer"
-    "Frame\0228\n\ncompletion\030\001 \001(\0132\".session.hand"
-    "off.HandoffCompletionH\000\022A\n\014sso_callback\030"
-    "\002 \001(\0132).provider.spacewave.api.SsoCallba"
-    "ckResultH\000\022=\n\rpasskey_relay\030\003 \001(\0132$.prov"
-    "ider.spacewave.api.PasskeyRelayH\000\022@\n\010sso"
-    "_link\030\004 \001(\0132,.provider.spacewave.api.Des"
-    "ktopSSOLinkResultH\000B\006\n\004body\"g\n\034WsBilling"
-    "CheckoutServerFrame\022\?\n\006status\030\001 \001(\0132-.pr"
-    "ovider.spacewave.api.CheckoutStatusMessa"
-    "geH\000B\006\n\004body*\260\002\n\022MultiSigActionKind\022%\n!M"
-    "ULTI_SIG_ACTION_KIND_UNSPECIFIED\020\000\022%\n!MU"
-    "LTI_SIG_ACTION_KIND_ADD_KEYPAIR\020\001\022(\n$MUL"
-    "TI_SIG_ACTION_KIND_REMOVE_KEYPAIR\020\002\022*\n&M"
-    "ULTI_SIG_ACTION_KIND_UPDATE_THRESHOLD\020\003\022"
-    "(\n$MULTI_SIG_ACTION_KIND_REVOKE_SESSION\020"
-    "\004\022(\n$MULTI_SIG_ACTION_KIND_DELETE_ACCOUN"
-    "T\020\005\022\"\n\036MULTI_SIG_ACTION_KIND_SSO_LINK\020\006*"
-    "\300\003\n\025AccountLifecycleState\022#\n\037ACCOUNT_LIF"
-    "ECYCLE_STATE_UNKNOWN\020\000\022\"\n\036ACCOUNT_LIFECY"
-    "CLE_STATE_ACTIVE\020\001\022<\n8ACCOUNT_LIFECYCLE_"
-    "STATE_ACTIVE_WITH_CANCEL_AT_PERIOD_END\020\002"
-    "\0223\n/ACCOUNT_LIFECYCLE_STATE_CANCELED_GRA"
-    "CE_READONLY\020\003\0223\n/ACCOUNT_LIFECYCLE_STATE"
-    "_PENDING_DELETE_READONLY\020\004\022+\n\'ACCOUNT_LI"
-    "FECYCLE_STATE_LAPSED_READONLY\020\005\0221\n-ACCOU"
-    "NT_LIFECYCLE_STATE_DELETED_PENDING_PURGE"
-    "\020\006\022#\n\037ACCOUNT_LIFECYCLE_STATE_DELETED\020\007\022"
-    "1\n-ACCOUNT_LIFECYCLE_STATE_DISPUTED_HARD"
-    "_SUSPEND\020\010*\215\001\n\025TargetedInvitePurpose\022\'\n#"
-    "TARGETED_INVITE_PURPOSE_UNSPECIFIED\020\000\022!\n"
-    "\035TARGETED_INVITE_PURPOSE_SPACE\020\001\022(\n$TARG"
-    "ETED_INVITE_PURPOSE_ORGANIZATION\020\002*\257\002\n\025A"
-    "ccountAuthMethodKind\022(\n$ACCOUNT_AUTH_MET"
-    "HOD_KIND_UNSPECIFIED\020\000\022%\n!ACCOUNT_AUTH_M"
-    "ETHOD_KIND_PASSWORD\020\001\022\'\n#ACCOUNT_AUTH_ME"
-    "THOD_KIND_BACKUP_KEY\020\002\022$\n ACCOUNT_AUTH_M"
-    "ETHOD_KIND_PASSKEY\020\003\022\'\n#ACCOUNT_AUTH_MET"
-    "HOD_KIND_GOOGLE_SSO\020\004\022\'\n#ACCOUNT_AUTH_ME"
-    "THOD_KIND_GITHUB_SSO\020\005\022$\n ACCOUNT_AUTH_M"
-    "ETHOD_KIND_UNKNOWN\020\006*\240\001\n\032AccountSObjectB"
-    "indingState\022-\n)ACCOUNT_SOBJECT_BINDING_S"
-    "TATE_UNSPECIFIED\020\000\022*\n&ACCOUNT_SOBJECT_BI"
-    "NDING_STATE_RESERVED\020\001\022\'\n#ACCOUNT_SOBJEC"
-    "T_BINDING_STATE_READY\020\002b\006proto3"
+    "\001 \001(\010\022\033\n\023retry_after_seconds\030\002 \001(\r\"\210\001\n\036V"
+    "erifyFacetsLaunchGrantRequest\022\r\n\005token\030\001"
+    " \001(\t\022\022\n\naccount_id\030\002 \001(\t\022\027\n\017organization"
+    "_id\030\003 \001(\t\022\026\n\016package_digest\030\004 \001(\t\022\022\n\ncap"
+    "ability\030\005 \001(\t\"!\n\037VerifyFacetsLaunchGrant"
+    "Response\"\365\001\n\021SsoCallbackResult\022\016\n\006linked"
+    "\030\001 \001(\010\022\020\n\010provider\030\002 \001(\t\022\r\n\005email\030\003 \001(\t\022"
+    "\013\n\003sub\030\004 \001(\t\022\022\n\naccount_id\030\005 \001(\t\022\021\n\tenti"
+    "ty_id\030\006 \001(\t\022\020\n\010username\030\007 \001(\t\022\026\n\016encrypt"
+    "ed_blob\030\010 \001(\t\022\023\n\013pin_wrapped\030\t \001(\010\022\023\n\013au"
+    "th_params\030\n \001(\t\022\r\n\005error\030\013 \001(\t\022\030\n\020device"
+    "_encrypted\030\014 \001(\010\"\273\004\n\014PasskeyRelay\022D\n\006lin"
+    "ked\030\001 \001(\01322.provider.spacewave.api.Deskt"
+    "opPasskeyLinkedResultH\000\022M\n\013new_account\030\002"
+    " \001(\01326.provider.spacewave.api.DesktopPas"
+    "skeyNewAccountResultH\000\022I\n\014relay_result\030\003"
+    " \001(\01321.provider.spacewave.api.DesktopPas"
+    "skeyRelayResultH\000\022O\n\017register_result\030\004 \001"
+    "(\01324.provider.spacewave.api.DesktopPassk"
+    "eyRegisterResultH\000\022S\n\016register_relay\030\005 \001"
+    "(\01329.provider.spacewave.api.DesktopPassk"
+    "eyRegisterRelayResultH\000\022K\n\rreauth_result"
+    "\030\006 \001(\01322.provider.spacewave.api.DesktopP"
+    "asskeyReauthResultH\000\022O\n\014reauth_relay\030\007 \001"
+    "(\01327.provider.spacewave.api.DesktopPassk"
+    "eyReauthRelayResultH\000B\007\n\005relay\"\240\002\n\030WsAut"
+    "hSessionServerFrame\0228\n\ncompletion\030\001 \001(\0132"
+    "\".session.handoff.HandoffCompletionH\000\022A\n"
+    "\014sso_callback\030\002 \001(\0132).provider.spacewave"
+    ".api.SsoCallbackResultH\000\022=\n\rpasskey_rela"
+    "y\030\003 \001(\0132$.provider.spacewave.api.Passkey"
+    "RelayH\000\022@\n\010sso_link\030\004 \001(\0132,.provider.spa"
+    "cewave.api.DesktopSSOLinkResultH\000B\006\n\004bod"
+    "y\"g\n\034WsBillingCheckoutServerFrame\022\?\n\006sta"
+    "tus\030\001 \001(\0132-.provider.spacewave.api.Check"
+    "outStatusMessageH\000B\006\n\004body*\260\002\n\022MultiSigA"
+    "ctionKind\022%\n!MULTI_SIG_ACTION_KIND_UNSPE"
+    "CIFIED\020\000\022%\n!MULTI_SIG_ACTION_KIND_ADD_KE"
+    "YPAIR\020\001\022(\n$MULTI_SIG_ACTION_KIND_REMOVE_"
+    "KEYPAIR\020\002\022*\n&MULTI_SIG_ACTION_KIND_UPDAT"
+    "E_THRESHOLD\020\003\022(\n$MULTI_SIG_ACTION_KIND_R"
+    "EVOKE_SESSION\020\004\022(\n$MULTI_SIG_ACTION_KIND"
+    "_DELETE_ACCOUNT\020\005\022\"\n\036MULTI_SIG_ACTION_KI"
+    "ND_SSO_LINK\020\006*\300\003\n\025AccountLifecycleState\022"
+    "#\n\037ACCOUNT_LIFECYCLE_STATE_UNKNOWN\020\000\022\"\n\036"
+    "ACCOUNT_LIFECYCLE_STATE_ACTIVE\020\001\022<\n8ACCO"
+    "UNT_LIFECYCLE_STATE_ACTIVE_WITH_CANCEL_A"
+    "T_PERIOD_END\020\002\0223\n/ACCOUNT_LIFECYCLE_STAT"
+    "E_CANCELED_GRACE_READONLY\020\003\0223\n/ACCOUNT_L"
+    "IFECYCLE_STATE_PENDING_DELETE_READONLY\020\004"
+    "\022+\n\'ACCOUNT_LIFECYCLE_STATE_LAPSED_READO"
+    "NLY\020\005\0221\n-ACCOUNT_LIFECYCLE_STATE_DELETED"
+    "_PENDING_PURGE\020\006\022#\n\037ACCOUNT_LIFECYCLE_ST"
+    "ATE_DELETED\020\007\0221\n-ACCOUNT_LIFECYCLE_STATE"
+    "_DISPUTED_HARD_SUSPEND\020\010*\215\001\n\025TargetedInv"
+    "itePurpose\022\'\n#TARGETED_INVITE_PURPOSE_UN"
+    "SPECIFIED\020\000\022!\n\035TARGETED_INVITE_PURPOSE_S"
+    "PACE\020\001\022(\n$TARGETED_INVITE_PURPOSE_ORGANI"
+    "ZATION\020\002*\257\002\n\025AccountAuthMethodKind\022(\n$AC"
+    "COUNT_AUTH_METHOD_KIND_UNSPECIFIED\020\000\022%\n!"
+    "ACCOUNT_AUTH_METHOD_KIND_PASSWORD\020\001\022\'\n#A"
+    "CCOUNT_AUTH_METHOD_KIND_BACKUP_KEY\020\002\022$\n "
+    "ACCOUNT_AUTH_METHOD_KIND_PASSKEY\020\003\022\'\n#AC"
+    "COUNT_AUTH_METHOD_KIND_GOOGLE_SSO\020\004\022\'\n#A"
+    "CCOUNT_AUTH_METHOD_KIND_GITHUB_SSO\020\005\022$\n "
+    "ACCOUNT_AUTH_METHOD_KIND_UNKNOWN\020\006*\240\001\n\032A"
+    "ccountSObjectBindingState\022-\n)ACCOUNT_SOB"
+    "JECT_BINDING_STATE_UNSPECIFIED\020\000\022*\n&ACCO"
+    "UNT_SOBJECT_BINDING_STATE_RESERVED\020\001\022\'\n#"
+    "ACCOUNT_SOBJECT_BINDING_STATE_READY\020\002b\006p"
+    "roto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto_deps[5] = {
@@ -10181,13 +10261,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fco
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto = {
     false,
     false,
-    26071,
+    26245,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto,
     "github.com/s4wave/spacewave/core/provider/spacewave/api/api.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto_deps,
     5,
-    243,
+    245,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto::offsets,
@@ -87269,6 +87349,558 @@ void ClientErrorReportResponse::InternalSwap(ClientErrorReportResponse* PROTOBUF
 
 ::google::protobuf::Metadata ClientErrorReportResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class VerifyFacetsLaunchGrantRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<VerifyFacetsLaunchGrantRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(VerifyFacetsLaunchGrantRequest, _impl_._has_bits_);
+};
+
+VerifyFacetsLaunchGrantRequest::VerifyFacetsLaunchGrantRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, VerifyFacetsLaunchGrantRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:provider.spacewave.api.VerifyFacetsLaunchGrantRequest)
+}
+PROTOBUF_NDEBUG_INLINE VerifyFacetsLaunchGrantRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::provider::spacewave::api::VerifyFacetsLaunchGrantRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        token_(arena, from.token_),
+        account_id_(arena, from.account_id_),
+        organization_id_(arena, from.organization_id_),
+        package_digest_(arena, from.package_digest_),
+        capability_(arena, from.capability_) {}
+
+VerifyFacetsLaunchGrantRequest::VerifyFacetsLaunchGrantRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const VerifyFacetsLaunchGrantRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, VerifyFacetsLaunchGrantRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  VerifyFacetsLaunchGrantRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:provider.spacewave.api.VerifyFacetsLaunchGrantRequest)
+}
+PROTOBUF_NDEBUG_INLINE VerifyFacetsLaunchGrantRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        token_(arena),
+        account_id_(arena),
+        organization_id_(arena),
+        package_digest_(arena),
+        capability_(arena) {}
+
+inline void VerifyFacetsLaunchGrantRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+VerifyFacetsLaunchGrantRequest::~VerifyFacetsLaunchGrantRequest() {
+  // @@protoc_insertion_point(destructor:provider.spacewave.api.VerifyFacetsLaunchGrantRequest)
+  SharedDtor(*this);
+}
+inline void VerifyFacetsLaunchGrantRequest::SharedDtor(MessageLite& self) {
+  VerifyFacetsLaunchGrantRequest& this_ = static_cast<VerifyFacetsLaunchGrantRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.token_.Destroy();
+  this_._impl_.account_id_.Destroy();
+  this_._impl_.organization_id_.Destroy();
+  this_._impl_.package_digest_.Destroy();
+  this_._impl_.capability_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL VerifyFacetsLaunchGrantRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) VerifyFacetsLaunchGrantRequest(arena);
+}
+constexpr auto VerifyFacetsLaunchGrantRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(VerifyFacetsLaunchGrantRequest),
+                                            alignof(VerifyFacetsLaunchGrantRequest));
+}
+constexpr auto VerifyFacetsLaunchGrantRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_VerifyFacetsLaunchGrantRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &VerifyFacetsLaunchGrantRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<VerifyFacetsLaunchGrantRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &VerifyFacetsLaunchGrantRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<VerifyFacetsLaunchGrantRequest>(), &VerifyFacetsLaunchGrantRequest::ByteSizeLong,
+              &VerifyFacetsLaunchGrantRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(VerifyFacetsLaunchGrantRequest, _impl_._cached_size_),
+          false,
+      },
+      &VerifyFacetsLaunchGrantRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull VerifyFacetsLaunchGrantRequest_class_data_ =
+        VerifyFacetsLaunchGrantRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+VerifyFacetsLaunchGrantRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&VerifyFacetsLaunchGrantRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(VerifyFacetsLaunchGrantRequest_class_data_.tc_table);
+  return VerifyFacetsLaunchGrantRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 5, 0, 116, 2>
+VerifyFacetsLaunchGrantRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(VerifyFacetsLaunchGrantRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    5, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967264,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    5,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    VerifyFacetsLaunchGrantRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::provider::spacewave::api::VerifyFacetsLaunchGrantRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string token = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(VerifyFacetsLaunchGrantRequest, _impl_.token_)}},
+    // string account_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(VerifyFacetsLaunchGrantRequest, _impl_.account_id_)}},
+    // string organization_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(VerifyFacetsLaunchGrantRequest, _impl_.organization_id_)}},
+    // string package_digest = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 3, 0,
+      PROTOBUF_FIELD_OFFSET(VerifyFacetsLaunchGrantRequest, _impl_.package_digest_)}},
+    // string capability = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 4, 0,
+      PROTOBUF_FIELD_OFFSET(VerifyFacetsLaunchGrantRequest, _impl_.capability_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string token = 1;
+    {PROTOBUF_FIELD_OFFSET(VerifyFacetsLaunchGrantRequest, _impl_.token_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string account_id = 2;
+    {PROTOBUF_FIELD_OFFSET(VerifyFacetsLaunchGrantRequest, _impl_.account_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string organization_id = 3;
+    {PROTOBUF_FIELD_OFFSET(VerifyFacetsLaunchGrantRequest, _impl_.organization_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string package_digest = 4;
+    {PROTOBUF_FIELD_OFFSET(VerifyFacetsLaunchGrantRequest, _impl_.package_digest_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string capability = 5;
+    {PROTOBUF_FIELD_OFFSET(VerifyFacetsLaunchGrantRequest, _impl_.capability_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\65\5\12\17\16\12\0\0"
+    "provider.spacewave.api.VerifyFacetsLaunchGrantRequest"
+    "token"
+    "account_id"
+    "organization_id"
+    "package_digest"
+    "capability"
+  }},
+};
+PROTOBUF_NOINLINE void VerifyFacetsLaunchGrantRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:provider.spacewave.api.VerifyFacetsLaunchGrantRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.token_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.account_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.organization_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.package_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.capability_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL VerifyFacetsLaunchGrantRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const VerifyFacetsLaunchGrantRequest& this_ = static_cast<const VerifyFacetsLaunchGrantRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL VerifyFacetsLaunchGrantRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const VerifyFacetsLaunchGrantRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:provider.spacewave.api.VerifyFacetsLaunchGrantRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string token = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_token().empty()) {
+      const ::std::string& _s = this_._internal_token();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "provider.spacewave.api.VerifyFacetsLaunchGrantRequest.token");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string account_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_account_id().empty()) {
+      const ::std::string& _s = this_._internal_account_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "provider.spacewave.api.VerifyFacetsLaunchGrantRequest.account_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string organization_id = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_organization_id().empty()) {
+      const ::std::string& _s = this_._internal_organization_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "provider.spacewave.api.VerifyFacetsLaunchGrantRequest.organization_id");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string package_digest = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_package_digest().empty()) {
+      const ::std::string& _s = this_._internal_package_digest();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "provider.spacewave.api.VerifyFacetsLaunchGrantRequest.package_digest");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // string capability = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_capability().empty()) {
+      const ::std::string& _s = this_._internal_capability();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "provider.spacewave.api.VerifyFacetsLaunchGrantRequest.capability");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:provider.spacewave.api.VerifyFacetsLaunchGrantRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t VerifyFacetsLaunchGrantRequest::ByteSizeLong(const MessageLite& base) {
+  const VerifyFacetsLaunchGrantRequest& this_ = static_cast<const VerifyFacetsLaunchGrantRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t VerifyFacetsLaunchGrantRequest::ByteSizeLong() const {
+  const VerifyFacetsLaunchGrantRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:provider.spacewave.api.VerifyFacetsLaunchGrantRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    // string token = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_token().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_token());
+      }
+    }
+    // string account_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_account_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_account_id());
+      }
+    }
+    // string organization_id = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_organization_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_organization_id());
+      }
+    }
+    // string package_digest = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_package_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_package_digest());
+      }
+    }
+    // string capability = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_capability().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_capability());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void VerifyFacetsLaunchGrantRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<VerifyFacetsLaunchGrantRequest*>(&to_msg);
+  auto& from = static_cast<const VerifyFacetsLaunchGrantRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:provider.spacewave.api.VerifyFacetsLaunchGrantRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_token().empty()) {
+        _this->_internal_set_token(from._internal_token());
+      } else {
+        if (_this->_impl_.token_.IsDefault()) {
+          _this->_internal_set_token("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_account_id().empty()) {
+        _this->_internal_set_account_id(from._internal_account_id());
+      } else {
+        if (_this->_impl_.account_id_.IsDefault()) {
+          _this->_internal_set_account_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_organization_id().empty()) {
+        _this->_internal_set_organization_id(from._internal_organization_id());
+      } else {
+        if (_this->_impl_.organization_id_.IsDefault()) {
+          _this->_internal_set_organization_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_package_digest().empty()) {
+        _this->_internal_set_package_digest(from._internal_package_digest());
+      } else {
+        if (_this->_impl_.package_digest_.IsDefault()) {
+          _this->_internal_set_package_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_capability().empty()) {
+        _this->_internal_set_capability(from._internal_capability());
+      } else {
+        if (_this->_impl_.capability_.IsDefault()) {
+          _this->_internal_set_capability("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void VerifyFacetsLaunchGrantRequest::CopyFrom(const VerifyFacetsLaunchGrantRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:provider.spacewave.api.VerifyFacetsLaunchGrantRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void VerifyFacetsLaunchGrantRequest::InternalSwap(VerifyFacetsLaunchGrantRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.token_, &other->_impl_.token_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.account_id_, &other->_impl_.account_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.organization_id_, &other->_impl_.organization_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.package_digest_, &other->_impl_.package_digest_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.capability_, &other->_impl_.capability_, arena);
+}
+
+::google::protobuf::Metadata VerifyFacetsLaunchGrantRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class VerifyFacetsLaunchGrantResponse::_Internal {
+ public:
+};
+
+VerifyFacetsLaunchGrantResponse::VerifyFacetsLaunchGrantResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, VerifyFacetsLaunchGrantResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:provider.spacewave.api.VerifyFacetsLaunchGrantResponse)
+}
+VerifyFacetsLaunchGrantResponse::VerifyFacetsLaunchGrantResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const VerifyFacetsLaunchGrantResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, VerifyFacetsLaunchGrantResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  VerifyFacetsLaunchGrantResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:provider.spacewave.api.VerifyFacetsLaunchGrantResponse)
+}
+
+inline void* PROTOBUF_NONNULL VerifyFacetsLaunchGrantResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) VerifyFacetsLaunchGrantResponse(arena);
+}
+constexpr auto VerifyFacetsLaunchGrantResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(VerifyFacetsLaunchGrantResponse),
+                                            alignof(VerifyFacetsLaunchGrantResponse));
+}
+constexpr auto VerifyFacetsLaunchGrantResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_VerifyFacetsLaunchGrantResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &VerifyFacetsLaunchGrantResponse::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<VerifyFacetsLaunchGrantResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &VerifyFacetsLaunchGrantResponse::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<VerifyFacetsLaunchGrantResponse>(), &VerifyFacetsLaunchGrantResponse::ByteSizeLong,
+              &VerifyFacetsLaunchGrantResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(VerifyFacetsLaunchGrantResponse, _impl_._cached_size_),
+          false,
+      },
+      &VerifyFacetsLaunchGrantResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull VerifyFacetsLaunchGrantResponse_class_data_ =
+        VerifyFacetsLaunchGrantResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+VerifyFacetsLaunchGrantResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&VerifyFacetsLaunchGrantResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(VerifyFacetsLaunchGrantResponse_class_data_.tc_table);
+  return VerifyFacetsLaunchGrantResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+VerifyFacetsLaunchGrantResponse::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    VerifyFacetsLaunchGrantResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::provider::spacewave::api::VerifyFacetsLaunchGrantResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata VerifyFacetsLaunchGrantResponse::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 

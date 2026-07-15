@@ -3079,6 +3079,31 @@ pub struct ClientErrorReportResponse {
     #[prost(uint32, tag="2")]
     pub retry_after_seconds: u32,
 }
+/// VerifyFacetsLaunchGrantRequest is the request body for
+/// POST /api/facets/launch-grant/verify.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VerifyFacetsLaunchGrantRequest {
+    /// Token is the opaque short-lived launch grant token to verify.
+    #[prost(string, tag="1")]
+    pub token: ::prost::alloc::string::String,
+    /// AccountId is the expected account ID bound to the launch grant.
+    #[prost(string, tag="2")]
+    pub account_id: ::prost::alloc::string::String,
+    /// OrganizationId is the expected organization ID bound to the launch grant.
+    #[prost(string, tag="3")]
+    pub organization_id: ::prost::alloc::string::String,
+    /// PackageDigest is the expected package digest bound to the launch grant.
+    #[prost(string, tag="4")]
+    pub package_digest: ::prost::alloc::string::String,
+    /// Capability is the expected runtime capability bound to the launch grant.
+    #[prost(string, tag="5")]
+    pub capability: ::prost::alloc::string::String,
+}
+/// VerifyFacetsLaunchGrantResponse is the response body for
+/// POST /api/facets/launch-grant/verify.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VerifyFacetsLaunchGrantResponse {
+}
 // -- WebSocket frame envelopes --
 
 /// SsoCallbackResult is the SSO callback payload pushed to the auth-session

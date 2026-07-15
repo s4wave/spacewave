@@ -9411,6 +9411,72 @@ export const ClientErrorReportResponse: MessageType<ClientErrorReportResponse> =
   })
 
 /**
+ * VerifyFacetsLaunchGrantRequest is the request body for
+ * POST /api/facets/launch-grant/verify.
+ *
+ * @generated from message provider.spacewave.api.VerifyFacetsLaunchGrantRequest
+ */
+export interface VerifyFacetsLaunchGrantRequest {
+  /**
+   * Token is the opaque short-lived launch grant token to verify.
+   *
+   * @generated from field: string token = 1;
+   */
+  token?: string
+  /**
+   * AccountId is the expected account ID bound to the launch grant.
+   *
+   * @generated from field: string account_id = 2;
+   */
+  accountId?: string
+  /**
+   * OrganizationId is the expected organization ID bound to the launch grant.
+   *
+   * @generated from field: string organization_id = 3;
+   */
+  organizationId?: string
+  /**
+   * PackageDigest is the expected package digest bound to the launch grant.
+   *
+   * @generated from field: string package_digest = 4;
+   */
+  packageDigest?: string
+  /**
+   * Capability is the expected runtime capability bound to the launch grant.
+   *
+   * @generated from field: string capability = 5;
+   */
+  capability?: string
+}
+
+export const VerifyFacetsLaunchGrantRequest: MessageType<VerifyFacetsLaunchGrantRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.VerifyFacetsLaunchGrantRequest',
+    fields: [
+      { no: 1, name: 'token', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'organization_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'package_digest', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'capability', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * VerifyFacetsLaunchGrantResponse is the response body for
+ * POST /api/facets/launch-grant/verify.
+ *
+ * @generated from message provider.spacewave.api.VerifyFacetsLaunchGrantResponse
+ */
+export interface VerifyFacetsLaunchGrantResponse {}
+
+export const VerifyFacetsLaunchGrantResponse: MessageType<VerifyFacetsLaunchGrantResponse> =
+  /* @__PURE__ */ createEmptyMessageType<VerifyFacetsLaunchGrantResponse>(
+    'provider.spacewave.api.VerifyFacetsLaunchGrantResponse',
+    true,
+  )
+
+/**
  * SsoCallbackResult is the SSO callback payload pushed to the auth-session
  * WebSocket after an OAuth provider redirect. Mirrors the cloud SSOResult
  * shape on the wire.

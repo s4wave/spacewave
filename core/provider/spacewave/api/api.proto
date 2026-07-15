@@ -2496,6 +2496,25 @@ message ClientErrorReportResponse {
   uint32 retry_after_seconds = 2;
 }
 
+// VerifyFacetsLaunchGrantRequest is the request body for
+// POST /api/facets/launch-grant/verify.
+message VerifyFacetsLaunchGrantRequest {
+  // Token is the opaque short-lived launch grant token to verify.
+  string token = 1;
+  // AccountId is the expected account ID bound to the launch grant.
+  string account_id = 2;
+  // OrganizationId is the expected organization ID bound to the launch grant.
+  string organization_id = 3;
+  // PackageDigest is the expected package digest bound to the launch grant.
+  string package_digest = 4;
+  // Capability is the expected runtime capability bound to the launch grant.
+  string capability = 5;
+}
+
+// VerifyFacetsLaunchGrantResponse is the response body for
+// POST /api/facets/launch-grant/verify.
+message VerifyFacetsLaunchGrantResponse {}
+
 // -- WebSocket frame envelopes --
 
 // SsoCallbackResult is the SSO callback payload pushed to the auth-session
