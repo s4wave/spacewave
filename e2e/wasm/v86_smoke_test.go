@@ -75,7 +75,7 @@ func TestQuickstartV86BootSmoke(t *testing.T) {
 		"catalog load",
 		"v86.wizard.catalog-loaded",
 	)
-	if err := page.Locator("text=/Catalog image: (Aperture Linux|v86image-01kszf4rsev1s7zkq2ms2y5r0w)/").First().WaitFor(
+	if err := page.Locator("text=/(?:Catalog image:|Will copy from catalog:)(?: Aperture Linux| v86image-01kszf4rsev1s7zkq2ms2y5r0w)/").First().WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(v86SmokeStageTimeoutMS)},
 	); err != nil {
 		t.Fatalf("v86 stage selected default image absent: %v\n%s", err, readV86WizardDebug(page))
