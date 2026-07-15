@@ -91,7 +91,13 @@ func (r *devtoolTUIRunner) render(snapshot *devtool_status.BldrDevtoolStatus) st
 			width = w
 		}
 	}
-	return renderDevtoolTUIDashboard(snapshot, width)
+	return renderDevtoolTUIDashboard(snapshot, r.openURL, width, tuiColorEnabled())
+}
+
+// tuiColorEnabled reports whether ANSI styling should be applied. The devtool
+// only runs the TUI on a terminal, so color is on unless NO_COLOR is set.
+func tuiColorEnabled() bool {
+	return os.Getenv("NO_COLOR") == ""
 }
 
 func (r *devtoolTUIRunner) handleKey(cancel context.CancelFunc) termui.KeyHandler[*devtool_status.BldrDevtoolStatus] {

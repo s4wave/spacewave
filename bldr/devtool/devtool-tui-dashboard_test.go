@@ -3,170 +3,117 @@
 package devtool
 
 import (
+	"strconv"
 	"strings"
 	"testing"
-	"unicode/utf8"
 
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 )
 
-func TestRenderDevtoolTUIDashboardProjectsFixedRegionsAndCommandLog(t *testing.T) {
-	snapshot := representativeDevtoolTUIStatus()
+func TestRenderDevtoolTUIDashboardHeaderAndSectionsInOrder(t *testing.T) {
+	dashboard := renderDevtoolTUIDashboard(representativeDevtoolTUIStatus(), "http://127.0.0.1:8080", 100, false)
 
-	dashboard := renderDevtoolTUIDashboard(snapshot, 120)
-	regions := buildDevtoolTUIRegions(snapshot, 120)
-
-	assertContains(t, dashboard, "Bldr Devtool - dev [running]")
-	assertRegionHeadersInOrder(t, dashboard, []string{
-		"[command]",
-		"[manifest fetch]",
-		"[manifest builds]",
-		"[plugins]",
-		"[controllers]",
-		"[recent errors]",
-	})
-	assertContains(t, dashboard, "  dev running")
-	assertContains(t, dashboard, "  serving web app")
-	assertContains(t, dashboard, "  log .bldr/logs/devtool.log")
-	assertNotContains(t, dashboard, "/tmp/project/.bldr/logs/devtool.log")
-	assertFieldsEqual(t, mustDevtoolTUIRegion(t, regions, "manifest fetch").Lines[0], []string{"ready", "web", "js", "dev", "local-cache", "3", "ready", "refs"})
-	assertFieldsEqual(t, mustDevtoolTUIRegion(t, regions, "manifest builds").Lines[0], []string{"running", "api", "linux/amd64", "release", "remote-builder", "compiling;", "hot", "rebuild"})
-	assertFieldsEqual(t, mustDevtoolTUIRegion(t, regions, "plugins").Lines[0], []string{"running", "js-compiler", "instance-a"})
-	assertFieldsEqual(t, mustDevtoolTUIRegion(t, regions, "controllers").Lines[0], []string{"idle", "controllerbus", "exec"})
+	assertContains(t, dashboard, "Bldr Devtool · dev · RUNNING")
+	assertContains(t, dashboard, "serving web app")
+	assertSectionsInOrder(t, dashboard, []string{"SERVING", "TARGETS", "RUNTIME"})
+	// A healthy run has no failures section and never shows a bottom error pile.
+	assertNotContains(t, dashboard, "FAILURES")
+	// Serving surfaces the live URL, not just the free-text command summary.
+	assertContains(t, dashboard, "➜ http://127.0.0.1:8080")
+	assertContains(t, dashboard, "press o to open browser")
 }
 
-func TestRenderDevtoolTUIDashboardTruncatesNarrowWidth(t *testing.T) {
-	snapshot := devtool_status.NewBldrDevtoolStatus(
-		devtool_status.BldrDevtoolCommandStatus{
-			Name:    "dev-command-with-a-very-long-name",
-			State:   devtool_status.BldrDevtoolCommandStateRunning,
-			Summary: "serving a dashboard summary that is intentionally longer than the terminal width",
-			LogFile: "/workspace/app/.bldr/logs/devtool-with-a-long-log-file-name.log",
-		},
-		[]devtool_status.BldrDevtoolManifestFetchRow{{
-			ManifestID:    "manifest-with-a-very-long-identifier",
-			PlatformID:    "web/js/wasm",
-			BuildType:     "development-with-extra-context",
-			RemoteID:      "remote-builder-with-a-long-name",
-			State:         devtool_status.BldrDevtoolManifestStateRunning,
-			ReadyRefCount: 12,
-		}},
-		nil,
-		nil,
-		nil,
-		nil,
-	)
+func TestRenderDevtoolTUIDashboardSurfacesFailingTargetErrorText(t *testing.T) {
+	dashboard := renderDevtoolTUIDashboard(failingDashboardStatus(), "http://127.0.0.1:8080", 100, false)
 
-	const width = 48
-	dashboard := renderDevtoolTUIDashboard(snapshot, width)
+	// Falsifier: the failing build's full error text must be readable on screen.
+	assertContains(t, dashboard, "undefined: RenderRoot")
+	assertContains(t, dashboard, "did you mean RenderRootView?")
+	assertContains(t, dashboard, "build spacewave-app · web/js/wasm dev")
+	assertContains(t, dashboard, "worker exited: exit status 2")
+	// Failures are surfaced above the target table, not buried at the bottom.
+	assertSectionsInOrder(t, dashboard, []string{"FAILURES · 3", "TARGETS", "RUNTIME"})
+	// The command log path is reachable from the failing surface.
+	assertContains(t, dashboard, "log .bldr/logs/devtool.log")
+	assertNotContains(t, dashboard, "/home/dev/spacewave/.bldr/logs/devtool.log")
+}
 
-	assertContains(t, dashboard, "…")
+func TestRenderDevtoolTUIDashboardTargetsActiveFirst(t *testing.T) {
+	dashboard := renderDevtoolTUIDashboard(failingDashboardStatus(), "", 100, false)
+
+	failedIdx := strings.Index(dashboard, "spacewave-app")
+	compilingIdx := strings.Index(dashboard, "spacewave-core")
+	readyIdx := strings.Index(dashboard, "spacewave-web")
+	if failedIdx >= compilingIdx || compilingIdx >= readyIdx {
+		t.Fatalf("targets not ordered failed<active<ready in:\n%s", dashboard)
+	}
+	assertContains(t, dashboard, "hot rebuild")
+	assertContains(t, dashboard, "5 refs")
+}
+
+func TestRenderDevtoolTUIDashboardRuntimeCollapsesToCounts(t *testing.T) {
+	dashboard := renderDevtoolTUIDashboard(failingDashboardStatus(), "", 100, false)
+
+	assertContains(t, dashboard, "plugins")
+	assertContains(t, dashboard, "2 running · 1 errored")
+	assertContains(t, dashboard, "controllers")
+	assertContains(t, dashboard, "2 running · 1 idle")
+	// Controller internals are not enumerated row by row.
+	assertNotContains(t, dashboard, "bldr/plugin-host")
+}
+
+func TestRenderDevtoolTUIDashboardRespectsWidthWithColor(t *testing.T) {
+	const width = 56
+	dashboard := renderDevtoolTUIDashboard(failingDashboardStatus(), "http://127.0.0.1:8080", width, true)
+
 	for line := range strings.SplitSeq(strings.TrimSuffix(dashboard, "\n"), "\n") {
-		if runes := utf8.RuneCountInString(line); runes > width {
-			t.Fatalf("dashboard line exceeds width %d: got %d runes in %q", width, runes, line)
+		if got := visibleWidth(line); got > width {
+			t.Fatalf("line exceeds width %d: got %d cells in %q", width, got, line)
 		}
 	}
-	assertContains(t, dashboard, "  running manifest-with-a-very-long-identifier")
+	// Even color-enabled output keeps the failing error legible.
+	assertContains(t, dashboard, "undefined: RenderRoot")
 }
 
-func TestDevtoolTUIDashboardCompactsRegionsOverRowCap(t *testing.T) {
-	rows := make([]devtool_status.BldrDevtoolPluginRow, 0, devtoolTUIMaxRows+2)
-	for idx := range devtoolTUIMaxRows + 2 {
-		rows = append(rows, devtool_status.BldrDevtoolPluginRow{
-			PluginID: "plugin-" + string(rune('A'+idx)),
-			State:    devtool_status.BldrDevtoolPluginStateRunning,
-			Summary:  "ready",
+func TestRenderDevtoolTUIDashboardCapsManyTargets(t *testing.T) {
+	rows := make([]devtool_status.BldrDevtoolManifestBuildRow, 0, devtoolTUIMaxTargetRows+3)
+	for idx := range devtoolTUIMaxTargetRows + 3 {
+		rows = append(rows, devtool_status.BldrDevtoolManifestBuildRow{
+			ManifestID: "m-" + string(rune('A'+idx)),
+			PlatformID: "web/js/wasm",
+			BuildType:  "dev",
+			State:      devtool_status.BldrDevtoolManifestStateReady,
 		})
 	}
 	snapshot := devtool_status.NewBldrDevtoolStatus(
 		devtool_status.BldrDevtoolCommandStatus{Name: "dev", State: devtool_status.BldrDevtoolCommandStateRunning},
-		nil,
-		nil,
-		rows,
-		nil,
-		nil,
+		nil, rows, nil, nil, nil,
 	)
 
-	plugins := mustDevtoolTUIRegion(t, buildDevtoolTUIRegions(snapshot, 100), "plugins")
-
-	if got := len(plugins.Lines); got != devtoolTUIMaxRows {
-		t.Fatalf("compacted plugin row count = %d, want %d", got, devtoolTUIMaxRows)
-	}
-	assertLineContains(t, plugins.Lines[0], "plugin-A")
-	assertLineContains(t, plugins.Lines[devtoolTUIMaxRows-2], "plugin-E")
-	if got, want := plugins.Lines[devtoolTUIMaxRows-1], "3 more rows"; got != want {
-		t.Fatalf("compaction summary = %q, want %q", got, want)
-	}
-	for _, line := range plugins.Lines {
-		if strings.Contains(line, "plugin-F") || strings.Contains(line, "plugin-G") || strings.Contains(line, "plugin-H") {
-			t.Fatalf("compacted plugin region kept hidden row in %q", line)
-		}
-	}
-}
-
-func TestDevtoolTUIDashboardAggregatesRecentErrors(t *testing.T) {
-	snapshot := devtool_status.NewBldrDevtoolStatus(
-		devtool_status.BldrDevtoolCommandStatus{
-			Name:  "dev",
-			State: devtool_status.BldrDevtoolCommandStateError,
-			Error: "command failed",
-		},
-		[]devtool_status.BldrDevtoolManifestFetchRow{{
-			ManifestID: "web",
-			State:      devtool_status.BldrDevtoolManifestStateError,
-			Error:      "fetch failed",
-		}},
-		[]devtool_status.BldrDevtoolManifestBuildRow{{
-			ManifestID: "api",
-			State:      devtool_status.BldrDevtoolManifestStateError,
-			Error:      "build failed",
-		}},
-		[]devtool_status.BldrDevtoolPluginRow{{
-			PluginID: "compiler",
-			State:    devtool_status.BldrDevtoolPluginStateErrored,
-			Error:    "plugin failed",
-		}},
-		[]devtool_status.BldrDevtoolControllerRow{{
-			ControllerID: "controllerbus",
-			State:        devtool_status.BldrDevtoolControllerStateError,
-			Error:        "controller failed",
-		}},
-		[]devtool_status.BldrDevtoolAttentionRow{{
-			Severity: devtool_status.BldrDevtoolAttentionSeverityError,
-			Message:  "attention needed",
-			Detail:   "restart required",
-		}},
-	)
-
-	recentErrors := mustDevtoolTUIRegion(t, buildDevtoolTUIRegions(snapshot, 100), "recent errors")
-	want := []string{
-		"command: command failed",
-		"web: fetch failed",
-		"api: build failed",
-		"compiler: plugin failed",
-		"controllerbus: controller failed",
-		"error: attention needed; restart required",
-	}
-	assertStringSlicesEqual(t, recentErrors.Lines, want)
+	dashboard := renderDevtoolTUIDashboard(snapshot, "", 100, false)
+	assertContains(t, dashboard, "TARGETS · "+strconv.Itoa(devtoolTUIMaxTargetRows+3))
+	assertContains(t, dashboard, "… 3 more targets")
 }
 
 func TestRenderDevtoolTUIDashboardHandlesNilSnapshot(t *testing.T) {
-	dashboard := renderDevtoolTUIDashboard(nil, 80)
+	dashboard := renderDevtoolTUIDashboard(nil, "", 80, false)
 
-	if !strings.HasPrefix(dashboard, "Bldr Devtool\n") {
-		t.Fatalf("nil snapshot title = %q", firstLine(dashboard))
+	assertContains(t, dashboard, "Bldr Devtool · UNKNOWN")
+	assertNotContains(t, dashboard, "FAILURES")
+	assertNotContains(t, dashboard, "TARGETS")
+	assertContains(t, dashboard, "ctrl-c quit")
+}
+
+func TestWrapTextCapsLinesAndKeepsSubstance(t *testing.T) {
+	long := strings.Repeat("word ", 200)
+	lines := wrapText(long, 40)
+	if len(lines) > devtoolTUIMaxErrorLines {
+		t.Fatalf("wrapText returned %d lines, want <= %d", len(lines), devtoolTUIMaxErrorLines)
 	}
-	assertRegionHeadersInOrder(t, dashboard, []string{
-		"[command]",
-		"[manifest fetch]",
-		"[manifest builds]",
-		"[plugins]",
-		"[controllers]",
-		"[recent errors]",
-	})
-	assertContains(t, dashboard, "  command unknown")
-	if got, want := strings.Count(dashboard, "  "+devtoolTUIEmptyMessage), 5; got != want {
-		t.Fatalf("nil snapshot empty region count = %d, want %d in:\n%s", got, want, dashboard)
+	for _, line := range lines {
+		if visibleWidth(line) > 40 {
+			t.Fatalf("wrapped line exceeds width: %q", line)
+		}
 	}
 }
 
@@ -182,7 +129,6 @@ func representativeDevtoolTUIStatus() *devtool_status.BldrDevtoolStatus {
 			ManifestID:    "web",
 			PlatformID:    "js",
 			BuildType:     "dev",
-			RemoteID:      "local-cache",
 			State:         devtool_status.BldrDevtoolManifestStateReady,
 			ReadyRefCount: 3,
 		}},
@@ -190,7 +136,6 @@ func representativeDevtoolTUIStatus() *devtool_status.BldrDevtoolStatus {
 			ManifestID: "api",
 			PlatformID: "linux/amd64",
 			BuildType:  "release",
-			RemoteID:   "remote-builder",
 			State:      devtool_status.BldrDevtoolManifestStateRunning,
 			Summary:    "compiling",
 			HotRebuild: true,
@@ -209,27 +154,46 @@ func representativeDevtoolTUIStatus() *devtool_status.BldrDevtoolStatus {
 	)
 }
 
-func mustDevtoolTUIRegion(t *testing.T, regions []devtoolTUIRegion, title string) devtoolTUIRegion {
-	t.Helper()
-	for _, region := range regions {
-		if region.Title == title {
-			return region
-		}
-	}
-	t.Fatalf("missing dashboard region %q in %#v", title, regions)
-	return devtoolTUIRegion{}
+func failingDashboardStatus() *devtool_status.BldrDevtoolStatus {
+	return devtool_status.NewBldrDevtoolStatus(
+		devtool_status.BldrDevtoolCommandStatus{
+			Name:    "start web",
+			State:   devtool_status.BldrDevtoolCommandStateError,
+			Summary: "web runtime active on 127.0.0.1:8080",
+			Error:   "one target failed to build",
+			LogFile: "/home/dev/spacewave/.bldr/logs/devtool.log",
+		},
+		[]devtool_status.BldrDevtoolManifestFetchRow{
+			{ManifestID: "spacewave-web", PlatformID: "web/js/wasm", BuildType: "dev", State: devtool_status.BldrDevtoolManifestStateReady, ReadyRefCount: 5},
+		},
+		[]devtool_status.BldrDevtoolManifestBuildRow{
+			{ID: "b1", ManifestID: "spacewave-core", PlatformID: "web/js/wasm", BuildType: "dev", State: devtool_status.BldrDevtoolManifestStateRunning, Summary: "compiling", HotRebuild: true, WatchedFileCount: 214},
+			{ID: "b2", ManifestID: "spacewave-app", PlatformID: "web/js/wasm", BuildType: "dev", State: devtool_status.BldrDevtoolManifestStateError, Error: "./src/app/main.go:42:13: undefined: RenderRoot (did you mean RenderRootView?)"},
+		},
+		[]devtool_status.BldrDevtoolPluginRow{
+			{PluginID: "spacewave-web", InstanceKey: "root", State: devtool_status.BldrDevtoolPluginStateRunning},
+			{PluginID: "js-compiler", State: devtool_status.BldrDevtoolPluginStateRunning},
+			{PluginID: "goscript-web", State: devtool_status.BldrDevtoolPluginStateErrored, Error: "worker exited: exit status 2", LastErrorAt: "12:04:51"},
+		},
+		[]devtool_status.BldrDevtoolControllerRow{
+			{ControllerID: "controllerbus/exec", Kind: "exec", State: devtool_status.BldrDevtoolControllerStateRunning},
+			{ControllerID: "bldr/plugin-host", Kind: "loader", State: devtool_status.BldrDevtoolControllerStateRunning},
+			{ControllerID: "bldr/watch", Kind: "watch", State: devtool_status.BldrDevtoolControllerStateIdle},
+		},
+		nil,
+	)
 }
 
-func assertRegionHeadersInOrder(t *testing.T, dashboard string, headers []string) {
+func assertSectionsInOrder(t *testing.T, dashboard string, sections []string) {
 	t.Helper()
 	last := -1
-	for _, header := range headers {
-		idx := strings.Index(dashboard, header)
+	for _, section := range sections {
+		idx := strings.Index(dashboard, section)
 		if idx < 0 {
-			t.Fatalf("dashboard missing region header %q in:\n%s", header, dashboard)
+			t.Fatalf("dashboard missing section %q in:\n%s", section, dashboard)
 		}
 		if idx <= last {
-			t.Fatalf("dashboard header %q appeared out of order in:\n%s", header, dashboard)
+			t.Fatalf("dashboard section %q out of order in:\n%s", section, dashboard)
 		}
 		last = idx
 	}
@@ -238,43 +202,13 @@ func assertRegionHeadersInOrder(t *testing.T, dashboard string, headers []string
 func assertContains(t *testing.T, got, want string) {
 	t.Helper()
 	if !strings.Contains(got, want) {
-		t.Fatalf("expected %q to contain %q", got, want)
+		t.Fatalf("expected output to contain %q, got:\n%s", want, got)
 	}
 }
 
 func assertNotContains(t *testing.T, got, want string) {
 	t.Helper()
 	if strings.Contains(got, want) {
-		t.Fatalf("expected %q not to contain %q", got, want)
+		t.Fatalf("expected output not to contain %q, got:\n%s", want, got)
 	}
-}
-
-func assertLineContains(t *testing.T, got, want string) {
-	t.Helper()
-	if !strings.Contains(got, want) {
-		t.Fatalf("line = %q, want it to contain %q", got, want)
-	}
-}
-
-func assertFieldsEqual(t *testing.T, got string, want []string) {
-	t.Helper()
-	gotFields := strings.Fields(got)
-	assertStringSlicesEqual(t, gotFields, want)
-}
-
-func assertStringSlicesEqual(t *testing.T, got, want []string) {
-	t.Helper()
-	if len(got) != len(want) {
-		t.Fatalf("lines = %#v, want %#v", got, want)
-	}
-	for idx := range want {
-		if got[idx] != want[idx] {
-			t.Fatalf("line %d = %q, want %q; all lines %#v", idx, got[idx], want[idx], got)
-		}
-	}
-}
-
-func firstLine(value string) string {
-	line, _, _ := strings.Cut(value, "\n")
-	return line
 }
