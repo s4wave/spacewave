@@ -1,0 +1,256 @@
+syntax = "proto3";
+package space.migration;
+
+// MigrationOperation identifies a read-only migration plan operation.
+enum MigrationOperation {
+  // MIGRATION_OPERATION_UNSPECIFIED is the zero value.
+  MIGRATION_OPERATION_UNSPECIFIED = 0;
+  // MIGRATION_OPERATION_COPY copies a Space into a destination namespace.
+  MIGRATION_OPERATION_COPY = 1;
+  // MIGRATION_OPERATION_MERGE merges objects into an existing destination.
+  MIGRATION_OPERATION_MERGE = 2;
+  // MIGRATION_OPERATION_COPY_OBJECTS copies a selected closure.
+  MIGRATION_OPERATION_COPY_OBJECTS = 3;
+  // MIGRATION_OPERATION_MOVE_OBJECTS moves a selected closure after commit.
+  MIGRATION_OPERATION_MOVE_OBJECTS = 4;
+  // MIGRATION_OPERATION_SPLIT copies a selected closure into a new Space.
+  MIGRATION_OPERATION_SPLIT = 5;
+}
+
+// MigrationClassification states how an ObjectType may cross a Space boundary.
+enum MigrationClassification {
+  // MIGRATION_CLASSIFICATION_UNCLASSIFIED is a typed safety blocker.
+  MIGRATION_CLASSIFICATION_UNCLASSIFIED = 0;
+  // MIGRATION_CLASSIFICATION_SPACE_LOCAL_OPAQUE has no embedded identity.
+  MIGRATION_CLASSIFICATION_SPACE_LOCAL_OPAQUE = 1;
+  // MIGRATION_CLASSIFICATION_REWRITE requires typed reference rewriting.
+  MIGRATION_CLASSIFICATION_REWRITE = 2;
+  // MIGRATION_CLASSIFICATION_EXTERNAL_REF remains outside the Space.
+  MIGRATION_CLASSIFICATION_EXTERNAL_REF = 3;
+  // MIGRATION_CLASSIFICATION_NON_MIGRATABLE must be refused or excluded.
+  MIGRATION_CLASSIFICATION_NON_MIGRATABLE = 4;
+}
+
+// MigrationReferenceKind identifies a typed identity field.
+enum MigrationReferenceKind {
+  // MIGRATION_REFERENCE_KIND_UNSPECIFIED is the zero value.
+  MIGRATION_REFERENCE_KIND_UNSPECIFIED = 0;
+  // MIGRATION_REFERENCE_KIND_OBJECT_KEY is a Space-local object key.
+  MIGRATION_REFERENCE_KIND_OBJECT_KEY = 1;
+  // MIGRATION_REFERENCE_KIND_NESTED_SHARED_OBJECT is a nested SharedObject ID.
+  MIGRATION_REFERENCE_KIND_NESTED_SHARED_OBJECT = 2;
+  // MIGRATION_REFERENCE_KIND_CANVAS_NODE is a Canvas node identity.
+  MIGRATION_REFERENCE_KIND_CANVAS_NODE = 3;
+  // MIGRATION_REFERENCE_KIND_GRAPH_IRI is a graph IRI.
+  MIGRATION_REFERENCE_KIND_GRAPH_IRI = 4;
+  // MIGRATION_REFERENCE_KIND_EXTERNAL is an intentionally external reference.
+  MIGRATION_REFERENCE_KIND_EXTERNAL = 5;
+  // MIGRATION_REFERENCE_KIND_BLOCK_STORE is a block-store identity.
+  MIGRATION_REFERENCE_KIND_BLOCK_STORE = 6;
+}
+
+// MigrationConflictKind identifies a preview conflict or disclosure.
+enum MigrationConflictKind {
+  // MIGRATION_CONFLICT_KIND_UNSPECIFIED is the zero value.
+  MIGRATION_CONFLICT_KIND_UNSPECIFIED = 0;
+  // MIGRATION_CONFLICT_KIND_OBJECT_KEY is an object-key collision.
+  MIGRATION_CONFLICT_KIND_OBJECT_KEY = 1;
+  // MIGRATION_CONFLICT_KIND_EXTERNAL_REFERENCE discloses an external reference.
+  MIGRATION_CONFLICT_KIND_EXTERNAL_REFERENCE = 2;
+  // MIGRATION_CONFLICT_KIND_NON_MIGRATABLE identifies refused state.
+  MIGRATION_CONFLICT_KIND_NON_MIGRATABLE = 3;
+}
+
+// MigrationConflictResolution is the explicit user choice for a collision.
+enum MigrationConflictResolution {
+  MIGRATION_CONFLICT_RESOLUTION_UNSPECIFIED = 0;
+  MIGRATION_CONFLICT_RESOLUTION_DEDUPLICATE = 1;
+  MIGRATION_CONFLICT_RESOLUTION_RENAME = 2;
+  MIGRATION_CONFLICT_RESOLUTION_KEEP_DESTINATION = 3;
+  MIGRATION_CONFLICT_RESOLUTION_REPLACE = 4;
+  MIGRATION_CONFLICT_RESOLUTION_COMBINE = 5;
+}
+
+// MigrationTerminalState identifies the preview or operation terminal state.
+enum MigrationTerminalState {
+  // MIGRATION_TERMINAL_STATE_UNSPECIFIED is the zero value.
+  MIGRATION_TERMINAL_STATE_UNSPECIFIED = 0;
+  // MIGRATION_TERMINAL_STATE_PREVIEW_READY indicates no blockers.
+  MIGRATION_TERMINAL_STATE_PREVIEW_READY = 1;
+  // MIGRATION_TERMINAL_STATE_BLOCKED indicates typed preview blockers.
+  MIGRATION_TERMINAL_STATE_BLOCKED = 2;
+  // MIGRATION_TERMINAL_STATE_STALE indicates source or destination drift.
+  MIGRATION_TERMINAL_STATE_STALE = 3;
+  // MIGRATION_TERMINAL_STATE_FAILED indicates an invalid request.
+  MIGRATION_TERMINAL_STATE_FAILED = 4;
+}
+
+// MigrationIdentityMapping maps one typed source identity to a destination.
+message MigrationIdentityMapping {
+  // Kind identifies the identity domain.
+  MigrationReferenceKind kind = 1;
+  // Source is the source identity.
+  string source = 2;
+  // Destination is the deterministic destination identity.
+  string destination = 3;
+}
+
+// MigrationObject describes one source object without carrying its payload.
+message MigrationObject {
+  // ObjectKey is the source Space-local key.
+  string object_key = 1;
+  // ObjectType is the registered ObjectType identifier.
+  string object_type = 2;
+  // Revision is the source object revision at preview.
+  uint64 revision = 3;
+  // RootDigest identifies the immutable object root without exposing payload.
+  string root_digest = 4;
+  // LogicalBytes is the estimated logical size for capacity preflight.
+  uint64 logical_bytes = 5;
+}
+
+// MigrationConflict describes a deterministic collision or external disclosure.
+message MigrationConflict {
+  // Kind identifies the conflict category.
+  MigrationConflictKind kind = 1;
+  // ObjectKey identifies the affected source object.
+  string object_key = 2;
+  // ObjectType identifies the affected ObjectType.
+  string object_type = 3;
+  // SuggestedKey is the deterministic default for key collisions.
+  string suggested_key = 4;
+  // Detail is safe, non-secret diagnostic text.
+  string detail = 5;
+  // Resolution records the explicit typed choice, when one was supplied.
+  MigrationConflictResolution resolution = 6;
+  // ResolutionRequired blocks execution until a choice is supplied.
+  bool resolution_required = 7;
+}
+
+// MigrationBlocker is a typed reason a preview cannot start.
+message MigrationBlocker {
+  // Code is a stable machine-readable blocker code.
+  string code = 1;
+  // ObjectType identifies the affected type when applicable.
+  string object_type = 2;
+  // ObjectKeys lists all affected keys in sorted order.
+  repeated string object_keys = 3;
+  // Detail is safe, non-secret diagnostic text.
+  string detail = 4;
+}
+
+// MigrationProgress carries counters owned by the migration operation.
+message MigrationProgress {
+  // ObjectsSeen is the number of source objects scanned.
+  uint64 objects_seen = 1;
+  // ObjectsPlanned is the number of objects in the dependency closure.
+  uint64 objects_planned = 2;
+  // LogicalBytes is the estimated logical byte total.
+  uint64 logical_bytes = 3;
+  // BlocksSeen is reserved for execution counters.
+  uint64 blocks_seen = 4;
+  // BlocksCopied is reserved for execution counters.
+  uint64 blocks_copied = 5;
+  // BlocksExisting is reserved for execution counters.
+  uint64 blocks_existing = 6;
+  // BlocksDeduplicated is reserved for execution counters.
+  uint64 blocks_deduplicated = 7;
+  // BlocksWritten counts newly written blocks.
+  uint64 blocks_written = 8;
+  // SubtreesSkipped counts content subtrees skipped by deduplication.
+  uint64 subtrees_skipped = 9;
+  // DestinationBytesWritten counts bytes durably written at destination.
+  uint64 destination_bytes_written = 10;
+  // NestedSharedObjectsPlanned counts nested Secret envelopes planned.
+  uint64 nested_shared_objects_planned = 11;
+  // NestedSharedObjectsCompleted counts nested Secret envelopes completed.
+  uint64 nested_shared_objects_completed = 12;
+}
+
+// MigrationTerminalResult is the typed readback of a preview decision.
+message MigrationTerminalResult {
+  // State identifies the terminal preview state.
+  MigrationTerminalState state = 1;
+  // Code is a stable machine-readable result code.
+  string code = 2;
+  // Detail is safe, non-secret diagnostic text.
+  string detail = 3;
+}
+
+// MigrationPreview is an immutable, read-only migration plan.
+message MigrationPreview {
+  // Operation identifies the requested operation.
+  MigrationOperation operation = 1;
+  // SourceSpaceId identifies the source namespace.
+  string source_space_id = 2;
+  // DestinationSpaceId identifies the destination namespace.
+  string destination_space_id = 3;
+  // SourceRevision is the source World sequence at preview.
+  uint64 source_revision = 4;
+  // DestinationRevision is the destination World sequence at preview.
+  uint64 destination_revision = 5;
+  // Objects is the sorted dependency closure.
+  repeated MigrationObject objects = 6;
+  // IdentityMappings is sorted by kind then source.
+  repeated MigrationIdentityMapping identity_mappings = 7;
+  // Conflicts is sorted by object key and kind.
+  repeated MigrationConflict conflicts = 8;
+  // Blockers is sorted by code, type, then object key.
+  repeated MigrationBlocker blockers = 9;
+  // Progress is the read-only estimate for this preview.
+  MigrationProgress progress = 10;
+  // Result is the typed preview result.
+  MigrationTerminalResult result = 11;
+  // Digest is the stable digest of all fields except Digest itself.
+  string digest = 12;
+  // DestinationCapacity is the capacity supplied to preflight.
+  uint64 destination_capacity = 13;
+  // CapacityKnown indicates whether capacity was supplied.
+  bool capacity_known = 14;
+}
+
+// MigrationStagingUnit records one completed resumable staging unit.
+message MigrationStagingUnit {
+  string unit_id = 1;
+  string source_root = 2;
+  string destination_root = 3;
+  uint64 logical_bytes = 4;
+  bool completed = 5;
+}
+
+// MigrationCleanupEntry records one source object cleanup precondition.
+message MigrationCleanupEntry {
+  string object_key = 1;
+  uint64 source_revision = 2;
+  string state = 3;
+}
+
+// MigrationJournal is the durable, secret-free operation record shape.
+message MigrationJournal {
+  // OperationId identifies the operation.
+  string operation_id = 1;
+  // PreviewDigest binds execution to one immutable preview.
+  string preview_digest = 2;
+  // SourceSpaceId identifies the source namespace.
+  string source_space_id = 3;
+  // DestinationSpaceId identifies the destination namespace.
+  string destination_space_id = 4;
+  // Progress is the latest owner-reported progress.
+  MigrationProgress progress = 5;
+  // Terminal is the latest typed terminal result.
+  MigrationTerminalResult terminal = 6;
+  // SourceRevision and DestinationRevision are execution preconditions.
+  uint64 source_revision = 7;
+  uint64 destination_revision = 8;
+  string source_block_store_id = 9;
+  string destination_block_store_id = 10;
+  repeated MigrationIdentityMapping identity_mappings = 11;
+  repeated MigrationStagingUnit completed_staging_units = 12;
+  string destination_before_root = 13;
+  string destination_after_root = 14;
+  repeated MigrationCleanupEntry source_cleanup_ledger = 15;
+  string phase = 16;
+  // Preview is the complete secret-free precondition and closure snapshot.
+  MigrationPreview preview = 18;
+  uint64 retention_until_unix_seconds = 17;
+}

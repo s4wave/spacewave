@@ -23,3 +23,19 @@ func TestLookupDeviceObjectType(t *testing.T) {
 		t.Fatalf("object type id = %q, want %q", got.GetObjectTypeID(), s4wave_device.DeviceTypeID)
 	}
 }
+
+func TestBuiltInInventoryLookupParity(t *testing.T) {
+	ctx := context.Background()
+	for _, typeID := range BuiltInObjectTypeIDs() {
+		objType, err := LookupObjectType(ctx, typeID)
+		if err != nil {
+			t.Fatalf("LookupObjectType(%q): %v", typeID, err)
+		}
+		if objType == nil {
+			t.Fatalf("LookupObjectType(%q) returned nil", typeID)
+		}
+		if got := objType.GetObjectTypeID(); got != typeID {
+			t.Fatalf("LookupObjectType(%q) returned %q", typeID, got)
+		}
+	}
+}

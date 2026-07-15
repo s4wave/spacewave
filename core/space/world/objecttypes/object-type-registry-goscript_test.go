@@ -30,3 +30,15 @@ func TestLookupSqlObjectTypesExcludedFromCoreUnderGoScript(t *testing.T) {
 		}
 	}
 }
+
+func TestCompiledInventoryLookupParityUnderGoScript(t *testing.T) {
+	for _, typeID := range BuiltInObjectTypeIDs() {
+		got, err := LookupObjectType(t.Context(), typeID)
+		if err != nil {
+			t.Fatalf("LookupObjectType(%s): %v", typeID, err)
+		}
+		if got == nil || got.GetObjectTypeID() != typeID {
+			t.Fatalf("LookupObjectType(%s) = %#v", typeID, got)
+		}
+	}
+}

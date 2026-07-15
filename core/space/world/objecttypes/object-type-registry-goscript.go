@@ -10,11 +10,9 @@ import (
 )
 
 // LookupObjectType looks up a GoScript-supported object type by ID.
-// Returns nil if not found.
 func LookupObjectType(ctx context.Context, typeID string) (objecttype.ObjectType, error) {
-	ot, err := lookupCoreObjectType(ctx, typeID)
-	if ot != nil || err != nil {
-		return ot, err
+	if objectType := compiledObjectTypes[typeID]; objectType != nil {
+		return objectType, nil
 	}
 	return s4wave_wizard.LookupWizardObjectType(ctx, typeID)
 }
