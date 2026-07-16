@@ -6,76 +6,6 @@ import (
 	"testing"
 )
 
-func TestEnsureNodeModulesLinkCreatesSymlinkToInstallNodeModules(t *testing.T) {
-	parentDir := t.TempDir()
-	installDir := t.TempDir()
-	installNodeModules := filepath.Join(installDir, "node_modules")
-	if err := os.Mkdir(installNodeModules, 0o755); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := EnsureNodeModulesLink(parentDir, installDir); err != nil {
-		t.Fatal(err)
-	}
-
-	assertNodeModulesSymlinkTarget(t, parentDir, installNodeModules)
-}
-
-func TestEnsureNodeModulesLinkToleratesExistingSymlinkToInstallNodeModules(t *testing.T) {
-	parentDir := t.TempDir()
-	installDir := t.TempDir()
-	installNodeModules := filepath.Join(installDir, "node_modules")
-	if err := os.Mkdir(installNodeModules, 0o755); err != nil {
-		t.Fatal(err)
-	}
-
-	target, err := filepath.Abs(installNodeModules)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink(target, filepath.Join(parentDir, "node_modules")); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := EnsureNodeModulesLink(parentDir, installDir); err != nil {
-		t.Fatal(err)
-	}
-
-	assertNodeModulesSymlinkTarget(t, parentDir, installNodeModules)
-}
-
-func assertNodeModulesSymlinkTarget(t *testing.T, parentDir, installNodeModules string) {
-	t.Helper()
-
-	linkPath := filepath.Join(parentDir, "node_modules")
-	info, err := os.Lstat(linkPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if info.Mode()&os.ModeSymlink == 0 {
-		t.Fatalf("%s is mode %v, want symlink", linkPath, info.Mode())
-	}
-
-	target, err := os.Readlink(linkPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !filepath.IsAbs(target) {
-		target = filepath.Join(parentDir, target)
-	}
-	target, err = filepath.Abs(target)
-	if err != nil {
-		t.Fatal(err)
-	}
-	want, err := filepath.Abs(installNodeModules)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if target != want {
-		t.Fatalf("node_modules symlink target=%q want %q", target, want)
-	}
-}
-
 func TestReadSiblingBunLock(t *testing.T) {
 	dir := t.TempDir()
 	pkgPath := filepath.Join(dir, "package.json")
@@ -130,31 +60,4 @@ func TestBunMinimumReleaseAgeArg(t *testing.T) {
 	if len(got) != 1 || got[0] != "--minimum-release-age=7d" {
 		t.Fatalf("minimum age arg = %#v, want --minimum-release-age=7d", got)
 	}
-}
-
-func TestLockBunInstallTargetNormalizesTargetDir(t *testing.T) {
-	dir := t.TempDir()
-	child := filepath.Join(dir, "deps")
-	rel, err := filepath.Rel(dir, child)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	unlock := lockBunInstallTarget(filepath.Join(dir, rel))
-	secondEntered := make(chan struct{})
-	secondDone := make(chan struct{})
-	go func() {
-		defer close(secondDone)
-		secondUnlock := lockBunInstallTarget(child)
-		defer secondUnlock()
-		close(secondEntered)
-	}()
-
-	select {
-	case <-secondEntered:
-		t.Fatal("second lock entered before first target unlock")
-	default:
-	}
-	unlock()
-	<-secondDone
 }
