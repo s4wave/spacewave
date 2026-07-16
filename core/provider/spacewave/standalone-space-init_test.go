@@ -12,7 +12,124 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
 )
+
+func TestBuildFriendDmInitialStateIncludesBilateralRecovery(t *testing.T) {
+	localPriv, localPID := generateTestKeypair(t)
+	localSecondPriv, localSecondPID := generateTestKeypair(t)
+	localRecoveryPriv, localRecoveryPID := generateTestKeypair(t)
+	targetPriv, targetPID := generateTestKeypair(t)
+	targetRecoveryPriv, targetRecoveryPID := generateTestKeypair(t)
+	accounts := []FriendDmAccount{
+		{
+			AccountID: "acct-a",
+			Sessions: []FriendDmSession{
+				{PeerID: localPID.String()},
+				{PeerID: localSecondPID.String()},
+			},
+			RecoveryKeypairs: []FriendDmRecoveryKeypair{
+				{PeerID: localRecoveryPID.String()},
+			},
+		},
+		{
+			AccountID:        "acct-b",
+			Sessions:         []FriendDmSession{{PeerID: targetPID.String()}},
+			RecoveryKeypairs: []FriendDmRecoveryKeypair{{PeerID: targetRecoveryPID.String()}},
+		},
+	}
+	state, err := buildStandaloneSpaceInitState(
+		context.Background(),
+		nil,
+		logrus.New().WithField("test", "friend-dm"),
+		"acct-a",
+		"friend-dm-so",
+		localPriv,
+		buildStandaloneSpaceInitStepFactorySet(),
+		true,
+		accounts,
+	)
+	if err != nil {
+		t.Fatalf("build friend dm state: %v", err)
+	}
+	change := &sobject.SOConfigChange{}
+	if err := change.UnmarshalVT(state.configData); err != nil {
+		t.Fatalf("unmarshal genesis config: %v", err)
+	}
+	participants := change.GetConfig().GetParticipants()
+	if len(participants) != 3 {
+		t.Fatalf("participants = %d, want 3", len(participants))
+	}
+	rolesByPeer := make(map[string]sobject.SOParticipantRole, len(participants))
+	for _, participant := range participants {
+		rolesByPeer[participant.GetPeerId()] = participant.GetRole()
+	}
+	if rolesByPeer[localPID.String()] !=
+		sobject.SOParticipantRole_SOParticipantRole_OWNER ||
+		rolesByPeer[localSecondPID.String()] !=
+			sobject.SOParticipantRole_SOParticipantRole_OWNER ||
+		rolesByPeer[targetPID.String()] !=
+			sobject.SOParticipantRole_SOParticipantRole_WRITER {
+		t.Fatalf("unexpected participant roles: %#v", rolesByPeer)
+	}
+	if len(state.keyEpoch.GetGrants()) != len(participants) {
+		t.Fatalf("grants = %d, want %d", len(state.keyEpoch.GetGrants()), len(participants))
+	}
+	for _, participant := range participants {
+		if !soGrantSliceHasPeerID(state.keyEpoch.GetGrants(), participant.GetPeerId()) {
+			t.Fatalf("missing grant for %s", participant.GetPeerId())
+		}
+	}
+	if len(state.recoveryEnvelopes) != 2 {
+		t.Fatalf("recovery envelopes = %d, want 2", len(state.recoveryEnvelopes))
+	}
+	recoveryPrivsByAccount := map[string][]crypto.PrivKey{
+		"acct-a": {localRecoveryPriv},
+		"acct-b": {targetRecoveryPriv},
+	}
+	sessionPrivsByAccount := map[string][]crypto.PrivKey{
+		"acct-a": {localPriv, localSecondPriv},
+		"acct-b": {targetPriv},
+	}
+	for _, env := range state.recoveryEnvelopes {
+		if _, err := sobject.UnlockSOEntityRecoveryEnvelope(
+			sessionPrivsByAccount[env.GetEntityId()],
+			env,
+		); err == nil {
+			t.Fatalf("session key unexpectedly unlocked recovery envelope %s", env.GetEntityId())
+		}
+		material, err := sobject.UnlockSOEntityRecoveryEnvelope(
+			recoveryPrivsByAccount[env.GetEntityId()],
+			env,
+		)
+		if err != nil {
+			t.Fatalf("unlock recovery envelope %s: %v", env.GetEntityId(), err)
+		}
+		if material.GetEntityId() != env.GetEntityId() {
+			t.Fatalf("recovery entity = %q, want %q", material.GetEntityId(), env.GetEntityId())
+		}
+	}
+	configData, rootData, err := marshalFriendDmInitialState(state)
+	if err != nil {
+		t.Fatalf("marshal friend dm wrappers: %v", err)
+	}
+	configRequest := &api.PostConfigStateRequest{}
+	if err := configRequest.UnmarshalVT(configData); err != nil {
+		t.Fatalf("unmarshal config wrapper: %v", err)
+	}
+	if len(configRequest.GetRecoveryEnvelopes()) != 2 ||
+		configRequest.GetKeyEpoch() == nil ||
+		len(configRequest.GetKeyEpoch().GetGrants()) != 3 {
+		t.Fatalf("incomplete config wrapper: %+v", configRequest)
+	}
+	rootRequest := &api.PostRootRequest{}
+	if err := rootRequest.UnmarshalVT(rootData); err != nil {
+		t.Fatalf("unmarshal root wrapper: %v", err)
+	}
+	if rootRequest.GetRoot() == nil || rootRequest.GetRoot().GetInnerSeqno() != 1 {
+		t.Fatalf("incomplete root wrapper: %+v", rootRequest)
+	}
+}
 
 func TestSessionClientInitEmptyStandaloneSpace(t *testing.T) {
 	const (

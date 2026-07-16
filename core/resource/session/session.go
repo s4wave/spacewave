@@ -350,15 +350,19 @@ func (r *SessionResource) CreateSpace(ctx context.Context, req *s4wave_session.C
 		return nil, err
 	}
 
+	return r.mountSpaceResponse(ctx, soRef, soMeta)
+}
+
+func (r *SessionResource) mountSpaceResponse(
+	ctx context.Context,
+	soRef *sobject.SharedObjectRef,
+	soMeta *sobject.SharedObjectMeta,
+) (*s4wave_session.CreateSpaceResponse, error) {
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Initialize the space world immediately so later readers and writers do not
-	// block waiting for the first owner mount to seed the head state. Keep the
-	// mounted resources attached to the client so first-use flows do not need to
-	// immediately remount the same SharedObject by id.
 	mountedSpace, spaceBodyRef, err := space.ExMountSpaceSoBody(ctx, r.b, soRef, false, nil)
 	if err != nil {
 		return nil, err
@@ -402,6 +406,26 @@ func (r *SessionResource) CreateSpace(ctx context.Context, req *s4wave_session.C
 		SharedObjectBodyResourceId: spaceBodyID,
 		SpaceWorldResourceId:       spaceWorldID,
 	}, nil
+}
+
+// OpenFriendDM creates or mounts the one native friend DM for an accepted edge.
+func (r *SessionResource) OpenFriendDM(
+	ctx context.Context,
+	targetAccountID string,
+) (*s4wave_session.CreateSpaceResponse, error) {
+	providerAcc, ok := r.session.GetProviderAccount().(*provider_spacewave.ProviderAccount)
+	if !ok {
+		return nil, errors.New("friend dm requires a spacewave provider account")
+	}
+	result, err := providerAcc.OpenFriendDM(ctx, targetAccountID)
+	if err != nil {
+		return nil, err
+	}
+	return r.mountSpaceResponse(
+		ctx,
+		result.SharedObjectRef,
+		result.SharedObjectMeta,
+	)
 }
 
 // WatchResourcesList returns the list of resources the session has access to.
