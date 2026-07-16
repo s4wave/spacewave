@@ -80,7 +80,7 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
                   onClick={view.onRetry}
                   className="border-foreground/8 bg-foreground/5 hover:bg-foreground/10 hover:border-foreground/15 text-foreground-alt hover:text-foreground rounded-md border px-2 py-1 text-[0.65rem] font-medium transition-all duration-150"
                 >
-                  Retry
+                  {view.retryLabel ?? 'Retry'}
                 </button>
               ) : null}
               {view.onCancel ? (
@@ -89,7 +89,7 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
                   onClick={view.onCancel}
                   className="text-foreground-alt/60 hover:text-foreground-alt rounded-md px-2 py-1 text-[0.65rem] font-medium transition-colors"
                 >
-                  Cancel
+                  {view.cancelLabel ?? 'Cancel'}
                 </button>
               ) : null}
             </div>

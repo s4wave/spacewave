@@ -109,6 +109,23 @@ describe('LoadingCard', () => {
     expect(screen.queryByText('Cancel')).toBeNull()
   })
 
+  it('uses custom recovery action labels from the loading view', () => {
+    render(
+      <LoadingCard
+        view={{
+          state: 'error',
+          title: 'Terminal ended',
+          onRetry: vi.fn(),
+          onCancel: vi.fn(),
+          retryLabel: 'Restart',
+          cancelLabel: 'Back to Settings',
+        }}
+      />,
+    )
+    expect(screen.getByText('Restart')).toBeTruthy()
+    expect(screen.getByText('Back to Settings')).toBeTruthy()
+  })
+
   it('renders the last-activity footer when provided', () => {
     render(
       <LoadingCard

@@ -40,7 +40,11 @@ export function StorageHealth({
   return (
     <div className="space-y-4" data-testid={`storage-health-${mode}`}>
       {mode === 'recovery' && (
-        <div className="border-destructive/30 bg-destructive/8 rounded-lg border p-3.5">
+        <div
+          className="border-destructive/30 bg-destructive/8 rounded-lg border p-3.5"
+          role="alert"
+          aria-live="assertive"
+        >
           <div className="flex items-start gap-3">
             <div className="bg-destructive/10 text-destructive flex size-8 shrink-0 items-center justify-center rounded-md">
               <LuTriangleAlert className="size-4" aria-hidden="true" />
@@ -70,29 +74,18 @@ export function StorageHealth({
                   ? `${formatBytes(health.providerBytes)} in the local provider`
                   : 'Local provider usage unavailable'
             }
-            detail={
-              health.providerSupported
-                ? `${Number(health.blockCount).toLocaleString()} stored blocks`
-                : 'This browser copy can still be lost through clearing, eviction, profile loss, or device loss.'
-            }
             tone="neutral"
           />
           <HealthRow
             icon={<LuHardDrive className="size-3.5" />}
             label="Approximate browser usage"
             value={originLabel}
-            detail={
-              health.browserReadFailed
-                ? 'The browser refused the storage-health query.'
-                : 'Whole-origin estimates are approximate and may exceed real free disk headroom.'
-            }
             tone="neutral"
           />
           <HealthRow
             icon={<LuShieldCheck className="size-3.5" />}
             label="Protected from browser cleanup"
             value={protectionLabel(health.protectionState)}
-            detail={protectionDetail(health.protectionState)}
             tone={
               health.protectionState === 'protected' ? 'positive' : 'warning'
             }
@@ -101,18 +94,57 @@ export function StorageHealth({
             icon={<LuRefreshCw className="size-3.5" />}
             label="Sync activity"
             value={health.sync.summaryLabel}
-            detail={health.sync.detailLabel}
             tone={health.sync.error ? 'warning' : 'neutral'}
           />
           <HealthRow
             icon={<LuCloudOff className="size-3.5" />}
             label="Backed up / replicated"
             value={health.replicaLabel}
-            detail="Sync activity, pairing, and an empty queue do not prove that another copy can restore this Space."
             tone="warning"
           />
         </div>
       </InfoCard>
+
+      <details className="border-foreground/6 bg-background-card/30 rounded-lg border">
+        <summary className="text-foreground-alt hover:text-foreground cursor-pointer px-3.5 py-2.5 text-xs font-medium">
+          Why these readings matter
+        </summary>
+        <div className="border-foreground/6 text-foreground-alt/60 space-y-2 border-t px-3.5 py-3 text-[0.6rem] leading-relaxed">
+          <p>
+            <strong className="text-foreground-alt/80">
+              Saved on this browser:
+            </strong>{' '}
+            {health.providerSupported
+              ? `${Number(health.blockCount).toLocaleString()} stored blocks`
+              : 'This browser copy can still be lost through clearing, eviction, profile loss, or device loss.'}
+          </p>
+          <p>
+            <strong className="text-foreground-alt/80">
+              Approximate browser usage:
+            </strong>{' '}
+            {health.browserReadFailed
+              ? 'The browser refused the storage-health query.'
+              : 'Whole-origin estimates are approximate and may exceed real free disk headroom.'}
+          </p>
+          <p>
+            <strong className="text-foreground-alt/80">
+              Protected from browser cleanup:
+            </strong>{' '}
+            {protectionDetail(health.protectionState)}
+          </p>
+          <p>
+            <strong className="text-foreground-alt/80">Sync activity:</strong>{' '}
+            {health.sync.detailLabel}
+          </p>
+          <p>
+            <strong className="text-foreground-alt/80">
+              Backed up / replicated:
+            </strong>{' '}
+            Sync activity, pairing, and an empty queue do not prove that another
+            copy can restore this Space.
+          </p>
+        </div>
+      </details>
 
       {mode === 'settings' && health.safariCleanupRisk && (
         <div
@@ -201,13 +233,11 @@ function HealthRow({
   icon,
   label,
   value,
-  detail,
   tone,
 }: {
   icon: ReactNode
   label: string
   value: string
-  detail: string
   tone: 'neutral' | 'positive' | 'warning'
 }) {
   return (
@@ -223,12 +253,9 @@ function HealthRow({
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-foreground-alt/60 text-[0.6rem]">{label}</div>
+        <div className="text-foreground-alt/60 text-xs">{label}</div>
         <div className="text-foreground mt-0.5 text-xs font-medium">
           {value}
-        </div>
-        <div className="text-foreground-alt/60 mt-1 text-xs leading-relaxed">
-          {detail}
         </div>
       </div>
     </div>

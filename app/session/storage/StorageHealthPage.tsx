@@ -1,8 +1,8 @@
 import { useCallback } from 'react'
-import { LuArrowLeft, LuDatabase, LuTriangleAlert } from 'react-icons/lu'
+import { LuDatabase, LuTriangleAlert } from 'react-icons/lu'
 
 import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
-import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
+import { BackButton } from '@s4wave/web/ui/BackButton.js'
 
 import { StorageHealth } from './StorageHealth.js'
 
@@ -32,28 +32,24 @@ export function StorageHealthPage({
   return (
     <div className="bg-background-primary relative flex h-full w-full items-start justify-center overflow-y-auto pt-16 pb-10">
       <main className="w-full max-w-md px-4">
-        <div className="mb-6 flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="bg-brand/10 text-brand flex size-9 shrink-0 items-center justify-center rounded-md">
-              <Icon className="size-5" aria-hidden="true" />
-            </div>
-            <div>
-              <h1 className="text-foreground text-lg font-semibold tracking-tight">
-                {recovery ? 'Storage recovery' : 'Storage health'}
-              </h1>
-              <p className="text-foreground-alt/60 mt-1 text-xs">
-                {recovery
-                  ? 'Restore enough durable capacity for Spacewave to save safely.'
-                  : 'Local usage, cleanup protection, sync activity, and replica safety.'}
-              </p>
-            </div>
+        <BackButton floating onClick={handleBack}>
+          Back
+        </BackButton>
+        <div className="mb-6 flex items-center gap-2">
+          <Icon
+            className="text-foreground size-5 shrink-0"
+            aria-hidden="true"
+          />
+          <div>
+            <h1 className="text-foreground text-lg font-semibold tracking-tight">
+              {recovery ? 'Storage recovery' : 'Storage health'}
+            </h1>
+            <p className="text-foreground-alt/60 mt-1 text-xs">
+              {recovery
+                ? 'Restore enough durable capacity for Spacewave to save safely.'
+                : 'Local usage, cleanup protection, sync activity, and replica safety.'}
+            </p>
           </div>
-          <DashboardButton
-            icon={<LuArrowLeft className="size-3.5" />}
-            onClick={handleBack}
-          >
-            Dashboard
-          </DashboardButton>
         </div>
 
         <StorageHealth

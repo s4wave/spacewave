@@ -129,7 +129,7 @@ describe('VmV86Viewer', () => {
     vi.clearAllMocks()
   })
 
-  it('shows VM boot loading until the first serial byte', async () => {
+  it('does not cover a running quiet VM with a boot loading state', async () => {
     const { world } = buildWorld(
       VmV86.create({
         state: VmState.VmState_RUNNING,
@@ -154,9 +154,7 @@ describe('VmV86Viewer', () => {
       />,
     )
 
-    expect(screen.getByRole('status').textContent).toContain(
-      'Booting virtual machine…',
-    )
+    expect(screen.queryByRole('status')).toBeNull()
     serialChannels[0]?.onmessage?.({
       data: { dir: 'out', byte: 10 },
     } as MessageEvent)

@@ -71,6 +71,8 @@ describe('StorageHealth', () => {
     )
 
     expect(screen.getByText('Spacewave cannot save reliably')).toBeTruthy()
+    expect(screen.getByRole('alert')).toBeTruthy()
+    expect(screen.getByText('Why these readings matter')).toBeTruthy()
     expect(screen.getByText('Not yet verified')).toBeTruthy()
     expect(screen.queryByTestId('safari-storage-risk')).toBeNull()
     expect(

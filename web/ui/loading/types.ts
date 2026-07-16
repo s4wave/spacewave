@@ -23,5 +23,7 @@ export interface LoadingView {
   lastActivity?: string
   error?: string
   onRetry?: () => void
+  retryLabel?: string
+  cancelLabel?: string
   onCancel?: () => void
 }

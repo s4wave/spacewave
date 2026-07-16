@@ -3,11 +3,14 @@ import { Terminal as XTerm } from '@xterm/xterm'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { MessageStream } from 'starpc'
 
+import { terminalStatusToLoadingView } from '@s4wave/app/loading/status/terminal.js'
+import type { TerminalStatus } from '@s4wave/app/loading/status/terminal.js'
 import {
   TerminalFrameKind,
   type TerminalFrame,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
 import { cn } from '@s4wave/web/style/utils.js'
+import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 import { resolveTerminalTheme } from './terminalTheme.js'
 
@@ -32,12 +35,7 @@ export interface TerminalPaneProps {
   onRetry?: () => void
   onBackToSettings?: () => void
 }
-
-type TerminalPaneStatus =
-  | { kind: 'connecting' }
-  | { kind: 'ready' }
-  | { kind: 'failed'; detail: string }
-  | { kind: 'closed' }
+type TerminalPaneStatus = TerminalStatus | { kind: 'ready' }
 
 interface TerminalFrameQueue {
   push(frame: TerminalFrame): void
@@ -189,94 +187,26 @@ function TerminalPaneStatusLayer({
   onRetry,
   onBackToSettings,
 }: {
-  status: TerminalPaneStatus
+  status: TerminalStatus
   cliSession: boolean
   onRetry?: () => void
   onBackToSettings?: () => void
 }) {
-  const failed = status.kind === 'failed'
-  const closed = status.kind === 'closed'
-  const sessionName = cliSession ? 'CLI session' : 'Terminal session'
-  const title = failed
-    ? `${sessionName} failed`
-    : closed
-      ? `${sessionName} ended`
-      : cliSession
-        ? 'Connecting to Spacewave CLI…'
-        : 'Connecting terminal…'
-  const detail = failed
-    ? status.detail
-    : closed
-      ? 'The command prompt has ended.'
-      : cliSession
-        ? 'Preparing a session-local command prompt.'
-        : 'Connecting and waiting for the remote prompt.'
-
   return (
     <div
       className="bg-background-dark/95 absolute inset-0 flex items-center justify-center p-4"
       data-terminal-status-layer={status.kind}
-      role={failed ? 'alert' : 'status'}
+      role={status.kind === 'failed' ? 'alert' : 'status'}
       aria-live="polite"
     >
-      <div
-        className={cn(
-          'border-foreground/8 bg-background-card/50 w-full max-w-sm rounded-lg border p-3.5',
-          failed && 'border-destructive/15 bg-destructive/5',
-        )}
-      >
-        <div className="flex items-start gap-3">
-          <div
-            aria-hidden="true"
-            className={cn(
-              'mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md',
-              failed
-                ? 'bg-destructive/10 text-destructive'
-                : closed
-                  ? 'bg-foreground/5 text-foreground-alt'
-                  : 'bg-brand/10 text-brand',
-            )}
-          >
-            {failed ? (
-              '!'
-            ) : closed ? (
-              '×'
-            ) : (
-              <span className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            )}
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-foreground text-sm font-semibold tracking-tight">
-              {title}
-            </h2>
-            <p className="text-foreground-alt/70 mt-0.5 text-xs leading-relaxed">
-              {detail}
-            </p>
-            {onRetry || (failed && onBackToSettings) ? (
-              <div className="mt-2.5 flex flex-wrap gap-2">
-                {onRetry && (
-                  <button
-                    type="button"
-                    className="border-foreground/10 bg-foreground/5 text-foreground hover:bg-foreground/10 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors"
-                    onClick={onRetry}
-                  >
-                    {closed ? 'Restart' : 'Retry'}
-                  </button>
-                )}
-                {failed && onBackToSettings ? (
-                  <button
-                    type="button"
-                    className="text-foreground-alt/70 hover:text-foreground rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
-                    onClick={onBackToSettings}
-                  >
-                    Back to Settings
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
+      <LoadingCard
+        view={terminalStatusToLoadingView(status, {
+          cliSession,
+          onRetry,
+          onBackToSettings,
+        })}
+        className="w-full max-w-sm"
+      />
     </div>
   )
 }

@@ -11,7 +11,8 @@ import {
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { SpaceContentsContext } from '@s4wave/web/contexts/contexts.js'
-
+import { terminalStatusToLoadingView } from '@s4wave/app/loading/status/terminal.js'
+import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import {
   SetV86StateOp,
@@ -262,9 +263,8 @@ export default function VmV86Viewer({
     vmStateValue === VmState.VmState_STOPPING
 
   const terminalConnecting =
-    vmState.loading ||
-    vmStateValue === VmState.VmState_STARTING ||
-    vmStateValue === VmState.VmState_RUNNING
+    vmStateValue !== VmState.VmState_RUNNING &&
+    (vmState.loading || vmStateValue === VmState.VmState_STARTING)
 
   const handleStart = useCallback(() => {
     setOperationError('')
@@ -311,7 +311,7 @@ export default function VmV86Viewer({
       )}
       <SerialTerminal
         objectKey={objectKey}
-        connecting={terminalConnecting}
+        showConnecting={terminalConnecting}
       />
       <VmInfoBar
         memoryMb={memoryMb}
@@ -444,17 +444,12 @@ function VmErrorBanner({
 
 function SerialTerminal({
   objectKey,
-  connecting,
+  showConnecting,
 }: {
   objectKey: string
-  connecting: boolean
+  showConnecting: boolean
 }) {
   const terminalHostRef = useRef<HTMLDivElement | null>(null)
-  const [hasOutput, setHasOutput] = useState(false)
-
-  useEffect(() => {
-    if (connecting) setHasOutput(false)
-  }, [connecting])
 
   useEffect(() => {
     const host = terminalHostRef.current
@@ -479,7 +474,6 @@ function SerialTerminal({
       const frame = ev.data
       if (!frame || frame.dir !== 'out') return
       if (typeof frame.byte === 'number') {
-        setHasOutput(true)
         term.write(String.fromCharCode(frame.byte))
       }
     }
@@ -508,33 +502,26 @@ function SerialTerminal({
   }, [objectKey])
 
   return (
-    <div className="bg-zinc-950 relative min-h-0 flex-1 overflow-hidden">
+    <div className="relative min-h-0 flex-1 overflow-hidden bg-zinc-950">
       <div ref={terminalHostRef} className="size-full overflow-hidden" />
-      {connecting && !hasOutput && (
+      {showConnecting && (
         <div
           className="bg-background-dark/95 absolute inset-0 flex items-center justify-center p-4"
           data-vm-terminal-status="connecting"
           role="status"
           aria-live="polite"
         >
-          <div className="border-foreground/8 bg-background-card/50 w-full max-w-sm rounded-lg border p-3.5">
-            <div className="flex items-start gap-3">
-              <span
-                aria-hidden="true"
-                className="text-brand mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-brand/10"
-              >
-                <span className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              </span>
-              <div className="min-w-0">
-                <h2 className="text-foreground text-sm font-semibold tracking-tight">
-                  Booting virtual machine…
-                </h2>
-                <p className="text-foreground-alt/70 mt-0.5 text-xs leading-relaxed">
-                  Waiting for the serial console to produce output.
-                </p>
-              </div>
-            </div>
-          </div>
+          <LoadingCard
+            view={terminalStatusToLoadingView(
+              { kind: 'connecting' },
+              {
+                cliSession: false,
+                connectingTitle: 'Booting virtual machine…',
+                connectingDetail: 'Waiting for the virtual machine runtime.',
+              },
+            )}
+            className="w-full max-w-sm"
+          />
         </div>
       )}
     </div>
