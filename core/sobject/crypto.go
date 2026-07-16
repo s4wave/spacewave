@@ -29,6 +29,47 @@ func BuildValidatorRootSignatureContext(sharedObjectID string, seqno uint64) str
 	return b.String()
 }
 
+// BuildSOReceiptLookupSignatureContext builds the context for a participant signature on an exact-key receipt lookup.
+func BuildSOReceiptLookupSignatureContext(sharedObjectID, participantPeerID, localID string) string {
+	var b strings.Builder
+	b.WriteString(baseCryptoContext)
+	b.WriteString("participant_receipt_lookup_signature ")
+	b.WriteString(sharedObjectID)
+	b.WriteString(" participant ")
+	b.WriteString(participantPeerID)
+	b.WriteString(" local-id ")
+	b.WriteString(localID)
+	return b.String()
+}
+
+// BuildSOReceiptAcknowledgementSignatureContext builds the context for a participant signature on an exact-key receipt acknowledgement.
+func BuildSOReceiptAcknowledgementSignatureContext(sharedObjectID, participantPeerID, localID string) string {
+	var b strings.Builder
+	b.WriteString(baseCryptoContext)
+	b.WriteString("participant_receipt_acknowledgement_signature ")
+	b.WriteString(sharedObjectID)
+	b.WriteString(" participant ")
+	b.WriteString(participantPeerID)
+	b.WriteString(" local-id ")
+	b.WriteString(localID)
+	return b.String()
+}
+
+// BuildSOTerminalReceiptSignatureContext builds the context for a validator signature on a terminal receipt.
+func BuildSOTerminalReceiptSignatureContext(sharedObjectID, participantPeerID, localID string, authoritativeRootSeqno uint64) string {
+	var b strings.Builder
+	b.WriteString(baseCryptoContext)
+	b.WriteString("validator_terminal_receipt_signature ")
+	b.WriteString(sharedObjectID)
+	b.WriteString(" participant ")
+	b.WriteString(participantPeerID)
+	b.WriteString(" local-id ")
+	b.WriteString(localID)
+	b.WriteString(" root-seqno ")
+	b.WriteString(strconv.FormatUint(authoritativeRootSeqno, 10))
+	return b.String()
+}
+
 // BuildSOOperationSignatureContext builds the context string for a participant signature on a shared object operation.
 func BuildSOOperationSignatureContext(sharedObjectID string, peerID string, nonce uint64, localID string) string {
 	var b strings.Builder

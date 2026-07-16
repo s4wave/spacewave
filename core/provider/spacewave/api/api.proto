@@ -203,8 +203,11 @@ message LookupOperationReceiptInner {
 message LookupOperationReceiptRequest {
   // Inner is the deterministic serialized LookupOperationReceiptInner bytes.
   bytes inner = 1;
-  // Signature is the participant's signature over Inner bytes.
-  // The participant_peer_id in the decoded key must sign this payload.
+  // Signature covers the deterministic Inner bytes using
+  // BuildSOReceiptLookupSignatureContext(Inner.key.shared_object_id,
+  // Inner.key.participant_peer_id, Inner.key.local_id).
+  // The participant_peer_id extracted from Inner.key must sign; this domain is
+  // separate from operation, acknowledgement, terminal-receipt, and root signatures.
   .peer.Signature signature = 2;
 }
 
@@ -228,8 +231,11 @@ message AcknowledgeOperationReceiptInner {
 message AcknowledgeOperationReceiptRequest {
   // Inner is the deterministic serialized AcknowledgeOperationReceiptInner bytes.
   bytes inner = 1;
-  // Signature is the participant's signature over Inner bytes.
-  // The participant_peer_id in the decoded key must sign this payload.
+  // Signature covers the deterministic Inner bytes using
+  // BuildSOReceiptAcknowledgementSignatureContext(Inner.key.shared_object_id,
+  // Inner.key.participant_peer_id, Inner.key.local_id).
+  // The participant_peer_id extracted from Inner.key must sign; this domain is
+  // separate from operation, lookup, terminal-receipt, and root signatures.
   .peer.Signature signature = 2;
 }
 

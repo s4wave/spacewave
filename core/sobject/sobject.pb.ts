@@ -3342,8 +3342,13 @@ export interface SOTerminalReceipt {
    */
   inner?: Uint8Array
   /**
-   * ValidatorSignatures are signatures by validators over the deterministic Inner bytes.
-   * Signers must belong to the validator set identified by Inner.validator_set_digest and satisfy Inner.consensus_mode.
+   * ValidatorSignatures cover the deterministic Inner bytes using
+   * BuildSOTerminalReceiptSignatureContext(Inner.key.shared_object_id,
+   * Inner.key.participant_peer_id, Inner.key.local_id,
+   * Inner.authoritative_root_seqno).
+   * These signatures are separate from SORoot validator signatures. Signers
+   * must belong to the validator set identified by Inner.validator_set_digest
+   * and satisfy Inner.consensus_mode.
    *
    * @generated from field: repeated peer.Signature validator_signatures = 2;
    */

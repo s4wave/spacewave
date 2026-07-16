@@ -1027,8 +1027,11 @@ type LookupOperationReceiptRequest struct {
 	unknownFields []byte
 	// Inner is the deterministic serialized LookupOperationReceiptInner bytes.
 	Inner []byte `protobuf:"bytes,1,opt,name=inner,proto3" json:"inner,omitempty"`
-	// Signature is the participant's signature over Inner bytes.
-	// The participant_peer_id in the decoded key must sign this payload.
+	// Signature covers the deterministic Inner bytes using
+	// BuildSOReceiptLookupSignatureContext(Inner.key.shared_object_id,
+	// Inner.key.participant_peer_id, Inner.key.local_id).
+	// The participant_peer_id extracted from Inner.key must sign; this domain is
+	// separate from operation, acknowledgement, terminal-receipt, and root signatures.
 	Signature *peer.Signature `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
 }
 
@@ -1115,8 +1118,11 @@ type AcknowledgeOperationReceiptRequest struct {
 	unknownFields []byte
 	// Inner is the deterministic serialized AcknowledgeOperationReceiptInner bytes.
 	Inner []byte `protobuf:"bytes,1,opt,name=inner,proto3" json:"inner,omitempty"`
-	// Signature is the participant's signature over Inner bytes.
-	// The participant_peer_id in the decoded key must sign this payload.
+	// Signature covers the deterministic Inner bytes using
+	// BuildSOReceiptAcknowledgementSignatureContext(Inner.key.shared_object_id,
+	// Inner.key.participant_peer_id, Inner.key.local_id).
+	// The participant_peer_id extracted from Inner.key must sign; this domain is
+	// separate from operation, lookup, terminal-receipt, and root signatures.
 	Signature *peer.Signature `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
 }
 

@@ -237,7 +237,7 @@ pub struct SubmitOperationV1Request {
     pub exact_envelope: ::prost::alloc::vec::Vec<u8>,
 }
 /// SubmitOperationV1Response is the receipt-v1 admission result.
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SubmitOperationV1Response {
     /// State is the authoritative state of the submitted exact key.
     #[prost(enumeration="super::super::super::sobject::SoReceiptState", tag="1")]
@@ -259,13 +259,16 @@ pub struct LookupOperationReceiptRequest {
     /// Inner is the deterministic serialized LookupOperationReceiptInner bytes.
     #[prost(bytes="vec", tag="1")]
     pub inner: ::prost::alloc::vec::Vec<u8>,
-    /// Signature is the participant's signature over Inner bytes.
-    /// The participant_peer_id in the decoded key must sign this payload.
+    /// Signature covers the deterministic Inner bytes using
+    /// BuildSOReceiptLookupSignatureContext(Inner.key.shared_object_id,
+    /// Inner.key.participant_peer_id, Inner.key.local_id).
+    /// The participant_peer_id extracted from Inner.key must sign; this domain is
+    /// separate from operation, acknowledgement, terminal-receipt, and root signatures.
     #[prost(message, optional, tag="2")]
     pub signature: ::core::option::Option<super::super::super::peer::Signature>,
 }
 /// LookupOperationReceiptResponse is the authoritative exact-key lookup result.
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LookupOperationReceiptResponse {
     /// State is exactly NO_RECORD, PENDING, ACCEPTED, or REJECTED.
     #[prost(enumeration="super::super::super::sobject::SoReceiptState", tag="1")]
@@ -290,8 +293,11 @@ pub struct AcknowledgeOperationReceiptRequest {
     /// Inner is the deterministic serialized AcknowledgeOperationReceiptInner bytes.
     #[prost(bytes="vec", tag="1")]
     pub inner: ::prost::alloc::vec::Vec<u8>,
-    /// Signature is the participant's signature over Inner bytes.
-    /// The participant_peer_id in the decoded key must sign this payload.
+    /// Signature covers the deterministic Inner bytes using
+    /// BuildSOReceiptAcknowledgementSignatureContext(Inner.key.shared_object_id,
+    /// Inner.key.participant_peer_id, Inner.key.local_id).
+    /// The participant_peer_id extracted from Inner.key must sign; this domain is
+    /// separate from operation, lookup, terminal-receipt, and root signatures.
     #[prost(message, optional, tag="2")]
     pub signature: ::core::option::Option<super::super::super::peer::Signature>,
 }

@@ -1132,8 +1132,11 @@ export interface LookupOperationReceiptRequest {
    */
   inner?: Uint8Array
   /**
-   * Signature is the participant's signature over Inner bytes.
-   * The participant_peer_id in the decoded key must sign this payload.
+   * Signature covers the deterministic Inner bytes using
+   * BuildSOReceiptLookupSignatureContext(Inner.key.shared_object_id,
+   * Inner.key.participant_peer_id, Inner.key.local_id).
+   * The participant_peer_id extracted from Inner.key must sign; this domain is
+   * separate from operation, acknowledgement, terminal-receipt, and root signatures.
    *
    * @generated from field: peer.Signature signature = 2;
    */
@@ -1228,8 +1231,11 @@ export interface AcknowledgeOperationReceiptRequest {
    */
   inner?: Uint8Array
   /**
-   * Signature is the participant's signature over Inner bytes.
-   * The participant_peer_id in the decoded key must sign this payload.
+   * Signature covers the deterministic Inner bytes using
+   * BuildSOReceiptAcknowledgementSignatureContext(Inner.key.shared_object_id,
+   * Inner.key.participant_peer_id, Inner.key.local_id).
+   * The participant_peer_id extracted from Inner.key must sign; this domain is
+   * separate from operation, lookup, terminal-receipt, and root signatures.
    *
    * @generated from field: peer.Signature signature = 2;
    */

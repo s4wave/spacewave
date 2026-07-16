@@ -3144,8 +3144,13 @@ type SOTerminalReceipt struct {
 	unknownFields []byte
 	// Inner is the deterministic serialized SOTerminalReceiptInner covered by every validator signature.
 	Inner []byte `protobuf:"bytes,1,opt,name=inner,proto3" json:"inner,omitempty"`
-	// ValidatorSignatures are signatures by validators over the deterministic Inner bytes.
-	// Signers must belong to the validator set identified by Inner.validator_set_digest and satisfy Inner.consensus_mode.
+	// ValidatorSignatures cover the deterministic Inner bytes using
+	// BuildSOTerminalReceiptSignatureContext(Inner.key.shared_object_id,
+	// Inner.key.participant_peer_id, Inner.key.local_id,
+	// Inner.authoritative_root_seqno).
+	// These signatures are separate from SORoot validator signatures. Signers
+	// must belong to the validator set identified by Inner.validator_set_digest
+	// and satisfy Inner.consensus_mode.
 	ValidatorSignatures []*peer.Signature `protobuf:"bytes,2,rep,name=validator_signatures,json=validatorSignatures,proto3" json:"validatorSignatures,omitempty"`
 }
 
