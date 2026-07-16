@@ -7,7 +7,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
-	blockenc_conf "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/util/blockenc"
@@ -28,8 +27,8 @@ func TestSOStateParticipantHandleProcessOperationsBlankRoot(t *testing.T) {
 
 	transformConf := &block_transform.Config{
 		Steps: []*block_transform.StepConfig{{
-			Id: blockenc_conf.ConfigID,
-			Config: mustMarshalVT(t, &blockenc_conf.Config{
+			Id: transform_blockenc.ConfigID,
+			Config: mustMarshalVT(t, &transform_blockenc.Config{
 				BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
 				Key:      []byte("0123456789abcdef0123456789abcdef"),
 			}),
