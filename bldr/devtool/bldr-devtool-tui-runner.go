@@ -9,6 +9,7 @@ import (
 	"runtime"
 
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
+	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/s4wave/spacewave/bldr/util/termui"
 	"golang.org/x/term"
 )
@@ -32,6 +33,7 @@ func (a *DevtoolArgs) startDevtoolTUI(
 		output:  os.Stderr,
 		openURL: openURL,
 	}
+	logfile.DiscardConsoleOutput(a.Logger.Logger)
 	return runner.start(ctx, producer)
 }
 

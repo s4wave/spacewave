@@ -103,3 +103,38 @@ func TestEnsureLoggerLevelRaises(t *testing.T) {
 		t.Errorf("expected console hook to filter debug message, got %q", buf.String())
 	}
 }
+
+func TestDiscardConsoleOutputPreservesFileHooks(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		loggerLevel logrus.Level
+		fileLevel   logrus.Level
+	}{
+		{name: "direct logger output", loggerLevel: logrus.DebugLevel, fileLevel: logrus.DebugLevel},
+		{name: "level-filtered console hook", loggerLevel: logrus.InfoLevel, fileLevel: logrus.DebugLevel},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			terminal := &safeBuffer{}
+			file := &safeBuffer{}
+			log := logrus.New()
+			log.SetLevel(test.loggerLevel)
+			log.SetOutput(terminal)
+			log.SetFormatter(&logrus.TextFormatter{DisableColors: true})
+
+			fileHook := NewFileHook(file, test.fileLevel, "text")
+			log.AddHook(fileHook)
+			EnsureLoggerLevel(log, []LogFileSpec{{Level: test.fileLevel}})
+			DiscardConsoleOutput(log)
+
+			log.Info("dashboard diagnostic")
+			fileHook.Close()
+
+			if output := terminal.String(); output != "" {
+				t.Fatalf("terminal output = %q, want empty", output)
+			}
+			if output := file.String(); !strings.Contains(output, "dashboard diagnostic") {
+				t.Fatalf("file output = %q, want diagnostic record", output)
+			}
+		})
+	}
+}
