@@ -8888,6 +8888,66 @@ func (x *ClientErrorReportResponse) GetRetryAfterSeconds() uint32 {
 	return 0
 }
 
+// MintFacetsLaunchGrantRequest is the request body for
+// POST /api/facets/launch-grant/mint.
+type MintFacetsLaunchGrantRequest struct {
+	unknownFields []byte
+	// OrganizationId is the expected organization ID bound to the launch grant target.
+	OrganizationId string `protobuf:"bytes,1,opt,name=organization_id,json=organizationId,proto3" json:"organizationId,omitempty"`
+	// PackageDigest is the expected package digest bound to the launch grant target.
+	PackageDigest string `protobuf:"bytes,2,opt,name=package_digest,json=packageDigest,proto3" json:"packageDigest,omitempty"`
+	// Capability is the expected runtime capability bound to the launch grant target.
+	Capability string `protobuf:"bytes,3,opt,name=capability,proto3" json:"capability,omitempty"`
+}
+
+func (x *MintFacetsLaunchGrantRequest) Reset() {
+	*x = MintFacetsLaunchGrantRequest{}
+}
+
+func (*MintFacetsLaunchGrantRequest) ProtoMessage() {}
+
+func (x *MintFacetsLaunchGrantRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *MintFacetsLaunchGrantRequest) GetPackageDigest() string {
+	if x != nil {
+		return x.PackageDigest
+	}
+	return ""
+}
+
+func (x *MintFacetsLaunchGrantRequest) GetCapability() string {
+	if x != nil {
+		return x.Capability
+	}
+	return ""
+}
+
+// MintFacetsLaunchGrantResponse is the response body for
+// POST /api/facets/launch-grant/mint.
+type MintFacetsLaunchGrantResponse struct {
+	unknownFields []byte
+	// Token is the opaque short-lived launch grant for GLaDOS verification.
+	Token string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+}
+
+func (x *MintFacetsLaunchGrantResponse) Reset() {
+	*x = MintFacetsLaunchGrantResponse{}
+}
+
+func (*MintFacetsLaunchGrantResponse) ProtoMessage() {}
+
+func (x *MintFacetsLaunchGrantResponse) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
 // VerifyFacetsLaunchGrantRequest is the request body for
 // POST /api/facets/launch-grant/verify.
 type VerifyFacetsLaunchGrantRequest struct {
@@ -13801,6 +13861,40 @@ func (m *ClientErrorReportResponse) CloneVT() *ClientErrorReportResponse {
 }
 
 func (m *ClientErrorReportResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *MintFacetsLaunchGrantRequest) CloneVT() *MintFacetsLaunchGrantRequest {
+	if m == nil {
+		return (*MintFacetsLaunchGrantRequest)(nil)
+	}
+	r := new(MintFacetsLaunchGrantRequest)
+	r.OrganizationId = m.OrganizationId
+	r.PackageDigest = m.PackageDigest
+	r.Capability = m.Capability
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *MintFacetsLaunchGrantRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *MintFacetsLaunchGrantResponse) CloneVT() *MintFacetsLaunchGrantResponse {
+	if m == nil {
+		return (*MintFacetsLaunchGrantResponse)(nil)
+	}
+	r := new(MintFacetsLaunchGrantResponse)
+	r.Token = m.Token
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *MintFacetsLaunchGrantResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -20348,6 +20442,52 @@ func (this *ClientErrorReportResponse) EqualVT(that *ClientErrorReportResponse) 
 
 func (this *ClientErrorReportResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ClientErrorReportResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *MintFacetsLaunchGrantRequest) EqualVT(that *MintFacetsLaunchGrantRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.OrganizationId != that.OrganizationId {
+		return false
+	}
+	if this.PackageDigest != that.PackageDigest {
+		return false
+	}
+	if this.Capability != that.Capability {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MintFacetsLaunchGrantRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*MintFacetsLaunchGrantRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *MintFacetsLaunchGrantResponse) EqualVT(that *MintFacetsLaunchGrantResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Token != that.Token {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *MintFacetsLaunchGrantResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*MintFacetsLaunchGrantResponse)
 	if !ok {
 		return false
 	}
@@ -34758,6 +34898,106 @@ func (x *ClientErrorReportResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the MintFacetsLaunchGrantRequest message to JSON.
+func (x *MintFacetsLaunchGrantRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.OrganizationId != "" || s.HasField("organizationId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("organizationId")
+		s.WriteString(x.OrganizationId)
+	}
+	if x.PackageDigest != "" || s.HasField("packageDigest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("packageDigest")
+		s.WriteString(x.PackageDigest)
+	}
+	if x.Capability != "" || s.HasField("capability") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("capability")
+		s.WriteString(x.Capability)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the MintFacetsLaunchGrantRequest to JSON.
+func (x *MintFacetsLaunchGrantRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the MintFacetsLaunchGrantRequest message from JSON.
+func (x *MintFacetsLaunchGrantRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "organization_id", "organizationId":
+			s.AddField("organization_id")
+			x.OrganizationId = s.ReadString()
+		case "package_digest", "packageDigest":
+			s.AddField("package_digest")
+			x.PackageDigest = s.ReadString()
+		case "capability":
+			s.AddField("capability")
+			x.Capability = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the MintFacetsLaunchGrantRequest from JSON.
+func (x *MintFacetsLaunchGrantRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the MintFacetsLaunchGrantResponse message to JSON.
+func (x *MintFacetsLaunchGrantResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Token != "" || s.HasField("token") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("token")
+		s.WriteString(x.Token)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the MintFacetsLaunchGrantResponse to JSON.
+func (x *MintFacetsLaunchGrantResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the MintFacetsLaunchGrantResponse message from JSON.
+func (x *MintFacetsLaunchGrantResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "token":
+			s.AddField("token")
+			x.Token = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the MintFacetsLaunchGrantResponse from JSON.
+func (x *MintFacetsLaunchGrantResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the VerifyFacetsLaunchGrantRequest message to JSON.
 func (x *VerifyFacetsLaunchGrantRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -46806,6 +47046,90 @@ func (m *ClientErrorReportResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
+func (m *MintFacetsLaunchGrantRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MintFacetsLaunchGrantRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MintFacetsLaunchGrantRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Capability) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Capability)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.PackageDigest) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PackageDigest)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.OrganizationId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.OrganizationId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MintFacetsLaunchGrantResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MintFacetsLaunchGrantResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *MintFacetsLaunchGrantResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Token) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Token)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *VerifyFacetsLaunchGrantRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -50887,6 +51211,30 @@ func (m *ClientErrorReportResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Accepted)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.RetryAfterSeconds)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MintFacetsLaunchGrantRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.OrganizationId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PackageDigest)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Capability)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *MintFacetsLaunchGrantResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Token)
 	n += len(m.unknownFields)
 	return n
 }
@@ -56345,6 +56693,42 @@ func (x *ClientErrorReportResponse) MarshalProtoText() string {
 }
 
 func (x *ClientErrorReportResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *MintFacetsLaunchGrantRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "MintFacetsLaunchGrantRequest")
+	if x.OrganizationId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "organization_id")
+		protobuf_go_lite.TextWriteString(&sb, x.OrganizationId)
+	}
+	if x.PackageDigest != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "package_digest")
+		protobuf_go_lite.TextWriteString(&sb, x.PackageDigest)
+	}
+	if x.Capability != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "capability")
+		protobuf_go_lite.TextWriteString(&sb, x.Capability)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *MintFacetsLaunchGrantRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *MintFacetsLaunchGrantResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "MintFacetsLaunchGrantResponse")
+	if x.Token != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "token")
+		protobuf_go_lite.TextWriteString(&sb, x.Token)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *MintFacetsLaunchGrantResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -73363,6 +73747,132 @@ func (m *ClientErrorReportResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *MintFacetsLaunchGrantRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MintFacetsLaunchGrantRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MintFacetsLaunchGrantRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OrganizationId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.OrganizationId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PackageDigest", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PackageDigest = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Capability", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Capability = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *MintFacetsLaunchGrantResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MintFacetsLaunchGrantResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MintFacetsLaunchGrantResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Token", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Token = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
