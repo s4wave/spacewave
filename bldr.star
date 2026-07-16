@@ -31,6 +31,8 @@ LAUNCHER_GO_PKGS = [
     "./core/provider/spacewave/launcher/controller",
     "github.com/s4wave/spacewave/bldr/manifest/fetch/world",
     "github.com/s4wave/spacewave/core/cdn/world/controller",
+    "github.com/s4wave/spacewave/core/cdn/bstore/controller",
+    "github.com/s4wave/spacewave/db/block/store/bucket",
     "github.com/s4wave/spacewave/core/space/world/optypes",
     "github.com/s4wave/spacewave/db/block/store/overlay",
     "github.com/s4wave/spacewave/db/block/store/rpc/server",
@@ -159,6 +161,54 @@ def spacewave_launcher_controller_config(
         conf["initDistConfig"] = init_dist_config
     return conf
 
+
+def release_world_config_set(
+        space_id="01kqjmfxd44r7ggrq78efad3d2",
+        cdn_base_url="https://cdn.spacewave.app",
+        cache_block_store_id="dist"):
+    return {
+        "release-world": config_entry("spacewave/cdn/world", 1, {
+            "engineId": "spacewave-release-world",
+            "spaceId": space_id,
+            "cdnBaseUrl": cdn_base_url,
+            "cacheBlockStoreId": cache_block_store_id,
+        }),
+        "release-world-ops": config_entry("space/world/ops", 1, {
+            "engineId": "spacewave-release-world",
+        }),
+        "release-world-fetch": config_entry("bldr/manifest/fetch/world", 1, {
+            "engineId": "spacewave-release-world",
+            "objectKeys": ["spacewave/release/manifests"],
+        }),
+    }
+
+def release_world_cdn_config_set(
+        space_id="01kqjmfxd44r7ggrq78efad3d2",
+        cdn_base_url="https://cdn.spacewave.app",
+        cache_block_store_id="dist",
+        bucket_store_id=""):
+    cdn_block_store_id = "spacewave-release-cdn"
+    if bucket_store_id == "":
+        bucket_store_id = cdn_block_store_id
+    return {
+        "release-world-cdn-store": config_entry("spacewave/cdn/bstore", 1, {
+            "blockStoreId": cdn_block_store_id,
+            "spaceId": space_id,
+            "cdnBaseUrl": cdn_base_url,
+            "cacheBlockStoreId": cache_block_store_id,
+            "bucketIds": ["spacewave-release"],
+        }),
+        "release-world-cdn-bucket": config_entry("hydra/block/store/bucket", 1, {
+            "blockStoreId": cdn_block_store_id,
+            "bucketStoreId": bucket_store_id,
+            "bucketConfig": {
+                "id": "spacewave-release",
+                "rev": 1,
+            },
+        }),
+    }
+
+
 def spacewave_launcher_config(
         launcher_controller_config=spacewave_launcher_controller_config(),
         web_go_compiler=None,
@@ -174,24 +224,21 @@ def spacewave_launcher_config(
         }),
     }
     if include_release_world:
-        config_set.update({
-            "release-world": config_entry("spacewave/cdn/world", 1, {
-                "engineId": "spacewave-release-world",
-                "spaceId": "01kqjmfxd44r7ggrq78efad3d2",
-                "cdnBaseUrl": "https://cdn.spacewave.app",
-            }),
-            "release-world-ops": config_entry("space/world/ops", 1, {
-                "engineId": "spacewave-release-world",
-            }),
-            "release-world-fetch": config_entry("bldr/manifest/fetch/world", 1, {
-                "engineId": "spacewave-release-world",
-                "objectKeys": ["spacewave/release/manifests"],
-            }),
-        })
+        config_set.update(release_world_config_set(cache_block_store_id="plugin-host"))
+        config_set.update(release_world_cdn_config_set(
+            cache_block_store_id="plugin-host",
+        ))
     conf = {
         "goPkgs": LAUNCHER_GO_PKGS if include_release_world else LAUNCHER_BROWSER_GO_PKGS,
         "configSet": config_set,
     }
+    if include_release_world:
+        # Release World providers must be applied to the plugin-host bus as
+        # host configuration so they mount before plugin startup begins.
+        conf["hostConfigSet"] = release_world_config_set(cache_block_store_id="dist")
+        conf["hostConfigSet"].update(release_world_cdn_config_set(
+            cache_block_store_id="dist",
+        ))
     if web_go_compiler:
         conf["platformTypes"] = {
             browser_go_compiler_platform(web_go_compiler): {
@@ -501,6 +548,7 @@ REMOTE_WORLD_MANIFESTS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql",
     "spacewave-cli-plugin", "web",
 ]
+
 # Browser release intentionally embeds the full startup app closure:
 # spacewave-launcher, spacewave-core, web, spacewave-web, and spacewave-app.
 # The embedded Manifest world is the first FetchManifest source available to the
@@ -525,6 +573,21 @@ def browser_release_embed_manifests(go_platform_id):
          "platformId": "js"},
     ]
 
+# This release-shaped fixture deliberately requests the terminal plugin through
+# FetchManifest while leaving it out of EmbedManifests. The published Release
+# World tuple is checked below; production embeds remain unchanged.
+def browser_release_lazy_plugin_fixture_embed_manifests(go_platform_id):
+    embeds = []
+    for embed in browser_release_embed_manifests(go_platform_id):
+        if embed["manifestId"] != "spacewave-cli-plugin":
+            embeds.append(embed)
+    return embeds
+
+
+BROWSER_RELEASE_LAZY_PLUGIN_FIXTURE_EMBEDS = browser_release_lazy_plugin_fixture_embed_manifests("js")
+BROWSER_RELEASE_LAZY_PLUGIN_FIXTURE_LOAD_PLUGINS = BROWSER_RELEASE_LOAD_PLUGINS + [
+    "spacewave-cli-plugin",
+]
 
 # Browser e2e embeds the startup closure plus the spacewave-sql plugin so the
 # sql plugin cold-builds under the e2e release without a populated Release World.
@@ -551,6 +614,20 @@ build("release-web",
         "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_EMBED_MANIFESTS,
             BROWSER_RELEASE_LOAD_PLUGINS,
+            entrypoint_role="browser",
+            go_compiler="GO_COMPILER_GOSCRIPT",
+        ),
+    },
+)
+build("release-web-lazy-plugin-fixture",
+    manifests=BROWSER_RELEASE_MANIFESTS,
+    targets=["browser"],
+    manifestOverrides={
+        "spacewave-launcher": spacewave_launcher_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
+        "spacewave-core": browser_spacewave_core_config("GO_COMPILER_GOSCRIPT"),
+        "spacewave-browser": dist_release_config(
+            BROWSER_RELEASE_LAZY_PLUGIN_FIXTURE_EMBEDS,
+            BROWSER_RELEASE_LAZY_PLUGIN_FIXTURE_LOAD_PLUGINS,
             entrypoint_role="browser",
             go_compiler="GO_COMPILER_GOSCRIPT",
         ),

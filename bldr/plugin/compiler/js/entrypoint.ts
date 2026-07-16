@@ -1,5 +1,5 @@
 // Import types generated from protobuf definitions.
-import { Client } from 'starpc'
+import { Client, isAbortError } from 'starpc'
 import type {
   BackendAPI,
   BackendEntrypointFunc,
@@ -62,7 +62,8 @@ function logError(message: string, error: unknown): void {
   console.error(error)
 }
 
-export function isEntrypointStreamReset(error: unknown): boolean {
+export function isEntrypointLifecycleRetry(error: unknown): boolean {
+  if (error !== null && isAbortError(error)) return true
   if (!(error instanceof Error)) return false
   return error.name === 'StreamResetError' || error.message === 'stream reset'
 }
@@ -70,7 +71,7 @@ export function isEntrypointStreamReset(error: unknown): boolean {
 export function entrypointRetryOpts(message: string) {
   return {
     errorCb(error: unknown): void {
-      if (isEntrypointStreamReset(error)) return
+      if (isEntrypointLifecycleRetry(error)) return
       logError(message, error)
     },
   }

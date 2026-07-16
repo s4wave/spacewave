@@ -2,13 +2,13 @@ package plugin_host_configset
 
 import (
 	"context"
-	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	plugin "github.com/s4wave/spacewave/bldr/plugin"
+	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 )
 
@@ -70,7 +70,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		ConfigSet: &configset_proto.ConfigSet{Configs: configSet},
 	})
 	if err != nil {
-		if isWebRuntimeClientClosed(err) {
+		if web_runtime.IsWebRuntimeClientClosed(err) {
 			return nil
 		}
 		return err
@@ -78,7 +78,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 	for {
 		resp, err := status.Recv()
 		if err != nil {
-			if isWebRuntimeClientClosed(err) {
+			if web_runtime.IsWebRuntimeClientClosed(err) {
 				return nil
 			}
 			return err
@@ -87,44 +87,6 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 			le.Debug(logStr)
 		}
 	}
-}
-
-func isWebRuntimeClientClosed(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	if strings.Contains(msg, "WebRuntimeClientInstance closed:") {
-		return true
-	}
-	const clientPrefix = "WebRuntimeClient: "
-	clientIdx := strings.Index(msg, clientPrefix)
-	if clientIdx < 0 {
-		return false
-	}
-	msg = msg[clientIdx+len(clientPrefix):]
-
-	const generationMarker = ": runtime client generation "
-	_, after, ok := strings.Cut(msg, generationMarker)
-	if !ok {
-		return false
-	}
-	generation := after
-
-	const normalCloseSuffix = " closed: normal-close"
-	if !strings.HasSuffix(generation, normalCloseSuffix) {
-		return false
-	}
-	generation = strings.TrimSuffix(generation, normalCloseSuffix)
-	if generation == "" {
-		return false
-	}
-	for _, r := range generation {
-		if r < '0' || r > '9' {
-			return false
-		}
-	}
-	return true
 }
 
 // _ is a type assertion

@@ -40,6 +40,19 @@ export interface Config {
    * @generated from field: string pointer_ttl_dur = 4;
    */
   pointerTtlDur?: string
+  /**
+   * CacheBlockStoreId optionally resolves the lifecycle-owned local block store
+   * used for durable writeback while reading remote pack ranges.
+   *
+   * @generated from field: string cache_block_store_id = 5;
+   */
+  cacheBlockStoreId?: string
+  /**
+   * WritebackWindowBytes sets the semantic co-block writeback window.
+   *
+   * @generated from field: int64 writeback_window_bytes = 6;
+   */
+  writebackWindowBytes?: bigint
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -49,6 +62,18 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'cdn_base_url', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'pointer_ttl_dur', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 5,
+      name: 'cache_block_store_id',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+    },
+    {
+      no: 6,
+      name: 'writeback_window_bytes',
+      kind: 'scalar',
+      T: ScalarType.INT64,
+    },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

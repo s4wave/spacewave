@@ -70,7 +70,7 @@ func Main(
 		}
 
 		err = Run(ctx, le, pluginStartInfo, pluginMeta, addFactoryFuncs, configSetFuncs)
-		if err != context.Canceled {
+		if !isExpectedPluginEntrypointError(err) {
 			return err
 		}
 

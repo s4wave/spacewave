@@ -429,11 +429,13 @@ func TestCdnBlockStorePointerTTLRejectsStaleWritebackHit(t *testing.T) {
 	}
 	ref := &block.BlockRef{Hash: refHash}
 	cache := newWritebackReadStore()
+	indexCache := newMemIndexCache()
 	bs, err := NewCdnBlockStore(Options{
 		CdnBaseURL: hs.URL,
 		SpaceID:    testSpaceID,
 		HttpClient: hs.Client(),
 		PointerTTL: time.Nanosecond,
+		IndexCache: indexCache,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -469,6 +471,86 @@ func TestCdnBlockStoreOwnsDecodedBlockCache(t *testing.T) {
 	bs.Close()
 	if bs.GetDecodedBlockCache() != nil {
 		t.Fatal("expected Close to release decoded-block cache")
+	}
+}
+
+func TestCdnBlockStoreWaitsForWritebackBeforeServing(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	block1 := []byte("hello cdn blocking writeback")
+	pack := buildSinglePack(t, "01kcdnpack0000000000000007", map[string][]byte{"b1": block1})
+	ptr := &cdn.CdnRootPointer{
+		SpaceId: testSpaceID,
+		Packs: []*packfile.PackfileEntry{{
+			Id:          pack.id,
+			BloomFilter: pack.bloom,
+			BlockCount:  1,
+			SizeBytes:   uint64(len(pack.data)),
+		}},
+	}
+	srv := newTestCdnServer(t, testSpaceID, encodePointer(t, ptr), []testPack{pack})
+	hs := httptest.NewServer(http.HandlerFunc(srv.handle))
+	defer hs.Close()
+
+	refHash, err := hash.Sum(hash.HashType_HashType_SHA256, block1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := &block.BlockRef{Hash: refHash}
+	cache := newBlockingWritebackStore()
+	bs, err := NewCdnBlockStore(Options{
+		CdnBaseURL: hs.URL,
+		SpaceID:    testSpaceID,
+		HttpClient: hs.Client(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer bs.Close()
+	bs.SetWriteback(ctx, cache, 1<<20)
+
+	type readResult struct {
+		data  []byte
+		found bool
+		err   error
+	}
+	done := make(chan readResult, 1)
+	go func() {
+		data, found, err := bs.GetBlock(ctx, ref)
+		done <- readResult{data: data, found: found, err: err}
+	}()
+
+	select {
+	case <-cache.started:
+	case <-ctx.Done():
+		t.Fatalf("writeback did not start: %v", ctx.Err())
+	}
+	select {
+	case result := <-done:
+		t.Fatalf("GetBlock returned before writeback completed: found=%v err=%v", result.found, result.err)
+	default:
+	}
+
+	close(cache.release)
+	select {
+	case result := <-done:
+		if result.err != nil {
+			t.Fatalf("GetBlock after writeback: %v", result.err)
+		}
+		if !result.found || !bytes.Equal(result.data, block1) {
+			t.Fatalf("GetBlock mismatch after writeback: found=%v data=%q", result.found, result.data)
+		}
+	case <-ctx.Done():
+		t.Fatalf("GetBlock did not complete after writeback: %v", ctx.Err())
+	}
+
+	got, found, err := cache.GetBlock(ctx, ref)
+	if err != nil {
+		t.Fatalf("cached block read: %v", err)
+	}
+	if !found || !bytes.Equal(got, block1) {
+		t.Fatalf("cached block mismatch: found=%v data=%q", found, got)
 	}
 }
 
@@ -591,6 +673,31 @@ func (w *writebackReadStore) waitPut(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+}
+
+type blockingWritebackStore struct {
+	block.StoreOps
+	started chan struct{}
+	release chan struct{}
+}
+
+func newBlockingWritebackStore() *blockingWritebackStore {
+	base := newWritebackReadStore()
+	return &blockingWritebackStore{
+		StoreOps: base.StoreOps,
+		started:  make(chan struct{}),
+		release:  make(chan struct{}),
+	}
+}
+
+func (w *blockingWritebackStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	close(w.started)
+	select {
+	case <-w.release:
+	case <-ctx.Done():
+		return nil, false, ctx.Err()
+	}
+	return w.StoreOps.PutBlock(ctx, data, opts)
 }
 
 // verify-io-completeness: ensure our testCdnServer supports both range and full fetches.

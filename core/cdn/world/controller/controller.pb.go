@@ -25,6 +25,11 @@ type Config struct {
 	// PointerTtlDur is the cached root pointer TTL.
 	// Empty uses the CDN block store default. Negative disables expiry.
 	PointerTtlDur string `protobuf:"bytes,4,opt,name=pointer_ttl_dur,json=pointerTtlDur,proto3" json:"pointerTtlDur,omitempty"`
+	// CacheBlockStoreId optionally resolves the lifecycle-owned local block store
+	// used for durable writeback while reading remote pack ranges.
+	CacheBlockStoreId string `protobuf:"bytes,5,opt,name=cache_block_store_id,json=cacheBlockStoreId,proto3" json:"cacheBlockStoreId,omitempty"`
+	// WritebackWindowBytes sets the semantic co-block writeback window.
+	WritebackWindowBytes int64 `protobuf:"varint,6,opt,name=writeback_window_bytes,json=writebackWindowBytes,proto3" json:"writebackWindowBytes,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -61,6 +66,20 @@ func (x *Config) GetPointerTtlDur() string {
 	return ""
 }
 
+func (x *Config) GetCacheBlockStoreId() string {
+	if x != nil {
+		return x.CacheBlockStoreId
+	}
+	return ""
+}
+
+func (x *Config) GetWritebackWindowBytes() int64 {
+	if x != nil {
+		return x.WritebackWindowBytes
+	}
+	return 0
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -70,6 +89,8 @@ func (m *Config) CloneVT() *Config {
 	r.SpaceId = m.SpaceId
 	r.CdnBaseUrl = m.CdnBaseUrl
 	r.PointerTtlDur = m.PointerTtlDur
+	r.CacheBlockStoreId = m.CacheBlockStoreId
+	r.WritebackWindowBytes = m.WritebackWindowBytes
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -96,6 +117,12 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.PointerTtlDur != that.PointerTtlDur {
+		return false
+	}
+	if this.CacheBlockStoreId != that.CacheBlockStoreId {
+		return false
+	}
+	if this.WritebackWindowBytes != that.WritebackWindowBytes {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -137,6 +164,16 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("pointerTtlDur")
 		s.WriteString(x.PointerTtlDur)
 	}
+	if x.CacheBlockStoreId != "" || s.HasField("cacheBlockStoreId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cacheBlockStoreId")
+		s.WriteString(x.CacheBlockStoreId)
+	}
+	if x.WritebackWindowBytes != 0 || s.HasField("writebackWindowBytes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("writebackWindowBytes")
+		s.WriteInt64(x.WritebackWindowBytes)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -166,6 +203,12 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "pointer_ttl_dur", "pointerTtlDur":
 			s.AddField("pointer_ttl_dur")
 			x.PointerTtlDur = s.ReadString()
+		case "cache_block_store_id", "cacheBlockStoreId":
+			s.AddField("cache_block_store_id")
+			x.CacheBlockStoreId = s.ReadString()
+		case "writeback_window_bytes", "writebackWindowBytes":
+			s.AddField("writeback_window_bytes")
+			x.WritebackWindowBytes = s.ReadInt64()
 		}
 	})
 }
@@ -204,6 +247,16 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.WritebackWindowBytes != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WritebackWindowBytes))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.CacheBlockStoreId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.CacheBlockStoreId)
+		i--
+		dAtA[i] = 0x2a
+	}
 	if len(m.PointerTtlDur) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.PointerTtlDur)
 		i--
@@ -237,6 +290,8 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CdnBaseUrl)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PointerTtlDur)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CacheBlockStoreId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.WritebackWindowBytes)
 	n += len(m.unknownFields)
 	return n
 }
@@ -259,6 +314,14 @@ func (x *Config) MarshalProtoText() string {
 	if x.PointerTtlDur != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "pointer_ttl_dur")
 		protobuf_go_lite.TextWriteString(&sb, x.PointerTtlDur)
+	}
+	if x.CacheBlockStoreId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cache_block_store_id")
+		protobuf_go_lite.TextWriteString(&sb, x.CacheBlockStoreId)
+	}
+	if x.WritebackWindowBytes != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "writeback_window_bytes")
+		protobuf_go_lite.TextWriteInt(&sb, x.WritebackWindowBytes)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -327,6 +390,25 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PointerTtlDur = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CacheBlockStoreId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CacheBlockStoreId = v
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WritebackWindowBytes", wireType)
+			}
+			m.WritebackWindowBytes = 0
+			m.WritebackWindowBytes, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

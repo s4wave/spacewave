@@ -730,7 +730,7 @@ func collectStartupManifestCandidate(
 	}
 
 	var manifest *bldr_manifest.Manifest
-	manifest, err = lookupStartupManifestObjectRef(ctx, ws, manifestObjRef)
+	manifest, err = lookupStartupManifestObjectRefLocal(ctx, ws, manifestObjRef)
 	if err != nil {
 		return nil, manifestObjRef, false, err
 	}
@@ -740,7 +740,41 @@ func collectStartupManifestCandidate(
 	return manifest, manifestObjRef, false, nil
 }
 
-func lookupStartupManifestObjectRef(
+func lookupStartupManifestObject(
+	ctx context.Context,
+	ws world.WorldState,
+	objKey string,
+) (*bldr_manifest.Manifest, *bucket.ObjectRef, error) {
+	obj, err := world.MustGetObject(ctx, ws, objKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	ref, _, err := obj.GetRootRef(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	manifest, err := lookupStartupManifestObjectRefDemand(ctx, ws, ref)
+	return manifest, ref, err
+}
+
+func lookupStartupManifestObjectLocal(
+	ctx context.Context,
+	ws world.WorldState,
+	objKey string,
+) (*bldr_manifest.Manifest, *bucket.ObjectRef, error) {
+	obj, err := world.MustGetObject(ctx, ws, objKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	ref, _, err := obj.GetRootRef(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	manifest, err := lookupStartupManifestObjectRefLocal(ctx, ws, ref)
+	return manifest, ref, err
+}
+
+func lookupStartupManifestObjectRefLocal(
 	ctx context.Context,
 	ws world.WorldState,
 	ref *bucket.ObjectRef,
@@ -749,22 +783,70 @@ func lookupStartupManifestObjectRef(
 		return nil, errors.New("manifest object ref is empty")
 	}
 
-	var manifest *bldr_manifest.Manifest
-	err := ws.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
-		manifestCursor, err := followStartupManifestRef(ctx, root, ref)
-		if err != nil {
-			return err
-		}
-		defer manifestCursor.Release()
+	storageCursor, err := ws.BuildStorageCursor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer storageCursor.Release()
 
-		_, bcs := manifestCursor.CloneWithLocalOnlyReads().BuildTransaction(nil)
-		manifest, err = bldr_manifest.UnmarshalManifest(ctx, bcs)
-		if err != nil {
-			return err
-		}
-		return manifest.Validate()
-	})
-	return manifest, err
+	manifestCursor, err := followStartupManifestRef(ctx, storageCursor, ref)
+	if err != nil {
+		return nil, err
+	}
+	defer manifestCursor.Release()
+	localManifestCursor := manifestCursor.CloneWithLocalOnlyReads()
+	defer localManifestCursor.Release()
+
+	_, bcs := localManifestCursor.BuildTransaction(nil)
+	manifest, err := bldr_manifest.UnmarshalManifest(ctx, bcs)
+	if err != nil {
+		return nil, err
+	}
+	return manifest, manifest.Validate()
+}
+
+func lookupStartupManifestObjectRefDemand(
+	ctx context.Context,
+	ws world.WorldState,
+	ref *bucket.ObjectRef,
+) (*bldr_manifest.Manifest, error) {
+	if ref == nil || ref.GetEmpty() {
+		return nil, errors.New("manifest object ref is empty")
+	}
+
+	storageCursor, err := ws.BuildStorageCursor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer storageCursor.Release()
+
+	manifestCursor, err := followManifestRefForStartupDemand(ctx, storageCursor, ref)
+	if err != nil {
+		return nil, err
+	}
+	defer manifestCursor.Release()
+
+	_, bcs := manifestCursor.BuildTransaction(nil)
+	manifest, err := bldr_manifest.UnmarshalManifest(ctx, bcs)
+	if err != nil {
+		return nil, err
+	}
+	return manifest, manifest.Validate()
+}
+
+func followManifestRefForStartupDemand(
+	ctx context.Context,
+	root *bucket_lookup.Cursor,
+	ref *bucket.ObjectRef,
+) (*bucket_lookup.Cursor, error) {
+	opArgs := root.GetOpArgs()
+	if refBucketID := ref.GetBucketId(); refBucketID != "" {
+		opArgs.BucketId = refBucketID
+	}
+	if opArgs.GetBucketId() != root.GetOpArgs().GetBucketId() {
+		opArgs.VolumeId = ""
+	}
+	return root.FollowRefWithOpArgs(ctx, ref, opArgs)
 }
 
 func followStartupManifestRef(
@@ -780,6 +862,30 @@ func followStartupManifestRef(
 		opArgs.VolumeId = ""
 	}
 	return root.FollowRefWithOpArgsReadOnly(ctx, ref, opArgs, true)
+}
+
+// FollowObjectRefReadOnly follows an object reference through a lookup-only
+// bucket handle, clearing the source volume when switching buckets so the
+// lookup may resolve an external bucket.
+func FollowObjectRefReadOnly(
+	ctx context.Context,
+	root *bucket_lookup.Cursor,
+	ref *bucket.ObjectRef,
+) (*bucket_lookup.Cursor, error) {
+	if root == nil {
+		return nil, errors.New("root cursor is nil")
+	}
+	if ref == nil || ref.GetEmpty() {
+		return nil, errors.New("object ref is empty")
+	}
+	opArgs := root.GetOpArgs()
+	if refBucketID := ref.GetBucketId(); refBucketID != "" {
+		opArgs.BucketId = refBucketID
+	}
+	if opArgs.GetBucketId() != root.GetOpArgs().GetBucketId() {
+		opArgs.VolumeId = ""
+	}
+	return root.FollowRefWithOpArgsReadOnly(ctx, ref, opArgs, false)
 }
 
 // FilterCollectedManifestsMapByPlatformID filters the result of CollectManifests by a platform id list.

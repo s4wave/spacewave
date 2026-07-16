@@ -22,6 +22,7 @@ import (
 	"github.com/aperturerobotics/util/gitroot"
 	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/e2e/releasewasm/artifact"
 	"github.com/sirupsen/logrus"
 )
@@ -32,6 +33,7 @@ const (
 	releaseWasmDistDirEnv       = "E2E_RELEASE_WASM_DIST_DIR"
 	releaseWasmPrerenderDistEnv = "E2E_RELEASE_WASM_PRERENDER_DIST_DIR"
 	chromiumGPUEnv              = "E2E_CHROMIUM_GPU"
+	releaseAuthConfigPath       = "/api/auth/config"
 )
 
 // browserReleaseDescriptor is parsed field-by-field from browser-release.json
@@ -103,7 +105,7 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 
 	h.server = &http.Server{
 		Addr:              "127.0.0.1:" + port,
-		Handler:           releaseHandler(distDirs.releaseDist, distDirs.prerender),
+		Handler:           releaseHandler(distDirs.releaseDist, distDirs.prerender, baseURL),
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 	go func() {
@@ -317,6 +319,21 @@ func releaseWasmBuildScript() string {
 }
 
 func buildReleaseWeb(ctx context.Context, repoRoot string) error {
+	if os.Getenv("E2E_RELEASE_WASM_LAZY_PLUGIN_FIXTURE") == "1" {
+		return runBun(
+			ctx,
+			repoRoot,
+			"run",
+			"bldr",
+			"--",
+			"--state-path=.bldr-dist",
+			"--build-type=release",
+			"build",
+			"-b",
+			"release-web-lazy-plugin-fixture",
+		)
+	}
+
 	compiler, err := resolveReleaseWasmCompiler()
 	if err != nil {
 		return err
@@ -364,6 +381,12 @@ func (h *harness) quickstartRuntimeTraceArtifactPath(t testing.TB) string {
 
 func (h *harness) newPage(t testing.TB) playwright.Page {
 	t.Helper()
+	page, _ := h.newPageWithDiagnosticsControl(t)
+	return page
+}
+
+func (h *harness) newPageWithDiagnosticsControl(t testing.TB) (playwright.Page, func()) {
+	t.Helper()
 
 	ctx, err := h.browser.NewContext(h.newContextOptions(t))
 	if err != nil {
@@ -380,8 +403,8 @@ func (h *harness) newPage(t testing.TB) playwright.Page {
 		t.Fatalf("new page: %v", err)
 	}
 
-	h.attachPageDiagnostics(t, page)
-	return page
+	muteDiagnostics := h.attachPageDiagnostics(t, page)
+	return page, muteDiagnostics
 }
 
 func (h *harness) newDedicatedWorkerPage(t testing.TB) playwright.Page {
@@ -442,17 +465,27 @@ func (h *harness) newPersistentBrowserContext(t testing.TB, userDataDir string) 
 	return ctx
 }
 
-func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) {
+func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func() {
 	t.Helper()
 
 	var errs []string
 	var errsMu sync.Mutex
+	muted := false
 	recordBrowserError := func(msg string) {
 		errsMu.Lock()
 		defer errsMu.Unlock()
+		if muted {
+			return
+		}
 		errs = append(errs, msg)
 	}
+	muteDiagnostics := func() {
+		errsMu.Lock()
+		muted = true
+		errsMu.Unlock()
+	}
 	consoleTrace := os.Getenv("E2E_RELEASE_WASM_CONSOLE_TRACE") == "1"
+
 	page.OnFrameNavigated(func(frame playwright.Frame) {
 		if frame.ParentFrame() != nil {
 			return
@@ -556,6 +589,7 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) {
 			t.Fatalf("browser errors: %v", errs)
 		}
 	})
+	return muteDiagnostics
 }
 
 func browserPageErrorMessage(err error) string {
@@ -693,11 +727,16 @@ func (h *harness) release(le *logrus.Entry) {
 	}
 }
 
-func releaseHandler(distDir, staticDir string) http.Handler {
+func releaseHandler(distDir, staticDir, endpoint string) http.Handler {
 	fileServer := http.FileServer(http.Dir(distDir))
+	authConfigHandler := releaseAuthConfigHandler(endpoint)
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 		rw.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
+		if req.URL.Path == releaseAuthConfigPath {
+			authConfigHandler.ServeHTTP(rw, req)
+			return
+		}
 		if strings.HasSuffix(req.URL.Path, ".wasm.gz") || strings.HasSuffix(req.URL.Path, ".mjs.gz") {
 			rw.Header().Set("Content-Encoding", "gzip")
 		}
@@ -716,6 +755,36 @@ func releaseHandler(distDir, staticDir string) http.Handler {
 			return
 		}
 		fileServer.ServeHTTP(rw, req)
+	})
+}
+
+func releaseAuthConfigHandler(endpoint string) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		if req.Method != http.MethodGet {
+			rw.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		resp := &api.AuthConfigResponse{
+			SsoBaseUrl:       endpoint + "/api/auth/sso/start",
+			ExchangeUrl:      endpoint + "/api/auth/sso/code/exchange",
+			ConfirmUrl:       endpoint + "/api/auth/sso/confirm",
+			AccountBaseUrl:   endpoint,
+			PublicBaseUrl:    endpoint,
+			GoogleSsoEnabled: false,
+			GithubSsoEnabled: false,
+			TurnstileSiteKey: "",
+		}
+		data, err := resp.MarshalVT()
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		rw.Header().Set("Content-Type", "application/octet-stream")
+		rw.WriteHeader(http.StatusOK)
+		if _, err := rw.Write(data); err != nil {
+			return
+		}
 	})
 }
 

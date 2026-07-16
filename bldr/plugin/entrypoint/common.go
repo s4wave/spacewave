@@ -20,6 +20,7 @@ import (
 	vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
 	storage_controller "github.com/s4wave/spacewave/bldr/storage/controller"
 	web_fetch_service "github.com/s4wave/spacewave/bldr/web/fetch/service"
+	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
@@ -152,10 +153,7 @@ func ExecutePluginEntrypoint(
 	// errCh will interrupt the program
 	errCh := make(chan error, 5)
 	handleErr := func(err error) {
-		select {
-		case errCh <- err:
-		default:
-		}
+		handlePluginEntrypointError(errCh, err)
 	}
 
 	// serve the host volume proxy controller
@@ -271,6 +269,20 @@ func ExecutePluginEntrypoint(
 		rel()
 		return err
 	}
+}
+
+func handlePluginEntrypointError(errCh chan<- error, err error) {
+	if web_runtime.IsNormalWebRuntimeClientClose(err) {
+		return
+	}
+	select {
+	case errCh <- err:
+	default:
+	}
+}
+
+func isExpectedPluginEntrypointError(err error) bool {
+	return err == context.Canceled || web_runtime.IsNormalWebRuntimeClientClose(err)
 }
 
 // BuildPluginAssetsFSController builds a unixfs_access controller for the plugin assets.
