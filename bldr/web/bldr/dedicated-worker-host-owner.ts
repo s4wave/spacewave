@@ -36,6 +36,8 @@ export function buildDedicatedWorkerHostLockName(runtimeId: string): string {
 export class DedicatedWorkerHostOwner {
   public role: DedicatedWorkerHostRole = 'pending'
   public generation?: string
+  public connectedHostDocumentId?: string
+  public connectedHostGeneration?: string
   private leaseStarted = false
   private closed = false
   private closeLease?: () => void
@@ -61,7 +63,8 @@ export class DedicatedWorkerHostOwner {
         source: 'browser',
         documentId: this.webDocumentId,
         runtimeId: this.webRuntimeId,
-        hazard: 'Web Locks unavailable; DedicatedWorker fallback may run multiple OPFS writers',
+        hazard:
+          'Web Locks unavailable; DedicatedWorker fallback may run multiple OPFS writers',
       })
       console.warn(
         'WebDocument: Web Locks unavailable; DedicatedWorker fallback may run multiple OPFS writers',
@@ -102,9 +105,7 @@ export class DedicatedWorkerHostOwner {
         runtimeId: this.webRuntimeId,
         error: err instanceof Error ? err.message : String(err),
       })
-      this.cancelPendingClientChannels(
-        'dedicated runtime host election failed',
-      )
+      this.cancelPendingClientChannels('dedicated runtime host election failed')
       this.role = 'unavailable'
       callbacks.startUnavailable()
     })
@@ -115,7 +116,9 @@ export class DedicatedWorkerHostOwner {
       if (this.role !== 'pending') {
         return
       }
-      const heldByAnother = snapshot.held?.some((lock) => lock.name === lockName)
+      const heldByAnother = snapshot.held?.some(
+        (lock) => lock.name === lockName,
+      )
       if (!heldByAnother) {
         return
       }
@@ -151,6 +154,8 @@ export class DedicatedWorkerHostOwner {
       },
     )
     if (promoted) {
+      this.connectedHostDocumentId = undefined
+      this.connectedHostGeneration = undefined
       this.cancelPendingClientChannels(
         'attached runtime host relay promoted to host',
       )
@@ -221,11 +226,19 @@ export class DedicatedWorkerHostOwner {
       if (!ack.webRuntimePort) {
         throw new Error('dedicated runtime host ack missing runtime port')
       }
+      if (!ack.hostDocumentId || !ack.hostGeneration) {
+        throw new Error(
+          'dedicated runtime host ack missing elected host identity',
+        )
+      }
+      this.connectedHostDocumentId = ack.hostDocumentId
+      this.connectedHostGeneration = ack.hostGeneration
       markStartupBoundary('dedicated-host.attach-open-ready', {
         source: 'browser',
         documentId: this.webDocumentId,
         runtimeId: this.webRuntimeId,
-        hostDocumentId: ack.from,
+        hostDocumentId: ack.hostDocumentId,
+        hostGeneration: ack.hostGeneration,
       })
       return ack.webRuntimePort
     } catch (err) {
@@ -258,6 +271,8 @@ export class DedicatedWorkerHostOwner {
     if (this.closed) {
       return
     }
+    this.connectedHostDocumentId = undefined
+    this.connectedHostGeneration = undefined
     this.closed = true
     this.role = 'closed'
     this.cancelPendingClientChannels('dedicated runtime host owner closed')
@@ -273,4 +288,3 @@ export class DedicatedWorkerHostOwner {
     })
   }
 }
-

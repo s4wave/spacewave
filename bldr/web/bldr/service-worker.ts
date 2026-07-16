@@ -24,7 +24,10 @@ import {
 import { isCrossTabMessage, handleCrossTabMessage } from './cross-tab-broker.js'
 import { randomId } from './random-id.js'
 import { ServiceWorkerFetchTracker } from './service-worker-fetch-tracker.js'
-import { WebDocumentTracker } from './web-document-tracker.js'
+import {
+  WebDocumentTracker,
+  type OpenWebRuntimePortResult,
+} from './web-document-tracker.js'
 import { markStartupBoundary } from './startup-marks.js'
 
 declare let BLDR_DEBUG: boolean
@@ -80,7 +83,7 @@ export interface ServiceWorkerMessageDeps {
   clients: Clients
   fetchTracker: Pick<ServiceWorkerFetchTracker, 'abortClient'>
   webDocumentTracker: Pick<WebDocumentTracker, 'handleWebDocumentMessage'> &
-    Partial<Pick<WebDocumentTracker, 'openWebRuntimePort'>>
+    Partial<Pick<WebDocumentTracker, 'openWebRuntimePortWithResult'>>
   syncLatestBrowserRelease(
     options?: BrowserReleaseSyncOptions,
   ): Promise<BrowserReleaseState>
@@ -1095,7 +1098,7 @@ async function handleDedicatedRuntimeHostConnectRequest(
     }
   }
 
-  if (!tracker.openWebRuntimePort) {
+  if (!tracker.openWebRuntimePortWithResult) {
     postAck({
       from: serviceWorkerLogicalId,
       error: 'dedicated runtime host relay unavailable',
@@ -1110,7 +1113,10 @@ async function handleDedicatedRuntimeHostConnectRequest(
     const data = ev.data
     if (data?.cancelDedicatedRuntimeHostConnect) {
       abortController.abort(
-        new DOMException('dedicated runtime host connect canceled', 'AbortError'),
+        new DOMException(
+          'dedicated runtime host connect canceled',
+          'AbortError',
+        ),
       )
     }
   }
@@ -1122,9 +1128,9 @@ async function handleDedicatedRuntimeHostConnectRequest(
     runtimeId: request.webRuntimeId,
     requesterDocumentId: request.from,
   })
-  let runtimePort: MessagePort
+  let runtimeResult: OpenWebRuntimePortResult
   try {
-    runtimePort = await tracker.openWebRuntimePort(
+    runtimeResult = await tracker.openWebRuntimePortWithResult(
       request.init,
       request.from,
       abortController.signal,
@@ -1153,9 +1159,11 @@ async function handleDedicatedRuntimeHostConnectRequest(
   postAck(
     {
       from: serviceWorkerLogicalId,
-      webRuntimePort: runtimePort,
+      webRuntimePort: runtimeResult.webRuntimePort,
+      hostDocumentId: runtimeResult.hostDocumentId,
+      hostGeneration: runtimeResult.hostGeneration,
     },
-    runtimePort,
+    runtimeResult.webRuntimePort,
   )
   markStartupBoundary('dedicated-host.service-worker-connect-ready', {
     source: 'service-worker',

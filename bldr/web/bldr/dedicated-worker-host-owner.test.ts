@@ -212,17 +212,19 @@ describe('DedicatedWorkerHostOwner', () => {
     host.start(buildCallbacks())
     await flushPromises()
     const cancel = Promise.withResolvers<unknown>()
-    const postMessage = vi.fn((message: unknown, _transfer?: Transferable[]) => {
-      const requestMessage = message as {
-        connectDedicatedRuntimeHost?: { port: MessagePort }
-      }
-      const port = requestMessage.connectDedicatedRuntimeHost?.port
-      if (!port) {
-        throw new Error('dedicated runtime host request port missing')
-      }
-      port.onmessage = (ev: MessageEvent) => cancel.resolve(ev.data)
-      port.start()
-    })
+    const postMessage = vi.fn(
+      (message: unknown, _transfer?: Transferable[]) => {
+        const requestMessage = message as {
+          connectDedicatedRuntimeHost?: { port: MessagePort }
+        }
+        const port = requestMessage.connectDedicatedRuntimeHost?.port
+        if (!port) {
+          throw new Error('dedicated runtime host request port missing')
+        }
+        port.onmessage = (ev: MessageEvent) => cancel.resolve(ev.data)
+        port.start()
+      },
+    )
     vi.stubGlobal('navigator', {
       locks,
       serviceWorker: {
@@ -308,17 +310,21 @@ describe('DedicatedWorkerHostOwner', () => {
     host.start(buildCallbacks())
     await flushPromises()
     const runtimeChannel = new MessageChannel()
-    const postMessage = vi.fn((message: unknown, _transfer?: Transferable[]) => {
-      const request = (message as Record<string, unknown>)
-        .connectDedicatedRuntimeHost as { port: MessagePort }
-      request.port.postMessage(
-        {
-          from: 'service-worker-test',
-          webRuntimePort: runtimeChannel.port1,
-        },
-        [runtimeChannel.port1],
-      )
-    })
+    const postMessage = vi.fn(
+      (message: unknown, _transfer?: Transferable[]) => {
+        const request = (message as Record<string, unknown>)
+          .connectDedicatedRuntimeHost as { port: MessagePort }
+        request.port.postMessage(
+          {
+            from: 'service-worker-test',
+            hostDocumentId: 'document-1',
+            hostGeneration: 'document-1-generation-1',
+            webRuntimePort: runtimeChannel.port1,
+          },
+          [runtimeChannel.port1],
+        )
+      },
+    )
     vi.stubGlobal('navigator', {
       locks,
       serviceWorker: {
@@ -365,14 +371,16 @@ describe('DedicatedWorkerHostOwner', () => {
     vi.stubGlobal('navigator', { locks })
     host.start(buildCallbacks())
     await flushPromises()
-    const postMessage = vi.fn((message: unknown, _transfer?: Transferable[]) => {
-      const request = (message as Record<string, unknown>)
-        .connectDedicatedRuntimeHost as { port: MessagePort }
-      request.port.postMessage({
-        from: 'service-worker-test',
-        error: 'no elected DedicatedWorker runtime host available',
-      })
-    })
+    const postMessage = vi.fn(
+      (message: unknown, _transfer?: Transferable[]) => {
+        const request = (message as Record<string, unknown>)
+          .connectDedicatedRuntimeHost as { port: MessagePort }
+        request.port.postMessage({
+          from: 'service-worker-test',
+          error: 'no elected DedicatedWorker runtime host available',
+        })
+      },
+    )
     vi.stubGlobal('navigator', {
       locks,
       serviceWorker: {

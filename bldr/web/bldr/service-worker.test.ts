@@ -18,6 +18,7 @@ import {
   syncLatestBrowserRelease,
   swFetch,
 } from './service-worker.js'
+import type { OpenWebRuntimePortResult } from './web-document-tracker.js'
 
 vi.mock('../fetch/fetch.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../fetch/fetch.js')>()
@@ -1568,7 +1569,11 @@ describe('service worker messages', () => {
     const responseChannel = new MessageChannel()
     const tracker = {
       handleWebDocumentMessage: vi.fn(),
-      openWebRuntimePort: vi.fn().mockResolvedValue(runtimeChannel.port1),
+      openWebRuntimePortWithResult: vi.fn().mockResolvedValue({
+        webRuntimePort: runtimeChannel.port1,
+        hostDocumentId: 'host-document',
+        hostGeneration: 'host-generation-1',
+      } satisfies OpenWebRuntimePortResult),
     }
     const deps = {
       clients: buildTestClients(),
@@ -1596,8 +1601,7 @@ describe('service worker messages', () => {
 
     handleServiceWorkerMessage(ev, deps)
     await vi.mocked(ev.waitUntil).mock.calls[0][0]
-
-    expect(tracker.openWebRuntimePort).toHaveBeenCalledWith(
+    expect(tracker.openWebRuntimePortWithResult).toHaveBeenCalledWith(
       init,
       'attached-document',
       expect.any(AbortSignal),
@@ -1621,12 +1625,55 @@ describe('service worker messages', () => {
     responseChannel.port1.close()
   })
 
-  it('aborts a pending elected-host lookup when the requester cancels', async () => {
+  it('reports relay failure without returning warm connection metadata', async () => {
     const responseChannel = new MessageChannel()
+    const ack = new Promise<MessageEvent>((resolve) => {
+      responseChannel.port1.onmessage = resolve
+      responseChannel.port1.start()
+    })
+    const tracker = {
+      handleWebDocumentMessage: vi.fn(),
+      openWebRuntimePortWithResult: vi
+        .fn()
+        .mockRejectedValue(new Error('relay unavailable')),
+    }
+    const deps = {
+      clients: buildTestClients(),
+      fetchTracker: {
+        abortClient: vi.fn(),
+      },
+      webDocumentTracker: tracker,
+      syncLatestBrowserRelease: vi.fn(),
+      refreshBrowserIndexCache: vi.fn(),
+      handleCrossTabMessage: vi.fn(),
+    }
+    const ev = buildMessageEvent({
+      from: 'attached-document',
+      connectDedicatedRuntimeHost: {
+        webRuntimeId: 'runtime-1',
+        init: new Uint8Array([1, 2, 3]),
+        port: responseChannel.port2,
+      },
+    })
+
+    handleServiceWorkerMessage(ev, deps)
+    await vi.mocked(ev.waitUntil).mock.calls[0][0]
+    const ackEvent = await ack
+    expect(ackEvent.data).toMatchObject({
+      error: 'relay unavailable',
+    })
+    expect(ackEvent.data.webRuntimePort).toBeUndefined()
+    expect(ackEvent.data.hostDocumentId).toBeUndefined()
+    expect(ackEvent.data.hostGeneration).toBeUndefined()
+    responseChannel.port1.close()
+  })
+
+  it('aborts a pending elected-host lookup when the requester cancels', async () => {
     let connectSignal: AbortSignal | undefined
-    const openWebRuntimePort = vi.fn(
+    const responseChannel = new MessageChannel()
+    const openWebRuntimePortWithResult = vi.fn(
       (_init: Uint8Array, _from?: string, signal?: AbortSignal) =>
-        new Promise<MessagePort>((_resolve, reject) => {
+        new Promise<OpenWebRuntimePortResult>((_resolve, reject) => {
           connectSignal = signal
           signal?.addEventListener(
             'abort',
@@ -1649,7 +1696,7 @@ describe('service worker messages', () => {
       },
       webDocumentTracker: {
         handleWebDocumentMessage: vi.fn(),
-        openWebRuntimePort,
+        openWebRuntimePortWithResult,
       },
       syncLatestBrowserRelease: vi.fn(),
       refreshBrowserIndexCache: vi.fn(),

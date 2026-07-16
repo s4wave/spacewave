@@ -121,6 +121,7 @@ export interface ClientToWebDocument {
   // the DedicatedWorker host closed, so attached documents must re-elect.
   dedicatedRuntimeHostLost?: {
     webDocumentId: string
+    hostGeneration?: string
     reason?: string
   }
   // close indicates the client is closed.
@@ -173,6 +174,10 @@ export interface ConnectWebRuntimeAck {
   from: string
   // webRuntimePort contains the port connected to the remote WebRuntime.
   webRuntimePort?: MessagePort
+  // hostDocumentId identifies the elected DedicatedWorker host document.
+  hostDocumentId?: string
+  // hostGeneration identifies the elected host's runtime generation.
+  hostGeneration?: string
   // error reports that the WebDocument could not forward the port.
   error?: string
 }

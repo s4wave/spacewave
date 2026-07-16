@@ -19,6 +19,12 @@ import {
   type RuntimeClientStreamOpenGateResult,
 } from './web-runtime-client.js'
 
+export interface OpenWebRuntimePortResult {
+  webRuntimePort: MessagePort
+  hostDocumentId?: string
+  hostGeneration?: string
+}
+
 interface WebDocumentWaiter {
   resume: () => void
   reject: (err: Error) => void
@@ -82,6 +88,9 @@ export class WebDocumentTracker {
   // activeRuntimeWebDocumentId is the WebDocument currently relaying the
   // WebRuntimeClient channel.
   private activeRuntimeWebDocumentId?: string
+  // activeRuntimeHostGeneration identifies the generation relayed by the
+  // active host document.
+  private activeRuntimeHostGeneration?: string
   private activeRuntimeDocumentAbort?: AbortController
   private preferredRuntimeWebDocumentId?: string
   private nextSabPairRequestNumber = 1
@@ -309,11 +318,36 @@ export class WebDocumentTracker {
     excludedWebDocumentId?: string,
     signal?: AbortSignal,
   ): Promise<MessagePort> {
-    return this.openWebRuntimeClient(
+    return this.openWebRuntimePortWithResult(
+      init,
+      excludedWebDocumentId,
+      signal,
+    ).then((result) => result.webRuntimePort)
+  }
+
+  public openWebRuntimePortWithResult(
+    init: Uint8Array,
+    excludedWebDocumentId?: string,
+    signal?: AbortSignal,
+  ): Promise<OpenWebRuntimePortResult> {
+    return this.openWebRuntimeClientWithResult(
       WebRuntimeClientInit.fromBinary(init),
       excludedWebDocumentId,
       signal,
     )
+  }
+
+  private async openWebRuntimeClient(
+    initMsg: Message<WebRuntimeClientInit>,
+    excludedWebDocumentId?: string,
+    signal?: AbortSignal,
+  ): Promise<MessagePort> {
+    const result = await this.openWebRuntimeClientWithResult(
+      initMsg,
+      excludedWebDocumentId,
+      signal,
+    )
+    return result.webRuntimePort
   }
 
   public hasRuntimeFetchRelay(): boolean {
@@ -510,12 +544,13 @@ export class WebDocumentTracker {
     })
   }
 
-  // openWebRuntimeClient attempts to open a client via one of the WebDocuments.
-  private async openWebRuntimeClient(
+  // openWebRuntimeClientWithResult returns the relay port and elected host
+  // identity observed in the successful host acknowledgment.
+  private async openWebRuntimeClientWithResult(
     initMsg: Message<WebRuntimeClientInit>,
     excludedWebDocumentId?: string,
     signal?: AbortSignal,
-  ): Promise<MessagePort> {
+  ): Promise<OpenWebRuntimePortResult> {
     if (signal?.aborted) {
       throw signal.reason instanceof Error
         ? signal.reason
@@ -616,7 +651,12 @@ export class WebDocumentTracker {
           delete this.preferredRuntimeWebDocumentId
         }
         this.trackActiveRuntimeWebDocument(webDocumentId)
-        return result.webRuntimePort
+        this.activeRuntimeHostGeneration = result.hostGeneration
+        return {
+          webRuntimePort: result.webRuntimePort,
+          hostDocumentId: result.hostDocumentId ?? webDocumentId,
+          hostGeneration: result.hostGeneration,
+        }
       } catch (err) {
         // message port must be closed.
         const expectedClose = isExpectedWebDocumentCloseError(err)
@@ -658,7 +698,7 @@ export class WebDocumentTracker {
           this.webDocumentRuntimeConnectedIds.has(webDocumentId)),
     )
     if (shouldRetryExistingWebDocument) {
-      return this.openWebRuntimeClient(
+      return this.openWebRuntimeClientWithResult(
         initMsg,
         excludedWebDocumentId,
         signal,
@@ -674,7 +714,7 @@ export class WebDocumentTracker {
       )
       return this.waitForWebDocument(
         () =>
-          this.openWebRuntimeClient(
+          this.openWebRuntimeClientWithResult(
             initMsg,
             excludedWebDocumentId,
             signal,
@@ -685,7 +725,11 @@ export class WebDocumentTracker {
 
     const waitPromise = this.waitForWebDocument(
       () =>
-        this.openWebRuntimeClient(initMsg, excludedWebDocumentId, signal),
+        this.openWebRuntimeClientWithResult(
+          initMsg,
+          excludedWebDocumentId,
+          signal,
+        ),
       signal,
     )
 
@@ -863,10 +907,12 @@ export class WebDocumentTracker {
 
     const wasActiveRuntimeDocument =
       this.activeRuntimeWebDocumentId === webDocumentId
+    const lostHostGeneration = this.activeRuntimeHostGeneration
     if (wasActiveRuntimeDocument) {
       delete this.activeRuntimeWebDocumentId
       this.activeRuntimeDocumentAbort?.abort()
       this.activeRuntimeDocumentAbort = undefined
+      this.activeRuntimeHostGeneration = undefined
     }
 
     const remainingWebDocumentIds = Object.keys(this.webDocuments)
@@ -906,9 +952,12 @@ export class WebDocumentTracker {
     // successful relay open always tracks the host as activeRuntimeWebDocumentId,
     // which makes wasActiveRuntimeDocument the host-lost signal. Keep that
     // coupling: the tracker cannot otherwise identify the elected host, since
-    // election happens behind a Web Lock inside the documents.
     if (wasActiveRuntimeDocument) {
-      this.notifyDedicatedRuntimeHostLost(webDocumentId, closeErr)
+      this.notifyDedicatedRuntimeHostLost(
+        webDocumentId,
+        closeErr,
+        lostHostGeneration,
+      )
     }
 
     if (!remainingWebDocumentIds.length) {
@@ -959,15 +1008,16 @@ export class WebDocumentTracker {
       await this.onAllWebDocumentsClosed()
     }
   }
-
   private notifyDedicatedRuntimeHostLost(
     webDocumentId: string,
     err?: Error,
+    hostGeneration?: string,
   ): void {
     const msg: ClientToWebDocument = {
       from: this.clientUuid,
       dedicatedRuntimeHostLost: {
         webDocumentId,
+        hostGeneration,
         reason: err?.message,
       },
     }
