@@ -1526,6 +1526,100 @@ message PackMetadataRepairResponse {
   bool dry_run = 3;
 }
 
+// RbacGrantLifecycleQuery identifies the grant lifecycle to read back.
+message RbacGrantLifecycleQuery {
+  // GrantId identifies the grant.
+  string grant_id = 1;
+}
+
+// RbacGrantPrincipal identifies a typed grant principal in admin readback.
+message RbacGrantPrincipal {
+  // Type identifies the principal kind.
+  string type = 1;
+  // Id identifies the principal.
+  string id = 2;
+}
+
+// RbacGrantRevocation describes a grant revocation tombstone in readback.
+message RbacGrantRevocation {
+  // RevokedAtMs is when the grant was revoked in epoch milliseconds.
+  int64 revoked_at_ms = 1;
+}
+
+// RbacLastMutation is the latest typed mutation summary for a grant.
+message RbacLastMutation {
+  // EventId identifies the audit event.
+  string event_id = 1;
+  // Action is the normalized mutation action.
+  string action = 2;
+  // Outcome is the normalized mutation outcome.
+  string outcome = 3;
+  // ResultingVersion is the grant version after the mutation.
+  uint64 resulting_version = 4;
+  // CreatedAtMs is when the event was created in epoch milliseconds.
+  int64 created_at_ms = 5;
+}
+
+// RbacCapabilityFlagQuery identifies the persisted capability flag to read.
+message RbacCapabilityFlagQuery {
+  // Environment identifies the persisted flag environment.
+  string environment = 1;
+  // Capability identifies the persisted runtime capability.
+  string capability = 2;
+}
+
+// RbacGrantLifecycle is a redacted, non-authoritative grant projection.
+message RbacGrantLifecycle {
+  // GrantId identifies the grant.
+  string grant_id = 1;
+  // Principal identifies the typed grant principal.
+  RbacGrantPrincipal principal = 2;
+  // RoleId identifies the resulting role.
+  string role_id = 3;
+  // Scope identifies the authority scope.
+  string scope = 4;
+  // ResourceId identifies the scoped resource.
+  string resource_id = 5;
+  // Version is the current grant version.
+  uint64 version = 6;
+  // ExpiresAtMs is the grant expiry in epoch milliseconds when present.
+  int64 expires_at_ms = 7;
+  // Revocation is present when the grant has a revocation tombstone.
+  RbacGrantRevocation revocation = 8;
+  // LastMutation is the latest mutation summary when present.
+  RbacLastMutation last_mutation = 9;
+}
+
+// RbacCapabilityFlagState is a persisted, non-authoritative flag projection.
+message RbacCapabilityFlagState {
+  // Environment identifies the persisted flag environment.
+  string environment = 1;
+  // Capability identifies the persisted runtime capability.
+  string capability = 2;
+  // Enabled is the persisted capability state.
+  bool enabled = 3;
+  // UpdatedAtMs is when the persisted flag changed in epoch milliseconds.
+  int64 updated_at_ms = 4;
+  // UpdatedBy identifies the typed principal that last changed the flag.
+  RbacGrantPrincipal updated_by = 5;
+}
+
+// RbacAdminReadbackRequest identifies the grant and flag state to read.
+message RbacAdminReadbackRequest {
+  // Grant identifies the grant lifecycle query when present.
+  RbacGrantLifecycleQuery grant = 1;
+  // CapabilityFlag identifies the persisted flag query when present.
+  RbacCapabilityFlagQuery capability_flag = 2;
+}
+
+// RbacAdminReadbackResponse returns typed RBAC lifecycle, flag, and mutation state.
+message RbacAdminReadbackResponse {
+  // Grant is absent when no grant exists for the requested lifecycle.
+  RbacGrantLifecycle grant = 1;
+  // CapabilityFlag is the persisted capability flag projection.
+  RbacCapabilityFlagState capability_flag = 2;
+}
+
 // CreateBlockStoreResponse is the response body for POST /api/bstore/:id/create.
 message CreateBlockStoreResponse {
   // Id is the block store id (echoed for confirmation).

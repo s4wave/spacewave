@@ -34,6 +34,8 @@ message AuditEventMetadata {
     BillingAdminActionAuditMetadata billing_admin_action = 17;
     // Generic is metadata for actions that only need a small summary.
     GenericAuditMetadata generic = 18;
+    // RbacGrantMutation is metadata for typed RBAC grant mutations.
+    RbacGrantMutationAuditMetadata rbac_grant_mutation = 19;
   }
 }
 
@@ -147,6 +149,73 @@ message BillingAdminActionAuditMetadata {
 message GenericAuditMetadata {
   // Summary is a short summary for generic actions.
   string summary = 1;
+}
+
+// RbacGrantMutationAction identifies the RBAC grant mutation represented by
+// typed audit metadata.
+enum RbacGrantMutationAction {
+  // RBAC_GRANT_MUTATION_ACTION_UNSPECIFIED is the zero value.
+  RBAC_GRANT_MUTATION_ACTION_UNSPECIFIED = 0;
+  // RBAC_GRANT_MUTATION_ACTION_GRANT_ISSUED identifies a new grant.
+  RBAC_GRANT_MUTATION_ACTION_GRANT_ISSUED = 1;
+  // RBAC_GRANT_MUTATION_ACTION_GRANT_UPDATED identifies a grant update.
+  RBAC_GRANT_MUTATION_ACTION_GRANT_UPDATED = 2;
+  // RBAC_GRANT_MUTATION_ACTION_GRANT_REVOKED identifies a grant revocation.
+  RBAC_GRANT_MUTATION_ACTION_GRANT_REVOKED = 3;
+  // RBAC_GRANT_MUTATION_ACTION_GRANT_EXPIRED_ON_USE identifies read-time expiry.
+  RBAC_GRANT_MUTATION_ACTION_GRANT_EXPIRED_ON_USE = 4;
+  // RBAC_GRANT_MUTATION_ACTION_ROLE_CHANGED identifies a role change.
+  RBAC_GRANT_MUTATION_ACTION_ROLE_CHANGED = 5;
+}
+
+// RbacGrantMutationOutcome identifies the result of an RBAC grant mutation.
+enum RbacGrantMutationOutcome {
+  // RBAC_GRANT_MUTATION_OUTCOME_UNSPECIFIED is the zero value.
+  RBAC_GRANT_MUTATION_OUTCOME_UNSPECIFIED = 0;
+  // RBAC_GRANT_MUTATION_OUTCOME_SUCCESS identifies a committed mutation.
+  RBAC_GRANT_MUTATION_OUTCOME_SUCCESS = 1;
+  // RBAC_GRANT_MUTATION_OUTCOME_DENIED identifies a rejected mutation.
+  RBAC_GRANT_MUTATION_OUTCOME_DENIED = 2;
+  // RBAC_GRANT_MUTATION_OUTCOME_FAILED identifies an unsuccessful mutation.
+  RBAC_GRANT_MUTATION_OUTCOME_FAILED = 3;
+}
+
+// RbacPrincipal identifies a typed RBAC grant principal.
+message RbacPrincipal {
+  // Type identifies the principal kind.
+  string type = 1;
+  // Id identifies the principal.
+  string id = 2;
+}
+
+// RbacGrantRevocation describes a grant revocation tombstone.
+message RbacGrantRevocation {
+  // RevokedAtMs is when the grant was revoked in epoch milliseconds.
+  int64 revoked_at_ms = 1;
+}
+
+// RbacGrantMutationAuditMetadata describes one typed RBAC grant mutation.
+message RbacGrantMutationAuditMetadata {
+  // Action identifies the grant mutation kind.
+  RbacGrantMutationAction action = 1;
+  // GrantId identifies the affected grant.
+  string grant_id = 2;
+  // Principal identifies the typed grant principal.
+  RbacPrincipal principal = 3;
+  // RoleId identifies the resulting role.
+  string role_id = 4;
+  // Scope identifies the authority scope.
+  string scope = 5;
+  // ResourceId identifies the scoped resource.
+  string resource_id = 6;
+  // ResultingVersion is the grant version after the mutation.
+  uint64 resulting_version = 7;
+  // ExpiresAtMs is the grant expiry in epoch milliseconds when present.
+  int64 expires_at_ms = 8;
+  // Revocation is present when the grant has a revocation tombstone.
+  RbacGrantRevocation revocation = 9;
+  // Outcome identifies whether the mutation committed.
+  RbacGrantMutationOutcome outcome = 10;
 }
 
 // AuditEvent is one decoded admin-visible audit row.

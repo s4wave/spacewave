@@ -5913,6 +5913,393 @@ export const PackMetadataRepairResponse: MessageType<PackMetadataRepairResponse>
   })
 
 /**
+ * RbacGrantLifecycleQuery identifies the grant lifecycle to read back.
+ *
+ * @generated from message provider.spacewave.api.RbacGrantLifecycleQuery
+ */
+export interface RbacGrantLifecycleQuery {
+  /**
+   * GrantId identifies the grant.
+   *
+   * @generated from field: string grant_id = 1;
+   */
+  grantId?: string
+}
+
+export const RbacGrantLifecycleQuery: MessageType<RbacGrantLifecycleQuery> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.RbacGrantLifecycleQuery',
+    fields: [
+      { no: 1, name: 'grant_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RbacGrantPrincipal identifies a typed grant principal in admin readback.
+ *
+ * @generated from message provider.spacewave.api.RbacGrantPrincipal
+ */
+export interface RbacGrantPrincipal {
+  /**
+   * Type identifies the principal kind.
+   *
+   * @generated from field: string type = 1;
+   */
+  type?: string
+  /**
+   * Id identifies the principal.
+   *
+   * @generated from field: string id = 2;
+   */
+  id?: string
+}
+
+export const RbacGrantPrincipal: MessageType<RbacGrantPrincipal> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.RbacGrantPrincipal',
+    fields: [
+      { no: 1, name: 'type', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RbacGrantRevocation describes a grant revocation tombstone in readback.
+ *
+ * @generated from message provider.spacewave.api.RbacGrantRevocation
+ */
+export interface RbacGrantRevocation {
+  /**
+   * RevokedAtMs is when the grant was revoked in epoch milliseconds.
+   *
+   * @generated from field: int64 revoked_at_ms = 1;
+   */
+  revokedAtMs?: bigint
+}
+
+export const RbacGrantRevocation: MessageType<RbacGrantRevocation> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.RbacGrantRevocation',
+    fields: [
+      { no: 1, name: 'revoked_at_ms', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RbacLastMutation is the latest typed mutation summary for a grant.
+ *
+ * @generated from message provider.spacewave.api.RbacLastMutation
+ */
+export interface RbacLastMutation {
+  /**
+   * EventId identifies the audit event.
+   *
+   * @generated from field: string event_id = 1;
+   */
+  eventId?: string
+  /**
+   * Action is the normalized mutation action.
+   *
+   * @generated from field: string action = 2;
+   */
+  action?: string
+  /**
+   * Outcome is the normalized mutation outcome.
+   *
+   * @generated from field: string outcome = 3;
+   */
+  outcome?: string
+  /**
+   * ResultingVersion is the grant version after the mutation.
+   *
+   * @generated from field: uint64 resulting_version = 4;
+   */
+  resultingVersion?: bigint
+  /**
+   * CreatedAtMs is when the event was created in epoch milliseconds.
+   *
+   * @generated from field: int64 created_at_ms = 5;
+   */
+  createdAtMs?: bigint
+}
+
+export const RbacLastMutation: MessageType<RbacLastMutation> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.RbacLastMutation',
+    fields: [
+      { no: 1, name: 'event_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'action', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'outcome', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 4,
+        name: 'resulting_version',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      { no: 5, name: 'created_at_ms', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RbacCapabilityFlagQuery identifies the persisted capability flag to read.
+ *
+ * @generated from message provider.spacewave.api.RbacCapabilityFlagQuery
+ */
+export interface RbacCapabilityFlagQuery {
+  /**
+   * Environment identifies the persisted flag environment.
+   *
+   * @generated from field: string environment = 1;
+   */
+  environment?: string
+  /**
+   * Capability identifies the persisted runtime capability.
+   *
+   * @generated from field: string capability = 2;
+   */
+  capability?: string
+}
+
+export const RbacCapabilityFlagQuery: MessageType<RbacCapabilityFlagQuery> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.RbacCapabilityFlagQuery',
+    fields: [
+      { no: 1, name: 'environment', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'capability', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RbacGrantLifecycle is a redacted, non-authoritative grant projection.
+ *
+ * @generated from message provider.spacewave.api.RbacGrantLifecycle
+ */
+export interface RbacGrantLifecycle {
+  /**
+   * GrantId identifies the grant.
+   *
+   * @generated from field: string grant_id = 1;
+   */
+  grantId?: string
+  /**
+   * Principal identifies the typed grant principal.
+   *
+   * @generated from field: provider.spacewave.api.RbacGrantPrincipal principal = 2;
+   */
+  principal?: RbacGrantPrincipal
+  /**
+   * RoleId identifies the resulting role.
+   *
+   * @generated from field: string role_id = 3;
+   */
+  roleId?: string
+  /**
+   * Scope identifies the authority scope.
+   *
+   * @generated from field: string scope = 4;
+   */
+  scope?: string
+  /**
+   * ResourceId identifies the scoped resource.
+   *
+   * @generated from field: string resource_id = 5;
+   */
+  resourceId?: string
+  /**
+   * Version is the current grant version.
+   *
+   * @generated from field: uint64 version = 6;
+   */
+  version?: bigint
+  /**
+   * ExpiresAtMs is the grant expiry in epoch milliseconds when present.
+   *
+   * @generated from field: int64 expires_at_ms = 7;
+   */
+  expiresAtMs?: bigint
+  /**
+   * Revocation is present when the grant has a revocation tombstone.
+   *
+   * @generated from field: provider.spacewave.api.RbacGrantRevocation revocation = 8;
+   */
+  revocation?: RbacGrantRevocation
+  /**
+   * LastMutation is the latest mutation summary when present.
+   *
+   * @generated from field: provider.spacewave.api.RbacLastMutation last_mutation = 9;
+   */
+  lastMutation?: RbacLastMutation
+}
+
+export const RbacGrantLifecycle: MessageType<RbacGrantLifecycle> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.RbacGrantLifecycle',
+    fields: [
+      { no: 1, name: 'grant_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'principal',
+        kind: 'message',
+        T: () => RbacGrantPrincipal,
+      },
+      { no: 3, name: 'role_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'scope', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'resource_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'version', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 7, name: 'expires_at_ms', kind: 'scalar', T: ScalarType.INT64 },
+      {
+        no: 8,
+        name: 'revocation',
+        kind: 'message',
+        T: () => RbacGrantRevocation,
+      },
+      {
+        no: 9,
+        name: 'last_mutation',
+        kind: 'message',
+        T: () => RbacLastMutation,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RbacCapabilityFlagState is a persisted, non-authoritative flag projection.
+ *
+ * @generated from message provider.spacewave.api.RbacCapabilityFlagState
+ */
+export interface RbacCapabilityFlagState {
+  /**
+   * Environment identifies the persisted flag environment.
+   *
+   * @generated from field: string environment = 1;
+   */
+  environment?: string
+  /**
+   * Capability identifies the persisted runtime capability.
+   *
+   * @generated from field: string capability = 2;
+   */
+  capability?: string
+  /**
+   * Enabled is the persisted capability state.
+   *
+   * @generated from field: bool enabled = 3;
+   */
+  enabled?: boolean
+  /**
+   * UpdatedAtMs is when the persisted flag changed in epoch milliseconds.
+   *
+   * @generated from field: int64 updated_at_ms = 4;
+   */
+  updatedAtMs?: bigint
+  /**
+   * UpdatedBy identifies the typed principal that last changed the flag.
+   *
+   * @generated from field: provider.spacewave.api.RbacGrantPrincipal updated_by = 5;
+   */
+  updatedBy?: RbacGrantPrincipal
+}
+
+export const RbacCapabilityFlagState: MessageType<RbacCapabilityFlagState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.RbacCapabilityFlagState',
+    fields: [
+      { no: 1, name: 'environment', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'capability', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'updated_at_ms', kind: 'scalar', T: ScalarType.INT64 },
+      {
+        no: 5,
+        name: 'updated_by',
+        kind: 'message',
+        T: () => RbacGrantPrincipal,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RbacAdminReadbackRequest identifies the grant and flag state to read.
+ *
+ * @generated from message provider.spacewave.api.RbacAdminReadbackRequest
+ */
+export interface RbacAdminReadbackRequest {
+  /**
+   * Grant identifies the grant lifecycle query when present.
+   *
+   * @generated from field: provider.spacewave.api.RbacGrantLifecycleQuery grant = 1;
+   */
+  grant?: RbacGrantLifecycleQuery
+  /**
+   * CapabilityFlag identifies the persisted flag query when present.
+   *
+   * @generated from field: provider.spacewave.api.RbacCapabilityFlagQuery capability_flag = 2;
+   */
+  capabilityFlag?: RbacCapabilityFlagQuery
+}
+
+export const RbacAdminReadbackRequest: MessageType<RbacAdminReadbackRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.RbacAdminReadbackRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'grant',
+        kind: 'message',
+        T: () => RbacGrantLifecycleQuery,
+      },
+      {
+        no: 2,
+        name: 'capability_flag',
+        kind: 'message',
+        T: () => RbacCapabilityFlagQuery,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RbacAdminReadbackResponse returns typed RBAC lifecycle, flag, and mutation state.
+ *
+ * @generated from message provider.spacewave.api.RbacAdminReadbackResponse
+ */
+export interface RbacAdminReadbackResponse {
+  /**
+   * Grant is absent when no grant exists for the requested lifecycle.
+   *
+   * @generated from field: provider.spacewave.api.RbacGrantLifecycle grant = 1;
+   */
+  grant?: RbacGrantLifecycle
+  /**
+   * CapabilityFlag is the persisted capability flag projection.
+   *
+   * @generated from field: provider.spacewave.api.RbacCapabilityFlagState capability_flag = 2;
+   */
+  capabilityFlag?: RbacCapabilityFlagState
+}
+
+export const RbacAdminReadbackResponse: MessageType<RbacAdminReadbackResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.RbacAdminReadbackResponse',
+    fields: [
+      { no: 1, name: 'grant', kind: 'message', T: () => RbacGrantLifecycle },
+      {
+        no: 2,
+        name: 'capability_flag',
+        kind: 'message',
+        T: () => RbacCapabilityFlagState,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * CreateBlockStoreResponse is the response body for POST /api/bstore/:id/create.
  *
  * @generated from message provider.spacewave.api.CreateBlockStoreResponse

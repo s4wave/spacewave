@@ -8,10 +8,108 @@ import (
 	fmt "fmt"
 	io "io"
 	slices "slices"
+	strconv "strconv"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
+
+// RbacGrantMutationAction identifies the RBAC grant mutation represented by
+// typed audit metadata.
+type RbacGrantMutationAction int32
+
+const (
+	// RBAC_GRANT_MUTATION_ACTION_UNSPECIFIED is the zero value.
+	RbacGrantMutationAction_RBAC_GRANT_MUTATION_ACTION_UNSPECIFIED RbacGrantMutationAction = 0
+	// RBAC_GRANT_MUTATION_ACTION_GRANT_ISSUED identifies a new grant.
+	RbacGrantMutationAction_RBAC_GRANT_MUTATION_ACTION_GRANT_ISSUED RbacGrantMutationAction = 1
+	// RBAC_GRANT_MUTATION_ACTION_GRANT_UPDATED identifies a grant update.
+	RbacGrantMutationAction_RBAC_GRANT_MUTATION_ACTION_GRANT_UPDATED RbacGrantMutationAction = 2
+	// RBAC_GRANT_MUTATION_ACTION_GRANT_REVOKED identifies a grant revocation.
+	RbacGrantMutationAction_RBAC_GRANT_MUTATION_ACTION_GRANT_REVOKED RbacGrantMutationAction = 3
+	// RBAC_GRANT_MUTATION_ACTION_GRANT_EXPIRED_ON_USE identifies read-time expiry.
+	RbacGrantMutationAction_RBAC_GRANT_MUTATION_ACTION_GRANT_EXPIRED_ON_USE RbacGrantMutationAction = 4
+	// RBAC_GRANT_MUTATION_ACTION_ROLE_CHANGED identifies a role change.
+	RbacGrantMutationAction_RBAC_GRANT_MUTATION_ACTION_ROLE_CHANGED RbacGrantMutationAction = 5
+)
+
+// Enum value maps for RbacGrantMutationAction.
+var (
+	RbacGrantMutationAction_name = map[int32]string{
+		0: "RBAC_GRANT_MUTATION_ACTION_UNSPECIFIED",
+		1: "RBAC_GRANT_MUTATION_ACTION_GRANT_ISSUED",
+		2: "RBAC_GRANT_MUTATION_ACTION_GRANT_UPDATED",
+		3: "RBAC_GRANT_MUTATION_ACTION_GRANT_REVOKED",
+		4: "RBAC_GRANT_MUTATION_ACTION_GRANT_EXPIRED_ON_USE",
+		5: "RBAC_GRANT_MUTATION_ACTION_ROLE_CHANGED",
+	}
+	RbacGrantMutationAction_value = map[string]int32{
+		"RBAC_GRANT_MUTATION_ACTION_UNSPECIFIED":          0,
+		"RBAC_GRANT_MUTATION_ACTION_GRANT_ISSUED":         1,
+		"RBAC_GRANT_MUTATION_ACTION_GRANT_UPDATED":        2,
+		"RBAC_GRANT_MUTATION_ACTION_GRANT_REVOKED":        3,
+		"RBAC_GRANT_MUTATION_ACTION_GRANT_EXPIRED_ON_USE": 4,
+		"RBAC_GRANT_MUTATION_ACTION_ROLE_CHANGED":         5,
+	}
+)
+
+func (x RbacGrantMutationAction) Enum() *RbacGrantMutationAction {
+	p := new(RbacGrantMutationAction)
+	*p = x
+	return p
+}
+
+func (x RbacGrantMutationAction) String() string {
+	name, valid := RbacGrantMutationAction_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// RbacGrantMutationOutcome identifies the result of an RBAC grant mutation.
+type RbacGrantMutationOutcome int32
+
+const (
+	// RBAC_GRANT_MUTATION_OUTCOME_UNSPECIFIED is the zero value.
+	RbacGrantMutationOutcome_RBAC_GRANT_MUTATION_OUTCOME_UNSPECIFIED RbacGrantMutationOutcome = 0
+	// RBAC_GRANT_MUTATION_OUTCOME_SUCCESS identifies a committed mutation.
+	RbacGrantMutationOutcome_RBAC_GRANT_MUTATION_OUTCOME_SUCCESS RbacGrantMutationOutcome = 1
+	// RBAC_GRANT_MUTATION_OUTCOME_DENIED identifies a rejected mutation.
+	RbacGrantMutationOutcome_RBAC_GRANT_MUTATION_OUTCOME_DENIED RbacGrantMutationOutcome = 2
+	// RBAC_GRANT_MUTATION_OUTCOME_FAILED identifies an unsuccessful mutation.
+	RbacGrantMutationOutcome_RBAC_GRANT_MUTATION_OUTCOME_FAILED RbacGrantMutationOutcome = 3
+)
+
+// Enum value maps for RbacGrantMutationOutcome.
+var (
+	RbacGrantMutationOutcome_name = map[int32]string{
+		0: "RBAC_GRANT_MUTATION_OUTCOME_UNSPECIFIED",
+		1: "RBAC_GRANT_MUTATION_OUTCOME_SUCCESS",
+		2: "RBAC_GRANT_MUTATION_OUTCOME_DENIED",
+		3: "RBAC_GRANT_MUTATION_OUTCOME_FAILED",
+	}
+	RbacGrantMutationOutcome_value = map[string]int32{
+		"RBAC_GRANT_MUTATION_OUTCOME_UNSPECIFIED": 0,
+		"RBAC_GRANT_MUTATION_OUTCOME_SUCCESS":     1,
+		"RBAC_GRANT_MUTATION_OUTCOME_DENIED":      2,
+		"RBAC_GRANT_MUTATION_OUTCOME_FAILED":      3,
+	}
+)
+
+func (x RbacGrantMutationOutcome) Enum() *RbacGrantMutationOutcome {
+	p := new(RbacGrantMutationOutcome)
+	*p = x
+	return p
+}
+
+func (x RbacGrantMutationOutcome) String() string {
+	name, valid := RbacGrantMutationOutcome_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
 
 // AuditEventMetadata is the typed metadata wrapper serialized into the
 // spacewave-cloud audit_events.metadata_json column as protoJson.
@@ -39,6 +137,7 @@ type AuditEventMetadata struct {
 	//	*AuditEventMetadata_BillingStatusChanged
 	//	*AuditEventMetadata_BillingAdminAction
 	//	*AuditEventMetadata_Generic
+	//	*AuditEventMetadata_RbacGrantMutation
 	Body isAuditEventMetadata_Body `protobuf_oneof:"body"`
 }
 
@@ -146,6 +245,13 @@ func (x *AuditEventMetadata) GetGeneric() *GenericAuditMetadata {
 	return nil
 }
 
+func (x *AuditEventMetadata) GetRbacGrantMutation() *RbacGrantMutationAuditMetadata {
+	if x, ok := x.GetBody().(*AuditEventMetadata_RbacGrantMutation); ok {
+		return x.RbacGrantMutation
+	}
+	return nil
+}
+
 type isAuditEventMetadata_Body interface {
 	isAuditEventMetadata_Body()
 }
@@ -195,6 +301,11 @@ type AuditEventMetadata_Generic struct {
 	Generic *GenericAuditMetadata `protobuf:"bytes,18,opt,name=generic,proto3,oneof"`
 }
 
+type AuditEventMetadata_RbacGrantMutation struct {
+	// RbacGrantMutation is metadata for typed RBAC grant mutations.
+	RbacGrantMutation *RbacGrantMutationAuditMetadata `protobuf:"bytes,19,opt,name=rbac_grant_mutation,json=rbacGrantMutation,proto3,oneof"`
+}
+
 func (*AuditEventMetadata_UserCreated) isAuditEventMetadata_Body() {}
 
 func (*AuditEventMetadata_EntityKeypairsChanged) isAuditEventMetadata_Body() {}
@@ -212,6 +323,8 @@ func (*AuditEventMetadata_BillingStatusChanged) isAuditEventMetadata_Body() {}
 func (*AuditEventMetadata_BillingAdminAction) isAuditEventMetadata_Body() {}
 
 func (*AuditEventMetadata_Generic) isAuditEventMetadata_Body() {}
+
+func (*AuditEventMetadata_RbacGrantMutation) isAuditEventMetadata_Body() {}
 
 // UserCreatedAuditMetadata describes a new-account creation action.
 type UserCreatedAuditMetadata struct {
@@ -654,6 +767,156 @@ func (x *GenericAuditMetadata) GetSummary() string {
 	return ""
 }
 
+// RbacPrincipal identifies a typed RBAC grant principal.
+type RbacPrincipal struct {
+	unknownFields []byte
+	// Type identifies the principal kind.
+	Type string `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	// Id identifies the principal.
+	Id string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+}
+
+func (x *RbacPrincipal) Reset() {
+	*x = RbacPrincipal{}
+}
+
+func (*RbacPrincipal) ProtoMessage() {}
+
+func (x *RbacPrincipal) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *RbacPrincipal) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+// RbacGrantRevocation describes a grant revocation tombstone.
+type RbacGrantRevocation struct {
+	unknownFields []byte
+	// RevokedAtMs is when the grant was revoked in epoch milliseconds.
+	RevokedAtMs int64 `protobuf:"varint,1,opt,name=revoked_at_ms,json=revokedAtMs,proto3" json:"revokedAtMs,omitempty"`
+}
+
+func (x *RbacGrantRevocation) Reset() {
+	*x = RbacGrantRevocation{}
+}
+
+func (*RbacGrantRevocation) ProtoMessage() {}
+
+func (x *RbacGrantRevocation) GetRevokedAtMs() int64 {
+	if x != nil {
+		return x.RevokedAtMs
+	}
+	return 0
+}
+
+// RbacGrantMutationAuditMetadata describes one typed RBAC grant mutation.
+type RbacGrantMutationAuditMetadata struct {
+	unknownFields []byte
+	// Action identifies the grant mutation kind.
+	Action RbacGrantMutationAction `protobuf:"varint,1,opt,name=action,proto3" json:"action,omitempty"`
+	// GrantId identifies the affected grant.
+	GrantId string `protobuf:"bytes,2,opt,name=grant_id,json=grantId,proto3" json:"grantId,omitempty"`
+	// Principal identifies the typed grant principal.
+	Principal *RbacPrincipal `protobuf:"bytes,3,opt,name=principal,proto3" json:"principal,omitempty"`
+	// RoleId identifies the resulting role.
+	RoleId string `protobuf:"bytes,4,opt,name=role_id,json=roleId,proto3" json:"roleId,omitempty"`
+	// Scope identifies the authority scope.
+	Scope string `protobuf:"bytes,5,opt,name=scope,proto3" json:"scope,omitempty"`
+	// ResourceId identifies the scoped resource.
+	ResourceId string `protobuf:"bytes,6,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
+	// ResultingVersion is the grant version after the mutation.
+	ResultingVersion uint64 `protobuf:"varint,7,opt,name=resulting_version,json=resultingVersion,proto3" json:"resultingVersion,omitempty"`
+	// ExpiresAtMs is the grant expiry in epoch milliseconds when present.
+	ExpiresAtMs int64 `protobuf:"varint,8,opt,name=expires_at_ms,json=expiresAtMs,proto3" json:"expiresAtMs,omitempty"`
+	// Revocation is present when the grant has a revocation tombstone.
+	Revocation *RbacGrantRevocation `protobuf:"bytes,9,opt,name=revocation,proto3" json:"revocation,omitempty"`
+	// Outcome identifies whether the mutation committed.
+	Outcome RbacGrantMutationOutcome `protobuf:"varint,10,opt,name=outcome,proto3" json:"outcome,omitempty"`
+}
+
+func (x *RbacGrantMutationAuditMetadata) Reset() {
+	*x = RbacGrantMutationAuditMetadata{}
+}
+
+func (*RbacGrantMutationAuditMetadata) ProtoMessage() {}
+
+func (x *RbacGrantMutationAuditMetadata) GetAction() RbacGrantMutationAction {
+	if x != nil {
+		return x.Action
+	}
+	return RbacGrantMutationAction_RBAC_GRANT_MUTATION_ACTION_UNSPECIFIED
+}
+
+func (x *RbacGrantMutationAuditMetadata) GetGrantId() string {
+	if x != nil {
+		return x.GrantId
+	}
+	return ""
+}
+
+func (x *RbacGrantMutationAuditMetadata) GetPrincipal() *RbacPrincipal {
+	if x != nil {
+		return x.Principal
+	}
+	return nil
+}
+
+func (x *RbacGrantMutationAuditMetadata) GetRoleId() string {
+	if x != nil {
+		return x.RoleId
+	}
+	return ""
+}
+
+func (x *RbacGrantMutationAuditMetadata) GetScope() string {
+	if x != nil {
+		return x.Scope
+	}
+	return ""
+}
+
+func (x *RbacGrantMutationAuditMetadata) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
+func (x *RbacGrantMutationAuditMetadata) GetResultingVersion() uint64 {
+	if x != nil {
+		return x.ResultingVersion
+	}
+	return 0
+}
+
+func (x *RbacGrantMutationAuditMetadata) GetExpiresAtMs() int64 {
+	if x != nil {
+		return x.ExpiresAtMs
+	}
+	return 0
+}
+
+func (x *RbacGrantMutationAuditMetadata) GetRevocation() *RbacGrantRevocation {
+	if x != nil {
+		return x.Revocation
+	}
+	return nil
+}
+
+func (x *RbacGrantMutationAuditMetadata) GetOutcome() RbacGrantMutationOutcome {
+	if x != nil {
+		return x.Outcome
+	}
+	return RbacGrantMutationOutcome_RBAC_GRANT_MUTATION_OUTCOME_UNSPECIFIED
+}
+
 // AuditEvent is one decoded admin-visible audit row.
 type AuditEvent struct {
 	unknownFields []byte
@@ -934,6 +1197,19 @@ func (m *AuditEventMetadata_Generic) CloneOneofVT() isAuditEventMetadata_Body {
 	return m.CloneVT()
 }
 
+func (m *AuditEventMetadata_RbacGrantMutation) CloneVT() *AuditEventMetadata_RbacGrantMutation {
+	if m == nil {
+		return (*AuditEventMetadata_RbacGrantMutation)(nil)
+	}
+	r := new(AuditEventMetadata_RbacGrantMutation)
+	r.RbacGrantMutation = protobuf_go_lite.CloneVTValue(m.RbacGrantMutation)
+	return r
+}
+
+func (m *AuditEventMetadata_RbacGrantMutation) CloneOneofVT() isAuditEventMetadata_Body {
+	return m.CloneVT()
+}
+
 func (m *UserCreatedAuditMetadata) CloneVT() *UserCreatedAuditMetadata {
 	if m == nil {
 		return (*UserCreatedAuditMetadata)(nil)
@@ -1104,6 +1380,64 @@ func (m *GenericAuditMetadata) CloneVT() *GenericAuditMetadata {
 }
 
 func (m *GenericAuditMetadata) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RbacPrincipal) CloneVT() *RbacPrincipal {
+	if m == nil {
+		return (*RbacPrincipal)(nil)
+	}
+	r := new(RbacPrincipal)
+	r.Type = m.Type
+	r.Id = m.Id
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RbacPrincipal) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RbacGrantRevocation) CloneVT() *RbacGrantRevocation {
+	if m == nil {
+		return (*RbacGrantRevocation)(nil)
+	}
+	r := new(RbacGrantRevocation)
+	r.RevokedAtMs = m.RevokedAtMs
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RbacGrantRevocation) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RbacGrantMutationAuditMetadata) CloneVT() *RbacGrantMutationAuditMetadata {
+	if m == nil {
+		return (*RbacGrantMutationAuditMetadata)(nil)
+	}
+	r := new(RbacGrantMutationAuditMetadata)
+	r.Action = m.Action
+	r.GrantId = m.GrantId
+	r.RoleId = m.RoleId
+	r.Scope = m.Scope
+	r.ResourceId = m.ResourceId
+	r.ResultingVersion = m.ResultingVersion
+	r.ExpiresAtMs = m.ExpiresAtMs
+	r.Outcome = m.Outcome
+	r.Principal = protobuf_go_lite.CloneVTValue(m.Principal)
+	r.Revocation = protobuf_go_lite.CloneVTValue(m.Revocation)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RbacGrantMutationAuditMetadata) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1339,6 +1673,23 @@ func (this *AuditEventMetadata_Generic) EqualVT(thatIface isAuditEventMetadata_B
 		return false
 	}
 	if !protobuf_go_lite.EqualVTImplicit(this.Generic, that.Generic, func() *GenericAuditMetadata { return &GenericAuditMetadata{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *AuditEventMetadata_RbacGrantMutation) EqualVT(thatIface isAuditEventMetadata_Body) bool {
+	that, ok := thatIface.(*AuditEventMetadata_RbacGrantMutation)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.RbacGrantMutation, that.RbacGrantMutation, func() *RbacGrantMutationAuditMetadata { return &RbacGrantMutationAuditMetadata{} }) {
 		return false
 	}
 	return true
@@ -1611,6 +1962,96 @@ func (this *GenericAuditMetadata) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *RbacPrincipal) EqualVT(that *RbacPrincipal) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Type != that.Type {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RbacPrincipal) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RbacPrincipal)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RbacGrantRevocation) EqualVT(that *RbacGrantRevocation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.RevokedAtMs != that.RevokedAtMs {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RbacGrantRevocation) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RbacGrantRevocation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RbacGrantMutationAuditMetadata) EqualVT(that *RbacGrantMutationAuditMetadata) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Action != that.Action {
+		return false
+	}
+	if this.GrantId != that.GrantId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Principal, that.Principal) {
+		return false
+	}
+	if this.RoleId != that.RoleId {
+		return false
+	}
+	if this.Scope != that.Scope {
+		return false
+	}
+	if this.ResourceId != that.ResourceId {
+		return false
+	}
+	if this.ResultingVersion != that.ResultingVersion {
+		return false
+	}
+	if this.ExpiresAtMs != that.ExpiresAtMs {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Revocation, that.Revocation) {
+		return false
+	}
+	if this.Outcome != that.Outcome {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RbacGrantMutationAuditMetadata) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RbacGrantMutationAuditMetadata)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *AuditEvent) EqualVT(that *AuditEvent) bool {
 	if this == that {
 		return true
@@ -1684,6 +2125,86 @@ func (this *ListAuditEventsResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+// MarshalProtoJSON marshals the RbacGrantMutationAction to JSON.
+func (x RbacGrantMutationAction) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), RbacGrantMutationAction_name)
+}
+
+// MarshalText marshals the RbacGrantMutationAction to text.
+func (x RbacGrantMutationAction) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), RbacGrantMutationAction_name)), nil
+}
+
+// MarshalJSON marshals the RbacGrantMutationAction to JSON.
+func (x RbacGrantMutationAction) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RbacGrantMutationAction from JSON.
+func (x *RbacGrantMutationAction) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(RbacGrantMutationAction_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read RbacGrantMutationAction enum: %v", err)
+		return
+	}
+	*x = RbacGrantMutationAction(v)
+}
+
+// UnmarshalText unmarshals the RbacGrantMutationAction from text.
+func (x *RbacGrantMutationAction) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), RbacGrantMutationAction_value)
+	if err != nil {
+		return err
+	}
+	*x = RbacGrantMutationAction(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the RbacGrantMutationAction from JSON.
+func (x *RbacGrantMutationAction) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RbacGrantMutationOutcome to JSON.
+func (x RbacGrantMutationOutcome) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), RbacGrantMutationOutcome_name)
+}
+
+// MarshalText marshals the RbacGrantMutationOutcome to text.
+func (x RbacGrantMutationOutcome) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), RbacGrantMutationOutcome_name)), nil
+}
+
+// MarshalJSON marshals the RbacGrantMutationOutcome to JSON.
+func (x RbacGrantMutationOutcome) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RbacGrantMutationOutcome from JSON.
+func (x *RbacGrantMutationOutcome) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(RbacGrantMutationOutcome_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read RbacGrantMutationOutcome enum: %v", err)
+		return
+	}
+	*x = RbacGrantMutationOutcome(v)
+}
+
+// UnmarshalText unmarshals the RbacGrantMutationOutcome from text.
+func (x *RbacGrantMutationOutcome) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), RbacGrantMutationOutcome_value)
+	if err != nil {
+		return err
+	}
+	*x = RbacGrantMutationOutcome(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the RbacGrantMutationOutcome from JSON.
+func (x *RbacGrantMutationOutcome) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the AuditEventMetadata message to JSON.
 func (x *AuditEventMetadata) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1750,6 +2271,10 @@ func (x *AuditEventMetadata) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("generic")
 			ov.Generic.MarshalProtoJSON(s.WithField("generic"))
+		case *AuditEventMetadata_RbacGrantMutation:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("rbacGrantMutation")
+			ov.RbacGrantMutation.MarshalProtoJSON(s.WithField("rbacGrantMutation"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -1862,6 +2387,15 @@ func (x *AuditEventMetadata) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.Generic = &GenericAuditMetadata{}
 			ov.Generic.UnmarshalProtoJSON(s.WithField("generic", true))
+		case "rbac_grant_mutation", "rbacGrantMutation":
+			ov := &AuditEventMetadata_RbacGrantMutation{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.RbacGrantMutation = nil
+				return
+			}
+			ov.RbacGrantMutation = &RbacGrantMutationAuditMetadata{}
+			ov.RbacGrantMutation.UnmarshalProtoJSON(s.WithField("rbac_grant_mutation", true))
 		}
 	})
 }
@@ -2481,6 +3015,220 @@ func (x *GenericAuditMetadata) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the RbacPrincipal message to JSON.
+func (x *RbacPrincipal) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Type != "" || s.HasField("type") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("type")
+		s.WriteString(x.Type)
+	}
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RbacPrincipal to JSON.
+func (x *RbacPrincipal) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RbacPrincipal message from JSON.
+func (x *RbacPrincipal) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "type":
+			s.AddField("type")
+			x.Type = s.ReadString()
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RbacPrincipal from JSON.
+func (x *RbacPrincipal) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RbacGrantRevocation message to JSON.
+func (x *RbacGrantRevocation) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.RevokedAtMs != 0 || s.HasField("revokedAtMs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("revokedAtMs")
+		s.WriteInt64(x.RevokedAtMs)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RbacGrantRevocation to JSON.
+func (x *RbacGrantRevocation) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RbacGrantRevocation message from JSON.
+func (x *RbacGrantRevocation) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "revoked_at_ms", "revokedAtMs":
+			s.AddField("revoked_at_ms")
+			x.RevokedAtMs = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RbacGrantRevocation from JSON.
+func (x *RbacGrantRevocation) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RbacGrantMutationAuditMetadata message to JSON.
+func (x *RbacGrantMutationAuditMetadata) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Action != 0 || s.HasField("action") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("action")
+		x.Action.MarshalProtoJSON(s)
+	}
+	if x.GrantId != "" || s.HasField("grantId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("grantId")
+		s.WriteString(x.GrantId)
+	}
+	if x.Principal != nil || s.HasField("principal") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("principal")
+		x.Principal.MarshalProtoJSON(s.WithField("principal"))
+	}
+	if x.RoleId != "" || s.HasField("roleId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("roleId")
+		s.WriteString(x.RoleId)
+	}
+	if x.Scope != "" || s.HasField("scope") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("scope")
+		s.WriteString(x.Scope)
+	}
+	if x.ResourceId != "" || s.HasField("resourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resourceId")
+		s.WriteString(x.ResourceId)
+	}
+	if x.ResultingVersion != 0 || s.HasField("resultingVersion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resultingVersion")
+		s.WriteUint64(x.ResultingVersion)
+	}
+	if x.ExpiresAtMs != 0 || s.HasField("expiresAtMs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expiresAtMs")
+		s.WriteInt64(x.ExpiresAtMs)
+	}
+	if x.Revocation != nil || s.HasField("revocation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("revocation")
+		x.Revocation.MarshalProtoJSON(s.WithField("revocation"))
+	}
+	if x.Outcome != 0 || s.HasField("outcome") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outcome")
+		x.Outcome.MarshalProtoJSON(s)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RbacGrantMutationAuditMetadata to JSON.
+func (x *RbacGrantMutationAuditMetadata) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RbacGrantMutationAuditMetadata message from JSON.
+func (x *RbacGrantMutationAuditMetadata) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "action":
+			s.AddField("action")
+			x.Action.UnmarshalProtoJSON(s)
+		case "grant_id", "grantId":
+			s.AddField("grant_id")
+			x.GrantId = s.ReadString()
+		case "principal":
+			if s.ReadNil() {
+				x.Principal = nil
+				return
+			}
+			x.Principal = &RbacPrincipal{}
+			x.Principal.UnmarshalProtoJSON(s.WithField("principal", true))
+		case "role_id", "roleId":
+			s.AddField("role_id")
+			x.RoleId = s.ReadString()
+		case "scope":
+			s.AddField("scope")
+			x.Scope = s.ReadString()
+		case "resource_id", "resourceId":
+			s.AddField("resource_id")
+			x.ResourceId = s.ReadString()
+		case "resulting_version", "resultingVersion":
+			s.AddField("resulting_version")
+			x.ResultingVersion = s.ReadUint64()
+		case "expires_at_ms", "expiresAtMs":
+			s.AddField("expires_at_ms")
+			x.ExpiresAtMs = s.ReadInt64()
+		case "revocation":
+			if s.ReadNil() {
+				x.Revocation = nil
+				return
+			}
+			x.Revocation = &RbacGrantRevocation{}
+			x.Revocation.UnmarshalProtoJSON(s.WithField("revocation", true))
+		case "outcome":
+			s.AddField("outcome")
+			x.Outcome.UnmarshalProtoJSON(s)
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RbacGrantMutationAuditMetadata from JSON.
+func (x *RbacGrantMutationAuditMetadata) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the AuditEvent message to JSON.
 func (x *AuditEvent) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -2967,6 +3715,34 @@ func (m *AuditEventMetadata_Generic) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	return len(dAtA) - i, nil
 }
 
+func (m *AuditEventMetadata_RbacGrantMutation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AuditEventMetadata_RbacGrantMutation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.RbacGrantMutation != nil {
+		size, err := m.RbacGrantMutation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x9a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x9a
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *UserCreatedAuditMetadata) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3445,6 +4221,177 @@ func (m *GenericAuditMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
+func (m *RbacPrincipal) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RbacPrincipal) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RbacPrincipal) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Id) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Id)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Type) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Type)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RbacGrantRevocation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RbacGrantRevocation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RbacGrantRevocation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RevokedAtMs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RevokedAtMs))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RbacGrantMutationAuditMetadata) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RbacGrantMutationAuditMetadata) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RbacGrantMutationAuditMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Outcome != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Outcome))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.Revocation != nil {
+		size, err := m.Revocation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if m.ExpiresAtMs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpiresAtMs))
+		i--
+		dAtA[i] = 0x40
+	}
+	if m.ResultingVersion != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResultingVersion))
+		i--
+		dAtA[i] = 0x38
+	}
+	if len(m.ResourceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ResourceId)
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.Scope) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Scope)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.RoleId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.RoleId)
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Principal != nil {
+		size, err := m.Principal.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.GrantId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.GrantId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Action != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Action))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *AuditEvent) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3738,6 +4685,21 @@ func (m *AuditEventMetadata_Generic) SizeVT() (n int) {
 	return n
 }
 
+func (m *AuditEventMetadata_RbacGrantMutation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.RbacGrantMutation != nil {
+		l = m.RbacGrantMutation.SizeVT()
+		n += protobuf_go_lite.SizeMessage(2, l)
+	} else {
+		n += 3
+	}
+	return n
+}
+
 func (m *UserCreatedAuditMetadata) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -3866,6 +4828,55 @@ func (m *GenericAuditMetadata) SizeVT() (n int) {
 	return n
 }
 
+func (m *RbacPrincipal) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Type)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Id)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RbacGrantRevocation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RevokedAtMs)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RbacGrantMutationAuditMetadata) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Action)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.GrantId)
+	if m.Principal != nil {
+		l = m.Principal.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RoleId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Scope)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ResourceId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResultingVersion)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExpiresAtMs)
+	if m.Revocation != nil {
+		l = m.Revocation.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Outcome)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *AuditEvent) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -3903,6 +4914,14 @@ func (m *ListAuditEventsResponse) SizeVT() (n int) {
 	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x RbacGrantMutationAction) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x RbacGrantMutationOutcome) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x *AuditEventMetadata) MarshalProtoText() string {
@@ -3987,6 +5006,13 @@ func (x *AuditEventMetadata) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, &GenericAuditMetadata{})
 		} else {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Generic)
+		}
+	case *AuditEventMetadata_RbacGrantMutation:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "rbac_grant_mutation")
+		if body.RbacGrantMutation == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &RbacGrantMutationAuditMetadata{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.RbacGrantMutation)
 		}
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
@@ -4235,6 +5261,88 @@ func (x *GenericAuditMetadata) MarshalProtoText() string {
 }
 
 func (x *GenericAuditMetadata) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RbacPrincipal) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RbacPrincipal")
+	if x.Type != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "type")
+		protobuf_go_lite.TextWriteString(&sb, x.Type)
+	}
+	if x.Id != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "id")
+		protobuf_go_lite.TextWriteString(&sb, x.Id)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RbacPrincipal) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RbacGrantRevocation) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RbacGrantRevocation")
+	if x.RevokedAtMs != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "revoked_at_ms")
+		protobuf_go_lite.TextWriteInt(&sb, x.RevokedAtMs)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RbacGrantRevocation) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RbacGrantMutationAuditMetadata) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RbacGrantMutationAuditMetadata")
+	if x.Action != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "action")
+		protobuf_go_lite.TextWriteStringer(&sb, RbacGrantMutationAction(x.Action))
+	}
+	if x.GrantId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "grant_id")
+		protobuf_go_lite.TextWriteString(&sb, x.GrantId)
+	}
+	if x.Principal != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "principal")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Principal)
+	}
+	if x.RoleId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "role_id")
+		protobuf_go_lite.TextWriteString(&sb, x.RoleId)
+	}
+	if x.Scope != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "scope")
+		protobuf_go_lite.TextWriteString(&sb, x.Scope)
+	}
+	if x.ResourceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resource_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ResourceId)
+	}
+	if x.ResultingVersion != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resulting_version")
+		protobuf_go_lite.TextWriteUint(&sb, x.ResultingVersion)
+	}
+	if x.ExpiresAtMs != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expires_at_ms")
+		protobuf_go_lite.TextWriteInt(&sb, x.ExpiresAtMs)
+	}
+	if x.Revocation != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "revocation")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Revocation)
+	}
+	if x.Outcome != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "outcome")
+		protobuf_go_lite.TextWriteStringer(&sb, RbacGrantMutationOutcome(x.Outcome))
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RbacGrantMutationAuditMetadata) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -4556,6 +5664,26 @@ func (m *AuditEventMetadata) UnmarshalVT(dAtA []byte) error {
 					return err
 				}
 				m.Body = &AuditEventMetadata_Generic{Generic: v}
+			}
+			iNdEx = postIndex
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RbacGrantMutation", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*AuditEventMetadata_RbacGrantMutation); ok {
+				if err := oneof.RbacGrantMutation.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &RbacGrantMutationAuditMetadata{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &AuditEventMetadata_RbacGrantMutation{RbacGrantMutation: v}
 			}
 			iNdEx = postIndex
 		default:
@@ -5324,6 +6452,274 @@ func (m *GenericAuditMetadata) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Summary = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RbacPrincipal) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RbacPrincipal: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RbacPrincipal: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Type = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Id = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RbacGrantRevocation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RbacGrantRevocation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RbacGrantRevocation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RevokedAtMs", wireType)
+			}
+			m.RevokedAtMs = 0
+			m.RevokedAtMs, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RbacGrantMutationAuditMetadata) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RbacGrantMutationAuditMetadata: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RbacGrantMutationAuditMetadata: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Action", wireType)
+			}
+			m.Action = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Action = RbacGrantMutationAction(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GrantId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.GrantId = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Principal", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Principal == nil {
+				m.Principal = &RbacPrincipal{}
+			}
+			if err := m.Principal.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RoleId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RoleId = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Scope", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Scope = v
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ResourceId = v
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResultingVersion", wireType)
+			}
+			m.ResultingVersion = 0
+			m.ResultingVersion, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAtMs", wireType)
+			}
+			m.ExpiresAtMs = 0
+			m.ExpiresAtMs, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Revocation", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Revocation == nil {
+				m.Revocation = &RbacGrantRevocation{}
+			}
+			if err := m.Revocation.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outcome", wireType)
+			}
+			m.Outcome = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Outcome = RbacGrantMutationOutcome(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -18,7 +18,7 @@ pub struct AuditEventMetadata {
     #[prost(string, tag="4")]
     pub authorized_by: ::prost::alloc::string::String,
     /// Body is the per-action metadata payload.
-    #[prost(oneof="audit_event_metadata::Body", tags="10, 11, 12, 13, 14, 15, 16, 17, 18")]
+    #[prost(oneof="audit_event_metadata::Body", tags="10, 11, 12, 13, 14, 15, 16, 17, 18, 19")]
     pub body: ::core::option::Option<audit_event_metadata::Body>,
 }
 /// Nested message and enum types in `AuditEventMetadata`.
@@ -53,6 +53,9 @@ pub mod audit_event_metadata {
         /// Generic is metadata for actions that only need a small summary.
         #[prost(message, tag="18")]
         Generic(super::GenericAuditMetadata),
+        /// RbacGrantMutation is metadata for typed RBAC grant mutations.
+        #[prost(message, tag="19")]
+        RbacGrantMutation(super::RbacGrantMutationAuditMetadata),
     }
 }
 /// UserCreatedAuditMetadata describes a new-account creation action.
@@ -205,6 +208,57 @@ pub struct GenericAuditMetadata {
     #[prost(string, tag="1")]
     pub summary: ::prost::alloc::string::String,
 }
+/// RbacPrincipal identifies a typed RBAC grant principal.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RbacPrincipal {
+    /// Type identifies the principal kind.
+    #[prost(string, tag="1")]
+    pub r#type: ::prost::alloc::string::String,
+    /// Id identifies the principal.
+    #[prost(string, tag="2")]
+    pub id: ::prost::alloc::string::String,
+}
+/// RbacGrantRevocation describes a grant revocation tombstone.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RbacGrantRevocation {
+    /// RevokedAtMs is when the grant was revoked in epoch milliseconds.
+    #[prost(int64, tag="1")]
+    pub revoked_at_ms: i64,
+}
+/// RbacGrantMutationAuditMetadata describes one typed RBAC grant mutation.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RbacGrantMutationAuditMetadata {
+    /// Action identifies the grant mutation kind.
+    #[prost(enumeration="RbacGrantMutationAction", tag="1")]
+    pub action: i32,
+    /// GrantId identifies the affected grant.
+    #[prost(string, tag="2")]
+    pub grant_id: ::prost::alloc::string::String,
+    /// Principal identifies the typed grant principal.
+    #[prost(message, optional, tag="3")]
+    pub principal: ::core::option::Option<RbacPrincipal>,
+    /// RoleId identifies the resulting role.
+    #[prost(string, tag="4")]
+    pub role_id: ::prost::alloc::string::String,
+    /// Scope identifies the authority scope.
+    #[prost(string, tag="5")]
+    pub scope: ::prost::alloc::string::String,
+    /// ResourceId identifies the scoped resource.
+    #[prost(string, tag="6")]
+    pub resource_id: ::prost::alloc::string::String,
+    /// ResultingVersion is the grant version after the mutation.
+    #[prost(uint64, tag="7")]
+    pub resulting_version: u64,
+    /// ExpiresAtMs is the grant expiry in epoch milliseconds when present.
+    #[prost(int64, tag="8")]
+    pub expires_at_ms: i64,
+    /// Revocation is present when the grant has a revocation tombstone.
+    #[prost(message, optional, tag="9")]
+    pub revocation: ::core::option::Option<RbacGrantRevocation>,
+    /// Outcome identifies whether the mutation committed.
+    #[prost(enumeration="RbacGrantMutationOutcome", tag="10")]
+    pub outcome: i32,
+}
 /// AuditEvent is one decoded admin-visible audit row.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AuditEvent {
@@ -251,6 +305,89 @@ pub struct ListAuditEventsResponse {
     /// Events is the returned audit event page.
     #[prost(message, repeated, tag="1")]
     pub events: ::prost::alloc::vec::Vec<AuditEvent>,
+}
+/// RbacGrantMutationAction identifies the RBAC grant mutation represented by
+/// typed audit metadata.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum RbacGrantMutationAction {
+    /// RBAC_GRANT_MUTATION_ACTION_UNSPECIFIED is the zero value.
+    Unspecified = 0,
+    /// RBAC_GRANT_MUTATION_ACTION_GRANT_ISSUED identifies a new grant.
+    GrantIssued = 1,
+    /// RBAC_GRANT_MUTATION_ACTION_GRANT_UPDATED identifies a grant update.
+    GrantUpdated = 2,
+    /// RBAC_GRANT_MUTATION_ACTION_GRANT_REVOKED identifies a grant revocation.
+    GrantRevoked = 3,
+    /// RBAC_GRANT_MUTATION_ACTION_GRANT_EXPIRED_ON_USE identifies read-time expiry.
+    GrantExpiredOnUse = 4,
+    /// RBAC_GRANT_MUTATION_ACTION_ROLE_CHANGED identifies a role change.
+    RoleChanged = 5,
+}
+impl RbacGrantMutationAction {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "RBAC_GRANT_MUTATION_ACTION_UNSPECIFIED",
+            Self::GrantIssued => "RBAC_GRANT_MUTATION_ACTION_GRANT_ISSUED",
+            Self::GrantUpdated => "RBAC_GRANT_MUTATION_ACTION_GRANT_UPDATED",
+            Self::GrantRevoked => "RBAC_GRANT_MUTATION_ACTION_GRANT_REVOKED",
+            Self::GrantExpiredOnUse => "RBAC_GRANT_MUTATION_ACTION_GRANT_EXPIRED_ON_USE",
+            Self::RoleChanged => "RBAC_GRANT_MUTATION_ACTION_ROLE_CHANGED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "RBAC_GRANT_MUTATION_ACTION_UNSPECIFIED" => Some(Self::Unspecified),
+            "RBAC_GRANT_MUTATION_ACTION_GRANT_ISSUED" => Some(Self::GrantIssued),
+            "RBAC_GRANT_MUTATION_ACTION_GRANT_UPDATED" => Some(Self::GrantUpdated),
+            "RBAC_GRANT_MUTATION_ACTION_GRANT_REVOKED" => Some(Self::GrantRevoked),
+            "RBAC_GRANT_MUTATION_ACTION_GRANT_EXPIRED_ON_USE" => Some(Self::GrantExpiredOnUse),
+            "RBAC_GRANT_MUTATION_ACTION_ROLE_CHANGED" => Some(Self::RoleChanged),
+            _ => None,
+        }
+    }
+}
+/// RbacGrantMutationOutcome identifies the result of an RBAC grant mutation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum RbacGrantMutationOutcome {
+    /// RBAC_GRANT_MUTATION_OUTCOME_UNSPECIFIED is the zero value.
+    Unspecified = 0,
+    /// RBAC_GRANT_MUTATION_OUTCOME_SUCCESS identifies a committed mutation.
+    Success = 1,
+    /// RBAC_GRANT_MUTATION_OUTCOME_DENIED identifies a rejected mutation.
+    Denied = 2,
+    /// RBAC_GRANT_MUTATION_OUTCOME_FAILED identifies an unsuccessful mutation.
+    Failed = 3,
+}
+impl RbacGrantMutationOutcome {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "RBAC_GRANT_MUTATION_OUTCOME_UNSPECIFIED",
+            Self::Success => "RBAC_GRANT_MUTATION_OUTCOME_SUCCESS",
+            Self::Denied => "RBAC_GRANT_MUTATION_OUTCOME_DENIED",
+            Self::Failed => "RBAC_GRANT_MUTATION_OUTCOME_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "RBAC_GRANT_MUTATION_OUTCOME_UNSPECIFIED" => Some(Self::Unspecified),
+            "RBAC_GRANT_MUTATION_OUTCOME_SUCCESS" => Some(Self::Success),
+            "RBAC_GRANT_MUTATION_OUTCOME_DENIED" => Some(Self::Denied),
+            "RBAC_GRANT_MUTATION_OUTCOME_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
 }
 /// Config configures the Spacewave cloud provider controller.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

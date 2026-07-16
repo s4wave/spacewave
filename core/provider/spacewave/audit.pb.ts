@@ -2,12 +2,120 @@
 // @generated from file github.com/s4wave/spacewave/core/provider/spacewave/audit.proto (package provider.spacewave, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'provider.spacewave'
+
+/**
+ * RbacGrantMutationAction identifies the RBAC grant mutation represented by
+ * typed audit metadata.
+ *
+ * @generated from enum provider.spacewave.RbacGrantMutationAction
+ */
+export enum RbacGrantMutationAction {
+  /**
+   * RBAC_GRANT_MUTATION_ACTION_UNSPECIFIED is the zero value.
+   *
+   * @generated from enum value: RBAC_GRANT_MUTATION_ACTION_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * RBAC_GRANT_MUTATION_ACTION_GRANT_ISSUED identifies a new grant.
+   *
+   * @generated from enum value: RBAC_GRANT_MUTATION_ACTION_GRANT_ISSUED = 1;
+   */
+  GRANT_ISSUED = 1,
+
+  /**
+   * RBAC_GRANT_MUTATION_ACTION_GRANT_UPDATED identifies a grant update.
+   *
+   * @generated from enum value: RBAC_GRANT_MUTATION_ACTION_GRANT_UPDATED = 2;
+   */
+  GRANT_UPDATED = 2,
+
+  /**
+   * RBAC_GRANT_MUTATION_ACTION_GRANT_REVOKED identifies a grant revocation.
+   *
+   * @generated from enum value: RBAC_GRANT_MUTATION_ACTION_GRANT_REVOKED = 3;
+   */
+  GRANT_REVOKED = 3,
+
+  /**
+   * RBAC_GRANT_MUTATION_ACTION_GRANT_EXPIRED_ON_USE identifies read-time expiry.
+   *
+   * @generated from enum value: RBAC_GRANT_MUTATION_ACTION_GRANT_EXPIRED_ON_USE = 4;
+   */
+  GRANT_EXPIRED_ON_USE = 4,
+
+  /**
+   * RBAC_GRANT_MUTATION_ACTION_ROLE_CHANGED identifies a role change.
+   *
+   * @generated from enum value: RBAC_GRANT_MUTATION_ACTION_ROLE_CHANGED = 5;
+   */
+  ROLE_CHANGED = 5,
+}
+
+export const RbacGrantMutationAction_Enum = /* @__PURE__ */ createEnumType(
+  'provider.spacewave.RbacGrantMutationAction',
+  [
+    [0, 'RBAC_GRANT_MUTATION_ACTION_UNSPECIFIED'],
+    [1, 'RBAC_GRANT_MUTATION_ACTION_GRANT_ISSUED'],
+    [2, 'RBAC_GRANT_MUTATION_ACTION_GRANT_UPDATED'],
+    [3, 'RBAC_GRANT_MUTATION_ACTION_GRANT_REVOKED'],
+    [4, 'RBAC_GRANT_MUTATION_ACTION_GRANT_EXPIRED_ON_USE'],
+    [5, 'RBAC_GRANT_MUTATION_ACTION_ROLE_CHANGED'],
+  ],
+)
+
+/**
+ * RbacGrantMutationOutcome identifies the result of an RBAC grant mutation.
+ *
+ * @generated from enum provider.spacewave.RbacGrantMutationOutcome
+ */
+export enum RbacGrantMutationOutcome {
+  /**
+   * RBAC_GRANT_MUTATION_OUTCOME_UNSPECIFIED is the zero value.
+   *
+   * @generated from enum value: RBAC_GRANT_MUTATION_OUTCOME_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * RBAC_GRANT_MUTATION_OUTCOME_SUCCESS identifies a committed mutation.
+   *
+   * @generated from enum value: RBAC_GRANT_MUTATION_OUTCOME_SUCCESS = 1;
+   */
+  SUCCESS = 1,
+
+  /**
+   * RBAC_GRANT_MUTATION_OUTCOME_DENIED identifies a rejected mutation.
+   *
+   * @generated from enum value: RBAC_GRANT_MUTATION_OUTCOME_DENIED = 2;
+   */
+  DENIED = 2,
+
+  /**
+   * RBAC_GRANT_MUTATION_OUTCOME_FAILED identifies an unsuccessful mutation.
+   *
+   * @generated from enum value: RBAC_GRANT_MUTATION_OUTCOME_FAILED = 3;
+   */
+  FAILED = 3,
+}
+
+export const RbacGrantMutationOutcome_Enum = /* @__PURE__ */ createEnumType(
+  'provider.spacewave.RbacGrantMutationOutcome',
+  [
+    [0, 'RBAC_GRANT_MUTATION_OUTCOME_UNSPECIFIED'],
+    [1, 'RBAC_GRANT_MUTATION_OUTCOME_SUCCESS'],
+    [2, 'RBAC_GRANT_MUTATION_OUTCOME_DENIED'],
+    [3, 'RBAC_GRANT_MUTATION_OUTCOME_FAILED'],
+  ],
+)
 
 /**
  * UserCreatedAuditMetadata describes a new-account creation action.
@@ -460,6 +568,160 @@ export const GenericAuditMetadata: MessageType<GenericAuditMetadata> =
   })
 
 /**
+ * RbacPrincipal identifies a typed RBAC grant principal.
+ *
+ * @generated from message provider.spacewave.RbacPrincipal
+ */
+export interface RbacPrincipal {
+  /**
+   * Type identifies the principal kind.
+   *
+   * @generated from field: string type = 1;
+   */
+  type?: string
+  /**
+   * Id identifies the principal.
+   *
+   * @generated from field: string id = 2;
+   */
+  id?: string
+}
+
+export const RbacPrincipal: MessageType<RbacPrincipal> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.RbacPrincipal',
+    fields: [
+      { no: 1, name: 'type', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RbacGrantRevocation describes a grant revocation tombstone.
+ *
+ * @generated from message provider.spacewave.RbacGrantRevocation
+ */
+export interface RbacGrantRevocation {
+  /**
+   * RevokedAtMs is when the grant was revoked in epoch milliseconds.
+   *
+   * @generated from field: int64 revoked_at_ms = 1;
+   */
+  revokedAtMs?: bigint
+}
+
+export const RbacGrantRevocation: MessageType<RbacGrantRevocation> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.RbacGrantRevocation',
+    fields: [
+      { no: 1, name: 'revoked_at_ms', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RbacGrantMutationAuditMetadata describes one typed RBAC grant mutation.
+ *
+ * @generated from message provider.spacewave.RbacGrantMutationAuditMetadata
+ */
+export interface RbacGrantMutationAuditMetadata {
+  /**
+   * Action identifies the grant mutation kind.
+   *
+   * @generated from field: provider.spacewave.RbacGrantMutationAction action = 1;
+   */
+  action?: RbacGrantMutationAction
+  /**
+   * GrantId identifies the affected grant.
+   *
+   * @generated from field: string grant_id = 2;
+   */
+  grantId?: string
+  /**
+   * Principal identifies the typed grant principal.
+   *
+   * @generated from field: provider.spacewave.RbacPrincipal principal = 3;
+   */
+  principal?: RbacPrincipal
+  /**
+   * RoleId identifies the resulting role.
+   *
+   * @generated from field: string role_id = 4;
+   */
+  roleId?: string
+  /**
+   * Scope identifies the authority scope.
+   *
+   * @generated from field: string scope = 5;
+   */
+  scope?: string
+  /**
+   * ResourceId identifies the scoped resource.
+   *
+   * @generated from field: string resource_id = 6;
+   */
+  resourceId?: string
+  /**
+   * ResultingVersion is the grant version after the mutation.
+   *
+   * @generated from field: uint64 resulting_version = 7;
+   */
+  resultingVersion?: bigint
+  /**
+   * ExpiresAtMs is the grant expiry in epoch milliseconds when present.
+   *
+   * @generated from field: int64 expires_at_ms = 8;
+   */
+  expiresAtMs?: bigint
+  /**
+   * Revocation is present when the grant has a revocation tombstone.
+   *
+   * @generated from field: provider.spacewave.RbacGrantRevocation revocation = 9;
+   */
+  revocation?: RbacGrantRevocation
+  /**
+   * Outcome identifies whether the mutation committed.
+   *
+   * @generated from field: provider.spacewave.RbacGrantMutationOutcome outcome = 10;
+   */
+  outcome?: RbacGrantMutationOutcome
+}
+
+export const RbacGrantMutationAuditMetadata: MessageType<RbacGrantMutationAuditMetadata> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.RbacGrantMutationAuditMetadata',
+    fields: [
+      { no: 1, name: 'action', kind: 'enum', T: RbacGrantMutationAction_Enum },
+      { no: 2, name: 'grant_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'principal', kind: 'message', T: () => RbacPrincipal },
+      { no: 4, name: 'role_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'scope', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'resource_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 7,
+        name: 'resulting_version',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      { no: 8, name: 'expires_at_ms', kind: 'scalar', T: ScalarType.INT64 },
+      {
+        no: 9,
+        name: 'revocation',
+        kind: 'message',
+        T: () => RbacGrantRevocation,
+      },
+      {
+        no: 10,
+        name: 'outcome',
+        kind: 'enum',
+        T: RbacGrantMutationOutcome_Enum,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * AuditEventMetadata is the typed metadata wrapper serialized into the
  * spacewave-cloud audit_events.metadata_json column as protoJson.
  *
@@ -583,6 +845,15 @@ export interface AuditEventMetadata {
         value: GenericAuditMetadata
         case: 'generic'
       }
+    | {
+        /**
+         * RbacGrantMutation is metadata for typed RBAC grant mutations.
+         *
+         * @generated from field: provider.spacewave.RbacGrantMutationAuditMetadata rbac_grant_mutation = 19;
+         */
+        value: RbacGrantMutationAuditMetadata
+        case: 'rbacGrantMutation'
+      }
 }
 
 export const AuditEventMetadata: MessageType<AuditEventMetadata> =
@@ -654,6 +925,13 @@ export const AuditEventMetadata: MessageType<AuditEventMetadata> =
         name: 'generic',
         kind: 'message',
         T: () => GenericAuditMetadata,
+        oneof: 'body',
+      },
+      {
+        no: 19,
+        name: 'rbac_grant_mutation',
+        kind: 'message',
+        T: () => RbacGrantMutationAuditMetadata,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],

@@ -5480,6 +5480,366 @@ func (x *PackMetadataRepairResponse) GetDryRun() bool {
 	return false
 }
 
+// RbacGrantLifecycleQuery identifies the grant lifecycle to read back.
+type RbacGrantLifecycleQuery struct {
+	unknownFields []byte
+	// GrantId identifies the grant.
+	GrantId string `protobuf:"bytes,1,opt,name=grant_id,json=grantId,proto3" json:"grantId,omitempty"`
+}
+
+func (x *RbacGrantLifecycleQuery) Reset() {
+	*x = RbacGrantLifecycleQuery{}
+}
+
+func (*RbacGrantLifecycleQuery) ProtoMessage() {}
+
+func (x *RbacGrantLifecycleQuery) GetGrantId() string {
+	if x != nil {
+		return x.GrantId
+	}
+	return ""
+}
+
+// RbacGrantPrincipal identifies a typed grant principal in admin readback.
+type RbacGrantPrincipal struct {
+	unknownFields []byte
+	// Type identifies the principal kind.
+	Type string `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	// Id identifies the principal.
+	Id string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+}
+
+func (x *RbacGrantPrincipal) Reset() {
+	*x = RbacGrantPrincipal{}
+}
+
+func (*RbacGrantPrincipal) ProtoMessage() {}
+
+func (x *RbacGrantPrincipal) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *RbacGrantPrincipal) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+// RbacGrantRevocation describes a grant revocation tombstone in readback.
+type RbacGrantRevocation struct {
+	unknownFields []byte
+	// RevokedAtMs is when the grant was revoked in epoch milliseconds.
+	RevokedAtMs int64 `protobuf:"varint,1,opt,name=revoked_at_ms,json=revokedAtMs,proto3" json:"revokedAtMs,omitempty"`
+}
+
+func (x *RbacGrantRevocation) Reset() {
+	*x = RbacGrantRevocation{}
+}
+
+func (*RbacGrantRevocation) ProtoMessage() {}
+
+func (x *RbacGrantRevocation) GetRevokedAtMs() int64 {
+	if x != nil {
+		return x.RevokedAtMs
+	}
+	return 0
+}
+
+// RbacLastMutation is the latest typed mutation summary for a grant.
+type RbacLastMutation struct {
+	unknownFields []byte
+	// EventId identifies the audit event.
+	EventId string `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"eventId,omitempty"`
+	// Action is the normalized mutation action.
+	Action string `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`
+	// Outcome is the normalized mutation outcome.
+	Outcome string `protobuf:"bytes,3,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	// ResultingVersion is the grant version after the mutation.
+	ResultingVersion uint64 `protobuf:"varint,4,opt,name=resulting_version,json=resultingVersion,proto3" json:"resultingVersion,omitempty"`
+	// CreatedAtMs is when the event was created in epoch milliseconds.
+	CreatedAtMs int64 `protobuf:"varint,5,opt,name=created_at_ms,json=createdAtMs,proto3" json:"createdAtMs,omitempty"`
+}
+
+func (x *RbacLastMutation) Reset() {
+	*x = RbacLastMutation{}
+}
+
+func (*RbacLastMutation) ProtoMessage() {}
+
+func (x *RbacLastMutation) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *RbacLastMutation) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *RbacLastMutation) GetOutcome() string {
+	if x != nil {
+		return x.Outcome
+	}
+	return ""
+}
+
+func (x *RbacLastMutation) GetResultingVersion() uint64 {
+	if x != nil {
+		return x.ResultingVersion
+	}
+	return 0
+}
+
+func (x *RbacLastMutation) GetCreatedAtMs() int64 {
+	if x != nil {
+		return x.CreatedAtMs
+	}
+	return 0
+}
+
+// RbacCapabilityFlagQuery identifies the persisted capability flag to read.
+type RbacCapabilityFlagQuery struct {
+	unknownFields []byte
+	// Environment identifies the persisted flag environment.
+	Environment string `protobuf:"bytes,1,opt,name=environment,proto3" json:"environment,omitempty"`
+	// Capability identifies the persisted runtime capability.
+	Capability string `protobuf:"bytes,2,opt,name=capability,proto3" json:"capability,omitempty"`
+}
+
+func (x *RbacCapabilityFlagQuery) Reset() {
+	*x = RbacCapabilityFlagQuery{}
+}
+
+func (*RbacCapabilityFlagQuery) ProtoMessage() {}
+
+func (x *RbacCapabilityFlagQuery) GetEnvironment() string {
+	if x != nil {
+		return x.Environment
+	}
+	return ""
+}
+
+func (x *RbacCapabilityFlagQuery) GetCapability() string {
+	if x != nil {
+		return x.Capability
+	}
+	return ""
+}
+
+// RbacGrantLifecycle is a redacted, non-authoritative grant projection.
+type RbacGrantLifecycle struct {
+	unknownFields []byte
+	// GrantId identifies the grant.
+	GrantId string `protobuf:"bytes,1,opt,name=grant_id,json=grantId,proto3" json:"grantId,omitempty"`
+	// Principal identifies the typed grant principal.
+	Principal *RbacGrantPrincipal `protobuf:"bytes,2,opt,name=principal,proto3" json:"principal,omitempty"`
+	// RoleId identifies the resulting role.
+	RoleId string `protobuf:"bytes,3,opt,name=role_id,json=roleId,proto3" json:"roleId,omitempty"`
+	// Scope identifies the authority scope.
+	Scope string `protobuf:"bytes,4,opt,name=scope,proto3" json:"scope,omitempty"`
+	// ResourceId identifies the scoped resource.
+	ResourceId string `protobuf:"bytes,5,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
+	// Version is the current grant version.
+	Version uint64 `protobuf:"varint,6,opt,name=version,proto3" json:"version,omitempty"`
+	// ExpiresAtMs is the grant expiry in epoch milliseconds when present.
+	ExpiresAtMs int64 `protobuf:"varint,7,opt,name=expires_at_ms,json=expiresAtMs,proto3" json:"expiresAtMs,omitempty"`
+	// Revocation is present when the grant has a revocation tombstone.
+	Revocation *RbacGrantRevocation `protobuf:"bytes,8,opt,name=revocation,proto3" json:"revocation,omitempty"`
+	// LastMutation is the latest mutation summary when present.
+	LastMutation *RbacLastMutation `protobuf:"bytes,9,opt,name=last_mutation,json=lastMutation,proto3" json:"lastMutation,omitempty"`
+}
+
+func (x *RbacGrantLifecycle) Reset() {
+	*x = RbacGrantLifecycle{}
+}
+
+func (*RbacGrantLifecycle) ProtoMessage() {}
+
+func (x *RbacGrantLifecycle) GetGrantId() string {
+	if x != nil {
+		return x.GrantId
+	}
+	return ""
+}
+
+func (x *RbacGrantLifecycle) GetPrincipal() *RbacGrantPrincipal {
+	if x != nil {
+		return x.Principal
+	}
+	return nil
+}
+
+func (x *RbacGrantLifecycle) GetRoleId() string {
+	if x != nil {
+		return x.RoleId
+	}
+	return ""
+}
+
+func (x *RbacGrantLifecycle) GetScope() string {
+	if x != nil {
+		return x.Scope
+	}
+	return ""
+}
+
+func (x *RbacGrantLifecycle) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
+func (x *RbacGrantLifecycle) GetVersion() uint64 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *RbacGrantLifecycle) GetExpiresAtMs() int64 {
+	if x != nil {
+		return x.ExpiresAtMs
+	}
+	return 0
+}
+
+func (x *RbacGrantLifecycle) GetRevocation() *RbacGrantRevocation {
+	if x != nil {
+		return x.Revocation
+	}
+	return nil
+}
+
+func (x *RbacGrantLifecycle) GetLastMutation() *RbacLastMutation {
+	if x != nil {
+		return x.LastMutation
+	}
+	return nil
+}
+
+// RbacCapabilityFlagState is a persisted, non-authoritative flag projection.
+type RbacCapabilityFlagState struct {
+	unknownFields []byte
+	// Environment identifies the persisted flag environment.
+	Environment string `protobuf:"bytes,1,opt,name=environment,proto3" json:"environment,omitempty"`
+	// Capability identifies the persisted runtime capability.
+	Capability string `protobuf:"bytes,2,opt,name=capability,proto3" json:"capability,omitempty"`
+	// Enabled is the persisted capability state.
+	Enabled bool `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// UpdatedAtMs is when the persisted flag changed in epoch milliseconds.
+	UpdatedAtMs int64 `protobuf:"varint,4,opt,name=updated_at_ms,json=updatedAtMs,proto3" json:"updatedAtMs,omitempty"`
+	// UpdatedBy identifies the typed principal that last changed the flag.
+	UpdatedBy *RbacGrantPrincipal `protobuf:"bytes,5,opt,name=updated_by,json=updatedBy,proto3" json:"updatedBy,omitempty"`
+}
+
+func (x *RbacCapabilityFlagState) Reset() {
+	*x = RbacCapabilityFlagState{}
+}
+
+func (*RbacCapabilityFlagState) ProtoMessage() {}
+
+func (x *RbacCapabilityFlagState) GetEnvironment() string {
+	if x != nil {
+		return x.Environment
+	}
+	return ""
+}
+
+func (x *RbacCapabilityFlagState) GetCapability() string {
+	if x != nil {
+		return x.Capability
+	}
+	return ""
+}
+
+func (x *RbacCapabilityFlagState) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *RbacCapabilityFlagState) GetUpdatedAtMs() int64 {
+	if x != nil {
+		return x.UpdatedAtMs
+	}
+	return 0
+}
+
+func (x *RbacCapabilityFlagState) GetUpdatedBy() *RbacGrantPrincipal {
+	if x != nil {
+		return x.UpdatedBy
+	}
+	return nil
+}
+
+// RbacAdminReadbackRequest identifies the grant and flag state to read.
+type RbacAdminReadbackRequest struct {
+	unknownFields []byte
+	// Grant identifies the grant lifecycle query when present.
+	Grant *RbacGrantLifecycleQuery `protobuf:"bytes,1,opt,name=grant,proto3" json:"grant,omitempty"`
+	// CapabilityFlag identifies the persisted flag query when present.
+	CapabilityFlag *RbacCapabilityFlagQuery `protobuf:"bytes,2,opt,name=capability_flag,json=capabilityFlag,proto3" json:"capabilityFlag,omitempty"`
+}
+
+func (x *RbacAdminReadbackRequest) Reset() {
+	*x = RbacAdminReadbackRequest{}
+}
+
+func (*RbacAdminReadbackRequest) ProtoMessage() {}
+
+func (x *RbacAdminReadbackRequest) GetGrant() *RbacGrantLifecycleQuery {
+	if x != nil {
+		return x.Grant
+	}
+	return nil
+}
+
+func (x *RbacAdminReadbackRequest) GetCapabilityFlag() *RbacCapabilityFlagQuery {
+	if x != nil {
+		return x.CapabilityFlag
+	}
+	return nil
+}
+
+// RbacAdminReadbackResponse returns typed RBAC lifecycle, flag, and mutation state.
+type RbacAdminReadbackResponse struct {
+	unknownFields []byte
+	// Grant is absent when no grant exists for the requested lifecycle.
+	Grant *RbacGrantLifecycle `protobuf:"bytes,1,opt,name=grant,proto3" json:"grant,omitempty"`
+	// CapabilityFlag is the persisted capability flag projection.
+	CapabilityFlag *RbacCapabilityFlagState `protobuf:"bytes,2,opt,name=capability_flag,json=capabilityFlag,proto3" json:"capabilityFlag,omitempty"`
+}
+
+func (x *RbacAdminReadbackResponse) Reset() {
+	*x = RbacAdminReadbackResponse{}
+}
+
+func (*RbacAdminReadbackResponse) ProtoMessage() {}
+
+func (x *RbacAdminReadbackResponse) GetGrant() *RbacGrantLifecycle {
+	if x != nil {
+		return x.Grant
+	}
+	return nil
+}
+
+func (x *RbacAdminReadbackResponse) GetCapabilityFlag() *RbacCapabilityFlagState {
+	if x != nil {
+		return x.CapabilityFlag
+	}
+	return nil
+}
+
 // CreateBlockStoreResponse is the response body for POST /api/bstore/:id/create.
 type CreateBlockStoreResponse struct {
 	unknownFields []byte
@@ -11894,6 +12254,170 @@ func (m *PackMetadataRepairResponse) CloneMessageVT() protobuf_go_lite.CloneMess
 	return m.CloneVT()
 }
 
+func (m *RbacGrantLifecycleQuery) CloneVT() *RbacGrantLifecycleQuery {
+	if m == nil {
+		return (*RbacGrantLifecycleQuery)(nil)
+	}
+	r := new(RbacGrantLifecycleQuery)
+	r.GrantId = m.GrantId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RbacGrantLifecycleQuery) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RbacGrantPrincipal) CloneVT() *RbacGrantPrincipal {
+	if m == nil {
+		return (*RbacGrantPrincipal)(nil)
+	}
+	r := new(RbacGrantPrincipal)
+	r.Type = m.Type
+	r.Id = m.Id
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RbacGrantPrincipal) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RbacGrantRevocation) CloneVT() *RbacGrantRevocation {
+	if m == nil {
+		return (*RbacGrantRevocation)(nil)
+	}
+	r := new(RbacGrantRevocation)
+	r.RevokedAtMs = m.RevokedAtMs
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RbacGrantRevocation) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RbacLastMutation) CloneVT() *RbacLastMutation {
+	if m == nil {
+		return (*RbacLastMutation)(nil)
+	}
+	r := new(RbacLastMutation)
+	r.EventId = m.EventId
+	r.Action = m.Action
+	r.Outcome = m.Outcome
+	r.ResultingVersion = m.ResultingVersion
+	r.CreatedAtMs = m.CreatedAtMs
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RbacLastMutation) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RbacCapabilityFlagQuery) CloneVT() *RbacCapabilityFlagQuery {
+	if m == nil {
+		return (*RbacCapabilityFlagQuery)(nil)
+	}
+	r := new(RbacCapabilityFlagQuery)
+	r.Environment = m.Environment
+	r.Capability = m.Capability
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RbacCapabilityFlagQuery) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RbacGrantLifecycle) CloneVT() *RbacGrantLifecycle {
+	if m == nil {
+		return (*RbacGrantLifecycle)(nil)
+	}
+	r := new(RbacGrantLifecycle)
+	r.GrantId = m.GrantId
+	r.RoleId = m.RoleId
+	r.Scope = m.Scope
+	r.ResourceId = m.ResourceId
+	r.Version = m.Version
+	r.ExpiresAtMs = m.ExpiresAtMs
+	r.Principal = protobuf_go_lite.CloneVTValue(m.Principal)
+	r.Revocation = protobuf_go_lite.CloneVTValue(m.Revocation)
+	r.LastMutation = protobuf_go_lite.CloneVTValue(m.LastMutation)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RbacGrantLifecycle) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RbacCapabilityFlagState) CloneVT() *RbacCapabilityFlagState {
+	if m == nil {
+		return (*RbacCapabilityFlagState)(nil)
+	}
+	r := new(RbacCapabilityFlagState)
+	r.Environment = m.Environment
+	r.Capability = m.Capability
+	r.Enabled = m.Enabled
+	r.UpdatedAtMs = m.UpdatedAtMs
+	r.UpdatedBy = protobuf_go_lite.CloneVTValue(m.UpdatedBy)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RbacCapabilityFlagState) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RbacAdminReadbackRequest) CloneVT() *RbacAdminReadbackRequest {
+	if m == nil {
+		return (*RbacAdminReadbackRequest)(nil)
+	}
+	r := new(RbacAdminReadbackRequest)
+	r.Grant = protobuf_go_lite.CloneVTValue(m.Grant)
+	r.CapabilityFlag = protobuf_go_lite.CloneVTValue(m.CapabilityFlag)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RbacAdminReadbackRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RbacAdminReadbackResponse) CloneVT() *RbacAdminReadbackResponse {
+	if m == nil {
+		return (*RbacAdminReadbackResponse)(nil)
+	}
+	r := new(RbacAdminReadbackResponse)
+	r.Grant = protobuf_go_lite.CloneVTValue(m.Grant)
+	r.CapabilityFlag = protobuf_go_lite.CloneVTValue(m.CapabilityFlag)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RbacAdminReadbackResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *CreateBlockStoreResponse) CloneVT() *CreateBlockStoreResponse {
 	if m == nil {
 		return (*CreateBlockStoreResponse)(nil)
@@ -17766,6 +18290,246 @@ func (this *PackMetadataRepairResponse) EqualVT(that *PackMetadataRepairResponse
 
 func (this *PackMetadataRepairResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*PackMetadataRepairResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RbacGrantLifecycleQuery) EqualVT(that *RbacGrantLifecycleQuery) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.GrantId != that.GrantId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RbacGrantLifecycleQuery) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RbacGrantLifecycleQuery)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RbacGrantPrincipal) EqualVT(that *RbacGrantPrincipal) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Type != that.Type {
+		return false
+	}
+	if this.Id != that.Id {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RbacGrantPrincipal) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RbacGrantPrincipal)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RbacGrantRevocation) EqualVT(that *RbacGrantRevocation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.RevokedAtMs != that.RevokedAtMs {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RbacGrantRevocation) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RbacGrantRevocation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RbacLastMutation) EqualVT(that *RbacLastMutation) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.EventId != that.EventId {
+		return false
+	}
+	if this.Action != that.Action {
+		return false
+	}
+	if this.Outcome != that.Outcome {
+		return false
+	}
+	if this.ResultingVersion != that.ResultingVersion {
+		return false
+	}
+	if this.CreatedAtMs != that.CreatedAtMs {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RbacLastMutation) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RbacLastMutation)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RbacCapabilityFlagQuery) EqualVT(that *RbacCapabilityFlagQuery) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Environment != that.Environment {
+		return false
+	}
+	if this.Capability != that.Capability {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RbacCapabilityFlagQuery) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RbacCapabilityFlagQuery)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RbacGrantLifecycle) EqualVT(that *RbacGrantLifecycle) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.GrantId != that.GrantId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Principal, that.Principal) {
+		return false
+	}
+	if this.RoleId != that.RoleId {
+		return false
+	}
+	if this.Scope != that.Scope {
+		return false
+	}
+	if this.ResourceId != that.ResourceId {
+		return false
+	}
+	if this.Version != that.Version {
+		return false
+	}
+	if this.ExpiresAtMs != that.ExpiresAtMs {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Revocation, that.Revocation) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.LastMutation, that.LastMutation) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RbacGrantLifecycle) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RbacGrantLifecycle)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RbacCapabilityFlagState) EqualVT(that *RbacCapabilityFlagState) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Environment != that.Environment {
+		return false
+	}
+	if this.Capability != that.Capability {
+		return false
+	}
+	if this.Enabled != that.Enabled {
+		return false
+	}
+	if this.UpdatedAtMs != that.UpdatedAtMs {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.UpdatedBy, that.UpdatedBy) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RbacCapabilityFlagState) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RbacCapabilityFlagState)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RbacAdminReadbackRequest) EqualVT(that *RbacAdminReadbackRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Grant, that.Grant) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.CapabilityFlag, that.CapabilityFlag) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RbacAdminReadbackRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RbacAdminReadbackRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RbacAdminReadbackResponse) EqualVT(that *RbacAdminReadbackResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Grant, that.Grant) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.CapabilityFlag, that.CapabilityFlag) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RbacAdminReadbackResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RbacAdminReadbackResponse)
 	if !ok {
 		return false
 	}
@@ -29132,6 +29896,576 @@ func (x *PackMetadataRepairResponse) UnmarshalProtoJSON(s *json.UnmarshalState) 
 
 // UnmarshalJSON unmarshals the PackMetadataRepairResponse from JSON.
 func (x *PackMetadataRepairResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RbacGrantLifecycleQuery message to JSON.
+func (x *RbacGrantLifecycleQuery) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.GrantId != "" || s.HasField("grantId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("grantId")
+		s.WriteString(x.GrantId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RbacGrantLifecycleQuery to JSON.
+func (x *RbacGrantLifecycleQuery) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RbacGrantLifecycleQuery message from JSON.
+func (x *RbacGrantLifecycleQuery) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "grant_id", "grantId":
+			s.AddField("grant_id")
+			x.GrantId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RbacGrantLifecycleQuery from JSON.
+func (x *RbacGrantLifecycleQuery) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RbacGrantPrincipal message to JSON.
+func (x *RbacGrantPrincipal) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Type != "" || s.HasField("type") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("type")
+		s.WriteString(x.Type)
+	}
+	if x.Id != "" || s.HasField("id") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("id")
+		s.WriteString(x.Id)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RbacGrantPrincipal to JSON.
+func (x *RbacGrantPrincipal) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RbacGrantPrincipal message from JSON.
+func (x *RbacGrantPrincipal) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "type":
+			s.AddField("type")
+			x.Type = s.ReadString()
+		case "id":
+			s.AddField("id")
+			x.Id = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RbacGrantPrincipal from JSON.
+func (x *RbacGrantPrincipal) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RbacGrantRevocation message to JSON.
+func (x *RbacGrantRevocation) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.RevokedAtMs != 0 || s.HasField("revokedAtMs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("revokedAtMs")
+		s.WriteInt64(x.RevokedAtMs)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RbacGrantRevocation to JSON.
+func (x *RbacGrantRevocation) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RbacGrantRevocation message from JSON.
+func (x *RbacGrantRevocation) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "revoked_at_ms", "revokedAtMs":
+			s.AddField("revoked_at_ms")
+			x.RevokedAtMs = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RbacGrantRevocation from JSON.
+func (x *RbacGrantRevocation) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RbacLastMutation message to JSON.
+func (x *RbacLastMutation) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.EventId != "" || s.HasField("eventId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("eventId")
+		s.WriteString(x.EventId)
+	}
+	if x.Action != "" || s.HasField("action") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("action")
+		s.WriteString(x.Action)
+	}
+	if x.Outcome != "" || s.HasField("outcome") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outcome")
+		s.WriteString(x.Outcome)
+	}
+	if x.ResultingVersion != 0 || s.HasField("resultingVersion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resultingVersion")
+		s.WriteUint64(x.ResultingVersion)
+	}
+	if x.CreatedAtMs != 0 || s.HasField("createdAtMs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("createdAtMs")
+		s.WriteInt64(x.CreatedAtMs)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RbacLastMutation to JSON.
+func (x *RbacLastMutation) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RbacLastMutation message from JSON.
+func (x *RbacLastMutation) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "event_id", "eventId":
+			s.AddField("event_id")
+			x.EventId = s.ReadString()
+		case "action":
+			s.AddField("action")
+			x.Action = s.ReadString()
+		case "outcome":
+			s.AddField("outcome")
+			x.Outcome = s.ReadString()
+		case "resulting_version", "resultingVersion":
+			s.AddField("resulting_version")
+			x.ResultingVersion = s.ReadUint64()
+		case "created_at_ms", "createdAtMs":
+			s.AddField("created_at_ms")
+			x.CreatedAtMs = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RbacLastMutation from JSON.
+func (x *RbacLastMutation) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RbacCapabilityFlagQuery message to JSON.
+func (x *RbacCapabilityFlagQuery) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Environment != "" || s.HasField("environment") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("environment")
+		s.WriteString(x.Environment)
+	}
+	if x.Capability != "" || s.HasField("capability") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("capability")
+		s.WriteString(x.Capability)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RbacCapabilityFlagQuery to JSON.
+func (x *RbacCapabilityFlagQuery) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RbacCapabilityFlagQuery message from JSON.
+func (x *RbacCapabilityFlagQuery) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "environment":
+			s.AddField("environment")
+			x.Environment = s.ReadString()
+		case "capability":
+			s.AddField("capability")
+			x.Capability = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RbacCapabilityFlagQuery from JSON.
+func (x *RbacCapabilityFlagQuery) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RbacGrantLifecycle message to JSON.
+func (x *RbacGrantLifecycle) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.GrantId != "" || s.HasField("grantId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("grantId")
+		s.WriteString(x.GrantId)
+	}
+	if x.Principal != nil || s.HasField("principal") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("principal")
+		x.Principal.MarshalProtoJSON(s.WithField("principal"))
+	}
+	if x.RoleId != "" || s.HasField("roleId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("roleId")
+		s.WriteString(x.RoleId)
+	}
+	if x.Scope != "" || s.HasField("scope") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("scope")
+		s.WriteString(x.Scope)
+	}
+	if x.ResourceId != "" || s.HasField("resourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resourceId")
+		s.WriteString(x.ResourceId)
+	}
+	if x.Version != 0 || s.HasField("version") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("version")
+		s.WriteUint64(x.Version)
+	}
+	if x.ExpiresAtMs != 0 || s.HasField("expiresAtMs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expiresAtMs")
+		s.WriteInt64(x.ExpiresAtMs)
+	}
+	if x.Revocation != nil || s.HasField("revocation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("revocation")
+		x.Revocation.MarshalProtoJSON(s.WithField("revocation"))
+	}
+	if x.LastMutation != nil || s.HasField("lastMutation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lastMutation")
+		x.LastMutation.MarshalProtoJSON(s.WithField("lastMutation"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RbacGrantLifecycle to JSON.
+func (x *RbacGrantLifecycle) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RbacGrantLifecycle message from JSON.
+func (x *RbacGrantLifecycle) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "grant_id", "grantId":
+			s.AddField("grant_id")
+			x.GrantId = s.ReadString()
+		case "principal":
+			if s.ReadNil() {
+				x.Principal = nil
+				return
+			}
+			x.Principal = &RbacGrantPrincipal{}
+			x.Principal.UnmarshalProtoJSON(s.WithField("principal", true))
+		case "role_id", "roleId":
+			s.AddField("role_id")
+			x.RoleId = s.ReadString()
+		case "scope":
+			s.AddField("scope")
+			x.Scope = s.ReadString()
+		case "resource_id", "resourceId":
+			s.AddField("resource_id")
+			x.ResourceId = s.ReadString()
+		case "version":
+			s.AddField("version")
+			x.Version = s.ReadUint64()
+		case "expires_at_ms", "expiresAtMs":
+			s.AddField("expires_at_ms")
+			x.ExpiresAtMs = s.ReadInt64()
+		case "revocation":
+			if s.ReadNil() {
+				x.Revocation = nil
+				return
+			}
+			x.Revocation = &RbacGrantRevocation{}
+			x.Revocation.UnmarshalProtoJSON(s.WithField("revocation", true))
+		case "last_mutation", "lastMutation":
+			if s.ReadNil() {
+				x.LastMutation = nil
+				return
+			}
+			x.LastMutation = &RbacLastMutation{}
+			x.LastMutation.UnmarshalProtoJSON(s.WithField("last_mutation", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RbacGrantLifecycle from JSON.
+func (x *RbacGrantLifecycle) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RbacCapabilityFlagState message to JSON.
+func (x *RbacCapabilityFlagState) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Environment != "" || s.HasField("environment") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("environment")
+		s.WriteString(x.Environment)
+	}
+	if x.Capability != "" || s.HasField("capability") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("capability")
+		s.WriteString(x.Capability)
+	}
+	if x.Enabled || s.HasField("enabled") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("enabled")
+		s.WriteBool(x.Enabled)
+	}
+	if x.UpdatedAtMs != 0 || s.HasField("updatedAtMs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("updatedAtMs")
+		s.WriteInt64(x.UpdatedAtMs)
+	}
+	if x.UpdatedBy != nil || s.HasField("updatedBy") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("updatedBy")
+		x.UpdatedBy.MarshalProtoJSON(s.WithField("updatedBy"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RbacCapabilityFlagState to JSON.
+func (x *RbacCapabilityFlagState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RbacCapabilityFlagState message from JSON.
+func (x *RbacCapabilityFlagState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "environment":
+			s.AddField("environment")
+			x.Environment = s.ReadString()
+		case "capability":
+			s.AddField("capability")
+			x.Capability = s.ReadString()
+		case "enabled":
+			s.AddField("enabled")
+			x.Enabled = s.ReadBool()
+		case "updated_at_ms", "updatedAtMs":
+			s.AddField("updated_at_ms")
+			x.UpdatedAtMs = s.ReadInt64()
+		case "updated_by", "updatedBy":
+			if s.ReadNil() {
+				x.UpdatedBy = nil
+				return
+			}
+			x.UpdatedBy = &RbacGrantPrincipal{}
+			x.UpdatedBy.UnmarshalProtoJSON(s.WithField("updated_by", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RbacCapabilityFlagState from JSON.
+func (x *RbacCapabilityFlagState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RbacAdminReadbackRequest message to JSON.
+func (x *RbacAdminReadbackRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Grant != nil || s.HasField("grant") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("grant")
+		x.Grant.MarshalProtoJSON(s.WithField("grant"))
+	}
+	if x.CapabilityFlag != nil || s.HasField("capabilityFlag") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("capabilityFlag")
+		x.CapabilityFlag.MarshalProtoJSON(s.WithField("capabilityFlag"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RbacAdminReadbackRequest to JSON.
+func (x *RbacAdminReadbackRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RbacAdminReadbackRequest message from JSON.
+func (x *RbacAdminReadbackRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "grant":
+			if s.ReadNil() {
+				x.Grant = nil
+				return
+			}
+			x.Grant = &RbacGrantLifecycleQuery{}
+			x.Grant.UnmarshalProtoJSON(s.WithField("grant", true))
+		case "capability_flag", "capabilityFlag":
+			if s.ReadNil() {
+				x.CapabilityFlag = nil
+				return
+			}
+			x.CapabilityFlag = &RbacCapabilityFlagQuery{}
+			x.CapabilityFlag.UnmarshalProtoJSON(s.WithField("capability_flag", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RbacAdminReadbackRequest from JSON.
+func (x *RbacAdminReadbackRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RbacAdminReadbackResponse message to JSON.
+func (x *RbacAdminReadbackResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Grant != nil || s.HasField("grant") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("grant")
+		x.Grant.MarshalProtoJSON(s.WithField("grant"))
+	}
+	if x.CapabilityFlag != nil || s.HasField("capabilityFlag") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("capabilityFlag")
+		x.CapabilityFlag.MarshalProtoJSON(s.WithField("capabilityFlag"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RbacAdminReadbackResponse to JSON.
+func (x *RbacAdminReadbackResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RbacAdminReadbackResponse message from JSON.
+func (x *RbacAdminReadbackResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "grant":
+			if s.ReadNil() {
+				x.Grant = nil
+				return
+			}
+			x.Grant = &RbacGrantLifecycle{}
+			x.Grant.UnmarshalProtoJSON(s.WithField("grant", true))
+		case "capability_flag", "capabilityFlag":
+			if s.ReadNil() {
+				x.CapabilityFlag = nil
+				return
+			}
+			x.CapabilityFlag = &RbacCapabilityFlagState{}
+			x.CapabilityFlag.UnmarshalProtoJSON(s.WithField("capability_flag", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RbacAdminReadbackResponse from JSON.
+func (x *RbacAdminReadbackResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -42126,6 +43460,479 @@ func (m *PackMetadataRepairResponse) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	return len(dAtA) - i, nil
 }
 
+func (m *RbacGrantLifecycleQuery) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RbacGrantLifecycleQuery) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RbacGrantLifecycleQuery) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.GrantId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.GrantId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RbacGrantPrincipal) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RbacGrantPrincipal) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RbacGrantPrincipal) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Id) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Id)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Type) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Type)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RbacGrantRevocation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RbacGrantRevocation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RbacGrantRevocation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RevokedAtMs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RevokedAtMs))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RbacLastMutation) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RbacLastMutation) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RbacLastMutation) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.CreatedAtMs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.CreatedAtMs))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.ResultingVersion != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResultingVersion))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Outcome) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Outcome)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Action) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Action)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.EventId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.EventId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RbacCapabilityFlagQuery) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RbacCapabilityFlagQuery) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RbacCapabilityFlagQuery) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Capability) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Capability)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Environment) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Environment)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RbacGrantLifecycle) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RbacGrantLifecycle) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RbacGrantLifecycle) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.LastMutation != nil {
+		size, err := m.LastMutation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if m.Revocation != nil {
+		size, err := m.Revocation.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.ExpiresAtMs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpiresAtMs))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.Version != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Version))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.ResourceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ResourceId)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.Scope) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Scope)
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.RoleId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.RoleId)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Principal != nil {
+		size, err := m.Principal.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.GrantId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.GrantId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RbacCapabilityFlagState) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RbacCapabilityFlagState) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RbacCapabilityFlagState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.UpdatedBy != nil {
+		size, err := m.UpdatedBy.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.UpdatedAtMs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.UpdatedAtMs))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Enabled {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Enabled)
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Capability) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Capability)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Environment) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Environment)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RbacAdminReadbackRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RbacAdminReadbackRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RbacAdminReadbackRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.CapabilityFlag != nil {
+		size, err := m.CapabilityFlag.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Grant != nil {
+		size, err := m.Grant.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RbacAdminReadbackResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RbacAdminReadbackResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RbacAdminReadbackResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.CapabilityFlag != nil {
+		size, err := m.CapabilityFlag.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Grant != nil {
+		size, err := m.Grant.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *CreateBlockStoreResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -49721,6 +51528,149 @@ func (m *PackMetadataRepairResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *RbacGrantLifecycleQuery) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.GrantId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RbacGrantPrincipal) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Type)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Id)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RbacGrantRevocation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RevokedAtMs)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RbacLastMutation) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.EventId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Action)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Outcome)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResultingVersion)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.CreatedAtMs)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RbacCapabilityFlagQuery) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Environment)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Capability)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RbacGrantLifecycle) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.GrantId)
+	if m.Principal != nil {
+		l = m.Principal.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RoleId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Scope)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ResourceId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Version)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExpiresAtMs)
+	if m.Revocation != nil {
+		l = m.Revocation.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.LastMutation != nil {
+		l = m.LastMutation.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RbacCapabilityFlagState) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Environment)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Capability)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Enabled)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.UpdatedAtMs)
+	if m.UpdatedBy != nil {
+		l = m.UpdatedBy.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RbacAdminReadbackRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Grant != nil {
+		l = m.Grant.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.CapabilityFlag != nil {
+		l = m.CapabilityFlag.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RbacAdminReadbackResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Grant != nil {
+		l = m.Grant.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.CapabilityFlag != nil {
+		l = m.CapabilityFlag.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *CreateBlockStoreResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -54579,6 +56529,212 @@ func (x *PackMetadataRepairResponse) MarshalProtoText() string {
 }
 
 func (x *PackMetadataRepairResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RbacGrantLifecycleQuery) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RbacGrantLifecycleQuery")
+	if x.GrantId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "grant_id")
+		protobuf_go_lite.TextWriteString(&sb, x.GrantId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RbacGrantLifecycleQuery) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RbacGrantPrincipal) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RbacGrantPrincipal")
+	if x.Type != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "type")
+		protobuf_go_lite.TextWriteString(&sb, x.Type)
+	}
+	if x.Id != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "id")
+		protobuf_go_lite.TextWriteString(&sb, x.Id)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RbacGrantPrincipal) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RbacGrantRevocation) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RbacGrantRevocation")
+	if x.RevokedAtMs != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "revoked_at_ms")
+		protobuf_go_lite.TextWriteInt(&sb, x.RevokedAtMs)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RbacGrantRevocation) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RbacLastMutation) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RbacLastMutation")
+	if x.EventId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "event_id")
+		protobuf_go_lite.TextWriteString(&sb, x.EventId)
+	}
+	if x.Action != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "action")
+		protobuf_go_lite.TextWriteString(&sb, x.Action)
+	}
+	if x.Outcome != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "outcome")
+		protobuf_go_lite.TextWriteString(&sb, x.Outcome)
+	}
+	if x.ResultingVersion != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resulting_version")
+		protobuf_go_lite.TextWriteUint(&sb, x.ResultingVersion)
+	}
+	if x.CreatedAtMs != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "created_at_ms")
+		protobuf_go_lite.TextWriteInt(&sb, x.CreatedAtMs)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RbacLastMutation) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RbacCapabilityFlagQuery) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RbacCapabilityFlagQuery")
+	if x.Environment != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "environment")
+		protobuf_go_lite.TextWriteString(&sb, x.Environment)
+	}
+	if x.Capability != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "capability")
+		protobuf_go_lite.TextWriteString(&sb, x.Capability)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RbacCapabilityFlagQuery) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RbacGrantLifecycle) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RbacGrantLifecycle")
+	if x.GrantId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "grant_id")
+		protobuf_go_lite.TextWriteString(&sb, x.GrantId)
+	}
+	if x.Principal != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "principal")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Principal)
+	}
+	if x.RoleId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "role_id")
+		protobuf_go_lite.TextWriteString(&sb, x.RoleId)
+	}
+	if x.Scope != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "scope")
+		protobuf_go_lite.TextWriteString(&sb, x.Scope)
+	}
+	if x.ResourceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resource_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ResourceId)
+	}
+	if x.Version != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "version")
+		protobuf_go_lite.TextWriteUint(&sb, x.Version)
+	}
+	if x.ExpiresAtMs != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expires_at_ms")
+		protobuf_go_lite.TextWriteInt(&sb, x.ExpiresAtMs)
+	}
+	if x.Revocation != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "revocation")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Revocation)
+	}
+	if x.LastMutation != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "last_mutation")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.LastMutation)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RbacGrantLifecycle) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RbacCapabilityFlagState) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RbacCapabilityFlagState")
+	if x.Environment != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "environment")
+		protobuf_go_lite.TextWriteString(&sb, x.Environment)
+	}
+	if x.Capability != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "capability")
+		protobuf_go_lite.TextWriteString(&sb, x.Capability)
+	}
+	if x.Enabled != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "enabled")
+		protobuf_go_lite.TextWriteBool(&sb, x.Enabled)
+	}
+	if x.UpdatedAtMs != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "updated_at_ms")
+		protobuf_go_lite.TextWriteInt(&sb, x.UpdatedAtMs)
+	}
+	if x.UpdatedBy != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "updated_by")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.UpdatedBy)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RbacCapabilityFlagState) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RbacAdminReadbackRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RbacAdminReadbackRequest")
+	if x.Grant != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "grant")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Grant)
+	}
+	if x.CapabilityFlag != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "capability_flag")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.CapabilityFlag)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RbacAdminReadbackRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RbacAdminReadbackResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RbacAdminReadbackResponse")
+	if x.Grant != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "grant")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Grant)
+	}
+	if x.CapabilityFlag != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "capability_flag")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.CapabilityFlag)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RbacAdminReadbackResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -66635,6 +68791,717 @@ func (m *PackMetadataRepairResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.DryRun = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RbacGrantLifecycleQuery) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RbacGrantLifecycleQuery: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RbacGrantLifecycleQuery: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GrantId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.GrantId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RbacGrantPrincipal) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RbacGrantPrincipal: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RbacGrantPrincipal: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Type = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Id = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RbacGrantRevocation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RbacGrantRevocation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RbacGrantRevocation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RevokedAtMs", wireType)
+			}
+			m.RevokedAtMs = 0
+			m.RevokedAtMs, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RbacLastMutation) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RbacLastMutation: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RbacLastMutation: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EventId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.EventId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Action", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Action = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outcome", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Outcome = v
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResultingVersion", wireType)
+			}
+			m.ResultingVersion = 0
+			m.ResultingVersion, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreatedAtMs", wireType)
+			}
+			m.CreatedAtMs = 0
+			m.CreatedAtMs, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RbacCapabilityFlagQuery) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RbacCapabilityFlagQuery: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RbacCapabilityFlagQuery: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Environment", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Environment = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Capability", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Capability = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RbacGrantLifecycle) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RbacGrantLifecycle: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RbacGrantLifecycle: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GrantId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.GrantId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Principal", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Principal == nil {
+				m.Principal = &RbacGrantPrincipal{}
+			}
+			if err := m.Principal.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RoleId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.RoleId = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Scope", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Scope = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ResourceId = v
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			m.Version = 0
+			m.Version, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpiresAtMs", wireType)
+			}
+			m.ExpiresAtMs = 0
+			m.ExpiresAtMs, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Revocation", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Revocation == nil {
+				m.Revocation = &RbacGrantRevocation{}
+			}
+			if err := m.Revocation.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastMutation", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.LastMutation == nil {
+				m.LastMutation = &RbacLastMutation{}
+			}
+			if err := m.LastMutation.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RbacCapabilityFlagState) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RbacCapabilityFlagState: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RbacCapabilityFlagState: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Environment", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Environment = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Capability", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Capability = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Enabled", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Enabled = bool(v)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpdatedAtMs", wireType)
+			}
+			m.UpdatedAtMs = 0
+			m.UpdatedAtMs, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UpdatedBy", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.UpdatedBy == nil {
+				m.UpdatedBy = &RbacGrantPrincipal{}
+			}
+			if err := m.UpdatedBy.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RbacAdminReadbackRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RbacAdminReadbackRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RbacAdminReadbackRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Grant", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Grant == nil {
+				m.Grant = &RbacGrantLifecycleQuery{}
+			}
+			if err := m.Grant.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CapabilityFlag", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.CapabilityFlag == nil {
+				m.CapabilityFlag = &RbacCapabilityFlagQuery{}
+			}
+			if err := m.CapabilityFlag.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RbacAdminReadbackResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RbacAdminReadbackResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RbacAdminReadbackResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Grant", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Grant == nil {
+				m.Grant = &RbacGrantLifecycle{}
+			}
+			if err := m.Grant.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CapabilityFlag", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.CapabilityFlag == nil {
+				m.CapabilityFlag = &RbacCapabilityFlagState{}
+			}
+			if err := m.CapabilityFlag.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

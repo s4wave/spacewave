@@ -1852,6 +1852,129 @@ pub struct PackMetadataRepairResponse {
     #[prost(bool, tag="3")]
     pub dry_run: bool,
 }
+/// RbacGrantLifecycleQuery identifies the grant lifecycle to read back.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RbacGrantLifecycleQuery {
+    /// GrantId identifies the grant.
+    #[prost(string, tag="1")]
+    pub grant_id: ::prost::alloc::string::String,
+}
+/// RbacGrantPrincipal identifies a typed grant principal in admin readback.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RbacGrantPrincipal {
+    /// Type identifies the principal kind.
+    #[prost(string, tag="1")]
+    pub r#type: ::prost::alloc::string::String,
+    /// Id identifies the principal.
+    #[prost(string, tag="2")]
+    pub id: ::prost::alloc::string::String,
+}
+/// RbacGrantRevocation describes a grant revocation tombstone in readback.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RbacGrantRevocation {
+    /// RevokedAtMs is when the grant was revoked in epoch milliseconds.
+    #[prost(int64, tag="1")]
+    pub revoked_at_ms: i64,
+}
+/// RbacLastMutation is the latest typed mutation summary for a grant.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RbacLastMutation {
+    /// EventId identifies the audit event.
+    #[prost(string, tag="1")]
+    pub event_id: ::prost::alloc::string::String,
+    /// Action is the normalized mutation action.
+    #[prost(string, tag="2")]
+    pub action: ::prost::alloc::string::String,
+    /// Outcome is the normalized mutation outcome.
+    #[prost(string, tag="3")]
+    pub outcome: ::prost::alloc::string::String,
+    /// ResultingVersion is the grant version after the mutation.
+    #[prost(uint64, tag="4")]
+    pub resulting_version: u64,
+    /// CreatedAtMs is when the event was created in epoch milliseconds.
+    #[prost(int64, tag="5")]
+    pub created_at_ms: i64,
+}
+/// RbacCapabilityFlagQuery identifies the persisted capability flag to read.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RbacCapabilityFlagQuery {
+    /// Environment identifies the persisted flag environment.
+    #[prost(string, tag="1")]
+    pub environment: ::prost::alloc::string::String,
+    /// Capability identifies the persisted runtime capability.
+    #[prost(string, tag="2")]
+    pub capability: ::prost::alloc::string::String,
+}
+/// RbacGrantLifecycle is a redacted, non-authoritative grant projection.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RbacGrantLifecycle {
+    /// GrantId identifies the grant.
+    #[prost(string, tag="1")]
+    pub grant_id: ::prost::alloc::string::String,
+    /// Principal identifies the typed grant principal.
+    #[prost(message, optional, tag="2")]
+    pub principal: ::core::option::Option<RbacGrantPrincipal>,
+    /// RoleId identifies the resulting role.
+    #[prost(string, tag="3")]
+    pub role_id: ::prost::alloc::string::String,
+    /// Scope identifies the authority scope.
+    #[prost(string, tag="4")]
+    pub scope: ::prost::alloc::string::String,
+    /// ResourceId identifies the scoped resource.
+    #[prost(string, tag="5")]
+    pub resource_id: ::prost::alloc::string::String,
+    /// Version is the current grant version.
+    #[prost(uint64, tag="6")]
+    pub version: u64,
+    /// ExpiresAtMs is the grant expiry in epoch milliseconds when present.
+    #[prost(int64, tag="7")]
+    pub expires_at_ms: i64,
+    /// Revocation is present when the grant has a revocation tombstone.
+    #[prost(message, optional, tag="8")]
+    pub revocation: ::core::option::Option<RbacGrantRevocation>,
+    /// LastMutation is the latest mutation summary when present.
+    #[prost(message, optional, tag="9")]
+    pub last_mutation: ::core::option::Option<RbacLastMutation>,
+}
+/// RbacCapabilityFlagState is a persisted, non-authoritative flag projection.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RbacCapabilityFlagState {
+    /// Environment identifies the persisted flag environment.
+    #[prost(string, tag="1")]
+    pub environment: ::prost::alloc::string::String,
+    /// Capability identifies the persisted runtime capability.
+    #[prost(string, tag="2")]
+    pub capability: ::prost::alloc::string::String,
+    /// Enabled is the persisted capability state.
+    #[prost(bool, tag="3")]
+    pub enabled: bool,
+    /// UpdatedAtMs is when the persisted flag changed in epoch milliseconds.
+    #[prost(int64, tag="4")]
+    pub updated_at_ms: i64,
+    /// UpdatedBy identifies the typed principal that last changed the flag.
+    #[prost(message, optional, tag="5")]
+    pub updated_by: ::core::option::Option<RbacGrantPrincipal>,
+}
+/// RbacAdminReadbackRequest identifies the grant and flag state to read.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RbacAdminReadbackRequest {
+    /// Grant identifies the grant lifecycle query when present.
+    #[prost(message, optional, tag="1")]
+    pub grant: ::core::option::Option<RbacGrantLifecycleQuery>,
+    /// CapabilityFlag identifies the persisted flag query when present.
+    #[prost(message, optional, tag="2")]
+    pub capability_flag: ::core::option::Option<RbacCapabilityFlagQuery>,
+}
+/// RbacAdminReadbackResponse returns typed RBAC lifecycle, flag, and mutation state.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RbacAdminReadbackResponse {
+    /// Grant is absent when no grant exists for the requested lifecycle.
+    #[prost(message, optional, tag="1")]
+    pub grant: ::core::option::Option<RbacGrantLifecycle>,
+    /// CapabilityFlag is the persisted capability flag projection.
+    #[prost(message, optional, tag="2")]
+    pub capability_flag: ::core::option::Option<RbacCapabilityFlagState>,
+}
 /// CreateBlockStoreResponse is the response body for POST /api/bstore/:id/create.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CreateBlockStoreResponse {

@@ -175,6 +175,61 @@ struct ResourceCreatedAuditMetadataDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ResourceCreatedAuditMetadataDefaultTypeInternal _ResourceCreatedAuditMetadata_default_instance_;
 
+inline constexpr RbacPrincipal::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        type_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR RbacPrincipal::RbacPrincipal(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(RbacPrincipal_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct RbacPrincipalDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RbacPrincipalDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RbacPrincipalDefaultTypeInternal() {}
+  union {
+    RbacPrincipal _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RbacPrincipalDefaultTypeInternal _RbacPrincipal_default_instance_;
+
+inline constexpr RbacGrantRevocation::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        revoked_at_ms_{::int64_t{0}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR RbacGrantRevocation::RbacGrantRevocation(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(RbacGrantRevocation_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct RbacGrantRevocationDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RbacGrantRevocationDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RbacGrantRevocationDefaultTypeInternal() {}
+  union {
+    RbacGrantRevocation _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RbacGrantRevocationDefaultTypeInternal _RbacGrantRevocation_default_instance_;
+
 inline constexpr OrganizationChangedAuditMetadata::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -353,6 +408,48 @@ struct BillingAdminActionAuditMetadataDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BillingAdminActionAuditMetadataDefaultTypeInternal _BillingAdminActionAuditMetadata_default_instance_;
 
+inline constexpr RbacGrantMutationAuditMetadata::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        grant_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        role_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        scope_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        resource_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        principal_{nullptr},
+        revocation_{nullptr},
+        action_{static_cast< ::provider::spacewave::RbacGrantMutationAction >(0)},
+        outcome_{static_cast< ::provider::spacewave::RbacGrantMutationOutcome >(0)},
+        resulting_version_{::uint64_t{0u}},
+        expires_at_ms_{::int64_t{0}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR RbacGrantMutationAuditMetadata::RbacGrantMutationAuditMetadata(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(RbacGrantMutationAuditMetadata_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct RbacGrantMutationAuditMetadataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RbacGrantMutationAuditMetadataDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RbacGrantMutationAuditMetadataDefaultTypeInternal() {}
+  union {
+    RbacGrantMutationAuditMetadata _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RbacGrantMutationAuditMetadataDefaultTypeInternal _RbacGrantMutationAuditMetadata_default_instance_;
+
 inline constexpr AuditEventMetadata::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -471,8 +568,8 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ListAuditEventsResponseDefaultTypeInternal _ListAuditEventsResponse_default_instance_;
 }  // namespace spacewave
 }  // namespace provider
-static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2faudit_2eproto = nullptr;
+static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2faudit_2eproto[2];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2faudit_2eproto = nullptr;
 const ::uint32_t
@@ -481,7 +578,7 @@ const ::uint32_t
         0x085, // bitmap
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::AuditEventMetadata, _impl_._has_bits_),
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::AuditEventMetadata, _impl_._oneof_case_[0]),
-        18, // hasbit index offset
+        19, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::AuditEventMetadata, _impl_.request_method_),
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::AuditEventMetadata, _impl_.request_path_),
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::AuditEventMetadata, _impl_.actor_peer_id_),
@@ -496,10 +593,12 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::AuditEventMetadata, _impl_.body_),
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::AuditEventMetadata, _impl_.body_),
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::AuditEventMetadata, _impl_.body_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::AuditEventMetadata, _impl_.body_),
         0,
         1,
         2,
         3,
+        ~0u,
         ~0u,
         ~0u,
         ~0u,
@@ -613,6 +712,41 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::GenericAuditMetadata, _impl_.summary_),
         0,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacPrincipal, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacPrincipal, _impl_.type_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacPrincipal, _impl_.id_),
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacGrantRevocation, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacGrantRevocation, _impl_.revoked_at_ms_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacGrantMutationAuditMetadata, _impl_._has_bits_),
+        13, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacGrantMutationAuditMetadata, _impl_.action_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacGrantMutationAuditMetadata, _impl_.grant_id_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacGrantMutationAuditMetadata, _impl_.principal_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacGrantMutationAuditMetadata, _impl_.role_id_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacGrantMutationAuditMetadata, _impl_.scope_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacGrantMutationAuditMetadata, _impl_.resource_id_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacGrantMutationAuditMetadata, _impl_.resulting_version_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacGrantMutationAuditMetadata, _impl_.expires_at_ms_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacGrantMutationAuditMetadata, _impl_.revocation_),
+        PROTOBUF_FIELD_OFFSET(::provider::spacewave::RbacGrantMutationAuditMetadata, _impl_.outcome_),
+        6,
+        0,
+        4,
+        1,
+        2,
+        3,
+        8,
+        9,
+        5,
+        7,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::AuditEvent, _impl_._has_bits_),
         15, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::provider::spacewave::AuditEvent, _impl_.id_),
@@ -649,17 +783,20 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::provider::spacewave::AuditEventMetadata)},
-        {31, sizeof(::provider::spacewave::UserCreatedAuditMetadata)},
-        {42, sizeof(::provider::spacewave::EntityKeypairsChangedAuditMetadata)},
-        {55, sizeof(::provider::spacewave::ResourceCreatedAuditMetadata)},
-        {70, sizeof(::provider::spacewave::ResourceOwnershipTransferredAuditMetadata)},
-        {81, sizeof(::provider::spacewave::SharedObjectChangedAuditMetadata)},
-        {92, sizeof(::provider::spacewave::OrganizationChangedAuditMetadata)},
-        {105, sizeof(::provider::spacewave::BillingStatusChangedAuditMetadata)},
-        {118, sizeof(::provider::spacewave::BillingAdminActionAuditMetadata)},
-        {129, sizeof(::provider::spacewave::GenericAuditMetadata)},
-        {134, sizeof(::provider::spacewave::AuditEvent)},
-        {161, sizeof(::provider::spacewave::ListAuditEventsResponse)},
+        {33, sizeof(::provider::spacewave::UserCreatedAuditMetadata)},
+        {44, sizeof(::provider::spacewave::EntityKeypairsChangedAuditMetadata)},
+        {57, sizeof(::provider::spacewave::ResourceCreatedAuditMetadata)},
+        {72, sizeof(::provider::spacewave::ResourceOwnershipTransferredAuditMetadata)},
+        {83, sizeof(::provider::spacewave::SharedObjectChangedAuditMetadata)},
+        {94, sizeof(::provider::spacewave::OrganizationChangedAuditMetadata)},
+        {107, sizeof(::provider::spacewave::BillingStatusChangedAuditMetadata)},
+        {120, sizeof(::provider::spacewave::BillingAdminActionAuditMetadata)},
+        {131, sizeof(::provider::spacewave::GenericAuditMetadata)},
+        {136, sizeof(::provider::spacewave::RbacPrincipal)},
+        {143, sizeof(::provider::spacewave::RbacGrantRevocation)},
+        {148, sizeof(::provider::spacewave::RbacGrantMutationAuditMetadata)},
+        {171, sizeof(::provider::spacewave::AuditEvent)},
+        {198, sizeof(::provider::spacewave::ListAuditEventsResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::provider::spacewave::_AuditEventMetadata_default_instance_._instance,
@@ -672,6 +809,9 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::provider::spacewave::_BillingStatusChangedAuditMetadata_default_instance_._instance,
     &::provider::spacewave::_BillingAdminActionAuditMetadata_default_instance_._instance,
     &::provider::spacewave::_GenericAuditMetadata_default_instance_._instance,
+    &::provider::spacewave::_RbacPrincipal_default_instance_._instance,
+    &::provider::spacewave::_RbacGrantRevocation_default_instance_._instance,
+    &::provider::spacewave::_RbacGrantMutationAuditMetadata_default_instance_._instance,
     &::provider::spacewave::_AuditEvent_default_instance_._instance,
     &::provider::spacewave::_ListAuditEventsResponse_default_instance_._instance,
 };
@@ -679,7 +819,7 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     protodesc_cold) = {
     "\n\?github.com/s4wave/spacewave/core/provi"
     "der/spacewave/audit.proto\022\022provider.spac"
-    "ewave\"\350\006\n\022AuditEventMetadata\022\026\n\016request_"
+    "ewave\"\273\007\n\022AuditEventMetadata\022\026\n\016request_"
     "method\030\001 \001(\t\022\024\n\014request_path\030\002 \001(\t\022\025\n\rac"
     "tor_peer_id\030\003 \001(\t\022\025\n\rauthorized_by\030\004 \001(\t"
     "\022D\n\014user_created\030\n \001(\0132,.provider.spacew"
@@ -700,58 +840,85 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     "dataH\000\022S\n\024billing_admin_action\030\021 \001(\01323.p"
     "rovider.spacewave.BillingAdminActionAudi"
     "tMetadataH\000\022;\n\007generic\030\022 \001(\0132(.provider."
-    "spacewave.GenericAuditMetadataH\000B\006\n\004body"
-    "\"l\n\030UserCreatedAuditMetadata\022\020\n\010username"
-    "\030\001 \001(\t\022\023\n\013auth_method\030\002 \001(\t\022\032\n\022billing_a"
-    "ccount_id\030\003 \001(\t\022\r\n\005email\030\004 \001(\t\"\230\001\n\"Entit"
-    "yKeypairsChangedAuditMetadata\022\023\n\013change_"
-    "type\030\001 \001(\t\022\027\n\017keypair_peer_id\030\002 \001(\t\022\023\n\013a"
-    "uth_method\030\003 \001(\t\022\027\n\017session_peer_id\030\004 \001("
-    "\t\022\026\n\016auth_threshold\030\005 \001(\r\"\237\001\n\034ResourceCr"
-    "eatedAuditMetadata\022\025\n\rresource_type\030\001 \001("
-    "\t\022\022\n\nowner_type\030\002 \001(\t\022\020\n\010owner_id\030\003 \001(\t\022"
-    "\024\n\014display_name\030\004 \001(\t\022\023\n\013object_type\030\005 \001"
-    "(\t\022\027\n\017account_private\030\006 \001(\010\"\221\001\n)Resource"
-    "OwnershipTransferredAuditMetadata\022\033\n\023pre"
-    "vious_owner_type\030\001 \001(\t\022\031\n\021previous_owner"
-    "_id\030\002 \001(\t\022\026\n\016new_owner_type\030\003 \001(\t\022\024\n\014new"
-    "_owner_id\030\004 \001(\t\"w\n SharedObjectChangedAu"
-    "ditMetadata\022\023\n\013change_type\030\001 \001(\t\022\024\n\014disp"
-    "lay_name\030\002 \001(\t\022\023\n\013object_type\030\003 \001(\t\022\023\n\013p"
-    "ublic_read\030\004 \001(\010\"\224\001\n OrganizationChanged"
-    "AuditMetadata\022\023\n\013change_type\030\001 \001(\t\022\027\n\017or"
-    "ganization_id\030\002 \001(\t\022\024\n\014display_name\030\003 \001("
-    "\t\022\031\n\021member_account_id\030\004 \001(\t\022\021\n\tinvite_i"
-    "d\030\005 \001(\t\"\253\001\n!BillingStatusChangedAuditMet"
-    "adata\022\032\n\022billing_account_id\030\001 \001(\t\022\027\n\017pre"
-    "vious_status\030\002 \001(\t\022\022\n\nnew_status\030\003 \001(\t\022 "
-    "\n\030previous_lifecycle_state\030\004 \001(\t\022\033\n\023new_"
-    "lifecycle_state\030\005 \001(\t\"|\n\037BillingAdminAct"
-    "ionAuditMetadata\022\024\n\014admin_action\030\001 \001(\t\022\032"
-    "\n\022billing_account_id\030\002 \001(\t\022\022\n\ndispute_id"
-    "\030\003 \001(\t\022\023\n\013disputer_id\030\004 \001(\t\"\'\n\024GenericAu"
-    "ditMetadata\022\017\n\007summary\030\001 \001(\t\"\233\002\n\nAuditEv"
-    "ent\022\n\n\002id\030\001 \001(\t\022\016\n\006action\030\002 \001(\t\022\022\n\nactor"
-    "_type\030\003 \001(\t\022\020\n\010actor_id\030\004 \001(\t\022\030\n\020actor_a"
-    "ccount_id\030\005 \001(\t\022\023\n\013target_type\030\006 \001(\t\022\021\n\t"
-    "target_id\030\007 \001(\t\022\017\n\007outcome\030\010 \001(\t\022\023\n\013http"
-    "_status\030\t \001(\005\022\022\n\nerror_code\030\n \001(\t\0228\n\010met"
-    "adata\030\013 \001(\0132&.provider.spacewave.AuditEv"
-    "entMetadata\022\025\n\rcreated_at_ms\030\014 \001(\003\"I\n\027Li"
-    "stAuditEventsResponse\022.\n\006events\030\001 \003(\0132\036."
-    "provider.spacewave.AuditEventb\006proto3"
+    "spacewave.GenericAuditMetadataH\000\022Q\n\023rbac"
+    "_grant_mutation\030\023 \001(\01322.provider.spacewa"
+    "ve.RbacGrantMutationAuditMetadataH\000B\006\n\004b"
+    "ody\"l\n\030UserCreatedAuditMetadata\022\020\n\010usern"
+    "ame\030\001 \001(\t\022\023\n\013auth_method\030\002 \001(\t\022\032\n\022billin"
+    "g_account_id\030\003 \001(\t\022\r\n\005email\030\004 \001(\t\"\230\001\n\"En"
+    "tityKeypairsChangedAuditMetadata\022\023\n\013chan"
+    "ge_type\030\001 \001(\t\022\027\n\017keypair_peer_id\030\002 \001(\t\022\023"
+    "\n\013auth_method\030\003 \001(\t\022\027\n\017session_peer_id\030\004"
+    " \001(\t\022\026\n\016auth_threshold\030\005 \001(\r\"\237\001\n\034Resourc"
+    "eCreatedAuditMetadata\022\025\n\rresource_type\030\001"
+    " \001(\t\022\022\n\nowner_type\030\002 \001(\t\022\020\n\010owner_id\030\003 \001"
+    "(\t\022\024\n\014display_name\030\004 \001(\t\022\023\n\013object_type\030"
+    "\005 \001(\t\022\027\n\017account_private\030\006 \001(\010\"\221\001\n)Resou"
+    "rceOwnershipTransferredAuditMetadata\022\033\n\023"
+    "previous_owner_type\030\001 \001(\t\022\031\n\021previous_ow"
+    "ner_id\030\002 \001(\t\022\026\n\016new_owner_type\030\003 \001(\t\022\024\n\014"
+    "new_owner_id\030\004 \001(\t\"w\n SharedObjectChange"
+    "dAuditMetadata\022\023\n\013change_type\030\001 \001(\t\022\024\n\014d"
+    "isplay_name\030\002 \001(\t\022\023\n\013object_type\030\003 \001(\t\022\023"
+    "\n\013public_read\030\004 \001(\010\"\224\001\n OrganizationChan"
+    "gedAuditMetadata\022\023\n\013change_type\030\001 \001(\t\022\027\n"
+    "\017organization_id\030\002 \001(\t\022\024\n\014display_name\030\003"
+    " \001(\t\022\031\n\021member_account_id\030\004 \001(\t\022\021\n\tinvit"
+    "e_id\030\005 \001(\t\"\253\001\n!BillingStatusChangedAudit"
+    "Metadata\022\032\n\022billing_account_id\030\001 \001(\t\022\027\n\017"
+    "previous_status\030\002 \001(\t\022\022\n\nnew_status\030\003 \001("
+    "\t\022 \n\030previous_lifecycle_state\030\004 \001(\t\022\033\n\023n"
+    "ew_lifecycle_state\030\005 \001(\t\"|\n\037BillingAdmin"
+    "ActionAuditMetadata\022\024\n\014admin_action\030\001 \001("
+    "\t\022\032\n\022billing_account_id\030\002 \001(\t\022\022\n\ndispute"
+    "_id\030\003 \001(\t\022\023\n\013disputer_id\030\004 \001(\t\"\'\n\024Generi"
+    "cAuditMetadata\022\017\n\007summary\030\001 \001(\t\")\n\rRbacP"
+    "rincipal\022\014\n\004type\030\001 \001(\t\022\n\n\002id\030\002 \001(\t\",\n\023Rb"
+    "acGrantRevocation\022\025\n\rrevoked_at_ms\030\001 \001(\003"
+    "\"\210\003\n\036RbacGrantMutationAuditMetadata\022;\n\006a"
+    "ction\030\001 \001(\0162+.provider.spacewave.RbacGra"
+    "ntMutationAction\022\020\n\010grant_id\030\002 \001(\t\0224\n\tpr"
+    "incipal\030\003 \001(\0132!.provider.spacewave.RbacP"
+    "rincipal\022\017\n\007role_id\030\004 \001(\t\022\r\n\005scope\030\005 \001(\t"
+    "\022\023\n\013resource_id\030\006 \001(\t\022\031\n\021resulting_versi"
+    "on\030\007 \001(\004\022\025\n\rexpires_at_ms\030\010 \001(\003\022;\n\nrevoc"
+    "ation\030\t \001(\0132\'.provider.spacewave.RbacGra"
+    "ntRevocation\022=\n\007outcome\030\n \001(\0162,.provider"
+    ".spacewave.RbacGrantMutationOutcome\"\233\002\n\n"
+    "AuditEvent\022\n\n\002id\030\001 \001(\t\022\016\n\006action\030\002 \001(\t\022\022"
+    "\n\nactor_type\030\003 \001(\t\022\020\n\010actor_id\030\004 \001(\t\022\030\n\020"
+    "actor_account_id\030\005 \001(\t\022\023\n\013target_type\030\006 "
+    "\001(\t\022\021\n\ttarget_id\030\007 \001(\t\022\017\n\007outcome\030\010 \001(\t\022"
+    "\023\n\013http_status\030\t \001(\005\022\022\n\nerror_code\030\n \001(\t"
+    "\0228\n\010metadata\030\013 \001(\0132&.provider.spacewave."
+    "AuditEventMetadata\022\025\n\rcreated_at_ms\030\014 \001("
+    "\003\"I\n\027ListAuditEventsResponse\022.\n\006events\030\001"
+    " \003(\0132\036.provider.spacewave.AuditEvent*\260\002\n"
+    "\027RbacGrantMutationAction\022*\n&RBAC_GRANT_M"
+    "UTATION_ACTION_UNSPECIFIED\020\000\022+\n\'RBAC_GRA"
+    "NT_MUTATION_ACTION_GRANT_ISSUED\020\001\022,\n(RBA"
+    "C_GRANT_MUTATION_ACTION_GRANT_UPDATED\020\002\022"
+    ",\n(RBAC_GRANT_MUTATION_ACTION_GRANT_REVO"
+    "KED\020\003\0223\n/RBAC_GRANT_MUTATION_ACTION_GRAN"
+    "T_EXPIRED_ON_USE\020\004\022+\n\'RBAC_GRANT_MUTATIO"
+    "N_ACTION_ROLE_CHANGED\020\005*\300\001\n\030RbacGrantMut"
+    "ationOutcome\022+\n\'RBAC_GRANT_MUTATION_OUTC"
+    "OME_UNSPECIFIED\020\000\022\'\n#RBAC_GRANT_MUTATION"
+    "_OUTCOME_SUCCESS\020\001\022&\n\"RBAC_GRANT_MUTATIO"
+    "N_OUTCOME_DENIED\020\002\022&\n\"RBAC_GRANT_MUTATIO"
+    "N_OUTCOME_FAILED\020\003b\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2faudit_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2faudit_2eproto = {
     false,
     false,
-    2517,
+    3586,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2faudit_2eproto,
     "github.com/s4wave/spacewave/core/provider/spacewave/audit.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2faudit_2eproto_once,
     nullptr,
     0,
-    12,
+    15,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2faudit_2eproto::offsets,
@@ -760,6 +927,18 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 };
 namespace provider {
 namespace spacewave {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL RbacGrantMutationAction_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2faudit_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2faudit_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t RbacGrantMutationAction_internal_data_[] = {
+    393216u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL RbacGrantMutationOutcome_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2faudit_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2faudit_2eproto[1];
+}
+PROTOBUF_CONSTINIT const uint32_t RbacGrantMutationOutcome_internal_data_[] = {
+    262144u, 0u, };
 // ===================================================================
 
 class AuditEventMetadata::_Internal {
@@ -889,6 +1068,19 @@ void AuditEventMetadata::set_allocated_generic(::provider::spacewave::GenericAud
   }
   // @@protoc_insertion_point(field_set_allocated:provider.spacewave.AuditEventMetadata.generic)
 }
+void AuditEventMetadata::set_allocated_rbac_grant_mutation(::provider::spacewave::RbacGrantMutationAuditMetadata* PROTOBUF_NULLABLE rbac_grant_mutation) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  clear_body();
+  if (rbac_grant_mutation) {
+    ::google::protobuf::Arena* submessage_arena = rbac_grant_mutation->GetArena();
+    if (message_arena != submessage_arena) {
+      rbac_grant_mutation = ::google::protobuf::internal::GetOwnedMessage(message_arena, rbac_grant_mutation, submessage_arena);
+    }
+    set_has_rbac_grant_mutation();
+    _impl_.body_.rbac_grant_mutation_ = rbac_grant_mutation;
+  }
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.AuditEventMetadata.rbac_grant_mutation)
+}
 AuditEventMetadata::AuditEventMetadata(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
     : ::google::protobuf::Message(arena, AuditEventMetadata_class_data_.base()) {
@@ -953,6 +1145,9 @@ AuditEventMetadata::AuditEventMetadata(
         break;
       case kGeneric:
         _impl_.body_.generic_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.body_.generic_);
+        break;
+      case kRbacGrantMutation:
+        _impl_.body_.rbac_grant_mutation_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.body_.rbac_grant_mutation_);
         break;
   }
 
@@ -1069,6 +1264,14 @@ void AuditEventMetadata::clear_body() {
       }
       break;
     }
+    case kRbacGrantMutation: {
+      if (GetArena() == nullptr) {
+        delete _impl_.body_.rbac_grant_mutation_;
+      } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+        ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.body_.rbac_grant_mutation_);
+      }
+      break;
+    }
     case BODY_NOT_SET: {
       break;
     }
@@ -1120,17 +1323,17 @@ AuditEventMetadata::GetClassData() const {
   return AuditEventMetadata_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 13, 9, 106, 2>
+const ::_pbi::TcParseTable<2, 14, 10, 106, 2>
 AuditEventMetadata::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(AuditEventMetadata, _impl_._has_bits_),
     0, // no _extensions_
-    18, 24,  // max_field_number, fast_idx_mask
+    19, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294705648,  // skipmap
+    4294443504,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    13,  // num_field_entries
-    9,  // num_aux_entries
+    14,  // num_field_entries
+    10,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     AuditEventMetadata_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -1184,6 +1387,8 @@ AuditEventMetadata::_table_ = {
     {PROTOBUF_FIELD_OFFSET(AuditEventMetadata, _impl_.body_.billing_admin_action_), _Internal::kOneofCaseOffset + 0, 7, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
     // .provider.spacewave.GenericAuditMetadata generic = 18;
     {PROTOBUF_FIELD_OFFSET(AuditEventMetadata, _impl_.body_.generic_), _Internal::kOneofCaseOffset + 0, 8, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .provider.spacewave.RbacGrantMutationAuditMetadata rbac_grant_mutation = 19;
+    {PROTOBUF_FIELD_OFFSET(AuditEventMetadata, _impl_.body_.rbac_grant_mutation_), _Internal::kOneofCaseOffset + 0, 9, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::provider::spacewave::UserCreatedAuditMetadata>()},
@@ -1195,6 +1400,7 @@ AuditEventMetadata::_table_ = {
       {::_pbi::TcParser::GetTable<::provider::spacewave::BillingStatusChangedAuditMetadata>()},
       {::_pbi::TcParser::GetTable<::provider::spacewave::BillingAdminActionAuditMetadata>()},
       {::_pbi::TcParser::GetTable<::provider::spacewave::GenericAuditMetadata>()},
+      {::_pbi::TcParser::GetTable<::provider::spacewave::RbacGrantMutationAuditMetadata>()},
   }},
   {{
     "\45\16\14\15\15\0\0\0\0\0\0\0\0\0\0\0"
@@ -1346,6 +1552,12 @@ PROTOBUF_NOINLINE void AuditEventMetadata::Clear() {
           stream);
       break;
     }
+    case kRbacGrantMutation: {
+      target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+          19, *this_._impl_.body_.rbac_grant_mutation_, this_._impl_.body_.rbac_grant_mutation_->GetCachedSize(), target,
+          stream);
+      break;
+    }
     default:
       break;
   }
@@ -1457,6 +1669,12 @@ PROTOBUF_NOINLINE void AuditEventMetadata::Clear() {
     case kGeneric: {
       total_size += 2 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.body_.generic_);
+      break;
+    }
+    // .provider.spacewave.RbacGrantMutationAuditMetadata rbac_grant_mutation = 19;
+    case kRbacGrantMutation: {
+      total_size += 2 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.body_.rbac_grant_mutation_);
       break;
     }
     case BODY_NOT_SET: {
@@ -1602,6 +1820,14 @@ void AuditEventMetadata::MergeImpl(::google::protobuf::MessageLite& to_msg,
           _this->_impl_.body_.generic_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.body_.generic_);
         } else {
           _this->_impl_.body_.generic_->MergeFrom(*from._impl_.body_.generic_);
+        }
+        break;
+      }
+      case kRbacGrantMutation: {
+        if (oneof_needs_init) {
+          _this->_impl_.body_.rbac_grant_mutation_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.body_.rbac_grant_mutation_);
+        } else {
+          _this->_impl_.body_.rbac_grant_mutation_->MergeFrom(*from._impl_.body_.rbac_grant_mutation_);
         }
         break;
       }
@@ -5293,6 +5519,1194 @@ void GenericAuditMetadata::InternalSwap(GenericAuditMetadata* PROTOBUF_RESTRICT 
 }
 
 ::google::protobuf::Metadata GenericAuditMetadata::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class RbacPrincipal::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<RbacPrincipal>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(RbacPrincipal, _impl_._has_bits_);
+};
+
+RbacPrincipal::RbacPrincipal(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RbacPrincipal_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:provider.spacewave.RbacPrincipal)
+}
+PROTOBUF_NDEBUG_INLINE RbacPrincipal::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::provider::spacewave::RbacPrincipal& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        type_(arena, from.type_),
+        id_(arena, from.id_) {}
+
+RbacPrincipal::RbacPrincipal(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const RbacPrincipal& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RbacPrincipal_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  RbacPrincipal* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:provider.spacewave.RbacPrincipal)
+}
+PROTOBUF_NDEBUG_INLINE RbacPrincipal::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        type_(arena),
+        id_(arena) {}
+
+inline void RbacPrincipal::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+RbacPrincipal::~RbacPrincipal() {
+  // @@protoc_insertion_point(destructor:provider.spacewave.RbacPrincipal)
+  SharedDtor(*this);
+}
+inline void RbacPrincipal::SharedDtor(MessageLite& self) {
+  RbacPrincipal& this_ = static_cast<RbacPrincipal&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.type_.Destroy();
+  this_._impl_.id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL RbacPrincipal::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) RbacPrincipal(arena);
+}
+constexpr auto RbacPrincipal::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(RbacPrincipal),
+                                            alignof(RbacPrincipal));
+}
+constexpr auto RbacPrincipal::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_RbacPrincipal_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &RbacPrincipal::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<RbacPrincipal>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &RbacPrincipal::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<RbacPrincipal>(), &RbacPrincipal::ByteSizeLong,
+              &RbacPrincipal::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(RbacPrincipal, _impl_._cached_size_),
+          false,
+      },
+      &RbacPrincipal::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2faudit_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull RbacPrincipal_class_data_ =
+        RbacPrincipal::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+RbacPrincipal::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&RbacPrincipal_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(RbacPrincipal_class_data_.tc_table);
+  return RbacPrincipal_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 47, 2>
+RbacPrincipal::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(RbacPrincipal, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    RbacPrincipal_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::provider::spacewave::RbacPrincipal>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(RbacPrincipal, _impl_.id_)}},
+    // string type = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(RbacPrincipal, _impl_.type_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string type = 1;
+    {PROTOBUF_FIELD_OFFSET(RbacPrincipal, _impl_.type_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string id = 2;
+    {PROTOBUF_FIELD_OFFSET(RbacPrincipal, _impl_.id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\40\4\2\0\0\0\0\0"
+    "provider.spacewave.RbacPrincipal"
+    "type"
+    "id"
+  }},
+};
+PROTOBUF_NOINLINE void RbacPrincipal::Clear() {
+// @@protoc_insertion_point(message_clear_start:provider.spacewave.RbacPrincipal)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.type_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.id_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL RbacPrincipal::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const RbacPrincipal& this_ = static_cast<const RbacPrincipal&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL RbacPrincipal::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const RbacPrincipal& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:provider.spacewave.RbacPrincipal)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string type = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_type().empty()) {
+      const ::std::string& _s = this_._internal_type();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "provider.spacewave.RbacPrincipal.type");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_id().empty()) {
+      const ::std::string& _s = this_._internal_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "provider.spacewave.RbacPrincipal.id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:provider.spacewave.RbacPrincipal)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t RbacPrincipal::ByteSizeLong(const MessageLite& base) {
+  const RbacPrincipal& this_ = static_cast<const RbacPrincipal&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t RbacPrincipal::ByteSizeLong() const {
+  const RbacPrincipal& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:provider.spacewave.RbacPrincipal)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string type = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_type().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_type());
+      }
+    }
+    // string id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void RbacPrincipal::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<RbacPrincipal*>(&to_msg);
+  auto& from = static_cast<const RbacPrincipal&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:provider.spacewave.RbacPrincipal)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_type().empty()) {
+        _this->_internal_set_type(from._internal_type());
+      } else {
+        if (_this->_impl_.type_.IsDefault()) {
+          _this->_internal_set_type("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_id().empty()) {
+        _this->_internal_set_id(from._internal_id());
+      } else {
+        if (_this->_impl_.id_.IsDefault()) {
+          _this->_internal_set_id("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void RbacPrincipal::CopyFrom(const RbacPrincipal& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:provider.spacewave.RbacPrincipal)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void RbacPrincipal::InternalSwap(RbacPrincipal* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.type_, &other->_impl_.type_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.id_, &other->_impl_.id_, arena);
+}
+
+::google::protobuf::Metadata RbacPrincipal::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class RbacGrantRevocation::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<RbacGrantRevocation>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(RbacGrantRevocation, _impl_._has_bits_);
+};
+
+RbacGrantRevocation::RbacGrantRevocation(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RbacGrantRevocation_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:provider.spacewave.RbacGrantRevocation)
+}
+RbacGrantRevocation::RbacGrantRevocation(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RbacGrantRevocation& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RbacGrantRevocation_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE RbacGrantRevocation::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void RbacGrantRevocation::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.revoked_at_ms_ = {};
+}
+RbacGrantRevocation::~RbacGrantRevocation() {
+  // @@protoc_insertion_point(destructor:provider.spacewave.RbacGrantRevocation)
+  SharedDtor(*this);
+}
+inline void RbacGrantRevocation::SharedDtor(MessageLite& self) {
+  RbacGrantRevocation& this_ = static_cast<RbacGrantRevocation&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL RbacGrantRevocation::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) RbacGrantRevocation(arena);
+}
+constexpr auto RbacGrantRevocation::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(RbacGrantRevocation),
+                                            alignof(RbacGrantRevocation));
+}
+constexpr auto RbacGrantRevocation::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_RbacGrantRevocation_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &RbacGrantRevocation::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<RbacGrantRevocation>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &RbacGrantRevocation::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<RbacGrantRevocation>(), &RbacGrantRevocation::ByteSizeLong,
+              &RbacGrantRevocation::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(RbacGrantRevocation, _impl_._cached_size_),
+          false,
+      },
+      &RbacGrantRevocation::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2faudit_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull RbacGrantRevocation_class_data_ =
+        RbacGrantRevocation::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+RbacGrantRevocation::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&RbacGrantRevocation_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(RbacGrantRevocation_class_data_.tc_table);
+  return RbacGrantRevocation_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+RbacGrantRevocation::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(RbacGrantRevocation, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    RbacGrantRevocation_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::provider::spacewave::RbacGrantRevocation>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // int64 revoked_at_ms = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(RbacGrantRevocation, _impl_.revoked_at_ms_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(RbacGrantRevocation, _impl_.revoked_at_ms_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // int64 revoked_at_ms = 1;
+    {PROTOBUF_FIELD_OFFSET(RbacGrantRevocation, _impl_.revoked_at_ms_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void RbacGrantRevocation::Clear() {
+// @@protoc_insertion_point(message_clear_start:provider.spacewave.RbacGrantRevocation)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.revoked_at_ms_ = ::int64_t{0};
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL RbacGrantRevocation::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const RbacGrantRevocation& this_ = static_cast<const RbacGrantRevocation&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL RbacGrantRevocation::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const RbacGrantRevocation& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:provider.spacewave.RbacGrantRevocation)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // int64 revoked_at_ms = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_revoked_at_ms() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<1>(
+              stream, this_._internal_revoked_at_ms(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:provider.spacewave.RbacGrantRevocation)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t RbacGrantRevocation::ByteSizeLong(const MessageLite& base) {
+  const RbacGrantRevocation& this_ = static_cast<const RbacGrantRevocation&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t RbacGrantRevocation::ByteSizeLong() const {
+  const RbacGrantRevocation& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:provider.spacewave.RbacGrantRevocation)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // int64 revoked_at_ms = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_revoked_at_ms() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_revoked_at_ms());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void RbacGrantRevocation::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<RbacGrantRevocation*>(&to_msg);
+  auto& from = static_cast<const RbacGrantRevocation&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:provider.spacewave.RbacGrantRevocation)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_revoked_at_ms() != 0) {
+      _this->_impl_.revoked_at_ms_ = from._impl_.revoked_at_ms_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void RbacGrantRevocation::CopyFrom(const RbacGrantRevocation& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:provider.spacewave.RbacGrantRevocation)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void RbacGrantRevocation::InternalSwap(RbacGrantRevocation* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.revoked_at_ms_, other->_impl_.revoked_at_ms_);
+}
+
+::google::protobuf::Metadata RbacGrantRevocation::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class RbacGrantMutationAuditMetadata::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<RbacGrantMutationAuditMetadata>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_._has_bits_);
+};
+
+RbacGrantMutationAuditMetadata::RbacGrantMutationAuditMetadata(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RbacGrantMutationAuditMetadata_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:provider.spacewave.RbacGrantMutationAuditMetadata)
+}
+PROTOBUF_NDEBUG_INLINE RbacGrantMutationAuditMetadata::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::provider::spacewave::RbacGrantMutationAuditMetadata& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        grant_id_(arena, from.grant_id_),
+        role_id_(arena, from.role_id_),
+        scope_(arena, from.scope_),
+        resource_id_(arena, from.resource_id_) {}
+
+RbacGrantMutationAuditMetadata::RbacGrantMutationAuditMetadata(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const RbacGrantMutationAuditMetadata& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RbacGrantMutationAuditMetadata_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  RbacGrantMutationAuditMetadata* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.principal_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.principal_)
+                : nullptr;
+  _impl_.revocation_ = (CheckHasBit(cached_has_bits, 0x00000020U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.revocation_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, action_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, action_),
+           offsetof(Impl_, expires_at_ms_) -
+               offsetof(Impl_, action_) +
+               sizeof(Impl_::expires_at_ms_));
+
+  // @@protoc_insertion_point(copy_constructor:provider.spacewave.RbacGrantMutationAuditMetadata)
+}
+PROTOBUF_NDEBUG_INLINE RbacGrantMutationAuditMetadata::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        grant_id_(arena),
+        role_id_(arena),
+        scope_(arena),
+        resource_id_(arena) {}
+
+inline void RbacGrantMutationAuditMetadata::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, principal_),
+           0,
+           offsetof(Impl_, expires_at_ms_) -
+               offsetof(Impl_, principal_) +
+               sizeof(Impl_::expires_at_ms_));
+}
+RbacGrantMutationAuditMetadata::~RbacGrantMutationAuditMetadata() {
+  // @@protoc_insertion_point(destructor:provider.spacewave.RbacGrantMutationAuditMetadata)
+  SharedDtor(*this);
+}
+inline void RbacGrantMutationAuditMetadata::SharedDtor(MessageLite& self) {
+  RbacGrantMutationAuditMetadata& this_ = static_cast<RbacGrantMutationAuditMetadata&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.grant_id_.Destroy();
+  this_._impl_.role_id_.Destroy();
+  this_._impl_.scope_.Destroy();
+  this_._impl_.resource_id_.Destroy();
+  delete this_._impl_.principal_;
+  delete this_._impl_.revocation_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL RbacGrantMutationAuditMetadata::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) RbacGrantMutationAuditMetadata(arena);
+}
+constexpr auto RbacGrantMutationAuditMetadata::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(RbacGrantMutationAuditMetadata),
+                                            alignof(RbacGrantMutationAuditMetadata));
+}
+constexpr auto RbacGrantMutationAuditMetadata::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_RbacGrantMutationAuditMetadata_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &RbacGrantMutationAuditMetadata::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<RbacGrantMutationAuditMetadata>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &RbacGrantMutationAuditMetadata::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<RbacGrantMutationAuditMetadata>(), &RbacGrantMutationAuditMetadata::ByteSizeLong,
+              &RbacGrantMutationAuditMetadata::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_._cached_size_),
+          false,
+      },
+      &RbacGrantMutationAuditMetadata::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2faudit_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull RbacGrantMutationAuditMetadata_class_data_ =
+        RbacGrantMutationAuditMetadata::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+RbacGrantMutationAuditMetadata::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&RbacGrantMutationAuditMetadata_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(RbacGrantMutationAuditMetadata_class_data_.tc_table);
+  return RbacGrantMutationAuditMetadata_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 10, 2, 97, 2>
+RbacGrantMutationAuditMetadata::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_._has_bits_),
+    0, // no _extensions_
+    10, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294966272,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    10,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    RbacGrantMutationAuditMetadata_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::provider::spacewave::RbacGrantMutationAuditMetadata>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .provider.spacewave.RbacGrantMutationAction action = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(RbacGrantMutationAuditMetadata, _impl_.action_), 6>(),
+     {8, 6, 0,
+      PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.action_)}},
+    // string grant_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.grant_id_)}},
+    // .provider.spacewave.RbacPrincipal principal = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 4, 0,
+      PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.principal_)}},
+    // string role_id = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 1, 0,
+      PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.role_id_)}},
+    // string scope = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 2, 0,
+      PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.scope_)}},
+    // string resource_id = 6;
+    {::_pbi::TcParser::FastUS1,
+     {50, 3, 0,
+      PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.resource_id_)}},
+    // uint64 resulting_version = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(RbacGrantMutationAuditMetadata, _impl_.resulting_version_), 8>(),
+     {56, 8, 0,
+      PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.resulting_version_)}},
+    // int64 expires_at_ms = 8;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(RbacGrantMutationAuditMetadata, _impl_.expires_at_ms_), 9>(),
+     {64, 9, 0,
+      PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.expires_at_ms_)}},
+    // .provider.spacewave.RbacGrantRevocation revocation = 9;
+    {::_pbi::TcParser::FastMtS1,
+     {74, 5, 1,
+      PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.revocation_)}},
+    // .provider.spacewave.RbacGrantMutationOutcome outcome = 10;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(RbacGrantMutationAuditMetadata, _impl_.outcome_), 7>(),
+     {80, 7, 0,
+      PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.outcome_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .provider.spacewave.RbacGrantMutationAction action = 1;
+    {PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.action_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // string grant_id = 2;
+    {PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.grant_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .provider.spacewave.RbacPrincipal principal = 3;
+    {PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.principal_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // string role_id = 4;
+    {PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.role_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string scope = 5;
+    {PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.scope_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string resource_id = 6;
+    {PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.resource_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint64 resulting_version = 7;
+    {PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.resulting_version_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // int64 expires_at_ms = 8;
+    {PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.expires_at_ms_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
+    // .provider.spacewave.RbacGrantRevocation revocation = 9;
+    {PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.revocation_), _Internal::kHasBitsOffset + 5, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .provider.spacewave.RbacGrantMutationOutcome outcome = 10;
+    {PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.outcome_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::provider::spacewave::RbacPrincipal>()},
+      {::_pbi::TcParser::GetTable<::provider::spacewave::RbacGrantRevocation>()},
+  }},
+  {{
+    "\61\0\10\0\7\5\13\0\0\0\0\0\0\0\0\0"
+    "provider.spacewave.RbacGrantMutationAuditMetadata"
+    "grant_id"
+    "role_id"
+    "scope"
+    "resource_id"
+  }},
+};
+PROTOBUF_NOINLINE void RbacGrantMutationAuditMetadata::Clear() {
+// @@protoc_insertion_point(message_clear_start:provider.spacewave.RbacGrantMutationAuditMetadata)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.grant_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.role_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.scope_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.resource_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(_impl_.principal_ != nullptr);
+      _impl_.principal_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(_impl_.revocation_ != nullptr);
+      _impl_.revocation_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x000000c0U)) {
+    ::memset(&_impl_.action_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.outcome_) -
+        reinterpret_cast<char*>(&_impl_.action_)) + sizeof(_impl_.outcome_));
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    ::memset(&_impl_.resulting_version_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.expires_at_ms_) -
+        reinterpret_cast<char*>(&_impl_.resulting_version_)) + sizeof(_impl_.expires_at_ms_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL RbacGrantMutationAuditMetadata::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const RbacGrantMutationAuditMetadata& this_ = static_cast<const RbacGrantMutationAuditMetadata&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL RbacGrantMutationAuditMetadata::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const RbacGrantMutationAuditMetadata& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:provider.spacewave.RbacGrantMutationAuditMetadata)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .provider.spacewave.RbacGrantMutationAction action = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_action() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_action(), target);
+    }
+  }
+
+  // string grant_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_grant_id().empty()) {
+      const ::std::string& _s = this_._internal_grant_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "provider.spacewave.RbacGrantMutationAuditMetadata.grant_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // .provider.spacewave.RbacPrincipal principal = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.principal_, this_._impl_.principal_->GetCachedSize(), target,
+        stream);
+  }
+
+  // string role_id = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_role_id().empty()) {
+      const ::std::string& _s = this_._internal_role_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "provider.spacewave.RbacGrantMutationAuditMetadata.role_id");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // string scope = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_scope().empty()) {
+      const ::std::string& _s = this_._internal_scope();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "provider.spacewave.RbacGrantMutationAuditMetadata.scope");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  // string resource_id = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_resource_id().empty()) {
+      const ::std::string& _s = this_._internal_resource_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "provider.spacewave.RbacGrantMutationAuditMetadata.resource_id");
+      target = stream->WriteStringMaybeAliased(6, _s, target);
+    }
+  }
+
+  // uint64 resulting_version = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (this_._internal_resulting_version() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          7, this_._internal_resulting_version(), target);
+    }
+  }
+
+  // int64 expires_at_ms = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (this_._internal_expires_at_ms() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<8>(
+              stream, this_._internal_expires_at_ms(), target);
+    }
+  }
+
+  // .provider.spacewave.RbacGrantRevocation revocation = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        9, *this_._impl_.revocation_, this_._impl_.revocation_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .provider.spacewave.RbacGrantMutationOutcome outcome = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (this_._internal_outcome() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          10, this_._internal_outcome(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:provider.spacewave.RbacGrantMutationAuditMetadata)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t RbacGrantMutationAuditMetadata::ByteSizeLong(const MessageLite& base) {
+  const RbacGrantMutationAuditMetadata& this_ = static_cast<const RbacGrantMutationAuditMetadata&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t RbacGrantMutationAuditMetadata::ByteSizeLong() const {
+  const RbacGrantMutationAuditMetadata& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:provider.spacewave.RbacGrantMutationAuditMetadata)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // string grant_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_grant_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_grant_id());
+      }
+    }
+    // string role_id = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_role_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_role_id());
+      }
+    }
+    // string scope = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_scope().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_scope());
+      }
+    }
+    // string resource_id = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_resource_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_resource_id());
+      }
+    }
+    // .provider.spacewave.RbacPrincipal principal = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.principal_);
+    }
+    // .provider.spacewave.RbacGrantRevocation revocation = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.revocation_);
+    }
+    // .provider.spacewave.RbacGrantMutationAction action = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_action() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_action());
+      }
+    }
+    // .provider.spacewave.RbacGrantMutationOutcome outcome = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (this_._internal_outcome() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_outcome());
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    // uint64 resulting_version = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (this_._internal_resulting_version() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_resulting_version());
+      }
+    }
+    // int64 expires_at_ms = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (this_._internal_expires_at_ms() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_expires_at_ms());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void RbacGrantMutationAuditMetadata::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<RbacGrantMutationAuditMetadata*>(&to_msg);
+  auto& from = static_cast<const RbacGrantMutationAuditMetadata&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:provider.spacewave.RbacGrantMutationAuditMetadata)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_grant_id().empty()) {
+        _this->_internal_set_grant_id(from._internal_grant_id());
+      } else {
+        if (_this->_impl_.grant_id_.IsDefault()) {
+          _this->_internal_set_grant_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_role_id().empty()) {
+        _this->_internal_set_role_id(from._internal_role_id());
+      } else {
+        if (_this->_impl_.role_id_.IsDefault()) {
+          _this->_internal_set_role_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_scope().empty()) {
+        _this->_internal_set_scope(from._internal_scope());
+      } else {
+        if (_this->_impl_.scope_.IsDefault()) {
+          _this->_internal_set_scope("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_resource_id().empty()) {
+        _this->_internal_set_resource_id(from._internal_resource_id());
+      } else {
+        if (_this->_impl_.resource_id_.IsDefault()) {
+          _this->_internal_set_resource_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(from._impl_.principal_ != nullptr);
+      if (_this->_impl_.principal_ == nullptr) {
+        _this->_impl_.principal_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.principal_);
+      } else {
+        _this->_impl_.principal_->MergeFrom(*from._impl_.principal_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(from._impl_.revocation_ != nullptr);
+      if (_this->_impl_.revocation_ == nullptr) {
+        _this->_impl_.revocation_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.revocation_);
+      } else {
+        _this->_impl_.revocation_->MergeFrom(*from._impl_.revocation_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_action() != 0) {
+        _this->_impl_.action_ = from._impl_.action_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (from._internal_outcome() != 0) {
+        _this->_impl_.outcome_ = from._impl_.outcome_;
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (from._internal_resulting_version() != 0) {
+        _this->_impl_.resulting_version_ = from._impl_.resulting_version_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (from._internal_expires_at_ms() != 0) {
+        _this->_impl_.expires_at_ms_ = from._impl_.expires_at_ms_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void RbacGrantMutationAuditMetadata::CopyFrom(const RbacGrantMutationAuditMetadata& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:provider.spacewave.RbacGrantMutationAuditMetadata)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void RbacGrantMutationAuditMetadata::InternalSwap(RbacGrantMutationAuditMetadata* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.grant_id_, &other->_impl_.grant_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.role_id_, &other->_impl_.role_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.scope_, &other->_impl_.scope_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.resource_id_, &other->_impl_.resource_id_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.expires_at_ms_)
+      + sizeof(RbacGrantMutationAuditMetadata::_impl_.expires_at_ms_)
+      - PROTOBUF_FIELD_OFFSET(RbacGrantMutationAuditMetadata, _impl_.principal_)>(
+          reinterpret_cast<char*>(&_impl_.principal_),
+          reinterpret_cast<char*>(&other->_impl_.principal_));
+}
+
+::google::protobuf::Metadata RbacGrantMutationAuditMetadata::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
