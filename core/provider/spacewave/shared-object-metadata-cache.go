@@ -50,9 +50,17 @@ func (a *ProviderAccount) GetSharedObjectMetadata(
 		seed = &a.getOrCreateSharedObjectMetadataStateLocked(soID).seed
 	})
 
-	if err := seed.Run(ctx, &a.accountBcast, func(ctx context.Context) error {
-		return a.syncSharedObjectMetadata(ctx, soID)
-	}); err != nil {
+	if err := seed.RunWhenReady(
+		ctx,
+		&a.accountBcast,
+		func() bool {
+			state := a.state.sharedObjectMetadata[soID]
+			return state != nil && state.status != sharedObjectMetadataInvalid
+		},
+		func(ctx context.Context) error {
+			return a.syncSharedObjectMetadata(ctx, soID)
+		},
+	); err != nil {
 		return nil, err
 	}
 

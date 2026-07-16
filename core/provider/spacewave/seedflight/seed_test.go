@@ -80,6 +80,30 @@ func TestSeedSharesError(t *testing.T) {
 	}
 }
 
+func TestSeedReadySkipsFetch(t *testing.T) {
+	var (
+		seed   Seed
+		bcast  broadcast.Broadcast
+		fetchN atomic.Int32
+	)
+
+	err := seed.RunWhenReady(
+		t.Context(),
+		&bcast,
+		func() bool { return true },
+		func(context.Context) error {
+			fetchN.Add(1)
+			return nil
+		},
+	)
+	if err != nil {
+		t.Fatalf("RunWhenReady: %v", err)
+	}
+	if got := fetchN.Load(); got != 0 {
+		t.Fatalf("fetchFn called %d times, want 0", got)
+	}
+}
+
 func TestSeedSecondPassRefetches(t *testing.T) {
 	var (
 		seed   Seed

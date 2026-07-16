@@ -24,14 +24,31 @@ func (s *Seed) Run(
 	bcast *broadcast.Broadcast,
 	fetchFn func(context.Context) error,
 ) error {
+	return s.RunWhenReady(ctx, bcast, nil, fetchFn)
+}
+
+// RunWhenReady runs fetchFn at most once across concurrent callers, skipping
+// the fetch when readyFn reports that the owner's cache is already usable.
+// readyFn runs while bcast's lock is held.
+func (s *Seed) RunWhenReady(
+	ctx context.Context,
+	bcast *broadcast.Broadcast,
+	readyFn func() bool,
+	fetchFn func(context.Context) error,
+) error {
 	for {
 		var (
 			waitCh <-chan struct{}
 			wasIn  bool
 			owner  bool
+			ready  bool
 		)
 		bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			waitCh = getWaitCh()
+			if readyFn != nil && readyFn() {
+				ready = true
+				return
+			}
 			if s.inflight {
 				wasIn = true
 				return
@@ -41,6 +58,9 @@ func (s *Seed) Run(
 			owner = true
 		})
 
+		if ready {
+			return nil
+		}
 		if owner {
 			err := fetchFn(ctx)
 			bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {

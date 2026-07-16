@@ -50,11 +50,8 @@ func (a *ProviderAccount) GetPendingMailboxEntriesCached(
 	ctx context.Context,
 	soID string,
 ) ([]*s4wave_provider_spacewave.MailboxEntryInfo, error) {
-	if !a.canAccessOwnerMailbox() {
-		a.setPendingMailboxResponse(soID, &api.GetMailboxResponse{})
-		return nil, nil
-	}
-	if entries, valid := a.GetPendingMailboxEntriesSnapshot(soID); valid {
+	store := a.getPendingMailboxCache()
+	if entries, valid := store.EntriesSnapshot(soID); valid {
 		return entries, nil
 	}
 
@@ -63,22 +60,22 @@ func (a *ProviderAccount) GetPendingMailboxEntriesCached(
 		seed = a.getPendingMailboxSeedLocked(soID)
 	})
 
-	if err := seed.Run(ctx, &a.accountBcast, func(ctx context.Context) error {
-		return a.syncPendingMailboxEntries(ctx, soID)
-	}); err != nil {
+	if err := seed.RunWhenReady(
+		ctx,
+		&a.accountBcast,
+		func() bool {
+			_, valid := store.EntriesSnapshot(soID)
+			return valid
+		},
+		func(ctx context.Context) error {
+			return a.syncPendingMailboxEntries(ctx, soID)
+		},
+	); err != nil {
 		return nil, err
 	}
 
-	entries, _ := a.GetPendingMailboxEntriesSnapshot(soID)
+	entries, _ := store.EntriesSnapshot(soID)
 	return entries, nil
-}
-
-// getPendingMailboxResponseSnapshot returns the cached full pending mailbox
-// response for an SO when it is available and valid.
-func (a *ProviderAccount) getPendingMailboxResponseSnapshot(
-	soID string,
-) (*api.GetMailboxResponse, bool) {
-	return a.getPendingMailboxCache().ResponseSnapshot(soID)
 }
 
 // getPendingMailboxResponseCached returns the cached full pending mailbox
@@ -91,7 +88,8 @@ func (a *ProviderAccount) getPendingMailboxResponseCached(
 		a.setPendingMailboxResponse(soID, &api.GetMailboxResponse{})
 		return &api.GetMailboxResponse{}, nil
 	}
-	if resp, valid := a.getPendingMailboxResponseSnapshot(soID); valid {
+	store := a.getPendingMailboxCache()
+	if resp, valid := store.ResponseSnapshot(soID); valid {
 		return resp, nil
 	}
 
@@ -100,13 +98,21 @@ func (a *ProviderAccount) getPendingMailboxResponseCached(
 		seed = a.getPendingMailboxSeedLocked(soID)
 	})
 
-	if err := seed.Run(ctx, &a.accountBcast, func(ctx context.Context) error {
-		return a.syncPendingMailboxEntries(ctx, soID)
-	}); err != nil {
+	if err := seed.RunWhenReady(
+		ctx,
+		&a.accountBcast,
+		func() bool {
+			_, valid := store.ResponseSnapshot(soID)
+			return valid
+		},
+		func(ctx context.Context) error {
+			return a.syncPendingMailboxEntries(ctx, soID)
+		},
+	); err != nil {
 		return nil, err
 	}
 
-	if resp, valid := a.getPendingMailboxResponseSnapshot(soID); valid {
+	if resp, valid := store.ResponseSnapshot(soID); valid {
 		return resp, nil
 	}
 	return &api.GetMailboxResponse{}, nil

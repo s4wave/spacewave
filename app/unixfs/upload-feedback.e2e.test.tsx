@@ -5,6 +5,7 @@ import { cleanup, render } from 'vitest-browser-react'
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
+import { SessionRouteContext } from '@s4wave/web/contexts/contexts.js'
 import { ViewerFrame } from '@s4wave/web/frame/ViewerFrame.js'
 import {
   SessionUploadManagerProvider,
@@ -94,25 +95,32 @@ function UploadFeedbackSurface({
   showViewer: boolean
 }) {
   return (
-    <SessionUploadManagerProvider>
-      <div className="bg-background text-foreground fixed inset-0 flex flex-col">
-        <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
-          <SessionUploadIndicator />
-          <CancelAllControl />
-          <ViewerFrame>
-            {showViewer ? (
-              <DriveViewerStub handle={handle} />
-            ) : (
-              <div className="text-foreground p-6">A different object</div>
-            )}
-          </ViewerFrame>
-        </BottomBarRoot>
-      </div>
-    </SessionUploadManagerProvider>
+    <SessionRouteContext.Provider value={testSessionRoute}>
+      <SessionUploadManagerProvider>
+        <div className="bg-background text-foreground fixed inset-0 flex flex-col">
+          <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
+            <SessionUploadIndicator />
+            <CancelAllControl />
+            <ViewerFrame>
+              {showViewer ? (
+                <DriveViewerStub handle={handle} />
+              ) : (
+                <div className="text-foreground p-6">A different object</div>
+              )}
+            </ViewerFrame>
+          </BottomBarRoot>
+        </div>
+      </SessionUploadManagerProvider>
+    </SessionRouteContext.Provider>
   )
 }
 
 const introConfig = driveIntroConfig()
+
+const testSessionRoute = {
+  basePath: '/u/1',
+  navigate: () => {},
+}
 
 // IntroUploadFeedbackSurface composes the Drive upload owner with the intro
 // overlay. Finishing the intro unmounts the Drive viewer, matching the
@@ -120,31 +128,33 @@ const introConfig = driveIntroConfig()
 function IntroUploadFeedbackSurface({ handle }: { handle: FSHandle }) {
   const [showViewer, setShowViewer] = useState(true)
   return (
-    <SessionUploadManagerProvider>
-      <div className="bg-background text-foreground fixed inset-0 flex flex-col">
-        <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
-          <SessionUploadIndicator />
-          <ViewerFrame>
-            {showViewer ? (
-              <DriveViewerStub handle={handle} />
-            ) : (
-              <div className="text-foreground p-6">A different object</div>
+    <SessionRouteContext.Provider value={testSessionRoute}>
+      <SessionUploadManagerProvider>
+        <div className="bg-background text-foreground fixed inset-0 flex flex-col">
+          <BottomBarRoot openMenu="" setOpenMenu={() => {}}>
+            <SessionUploadIndicator />
+            <ViewerFrame>
+              {showViewer ? (
+                <DriveViewerStub handle={handle} />
+              ) : (
+                <div className="text-foreground p-6">A different object</div>
+              )}
+            </ViewerFrame>
+            {showViewer && (
+              <IntroWizardOverlay
+                headline={introConfig.headline ?? ''}
+                subhead={introConfig.subhead ?? ''}
+                finishLabel={introConfig.finishLabel ?? ''}
+                callouts={introConfig.callouts ?? []}
+                finishing={false}
+                onFinish={() => setShowViewer(false)}
+                onSkip={() => setShowViewer(false)}
+              />
             )}
-          </ViewerFrame>
-          {showViewer && (
-            <IntroWizardOverlay
-              headline={introConfig.headline ?? ''}
-              subhead={introConfig.subhead ?? ''}
-              finishLabel={introConfig.finishLabel ?? ''}
-              callouts={introConfig.callouts ?? []}
-              finishing={false}
-              onFinish={() => setShowViewer(false)}
-              onSkip={() => setShowViewer(false)}
-            />
-          )}
-        </BottomBarRoot>
-      </div>
-    </SessionUploadManagerProvider>
+          </BottomBarRoot>
+        </div>
+      </SessionUploadManagerProvider>
+    </SessionRouteContext.Provider>
   )
 }
 
