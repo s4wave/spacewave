@@ -18,6 +18,7 @@ import (
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
 	"github.com/s4wave/spacewave/db/dex"
 	"github.com/s4wave/spacewave/net/hash"
+	"github.com/sirupsen/logrus"
 )
 
 // blockStoreBucketConfigRev 2 keeps local-provider buckets local-only.
@@ -260,21 +261,13 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 		),
 		hashType: localBucket.GetHashType(),
 	}
+	localStore := block_store.NewStore(blockStoreLocalID, localBucket)
 	bstoreHandle := &BlockStore{
-		store:         block_store.NewStore(blockStoreLocalID, localBucket),
+		store:         localStore,
 		readStore:     block_store.NewStore(blockStoreLocalID, &localReadStore{local: localBucket, direct: direct}),
 		decodedBlocks: decodedBlocks,
 	}
-	bstoreCtrl := block_store_controller.NewController(
-		le,
-		controller.NewInfo(ControllerID+"/bstore", Version, "local block store for: "+blockStoreLocalID),
-		block_store_controller.NewBlockStoreBuilder(bstoreHandle),
-		[]string{blockStoreLocalID},
-		true,
-		[]string{blockStoreLocalID},
-		false,
-		false,
-	)
+	bstoreCtrl := newLocalBlockStoreController(le, blockStoreLocalID, localStore)
 	relBstoreCtrl, err := t.a.t.p.b.AddController(ctx, bstoreCtrl, nil)
 	if err != nil {
 		return err
@@ -288,6 +281,23 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 
 	t.bstoreCtr.SetValue(nil)
 	return context.Canceled
+}
+
+func newLocalBlockStoreController(
+	le *logrus.Entry,
+	blockStoreLocalID string,
+	localStore block_store.Store,
+) *block_store_controller.Controller {
+	return block_store_controller.NewController(
+		le,
+		controller.NewInfo(ControllerID+"/bstore", Version, "local block store for: "+blockStoreLocalID),
+		block_store_controller.NewBlockStoreBuilder(localStore),
+		[]string{blockStoreLocalID},
+		true,
+		[]string{blockStoreLocalID},
+		false,
+		false,
+	)
 }
 
 // buildBucketConf builds the bucket config for the bstore.
@@ -319,6 +329,7 @@ func (s *localReadStore) GetHashType() hash.HashType { return s.local.GetHashTyp
 func (s *localReadStore) GetSupportedFeatures() block.StoreFeature {
 	return s.local.GetSupportedFeatures()
 }
+
 func (s *localReadStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
 	local, releaseLocal, err := s.local.BeginReadOperation(ctx)
 	if err != nil {
@@ -334,12 +345,15 @@ func (s *localReadStore) BeginReadOperation(ctx context.Context) (block.StoreOps
 		releaseLocal()
 	}, nil
 }
+
 func (s *localReadStore) PutBlock(context.Context, []byte, *block.PutOpts) (*block.BlockRef, bool, error) {
 	return nil, false, block_store.ErrReadOnly
 }
+
 func (s *localReadStore) PutBlockBatch(context.Context, []*block.PutBatchEntry) error {
 	return block_store.ErrReadOnly
 }
+
 func (s *localReadStore) RmBlock(context.Context, *block.BlockRef) error {
 	return block_store.ErrReadOnly
 }
@@ -358,10 +372,12 @@ func (s *localReadStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]b
 	}
 	return data, true, nil
 }
+
 func (s *localReadStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	_, found, err := s.GetBlock(ctx, ref)
 	return found, err
 }
+
 func (s *localReadStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	out := make([]bool, len(refs))
 	for i, ref := range refs {
@@ -373,6 +389,7 @@ func (s *localReadStore) GetBlockExistsBatch(ctx context.Context, refs []*block.
 	}
 	return out, nil
 }
+
 func (s *localReadStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	data, found, err := s.GetBlock(ctx, ref)
 	if err != nil || !found {
@@ -391,15 +408,19 @@ func (s *localDirectLookupStore) GetHashType() hash.HashType { return s.hashType
 func (s *localDirectLookupStore) GetSupportedFeatures() block.StoreFeature {
 	return 0
 }
+
 func (s *localDirectLookupStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
 	return s, func() {}, nil
 }
+
 func (s *localDirectLookupStore) PutBlock(context.Context, []byte, *block.PutOpts) (*block.BlockRef, bool, error) {
 	return nil, false, block_store.ErrReadOnly
 }
+
 func (s *localDirectLookupStore) PutBlockBatch(context.Context, []*block.PutBatchEntry) error {
 	return block_store.ErrReadOnly
 }
+
 func (s *localDirectLookupStore) RmBlock(context.Context, *block.BlockRef) error {
 	return block_store.ErrReadOnly
 }
@@ -437,10 +458,12 @@ func (s *localDirectLookupStore) GetBlock(ctx context.Context, ref *block.BlockR
 	data := val.GetData()
 	return data, len(data) != 0, nil
 }
+
 func (s *localDirectLookupStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	_, found, err := s.GetBlock(ctx, ref)
 	return found, err
 }
+
 func (s *localDirectLookupStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	out := make([]bool, len(refs))
 	for i, ref := range refs {
@@ -452,6 +475,7 @@ func (s *localDirectLookupStore) GetBlockExistsBatch(ctx context.Context, refs [
 	}
 	return out, nil
 }
+
 func (s *localDirectLookupStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	data, found, err := s.GetBlock(ctx, ref)
 	if err != nil || !found {
@@ -460,8 +484,10 @@ func (s *localDirectLookupStore) StatBlock(ctx context.Context, ref *block.Block
 	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
 }
 
-var _ block.StoreOps = ((*localReadStore)(nil))
-var _ block.StoreOps = ((*localDirectLookupStore)(nil))
+var (
+	_ block.StoreOps = ((*localReadStore)(nil))
+	_ block.StoreOps = ((*localDirectLookupStore)(nil))
+)
 
 // createBlockStoreLocked creates a new bstore with the given details.
 // Assumes a.mtx is locked.

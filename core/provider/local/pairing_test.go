@@ -1,3 +1,5 @@
+//go:build !goscript
+
 package provider_local_test
 
 import (
@@ -50,6 +52,7 @@ func handleTestSignaling(w http.ResponseWriter, r *http.Request, signalTickets c
 		return false
 	}
 }
+
 func signedSignalTicketMatches(r *http.Request, expectedEnvPrefix string, expectedPeerID peer.ID) bool {
 	if r.Header.Get("X-Peer-ID") != expectedPeerID.String() {
 		return false
