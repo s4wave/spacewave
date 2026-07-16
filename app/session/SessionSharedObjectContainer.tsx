@@ -33,6 +33,7 @@ import {
 import { ORG_ROLE_OWNER } from '@s4wave/app/org/org-constants.js'
 import { SpaceMountingScreen } from '@s4wave/app/space/SpaceMountingScreen.js'
 import { spaceMountStageFromHealth } from '@s4wave/app/space/spaceMountStage.js'
+import { isStorageQuotaError } from '@s4wave/app/session/storage/storage-error.js'
 import {
   useNavigate,
   useParams,
@@ -909,7 +910,11 @@ export function SessionSharedObjectContainer() {
     sharedObjectResource.value,
   ])
 
-  if (shouldRedirectMissingSpace) {
+  if (resourceError && isStorageQuotaError(resourceError)) {
+    queueMicrotask(() =>
+      navigateSession({ path: 'settings/storage/recovery', replace: true }),
+    )
+  } else if (shouldRedirectMissingSpace) {
     queueMicrotask(() => navigateSession({ path: '', replace: true }))
   }
 

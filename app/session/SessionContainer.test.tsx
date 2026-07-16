@@ -59,6 +59,7 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
     useContext: () => ({ value: null }),
   },
   useSessionIndex: mockUseSessionIndex,
+  useSessionNavigate: () => mockNavigate,
 }))
 
 vi.mock('@s4wave/web/router/Redirect.js', () => ({

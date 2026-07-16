@@ -1,8 +1,15 @@
-import { createContext, use, useEffect, type ReactNode } from 'react'
+import {
+  createContext,
+  use,
+  useCallback,
+  useEffect,
+  type ReactNode,
+} from 'react'
 
 import { useUploadManager } from '@s4wave/app/unixfs/useUploadManager.js'
 import type { UploadManager } from '@s4wave/app/unixfs/useUploadManager.js'
 import { UploadProgressBottomBar } from '@s4wave/app/unixfs/UploadProgressBottomBar.js'
+import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 
 // SessionUploadManagerContext holds the one upload manager for a session UI
 // tree. It is null outside a provider so presentation-only surfaces (display,
@@ -46,6 +53,16 @@ export function useSessionUploadManager(): UploadManager | null {
 // the session chrome and show regardless of which object is open.
 export function SessionUploadIndicator() {
   const manager = useSessionUploadManager()
+  const navigateSession = useSessionNavigate()
+  const handleOpenStorageHealth = useCallback(() => {
+    navigateSession({ path: 'settings/storage' })
+  }, [navigateSession])
+
   if (!manager) return null
-  return <UploadProgressBottomBar uploadManager={manager} />
+  return (
+    <UploadProgressBottomBar
+      uploadManager={manager}
+      onOpenStorageHealth={handleOpenStorageHealth}
+    />
+  )
 }

@@ -1,6 +1,6 @@
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
 import { ViewerFrame } from '@s4wave/web/frame/ViewerFrame.js'
@@ -270,9 +270,14 @@ describe('UploadProgressBottomBar', () => {
       ],
     })
 
+    const onOpenStorageHealth = vi.fn()
+
     render(
       <BottomBarRoot openMenu="upload-progress" setOpenMenu={() => {}}>
-        <UploadProgressBottomBar uploadManager={uploadManager} />
+        <UploadProgressBottomBar
+          uploadManager={uploadManager}
+          onOpenStorageHealth={onOpenStorageHealth}
+        />
         <ViewerFrame>
           <div>Browser</div>
         </ViewerFrame>
@@ -281,9 +286,11 @@ describe('UploadProgressBottomBar', () => {
 
     expect(
       screen.getByText(
-        'Browser storage quota was exceeded (50 B available; 100 B needed). Free storage used by this site or device, then retry. Spacewave already requested persistent storage; persistence prevents eviction but does not increase capacity.',
+        'Browser storage quota was exceeded (50 B available; 100 B needed). Free storage used by this site or device, then retry. Browser cleanup protection does not increase capacity.',
       ),
     ).toBeTruthy()
     expect(screen.queryByText(/build segment/)).toBeNull()
+    fireEvent.click(screen.getByText('View storage health'))
+    expect(onOpenStorageHealth).toHaveBeenCalledOnce()
   })
 })

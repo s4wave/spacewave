@@ -31,6 +31,7 @@ import { LinkDeviceWizard } from './setup/LinkDeviceWizard.js'
 import { CommandLineSetupPage } from './settings/CommandLineSetupPage.js'
 import { CliTerminalPage } from './settings/CliTerminalPage.js'
 import { TransferWizard } from './settings/TransferWizard.js'
+import { StorageHealthPage } from './storage/StorageHealthPage.js'
 import { BillingAccountDetailRoute } from '@s4wave/app/billing/BillingAccountDetailRoute.js'
 import { BillingAccountsRoute } from '@s4wave/app/billing/BillingAccountsRoute.js'
 import { BillingCancelRoute } from '@s4wave/app/billing/BillingCancelRoute.js'
@@ -84,6 +85,7 @@ import { SystemStatusButton } from '@s4wave/app/system/SystemStatusButton.js'
 import { RecoveryStatusPublisher } from '@s4wave/app/system/RecoveryStatusPublisher.js'
 import { SessionSyncStatusButton } from './SessionSyncStatusButton.js'
 import { SessionSyncStatusProvider } from './SessionSyncStatusContext.js'
+import { SessionStorageStatsProvider } from './SessionStorageStatsContext.js'
 import { SessionSelfEnrollmentStatusButton } from './SessionSelfEnrollmentStatusButton.js'
 import { SessionSelfEnrollmentStatusProvider } from './SessionSelfEnrollmentStatusContext.js'
 import {
@@ -387,147 +389,155 @@ export function SessionContainer(props: {
         stateAtomAccessor={sessionStateAccessor}
       >
         <DebugInfo>Session path: {path}</DebugInfo>
-        <SessionUploadManagerProvider>
-          <BottomBarLevel
-            id="account"
-            button={accountButton}
-            overlay={
-              <SessionDetails
-                onCloseClick={handleCloseDetails}
-                onChangeAccountClick={handleChangeAccount}
-              />
-            }
-            buttonKey={accountButtonKey}
-            menuLabel={accountLabel}
-            onBreadcrumbClick={handleAccountBreadcrumb}
-          >
-            <SessionSyncStatusProvider>
-              <SessionSelfEnrollmentStatusScope enabled={isCloudProvider}>
-                <SessionSelfEnrollmentStatusButton />
-                <SessionSyncStatusButton />
-                <SystemStatusButton />
-                <SessionUploadIndicator />
-                <SessionProviderContainer
-                  metadata={props.metadata}
-                  spacewaveOnboarding={onboardingState.value ?? null}
-                >
-                  <TargetedInvitationInbox
-                    sessionResource={spacewaveSessionResource}
+        <SessionStorageStatsProvider>
+          <SessionSyncStatusProvider>
+            <SessionUploadManagerProvider>
+              <BottomBarLevel
+                id="account"
+                button={accountButton}
+                overlay={
+                  <SessionDetails
+                    onCloseClick={handleCloseDetails}
+                    onChangeAccountClick={handleChangeAccount}
                   />
-                  <Routes>
-                    {spacewaveSessionRoutes(props.metadata, {
-                      fallbackPath: currentLevelPath,
-                    })}
-                    <Route path="/settings/cli/terminal">
-                      <CliTerminalPage />
-                    </Route>
-                    <Route path="/settings/cli">
-                      <CommandLineSetupPage />
-                    </Route>
-                    <Route path="/settings/transfer">
-                      <TransferWizard />
-                    </Route>
-                    <Route path="/join/:code">
-                      <JoinSpacePage />
-                    </Route>
-                    <Route path="/join">
-                      <JoinSpacePage />
-                    </Route>
-                    <Route path="/pair">
-                      <PairCodePage
-                        session={session}
-                        backPath="../"
-                        donePath="../"
-                      />
-                    </Route>
-                    <Route path="/setup/link-device">
-                      <SessionFlowFrame fallbackPath={currentLevelPath}>
-                        <LinkDeviceWizard />
-                      </SessionFlowFrame>
-                    </Route>
-                    <Route path="/setup/provider">
-                      <SessionFlowFrame fallbackPath={currentLevelPath}>
-                        <ProviderSetup />
-                      </SessionFlowFrame>
-                    </Route>
-                    <Route path="/setup/free-local">
-                      <SessionFlowFrame fallbackPath={currentLevelPath}>
-                        <LocalSessionSetup
-                          mode="local"
-                          metadata={props.metadata}
+                }
+                buttonKey={accountButtonKey}
+                menuLabel={accountLabel}
+                onBreadcrumbClick={handleAccountBreadcrumb}
+              >
+                <SessionSelfEnrollmentStatusScope enabled={isCloudProvider}>
+                  <SessionSelfEnrollmentStatusButton />
+                  <SessionSyncStatusButton />
+                  <SystemStatusButton />
+                  <SessionUploadIndicator />
+                  <SessionProviderContainer
+                    metadata={props.metadata}
+                    spacewaveOnboarding={onboardingState.value ?? null}
+                  >
+                    <TargetedInvitationInbox
+                      sessionResource={spacewaveSessionResource}
+                    />
+                    <Routes>
+                      {spacewaveSessionRoutes(props.metadata, {
+                        fallbackPath: currentLevelPath,
+                      })}
+                      <Route path="/settings/storage/recovery">
+                        <StorageHealthPage recovery />
+                      </Route>
+                      <Route path="/settings/storage">
+                        <StorageHealthPage />
+                      </Route>
+                      <Route path="/settings/cli/terminal">
+                        <CliTerminalPage />
+                      </Route>
+                      <Route path="/settings/cli">
+                        <CommandLineSetupPage />
+                      </Route>
+                      <Route path="/settings/transfer">
+                        <TransferWizard />
+                      </Route>
+                      <Route path="/join/:code">
+                        <JoinSpacePage />
+                      </Route>
+                      <Route path="/join">
+                        <JoinSpacePage />
+                      </Route>
+                      <Route path="/pair">
+                        <PairCodePage
+                          session={session}
+                          backPath="../"
+                          donePath="../"
                         />
-                      </SessionFlowFrame>
-                    </Route>
-                    <Route path="/setup/*">
-                      <SessionFlowFrame fallbackPath={currentLevelPath}>
-                        <SetupWizard />
-                      </SessionFlowFrame>
-                    </Route>
-                    <Route path="/setup">
-                      <SessionFlowFrame fallbackPath={currentLevelPath}>
-                        <SetupWizard />
-                      </SessionFlowFrame>
-                    </Route>
-                    <Route path="/">
-                      <SessionRootRouter metadata={props.metadata} />
-                    </Route>
-                    <Route path="/billing/:baId/cancel">
-                      <BillingCancelRoute />
-                    </Route>
-                    <Route path="/billing/:baId">
-                      <BillingAccountDetailRoute />
-                    </Route>
-                    <Route path="/billing">
-                      <BillingAccountsRoute />
-                    </Route>
-                    <Route path="/org/:orgId/new/:quickstartId">
-                      <CreateSpaceRoute />
-                    </Route>
-                    <Route path="/org/:orgId/*">
-                      <OrgContainer />
-                    </Route>
-                    <Route path="/new/:quickstartId">
-                      <CreateSpaceRoute />
-                    </Route>
-                    <Route path="/so/:sharedObjectId/*">
-                      <SessionSharedObjectContainer />
-                    </Route>
-                    <Route path="/so">
-                      <Redirect to="../" />
-                    </Route>
-                    <Route path="*">
-                      <div className="flex h-full w-full items-center justify-center px-4 py-8">
-                        <div className="border-foreground/6 bg-background-card/30 flex w-full max-w-md flex-col items-center gap-3 rounded-lg border p-6 backdrop-blur-sm">
-                          <div className="bg-foreground/5 flex size-10 items-center justify-center rounded-full">
-                            <LuCompass
-                              className="text-foreground-alt/60 size-5"
-                              aria-hidden="true"
-                            />
+                      </Route>
+                      <Route path="/setup/link-device">
+                        <SessionFlowFrame fallbackPath={currentLevelPath}>
+                          <LinkDeviceWizard />
+                        </SessionFlowFrame>
+                      </Route>
+                      <Route path="/setup/provider">
+                        <SessionFlowFrame fallbackPath={currentLevelPath}>
+                          <ProviderSetup />
+                        </SessionFlowFrame>
+                      </Route>
+                      <Route path="/setup/free-local">
+                        <SessionFlowFrame fallbackPath={currentLevelPath}>
+                          <LocalSessionSetup
+                            mode="local"
+                            metadata={props.metadata}
+                          />
+                        </SessionFlowFrame>
+                      </Route>
+                      <Route path="/setup/*">
+                        <SessionFlowFrame fallbackPath={currentLevelPath}>
+                          <SetupWizard />
+                        </SessionFlowFrame>
+                      </Route>
+                      <Route path="/setup">
+                        <SessionFlowFrame fallbackPath={currentLevelPath}>
+                          <SetupWizard />
+                        </SessionFlowFrame>
+                      </Route>
+                      <Route path="/">
+                        <SessionRootRouter metadata={props.metadata} />
+                      </Route>
+                      <Route path="/billing/:baId/cancel">
+                        <BillingCancelRoute />
+                      </Route>
+                      <Route path="/billing/:baId">
+                        <BillingAccountDetailRoute />
+                      </Route>
+                      <Route path="/billing">
+                        <BillingAccountsRoute />
+                      </Route>
+                      <Route path="/org/:orgId/new/:quickstartId">
+                        <CreateSpaceRoute />
+                      </Route>
+                      <Route path="/org/:orgId/*">
+                        <OrgContainer />
+                      </Route>
+                      <Route path="/new/:quickstartId">
+                        <CreateSpaceRoute />
+                      </Route>
+                      <Route path="/so/:sharedObjectId/*">
+                        <SessionSharedObjectContainer />
+                      </Route>
+                      <Route path="/so">
+                        <Redirect to="../" />
+                      </Route>
+                      <Route path="*">
+                        <div className="flex h-full w-full items-center justify-center px-4 py-8">
+                          <div className="border-foreground/6 bg-background-card/30 flex w-full max-w-md flex-col items-center gap-3 rounded-lg border p-6 backdrop-blur-sm">
+                            <div className="bg-foreground/5 flex size-10 items-center justify-center rounded-full">
+                              <LuCompass
+                                className="text-foreground-alt/60 size-5"
+                                aria-hidden="true"
+                              />
+                            </div>
+                            <h2 className="text-foreground text-sm font-semibold tracking-tight select-none">
+                              Page not found
+                            </h2>
+                            <p className="text-foreground-alt/60 text-center text-xs">
+                              No page exists at{' '}
+                              <code className="text-foreground-alt/80 bg-foreground/5 rounded px-1.5 py-0.5 font-mono text-[0.7rem]">
+                                {path}
+                              </code>
+                            </p>
+                            <DashboardButton
+                              icon={<LuArrowLeft className="size-3.5" />}
+                              onClick={handleGoHome}
+                            >
+                              Back to dashboard
+                            </DashboardButton>
                           </div>
-                          <h2 className="text-foreground text-sm font-semibold tracking-tight select-none">
-                            Page not found
-                          </h2>
-                          <p className="text-foreground-alt/60 text-center text-xs">
-                            No page exists at{' '}
-                            <code className="text-foreground-alt/80 bg-foreground/5 rounded px-1.5 py-0.5 font-mono text-[0.7rem]">
-                              {path}
-                            </code>
-                          </p>
-                          <DashboardButton
-                            icon={<LuArrowLeft className="size-3.5" />}
-                            onClick={handleGoHome}
-                          >
-                            Back to dashboard
-                          </DashboardButton>
                         </div>
-                      </div>
-                    </Route>
-                  </Routes>
-                </SessionProviderContainer>
-              </SessionSelfEnrollmentStatusScope>
-            </SessionSyncStatusProvider>
-          </BottomBarLevel>
-        </SessionUploadManagerProvider>
+                      </Route>
+                    </Routes>
+                  </SessionProviderContainer>
+                </SessionSelfEnrollmentStatusScope>
+              </BottomBarLevel>
+            </SessionUploadManagerProvider>
+          </SessionSyncStatusProvider>
+        </SessionStorageStatsProvider>
       </StateNamespaceProvider>
     </SessionContext.Provider>
   )

@@ -506,6 +506,46 @@ describe('SessionSharedObjectContainer', () => {
     expect(screen.getByRole('button', { name: 'Reinitialize' })).toBeTruthy()
   })
 
+  it('routes app-critical quota failures to storage recovery', async () => {
+    setWatchMocks(
+      { spacesList: [buildSpaceListEntry('created')] },
+      {
+        health: {
+          status: SharedObjectHealthStatus.READY,
+          layer: SharedObjectHealthLayer.SHARED_OBJECT,
+          commonReason: SharedObjectHealthCommonReason.UNKNOWN,
+          remediationHint: SharedObjectHealthRemediationHint.NONE,
+          error: '',
+        },
+      },
+    )
+    setResourceMocks(
+      {
+        value: { meta: { sharedObjectId: SPACE_ID } },
+        loading: false,
+        error: null,
+        retry: vi.fn(),
+      },
+      {
+        value: null,
+        loading: false,
+        error: new Error(
+          'QuotaExceededError: browser storage quota exceeded during block write',
+        ),
+        retry: vi.fn(),
+      },
+    )
+
+    render(<SessionSharedObjectContainer />)
+
+    await waitFor(() => {
+      expect(mockNavigateSession).toHaveBeenCalledWith({
+        path: 'settings/storage/recovery',
+        replace: true,
+      })
+    })
+  })
+
   it('renders typed SDK body health from a body mount response outcome', () => {
     setWatchMocks(
       { spacesList: [buildSpaceListEntry('created')] },

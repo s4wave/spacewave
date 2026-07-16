@@ -70,6 +70,7 @@ import { OrganizationsSection } from './OrganizationsSection.js'
 import { SecuritySection } from './SecuritySection.js'
 import { SessionsSection } from './SessionsSection.js'
 import { SessionSyncStatusSummary } from './SessionSyncStatusSummary.js'
+import { StorageHealthSection } from '../storage/StorageHealthSection.js'
 
 export interface SessionDetailsProps {
   onCloseClick?: () => void
@@ -84,6 +85,7 @@ type SessionOpenSection =
   | 'sessions'
   | 'orgs'
   | 'billing'
+  | 'storage'
   | 'crypto'
   | 'identifiers'
   | null
@@ -335,7 +337,7 @@ export function SessionDetails({
     [handleCloseDetails, navigateSession],
   )
 
-  const handleBillingNavigate = useCallback(
+  const handleSettingsNavigate = useCallback(
     (path: string) => {
       handleCloseDetails()
       navigateSession({ path })
@@ -473,6 +475,11 @@ export function SessionDetails({
             >
               <div className="space-y-3">
                 <SessionSyncStatusSummary />
+                <StorageHealthSection
+                  open={openSection === 'storage'}
+                  onOpenChange={handleSectionOpenChange('storage')}
+                  onNavigateToPath={handleSettingsNavigate}
+                />
 
                 {isLocal && (
                   <CollapsibleSection
@@ -623,7 +630,7 @@ export function SessionDetails({
                   isLocal={isLocal}
                   open={openSection === 'billing'}
                   onOpenChange={handleSectionOpenChange('billing')}
-                  onNavigateToPath={handleBillingNavigate}
+                  onNavigateToPath={handleSettingsNavigate}
                 />
                 <CryptoKeysSection
                   open={openSection === 'crypto'}

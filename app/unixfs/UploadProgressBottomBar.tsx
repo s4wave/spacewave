@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { LuCheck, LuCircleAlert, LuFolder, LuUpload, LuX } from 'react-icons/lu'
 
+import { isStorageQuotaError } from '@s4wave/app/session/storage/storage-error.js'
 import { BottomBarLevel } from '@s4wave/web/frame/bottom-bar-level.js'
 import {
   Popover,
@@ -33,10 +34,7 @@ function formatBytes(bytes: number, decimals = 1): string {
 }
 
 function formatUploadError(error: string | undefined): string | undefined {
-  if (
-    !error?.includes('QuotaExceededError') &&
-    !error?.includes('browser storage quota exceeded')
-  ) {
+  if (!error || !isStorageQuotaError(error)) {
     return error
   }
   const available = error.match(/available (\d+) bytes/)
@@ -46,14 +44,16 @@ function formatUploadError(error: string | undefined): string | undefined {
         required ? `; ${formatBytes(Number(required[1]))} needed` : ''
       })`
     : ''
-  return `Browser storage quota was exceeded${headroom}. Free storage used by this site or device, then retry. Spacewave already requested persistent storage; persistence prevents eviction but does not increase capacity.`
+  return `Browser storage quota was exceeded${headroom}. Free storage used by this site or device, then retry. Browser cleanup protection does not increase capacity.`
 }
 
 // UploadProgressOverlay renders the list of upload items with progress.
 function UploadProgressOverlay({
   uploadManager,
+  onOpenStorageHealth,
 }: {
   uploadManager: UploadManager
+  onOpenStorageHealth?: () => void
 }) {
   const queuedCount = uploadManager.items.filter(
     (i) => i.status === 'queued',
@@ -153,6 +153,7 @@ function UploadProgressOverlay({
             key={item.id}
             item={item}
             onCancel={uploadManager.cancelUpload}
+            onOpenStorageHealth={onOpenStorageHealth}
           />
         ))}
       </div>
@@ -177,9 +178,11 @@ function SummaryCell({ label, value }: { label: string; value: string }) {
 function UploadItemRow({
   item,
   onCancel,
+  onOpenStorageHealth,
 }: {
   item: UploadItem
   onCancel: (id: string) => void
+  onOpenStorageHealth?: () => void
 }) {
   const progress =
     item.totalSize > 0
@@ -189,6 +192,7 @@ function UploadItemRow({
   const handleCancel = useCallback(() => {
     onCancel(item.id)
   }, [item.id, onCancel])
+  const quotaError = isStorageQuotaError(item.error)
 
   const statusLabel =
     item.status === 'uploading'
@@ -228,6 +232,14 @@ function UploadItemRow({
             {statusLabel}
           </span>
         </div>
+        {quotaError && onOpenStorageHealth && (
+          <button
+            className="text-brand hover:text-brand-highlight w-fit text-xs font-medium transition-colors"
+            onClick={onOpenStorageHealth}
+          >
+            View storage health
+          </button>
+        )}
         <div className="text-foreground-alt truncate text-xs">{item.path}</div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="bg-muted h-1.5 min-w-[10rem] flex-1 overflow-hidden rounded-full">
@@ -325,8 +337,10 @@ function UploadFeedbackContent({ feedback }: { feedback: UploadEvent }) {
 // UploadProgressBottomBar renders an upload progress indicator in the bottom bar.
 export function UploadProgressBottomBar({
   uploadManager,
+  onOpenStorageHealth,
 }: {
   uploadManager: UploadManager
+  onOpenStorageHealth?: () => void
 }) {
   const totalCount = uploadManager.items.length
   const activeUploading = uploadManager.activeCount
@@ -401,7 +415,12 @@ export function UploadProgressBottomBar({
       buttonKey={`${activeUploading}-${totalCount}-${doneCount}-${
         feedback ? feedback.id : 'none'
       }`}
-      overlay={<UploadProgressOverlay uploadManager={uploadManager} />}
+      overlay={
+        <UploadProgressOverlay
+          uploadManager={uploadManager}
+          onOpenStorageHealth={onOpenStorageHealth}
+        />
+      }
       overlayKey={`${totalCount}-${activeUploading}-${doneCount}`}
     >
       {null}
