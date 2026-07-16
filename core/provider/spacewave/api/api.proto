@@ -1583,7 +1583,7 @@ message RbacGrantLifecycle {
   // Version is the current grant version.
   uint64 version = 6;
   // ExpiresAtMs is the grant expiry in epoch milliseconds when present.
-  int64 expires_at_ms = 7;
+  optional int64 expires_at_ms = 7;
   // Revocation is present when the grant has a revocation tombstone.
   RbacGrantRevocation revocation = 8;
   // LastMutation is the latest mutation summary when present.

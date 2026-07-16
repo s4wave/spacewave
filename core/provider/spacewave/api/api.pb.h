@@ -44857,7 +44857,8 @@ class RbacGrantLifecycle final : public ::google::protobuf::Message
   void _internal_set_version(::uint64_t value);
 
   public:
-  // int64 expires_at_ms = 7;
+  // optional int64 expires_at_ms = 7;
+  bool has_expires_at_ms() const;
   void clear_expires_at_ms() ;
   ::int64_t expires_at_ms() const;
   void set_expires_at_ms(::int64_t value);
@@ -79659,7 +79660,11 @@ inline void RbacGrantLifecycle::_internal_set_version(::uint64_t value) {
   _impl_.version_ = value;
 }
 
-// int64 expires_at_ms = 7;
+// optional int64 expires_at_ms = 7;
+inline bool RbacGrantLifecycle::has_expires_at_ms() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000100U);
+  return value;
+}
 inline void RbacGrantLifecycle::clear_expires_at_ms() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.expires_at_ms_ = ::int64_t{0};

@@ -6119,7 +6119,7 @@ export interface RbacGrantLifecycle {
   /**
    * ExpiresAtMs is the grant expiry in epoch milliseconds when present.
    *
-   * @generated from field: int64 expires_at_ms = 7;
+   * @generated from field: optional int64 expires_at_ms = 7;
    */
   expiresAtMs?: bigint
   /**
@@ -6151,7 +6151,13 @@ export const RbacGrantLifecycle: MessageType<RbacGrantLifecycle> =
       { no: 4, name: 'scope', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'resource_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'version', kind: 'scalar', T: ScalarType.UINT64 },
-      { no: 7, name: 'expires_at_ms', kind: 'scalar', T: ScalarType.INT64 },
+      {
+        no: 7,
+        name: 'expires_at_ms',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+        opt: true,
+      },
       {
         no: 8,
         name: 'revocation',

@@ -1927,8 +1927,8 @@ pub struct RbacGrantLifecycle {
     #[prost(uint64, tag="6")]
     pub version: u64,
     /// ExpiresAtMs is the grant expiry in epoch milliseconds when present.
-    #[prost(int64, tag="7")]
-    pub expires_at_ms: i64,
+    #[prost(int64, optional, tag="7")]
+    pub expires_at_ms: ::core::option::Option<i64>,
     /// Revocation is present when the grant has a revocation tombstone.
     #[prost(message, optional, tag="8")]
     pub revocation: ::core::option::Option<RbacGrantRevocation>,
