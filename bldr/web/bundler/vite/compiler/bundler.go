@@ -19,6 +19,7 @@ import (
 	"github.com/aperturerobotics/util/promise"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
+	bldr_buildbudget "github.com/s4wave/spacewave/bldr/util/buildbudget"
 	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
@@ -188,6 +189,16 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	if ctx.Err() != nil {
 		return context.Canceled
 	}
+
+	budget, err := bldr_buildbudget.Default()
+	if err != nil {
+		return err
+	}
+	permit, err := budget.Acquire(ctx, bldr_buildbudget.ViteBuildWeight)
+	if err != nil {
+		return err
+	}
+	defer permit.Release()
 
 	// Run the process
 	err = cmd.Start()

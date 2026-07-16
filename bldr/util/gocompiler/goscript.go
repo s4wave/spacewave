@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	goscript_compiler "github.com/s4wave/goscript/compiler"
+	bldr_buildbudget "github.com/s4wave/spacewave/bldr/util/buildbudget"
 	"github.com/sirupsen/logrus"
 )
 
@@ -166,6 +167,16 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 		}
 		conf.OverrideDirs = append(conf.OverrideDirs, dir)
 	}
+
+	budget, err := bldr_buildbudget.Default()
+	if err != nil {
+		return err
+	}
+	permit, err := budget.Acquire(ctx, bldr_buildbudget.GoScriptCompileWeight)
+	if err != nil {
+		return err
+	}
+	defer permit.Release()
 
 	timeStart := time.Now()
 	comp, err := goscript_compiler.NewCompiler(conf, le, nil)
