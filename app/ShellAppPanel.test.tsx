@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   cleanup,
   fireEvent,
@@ -11,7 +11,23 @@ import {
 import { getAppPath } from '@s4wave/web/router/app-path.js'
 
 import { ShellAppPanel } from './ShellAppPanel.js'
-import { ShellTabsProvider, SHELL_TABS_STORAGE_KEY } from './ShellTabContext.js'
+import { ShellTabsProvider, useShellTabs } from './ShellTabContext.js'
+import {
+  installShellTabTestBrowser,
+  readShellTabsSnapshot,
+  seedShellTabs,
+} from './ShellTabTestHarness.js'
+import type { ShellDocumentEntry } from './ShellDocumentEntry.js'
+
+const continuationEntry: ShellDocumentEntry = {
+  kind: 'continuation',
+  path: '/',
+  params: {},
+  incarnation: 'test-document',
+}
+function handoffEntry(tabId: string): ShellDocumentEntry {
+  return { ...continuationEntry, kind: 'handoff', tabId }
+}
 
 vi.mock('@s4wave/web/frame/bottom-bar-root.js', () => ({
   BottomBarRoot: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -76,32 +92,38 @@ vi.mock('./routes/AppRoutes.js', async () => {
   return { AppRoutes: MockAppRoutes }
 })
 
-function seedTabs(activeTabId: string) {
-  sessionStorage.setItem(
-    SHELL_TABS_STORAGE_KEY,
-    JSON.stringify({
-      tabs: [
-        { id: 'tab-1', name: 'Home', path: '/' },
-        { id: 'tab-2', name: 'Quickstart', path: '/quickstart/drive' },
-      ],
-      activeTabId,
-    }),
-  )
+function seedTabs(_activeTabId: string) {
+  seedShellTabs([
+    { id: 'tab-1', name: 'Home', path: '/' },
+    { id: 'tab-2', name: 'Quickstart', path: '/quickstart/drive' },
+  ])
+}
+function ActiveTabProbe() {
+  const { activeTabId } = useShellTabs()
+  return <span data-testid="active-tab-id">{activeTabId}</span>
 }
 
 describe('ShellAppPanel', () => {
+  let restoreTestBrowser: (() => void) | undefined
+
+  beforeEach(() => {
+    restoreTestBrowser = installShellTabTestBrowser()
+  })
+
   afterEach(() => {
     cleanup()
     localStorage.clear()
     sessionStorage.clear()
     window.history.replaceState({}, '', '/')
+    restoreTestBrowser?.()
+    restoreTestBrowser = undefined
   })
 
   it('ignores inactive panel navigation', () => {
     seedTabs('tab-2')
 
     render(
-      <ShellTabsProvider>
+      <ShellTabsProvider entry={handoffEntry('tab-2')}>
         <ShellAppPanel
           tabId="tab-1"
           initialPath="/"
@@ -117,11 +139,11 @@ describe('ShellAppPanel', () => {
     expect(getAppPath()).toBe('/')
   })
 
-  it('syncs active panel navigation to the global app path', () => {
+  it('syncs active panel navigation to the global app path', async () => {
     seedTabs('tab-2')
 
     render(
-      <ShellTabsProvider>
+      <ShellTabsProvider entry={handoffEntry('tab-2')}>
         <ShellAppPanel
           tabId="tab-2"
           initialPath="/quickstart/drive"
@@ -133,14 +155,15 @@ describe('ShellAppPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Docs' }))
 
-    expect(getAppPath()).toBe('/docs')
+    await waitFor(() => expect(getAppPath()).toBe('/docs'))
   })
 
   it('adds selected shell tabs from embedded tab-context requests', async () => {
     seedTabs('tab-1')
 
     render(
-      <ShellTabsProvider>
+      <ShellTabsProvider entry={handoffEntry('tab-1')}>
+        <ActiveTabProbe />
         <ShellAppPanel
           tabId="tab-1"
           initialPath="/"
@@ -152,14 +175,11 @@ describe('ShellAppPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add Docs Tab' }))
 
     await waitFor(() => {
-      const stored = JSON.parse(
-        sessionStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
-      ) as {
-        activeTabId: string
-        tabs: Array<{ id: string; name: string; path: string }>
-      }
-      const activeTab = stored.tabs.find((tab) => tab.id === stored.activeTabId)
-      expect(activeTab).toMatchObject({ name: 'Docs', path: '/docs' })
+      const docsTab = readShellTabsSnapshot().records.find(
+        (tab) => tab.path === '/docs',
+      )
+      expect(docsTab).toMatchObject({ name: 'Docs', path: '/docs' })
+      expect(screen.getByTestId('active-tab-id').textContent).toBe(docsTab?.id)
     })
   })
 })

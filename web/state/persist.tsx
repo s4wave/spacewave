@@ -216,6 +216,7 @@ export const StateNamespaceContext = createContext<StateNamespace | undefined>(
  * @param {string[]} [props.namespace] - Optional namespace identifier
  * @param {StateNamespace} [props.stateNamespace] - Optional state namespace to inherit path from
  * @param {ReturnType<typeof atomWithStorage<StateType>>} [props.rootAtom] - Optional root storage atom
+ * @param {boolean} [props.inheritStateAtomAccessor] - Whether to inherit a parent backend accessor
  */
 export function StateNamespaceProvider({
   children,
@@ -223,12 +224,14 @@ export function StateNamespaceProvider({
   rootAtom,
   stateNamespace,
   stateAtomAccessor,
+  inheritStateAtomAccessor = true,
 }: {
   children?: ReactNode
   namespace?: string[]
   rootAtom?: Atom<StateType>
   stateNamespace?: StateNamespace
   stateAtomAccessor?: StateAtomAccessor
+  inheritStateAtomAccessor?: boolean
 }) {
   const parentContext = use(StateNamespaceContext)
   const inheritedNamespace = stateNamespace?.namespace
@@ -244,7 +247,11 @@ export function StateNamespaceProvider({
     return {
       namespace: childNamespace,
       stateAtom: rootAtom ?? parentContext?.stateAtom ?? atom<StateType>({}),
-      stateAtomAccessor: stateAtomAccessor ?? parentContext?.stateAtomAccessor,
+      stateAtomAccessor:
+        stateAtomAccessor ??
+        (inheritStateAtomAccessor
+          ? parentContext?.stateAtomAccessor
+          : undefined),
     }
   }, [
     inheritedNamespace,
@@ -254,6 +261,7 @@ export function StateNamespaceProvider({
     parentContext?.stateAtom,
     parentContext?.stateAtomAccessor,
     stateAtomAccessor,
+    inheritStateAtomAccessor,
   ])
 
   return (

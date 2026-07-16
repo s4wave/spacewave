@@ -107,8 +107,11 @@ function ShellAppPanelInner({
       if (!tabId) return
       if (syncAppPath && tabId !== activeTabId) return
       const newPath = resolvePath(path, to)
-      updateTabPath(tabId, newPath)
-      if (syncAppPath) setAppPath(newPath)
+      updateTabPath(
+        tabId,
+        newPath,
+        syncAppPath ? () => setAppPath(newPath) : undefined,
+      )
     },
     [tabId, activeTabId, path, updateTabPath, syncAppPath],
   )

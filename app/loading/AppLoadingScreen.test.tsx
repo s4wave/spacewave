@@ -49,6 +49,12 @@ const mockProjection = vi.hoisted<{
         serviceWorker: { state: 'unknown' },
         pluginGeneration: { state: 'idle' },
         frame: { state: 'idle' },
+        warmProjection: {
+          state: 'cold',
+          connection: false,
+          neutralFrame: false,
+          finalReveal: false,
+        },
       },
     },
   }

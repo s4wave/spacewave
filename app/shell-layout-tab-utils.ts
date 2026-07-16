@@ -27,6 +27,7 @@ export function addShellModelTab(
       tabsetId,
       DockLocation.CENTER,
       -1,
+      false,
     ),
   )
 }

@@ -47,8 +47,9 @@ export interface To {
   path: string
   /** Whether to replace the current history entry */
   replace?: boolean
+  /** Named hash parameters retained independently of route matching */
+  params?: Record<string, string>
 }
-
 /**
  * Resolves a relative path to an absolute path based on the current path.
  */

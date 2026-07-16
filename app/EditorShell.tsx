@@ -21,7 +21,6 @@ import {
   TabContextProvider,
   type TabContextValue,
 } from '@s4wave/web/object/TabContext.js'
-
 import { ShellTabStrip } from './ShellFlexLayout.js'
 import { ShellGridLayout } from './ShellGridLayout.js'
 import { ShellMenuBar } from './ShellMenuBar.js'
@@ -30,6 +29,10 @@ import {
   useShellTabs,
   ShellTabStateProvider,
 } from './ShellTabContext.js'
+import {
+  classifyShellDocumentEntry,
+  type ShellDocumentEntry,
+} from './ShellDocumentEntry.js'
 import { ShellProvider } from './ShellContext.js'
 
 // isDebug is true in debug builds (BLDR_DEBUG injected by esbuild).
@@ -118,8 +121,13 @@ export function EditorShell() {
     </CliTerminalSessionProvider>
   )
 }
+function useShellDocumentEntry(): ShellDocumentEntry {
+  const [entry] = useState(() => classifyShellDocumentEntry())
+  return entry
+}
 
 function EditorShellContent() {
+  const documentEntry = useShellDocumentEntry()
   const namespace = useStateNamespace(['shell'])
 
   const [openMenu, setOpenMenu] = useStateAtom<string>(
@@ -148,7 +156,7 @@ function EditorShellContent() {
   if (isGridMode) {
     return (
       <ShellProvider isGridMode={true}>
-        <ShellTabsProvider>
+        <ShellTabsProvider entry={documentEntry}>
           <ActiveTabCommandScope>
             <BottomBarRoot openMenu={openMenu} setOpenMenu={setOpenMenu}>
               <div className="flex h-full flex-1 flex-col overflow-hidden">
@@ -181,7 +189,7 @@ function EditorShellContent() {
   return (
     <ShellProvider isGridMode={false}>
       <BottomBarRoot openMenu={openMenu} setOpenMenu={setOpenMenu}>
-        <ShellTabStrip>
+        <ShellTabStrip entry={documentEntry}>
           <CommandRuntime>
             <ShellMenuBar />
           </CommandRuntime>

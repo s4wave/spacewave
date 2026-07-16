@@ -93,8 +93,8 @@ if (typeof document === 'undefined') {
 
 vi.mock('@s4wave/web/router/app-path.js', () => ({
   getAppPath: () => h.appPath,
+  getAppNavigation: () => ({ path: h.appPath, params: {} }),
 }))
-
 vi.mock('@s4wave/web/state/index.js', () => ({
   useStateAtom: <T,>(_: unknown, __: string, initialValue: T) => [
     initialValue,

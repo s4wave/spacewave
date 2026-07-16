@@ -20,7 +20,7 @@ import { SelectAccountCommand } from '@s4wave/app/session/SelectAccountCommand.j
 // BuiltinCommands registers built-in commands with the command registry.
 // Returns null (no UI).
 export function BuiltinCommands() {
-  const { activeTabId, openPathInNewTab } = useShellTabs()
+  const { activeTabId, openPathInNewTab, resetShellTabs } = useShellTabs()
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [keybindingEditorOpen, setKeybindingEditorOpen] = useState(false)
   const [keybindingEditorScope, setKeybindingEditorScope] =
@@ -60,6 +60,16 @@ export function BuiltinCommands() {
     handler: useCallback(() => {
       void addRootAlias()
     }, [addRootAlias]),
+  })
+
+  useCommand({
+    commandId: 'spacewave.shell.reset-tabs',
+    label: 'Reset Shell Tabs',
+    description: 'Replace the shared Shell Tab inventory with a fresh Home tab',
+    menuPath: 'View/Reset Shell Tabs',
+    menuGroup: 20,
+    menuOrder: 4,
+    handler: useCallback(() => resetShellTabs(), [resetShellTabs]),
   })
 
   useCommand({

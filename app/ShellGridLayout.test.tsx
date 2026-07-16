@@ -15,15 +15,23 @@ import {
 } from '@s4wave/web/dnd/app-drag.js'
 
 import { ShellGridLayout } from './ShellGridLayout.js'
+import { ShellTabsProvider, useShellTabs } from './ShellTabContext.js'
 import {
-  ShellTabsProvider,
-  SHELL_TABS_STORAGE_KEY,
-  useShellTabs,
-} from './ShellTabContext.js'
+  installShellTabTestBrowser,
+  readShellTabsSnapshot,
+  seedShellTabs,
+} from './ShellTabTestHarness.js'
+import type { ShellDocumentEntry } from './ShellDocumentEntry.js'
 import {
   buildUnixFSEntryAppDragEnvelope,
   buildUnixFSSelectionAppDragEnvelope,
 } from './unixfs/unixfs-app-drag.js'
+const continuationEntry: ShellDocumentEntry = {
+  kind: 'continuation',
+  path: '/',
+  params: {},
+  incarnation: 'test-document',
+}
 
 interface MockOptimizedLayoutProps {
   model: {
@@ -556,14 +564,17 @@ function GridRouteHarness() {
   }
 
   return (
-    <ShellTabsProvider>
+    <ShellTabsProvider entry={continuationEntry}>
       <ShellGridLayout />
     </ShellTabsProvider>
   )
 }
 
 describe('ShellGridLayout', () => {
+  let restoreTestBrowser: (() => void) | undefined
+
   beforeEach(() => {
+    restoreTestBrowser = installShellTabTestBrowser()
     delete mockJsonModel.borders
     for (const tabset of mockJsonModel.layout.children) {
       delete tabset.selected
@@ -582,24 +593,20 @@ describe('ShellGridLayout', () => {
     clearActiveAppDragEnvelope()
     vi.clearAllMocks()
     mockOptimizedLayoutProps.mockReset()
+    restoreTestBrowser?.()
+    restoreTestBrowser = undefined
   })
 
   it('prunes decoded grid tabs that are absent from shell tab state', () => {
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [
-          { id: 'tab-1', name: 'Docs', path: '/docs' },
-          { id: 'tab-2', name: 'Home', path: '/' },
-        ],
-        activeTabId: 'tab-1',
-      }),
-    )
+    seedShellTabs([
+      { id: 'tab-1', name: 'Docs', path: '/docs' },
+      { id: 'tab-2', name: 'Home', path: '/' },
+    ])
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     try {
       render(
-        <ShellTabsProvider>
+        <ShellTabsProvider entry={continuationEntry}>
           <ShellGridLayout />
         </ShellTabsProvider>,
       )
@@ -618,19 +625,13 @@ describe('ShellGridLayout', () => {
 
   it('remaps tabset selection when the selected decoded tab is pruned', () => {
     mockJsonModel.layout.children[0].selected = 1
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [
-          { id: 'tab-1', name: 'Docs', path: '/docs' },
-          { id: 'tab-3', name: 'Blog', path: '/blog' },
-        ],
-        activeTabId: 'tab-1',
-      }),
-    )
+    seedShellTabs([
+      { id: 'tab-1', name: 'Docs', path: '/docs' },
+      { id: 'tab-3', name: 'Blog', path: '/blog' },
+    ])
 
     render(
-      <ShellTabsProvider>
+      <ShellTabsProvider entry={continuationEntry}>
         <ShellGridLayout />
       </ShellTabsProvider>,
     )
@@ -655,19 +656,13 @@ describe('ShellGridLayout', () => {
         children: [{ type: 'tab', id: 'tab-3', name: 'Blog' }],
       },
     ]
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [
-          { id: 'tab-1', name: 'Docs', path: '/docs' },
-          { id: 'tab-2', name: 'Home', path: '/' },
-        ],
-        activeTabId: 'tab-1',
-      }),
-    )
+    seedShellTabs([
+      { id: 'tab-1', name: 'Docs', path: '/docs' },
+      { id: 'tab-2', name: 'Home', path: '/' },
+    ])
 
     render(
-      <ShellTabsProvider>
+      <ShellTabsProvider entry={continuationEntry}>
         <ShellGridLayout />
       </ShellTabsProvider>,
     )
@@ -685,19 +680,13 @@ describe('ShellGridLayout', () => {
         children: [{ type: 'tab', id: 'tab-1', name: 'Docs' }],
       },
     ]
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [
-          { id: 'tab-1', name: 'Docs', path: '/docs' },
-          { id: 'tab-2', name: 'Home', path: '/' },
-        ],
-        activeTabId: 'tab-1',
-      }),
-    )
+    seedShellTabs([
+      { id: 'tab-1', name: 'Docs', path: '/docs' },
+      { id: 'tab-2', name: 'Home', path: '/' },
+    ])
 
     render(
-      <ShellTabsProvider>
+      <ShellTabsProvider entry={continuationEntry}>
         <ShellGridLayout />
       </ShellTabsProvider>,
     )
@@ -709,19 +698,13 @@ describe('ShellGridLayout', () => {
   })
 
   it('keeps grid ownership when pruning stale tabs collapses the decoded layout', () => {
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [
-          { id: 'tab-1', name: 'Docs', path: '/docs' },
-          { id: 'tab-2', name: 'Home', path: '/' },
-        ],
-        activeTabId: 'tab-1',
-      }),
-    )
+    seedShellTabs([
+      { id: 'tab-1', name: 'Docs', path: '/docs' },
+      { id: 'tab-2', name: 'Home', path: '/' },
+    ])
 
     render(
-      <ShellTabsProvider>
+      <ShellTabsProvider entry={continuationEntry}>
         <ShellGridLayout />
       </ShellTabsProvider>,
     )
@@ -730,20 +713,14 @@ describe('ShellGridLayout', () => {
   })
 
   it('keeps model changes in the grid route when the layout collapses', () => {
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [
-          { id: 'tab-1', name: 'Docs', path: '/shell-docs' },
-          { id: 'tab-2', name: 'Home', path: '/' },
-          { id: 'tab-3', name: 'Blog', path: '/blog' },
-        ],
-        activeTabId: 'tab-1',
-      }),
-    )
+    seedShellTabs([
+      { id: 'tab-1', name: 'Docs', path: '/shell-docs' },
+      { id: 'tab-2', name: 'Home', path: '/' },
+      { id: 'tab-3', name: 'Blog', path: '/blog' },
+    ])
 
     render(
-      <ShellTabsProvider>
+      <ShellTabsProvider entry={continuationEntry}>
         <ShellGridLayout />
       </ShellTabsProvider>,
     )
@@ -768,16 +745,10 @@ describe('ShellGridLayout', () => {
   })
 
   it('keeps a surviving pane mounted when closing its horizontal split sibling', async () => {
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [
-          { id: 'tab-1', name: 'Docs', path: '/docs' },
-          { id: 'tab-3', name: 'Terminal', path: '/u/7/settings/cli/terminal' },
-        ],
-        activeTabId: 'tab-1',
-      }),
-    )
+    seedShellTabs([
+      { id: 'tab-1', name: 'Docs', path: '/docs' },
+      { id: 'tab-3', name: 'Terminal', path: '/u/7/settings/cli/terminal' },
+    ])
 
     render(<GridRouteHarness />)
 
@@ -804,20 +775,14 @@ describe('ShellGridLayout', () => {
   })
 
   it('opens the shared tab context menu in grid mode and routes rename through tab state', () => {
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [
-          { id: 'tab-1', name: 'Docs', path: '/docs' },
-          { id: 'tab-2', name: 'Home', path: '/' },
-          { id: 'tab-3', name: 'Blog', path: '/blog' },
-        ],
-        activeTabId: 'tab-1',
-      }),
-    )
+    seedShellTabs([
+      { id: 'tab-1', name: 'Docs', path: '/docs' },
+      { id: 'tab-2', name: 'Home', path: '/' },
+      { id: 'tab-3', name: 'Blog', path: '/blog' },
+    ])
 
     render(
-      <ShellTabsProvider>
+      <ShellTabsProvider entry={continuationEntry}>
         <RenamingStateProbe />
         <ShellGridLayout />
       </ShellTabsProvider>,
@@ -834,19 +799,13 @@ describe('ShellGridLayout', () => {
   })
 
   it('projects command-created docs tabs into the active grid tabset', async () => {
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [
-          { id: 'tab-2', name: 'Home', path: '/' },
-          { id: 'tab-3', name: 'Blog', path: '/blog' },
-        ],
-        activeTabId: 'tab-2',
-      }),
-    )
+    seedShellTabs([
+      { id: 'tab-2', name: 'Home', path: '/' },
+      { id: 'tab-3', name: 'Blog', path: '/blog' },
+    ])
 
     render(
-      <ShellTabsProvider>
+      <ShellTabsProvider entry={continuationEntry}>
         <GridDocsCommandProbe />
         <ShellGridLayout />
       </ShellTabsProvider>,
@@ -855,18 +814,14 @@ describe('ShellGridLayout', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open Docs' }))
 
     await waitFor(() => {
-      const stored = JSON.parse(
-        sessionStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
-      ) as {
-        activeTabId: string
-        tabs: Array<{ id: string; name: string; path: string }>
-      }
-      const activeTab = stored.tabs.find((tab) => tab.id === stored.activeTabId)
-      expect(activeTab).toMatchObject({ name: 'Docs', path: '/docs' })
+      const stored = readShellTabsSnapshot()
       const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
-      expect(
-        props?.model.tabs.some((tab) => tab.id === stored.activeTabId),
-      ).toBe(true)
+      const selectedTabset = props?.model.tabsets[0]
+      const selectedId =
+        selectedTabset?.children[selectedTabset.selected ?? -1]?.id
+      const activeTab = stored.records.find((tab) => tab.id === selectedId)
+      expect(activeTab).toMatchObject({ name: 'Docs', path: '/docs' })
+      expect(props?.model.tabs.some((tab) => tab.id === selectedId)).toBe(true)
       expect(mockNavigate).toHaveBeenCalledWith({
         path: '/g/encoded-grid',
         replace: true,
@@ -875,19 +830,13 @@ describe('ShellGridLayout', () => {
   })
 
   it('projects command-line terminal tabs into the active grid tabset with the Terminal name', async () => {
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [
-          { id: 'tab-2', name: 'Home', path: '/' },
-          { id: 'tab-3', name: 'Blog', path: '/blog' },
-        ],
-        activeTabId: 'tab-2',
-      }),
-    )
+    seedShellTabs([
+      { id: 'tab-2', name: 'Home', path: '/' },
+      { id: 'tab-3', name: 'Blog', path: '/blog' },
+    ])
 
     render(
-      <ShellTabsProvider>
+      <ShellTabsProvider entry={continuationEntry}>
         <GridCliCommandProbe />
         <ShellGridLayout />
       </ShellTabsProvider>,
@@ -896,44 +845,33 @@ describe('ShellGridLayout', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open CLI terminal' }))
 
     await waitFor(() => {
-      const stored = JSON.parse(
-        sessionStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
-      ) as {
-        activeTabId: string
-        tabs: Array<{ id: string; name: string; path: string }>
-      }
-      const activeTab = stored.tabs.find((tab) => tab.id === stored.activeTabId)
+      const stored = readShellTabsSnapshot()
+      const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
+      const selectedTabset = props?.model.tabsets[0]
+      const selectedId =
+        selectedTabset?.children[selectedTabset.selected ?? -1]?.id
+      const activeTab = stored.records.find((tab) => tab.id === selectedId)
       expect(activeTab).toMatchObject({
         name: 'Terminal',
         path: '/u/7/settings/cli/terminal',
       })
-
-      const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
       const activeGridTab = props?.model.tabs.find(
-        (tab) => tab.id === stored.activeTabId,
+        (tab) => tab.id === selectedId,
       )
-      const selectedGridTab =
-        props?.model.tabsets[0]?.children[props.model.tabsets[0].selected ?? -1]
       expect(activeGridTab).toBeDefined()
-      expect(selectedGridTab?.id).toBe(stored.activeTabId)
+      expect(selectedId).toBe(activeTab?.id)
     })
   })
 
   it('accepts UnixFS row drags through the grid layout external-drag handler', async () => {
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [
-          { id: 'tab-1', name: 'Docs', path: '/docs' },
-          { id: 'tab-2', name: 'Home', path: '/' },
-          { id: 'tab-3', name: 'Blog', path: '/blog' },
-        ],
-        activeTabId: 'tab-1',
-      }),
-    )
+    seedShellTabs([
+      { id: 'tab-1', name: 'Docs', path: '/docs' },
+      { id: 'tab-2', name: 'Home', path: '/' },
+      { id: 'tab-3', name: 'Blog', path: '/blog' },
+    ])
 
     render(
-      <ShellTabsProvider>
+      <ShellTabsProvider entry={continuationEntry}>
         <ShellGridLayout />
       </ShellTabsProvider>,
     )
@@ -962,15 +900,13 @@ describe('ShellGridLayout', () => {
     })
 
     await waitFor(() => {
-      const stored = JSON.parse(
-        sessionStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
-      ) as {
-        activeTabId: string
-        tabs: Array<{ id: string; name: string; path: string }>
-      }
-      expect(stored.activeTabId).toBe('dropped-tab')
+      const stored = readShellTabsSnapshot()
+      const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
+      const tabset = props?.model.tabsets[0]
+      const selectedId = tabset?.children[tabset.selected ?? -1]?.id
+      expect(selectedId).toBe('dropped-tab')
       expect(
-        stored.tabs.some(
+        stored.records.some(
           (tab) =>
             tab.id === 'dropped-tab' &&
             tab.name === 'report.md' &&
@@ -981,20 +917,14 @@ describe('ShellGridLayout', () => {
   })
 
   it('opens a dragged UnixFS selection in order within the dropped tabset', async () => {
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [
-          { id: 'tab-1', name: 'Docs', path: '/docs' },
-          { id: 'tab-2', name: 'Home', path: '/' },
-          { id: 'tab-3', name: 'Blog', path: '/blog' },
-        ],
-        activeTabId: 'tab-1',
-      }),
-    )
+    seedShellTabs([
+      { id: 'tab-1', name: 'Docs', path: '/docs' },
+      { id: 'tab-2', name: 'Home', path: '/' },
+      { id: 'tab-3', name: 'Blog', path: '/blog' },
+    ])
 
     render(
-      <ShellTabsProvider>
+      <ShellTabsProvider entry={continuationEntry}>
         <ShellGridLayout />
       </ShellTabsProvider>,
     )
@@ -1023,16 +953,10 @@ describe('ShellGridLayout', () => {
     })
 
     await waitFor(() => {
-      const stored = JSON.parse(
-        sessionStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
-      ) as {
-        activeTabId: string
-        tabs: Array<{ id: string; name: string; path: string }>
-      }
-      const draggedTabs = stored.tabs.filter((tab) =>
+      const stored = readShellTabsSnapshot()
+      const draggedTabs = stored.records.filter((tab) =>
         tab.path.startsWith('/u/7/so/space-1/-/files/'),
       )
-      expect(stored.activeTabId).toBe('dropped-tab')
       expect(draggedTabs.map((tab) => tab.name)).toEqual([
         'docs',
         'report.md',
@@ -1054,19 +978,13 @@ describe('ShellGridLayout', () => {
   })
 
   it('accepts UnixFS row drags on dragenter before custom drag data becomes readable', () => {
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [
-          { id: 'tab-1', name: 'Docs', path: '/docs' },
-          { id: 'tab-2', name: 'Home', path: '/' },
-        ],
-        activeTabId: 'tab-1',
-      }),
-    )
+    seedShellTabs([
+      { id: 'tab-1', name: 'Docs', path: '/docs' },
+      { id: 'tab-2', name: 'Home', path: '/' },
+    ])
 
     render(
-      <ShellTabsProvider>
+      <ShellTabsProvider entry={continuationEntry}>
         <ShellGridLayout />
       </ShellTabsProvider>,
     )

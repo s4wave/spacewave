@@ -8,7 +8,7 @@ export {
   type StateAtomAccessor,
   type StateType,
   type Storage,
-  type StorageAtom,
+  StorageAtom,
   atom,
   atomWithLocalStorage,
   type StateNamespace,

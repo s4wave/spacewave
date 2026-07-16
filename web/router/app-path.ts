@@ -1,4 +1,25 @@
 import { isStaticRoute } from './static-routes.js'
+export interface AppPathNavigation {
+  path: string
+  params: Record<string, string>
+}
+
+function parseNamedParams(raw: string): Record<string, string> {
+  const params: Record<string, string> = {}
+  const queryIndex = raw.indexOf('?')
+  if (queryIndex < 0) return params
+  for (const [key, value] of new URLSearchParams(raw.slice(queryIndex + 1))) {
+    params[key] = value
+  }
+  return params
+}
+
+function formatNamedParams(params: Record<string, string>): string {
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) query.set(key, value)
+  const encoded = query.toString()
+  return encoded ? `?${encoded}` : ''
+}
 
 export function isPathnameAppRoute(pathname: string): boolean {
   return (
@@ -43,40 +64,56 @@ export function normalizeAppPath(path: string): string {
   return decodePath(normalized)
 }
 
+export function getAppNavigation(): AppPathNavigation {
+  const rawHash = window.location.hash.slice(1)
+  if (rawHash) {
+    const queryIndex = rawHash.indexOf('?')
+    const rawPath = queryIndex < 0 ? rawHash : rawHash.slice(0, queryIndex)
+    return {
+      path: normalizeAppPath(rawPath),
+      params: parseNamedParams(rawHash),
+    }
+  }
+  const pathname = window.location.pathname
+  return {
+    path:
+      isStaticRoute(pathname) || isPathnameAppRoute(pathname)
+        ? normalizeAppPath(pathname)
+        : '/',
+    params: {},
+  }
+}
+
 // getAppPath returns the current app path, checking hash first
 // then falling back to pathname for static routes.
 export function getAppPath(): string {
-  const hash = window.location.hash.slice(1)
-  if (hash) return normalizeAppPath(hash)
-  const pathname = window.location.pathname
-  if (isStaticRoute(pathname) || isPathnameAppRoute(pathname)) {
-    return normalizeAppPath(pathname)
-  }
-  return '/'
+  return getAppNavigation().path
 }
 
-// setAppPath sets the hash to the given path. If on a pathname-based static
-// route, the first setAppPath call transitions to the canonical root hash URL.
-export function setAppPath(path: string): void {
+// setAppPath sets the hash to the given path while retaining named parameters
+// unless an explicit parameter set is provided.
+export function setAppPath(
+  path: string,
+  params?: Record<string, string>,
+): void {
   const normalized = normalizeAppPath(path)
-  if (
-    window.location.pathname === '/' &&
-    !window.location.search &&
-    getAppPath() === normalized
-  ) {
-    return
-  }
+  const retainedParams = params ?? getAppNavigation().params
+  const nextHash = `${normalized}${formatNamedParams(retainedParams)}`
+  const currentHash = window.location.hash.startsWith('#')
+    ? window.location.hash.slice(1)
+    : window.location.hash
+  if (currentHash === nextHash) return
   if (window.location.search) {
     window.history.replaceState(
       {},
       '',
-      `${window.location.pathname}${window.location.search}#${normalized}`,
+      `${window.location.pathname}${window.location.search}#${nextHash}`,
     )
     return
   }
   if (window.location.pathname !== '/') {
-    window.history.replaceState({}, '', `/#${normalized}`)
+    window.history.replaceState({}, '', `/#${nextHash}`)
     return
   }
-  window.location.hash = normalized
+  window.location.hash = nextHash
 }

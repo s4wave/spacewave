@@ -1,9 +1,26 @@
 import type { ReactNode } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 
 import { ShellGridPanel } from './ShellGridPanel.js'
-import { ShellTabsProvider, SHELL_TABS_STORAGE_KEY } from './ShellTabContext.js'
+import { ShellTabsProvider } from './ShellTabContext.js'
+import {
+  installShellTabTestBrowser,
+  seedShellTabs,
+} from './ShellTabTestHarness.js'
+import type { ShellDocumentEntry } from './ShellDocumentEntry.js'
+const continuationEntry: ShellDocumentEntry = {
+  kind: 'continuation',
+  path: '/',
+  params: {},
+  incarnation: 'test-document',
+}
 
 vi.mock('@s4wave/web/frame/bottom-bar-root.js', () => ({
   BottomBarRoot: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -64,24 +81,26 @@ vi.mock('./routes/AppRoutes.js', async () => {
 })
 
 describe('ShellGridPanel', () => {
+  let restoreTestBrowser: (() => void) | undefined
+
+  beforeEach(() => {
+    restoreTestBrowser = installShellTabTestBrowser()
+  })
+
   afterEach(() => {
     cleanup()
     localStorage.clear()
     sessionStorage.clear()
     window.location.hash = ''
+    restoreTestBrowser?.()
+    restoreTestBrowser = undefined
   })
 
-  it('reuses the shared app routes and keeps navigation and back history inside the grid panel', () => {
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [{ id: 'tab-1', name: 'Home', path: '/' }],
-        activeTabId: 'tab-1',
-      }),
-    )
+  it('reuses the shared app routes and keeps navigation and back history inside the grid panel', async () => {
+    seedShellTabs([{ id: 'tab-1', name: 'Home', path: '/' }])
 
     render(
-      <ShellTabsProvider>
+      <ShellTabsProvider entry={continuationEntry}>
         <ShellGridPanel tabId="tab-1" />
       </ShellTabsProvider>,
     )
@@ -98,7 +117,9 @@ describe('ShellGridPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }))
 
-    expect(screen.getByTestId('path').textContent).toBe('/')
+    await waitFor(() => {
+      expect(screen.getByTestId('path').textContent).toBe('/')
+    })
     expect(window.location.hash).toBe('')
   })
 })
