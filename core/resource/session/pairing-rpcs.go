@@ -15,7 +15,7 @@ import (
 // pairingProvider is the interface for provider accounts that support pairing.
 type pairingProvider interface {
 	GeneratePairingCode(ctx context.Context, relayURL string, signingEnvPrefix string, sessionPriv crypto.PrivKey, sessionPeerID peer.ID) (string, error)
-	CompletePairing(ctx context.Context, relayURL string, code string, sessionPriv crypto.PrivKey, sessionPeerID peer.ID) (peer.ID, error)
+	CompletePairing(ctx context.Context, relayURL string, signingEnvPrefix string, code string, sessionPriv crypto.PrivKey, sessionPeerID peer.ID) (peer.ID, error)
 }
 
 // pairingRelay is the Spacewave Cloud relay endpoint used by local provider
@@ -97,7 +97,7 @@ func (r *SessionResource) CompletePairing(ctx context.Context, req *s4wave_sessi
 		return nil, err
 	}
 
-	remotePeerID, err := pp.CompletePairing(ctx, relay.url, req.GetCode(), privKey, r.session.GetPeerId())
+	remotePeerID, err := pp.CompletePairing(ctx, relay.url, relay.signingEnvPrefix, req.GetCode(), privKey, r.session.GetPeerId())
 	if err != nil {
 		return nil, err
 	}

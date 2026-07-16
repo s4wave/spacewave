@@ -12,10 +12,25 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
+// sessionTransportConfig identifies the immutable configuration of a running
+// session transport.
+type sessionTransportConfig struct {
+	peerID           peer.ID
+	signalingURL     string
+	signingEnvPrefix string
+}
+
+func (c sessionTransportConfig) matches(peerID peer.ID, signalingURL, signingEnvPrefix string) bool {
+	return c.peerID == peerID &&
+		c.signalingURL == signalingURL &&
+		c.signingEnvPrefix == signingEnvPrefix
+}
+
 // sessionTransportState holds a running SessionTransport.
 type sessionTransportState struct {
 	transport *transport.SessionTransport
 	rc        *routine.RoutineContainer
+	config    sessionTransportConfig
 }
 
 type cloudRelayEndpoint struct {
@@ -53,6 +68,11 @@ func (a *ProviderAccount) createSessionTransport(ctx context.Context, sessionKey
 }
 
 func (a *ProviderAccount) startSessionTransportLocked(ctx context.Context, sessionKey crypto.PrivKey, signalingURL string, signingEnvPrefix string) (*sessionTransportState, <-chan error, error) {
+	sessionPeerID, err := peer.IDFromPrivateKey(sessionKey)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "derive session peer ID")
+	}
+
 	a.stopSessionTransportLocked()
 
 	st, err := transport.NewSessionTransport(a.le, a.t.p.b, sessionKey, signalingURL, signingEnvPrefix)
@@ -87,6 +107,11 @@ func (a *ProviderAccount) startSessionTransportLocked(ctx context.Context, sessi
 	sts = &sessionTransportState{
 		transport: st,
 		rc:        rc,
+		config: sessionTransportConfig{
+			peerID:           sessionPeerID,
+			signalingURL:     signalingURL,
+			signingEnvPrefix: signingEnvPrefix,
+		},
 	}
 
 	rc.SetRoutine(st.Execute)
@@ -250,6 +275,11 @@ func (a *ProviderAccount) ensureSessionTransport(
 	relayURL string,
 	signingEnvPrefix string,
 ) (*sessionTransportState, bool, error) {
+	sessionPeerID, err := peer.IDFromPrivateKey(sessionPriv)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "derive session peer ID")
+	}
+
 	for {
 		rel, err := a.mtx.Lock(ctx)
 		if err != nil {
@@ -260,7 +290,7 @@ func (a *ProviderAccount) ensureSessionTransport(
 		a.transportBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			sts = a.sessionTransport
 		})
-		if sts != nil {
+		if sts != nil && sts.config.matches(sessionPeerID, relayURL, signingEnvPrefix) {
 			rel()
 			a.le.Debug("session transport already exists, skipping creation")
 			err := a.waitExistingSessionTransportReady(ctx, sts)
@@ -268,6 +298,10 @@ func (a *ProviderAccount) ensureSessionTransport(
 				continue
 			}
 			return sts, false, err
+		}
+
+		if sts != nil {
+			a.le.Debug("replacing session transport with requested configuration")
 		}
 		sts, exitedCh, err := a.startSessionTransportLocked(ctx, sessionPriv, relayURL, signingEnvPrefix)
 		rel()

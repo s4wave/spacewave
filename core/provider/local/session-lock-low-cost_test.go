@@ -110,7 +110,12 @@ func TestEnsureSessionTransportRetriesWhenExistingTransportClearsBeforeReady(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	fakeState := &sessionTransportState{transport: fakeTransport}
+	fakeState := &sessionTransportState{
+		transport: fakeTransport,
+		config: sessionTransportConfig{
+			peerID: sess.GetPeerId(),
+		},
+	}
 	acc.transportBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		acc.sessionTransport = fakeState
 		bcast()

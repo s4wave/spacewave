@@ -99,11 +99,12 @@ func (a *ProviderAccount) GeneratePairingCode(
 func (a *ProviderAccount) CompletePairing(
 	ctx context.Context,
 	relayURL string,
+	signingEnvPrefix string,
 	code string,
 	sessionPriv crypto.PrivKey,
 	sessionPeerID peer.ID,
 ) (peer.ID, error) {
-	if err := a.EnsureSessionTransport(ctx, sessionPriv, relayURL); err != nil {
+	if _, _, err := a.ensureSessionTransport(ctx, sessionPriv, relayURL, signingEnvPrefix); err != nil {
 		return "", errors.Wrap(err, "start session transport")
 	}
 

@@ -1,6 +1,7 @@
 package provider_local_test
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -10,18 +11,89 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
+	"time"
 
+	websocket "github.com/aperturerobotics/go-websocket"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
+func handleTestSignaling(w http.ResponseWriter, r *http.Request, signalTickets chan<- struct{}) bool {
+	switch {
+	case r.Method == http.MethodPost && r.URL.Path == "/api/signal/ticket":
+		if signalTickets != nil {
+			select {
+			case signalTickets <- struct{}{}:
+			default:
+			}
+		}
+		data, err := (&api.SignalTicketResponse{Token: "test-token"}).MarshalVT()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return true
+		}
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(data)
+		return true
+	case r.Method == http.MethodGet && r.URL.Path == "/api/signal/ws":
+		conn, err := websocket.Accept(w, r, nil)
+		if err != nil {
+			return true
+		}
+		defer conn.Close(websocket.StatusNormalClosure, "")
+		<-r.Context().Done()
+		return true
+	default:
+		return false
+	}
+}
+func signedSignalTicketMatches(r *http.Request, expectedEnvPrefix string, expectedPeerID peer.ID) bool {
+	if r.Header.Get("X-Peer-ID") != expectedPeerID.String() {
+		return false
+	}
+	timestampMs, err := strconv.ParseInt(r.Header.Get("X-Timestamp"), 10, 64)
+	if err != nil {
+		return false
+	}
+	bodyHash := sha256.Sum256(nil)
+	bodyHashHex := hex.EncodeToString(bodyHash[:])
+	if r.Header.Get("X-Sw-Hash") != bodyHashHex {
+		return false
+	}
+	payload, err := (&api.SigningPayload{
+		EnvPrefix:     expectedEnvPrefix,
+		Method:        http.MethodPost,
+		Path:          "/api/signal/ticket",
+		TimestampMs:   timestampMs,
+		ContentLength: 0,
+		BodyHashHex:   bodyHashHex,
+	}).MarshalVT()
+	if err != nil {
+		return false
+	}
+	signature, err := base64.StdEncoding.DecodeString(r.Header.Get("X-Signature"))
+	if err != nil {
+		return false
+	}
+	pub, err := expectedPeerID.ExtractPublicKey()
+	if err != nil {
+		return false
+	}
+	valid, err := pub.Verify(payload, signature)
+	return err == nil && valid
+}
+
 // newPairingRelayServer creates a test HTTP server that handles pairing
 // relay requests. POST /api/pair returns 201. GET /api/pair/<code> returns
 // the given remotePeerID.
 func newPairingRelayServer(remotePeerID peer.ID) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if handleTestSignaling(w, r, nil) {
+			return
+		}
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/pair":
 			if ct := r.Header.Get("Content-Type"); ct != "application/octet-stream" {
@@ -62,6 +134,9 @@ func newPairingRelayServer(remotePeerID peer.ID) *httptest.Server {
 func newSignedPairingRelayServer(t *testing.T, expectedEnvPrefix string, expectedPeerID peer.ID) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if handleTestSignaling(w, r, nil) {
+			return
+		}
 		if r.Method != http.MethodPost || r.URL.Path != "/api/pair" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
@@ -243,7 +318,7 @@ func TestCompletePairingWaitsForLink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := acc.CompletePairing(ctx, srv.URL, "TESTCODE", sess.GetPrivKey(), sess.GetPeerId())
+	got, err := acc.CompletePairing(ctx, srv.URL, "", "TESTCODE", sess.GetPrivKey(), sess.GetPeerId())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,6 +348,71 @@ func TestCompletePairingWaitsForLink(t *testing.T) {
 
 	acc.ClearPairingState()
 	acc.StopSessionTransport()
+}
+
+// TestCompletePairingReplacesEmptyTransportWithSignaling verifies that the
+// deployed short-code path starts signaling after accepting a code.
+func TestCompletePairingReplacesEmptyTransportWithSignaling(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+
+	_, _, acc, sess, release := setupProviderAndSession(ctx, t)
+	defer release()
+	defer acc.StopSessionTransport()
+
+	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	remotePeerID, err := peer.IDFromPrivateKey(remotePriv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	signalTickets := make(chan struct{}, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/api/signal/ticket" &&
+			!signedSignalTicketMatches(r, "spacewave-staging", sess.GetPeerId()) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if handleTestSignaling(w, r, signalTickets) {
+			return
+		}
+		if r.Method != http.MethodGet || r.URL.Path != "/api/pair/TESTCODE" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		resp := &api.PairingResponse{PeerId: remotePeerID.String()}
+		data, err := resp.MarshalVT()
+		if err != nil {
+			t.Errorf("marshal pairing response: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(data)
+	}))
+	defer srv.Close()
+
+	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := acc.CompletePairing(ctx, srv.URL, "spacewave-staging", "TESTCODE", sess.GetPrivKey(), sess.GetPeerId())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != remotePeerID {
+		t.Fatalf("got peer %s, want %s", got.String(), remotePeerID.String())
+	}
+
+	select {
+	case <-signalTickets:
+	case <-time.After(time.Second):
+		t.Fatal("expected CompletePairing to request a signaling ticket")
+	}
 }
 
 // TestWatchPairingStatus verifies that pairing state transitions are
@@ -329,7 +469,7 @@ func TestWatchPairingStatus(t *testing.T) {
 		}
 	}
 
-	_, err = acc.CompletePairing(ctx, srv2.URL, "TESTCODE", sess.GetPrivKey(), sess.GetPeerId())
+	_, err = acc.CompletePairing(ctx, srv2.URL, "", "TESTCODE", sess.GetPrivKey(), sess.GetPeerId())
 	if err != nil {
 		t.Fatal(err)
 	}

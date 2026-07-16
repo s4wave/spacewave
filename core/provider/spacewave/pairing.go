@@ -70,6 +70,7 @@ func (a *ProviderAccount) GeneratePairingCode(
 func (a *ProviderAccount) CompletePairing(
 	ctx context.Context,
 	_ string,
+	_ string,
 	code string,
 	_ crypto.PrivKey,
 	_ peer.ID,
