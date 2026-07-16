@@ -12,6 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const chromiumGPUEnv = "E2E_CHROMIUM_GPU"
+
 // LaunchBrowser starts a Playwright-managed browser instance. The browser
 // process is shared across all test sessions. NewClean* helpers create a fresh
 // BrowserContext; NewRetainedState* helpers reuse the harness context.
@@ -42,16 +44,46 @@ func (h *Harness) LaunchBrowser() error {
 	return nil
 }
 
+func chromiumLaunchOptions(headless bool) playwright.BrowserTypeLaunchOptions {
+	opts := playwright.BrowserTypeLaunchOptions{
+		Headless: new(headless),
+		Args: []string{
+			"--allow-loopback-in-peer-connection",
+			"--disable-features=WebRtcHideLocalIpsWithMdns",
+		},
+	}
+	if chromiumHardwareGPUEnabled() {
+		channel := "chromium"
+		opts.Channel = &channel
+		opts.Headless = new(false)
+		opts.Args = append(opts.Args,
+			"--headless=new",
+			"--ignore-gpu-blocklist",
+			"--use-angle=vulkan",
+			"--enable-gpu-rasterization",
+			"--enable-zero-copy",
+			"--enable-features=Vulkan",
+		)
+	}
+	return opts
+}
+
+func chromiumHardwareGPUEnabled() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(chromiumGPUEnv))) {
+	case "true", "1", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
+
 func (h *Harness) browserLaunchConfig() (playwright.BrowserType, playwright.BrowserTypeLaunchOptions, error) {
 	opts := playwright.BrowserTypeLaunchOptions{
 		Headless: new(h.headless),
 	}
 	switch h.browserName {
 	case "chromium":
-		opts.Args = []string{
-			"--allow-loopback-in-peer-connection",
-			"--disable-features=WebRtcHideLocalIpsWithMdns",
-		}
+		opts = chromiumLaunchOptions(h.headless)
 		return h.pw.Chromium, opts, nil
 	case "firefox":
 		return h.pw.Firefox, opts, nil

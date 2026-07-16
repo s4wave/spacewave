@@ -30,6 +30,7 @@ const (
 	prerenderDistRelPath        = "app/prerender/dist"
 	releaseWasmDistDirEnv       = "E2E_RELEASE_WASM_DIST_DIR"
 	releaseWasmPrerenderDistEnv = "E2E_RELEASE_WASM_PRERENDER_DIST_DIR"
+	chromiumGPUEnv              = "E2E_CHROMIUM_GPU"
 )
 
 // browserReleaseDescriptor is parsed field-by-field from browser-release.json
@@ -137,10 +138,7 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 		Headless: new(true),
 	}
 	if browserName == "chromium" {
-		launchOpts.Args = []string{
-			"--allow-loopback-in-peer-connection",
-			"--disable-features=WebRtcHideLocalIpsWithMdns",
-		}
+		launchOpts = chromiumLaunchOptions(true)
 	}
 	browser, err := browserType.Launch(launchOpts)
 	if err != nil {
@@ -152,6 +150,39 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 }
 
 func (h *harness) getBaseURL() string { return h.baseURL }
+
+func chromiumLaunchOptions(headless bool) playwright.BrowserTypeLaunchOptions {
+	opts := playwright.BrowserTypeLaunchOptions{
+		Headless: new(headless),
+		Args: []string{
+			"--allow-loopback-in-peer-connection",
+			"--disable-features=WebRtcHideLocalIpsWithMdns",
+		},
+	}
+	if chromiumHardwareGPUEnabled() {
+		channel := "chromium"
+		opts.Channel = &channel
+		opts.Headless = new(false)
+		opts.Args = append(opts.Args,
+			"--headless=new",
+			"--ignore-gpu-blocklist",
+			"--use-angle=vulkan",
+			"--enable-gpu-rasterization",
+			"--enable-zero-copy",
+			"--enable-features=Vulkan",
+		)
+	}
+	return opts
+}
+
+func chromiumHardwareGPUEnabled() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(chromiumGPUEnv))) {
+	case "true", "1", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
 
 func prepareReleaseWasmDist(ctx context.Context, le *logrus.Entry, repoRoot string) (releaseWasmDistDirs, error) {
 	if dirs, ok, err := prebuiltReleaseWasmDistDirs(repoRoot); ok || err != nil {
