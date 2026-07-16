@@ -1045,6 +1045,7 @@ export interface SubmitOperationV1Request {
   key?: SOMutationKey
   /**
    * ExactEnvelope is the exact serialized signed SOOperation envelope.
+   * Its digest is DigestSOOperationEnvelope(exact_envelope); callers must not decode or reserialize it.
    *
    * @generated from field: bytes exact_envelope = 2;
    */
@@ -1202,6 +1203,7 @@ export interface AcknowledgeOperationReceiptInner {
   key?: SOMutationKey
   /**
    * ReceiptDigest binds acknowledgement to the exact terminal receipt bytes.
+   * It is DigestSOTerminalReceipt(terminal_receipt), not a digest of Inner alone.
    *
    * @generated from field: bytes receipt_digest = 2;
    */

@@ -233,11 +233,12 @@ pub struct SubmitOperationV1Request {
     #[prost(message, optional, tag="1")]
     pub key: ::core::option::Option<super::super::super::sobject::SoMutationKey>,
     /// ExactEnvelope is the exact serialized signed SOOperation envelope.
+    /// Its digest is DigestSOOperationEnvelope(exact_envelope); callers must not decode or reserialize it.
     #[prost(bytes="vec", tag="2")]
     pub exact_envelope: ::prost::alloc::vec::Vec<u8>,
 }
 /// SubmitOperationV1Response is the receipt-v1 admission result.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitOperationV1Response {
     /// State is the authoritative state of the submitted exact key.
     #[prost(enumeration="super::super::super::sobject::SoReceiptState", tag="1")]
@@ -268,7 +269,7 @@ pub struct LookupOperationReceiptRequest {
     pub signature: ::core::option::Option<super::super::super::peer::Signature>,
 }
 /// LookupOperationReceiptResponse is the authoritative exact-key lookup result.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LookupOperationReceiptResponse {
     /// State is exactly NO_RECORD, PENDING, ACCEPTED, or REJECTED.
     #[prost(enumeration="super::super::super::sobject::SoReceiptState", tag="1")]
@@ -284,6 +285,7 @@ pub struct AcknowledgeOperationReceiptInner {
     #[prost(message, optional, tag="1")]
     pub key: ::core::option::Option<super::super::super::sobject::SoMutationKey>,
     /// ReceiptDigest binds acknowledgement to the exact terminal receipt bytes.
+    /// It is DigestSOTerminalReceipt(terminal_receipt), not a digest of Inner alone.
     #[prost(bytes="vec", tag="2")]
     pub receipt_digest: ::prost::alloc::vec::Vec<u8>,
 }

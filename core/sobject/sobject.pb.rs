@@ -634,7 +634,7 @@ pub struct SoJournalReceipt {
     /// Key identifies the exact terminal attempt.
     #[prost(message, optional, tag="1")]
     pub key: ::core::option::Option<SoMutationKey>,
-    /// EnvelopeDigest binds the receipt to the immutable signed envelope.
+    /// EnvelopeDigest binds the receipt to the immutable signed envelope using DigestSOOperationEnvelope.
     #[prost(bytes="vec", tag="2")]
     pub envelope_digest: ::prost::alloc::vec::Vec<u8>,
     /// Outcome is the authenticated terminal result.
@@ -643,16 +643,16 @@ pub struct SoJournalReceipt {
     /// TerminalReceipt contains the verified signed remote receipt.
     #[prost(bytes="vec", tag="4")]
     pub terminal_receipt: ::prost::alloc::vec::Vec<u8>,
-    /// TerminalReceiptDigest identifies the durable receipt bytes.
+    /// TerminalReceiptDigest is DigestSOTerminalReceipt over the durable signed receipt bytes.
     #[prost(bytes="vec", tag="5")]
     pub terminal_receipt_digest: ::prost::alloc::vec::Vec<u8>,
     /// AuthoritativeRootSeqno is the root sequence named by the receipt.
     #[prost(uint64, tag="6")]
     pub authoritative_root_seqno: u64,
-    /// AuthoritativeRootDigest is the root identity named by the receipt.
+    /// AuthoritativeRootDigest is DigestSOAuthoritativeRoot of the root named by the receipt.
     #[prost(bytes="vec", tag="7")]
     pub authoritative_root_digest: ::prost::alloc::vec::Vec<u8>,
-    /// ConfigChainDigest identifies the verified historical configuration.
+    /// ConfigChainDigest identifies the matching historical SharedObjectConfig.config_chain_hash.
     #[prost(bytes="vec", tag="8")]
     pub config_chain_digest: ::prost::alloc::vec::Vec<u8>,
     /// TerminalUnixMillis is the remote terminal timestamp.
@@ -668,7 +668,7 @@ pub struct SoJournalAcknowledgement {
     /// Key identifies the exact acknowledged attempt.
     #[prost(message, optional, tag="1")]
     pub key: ::core::option::Option<SoMutationKey>,
-    /// ReceiptDigest binds acknowledgement to one terminal receipt.
+    /// ReceiptDigest binds acknowledgement to one terminal receipt using DigestSOTerminalReceipt.
     #[prost(bytes="vec", tag="2")]
     pub receipt_digest: ::prost::alloc::vec::Vec<u8>,
     /// AcknowledgedUnixMillis records when acknowledgement became durable.
@@ -827,22 +827,26 @@ pub struct SoTerminalReceiptInner {
     /// Key identifies the exact immutable participant attempt.
     #[prost(message, optional, tag="1")]
     pub key: ::core::option::Option<SoMutationKey>,
-    /// EnvelopeDigest binds the receipt to the exact serialized signed envelope admitted for Key.
+    /// EnvelopeDigest is DigestSOOperationEnvelope of the exact serialized signed SOOperation bytes.
+    /// The owner must compare this digest before decoding or reserializing the admitted envelope.
     #[prost(bytes="vec", tag="2")]
     pub envelope_digest: ::prost::alloc::vec::Vec<u8>,
     /// AuthoritativeRootSeqno is the sequence number of the authoritative root terminalizing this mutation.
     #[prost(uint64, tag="5")]
     pub authoritative_root_seqno: u64,
-    /// AuthoritativeRootDigest identifies the authoritative root terminalizing this mutation.
+    /// AuthoritativeRootDigest is DigestSOAuthoritativeRoot of the terminalizing SORoot.
+    /// Its preimage includes BuildSignatureData only (inner and account nonces), never root signatures.
     #[prost(bytes="vec", tag="6")]
     pub authoritative_root_digest: ::prost::alloc::vec::Vec<u8>,
-    /// ConfigChainDigest identifies the historical configuration used to verify this receipt.
+    /// ConfigChainDigest equals the matching historical SharedObjectConfig.config_chain_hash.
+    /// That hash is produced by HashSOConfigChange over signature-cleared deterministic SOConfigChange bytes.
     #[prost(bytes="vec", tag="7")]
     pub config_chain_digest: ::prost::alloc::vec::Vec<u8>,
     /// ConsensusMode records the signature-set rule required for this receipt.
     #[prost(enumeration="SoConsensusMode", tag="8")]
     pub consensus_mode: i32,
-    /// ValidatorSetDigest identifies the validator set used to verify this receipt.
+    /// ValidatorSetDigest is DigestSOValidatorSet of the historical SharedObjectConfig.
+    /// It filters role >= VALIDATOR and hashes sorted, unique, length-framed peer IDs.
     #[prost(bytes="vec", tag="9")]
     pub validator_set_digest: ::prost::alloc::vec::Vec<u8>,
     /// TerminalUnixMillis is the authoritative terminalization time in Unix milliseconds.

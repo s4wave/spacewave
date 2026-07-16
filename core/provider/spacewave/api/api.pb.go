@@ -950,6 +950,7 @@ type SubmitOperationV1Request struct {
 	// Key identifies the immutable participant attempt.
 	Key *sobject.SOMutationKey `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	// ExactEnvelope is the exact serialized signed SOOperation envelope.
+	// Its digest is DigestSOOperationEnvelope(exact_envelope); callers must not decode or reserialize it.
 	ExactEnvelope []byte `protobuf:"bytes,2,opt,name=exact_envelope,json=exactEnvelope,proto3" json:"exactEnvelope,omitempty"`
 }
 
@@ -1090,6 +1091,7 @@ type AcknowledgeOperationReceiptInner struct {
 	// Key identifies the exact participant attempt being acknowledged.
 	Key *sobject.SOMutationKey `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	// ReceiptDigest binds acknowledgement to the exact terminal receipt bytes.
+	// It is DigestSOTerminalReceipt(terminal_receipt), not a digest of Inner alone.
 	ReceiptDigest []byte `protobuf:"bytes,2,opt,name=receipt_digest,json=receiptDigest,proto3" json:"receiptDigest,omitempty"`
 }
 

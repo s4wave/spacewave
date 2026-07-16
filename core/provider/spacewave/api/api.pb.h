@@ -43653,213 +43653,6 @@ class TargetedInvitationInfo final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull TargetedInvitationInfo_class_data_;
 // -------------------------------------------------------------------
 
-class SubmitOperationV1Response final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:provider.spacewave.api.SubmitOperationV1Response) */ {
- public:
-  inline SubmitOperationV1Response() : SubmitOperationV1Response(nullptr) {}
-  ~SubmitOperationV1Response() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(SubmitOperationV1Response* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(SubmitOperationV1Response));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR SubmitOperationV1Response(::google::protobuf::internal::ConstantInitialized);
-
-  inline SubmitOperationV1Response(const SubmitOperationV1Response& from) : SubmitOperationV1Response(nullptr, from) {}
-  inline SubmitOperationV1Response(SubmitOperationV1Response&& from) noexcept
-      : SubmitOperationV1Response(nullptr, ::std::move(from)) {}
-  inline SubmitOperationV1Response& operator=(const SubmitOperationV1Response& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline SubmitOperationV1Response& operator=(SubmitOperationV1Response&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const SubmitOperationV1Response& default_instance() {
-    return *reinterpret_cast<const SubmitOperationV1Response*>(
-        &_SubmitOperationV1Response_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 14;
-  friend void swap(SubmitOperationV1Response& a, SubmitOperationV1Response& b) { a.Swap(&b); }
-  inline void Swap(SubmitOperationV1Response* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(SubmitOperationV1Response* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  SubmitOperationV1Response* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<SubmitOperationV1Response>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const SubmitOperationV1Response& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const SubmitOperationV1Response& from) { SubmitOperationV1Response::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(SubmitOperationV1Response* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.SubmitOperationV1Response"; }
-
-  explicit SubmitOperationV1Response(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  SubmitOperationV1Response(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SubmitOperationV1Response& from);
-  SubmitOperationV1Response(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SubmitOperationV1Response&& from) noexcept
-      : SubmitOperationV1Response(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kTerminalReceiptFieldNumber = 2,
-    kStateFieldNumber = 1,
-  };
-  // .sobject.SOTerminalReceipt terminal_receipt = 2;
-  bool has_terminal_receipt() const;
-  void clear_terminal_receipt() ;
-  const ::sobject::SOTerminalReceipt& terminal_receipt() const;
-  [[nodiscard]] ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE release_terminal_receipt();
-  ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL mutable_terminal_receipt();
-  void set_allocated_terminal_receipt(::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value);
-  void unsafe_arena_set_allocated_terminal_receipt(::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value);
-  ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE unsafe_arena_release_terminal_receipt();
-
-  private:
-  const ::sobject::SOTerminalReceipt& _internal_terminal_receipt() const;
-  ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL _internal_mutable_terminal_receipt();
-
-  public:
-  // .sobject.SOReceiptState state = 1;
-  void clear_state() ;
-  ::sobject::SOReceiptState state() const;
-  void set_state(::sobject::SOReceiptState value);
-
-  private:
-  ::sobject::SOReceiptState _internal_state() const;
-  void _internal_set_state(::sobject::SOReceiptState value);
-
-  public:
-  // @@protoc_insertion_point(class_scope:provider.spacewave.api.SubmitOperationV1Response)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   1, 0,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const SubmitOperationV1Response& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE terminal_receipt_;
-    int state_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull SubmitOperationV1Response_class_data_;
-// -------------------------------------------------------------------
-
 class SubmitOperationV1Request final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:provider.spacewave.api.SubmitOperationV1Request) */ {
  public:
@@ -47168,213 +46961,6 @@ class ManagedBillingAccount final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull ManagedBillingAccount_class_data_;
-// -------------------------------------------------------------------
-
-class LookupOperationReceiptResponse final : public ::google::protobuf::Message
-/* @@protoc_insertion_point(class_definition:provider.spacewave.api.LookupOperationReceiptResponse) */ {
- public:
-  inline LookupOperationReceiptResponse() : LookupOperationReceiptResponse(nullptr) {}
-  ~LookupOperationReceiptResponse() PROTOBUF_FINAL;
-
-#if defined(PROTOBUF_CUSTOM_VTABLE)
-  void operator delete(LookupOperationReceiptResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
-    SharedDtor(*msg);
-    ::google::protobuf::internal::SizedDelete(msg, sizeof(LookupOperationReceiptResponse));
-  }
-#endif
-
-  template <typename = void>
-  explicit PROTOBUF_CONSTEXPR LookupOperationReceiptResponse(::google::protobuf::internal::ConstantInitialized);
-
-  inline LookupOperationReceiptResponse(const LookupOperationReceiptResponse& from) : LookupOperationReceiptResponse(nullptr, from) {}
-  inline LookupOperationReceiptResponse(LookupOperationReceiptResponse&& from) noexcept
-      : LookupOperationReceiptResponse(nullptr, ::std::move(from)) {}
-  inline LookupOperationReceiptResponse& operator=(const LookupOperationReceiptResponse& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline LookupOperationReceiptResponse& operator=(LookupOperationReceiptResponse&& from) noexcept {
-    if (this == &from) return *this;
-    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-  }
-  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND {
-    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-  }
-
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
-    return GetDescriptor();
-  }
-  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const LookupOperationReceiptResponse& default_instance() {
-    return *reinterpret_cast<const LookupOperationReceiptResponse*>(
-        &_LookupOperationReceiptResponse_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages = 17;
-  friend void swap(LookupOperationReceiptResponse& a, LookupOperationReceiptResponse& b) { a.Swap(&b); }
-  inline void Swap(LookupOperationReceiptResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
-      InternalSwap(other);
-    } else {
-      ::google::protobuf::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(LookupOperationReceiptResponse* PROTOBUF_NONNULL other) {
-    if (other == this) return;
-    ABSL_DCHECK(GetArena() == other->GetArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  LookupOperationReceiptResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::Message::DefaultConstruct<LookupOperationReceiptResponse>(arena);
-  }
-  using ::google::protobuf::Message::CopyFrom;
-  void CopyFrom(const LookupOperationReceiptResponse& from);
-  using ::google::protobuf::Message::MergeFrom;
-  void MergeFrom(const LookupOperationReceiptResponse& from) { LookupOperationReceiptResponse::MergeImpl(*this, from); }
-
-  private:
-  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
-                        const ::google::protobuf::MessageLite& from_msg);
-
-  public:
-  bool IsInitialized() const {
-    return true;
-  }
-  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
-  #if defined(PROTOBUF_CUSTOM_VTABLE)
-  private:
-  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
-  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
-
-  public:
-  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
-    return _InternalSerialize(*this, target, stream);
-  }
-  #else   // PROTOBUF_CUSTOM_VTABLE
-  ::size_t ByteSizeLong() const final;
-  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
-      ::uint8_t* PROTOBUF_NONNULL target,
-      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
-  #endif  // PROTOBUF_CUSTOM_VTABLE
-  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static void SharedDtor(MessageLite& self);
-  void InternalSwap(LookupOperationReceiptResponse* PROTOBUF_NONNULL other);
- private:
-  template <typename T>
-  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
-  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.LookupOperationReceiptResponse"; }
-
-  explicit LookupOperationReceiptResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  LookupOperationReceiptResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const LookupOperationReceiptResponse& from);
-  LookupOperationReceiptResponse(
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, LookupOperationReceiptResponse&& from) noexcept
-      : LookupOperationReceiptResponse(arena) {
-    *this = ::std::move(from);
-  }
-  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
-  static void* PROTOBUF_NONNULL PlacementNew_(
-      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
-      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-  static constexpr auto InternalNewImpl_();
-
- public:
-  static constexpr auto InternalGenerateClassData_();
-
-  ::google::protobuf::Metadata GetMetadata() const;
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-  enum : int {
-    kTerminalReceiptFieldNumber = 2,
-    kStateFieldNumber = 1,
-  };
-  // .sobject.SOTerminalReceipt terminal_receipt = 2;
-  bool has_terminal_receipt() const;
-  void clear_terminal_receipt() ;
-  const ::sobject::SOTerminalReceipt& terminal_receipt() const;
-  [[nodiscard]] ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE release_terminal_receipt();
-  ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL mutable_terminal_receipt();
-  void set_allocated_terminal_receipt(::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value);
-  void unsafe_arena_set_allocated_terminal_receipt(::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value);
-  ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE unsafe_arena_release_terminal_receipt();
-
-  private:
-  const ::sobject::SOTerminalReceipt& _internal_terminal_receipt() const;
-  ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL _internal_mutable_terminal_receipt();
-
-  public:
-  // .sobject.SOReceiptState state = 1;
-  void clear_state() ;
-  ::sobject::SOReceiptState state() const;
-  void set_state(::sobject::SOReceiptState value);
-
-  private:
-  ::sobject::SOReceiptState _internal_state() const;
-  void _internal_set_state(::sobject::SOReceiptState value);
-
-  public:
-  // @@protoc_insertion_point(class_scope:provider.spacewave.api.LookupOperationReceiptResponse)
- private:
-  class _Internal;
-  friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   1, 0,
-                                   2>
-      _table_;
-
-  friend class ::google::protobuf::MessageLite;
-  friend class ::google::protobuf::Arena;
-  template <typename T>
-  friend class ::google::protobuf::Arena::InternalHelper;
-  using InternalArenaConstructable_ = void;
-  using DestructorSkippable_ = void;
-  struct Impl_ {
-    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
-    inline explicit Impl_(
-        ::google::protobuf::internal::InternalVisibility visibility,
-        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
-        const LookupOperationReceiptResponse& from_msg);
-    ::google::protobuf::internal::HasBits<1> _has_bits_;
-    ::google::protobuf::internal::CachedSize _cached_size_;
-    ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE terminal_receipt_;
-    int state_;
-    PROTOBUF_TSAN_DECLARE_MEMBER
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
-};
-
-extern const ::google::protobuf::internal::ClassDataFull LookupOperationReceiptResponse_class_data_;
 // -------------------------------------------------------------------
 
 class LookupOperationReceiptRequest final : public ::google::protobuf::Message
@@ -52136,6 +51722,213 @@ class AccountAuthMethod final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull AccountAuthMethod_class_data_;
 // -------------------------------------------------------------------
 
+class SubmitOperationV1Response final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:provider.spacewave.api.SubmitOperationV1Response) */ {
+ public:
+  inline SubmitOperationV1Response() : SubmitOperationV1Response(nullptr) {}
+  ~SubmitOperationV1Response() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SubmitOperationV1Response* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SubmitOperationV1Response));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SubmitOperationV1Response(::google::protobuf::internal::ConstantInitialized);
+
+  inline SubmitOperationV1Response(const SubmitOperationV1Response& from) : SubmitOperationV1Response(nullptr, from) {}
+  inline SubmitOperationV1Response(SubmitOperationV1Response&& from) noexcept
+      : SubmitOperationV1Response(nullptr, ::std::move(from)) {}
+  inline SubmitOperationV1Response& operator=(const SubmitOperationV1Response& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SubmitOperationV1Response& operator=(SubmitOperationV1Response&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SubmitOperationV1Response& default_instance() {
+    return *reinterpret_cast<const SubmitOperationV1Response*>(
+        &_SubmitOperationV1Response_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 14;
+  friend void swap(SubmitOperationV1Response& a, SubmitOperationV1Response& b) { a.Swap(&b); }
+  inline void Swap(SubmitOperationV1Response* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SubmitOperationV1Response* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SubmitOperationV1Response* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SubmitOperationV1Response>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SubmitOperationV1Response& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SubmitOperationV1Response& from) { SubmitOperationV1Response::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SubmitOperationV1Response* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.SubmitOperationV1Response"; }
+
+  explicit SubmitOperationV1Response(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SubmitOperationV1Response(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SubmitOperationV1Response& from);
+  SubmitOperationV1Response(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SubmitOperationV1Response&& from) noexcept
+      : SubmitOperationV1Response(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kTerminalReceiptFieldNumber = 2,
+    kStateFieldNumber = 1,
+  };
+  // .sobject.SOTerminalReceipt terminal_receipt = 2;
+  bool has_terminal_receipt() const;
+  void clear_terminal_receipt() ;
+  const ::sobject::SOTerminalReceipt& terminal_receipt() const;
+  [[nodiscard]] ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE release_terminal_receipt();
+  ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL mutable_terminal_receipt();
+  void set_allocated_terminal_receipt(::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_terminal_receipt(::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value);
+  ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE unsafe_arena_release_terminal_receipt();
+
+  private:
+  const ::sobject::SOTerminalReceipt& _internal_terminal_receipt() const;
+  ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL _internal_mutable_terminal_receipt();
+
+  public:
+  // .sobject.SOReceiptState state = 1;
+  void clear_state() ;
+  ::sobject::SOReceiptState state() const;
+  void set_state(::sobject::SOReceiptState value);
+
+  private:
+  ::sobject::SOReceiptState _internal_state() const;
+  void _internal_set_state(::sobject::SOReceiptState value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:provider.spacewave.api.SubmitOperationV1Response)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SubmitOperationV1Response& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE terminal_receipt_;
+    int state_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SubmitOperationV1Response_class_data_;
+// -------------------------------------------------------------------
+
 class SubmitMailboxEntryRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:provider.spacewave.api.SubmitMailboxEntryRequest) */ {
  public:
@@ -54112,6 +53905,213 @@ class MailboxEntry final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull MailboxEntry_class_data_;
+// -------------------------------------------------------------------
+
+class LookupOperationReceiptResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:provider.spacewave.api.LookupOperationReceiptResponse) */ {
+ public:
+  inline LookupOperationReceiptResponse() : LookupOperationReceiptResponse(nullptr) {}
+  ~LookupOperationReceiptResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(LookupOperationReceiptResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(LookupOperationReceiptResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR LookupOperationReceiptResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline LookupOperationReceiptResponse(const LookupOperationReceiptResponse& from) : LookupOperationReceiptResponse(nullptr, from) {}
+  inline LookupOperationReceiptResponse(LookupOperationReceiptResponse&& from) noexcept
+      : LookupOperationReceiptResponse(nullptr, ::std::move(from)) {}
+  inline LookupOperationReceiptResponse& operator=(const LookupOperationReceiptResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline LookupOperationReceiptResponse& operator=(LookupOperationReceiptResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const LookupOperationReceiptResponse& default_instance() {
+    return *reinterpret_cast<const LookupOperationReceiptResponse*>(
+        &_LookupOperationReceiptResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 17;
+  friend void swap(LookupOperationReceiptResponse& a, LookupOperationReceiptResponse& b) { a.Swap(&b); }
+  inline void Swap(LookupOperationReceiptResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(LookupOperationReceiptResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  LookupOperationReceiptResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<LookupOperationReceiptResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const LookupOperationReceiptResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const LookupOperationReceiptResponse& from) { LookupOperationReceiptResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(LookupOperationReceiptResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.LookupOperationReceiptResponse"; }
+
+  explicit LookupOperationReceiptResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  LookupOperationReceiptResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const LookupOperationReceiptResponse& from);
+  LookupOperationReceiptResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, LookupOperationReceiptResponse&& from) noexcept
+      : LookupOperationReceiptResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kTerminalReceiptFieldNumber = 2,
+    kStateFieldNumber = 1,
+  };
+  // .sobject.SOTerminalReceipt terminal_receipt = 2;
+  bool has_terminal_receipt() const;
+  void clear_terminal_receipt() ;
+  const ::sobject::SOTerminalReceipt& terminal_receipt() const;
+  [[nodiscard]] ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE release_terminal_receipt();
+  ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL mutable_terminal_receipt();
+  void set_allocated_terminal_receipt(::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_terminal_receipt(::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value);
+  ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE unsafe_arena_release_terminal_receipt();
+
+  private:
+  const ::sobject::SOTerminalReceipt& _internal_terminal_receipt() const;
+  ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL _internal_mutable_terminal_receipt();
+
+  public:
+  // .sobject.SOReceiptState state = 1;
+  void clear_state() ;
+  ::sobject::SOReceiptState state() const;
+  void set_state(::sobject::SOReceiptState value);
+
+  private:
+  ::sobject::SOReceiptState _internal_state() const;
+  void _internal_set_state(::sobject::SOReceiptState value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:provider.spacewave.api.LookupOperationReceiptResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const LookupOperationReceiptResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE terminal_receipt_;
+    int state_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull LookupOperationReceiptResponse_class_data_;
 // -------------------------------------------------------------------
 
 class ListTargetedInvitationsResponse final : public ::google::protobuf::Message

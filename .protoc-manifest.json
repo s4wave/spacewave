@@ -1279,7 +1279,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/api": {
-      "hash": "ecdca8133a235be7ffe668a4a0cd5397b3ec7505591ae9c0b3555f2d63133ce4",
+      "hash": "c4ee50909002a13f03575906047ec9f1d8c44de8a287bea3165099eb501de335",
       "generatedFiles": [
         "core/provider/spacewave/api/api.pb.cc",
         "core/provider/spacewave/api/api.pb.go",
@@ -1465,7 +1465,7 @@
       "protoFiles": ["core/session/handoff/handoff.proto"]
     },
     "github.com/s4wave/spacewave/core/sobject": {
-      "hash": "98e2aaa3638454851de99c7b89f18ec3db28a1ddb9dc96a775951a49fef505a1",
+      "hash": "fa5895f6018937523748b446f72a765eff9958a36fa4e01cdd80c32bdc7c49d8",
       "generatedFiles": [
         "core/sobject/sobject.pb.cc",
         "core/sobject/sobject.pb.go",

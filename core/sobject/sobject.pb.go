@@ -2434,19 +2434,19 @@ type SOJournalReceipt struct {
 	unknownFields []byte
 	// Key identifies the exact terminal attempt.
 	Key *SOMutationKey `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	// EnvelopeDigest binds the receipt to the immutable signed envelope.
+	// EnvelopeDigest binds the receipt to the immutable signed envelope using DigestSOOperationEnvelope.
 	EnvelopeDigest []byte `protobuf:"bytes,2,opt,name=envelope_digest,json=envelopeDigest,proto3" json:"envelopeDigest,omitempty"`
 	// Outcome is the authenticated terminal result.
 	Outcome SOJournalOutcome `protobuf:"varint,3,opt,name=outcome,proto3" json:"outcome,omitempty"`
 	// TerminalReceipt contains the verified signed remote receipt.
 	TerminalReceipt []byte `protobuf:"bytes,4,opt,name=terminal_receipt,json=terminalReceipt,proto3" json:"terminalReceipt,omitempty"`
-	// TerminalReceiptDigest identifies the durable receipt bytes.
+	// TerminalReceiptDigest is DigestSOTerminalReceipt over the durable signed receipt bytes.
 	TerminalReceiptDigest []byte `protobuf:"bytes,5,opt,name=terminal_receipt_digest,json=terminalReceiptDigest,proto3" json:"terminalReceiptDigest,omitempty"`
 	// AuthoritativeRootSeqno is the root sequence named by the receipt.
 	AuthoritativeRootSeqno uint64 `protobuf:"varint,6,opt,name=authoritative_root_seqno,json=authoritativeRootSeqno,proto3" json:"authoritativeRootSeqno,omitempty"`
-	// AuthoritativeRootDigest is the root identity named by the receipt.
+	// AuthoritativeRootDigest is DigestSOAuthoritativeRoot of the root named by the receipt.
 	AuthoritativeRootDigest []byte `protobuf:"bytes,7,opt,name=authoritative_root_digest,json=authoritativeRootDigest,proto3" json:"authoritativeRootDigest,omitempty"`
-	// ConfigChainDigest identifies the verified historical configuration.
+	// ConfigChainDigest identifies the matching historical SharedObjectConfig.config_chain_hash.
 	ConfigChainDigest []byte `protobuf:"bytes,8,opt,name=config_chain_digest,json=configChainDigest,proto3" json:"configChainDigest,omitempty"`
 	// TerminalUnixMillis is the remote terminal timestamp.
 	TerminalUnixMillis uint64 `protobuf:"varint,9,opt,name=terminal_unix_millis,json=terminalUnixMillis,proto3" json:"terminalUnixMillis,omitempty"`
@@ -2535,7 +2535,7 @@ type SOJournalAcknowledgement struct {
 	unknownFields []byte
 	// Key identifies the exact acknowledged attempt.
 	Key *SOMutationKey `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	// ReceiptDigest binds acknowledgement to one terminal receipt.
+	// ReceiptDigest binds acknowledgement to one terminal receipt using DigestSOTerminalReceipt.
 	ReceiptDigest []byte `protobuf:"bytes,2,opt,name=receipt_digest,json=receiptDigest,proto3" json:"receiptDigest,omitempty"`
 	// AcknowledgedUnixMillis records when acknowledgement became durable.
 	AcknowledgedUnixMillis uint64 `protobuf:"varint,3,opt,name=acknowledged_unix_millis,json=acknowledgedUnixMillis,proto3" json:"acknowledgedUnixMillis,omitempty"`
@@ -3006,7 +3006,8 @@ type SOTerminalReceiptInner struct {
 	unknownFields []byte
 	// Key identifies the exact immutable participant attempt.
 	Key *SOMutationKey `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	// EnvelopeDigest binds the receipt to the exact serialized signed envelope admitted for Key.
+	// EnvelopeDigest is DigestSOOperationEnvelope of the exact serialized signed SOOperation bytes.
+	// The owner must compare this digest before decoding or reserializing the admitted envelope.
 	EnvelopeDigest []byte `protobuf:"bytes,2,opt,name=envelope_digest,json=envelopeDigest,proto3" json:"envelopeDigest,omitempty"`
 	// Outcome distinguishes acceptance from the existing signed rejection payload.
 	//
@@ -3017,13 +3018,16 @@ type SOTerminalReceiptInner struct {
 	Outcome isSOTerminalReceiptInner_Outcome `protobuf_oneof:"outcome"`
 	// AuthoritativeRootSeqno is the sequence number of the authoritative root terminalizing this mutation.
 	AuthoritativeRootSeqno uint64 `protobuf:"varint,5,opt,name=authoritative_root_seqno,json=authoritativeRootSeqno,proto3" json:"authoritativeRootSeqno,omitempty"`
-	// AuthoritativeRootDigest identifies the authoritative root terminalizing this mutation.
+	// AuthoritativeRootDigest is DigestSOAuthoritativeRoot of the terminalizing SORoot.
+	// Its preimage includes BuildSignatureData only (inner and account nonces), never root signatures.
 	AuthoritativeRootDigest []byte `protobuf:"bytes,6,opt,name=authoritative_root_digest,json=authoritativeRootDigest,proto3" json:"authoritativeRootDigest,omitempty"`
-	// ConfigChainDigest identifies the historical configuration used to verify this receipt.
+	// ConfigChainDigest equals the matching historical SharedObjectConfig.config_chain_hash.
+	// That hash is produced by HashSOConfigChange over signature-cleared deterministic SOConfigChange bytes.
 	ConfigChainDigest []byte `protobuf:"bytes,7,opt,name=config_chain_digest,json=configChainDigest,proto3" json:"configChainDigest,omitempty"`
 	// ConsensusMode records the signature-set rule required for this receipt.
 	ConsensusMode SOConsensusMode `protobuf:"varint,8,opt,name=consensus_mode,json=consensusMode,proto3" json:"consensusMode,omitempty"`
-	// ValidatorSetDigest identifies the validator set used to verify this receipt.
+	// ValidatorSetDigest is DigestSOValidatorSet of the historical SharedObjectConfig.
+	// It filters role >= VALIDATOR and hashes sorted, unique, length-framed peer IDs.
 	ValidatorSetDigest []byte `protobuf:"bytes,9,opt,name=validator_set_digest,json=validatorSetDigest,proto3" json:"validatorSetDigest,omitempty"`
 	// TerminalUnixMillis is the authoritative terminalization time in Unix milliseconds.
 	TerminalUnixMillis uint64 `protobuf:"varint,10,opt,name=terminal_unix_millis,json=terminalUnixMillis,proto3" json:"terminalUnixMillis,omitempty"`

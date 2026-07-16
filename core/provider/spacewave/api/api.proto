@@ -182,6 +182,7 @@ message SubmitOperationV1Request {
   // Key identifies the immutable participant attempt.
   .sobject.SOMutationKey key = 1;
   // ExactEnvelope is the exact serialized signed SOOperation envelope.
+  // Its digest is DigestSOOperationEnvelope(exact_envelope); callers must not decode or reserialize it.
   bytes exact_envelope = 2;
 }
 
@@ -224,6 +225,7 @@ message AcknowledgeOperationReceiptInner {
   // Key identifies the exact participant attempt being acknowledged.
   .sobject.SOMutationKey key = 1;
   // ReceiptDigest binds acknowledgement to the exact terminal receipt bytes.
+  // It is DigestSOTerminalReceipt(terminal_receipt), not a digest of Inner alone.
   bytes receipt_digest = 2;
 }
 

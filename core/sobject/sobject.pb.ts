@@ -2517,7 +2517,7 @@ export interface SOJournalReceipt {
    */
   key?: SOMutationKey
   /**
-   * EnvelopeDigest binds the receipt to the immutable signed envelope.
+   * EnvelopeDigest binds the receipt to the immutable signed envelope using DigestSOOperationEnvelope.
    *
    * @generated from field: bytes envelope_digest = 2;
    */
@@ -2535,7 +2535,7 @@ export interface SOJournalReceipt {
    */
   terminalReceipt?: Uint8Array
   /**
-   * TerminalReceiptDigest identifies the durable receipt bytes.
+   * TerminalReceiptDigest is DigestSOTerminalReceipt over the durable signed receipt bytes.
    *
    * @generated from field: bytes terminal_receipt_digest = 5;
    */
@@ -2547,13 +2547,13 @@ export interface SOJournalReceipt {
    */
   authoritativeRootSeqno?: bigint
   /**
-   * AuthoritativeRootDigest is the root identity named by the receipt.
+   * AuthoritativeRootDigest is DigestSOAuthoritativeRoot of the root named by the receipt.
    *
    * @generated from field: bytes authoritative_root_digest = 7;
    */
   authoritativeRootDigest?: Uint8Array
   /**
-   * ConfigChainDigest identifies the verified historical configuration.
+   * ConfigChainDigest identifies the matching historical SharedObjectConfig.config_chain_hash.
    *
    * @generated from field: bytes config_chain_digest = 8;
    */
@@ -2691,7 +2691,7 @@ export interface SOJournalAcknowledgement {
    */
   key?: SOMutationKey
   /**
-   * ReceiptDigest binds acknowledgement to one terminal receipt.
+   * ReceiptDigest binds acknowledgement to one terminal receipt using DigestSOTerminalReceipt.
    *
    * @generated from field: bytes receipt_digest = 2;
    */
@@ -3195,7 +3195,8 @@ export interface SOTerminalReceiptInner {
    */
   key?: SOMutationKey
   /**
-   * EnvelopeDigest binds the receipt to the exact serialized signed envelope admitted for Key.
+   * EnvelopeDigest is DigestSOOperationEnvelope of the exact serialized signed SOOperation bytes.
+   * The owner must compare this digest before decoding or reserializing the admitted envelope.
    *
    * @generated from field: bytes envelope_digest = 2;
    */
@@ -3207,13 +3208,15 @@ export interface SOTerminalReceiptInner {
    */
   authoritativeRootSeqno?: bigint
   /**
-   * AuthoritativeRootDigest identifies the authoritative root terminalizing this mutation.
+   * AuthoritativeRootDigest is DigestSOAuthoritativeRoot of the terminalizing SORoot.
+   * Its preimage includes BuildSignatureData only (inner and account nonces), never root signatures.
    *
    * @generated from field: bytes authoritative_root_digest = 6;
    */
   authoritativeRootDigest?: Uint8Array
   /**
-   * ConfigChainDigest identifies the historical configuration used to verify this receipt.
+   * ConfigChainDigest equals the matching historical SharedObjectConfig.config_chain_hash.
+   * That hash is produced by HashSOConfigChange over signature-cleared deterministic SOConfigChange bytes.
    *
    * @generated from field: bytes config_chain_digest = 7;
    */
@@ -3225,7 +3228,8 @@ export interface SOTerminalReceiptInner {
    */
   consensusMode?: SOConsensusMode
   /**
-   * ValidatorSetDigest identifies the validator set used to verify this receipt.
+   * ValidatorSetDigest is DigestSOValidatorSet of the historical SharedObjectConfig.
+   * It filters role >= VALIDATOR and hashes sorted, unique, length-framed peer IDs.
    *
    * @generated from field: bytes validator_set_digest = 9;
    */
