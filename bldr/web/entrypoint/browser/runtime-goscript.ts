@@ -34,6 +34,10 @@ interface Global {
     blocksDeduped: number,
     subtreesSkipped: number,
     logicalSourceBytes: number,
+    destinationDurableBytes: number,
+    destinationDurableBytesKnown: boolean,
+    demandReadCount: number,
+    demandReadBytes: number,
   ) => void
   BLDR_NOTIFY_PLUGIN_MANIFEST_ROOT?: (
     pluginId: string,
@@ -63,6 +67,10 @@ globalScope.BLDR_NOTIFY_STARTUP_MARK = (
   blocksDeduped,
   subtreesSkipped,
   logicalSourceBytes,
+  destinationDurableBytes,
+  destinationDurableBytesKnown,
+  demandReadCount,
+  demandReadBytes,
 ) => {
   webRuntime.broadcastStartupMark(label, {
     source: 'scheduler',
@@ -74,6 +82,10 @@ globalScope.BLDR_NOTIFY_STARTUP_MARK = (
     blocksDeduped,
     subtreesSkipped,
     logicalSourceBytes,
+    destinationDurableBytes,
+    destinationDurableBytesKnown,
+    demandReadCount,
+    demandReadBytes,
   })
 }
 globalScope.BLDR_NOTIFY_PLUGIN_MANIFEST_ROOT = (pluginId, rootHash) => {

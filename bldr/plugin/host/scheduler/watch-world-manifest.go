@@ -224,6 +224,17 @@ func (t *pluginInstance) processManifestWorldState(
 				executeManifest = downloadManifest
 				executeManifestHost = downloadManifestHost
 			}
+			if executeManifest != nil {
+				executeRef := executeManifest.GetManifestRef()
+				sourceBucketID := ""
+				if executeRef != nil {
+					sourceBucketID = executeRef.GetBucketId()
+				}
+				t.setManifestCopySelection(ctx, executeManifest, sourceBucketID, worldBucketID)
+				trace.Log(ctx, "manifest-selection-phase", "selected")
+			} else {
+				t.manifestCopyAccounting.Store(nil)
+			}
 
 			if executeManifest != nil || downloadManifest != nil {
 				t.loggedNotFound.Store(false)

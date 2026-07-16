@@ -26,6 +26,10 @@ func emitManifestCopyStartupMarkToBrowser(
 		float64(stats.BlocksDeduped),
 		float64(stats.SubtreesSkipped),
 		float64(stats.LogicalSourceBytes),
+		float64(stats.DestinationDurableBytes),
+		stats.DestinationDurableBytesKnown,
+		float64(stats.DemandReadCount),
+		float64(stats.DemandReadBytes),
 	)
 }
 

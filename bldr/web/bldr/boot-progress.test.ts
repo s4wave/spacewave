@@ -152,6 +152,44 @@ describe('projectBootProgress', () => {
     expect(step.progress).toBe(1)
     expect(step.label).toBe('Spacewave is ready.')
   })
+  it('projects compact manifest copy phases without ref detail', () => {
+    const step = projectBootProgress({ phase: 'runtime', state: 'loading' }, [
+      mark('manifest-copy.copying', {
+        blocksSeen: 3,
+        logicalSourceBytes: 1024,
+      }),
+    ])
+    expect(step.progress).toBeCloseTo(0.79)
+    expect(step.label).toBe('Preparing the manifest cache.')
+  })
+
+  it('updates the same-progress manifest copy transition label', () => {
+    const step = projectBootProgress({ phase: 'runtime', state: 'loading' }, [
+      mark('manifest-copy.copying'),
+      mark('manifest-copy.done'),
+    ])
+    expect(step.progress).toBeCloseTo(0.79)
+    expect(step.label).toBe('Manifest cache ready.')
+  })
+
+  it('keeps a failed manifest copy retry below the app frontier', () => {
+    const step = projectBootProgress({ phase: 'runtime', state: 'loading' }, [
+      mark('manifest-copy.failed'),
+      mark('manifest-copy.copying'),
+    ])
+    expect(step.progress).toBeCloseTo(0.79)
+    expect(step.label).toBe('Preparing the manifest cache.')
+  })
+
+  it('retains prior label for unrelated equal-progress marks', () => {
+    const step = projectBootProgress({ phase: 'runtime', state: 'loading' }, [
+      mark('service-worker.activate-ready'),
+      mark('service-worker.control-ready'),
+    ])
+    expect(step.progress).toBeCloseTo(0.4)
+    expect(step.label).toBe('Service worker active.')
+  })
+
 
   it('keeps accumulated progress on error and unknown marks', () => {
     const step = projectBootProgress(

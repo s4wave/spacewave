@@ -31,6 +31,8 @@ type pluginInstance struct {
 	instanceKey string
 	// loggedNotFound indicates if we logged no manifests were found
 	loggedNotFound atomic.Bool
+	// manifestCopyAccounting owns demand and copy counters for the selected candidate.
+	manifestCopyAccounting atomic.Pointer[manifestCopyAccounting]
 
 	// runningPluginCtr contains the running plugin ref
 	runningPluginCtr *ccontainer.CContainer[bldr_plugin.RunningPlugin]

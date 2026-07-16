@@ -158,6 +158,28 @@ const bootProgressLadder: Record<string, BootProgressLadderStep> = {
   'shell.deferred-boot-ready': { progress: 0.78, label: 'Runtime ready.' },
   'shell.immediate-boot-ready': { progress: 0.78, label: 'Runtime ready.' },
   'boot-status.ready': { progress: 0.78, label: 'Runtime ready.' },
+  // manifest-copy marks carry compact scheduler accounting without changing
+  // the startup-ready frontier.
+  'manifest-copy.selected': {
+    progress: 0.77,
+    label: 'Selecting the application manifest.',
+  },
+  'manifest-copy.waiting-for-running': {
+    progress: 0.78,
+    label: 'Starting app plugins.',
+  },
+  'manifest-copy.copying': {
+    progress: 0.79,
+    label: 'Preparing the manifest cache.',
+  },
+  'manifest-copy.done': {
+    progress: 0.79,
+    label: 'Manifest cache ready.',
+  },
+  'manifest-copy.failed': {
+    progress: 0.79,
+    label: 'Manifest cache unavailable.',
+  },
   // frame: the app frame opens and its plugins, styles, and UI come up.
   'boot-status.app': { progress: 0.8, label: 'Opening the application.' },
   'shell.boot-requested': { progress: 0.8, label: 'Opening the application.' },
@@ -263,7 +285,12 @@ export function projectBootProgress(
     if (!bootProgressMarkIsStartupRelevant(mark)) continue
 
     const step = bootProgressLadder[mark.label]
-    if (step && step.progress > best.progress) {
+    if (
+      step &&
+      (step.progress > best.progress ||
+        (step.progress === best.progress &&
+          mark.label.startsWith('manifest-copy.')))
+    ) {
       best = step
     }
 

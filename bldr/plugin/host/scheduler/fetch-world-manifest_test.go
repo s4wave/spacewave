@@ -23,6 +23,7 @@ import (
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_host_controller "github.com/s4wave/spacewave/bldr/plugin/host/controller"
 	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
 	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
@@ -1705,6 +1706,7 @@ func TestProcessManifestWorldStateRunsDownloadAndExecuteForRemoteManifest(t *tes
 		},
 		le:                      le,
 		pluginID:                "spacewave-core",
+		manifestCopyStatus:      ccontainer.NewCContainer[*manifestCopyStatus](nil),
 		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
 		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
 	}
@@ -1736,6 +1738,15 @@ func TestProcessManifestWorldStateRunsDownloadAndExecuteForRemoteManifest(t *tes
 	}
 	if !execState.manifestSnapshot.GetManifestRef().EqualVT(ref.GetManifestRef()) {
 		t.Fatal("execute manifest ref changed")
+	}
+	copyStatus := pi.manifestCopyStatus.GetValue()
+	if copyStatus == nil ||
+		copyStatus.phase != manifestCopyPhaseSelected ||
+		copyStatus.sourceBucketID != remoteBucketID ||
+		copyStatus.destinationBucketID == "" ||
+		copyStatus.sourceIdentity != manifestCopyIdentityExternal ||
+		copyStatus.destinationIdentity != manifestCopyIdentityLocal {
+		t.Fatalf("selected manifest accounting = %#v, want external source and local destination", copyStatus)
 	}
 }
 
@@ -1871,11 +1882,108 @@ func TestExecPluginReadsExternalManifestViaLookupBlockFromNetwork(t *testing.T) 
 	if remote.store.gets.Load() == 0 {
 		t.Fatal("expected demand execution to invoke LookupBlockFromNetwork")
 	}
+	accounting := pi.manifestCopyAccounting.Load()
+	if accounting == nil || accounting.counters == nil {
+		t.Fatal("expected demand accounting for executed manifest")
+	}
+	readCount, readBytes := accounting.counters.snapshot()
+	demandSnapshot := block.ReadCounterSnapshot{
+		BlockReadCount: readCount,
+		BlockReadBytes: readBytes,
+	}
+	if demandSnapshot.BlockReadCount == 0 || demandSnapshot.BlockReadBytes == 0 {
+		t.Fatalf("expected nonzero demand accounting, got %#v", demandSnapshot)
+	}
 	if string(host.distData) != "console.log('release cdn')\n" {
 		t.Fatalf("dist entrypoint bytes = %q", host.distData)
 	}
 	if string(host.assetsData) != "release asset\n" {
 		t.Fatalf("asset bytes = %q", host.assetsData)
+	}
+}
+
+func TestManifestDemandAccountingIncludesLiveReadsBeforeExecutionExit(t *testing.T) {
+	ctx := context.Background()
+	store := block_mock.NewMockStore(0)
+	ref, _, err := block.PutBlock(ctx, store, block_mock.NewExample("live demand"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, cursor := block.NewTransaction(store, nil, ref, nil)
+
+	snapshot := &bldr_manifest.ManifestSnapshot{
+		ManifestRef: &bucket.ObjectRef{
+			BucketId: "remote",
+			RootRef:  ref,
+		},
+	}
+	accounting := newManifestCopyAccounting(snapshot, "remote", "local")
+	readCtx, counter := block.WithReadCounter(ctx)
+	observation := &manifestDemandObservation{
+		accounting: accounting,
+		counter:    counter,
+	}
+	observation.register()
+	defer observation.finish()
+
+	if _, found, err := cursor.Fetch(readCtx); err != nil || !found {
+		t.Fatalf("access-manifest read = found %v, err %v", found, err)
+	}
+	observation.snapshot()
+	callbackStats := accounting.apply(bucket_lookup.ObjectCopyStats{})
+	if callbackStats.DemandReadCount == 0 || callbackStats.DemandReadBytes == 0 {
+		t.Fatalf("access-manifest demand stats = %#v, want nonzero", callbackStats)
+	}
+
+	if _, found, err := cursor.Fetch(readCtx); err != nil || !found {
+		t.Fatalf("live plugin read = found %v, err %v", found, err)
+	}
+	liveStats := accounting.apply(bucket_lookup.ObjectCopyStats{})
+	if liveStats.DemandReadCount <= callbackStats.DemandReadCount ||
+		liveStats.DemandReadBytes <= callbackStats.DemandReadBytes {
+		t.Fatalf("live demand stats = %#v, callback stats = %#v", liveStats, callbackStats)
+	}
+}
+
+func TestSupersededDownloadCannotPublishStatusOrMark(t *testing.T) {
+	refA := newTestManifestRef("spacewave-core", "desktop/darwin/arm64", 1, "bucket-a")
+	refB := newTestManifestRef("spacewave-core", "desktop/darwin/arm64", 2, "bucket-b")
+	snapshotA := &bldr_manifest.ManifestSnapshot{ManifestRef: refA.GetManifestRef()}
+	snapshotB := &bldr_manifest.ManifestSnapshot{ManifestRef: refB.GetManifestRef()}
+	accountingA := newManifestCopyAccounting(snapshotA, "bucket-a", "local")
+	accountingB := newManifestCopyAccounting(snapshotB, "bucket-b", "local")
+	pi := &pluginInstance{
+		manifestCopyStatus: ccontainer.NewCContainer[*manifestCopyStatus](nil),
+	}
+	pi.manifestCopyAccounting.Store(accountingB)
+	pi.manifestCopyStatus.SetValue(&manifestCopyStatus{
+		phase:       manifestCopyPhaseCopying,
+		manifestRef: snapshotB.GetManifestRef().MarshalString(),
+	})
+	for _, phase := range []manifestCopyPhase{manifestCopyPhaseDone, manifestCopyPhaseFailed} {
+		pi.setManifestCopyStatus(
+			phase,
+			manifestCopyClassImmediate,
+			snapshotA,
+			accountingA,
+			bucket_lookup.ObjectCopyStats{BlocksSeen: 99},
+		)
+		status := pi.manifestCopyStatus.GetValue()
+		if status == nil ||
+			status.phase != manifestCopyPhaseCopying ||
+			status.manifestRef != snapshotB.GetManifestRef().MarshalString() {
+			t.Fatalf("superseded download published %#v over current candidate", status)
+		}
+		if pi.emitManifestCopyStartupMark(phase, bucket_lookup.ObjectCopyStats{BlocksSeen: 99}, accountingA) {
+			t.Fatalf("superseded download emitted %s startup mark", phase)
+		}
+	}
+	if !pi.emitManifestCopyStartupMark(
+		manifestCopyPhaseDone,
+		bucket_lookup.ObjectCopyStats{},
+		accountingB,
+	) {
+		t.Fatal("current download startup mark was incorrectly gated")
 	}
 }
 
@@ -2207,6 +2315,16 @@ func TestDownloadManifestYieldsColdStartCopyUntilPluginRunning(t *testing.T) {
 		status.stats.BlocksCopied != status.stats.BlocksWritten+status.stats.BlocksExisting ||
 		status.stats.LogicalSourceBytes == 0 {
 		t.Fatalf("copy accounting = %#v, want complete logical copy totals", status.stats)
+	}
+	if status.sourceBucketID != remoteBucketID ||
+		status.sourceIdentity != manifestCopyIdentityExternal ||
+		status.destinationBucketID == "" ||
+		status.destinationIdentity != manifestCopyIdentityLocal {
+		t.Fatalf("copy identity = %#v, want external source and local destination", status)
+	}
+	if status.stats.DestinationDurableBytesKnown &&
+		status.stats.DestinationDurableBytes != status.stats.LogicalSourceBytes {
+		t.Fatalf("durable bytes = %#v, want logical source bytes", status.stats)
 	}
 }
 

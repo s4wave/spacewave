@@ -2,6 +2,7 @@ package plugin_host_scheduler
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -64,14 +65,18 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 	t.ensureAccessProviders()
 	defer func() {
 		if rerr != nil {
+			trace.Log(ctx, "manifest-copy-phase", "error")
 			t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "execute plugin", rerr)
 			return
 		}
 		t.c.clearPluginStatusError(t.pluginID, t.instanceKey)
 	}()
-
 	pluginManifest := args.manifestSnapshot
 	pluginID, le := t.pluginID, t.le
+	accounting := t.manifestCopyAccountingForExecution(ctx, pluginManifest)
+	accessCtx := ctx
+	var demandObservation *manifestDemandObservation
+	var finishDemand func(string)
 	trace.Log(ctx, "plugin-id", pluginID)
 	trace.Log(ctx, "instance-key", t.instanceKey)
 	trace.Log(ctx, "manifest-ref", pluginManifest.GetManifestRef().MarshalString())
@@ -89,9 +94,40 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 	if err != nil {
 		return err
 	}
+	if accounting != nil {
+		var readCounter *block.ReadCounter
+		accessCtx, readCounter = block.WithReadCounter(accessCtx)
+		demandObservation = &manifestDemandObservation{
+			accounting: accounting,
+			counter:    readCounter,
+		}
+		demandObservation.register()
+		var demandTask *trace.Task
+		accessCtx, demandTask = trace.NewTask(accessCtx, "bldr/plugin-host-scheduler/first-demand-block")
+		trace.Log(accessCtx, "demand-read-phase", "waiting")
+		var demandTaskOnce sync.Once
+		finishDemand = func(phase string) {
+			demandTaskOnce.Do(func() {
+				trace.Log(accessCtx, "demand-read-phase", phase)
+				demandTask.End()
+			})
+		}
+	}
+	defer func() {
+		if demandObservation == nil {
+			return
+		}
+		demandObservation.snapshot()
+		if ctx.Err() != nil {
+			finishDemand("canceled")
+		} else {
+			finishDemand("error")
+		}
+		demandObservation.finish()
+	}()
 
 	le.Infof("starting plugin with manifest: %s", pluginManifest.GetManifestRef().MarshalString())
-	return manifest_world.AccessManifest(ctx, le, ws.AccessWorldState, pluginManifest.GetManifestRef(), func(
+	accessErr := manifest_world.AccessManifest(accessCtx, le, ws.AccessWorldState, pluginManifest.GetManifestRef(), func(
 		ctx context.Context,
 		bls *bucket_lookup.Cursor,
 		bcs *block.Cursor,
@@ -99,11 +135,18 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		distFS,
 		assetsFS *unixfs.FSHandle,
 	) error {
+		if demandObservation != nil {
+			snapshot := demandObservation.snapshot()
+			if snapshot.BlockReadCount != 0 {
+				finishDemand("first-demand-block")
+			} else {
+				finishDemand("access-manifest-ready")
+			}
+		}
 		t.distAccess.SetCurrent(unixfs_access.NewAccessUnixFSFunc(distFS))
 		defer t.distAccess.SetBlocked()
 		t.assetsAccess.SetCurrent(unixfs_access.NewAccessUnixFSFunc(assetsFS))
 		defer t.assetsAccess.SetBlocked()
-
 		t.emitPluginManifestRoot(pluginManifest.GetManifestRef().GetRootRef().GetHash().MarshalString())
 
 		hostRoot, _, hostRootRef, err := plugin_host_root.ExLookupRootByPlatform(
@@ -157,6 +200,15 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 
 		return nil
 	})
+	if demandObservation != nil {
+		demandObservation.snapshot()
+		if accessErr != nil {
+			finishDemand("error")
+		} else {
+			finishDemand("access-manifest-complete")
+		}
+	}
+	return accessErr
 }
 
 // updateRpcClient is called by the plugin when the RPC client changes.

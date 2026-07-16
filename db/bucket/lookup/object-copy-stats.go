@@ -12,6 +12,12 @@ type ObjectCopyStats struct {
 	BlocksDeduped      int64
 	SubtreesSkipped    int64
 	LogicalSourceBytes int64
+	// DestinationDurableBytes is non-zero only when the destination durability fence can account for bytes.
+	// DestinationDurableBytesKnown distinguishes an unavailable fence from a zero-byte copy.
+	DestinationDurableBytes      int64
+	DestinationDurableBytesKnown bool
+	DemandReadCount              int64
+	DemandReadBytes              int64
 }
 
 // ObjectCopyProgress receives monotonic copy accounting snapshots. Callbacks are

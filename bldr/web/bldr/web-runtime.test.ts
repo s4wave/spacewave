@@ -483,12 +483,23 @@ describe('WebRuntime', () => {
     runtime.broadcastStartupMark('manifest-copy.done', {
       blocksSeen: 3,
       logicalSourceBytes: 1024,
+      destinationDurableBytes: 1024,
+      destinationDurableBytesKnown: true,
+      demandReadCount: 2,
+      demandReadBytes: 256,
     })
 
     expect(documentPost).toHaveBeenCalledWith({
       startupMark: {
         label: 'manifest-copy.done',
-        detail: { blocksSeen: 3, logicalSourceBytes: 1024 },
+        detail: {
+          blocksSeen: 3,
+          logicalSourceBytes: 1024,
+          destinationDurableBytes: 1024,
+          destinationDurableBytesKnown: true,
+          demandReadCount: 2,
+          demandReadBytes: 256,
+        },
       },
     })
     expect(workerPost).not.toHaveBeenCalled()

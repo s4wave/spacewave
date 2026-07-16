@@ -169,10 +169,12 @@ func copyObjectToBucket(
 	// We do this by recursively following the block refs.
 	// Note that GetBlockRefCtor must be implemented for this to work properly.
 	// TODO: handle garbage collection (set parent in PutOpts)
+	ctx = withCopyWorkerTrace(ctx)
 	err = WalkObjectBlocks(
 		ctx,
 		NewWalkObjectBlocksWithRef(srcRef.GetRootRef(), rootCtor),
 		func(ent *WalkObjectBlocksEntry) (cntu bool, err error) {
+
 			// call the callback if set
 			if cb != nil {
 				cntu, err = cb(ent)
@@ -251,6 +253,9 @@ func copyObjectToBucket(
 	trace.Logf(ctx, "copy-block-written-count", "%d", stats.BlocksWritten)
 	trace.Logf(ctx, "copy-block-skip-subtree-count", "%d", stats.SubtreesSkipped)
 	trace.Logf(ctx, "copy-block-logical-source-byte-count", "%d", stats.LogicalSourceBytes)
+	trace.Logf(ctx, "copy-block-destination-durable-byte-count", "%d", stats.DestinationDurableBytes)
+	trace.Logf(ctx, "copy-block-demand-read-count", "%d", stats.DemandReadCount)
+	trace.Logf(ctx, "copy-block-demand-read-byte-count", "%d", stats.DemandReadBytes)
 	if err != nil {
 		return nil, stats, err
 	}

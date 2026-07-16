@@ -8,7 +8,19 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 )
+
+type copyWorkerTraceContextKey struct{}
+
+func withCopyWorkerTrace(ctx context.Context) context.Context {
+	return context.WithValue(ctx, copyWorkerTraceContextKey{}, true)
+}
+
+func copyWorkerTraceEnabled(ctx context.Context) bool {
+	enabled, _ := ctx.Value(copyWorkerTraceContextKey{}).(bool)
+	return enabled
+}
 
 // WalkObjectBlocksCb is the callback called by WalkObjectBlocks.
 type WalkObjectBlocksCb func(entry *WalkObjectBlocksEntry) (cntu bool, err error)
@@ -186,11 +198,17 @@ func (e *WalkObjectBlocksEntry) buildVisitFn(ctx context.Context, st *walkState)
 		if ctx.Err() != nil {
 			return
 		}
+		workerCtx := ctx
+		var workerTask *trace.Task
+		if copyWorkerTraceEnabled(ctx) {
+			workerCtx, workerTask = trace.NewTask(ctx, "db/bucket/lookup/copy-worker-request")
+			trace.Log(workerCtx, "copy-worker-phase", "request")
+			defer workerTask.End()
+		}
 
 		if !e.Found && e.Err == nil && !e.IsSubBlock && !e.Ref.GetEmpty() {
 			// returns nil, false, nil if reference was empty.
-			// returns nil, false, ErrNotFound if reference was not found.
-			e.Data, e.Found, e.Err = st.readBkt.GetBlock(ctx, e.Ref)
+			e.Data, e.Found, e.Err = st.readBkt.GetBlock(workerCtx, e.Ref)
 		}
 
 		if e.Found && e.Ctor != nil && e.Err == nil && !e.IsSubBlock {
