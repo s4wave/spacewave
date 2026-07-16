@@ -22,6 +22,10 @@ const mockVmResource = vi.hoisted(() => ({
   retry: vi.fn(),
 }))
 
+const serialChannels: Array<{
+  onmessage: ((event: MessageEvent) => void) | null
+}> = []
+
 vi.mock('@aptre/bldr-sdk/hooks/useResource.js', async () => {
   const actual = await vi.importActual<
     typeof import('@aptre/bldr-sdk/hooks/useResource.js')
@@ -105,11 +109,14 @@ function buildWorld(vm: VmV86) {
 describe('VmV86Viewer', () => {
   beforeEach(() => {
     mockContentsResourceState.value = mockContents
+    serialChannels.length = 0
     vi.stubGlobal(
       'BroadcastChannel',
       class {
         onmessage: ((event: MessageEvent) => void) | null = null
-        constructor(public name: string) {}
+        constructor(public name: string) {
+          serialChannels.push(this)
+        }
         postMessage = vi.fn()
         close = vi.fn()
       },
@@ -120,6 +127,40 @@ describe('VmV86Viewer', () => {
     cleanup()
     vi.unstubAllGlobals()
     vi.clearAllMocks()
+  })
+
+  it('shows VM boot loading until the first serial byte', async () => {
+    const { world } = buildWorld(
+      VmV86.create({
+        state: VmState.VmState_RUNNING,
+        observedState: VmState.VmState_RUNNING,
+      }),
+    )
+
+    render(
+      <VmV86Viewer
+        objectInfo={{
+          info: {
+            case: 'worldObjectInfo',
+            value: { objectKey: 'vm/v86/test', objectType: 'vm/v86' },
+          },
+        }}
+        worldState={{
+          value: world,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    expect(screen.getByRole('status').textContent).toContain(
+      'Booting virtual machine…',
+    )
+    serialChannels[0]?.onmessage?.({
+      data: { dir: 'out', byte: 10 },
+    } as MessageEvent)
+    await waitFor(() => expect(screen.queryByRole('status')).toBeNull())
   })
 
   it('shows the stored runtime error and resets before start is available', async () => {

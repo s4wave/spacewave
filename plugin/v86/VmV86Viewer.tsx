@@ -261,6 +261,11 @@ export default function VmV86Viewer({
     vmStateValue === VmState.VmState_STARTING ||
     vmStateValue === VmState.VmState_STOPPING
 
+  const terminalConnecting =
+    vmState.loading ||
+    vmStateValue === VmState.VmState_STARTING ||
+    vmStateValue === VmState.VmState_RUNNING
+
   const handleStart = useCallback(() => {
     setOperationError('')
     captureActionError(applyVmState(VmState.VmState_RUNNING))
@@ -304,7 +309,10 @@ export default function VmV86Viewer({
       {operationError && (
         <VmErrorBanner title="Operation error" message={operationError} />
       )}
-      <SerialTerminal objectKey={objectKey} />
+      <SerialTerminal
+        objectKey={objectKey}
+        connecting={terminalConnecting}
+      />
       <VmInfoBar
         memoryMb={memoryMb}
         startedLabel={startedLabel}
@@ -434,8 +442,19 @@ function VmErrorBanner({
   )
 }
 
-function SerialTerminal({ objectKey }: { objectKey: string }) {
+function SerialTerminal({
+  objectKey,
+  connecting,
+}: {
+  objectKey: string
+  connecting: boolean
+}) {
   const terminalHostRef = useRef<HTMLDivElement | null>(null)
+  const [hasOutput, setHasOutput] = useState(false)
+
+  useEffect(() => {
+    if (connecting) setHasOutput(false)
+  }, [connecting])
 
   useEffect(() => {
     const host = terminalHostRef.current
@@ -460,6 +479,7 @@ function SerialTerminal({ objectKey }: { objectKey: string }) {
       const frame = ev.data
       if (!frame || frame.dir !== 'out') return
       if (typeof frame.byte === 'number') {
+        setHasOutput(true)
         term.write(String.fromCharCode(frame.byte))
       }
     }
@@ -488,10 +508,36 @@ function SerialTerminal({ objectKey }: { objectKey: string }) {
   }, [objectKey])
 
   return (
-    <div
-      ref={terminalHostRef}
-      className="min-h-0 flex-1 overflow-hidden bg-zinc-950"
-    />
+    <div className="bg-zinc-950 relative min-h-0 flex-1 overflow-hidden">
+      <div ref={terminalHostRef} className="size-full overflow-hidden" />
+      {connecting && !hasOutput && (
+        <div
+          className="bg-background-dark/95 absolute inset-0 flex items-center justify-center p-4"
+          data-vm-terminal-status="connecting"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="border-foreground/8 bg-background-card/50 w-full max-w-sm rounded-lg border p-3.5">
+            <div className="flex items-start gap-3">
+              <span
+                aria-hidden="true"
+                className="text-brand mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-brand/10"
+              >
+                <span className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-foreground text-sm font-semibold tracking-tight">
+                  Booting virtual machine…
+                </h2>
+                <p className="text-foreground-alt/70 mt-0.5 text-xs leading-relaxed">
+                  Waiting for the serial console to produce output.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

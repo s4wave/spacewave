@@ -297,22 +297,23 @@ describe('TerminalPane', () => {
     unmount()
   })
 
-  it('waits for the ready prompt before removing the starting state', async () => {
+  it('renders connecting status until the first terminal output', async () => {
     const { container, unmount } = renderTerminalPane([
       { kind: TerminalFrameKind.READY },
       {
         kind: TerminalFrameKind.OUTPUT,
-        data: terminalEncoder.encode('spacewave> '),
+        data: terminalEncoder.encode('booting terminal\n'),
       },
     ])
 
-    expect(screen.getByText('Starting Spacewave CLI…')).toBeDefined()
+    expect(screen.getByRole('status')).toBeDefined()
+    expect(screen.getByText('Connecting to Spacewave CLI…')).toBeDefined()
     await vi.waitFor(() =>
       expect(container.querySelector('[data-terminal-state="ready"]')).not.toBe(
         null,
       ),
     )
-    expect(screen.queryByText('Starting Spacewave CLI…')).toBeNull()
+    expect(screen.queryByRole('status')).toBeNull()
     expect(h.focus).toHaveBeenCalled()
 
     unmount()

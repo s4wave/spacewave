@@ -15,7 +15,6 @@ const terminalEncoder = new TextEncoder()
 const maxQueuedTerminalFrames = 256
 
 const terminalDecoder = new TextDecoder()
-const cliPrompt = 'spacewave> '
 
 export type TerminalPaneConnector = (
   frames: MessageStream<TerminalFrame>,
@@ -35,7 +34,7 @@ export interface TerminalPaneProps {
 }
 
 type TerminalPaneStatus =
-  | { kind: 'starting' }
+  | { kind: 'connecting' }
   | { kind: 'ready' }
   | { kind: 'failed'; detail: string }
   | { kind: 'closed' }
@@ -48,12 +47,12 @@ interface TerminalFrameQueue {
 }
 
 interface TerminalFrameStateHandlers {
-  onReady: () => void
+  onOutput: () => void
   onFailure: (detail: string) => void
   onClosed: () => void
 }
 
-const startingStatus: TerminalPaneStatus = { kind: 'starting' }
+const connectingStatus: TerminalPaneStatus = { kind: 'connecting' }
 
 export function TerminalPane({
   connectTerminal,
@@ -66,12 +65,12 @@ export function TerminalPane({
   const [trustChallenge, setTrustChallenge] = useState<TerminalFrame | null>(
     null,
   )
-  const [status, setStatus] = useState<TerminalPaneStatus>(startingStatus)
+  const [status, setStatus] = useState<TerminalPaneStatus>(connectingStatus)
 
   useEffect(() => {
     const host = terminalHostRef.current
     if (!host) return
-    setStatus(startingStatus)
+    setStatus(connectingStatus)
     setTrustChallenge(null)
     if (!connectTerminal) return
 
@@ -121,7 +120,7 @@ export function TerminalPane({
       renderAbort.signal,
       setTrustChallenge,
       {
-        onReady: () => setStatus({ kind: 'ready' }),
+        onOutput: () => setStatus({ kind: 'ready' }),
         onFailure: (detail) => setStatus({ kind: 'failed', detail }),
         onClosed: () => setStatus({ kind: 'closed' }),
       },
@@ -203,8 +202,8 @@ function TerminalPaneStatusLayer({
     : closed
       ? `${sessionName} ended`
       : cliSession
-        ? 'Starting Spacewave CLI…'
-        : 'Starting terminal…'
+        ? 'Connecting to Spacewave CLI…'
+        : 'Connecting terminal…'
   const detail = failed
     ? status.detail
     : closed
@@ -217,7 +216,7 @@ function TerminalPaneStatusLayer({
     <div
       className="bg-background-dark/95 absolute inset-0 flex items-center justify-center p-4"
       data-terminal-status-layer={status.kind}
-      role={failed ? 'alert' : undefined}
+      role={failed ? 'alert' : 'status'}
       aria-live="polite"
     >
       <div
@@ -289,33 +288,26 @@ async function readTerminalFrames(
   onSshTrustChallenge: (frame: TerminalFrame | null) => void,
   handlers: TerminalFrameStateHandlers,
 ) {
-  let receivedReady = false
-  let promptVisible = false
-  let readyAnnounced = false
-  const markReady = () => {
-    if (readyAnnounced || !receivedReady || !promptVisible || signal.aborted) {
-      return
-    }
-    readyAnnounced = true
+  let receivedOutput = false
+  const markOutput = () => {
+    if (receivedOutput || signal.aborted) return
+    receivedOutput = true
     term.focus?.()
-    handlers.onReady()
+    handlers.onOutput()
   }
   try {
     for await (const frame of frames) {
       switch (frame.kind) {
         case TerminalFrameKind.OUTPUT: {
-          if (!signal.aborted) {
+          if (!signal.aborted && frame.data) {
             const output = terminalDecoder.decode(frame.data)
             term.write(output)
-            promptVisible ||= containsTerminalPrompt(output)
-            markReady()
+            if (frame.data.length > 0) markOutput()
           }
           break
         }
         case TerminalFrameKind.READY:
-          receivedReady = true
           onSshTrustChallenge(null)
-          markReady()
           break
         case TerminalFrameKind.SSH_HOST_KEY_TRUST_CHALLENGE:
           onSshTrustChallenge(frame)
@@ -334,7 +326,7 @@ async function readTerminalFrames(
           return
       }
     }
-    if (!signal.aborted && (!receivedReady || !promptVisible)) {
+    if (!signal.aborted && !receivedOutput) {
       handlers.onFailure(safeTerminalFailureDetail())
     }
   } catch {
@@ -342,12 +334,6 @@ async function readTerminalFrames(
       handlers.onFailure(safeTerminalFailureDetail())
     }
   }
-}
-
-function containsTerminalPrompt(output: string): boolean {
-  return output
-    .split(/\r\n|\r|\n/)
-    .some((line) => line.includes(cliPrompt) || /[$#>%]\s*$/.test(line))
 }
 
 function safeTerminalFailureDetail(rawError?: string): string {
