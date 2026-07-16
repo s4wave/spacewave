@@ -2496,6 +2496,24 @@ message ClientErrorReportResponse {
   uint32 retry_after_seconds = 2;
 }
 
+// MintFacetsLaunchGrantRequest is the request body for
+// POST /api/facets/launch-grant/mint.
+message MintFacetsLaunchGrantRequest {
+  // OrganizationId is the expected organization ID bound to the launch grant target.
+  string organization_id = 1;
+  // PackageDigest is the expected package digest bound to the launch grant target.
+  string package_digest = 2;
+  // Capability is the expected runtime capability bound to the launch grant target.
+  string capability = 3;
+}
+
+// MintFacetsLaunchGrantResponse is the response body for
+// POST /api/facets/launch-grant/mint.
+message MintFacetsLaunchGrantResponse {
+  // Token is the opaque short-lived launch grant for GLaDOS verification.
+  string token = 1;
+}
+
 // VerifyFacetsLaunchGrantRequest is the request body for
 // POST /api/facets/launch-grant/verify.
 message VerifyFacetsLaunchGrantRequest {

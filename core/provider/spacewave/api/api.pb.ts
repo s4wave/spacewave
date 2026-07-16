@@ -9411,6 +9411,68 @@ export const ClientErrorReportResponse: MessageType<ClientErrorReportResponse> =
   })
 
 /**
+ * MintFacetsLaunchGrantRequest is the request body for
+ * POST /api/facets/launch-grant/mint.
+ *
+ * @generated from message provider.spacewave.api.MintFacetsLaunchGrantRequest
+ */
+export interface MintFacetsLaunchGrantRequest {
+  /**
+   * OrganizationId is the expected organization ID bound to the launch grant target.
+   *
+   * @generated from field: string organization_id = 1;
+   */
+  organizationId?: string
+  /**
+   * PackageDigest is the expected package digest bound to the launch grant target.
+   *
+   * @generated from field: string package_digest = 2;
+   */
+  packageDigest?: string
+  /**
+   * Capability is the expected runtime capability bound to the launch grant target.
+   *
+   * @generated from field: string capability = 3;
+   */
+  capability?: string
+}
+
+export const MintFacetsLaunchGrantRequest: MessageType<MintFacetsLaunchGrantRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.MintFacetsLaunchGrantRequest',
+    fields: [
+      { no: 1, name: 'organization_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'package_digest', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'capability', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * MintFacetsLaunchGrantResponse is the response body for
+ * POST /api/facets/launch-grant/mint.
+ *
+ * @generated from message provider.spacewave.api.MintFacetsLaunchGrantResponse
+ */
+export interface MintFacetsLaunchGrantResponse {
+  /**
+   * Token is the opaque short-lived launch grant for GLaDOS verification.
+   *
+   * @generated from field: string token = 1;
+   */
+  token?: string
+}
+
+export const MintFacetsLaunchGrantResponse: MessageType<MintFacetsLaunchGrantResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.MintFacetsLaunchGrantResponse',
+    fields: [
+      { no: 1, name: 'token', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * VerifyFacetsLaunchGrantRequest is the request body for
  * POST /api/facets/launch-grant/verify.
  *

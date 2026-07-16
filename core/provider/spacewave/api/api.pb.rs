@@ -3079,6 +3079,28 @@ pub struct ClientErrorReportResponse {
     #[prost(uint32, tag="2")]
     pub retry_after_seconds: u32,
 }
+/// MintFacetsLaunchGrantRequest is the request body for
+/// POST /api/facets/launch-grant/mint.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MintFacetsLaunchGrantRequest {
+    /// OrganizationId is the expected organization ID bound to the launch grant target.
+    #[prost(string, tag="1")]
+    pub organization_id: ::prost::alloc::string::String,
+    /// PackageDigest is the expected package digest bound to the launch grant target.
+    #[prost(string, tag="2")]
+    pub package_digest: ::prost::alloc::string::String,
+    /// Capability is the expected runtime capability bound to the launch grant target.
+    #[prost(string, tag="3")]
+    pub capability: ::prost::alloc::string::String,
+}
+/// MintFacetsLaunchGrantResponse is the response body for
+/// POST /api/facets/launch-grant/mint.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MintFacetsLaunchGrantResponse {
+    /// Token is the opaque short-lived launch grant for GLaDOS verification.
+    #[prost(string, tag="1")]
+    pub token: ::prost::alloc::string::String,
+}
 /// VerifyFacetsLaunchGrantRequest is the request body for
 /// POST /api/facets/launch-grant/verify.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

@@ -526,6 +526,14 @@ class MemberSessionChangedPayload;
 struct MemberSessionChangedPayloadDefaultTypeInternal;
 extern MemberSessionChangedPayloadDefaultTypeInternal _MemberSessionChangedPayload_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull MemberSessionChangedPayload_class_data_;
+class MintFacetsLaunchGrantRequest;
+struct MintFacetsLaunchGrantRequestDefaultTypeInternal;
+extern MintFacetsLaunchGrantRequestDefaultTypeInternal _MintFacetsLaunchGrantRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull MintFacetsLaunchGrantRequest_class_data_;
+class MintFacetsLaunchGrantResponse;
+struct MintFacetsLaunchGrantResponseDefaultTypeInternal;
+extern MintFacetsLaunchGrantResponseDefaultTypeInternal _MintFacetsLaunchGrantResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull MintFacetsLaunchGrantResponse_class_data_;
 class MultiSigActionEnvelope;
 struct MultiSigActionEnvelopeDefaultTypeInternal;
 extern MultiSigActionEnvelopeDefaultTypeInternal _MultiSigActionEnvelope_default_instance_;
@@ -2067,7 +2075,7 @@ class VerifyFacetsLaunchGrantResponse final : public ::google::protobuf::interna
     return *reinterpret_cast<const VerifyFacetsLaunchGrantResponse*>(
         &_VerifyFacetsLaunchGrantResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 240;
+  static constexpr int kIndexInFileMessages = 242;
   friend void swap(VerifyFacetsLaunchGrantResponse& a, VerifyFacetsLaunchGrantResponse& b) { a.Swap(&b); }
   inline void Swap(VerifyFacetsLaunchGrantResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2202,7 +2210,7 @@ class VerifyFacetsLaunchGrantRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const VerifyFacetsLaunchGrantRequest*>(
         &_VerifyFacetsLaunchGrantRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 239;
+  static constexpr int kIndexInFileMessages = 241;
   friend void swap(VerifyFacetsLaunchGrantRequest& a, VerifyFacetsLaunchGrantRequest& b) { a.Swap(&b); }
   inline void Swap(VerifyFacetsLaunchGrantRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5777,7 +5785,7 @@ class SsoCallbackResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const SsoCallbackResult*>(
         &_SsoCallbackResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 241;
+  static constexpr int kIndexInFileMessages = 243;
   friend void swap(SsoCallbackResult& a, SsoCallbackResult& b) { a.Swap(&b); }
   inline void Swap(SsoCallbackResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -23960,6 +23968,430 @@ class MultiSigActionEnvelope final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull MultiSigActionEnvelope_class_data_;
 // -------------------------------------------------------------------
 
+class MintFacetsLaunchGrantResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:provider.spacewave.api.MintFacetsLaunchGrantResponse) */ {
+ public:
+  inline MintFacetsLaunchGrantResponse() : MintFacetsLaunchGrantResponse(nullptr) {}
+  ~MintFacetsLaunchGrantResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(MintFacetsLaunchGrantResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(MintFacetsLaunchGrantResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR MintFacetsLaunchGrantResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline MintFacetsLaunchGrantResponse(const MintFacetsLaunchGrantResponse& from) : MintFacetsLaunchGrantResponse(nullptr, from) {}
+  inline MintFacetsLaunchGrantResponse(MintFacetsLaunchGrantResponse&& from) noexcept
+      : MintFacetsLaunchGrantResponse(nullptr, ::std::move(from)) {}
+  inline MintFacetsLaunchGrantResponse& operator=(const MintFacetsLaunchGrantResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline MintFacetsLaunchGrantResponse& operator=(MintFacetsLaunchGrantResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const MintFacetsLaunchGrantResponse& default_instance() {
+    return *reinterpret_cast<const MintFacetsLaunchGrantResponse*>(
+        &_MintFacetsLaunchGrantResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 240;
+  friend void swap(MintFacetsLaunchGrantResponse& a, MintFacetsLaunchGrantResponse& b) { a.Swap(&b); }
+  inline void Swap(MintFacetsLaunchGrantResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(MintFacetsLaunchGrantResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  MintFacetsLaunchGrantResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<MintFacetsLaunchGrantResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const MintFacetsLaunchGrantResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const MintFacetsLaunchGrantResponse& from) { MintFacetsLaunchGrantResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(MintFacetsLaunchGrantResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.MintFacetsLaunchGrantResponse"; }
+
+  explicit MintFacetsLaunchGrantResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  MintFacetsLaunchGrantResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const MintFacetsLaunchGrantResponse& from);
+  MintFacetsLaunchGrantResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, MintFacetsLaunchGrantResponse&& from) noexcept
+      : MintFacetsLaunchGrantResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kTokenFieldNumber = 1,
+  };
+  // string token = 1;
+  void clear_token() ;
+  const ::std::string& token() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_token(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_token();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_token();
+  void set_allocated_token(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_token() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_token(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_token();
+
+  public:
+  // @@protoc_insertion_point(class_scope:provider.spacewave.api.MintFacetsLaunchGrantResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 66,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const MintFacetsLaunchGrantResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr token_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull MintFacetsLaunchGrantResponse_class_data_;
+// -------------------------------------------------------------------
+
+class MintFacetsLaunchGrantRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:provider.spacewave.api.MintFacetsLaunchGrantRequest) */ {
+ public:
+  inline MintFacetsLaunchGrantRequest() : MintFacetsLaunchGrantRequest(nullptr) {}
+  ~MintFacetsLaunchGrantRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(MintFacetsLaunchGrantRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(MintFacetsLaunchGrantRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR MintFacetsLaunchGrantRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline MintFacetsLaunchGrantRequest(const MintFacetsLaunchGrantRequest& from) : MintFacetsLaunchGrantRequest(nullptr, from) {}
+  inline MintFacetsLaunchGrantRequest(MintFacetsLaunchGrantRequest&& from) noexcept
+      : MintFacetsLaunchGrantRequest(nullptr, ::std::move(from)) {}
+  inline MintFacetsLaunchGrantRequest& operator=(const MintFacetsLaunchGrantRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline MintFacetsLaunchGrantRequest& operator=(MintFacetsLaunchGrantRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const MintFacetsLaunchGrantRequest& default_instance() {
+    return *reinterpret_cast<const MintFacetsLaunchGrantRequest*>(
+        &_MintFacetsLaunchGrantRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 239;
+  friend void swap(MintFacetsLaunchGrantRequest& a, MintFacetsLaunchGrantRequest& b) { a.Swap(&b); }
+  inline void Swap(MintFacetsLaunchGrantRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(MintFacetsLaunchGrantRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  MintFacetsLaunchGrantRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<MintFacetsLaunchGrantRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const MintFacetsLaunchGrantRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const MintFacetsLaunchGrantRequest& from) { MintFacetsLaunchGrantRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(MintFacetsLaunchGrantRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.MintFacetsLaunchGrantRequest"; }
+
+  explicit MintFacetsLaunchGrantRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  MintFacetsLaunchGrantRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const MintFacetsLaunchGrantRequest& from);
+  MintFacetsLaunchGrantRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, MintFacetsLaunchGrantRequest&& from) noexcept
+      : MintFacetsLaunchGrantRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kOrganizationIdFieldNumber = 1,
+    kPackageDigestFieldNumber = 2,
+    kCapabilityFieldNumber = 3,
+  };
+  // string organization_id = 1;
+  void clear_organization_id() ;
+  const ::std::string& organization_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_organization_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_organization_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_organization_id();
+  void set_allocated_organization_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_organization_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_organization_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_organization_id();
+
+  public:
+  // string package_digest = 2;
+  void clear_package_digest() ;
+  const ::std::string& package_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_package_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_package_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_package_digest();
+  void set_allocated_package_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_package_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_package_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_package_digest();
+
+  public:
+  // string capability = 3;
+  void clear_capability() ;
+  const ::std::string& capability() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_capability(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_capability();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_capability();
+  void set_allocated_capability(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_capability() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_capability(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_capability();
+
+  public:
+  // @@protoc_insertion_point(class_scope:provider.spacewave.api.MintFacetsLaunchGrantRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 99,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const MintFacetsLaunchGrantRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr organization_id_;
+    ::google::protobuf::internal::ArenaStringPtr package_digest_;
+    ::google::protobuf::internal::ArenaStringPtr capability_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull MintFacetsLaunchGrantRequest_class_data_;
+// -------------------------------------------------------------------
+
 class MemberSessionChangedPayload final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:provider.spacewave.api.MemberSessionChangedPayload) */ {
  public:
@@ -41322,7 +41754,7 @@ class WsBillingCheckoutServerFrame final : public ::google::protobuf::Message
     kStatus = 1,
     BODY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 244;
+  static constexpr int kIndexInFileMessages = 246;
   friend void swap(WsBillingCheckoutServerFrame& a, WsBillingCheckoutServerFrame& b) { a.Swap(&b); }
   inline void Swap(WsBillingCheckoutServerFrame* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -49054,7 +49486,7 @@ class PasskeyRelay final : public ::google::protobuf::Message
     kReauthRelay = 7,
     RELAY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 242;
+  static constexpr int kIndexInFileMessages = 244;
   friend void swap(PasskeyRelay& a, PasskeyRelay& b) { a.Swap(&b); }
   inline void Swap(PasskeyRelay* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -51535,7 +51967,7 @@ class WsAuthSessionServerFrame final : public ::google::protobuf::Message
     kSsoLink = 4,
     BODY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 243;
+  static constexpr int kIndexInFileMessages = 245;
   friend void swap(WsAuthSessionServerFrame& a, WsAuthSessionServerFrame& b) { a.Swap(&b); }
   inline void Swap(WsAuthSessionServerFrame* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -89900,6 +90332,274 @@ inline ::uint32_t ClientErrorReportResponse::_internal_retry_after_seconds() con
 inline void ClientErrorReportResponse::_internal_set_retry_after_seconds(::uint32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.retry_after_seconds_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// MintFacetsLaunchGrantRequest
+
+// string organization_id = 1;
+inline void MintFacetsLaunchGrantRequest::clear_organization_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.organization_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& MintFacetsLaunchGrantRequest::organization_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.MintFacetsLaunchGrantRequest.organization_id)
+  return _internal_organization_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void MintFacetsLaunchGrantRequest::set_organization_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.organization_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.MintFacetsLaunchGrantRequest.organization_id)
+}
+inline ::std::string* PROTOBUF_NONNULL MintFacetsLaunchGrantRequest::mutable_organization_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_organization_id();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.MintFacetsLaunchGrantRequest.organization_id)
+  return _s;
+}
+inline const ::std::string& MintFacetsLaunchGrantRequest::_internal_organization_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.organization_id_.Get();
+}
+inline void MintFacetsLaunchGrantRequest::_internal_set_organization_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.organization_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL MintFacetsLaunchGrantRequest::_internal_mutable_organization_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.organization_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE MintFacetsLaunchGrantRequest::release_organization_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.MintFacetsLaunchGrantRequest.organization_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.organization_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.organization_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void MintFacetsLaunchGrantRequest::set_allocated_organization_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.organization_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.organization_id_.IsDefault()) {
+    _impl_.organization_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.MintFacetsLaunchGrantRequest.organization_id)
+}
+
+// string package_digest = 2;
+inline void MintFacetsLaunchGrantRequest::clear_package_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.package_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& MintFacetsLaunchGrantRequest::package_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.MintFacetsLaunchGrantRequest.package_digest)
+  return _internal_package_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void MintFacetsLaunchGrantRequest::set_package_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.package_digest_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.MintFacetsLaunchGrantRequest.package_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL MintFacetsLaunchGrantRequest::mutable_package_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_package_digest();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.MintFacetsLaunchGrantRequest.package_digest)
+  return _s;
+}
+inline const ::std::string& MintFacetsLaunchGrantRequest::_internal_package_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.package_digest_.Get();
+}
+inline void MintFacetsLaunchGrantRequest::_internal_set_package_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.package_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL MintFacetsLaunchGrantRequest::_internal_mutable_package_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.package_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE MintFacetsLaunchGrantRequest::release_package_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.MintFacetsLaunchGrantRequest.package_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.package_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.package_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void MintFacetsLaunchGrantRequest::set_allocated_package_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.package_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.package_digest_.IsDefault()) {
+    _impl_.package_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.MintFacetsLaunchGrantRequest.package_digest)
+}
+
+// string capability = 3;
+inline void MintFacetsLaunchGrantRequest::clear_capability() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.capability_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& MintFacetsLaunchGrantRequest::capability() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.MintFacetsLaunchGrantRequest.capability)
+  return _internal_capability();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void MintFacetsLaunchGrantRequest::set_capability(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.capability_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.MintFacetsLaunchGrantRequest.capability)
+}
+inline ::std::string* PROTOBUF_NONNULL MintFacetsLaunchGrantRequest::mutable_capability()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_capability();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.MintFacetsLaunchGrantRequest.capability)
+  return _s;
+}
+inline const ::std::string& MintFacetsLaunchGrantRequest::_internal_capability() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.capability_.Get();
+}
+inline void MintFacetsLaunchGrantRequest::_internal_set_capability(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.capability_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL MintFacetsLaunchGrantRequest::_internal_mutable_capability() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.capability_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE MintFacetsLaunchGrantRequest::release_capability() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.MintFacetsLaunchGrantRequest.capability)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.capability_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.capability_.Set("", GetArena());
+  }
+  return released;
+}
+inline void MintFacetsLaunchGrantRequest::set_allocated_capability(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.capability_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.capability_.IsDefault()) {
+    _impl_.capability_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.MintFacetsLaunchGrantRequest.capability)
+}
+
+// -------------------------------------------------------------------
+
+// MintFacetsLaunchGrantResponse
+
+// string token = 1;
+inline void MintFacetsLaunchGrantResponse::clear_token() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.token_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& MintFacetsLaunchGrantResponse::token() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.MintFacetsLaunchGrantResponse.token)
+  return _internal_token();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void MintFacetsLaunchGrantResponse::set_token(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.token_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.MintFacetsLaunchGrantResponse.token)
+}
+inline ::std::string* PROTOBUF_NONNULL MintFacetsLaunchGrantResponse::mutable_token()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_token();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.MintFacetsLaunchGrantResponse.token)
+  return _s;
+}
+inline const ::std::string& MintFacetsLaunchGrantResponse::_internal_token() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.token_.Get();
+}
+inline void MintFacetsLaunchGrantResponse::_internal_set_token(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.token_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL MintFacetsLaunchGrantResponse::_internal_mutable_token() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.token_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE MintFacetsLaunchGrantResponse::release_token() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.MintFacetsLaunchGrantResponse.token)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.token_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.token_.Set("", GetArena());
+  }
+  return released;
+}
+inline void MintFacetsLaunchGrantResponse::set_allocated_token(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.token_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.token_.IsDefault()) {
+    _impl_.token_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.MintFacetsLaunchGrantResponse.token)
 }
 
 // -------------------------------------------------------------------
