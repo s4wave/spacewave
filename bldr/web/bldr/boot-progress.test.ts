@@ -132,6 +132,17 @@ describe('projectBootProgress', () => {
     expect(step.progress).toBeCloseTo(0.89)
   })
 
+  it('does not claim collective readiness from one plugin worker', () => {
+    const step = projectBootProgress({ phase: 'app', state: 'loading' }, [
+      mark('plugin.capability-ready', {
+        workerId: 'plugin/spacewave-launcher',
+      }),
+    ])
+
+    expect(step.progress).toBeCloseTo(0.9)
+    expect(step.label).toBe('Starting app plugins.')
+  })
+
   it('ignores marks from non-startup WebViews', () => {
     const step = projectBootProgress({ phase: 'runtime', state: 'loading' }, [
       mark('webview.revealed', {

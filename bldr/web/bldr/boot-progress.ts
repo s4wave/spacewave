@@ -193,8 +193,8 @@ const bootProgressLadder: Record<string, BootProgressLadderStep> = {
   },
   'webview.registered': { progress: 0.84, label: 'Preparing the app frame.' },
   'worker.first-ready': { progress: 0.86, label: 'Starting app plugins.' },
-  'plugin.frontend-ready': { progress: 0.88, label: 'App plugins ready.' },
-  'plugin.capability-ready': { progress: 0.9, label: 'App plugins ready.' },
+  'plugin.frontend-ready': { progress: 0.88, label: 'Starting app plugins.' },
+  'plugin.capability-ready': { progress: 0.9, label: 'Starting app plugins.' },
   'webview.stylesheet-ready': { progress: 0.93, label: 'Loading app styles.' },
   'webview.component-ready': {
     progress: 0.96,
