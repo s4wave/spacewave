@@ -51,6 +51,13 @@ func (t *EngineTxObjectState) AccessWorldState(
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
+	if ref.GetEmpty() {
+		var err error
+		ref, _, err = t.GetRootRef(ctx)
+		if err != nil {
+			return err
+		}
+	}
 	return t.t.AccessWorldState(ctx, ref, cb)
 }
 

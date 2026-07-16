@@ -12,10 +12,13 @@ import (
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	space_world "github.com/s4wave/spacewave/core/space/world"
+	blocktype_controller "github.com/s4wave/spacewave/db/blocktype/controller"
 	unixfs_v86fs "github.com/s4wave/spacewave/db/unixfs/v86fs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 	s4wave_process "github.com/s4wave/spacewave/sdk/process"
 	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
 	s4wave_vm "github.com/s4wave/spacewave/sdk/vm"
@@ -448,6 +451,94 @@ func TestVmV86TypedObject(t *testing.T) {
 			t.Fatal("ApplyWorldOp on missing V86Image should error")
 		}
 		tx3.Release()
+	})
+
+	t.Run("V86ImageCatalogMetadataUnmarshal", func(t *testing.T) {
+		blockTypeCtrl := blocktype_controller.NewController(space_world.LookupBlockType)
+		releaseBlockTypeCtrl, err := tb.Bus.AddController(ctx, blockTypeCtrl, nil)
+		if err != nil {
+			t.Fatalf("add block type controller: %v", err)
+		}
+		defer releaseBlockTypeCtrl()
+
+		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
+		defer cleanup()
+
+		const imageKey = "v86image-catalog/default"
+		tx, err := engine.NewTransaction(ctx, true)
+		if err != nil {
+			t.Fatalf("new write transaction: %v", err)
+		}
+		imageOp := s4wave_vm.NewCreateV86ImageOp(imageKey, &s4wave_vm.V86Image{
+			Name:     "Aperture Linux",
+			Platform: "v86",
+			Tags:     []string{"default"},
+		}, time.Now())
+		imageData, err := imageOp.MarshalVT()
+		if err != nil {
+			tx.Release()
+			t.Fatalf("marshal V86Image catalog operation: %v", err)
+		}
+		if _, _, err := tx.ApplyWorldOp(ctx, s4wave_vm.CreateV86ImageOpId, imageData, ""); err != nil {
+			tx.Release()
+			t.Fatalf("apply V86Image catalog operation: %v", err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			tx.Release()
+			t.Fatalf("commit V86Image catalog operation: %v", err)
+		}
+		tx.Release()
+
+		readTx, err := engine.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatalf("new read transaction: %v", err)
+		}
+		defer readTx.Release()
+		objectStateValue, found, err := readTx.GetObject(ctx, imageKey)
+		if err != nil {
+			t.Fatalf("get V86Image catalog object: %v", err)
+		}
+		if !found {
+			t.Fatal("V86Image catalog object not found")
+		}
+		objectState, ok := objectStateValue.(*s4wave_world.ObjectState)
+		if !ok {
+			t.Fatalf("V86Image object state type = %T", objectStateValue)
+		}
+		defer objectState.Release()
+
+		objectClient, err := objectState.GetResourceRef().GetClient()
+		if err != nil {
+			t.Fatalf("get V86Image object client: %v", err)
+		}
+		objectService := s4wave_world.NewSRPCObjectStateResourceServiceClient(objectClient)
+		cursorResp, err := objectService.AccessWorldState(ctx, &s4wave_world.AccessWorldStateRequest{})
+		if err != nil {
+			t.Fatalf("access V86Image object state: %v", err)
+		}
+		cursorRef := resClient.CreateResourceReference(cursorResp.GetResourceId())
+		defer cursorRef.Release()
+		cursorClient, err := cursorRef.GetClient()
+		if err != nil {
+			t.Fatalf("get V86Image cursor client: %v", err)
+		}
+		cursorService := s4wave_bucket_lookup.NewSRPCBucketLookupCursorResourceServiceClient(cursorClient)
+		unmarshalResp, err := cursorService.Unmarshal(ctx, &s4wave_bucket_lookup.UnmarshalRequest{
+			BlockType: s4wave_vm.V86ImageTypeID,
+		})
+		if err != nil {
+			t.Fatalf("unmarshal V86Image catalog metadata: %v", err)
+		}
+		if !unmarshalResp.GetFound() {
+			t.Fatal("V86Image catalog metadata not found")
+		}
+		decoded := &s4wave_vm.V86Image{}
+		if err := decoded.UnmarshalVT(unmarshalResp.GetData()); err != nil {
+			t.Fatalf("decode V86Image catalog metadata: %v", err)
+		}
+		if got := decoded.GetName(); got != "Aperture Linux" {
+			t.Fatalf("V86Image catalog name = %q, want %q", got, "Aperture Linux")
+		}
 	})
 
 	t.Run("ExecuteEmitsInitialStopped", func(t *testing.T) {
