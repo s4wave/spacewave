@@ -910,7 +910,7 @@
     },
     {
       "name": "github.com/aperturerobotics/protobuf-go-lite",
-      "version": "v0.15.1-0.20260716074925-e2a146f45568",
+      "version": "v0.15.1-0.20260716085036-961b1f806634",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/protobuf-go-lite",
