@@ -41,6 +41,20 @@ type syncOrderStore struct {
 	syncOnce   sync.Once
 }
 
+type signalDoneContext struct {
+	context.Context
+
+	once     sync.Once
+	observed chan struct{}
+}
+
+func (c *signalDoneContext) Done() <-chan struct{} {
+	c.once.Do(func() {
+		close(c.observed)
+	})
+	return c.Context.Done()
+}
+
 func newCountStore(hashType hash.HashType) *countStore {
 	return &countStore{
 		hashType:      hashType,
@@ -585,6 +599,91 @@ func TestBufferedStoreBlocksWhenPendingLimitExceeded(t *testing.T) {
 
 	if _, err := store.Sync(ctx); err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+func TestBufferedStoreCapacityDrainerRetriesAfterConcurrentSync(t *testing.T) {
+	ctx := context.Background()
+	refTwo, err := BuildBlockRef([]byte("two"), &PutOpts{
+		HashType: hash.HashType_HashType_BLAKE3,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ops := []struct {
+		name string
+		run  func(context.Context, *BufferedStore) error
+	}{
+		{
+			name: "put",
+			run: func(ctx context.Context, store *BufferedStore) error {
+				_, _, err := store.PutBlock(ctx, []byte("two"), nil)
+				return err
+			},
+		},
+		{
+			name: "remove",
+			run: func(ctx context.Context, store *BufferedStore) error {
+				return store.RmBlock(ctx, refTwo)
+			},
+		},
+	}
+
+	for _, op := range ops {
+		t.Run(op.name, func(t *testing.T) {
+			inner := newCountStore(hash.HashType_HashType_BLAKE3)
+			store := NewBufferedStoreWithSettings(ctx, inner, &BufferedStoreSettings{
+				MaxPendingEntries: 1,
+				MaxPendingBytes:   4,
+			})
+			if _, _, err := store.PutBlock(ctx, []byte("one"), nil); err != nil {
+				t.Fatal(err.Error())
+			}
+
+			started := inner.setBatchBlocker()
+			t.Cleanup(inner.releaseBatchBlocker)
+			syncDone := make(chan error, 1)
+			go func() {
+				_, err := store.Sync(ctx)
+				syncDone <- err
+			}()
+			waitSignal(t, started, "sync capacity drain")
+
+			opCtx, cancel := context.WithCancel(ctx)
+			t.Cleanup(cancel)
+			observed := make(chan struct{})
+			waitCtx := &signalDoneContext{
+				Context:  opCtx,
+				observed: observed,
+			}
+			opDone := make(chan error, 1)
+			go func() {
+				opDone <- op.run(waitCtx, store)
+			}()
+			waitSignal(t, observed, "capacity drainer contention")
+
+			inner.releaseBatchBlocker()
+			select {
+			case err := <-syncDone:
+				if err != nil {
+					t.Fatal(err.Error())
+				}
+			case <-time.After(2 * time.Second):
+				t.Fatal("concurrent sync did not complete")
+			}
+			select {
+			case err := <-opDone:
+				if err != nil {
+					t.Fatalf("%s after concurrent drain: %v", op.name, err)
+				}
+			case <-time.After(2 * time.Second):
+				t.Fatalf("%s did not retry after concurrent drain", op.name)
+			}
+			if _, err := store.Sync(ctx); err != nil {
+				t.Fatal(err.Error())
+			}
+		})
 	}
 }
 
