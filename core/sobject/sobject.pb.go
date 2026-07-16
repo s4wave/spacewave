@@ -404,6 +404,291 @@ func (x SORevocationReason) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// SOJournalRecordKind identifies the durable event in a mutation journal.
+type SOJournalRecordKind int32
+
+const (
+	SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_UNSPECIFIED              SOJournalRecordKind = 0
+	SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_INTENT                   SOJournalRecordKind = 1
+	SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_SIGNED_ENVELOPE          SOJournalRecordKind = 2
+	SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_SENT                     SOJournalRecordKind = 3
+	SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_RECEIPT                  SOJournalRecordKind = 4
+	SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_ACKNOWLEDGEMENT          SOJournalRecordKind = 5
+	SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_BODY_PROJECTION          SOJournalRecordKind = 6
+	SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_STALE_TRANSFORM_EPOCH    SOJournalRecordKind = 7
+	SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_RECOVERY_BLOCKED         SOJournalRecordKind = 8
+	SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_LINEAGE_RECOVERY_BLOCKED SOJournalRecordKind = 9
+	SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_RECEIPT_LOOKUP           SOJournalRecordKind = 10
+	SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_RESEND_AUTHORIZED        SOJournalRecordKind = 11
+)
+
+// Enum value maps for SOJournalRecordKind.
+var (
+	SOJournalRecordKind_name = map[int32]string{
+		0:  "SO_JOURNAL_RECORD_KIND_UNSPECIFIED",
+		1:  "SO_JOURNAL_RECORD_KIND_INTENT",
+		2:  "SO_JOURNAL_RECORD_KIND_SIGNED_ENVELOPE",
+		3:  "SO_JOURNAL_RECORD_KIND_SENT",
+		4:  "SO_JOURNAL_RECORD_KIND_RECEIPT",
+		5:  "SO_JOURNAL_RECORD_KIND_ACKNOWLEDGEMENT",
+		6:  "SO_JOURNAL_RECORD_KIND_BODY_PROJECTION",
+		7:  "SO_JOURNAL_RECORD_KIND_STALE_TRANSFORM_EPOCH",
+		8:  "SO_JOURNAL_RECORD_KIND_RECOVERY_BLOCKED",
+		9:  "SO_JOURNAL_RECORD_KIND_LINEAGE_RECOVERY_BLOCKED",
+		10: "SO_JOURNAL_RECORD_KIND_RECEIPT_LOOKUP",
+		11: "SO_JOURNAL_RECORD_KIND_RESEND_AUTHORIZED",
+	}
+	SOJournalRecordKind_value = map[string]int32{
+		"SO_JOURNAL_RECORD_KIND_UNSPECIFIED":              0,
+		"SO_JOURNAL_RECORD_KIND_INTENT":                   1,
+		"SO_JOURNAL_RECORD_KIND_SIGNED_ENVELOPE":          2,
+		"SO_JOURNAL_RECORD_KIND_SENT":                     3,
+		"SO_JOURNAL_RECORD_KIND_RECEIPT":                  4,
+		"SO_JOURNAL_RECORD_KIND_ACKNOWLEDGEMENT":          5,
+		"SO_JOURNAL_RECORD_KIND_BODY_PROJECTION":          6,
+		"SO_JOURNAL_RECORD_KIND_STALE_TRANSFORM_EPOCH":    7,
+		"SO_JOURNAL_RECORD_KIND_RECOVERY_BLOCKED":         8,
+		"SO_JOURNAL_RECORD_KIND_LINEAGE_RECOVERY_BLOCKED": 9,
+		"SO_JOURNAL_RECORD_KIND_RECEIPT_LOOKUP":           10,
+		"SO_JOURNAL_RECORD_KIND_RESEND_AUTHORIZED":        11,
+	}
+)
+
+func (x SOJournalRecordKind) Enum() *SOJournalRecordKind {
+	p := new(SOJournalRecordKind)
+	*p = x
+	return p
+}
+
+func (x SOJournalRecordKind) String() string {
+	name, valid := SOJournalRecordKind_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// SOJournalAttemptState identifies the attempt lifecycle state.
+type SOJournalAttemptState int32
+
+const (
+	SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_UNSPECIFIED           SOJournalAttemptState = 0
+	SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_INTENT_DURABLE        SOJournalAttemptState = 1
+	SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_ENVELOPE_DURABLE      SOJournalAttemptState = 2
+	SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_SENT                  SOJournalAttemptState = 3
+	SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURABLE       SOJournalAttemptState = 4
+	SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_STALE_TRANSFORM_EPOCH SOJournalAttemptState = 5
+	SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_RECOVERY_BLOCKED      SOJournalAttemptState = 6
+)
+
+// Enum value maps for SOJournalAttemptState.
+var (
+	SOJournalAttemptState_name = map[int32]string{
+		0: "SO_JOURNAL_ATTEMPT_STATE_UNSPECIFIED",
+		1: "SO_JOURNAL_ATTEMPT_STATE_INTENT_DURABLE",
+		2: "SO_JOURNAL_ATTEMPT_STATE_ENVELOPE_DURABLE",
+		3: "SO_JOURNAL_ATTEMPT_STATE_SENT",
+		4: "SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURABLE",
+		5: "SO_JOURNAL_ATTEMPT_STATE_STALE_TRANSFORM_EPOCH",
+		6: "SO_JOURNAL_ATTEMPT_STATE_RECOVERY_BLOCKED",
+	}
+	SOJournalAttemptState_value = map[string]int32{
+		"SO_JOURNAL_ATTEMPT_STATE_UNSPECIFIED":           0,
+		"SO_JOURNAL_ATTEMPT_STATE_INTENT_DURABLE":        1,
+		"SO_JOURNAL_ATTEMPT_STATE_ENVELOPE_DURABLE":      2,
+		"SO_JOURNAL_ATTEMPT_STATE_SENT":                  3,
+		"SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURABLE":       4,
+		"SO_JOURNAL_ATTEMPT_STATE_STALE_TRANSFORM_EPOCH": 5,
+		"SO_JOURNAL_ATTEMPT_STATE_RECOVERY_BLOCKED":      6,
+	}
+)
+
+func (x SOJournalAttemptState) Enum() *SOJournalAttemptState {
+	p := new(SOJournalAttemptState)
+	*p = x
+	return p
+}
+
+func (x SOJournalAttemptState) String() string {
+	name, valid := SOJournalAttemptState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// SOJournalOutcome identifies the authenticated terminal result of an attempt.
+type SOJournalOutcome int32
+
+const (
+	SOJournalOutcome_SO_JOURNAL_OUTCOME_UNSPECIFIED SOJournalOutcome = 0
+	SOJournalOutcome_SO_JOURNAL_OUTCOME_ACCEPTED    SOJournalOutcome = 1
+	SOJournalOutcome_SO_JOURNAL_OUTCOME_REJECTED    SOJournalOutcome = 2
+)
+
+// Enum value maps for SOJournalOutcome.
+var (
+	SOJournalOutcome_name = map[int32]string{
+		0: "SO_JOURNAL_OUTCOME_UNSPECIFIED",
+		1: "SO_JOURNAL_OUTCOME_ACCEPTED",
+		2: "SO_JOURNAL_OUTCOME_REJECTED",
+	}
+	SOJournalOutcome_value = map[string]int32{
+		"SO_JOURNAL_OUTCOME_UNSPECIFIED": 0,
+		"SO_JOURNAL_OUTCOME_ACCEPTED":    1,
+		"SO_JOURNAL_OUTCOME_REJECTED":    2,
+	}
+)
+
+func (x SOJournalOutcome) Enum() *SOJournalOutcome {
+	p := new(SOJournalOutcome)
+	*p = x
+	return p
+}
+
+func (x SOJournalOutcome) String() string {
+	name, valid := SOJournalOutcome_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// SOJournalLookupState identifies the exact-key receipt lookup result.
+type SOJournalLookupState int32
+
+const (
+	SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_UNSPECIFIED SOJournalLookupState = 0
+	SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD   SOJournalLookupState = 1
+	SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_PENDING     SOJournalLookupState = 2
+	SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_ACCEPTED    SOJournalLookupState = 3
+	SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_REJECTED    SOJournalLookupState = 4
+)
+
+// Enum value maps for SOJournalLookupState.
+var (
+	SOJournalLookupState_name = map[int32]string{
+		0: "SO_JOURNAL_LOOKUP_STATE_UNSPECIFIED",
+		1: "SO_JOURNAL_LOOKUP_STATE_NO_RECORD",
+		2: "SO_JOURNAL_LOOKUP_STATE_PENDING",
+		3: "SO_JOURNAL_LOOKUP_STATE_ACCEPTED",
+		4: "SO_JOURNAL_LOOKUP_STATE_REJECTED",
+	}
+	SOJournalLookupState_value = map[string]int32{
+		"SO_JOURNAL_LOOKUP_STATE_UNSPECIFIED": 0,
+		"SO_JOURNAL_LOOKUP_STATE_NO_RECORD":   1,
+		"SO_JOURNAL_LOOKUP_STATE_PENDING":     2,
+		"SO_JOURNAL_LOOKUP_STATE_ACCEPTED":    3,
+		"SO_JOURNAL_LOOKUP_STATE_REJECTED":    4,
+	}
+)
+
+func (x SOJournalLookupState) Enum() *SOJournalLookupState {
+	p := new(SOJournalLookupState)
+	*p = x
+	return p
+}
+
+func (x SOJournalLookupState) String() string {
+	name, valid := SOJournalLookupState_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// SOJournalReadiness identifies whether the body owner can supply dependencies.
+type SOJournalReadiness int32
+
+const (
+	SOJournalReadiness_SO_JOURNAL_READINESS_UNSPECIFIED SOJournalReadiness = 0
+	SOJournalReadiness_SO_JOURNAL_READINESS_READY       SOJournalReadiness = 1
+	SOJournalReadiness_SO_JOURNAL_READINESS_MISSING     SOJournalReadiness = 2
+	SOJournalReadiness_SO_JOURNAL_READINESS_CORRUPT     SOJournalReadiness = 3
+	SOJournalReadiness_SO_JOURNAL_READINESS_OBSOLETE    SOJournalReadiness = 4
+)
+
+// Enum value maps for SOJournalReadiness.
+var (
+	SOJournalReadiness_name = map[int32]string{
+		0: "SO_JOURNAL_READINESS_UNSPECIFIED",
+		1: "SO_JOURNAL_READINESS_READY",
+		2: "SO_JOURNAL_READINESS_MISSING",
+		3: "SO_JOURNAL_READINESS_CORRUPT",
+		4: "SO_JOURNAL_READINESS_OBSOLETE",
+	}
+	SOJournalReadiness_value = map[string]int32{
+		"SO_JOURNAL_READINESS_UNSPECIFIED": 0,
+		"SO_JOURNAL_READINESS_READY":       1,
+		"SO_JOURNAL_READINESS_MISSING":     2,
+		"SO_JOURNAL_READINESS_CORRUPT":     3,
+		"SO_JOURNAL_READINESS_OBSOLETE":    4,
+	}
+)
+
+func (x SOJournalReadiness) Enum() *SOJournalReadiness {
+	p := new(SOJournalReadiness)
+	*p = x
+	return p
+}
+
+func (x SOJournalReadiness) String() string {
+	name, valid := SOJournalReadiness_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// SOJournalRecoveryReason identifies a typed recovery stop.
+type SOJournalRecoveryReason int32
+
+const (
+	SOJournalRecoveryReason_SO_JOURNAL_RECOVERY_REASON_UNSPECIFIED           SOJournalRecoveryReason = 0
+	SOJournalRecoveryReason_SO_JOURNAL_RECOVERY_REASON_STALE_TRANSFORM_EPOCH SOJournalRecoveryReason = 1
+	SOJournalRecoveryReason_SO_JOURNAL_RECOVERY_REASON_KEY_UNAVAILABLE       SOJournalRecoveryReason = 2
+	SOJournalRecoveryReason_SO_JOURNAL_RECOVERY_REASON_AUTHORITY_FAILURE     SOJournalRecoveryReason = 3
+	SOJournalRecoveryReason_SO_JOURNAL_RECOVERY_REASON_BODY_MISSING          SOJournalRecoveryReason = 4
+	SOJournalRecoveryReason_SO_JOURNAL_RECOVERY_REASON_BODY_CORRUPT          SOJournalRecoveryReason = 5
+	SOJournalRecoveryReason_SO_JOURNAL_RECOVERY_REASON_BODY_OBSOLETE         SOJournalRecoveryReason = 6
+)
+
+// Enum value maps for SOJournalRecoveryReason.
+var (
+	SOJournalRecoveryReason_name = map[int32]string{
+		0: "SO_JOURNAL_RECOVERY_REASON_UNSPECIFIED",
+		1: "SO_JOURNAL_RECOVERY_REASON_STALE_TRANSFORM_EPOCH",
+		2: "SO_JOURNAL_RECOVERY_REASON_KEY_UNAVAILABLE",
+		3: "SO_JOURNAL_RECOVERY_REASON_AUTHORITY_FAILURE",
+		4: "SO_JOURNAL_RECOVERY_REASON_BODY_MISSING",
+		5: "SO_JOURNAL_RECOVERY_REASON_BODY_CORRUPT",
+		6: "SO_JOURNAL_RECOVERY_REASON_BODY_OBSOLETE",
+	}
+	SOJournalRecoveryReason_value = map[string]int32{
+		"SO_JOURNAL_RECOVERY_REASON_UNSPECIFIED":           0,
+		"SO_JOURNAL_RECOVERY_REASON_STALE_TRANSFORM_EPOCH": 1,
+		"SO_JOURNAL_RECOVERY_REASON_KEY_UNAVAILABLE":       2,
+		"SO_JOURNAL_RECOVERY_REASON_AUTHORITY_FAILURE":     3,
+		"SO_JOURNAL_RECOVERY_REASON_BODY_MISSING":          4,
+		"SO_JOURNAL_RECOVERY_REASON_BODY_CORRUPT":          5,
+		"SO_JOURNAL_RECOVERY_REASON_BODY_OBSOLETE":         6,
+	}
+)
+
+func (x SOJournalRecoveryReason) Enum() *SOJournalRecoveryReason {
+	p := new(SOJournalRecoveryReason)
+	*p = x
+	return p
+}
+
+func (x SOJournalRecoveryReason) String() string {
+	name, valid := SOJournalRecoveryReason_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // SharedObjectRef is a reference to a shared object managed by a provider.
 type SharedObjectRef struct {
 	unknownFields []byte
@@ -1875,6 +2160,831 @@ func (x *SOJoinResponse) GetSignature() *peer.Signature {
 	return nil
 }
 
+// SOMutationKey identifies one immutable exact participant attempt.
+type SOMutationKey struct {
+	unknownFields []byte
+	// OriginScopeId is the stable opaque account/store scope identifier.
+	OriginScopeId []byte `protobuf:"bytes,1,opt,name=origin_scope_id,json=originScopeId,proto3" json:"originScopeId,omitempty"`
+	// SharedObjectId is the object identity within the origin scope.
+	SharedObjectId string `protobuf:"bytes,2,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
+	// ParticipantPeerId is the submitting participant identity.
+	ParticipantPeerId string `protobuf:"bytes,3,opt,name=participant_peer_id,json=participantPeerId,proto3" json:"participantPeerId,omitempty"`
+	// LocalId is allocated once for this exact attempt.
+	LocalId string `protobuf:"bytes,4,opt,name=local_id,json=localId,proto3" json:"localId,omitempty"`
+}
+
+func (x *SOMutationKey) Reset() {
+	*x = SOMutationKey{}
+}
+
+func (*SOMutationKey) ProtoMessage() {}
+
+func (x *SOMutationKey) GetOriginScopeId() []byte {
+	if x != nil {
+		return x.OriginScopeId
+	}
+	return nil
+}
+
+func (x *SOMutationKey) GetSharedObjectId() string {
+	if x != nil {
+		return x.SharedObjectId
+	}
+	return ""
+}
+
+func (x *SOMutationKey) GetParticipantPeerId() string {
+	if x != nil {
+		return x.ParticipantPeerId
+	}
+	return ""
+}
+
+func (x *SOMutationKey) GetLocalId() string {
+	if x != nil {
+		return x.LocalId
+	}
+	return ""
+}
+
+// SOJournalLineage links an immutable attempt to an optional predecessor.
+type SOJournalLineage struct {
+	unknownFields []byte
+	// RootKey is the exact key carried by this lineage record.
+	RootKey *SOMutationKey `protobuf:"bytes,1,opt,name=root_key,json=rootKey,proto3" json:"rootKey,omitempty"`
+	// Supersedes links a changed attempt to its predecessor.
+	Supersedes *SOMutationKey `protobuf:"bytes,2,opt,name=supersedes,proto3" json:"supersedes,omitempty"`
+}
+
+func (x *SOJournalLineage) Reset() {
+	*x = SOJournalLineage{}
+}
+
+func (*SOJournalLineage) ProtoMessage() {}
+
+func (x *SOJournalLineage) GetRootKey() *SOMutationKey {
+	if x != nil {
+		return x.RootKey
+	}
+	return nil
+}
+
+func (x *SOJournalLineage) GetSupersedes() *SOMutationKey {
+	if x != nil {
+		return x.Supersedes
+	}
+	return nil
+}
+
+// SOJournalVersionTuple carries local and remote observations needed for replay.
+type SOJournalVersionTuple struct {
+	unknownFields []byte
+	// LocalVersion is the local journal version at preparation.
+	LocalVersion uint64 `protobuf:"varint,1,opt,name=local_version,json=localVersion,proto3" json:"localVersion,omitempty"`
+	// RemoteVersion is the authoritative remote version observed at preparation.
+	RemoteVersion uint64 `protobuf:"varint,2,opt,name=remote_version,json=remoteVersion,proto3" json:"remoteVersion,omitempty"`
+	// TransformEpoch is the verified transform epoch used by the envelope.
+	TransformEpoch uint64 `protobuf:"varint,3,opt,name=transform_epoch,json=transformEpoch,proto3" json:"transformEpoch,omitempty"`
+	// ConfigChainDigest identifies the verified configuration chain.
+	ConfigChainDigest []byte `protobuf:"bytes,4,opt,name=config_chain_digest,json=configChainDigest,proto3" json:"configChainDigest,omitempty"`
+}
+
+func (x *SOJournalVersionTuple) Reset() {
+	*x = SOJournalVersionTuple{}
+}
+
+func (*SOJournalVersionTuple) ProtoMessage() {}
+
+func (x *SOJournalVersionTuple) GetLocalVersion() uint64 {
+	if x != nil {
+		return x.LocalVersion
+	}
+	return 0
+}
+
+func (x *SOJournalVersionTuple) GetRemoteVersion() uint64 {
+	if x != nil {
+		return x.RemoteVersion
+	}
+	return 0
+}
+
+func (x *SOJournalVersionTuple) GetTransformEpoch() uint64 {
+	if x != nil {
+		return x.TransformEpoch
+	}
+	return 0
+}
+
+func (x *SOJournalVersionTuple) GetConfigChainDigest() []byte {
+	if x != nil {
+		return x.ConfigChainDigest
+	}
+	return nil
+}
+
+// SOJournalIntent is the canonical body-neutral operation before signing.
+type SOJournalIntent struct {
+	unknownFields []byte
+	// Key identifies the exact operation attempt.
+	Key *SOMutationKey `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// Lineage records the immutable predecessor relation.
+	Lineage *SOJournalLineage `protobuf:"bytes,2,opt,name=lineage,proto3" json:"lineage,omitempty"`
+	// Version records the observations used to construct the operation.
+	Version *SOJournalVersionTuple `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	// CanonicalOperation contains operation input without body-specific metadata.
+	CanonicalOperation []byte `protobuf:"bytes,4,opt,name=canonical_operation,json=canonicalOperation,proto3" json:"canonicalOperation,omitempty"`
+}
+
+func (x *SOJournalIntent) Reset() {
+	*x = SOJournalIntent{}
+}
+
+func (*SOJournalIntent) ProtoMessage() {}
+
+func (x *SOJournalIntent) GetKey() *SOMutationKey {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *SOJournalIntent) GetLineage() *SOJournalLineage {
+	if x != nil {
+		return x.Lineage
+	}
+	return nil
+}
+
+func (x *SOJournalIntent) GetVersion() *SOJournalVersionTuple {
+	if x != nil {
+		return x.Version
+	}
+	return nil
+}
+
+func (x *SOJournalIntent) GetCanonicalOperation() []byte {
+	if x != nil {
+		return x.CanonicalOperation
+	}
+	return nil
+}
+
+// SOJournalEncryptedPayload contains authenticated ciphertext and its nonce.
+type SOJournalEncryptedPayload struct {
+	unknownFields []byte
+	// Nonce is unique within the derived journal key domain.
+	Nonce []byte `protobuf:"bytes,1,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	// Ciphertext contains the encrypted staged payload and authentication tag.
+	Ciphertext []byte `protobuf:"bytes,2,opt,name=ciphertext,proto3" json:"ciphertext,omitempty"`
+}
+
+func (x *SOJournalEncryptedPayload) Reset() {
+	*x = SOJournalEncryptedPayload{}
+}
+
+func (*SOJournalEncryptedPayload) ProtoMessage() {}
+
+func (x *SOJournalEncryptedPayload) GetNonce() []byte {
+	if x != nil {
+		return x.Nonce
+	}
+	return nil
+}
+
+func (x *SOJournalEncryptedPayload) GetCiphertext() []byte {
+	if x != nil {
+		return x.Ciphertext
+	}
+	return nil
+}
+
+// SOJournalLookup records one serialized exact-key receipt lookup.
+type SOJournalLookup struct {
+	unknownFields []byte
+	// Key identifies the exact lookup attempt.
+	Key *SOMutationKey `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// State is the authoritative lookup result.
+	State SOJournalLookupState `protobuf:"varint,2,opt,name=state,proto3" json:"state,omitempty"`
+	// Receipt carries terminal evidence when state is accepted or rejected.
+	Receipt *SOJournalReceipt `protobuf:"bytes,3,opt,name=receipt,proto3" json:"receipt,omitempty"`
+	// Response contains the opaque authenticated lookup response bytes.
+	Response []byte `protobuf:"bytes,4,opt,name=response,proto3" json:"response,omitempty"`
+	// ResponseDigest binds the retained response bytes.
+	ResponseDigest []byte `protobuf:"bytes,5,opt,name=response_digest,json=responseDigest,proto3" json:"responseDigest,omitempty"`
+	// ConfigChainDigest identifies the verified lookup configuration.
+	ConfigChainDigest []byte `protobuf:"bytes,6,opt,name=config_chain_digest,json=configChainDigest,proto3" json:"configChainDigest,omitempty"`
+}
+
+func (x *SOJournalLookup) Reset() {
+	*x = SOJournalLookup{}
+}
+
+func (*SOJournalLookup) ProtoMessage() {}
+
+func (x *SOJournalLookup) GetKey() *SOMutationKey {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *SOJournalLookup) GetState() SOJournalLookupState {
+	if x != nil {
+		return x.State
+	}
+	return SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_UNSPECIFIED
+}
+
+func (x *SOJournalLookup) GetReceipt() *SOJournalReceipt {
+	if x != nil {
+		return x.Receipt
+	}
+	return nil
+}
+
+func (x *SOJournalLookup) GetResponse() []byte {
+	if x != nil {
+		return x.Response
+	}
+	return nil
+}
+
+func (x *SOJournalLookup) GetResponseDigest() []byte {
+	if x != nil {
+		return x.ResponseDigest
+	}
+	return nil
+}
+
+func (x *SOJournalLookup) GetConfigChainDigest() []byte {
+	if x != nil {
+		return x.ConfigChainDigest
+	}
+	return nil
+}
+
+// SOJournalReceipt records terminal evidence without making projection implicit.
+type SOJournalReceipt struct {
+	unknownFields []byte
+	// Key identifies the exact terminal attempt.
+	Key *SOMutationKey `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// EnvelopeDigest binds the receipt to the immutable signed envelope.
+	EnvelopeDigest []byte `protobuf:"bytes,2,opt,name=envelope_digest,json=envelopeDigest,proto3" json:"envelopeDigest,omitempty"`
+	// Outcome is the authenticated terminal result.
+	Outcome SOJournalOutcome `protobuf:"varint,3,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	// TerminalReceipt contains the verified signed remote receipt.
+	TerminalReceipt []byte `protobuf:"bytes,4,opt,name=terminal_receipt,json=terminalReceipt,proto3" json:"terminalReceipt,omitempty"`
+	// TerminalReceiptDigest identifies the durable receipt bytes.
+	TerminalReceiptDigest []byte `protobuf:"bytes,5,opt,name=terminal_receipt_digest,json=terminalReceiptDigest,proto3" json:"terminalReceiptDigest,omitempty"`
+	// AuthoritativeRootSeqno is the root sequence named by the receipt.
+	AuthoritativeRootSeqno uint64 `protobuf:"varint,6,opt,name=authoritative_root_seqno,json=authoritativeRootSeqno,proto3" json:"authoritativeRootSeqno,omitempty"`
+	// AuthoritativeRootDigest is the root identity named by the receipt.
+	AuthoritativeRootDigest []byte `protobuf:"bytes,7,opt,name=authoritative_root_digest,json=authoritativeRootDigest,proto3" json:"authoritativeRootDigest,omitempty"`
+	// ConfigChainDigest identifies the verified historical configuration.
+	ConfigChainDigest []byte `protobuf:"bytes,8,opt,name=config_chain_digest,json=configChainDigest,proto3" json:"configChainDigest,omitempty"`
+	// TerminalUnixMillis is the remote terminal timestamp.
+	TerminalUnixMillis uint64 `protobuf:"varint,9,opt,name=terminal_unix_millis,json=terminalUnixMillis,proto3" json:"terminalUnixMillis,omitempty"`
+	// Supersedes links this receipt to a predecessor when applicable.
+	Supersedes *SOMutationKey `protobuf:"bytes,10,opt,name=supersedes,proto3" json:"supersedes,omitempty"`
+}
+
+func (x *SOJournalReceipt) Reset() {
+	*x = SOJournalReceipt{}
+}
+
+func (*SOJournalReceipt) ProtoMessage() {}
+
+func (x *SOJournalReceipt) GetKey() *SOMutationKey {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *SOJournalReceipt) GetEnvelopeDigest() []byte {
+	if x != nil {
+		return x.EnvelopeDigest
+	}
+	return nil
+}
+
+func (x *SOJournalReceipt) GetOutcome() SOJournalOutcome {
+	if x != nil {
+		return x.Outcome
+	}
+	return SOJournalOutcome_SO_JOURNAL_OUTCOME_UNSPECIFIED
+}
+
+func (x *SOJournalReceipt) GetTerminalReceipt() []byte {
+	if x != nil {
+		return x.TerminalReceipt
+	}
+	return nil
+}
+
+func (x *SOJournalReceipt) GetTerminalReceiptDigest() []byte {
+	if x != nil {
+		return x.TerminalReceiptDigest
+	}
+	return nil
+}
+
+func (x *SOJournalReceipt) GetAuthoritativeRootSeqno() uint64 {
+	if x != nil {
+		return x.AuthoritativeRootSeqno
+	}
+	return 0
+}
+
+func (x *SOJournalReceipt) GetAuthoritativeRootDigest() []byte {
+	if x != nil {
+		return x.AuthoritativeRootDigest
+	}
+	return nil
+}
+
+func (x *SOJournalReceipt) GetConfigChainDigest() []byte {
+	if x != nil {
+		return x.ConfigChainDigest
+	}
+	return nil
+}
+
+func (x *SOJournalReceipt) GetTerminalUnixMillis() uint64 {
+	if x != nil {
+		return x.TerminalUnixMillis
+	}
+	return 0
+}
+
+func (x *SOJournalReceipt) GetSupersedes() *SOMutationKey {
+	if x != nil {
+		return x.Supersedes
+	}
+	return nil
+}
+
+// SOJournalAcknowledgement records remote receipt acknowledgement.
+type SOJournalAcknowledgement struct {
+	unknownFields []byte
+	// Key identifies the exact acknowledged attempt.
+	Key *SOMutationKey `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// ReceiptDigest binds acknowledgement to one terminal receipt.
+	ReceiptDigest []byte `protobuf:"bytes,2,opt,name=receipt_digest,json=receiptDigest,proto3" json:"receiptDigest,omitempty"`
+	// AcknowledgedUnixMillis records when acknowledgement became durable.
+	AcknowledgedUnixMillis uint64 `protobuf:"varint,3,opt,name=acknowledged_unix_millis,json=acknowledgedUnixMillis,proto3" json:"acknowledgedUnixMillis,omitempty"`
+}
+
+func (x *SOJournalAcknowledgement) Reset() {
+	*x = SOJournalAcknowledgement{}
+}
+
+func (*SOJournalAcknowledgement) ProtoMessage() {}
+
+func (x *SOJournalAcknowledgement) GetKey() *SOMutationKey {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *SOJournalAcknowledgement) GetReceiptDigest() []byte {
+	if x != nil {
+		return x.ReceiptDigest
+	}
+	return nil
+}
+
+func (x *SOJournalAcknowledgement) GetAcknowledgedUnixMillis() uint64 {
+	if x != nil {
+		return x.AcknowledgedUnixMillis
+	}
+	return 0
+}
+
+// SOJournalProjection records the body's exact authoritative-root observation.
+type SOJournalProjection struct {
+	unknownFields []byte
+	// Key identifies the projected attempt.
+	Key *SOMutationKey `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// ReceiptDigest binds projection to the terminal receipt.
+	ReceiptDigest []byte `protobuf:"bytes,2,opt,name=receipt_digest,json=receiptDigest,proto3" json:"receiptDigest,omitempty"`
+	// AuthoritativeRootSeqno is the exact root sequence projected by the body.
+	AuthoritativeRootSeqno uint64 `protobuf:"varint,3,opt,name=authoritative_root_seqno,json=authoritativeRootSeqno,proto3" json:"authoritativeRootSeqno,omitempty"`
+	// AuthoritativeRootDigest is the exact root identity projected by the body.
+	AuthoritativeRootDigest []byte `protobuf:"bytes,4,opt,name=authoritative_root_digest,json=authoritativeRootDigest,proto3" json:"authoritativeRootDigest,omitempty"`
+}
+
+func (x *SOJournalProjection) Reset() {
+	*x = SOJournalProjection{}
+}
+
+func (*SOJournalProjection) ProtoMessage() {}
+
+func (x *SOJournalProjection) GetKey() *SOMutationKey {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *SOJournalProjection) GetReceiptDigest() []byte {
+	if x != nil {
+		return x.ReceiptDigest
+	}
+	return nil
+}
+
+func (x *SOJournalProjection) GetAuthoritativeRootSeqno() uint64 {
+	if x != nil {
+		return x.AuthoritativeRootSeqno
+	}
+	return 0
+}
+
+func (x *SOJournalProjection) GetAuthoritativeRootDigest() []byte {
+	if x != nil {
+		return x.AuthoritativeRootDigest
+	}
+	return nil
+}
+
+// SOJournalRecord is the generated body-neutral durable journal payload.
+type SOJournalRecord struct {
+	unknownFields []byte
+	// FormatVersion identifies the journal payload schema.
+	FormatVersion uint32 `protobuf:"varint,1,opt,name=format_version,json=formatVersion,proto3" json:"formatVersion,omitempty"`
+	// Sequence is the strictly increasing journal record sequence.
+	Sequence uint64 `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	// Kind identifies which durable transition this record represents.
+	Kind SOJournalRecordKind `protobuf:"varint,3,opt,name=kind,proto3" json:"kind,omitempty"`
+	// Key is the immutable exact mutation identity.
+	Key *SOMutationKey `protobuf:"bytes,4,opt,name=key,proto3" json:"key,omitempty"`
+	// Lineage carries the immutable supersession relation.
+	Lineage *SOJournalLineage `protobuf:"bytes,5,opt,name=lineage,proto3" json:"lineage,omitempty"`
+	// Version carries local/remote and transform observations.
+	Version *SOJournalVersionTuple `protobuf:"bytes,6,opt,name=version,proto3" json:"version,omitempty"`
+	// Intent is encrypted canonical intent for an intent record.
+	Intent *SOJournalEncryptedPayload `protobuf:"bytes,7,opt,name=intent,proto3" json:"intent,omitempty"`
+	// Envelope is encrypted immutable signed bytes for an envelope record.
+	Envelope *SOJournalEncryptedPayload `protobuf:"bytes,8,opt,name=envelope,proto3" json:"envelope,omitempty"`
+	// Receipt is terminal evidence for a receipt record.
+	Receipt *SOJournalReceipt `protobuf:"bytes,9,opt,name=receipt,proto3" json:"receipt,omitempty"`
+	// Acknowledgement is remote receipt acknowledgement.
+	Acknowledgement *SOJournalAcknowledgement `protobuf:"bytes,10,opt,name=acknowledgement,proto3" json:"acknowledgement,omitempty"`
+	// Projection is the body owner's exact-root observation.
+	Projection *SOJournalProjection `protobuf:"bytes,11,opt,name=projection,proto3" json:"projection,omitempty"`
+	// Readiness is the body-owned preparation result.
+	Readiness SOJournalReadiness `protobuf:"varint,12,opt,name=readiness,proto3" json:"readiness,omitempty"`
+	// RecoveryReason carries a typed recovery stop.
+	RecoveryReason SOJournalRecoveryReason `protobuf:"varint,13,opt,name=recovery_reason,json=recoveryReason,proto3" json:"recoveryReason,omitempty"`
+	// AttemptState records the legal lifecycle state after this transition.
+	AttemptState SOJournalAttemptState `protobuf:"varint,14,opt,name=attempt_state,json=attemptState,proto3" json:"attemptState,omitempty"`
+	// EnvelopeDigest identifies the immutable signed-envelope plaintext.
+	EnvelopeDigest []byte `protobuf:"bytes,15,opt,name=envelope_digest,json=envelopeDigest,proto3" json:"envelopeDigest,omitempty"`
+	// Lookup is the serialized exact-key receipt observation.
+	Lookup *SOJournalLookup `protobuf:"bytes,16,opt,name=lookup,proto3" json:"lookup,omitempty"`
+}
+
+func (x *SOJournalRecord) Reset() {
+	*x = SOJournalRecord{}
+}
+
+func (*SOJournalRecord) ProtoMessage() {}
+
+func (x *SOJournalRecord) GetFormatVersion() uint32 {
+	if x != nil {
+		return x.FormatVersion
+	}
+	return 0
+}
+
+func (x *SOJournalRecord) GetSequence() uint64 {
+	if x != nil {
+		return x.Sequence
+	}
+	return 0
+}
+
+func (x *SOJournalRecord) GetKind() SOJournalRecordKind {
+	if x != nil {
+		return x.Kind
+	}
+	return SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_UNSPECIFIED
+}
+
+func (x *SOJournalRecord) GetKey() *SOMutationKey {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *SOJournalRecord) GetLineage() *SOJournalLineage {
+	if x != nil {
+		return x.Lineage
+	}
+	return nil
+}
+
+func (x *SOJournalRecord) GetVersion() *SOJournalVersionTuple {
+	if x != nil {
+		return x.Version
+	}
+	return nil
+}
+
+func (x *SOJournalRecord) GetIntent() *SOJournalEncryptedPayload {
+	if x != nil {
+		return x.Intent
+	}
+	return nil
+}
+
+func (x *SOJournalRecord) GetEnvelope() *SOJournalEncryptedPayload {
+	if x != nil {
+		return x.Envelope
+	}
+	return nil
+}
+
+func (x *SOJournalRecord) GetReceipt() *SOJournalReceipt {
+	if x != nil {
+		return x.Receipt
+	}
+	return nil
+}
+
+func (x *SOJournalRecord) GetAcknowledgement() *SOJournalAcknowledgement {
+	if x != nil {
+		return x.Acknowledgement
+	}
+	return nil
+}
+
+func (x *SOJournalRecord) GetProjection() *SOJournalProjection {
+	if x != nil {
+		return x.Projection
+	}
+	return nil
+}
+
+func (x *SOJournalRecord) GetReadiness() SOJournalReadiness {
+	if x != nil {
+		return x.Readiness
+	}
+	return SOJournalReadiness_SO_JOURNAL_READINESS_UNSPECIFIED
+}
+
+func (x *SOJournalRecord) GetRecoveryReason() SOJournalRecoveryReason {
+	if x != nil {
+		return x.RecoveryReason
+	}
+	return SOJournalRecoveryReason_SO_JOURNAL_RECOVERY_REASON_UNSPECIFIED
+}
+
+func (x *SOJournalRecord) GetAttemptState() SOJournalAttemptState {
+	if x != nil {
+		return x.AttemptState
+	}
+	return SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_UNSPECIFIED
+}
+
+func (x *SOJournalRecord) GetEnvelopeDigest() []byte {
+	if x != nil {
+		return x.EnvelopeDigest
+	}
+	return nil
+}
+
+func (x *SOJournalRecord) GetLookup() *SOJournalLookup {
+	if x != nil {
+		return x.Lookup
+	}
+	return nil
+}
+
+// SOJournalCheckpointAttempt is the bounded reducer state for one exact key.
+type SOJournalCheckpointAttempt struct {
+	unknownFields []byte
+	// Key identifies the exact checkpointed mutation attempt.
+	Key *SOMutationKey `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// Lineage carries the immutable supersession relation.
+	Lineage *SOJournalLineage `protobuf:"bytes,2,opt,name=lineage,proto3" json:"lineage,omitempty"`
+	// Version carries local/remote and transform observations.
+	Version *SOJournalVersionTuple `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	// State is the legal lifecycle state at checkpoint publication.
+	State SOJournalAttemptState `protobuf:"varint,4,opt,name=state,proto3" json:"state,omitempty"`
+	// Readiness records body-owned preparation status.
+	Readiness SOJournalReadiness `protobuf:"varint,5,opt,name=readiness,proto3" json:"readiness,omitempty"`
+	// Intent is the retained encrypted canonical operation.
+	Intent *SOJournalEncryptedPayload `protobuf:"bytes,6,opt,name=intent,proto3" json:"intent,omitempty"`
+	// Envelope is the retained encrypted immutable signed bytes.
+	Envelope *SOJournalEncryptedPayload `protobuf:"bytes,7,opt,name=envelope,proto3" json:"envelope,omitempty"`
+	// EnvelopeDigest binds the retained envelope plaintext.
+	EnvelopeDigest []byte `protobuf:"bytes,8,opt,name=envelope_digest,json=envelopeDigest,proto3" json:"envelopeDigest,omitempty"`
+	// Receipt is terminal remote evidence kept separate from projection.
+	Receipt *SOJournalReceipt `protobuf:"bytes,9,opt,name=receipt,proto3" json:"receipt,omitempty"`
+	// Acknowledgement records remote acknowledgement of the receipt.
+	Acknowledgement *SOJournalAcknowledgement `protobuf:"bytes,10,opt,name=acknowledgement,proto3" json:"acknowledgement,omitempty"`
+	// Projection records the body's exact authoritative-root observation.
+	Projection *SOJournalProjection `protobuf:"bytes,11,opt,name=projection,proto3" json:"projection,omitempty"`
+	// Lookup records the retained exact-key receipt lookup.
+	Lookup *SOJournalLookup `protobuf:"bytes,12,opt,name=lookup,proto3" json:"lookup,omitempty"`
+	// SendAttempted records that transport crossed the durable send boundary.
+	SendAttempted bool `protobuf:"varint,13,opt,name=send_attempted,json=sendAttempted,proto3" json:"sendAttempted,omitempty"`
+	// ResendAuthorized records authoritative no-record resend permission.
+	ResendAuthorized bool `protobuf:"varint,14,opt,name=resend_authorized,json=resendAuthorized,proto3" json:"resendAuthorized,omitempty"`
+	// LineageRecoveryBlocked records that successor recovery is blocked.
+	LineageRecoveryBlocked bool `protobuf:"varint,15,opt,name=lineage_recovery_blocked,json=lineageRecoveryBlocked,proto3" json:"lineageRecoveryBlocked,omitempty"`
+	// IntentSequence is the exact journal sequence used by the retained intent ciphertext.
+	IntentSequence uint64 `protobuf:"varint,16,opt,name=intent_sequence,json=intentSequence,proto3" json:"intentSequence,omitempty"`
+	// EnvelopeSequence is the exact journal sequence used by the retained envelope ciphertext.
+	EnvelopeSequence uint64 `protobuf:"varint,17,opt,name=envelope_sequence,json=envelopeSequence,proto3" json:"envelopeSequence,omitempty"`
+	// CheckpointEligible is the derived receipt-plus-projection eligibility bit.
+	CheckpointEligible bool `protobuf:"varint,18,opt,name=checkpoint_eligible,json=checkpointEligible,proto3" json:"checkpointEligible,omitempty"`
+}
+
+func (x *SOJournalCheckpointAttempt) Reset() {
+	*x = SOJournalCheckpointAttempt{}
+}
+
+func (*SOJournalCheckpointAttempt) ProtoMessage() {}
+
+func (x *SOJournalCheckpointAttempt) GetKey() *SOMutationKey {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *SOJournalCheckpointAttempt) GetLineage() *SOJournalLineage {
+	if x != nil {
+		return x.Lineage
+	}
+	return nil
+}
+
+func (x *SOJournalCheckpointAttempt) GetVersion() *SOJournalVersionTuple {
+	if x != nil {
+		return x.Version
+	}
+	return nil
+}
+
+func (x *SOJournalCheckpointAttempt) GetState() SOJournalAttemptState {
+	if x != nil {
+		return x.State
+	}
+	return SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_UNSPECIFIED
+}
+
+func (x *SOJournalCheckpointAttempt) GetReadiness() SOJournalReadiness {
+	if x != nil {
+		return x.Readiness
+	}
+	return SOJournalReadiness_SO_JOURNAL_READINESS_UNSPECIFIED
+}
+
+func (x *SOJournalCheckpointAttempt) GetIntent() *SOJournalEncryptedPayload {
+	if x != nil {
+		return x.Intent
+	}
+	return nil
+}
+
+func (x *SOJournalCheckpointAttempt) GetEnvelope() *SOJournalEncryptedPayload {
+	if x != nil {
+		return x.Envelope
+	}
+	return nil
+}
+
+func (x *SOJournalCheckpointAttempt) GetEnvelopeDigest() []byte {
+	if x != nil {
+		return x.EnvelopeDigest
+	}
+	return nil
+}
+
+func (x *SOJournalCheckpointAttempt) GetReceipt() *SOJournalReceipt {
+	if x != nil {
+		return x.Receipt
+	}
+	return nil
+}
+
+func (x *SOJournalCheckpointAttempt) GetAcknowledgement() *SOJournalAcknowledgement {
+	if x != nil {
+		return x.Acknowledgement
+	}
+	return nil
+}
+
+func (x *SOJournalCheckpointAttempt) GetProjection() *SOJournalProjection {
+	if x != nil {
+		return x.Projection
+	}
+	return nil
+}
+
+func (x *SOJournalCheckpointAttempt) GetLookup() *SOJournalLookup {
+	if x != nil {
+		return x.Lookup
+	}
+	return nil
+}
+
+func (x *SOJournalCheckpointAttempt) GetSendAttempted() bool {
+	if x != nil {
+		return x.SendAttempted
+	}
+	return false
+}
+
+func (x *SOJournalCheckpointAttempt) GetResendAuthorized() bool {
+	if x != nil {
+		return x.ResendAuthorized
+	}
+	return false
+}
+
+func (x *SOJournalCheckpointAttempt) GetLineageRecoveryBlocked() bool {
+	if x != nil {
+		return x.LineageRecoveryBlocked
+	}
+	return false
+}
+
+func (x *SOJournalCheckpointAttempt) GetIntentSequence() uint64 {
+	if x != nil {
+		return x.IntentSequence
+	}
+	return 0
+}
+
+func (x *SOJournalCheckpointAttempt) GetEnvelopeSequence() uint64 {
+	if x != nil {
+		return x.EnvelopeSequence
+	}
+	return 0
+}
+
+func (x *SOJournalCheckpointAttempt) GetCheckpointEligible() bool {
+	if x != nil {
+		return x.CheckpointEligible
+	}
+	return false
+}
+
+// SOJournalCheckpoint is a deterministic compact reducer snapshot.
+type SOJournalCheckpoint struct {
+	unknownFields []byte
+	// JournalIdentity is the stable identity of the journal storage.
+	JournalIdentity []byte `protobuf:"bytes,1,opt,name=journal_identity,json=journalIdentity,proto3" json:"journalIdentity,omitempty"`
+	// Generation identifies this compact snapshot publication.
+	Generation uint64 `protobuf:"varint,2,opt,name=generation,proto3" json:"generation,omitempty"`
+	// NextSequence is the first sequence expected in the append tail.
+	NextSequence uint64 `protobuf:"varint,3,opt,name=next_sequence,json=nextSequence,proto3" json:"nextSequence,omitempty"`
+	// Attempts contains one bounded state snapshot per exact mutation key.
+	Attempts []*SOJournalCheckpointAttempt `protobuf:"bytes,4,rep,name=attempts,proto3" json:"attempts,omitempty"`
+}
+
+func (x *SOJournalCheckpoint) Reset() {
+	*x = SOJournalCheckpoint{}
+}
+
+func (*SOJournalCheckpoint) ProtoMessage() {}
+
+func (x *SOJournalCheckpoint) GetJournalIdentity() []byte {
+	if x != nil {
+		return x.JournalIdentity
+	}
+	return nil
+}
+
+func (x *SOJournalCheckpoint) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
+}
+
+func (x *SOJournalCheckpoint) GetNextSequence() uint64 {
+	if x != nil {
+		return x.NextSequence
+	}
+	return 0
+}
+
+func (x *SOJournalCheckpoint) GetAttempts() []*SOJournalCheckpointAttempt {
+	if x != nil {
+		return x.Attempts
+	}
+	return nil
+}
+
 func (m *SharedObjectRef) CloneVT() *SharedObjectRef {
 	if m == nil {
 		return (*SharedObjectRef)(nil)
@@ -2510,6 +3620,263 @@ func (m *SOJoinResponse) CloneVT() *SOJoinResponse {
 }
 
 func (m *SOJoinResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOMutationKey) CloneVT() *SOMutationKey {
+	if m == nil {
+		return (*SOMutationKey)(nil)
+	}
+	r := new(SOMutationKey)
+	r.SharedObjectId = m.SharedObjectId
+	r.ParticipantPeerId = m.ParticipantPeerId
+	r.LocalId = m.LocalId
+	r.OriginScopeId = protobuf_go_lite.CloneBytes(m.OriginScopeId)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOMutationKey) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOJournalLineage) CloneVT() *SOJournalLineage {
+	if m == nil {
+		return (*SOJournalLineage)(nil)
+	}
+	r := new(SOJournalLineage)
+	r.RootKey = protobuf_go_lite.CloneVTValue(m.RootKey)
+	r.Supersedes = protobuf_go_lite.CloneVTValue(m.Supersedes)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOJournalLineage) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOJournalVersionTuple) CloneVT() *SOJournalVersionTuple {
+	if m == nil {
+		return (*SOJournalVersionTuple)(nil)
+	}
+	r := new(SOJournalVersionTuple)
+	r.LocalVersion = m.LocalVersion
+	r.RemoteVersion = m.RemoteVersion
+	r.TransformEpoch = m.TransformEpoch
+	r.ConfigChainDigest = protobuf_go_lite.CloneBytes(m.ConfigChainDigest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOJournalVersionTuple) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOJournalIntent) CloneVT() *SOJournalIntent {
+	if m == nil {
+		return (*SOJournalIntent)(nil)
+	}
+	r := new(SOJournalIntent)
+	r.Key = protobuf_go_lite.CloneVTValue(m.Key)
+	r.Lineage = protobuf_go_lite.CloneVTValue(m.Lineage)
+	r.Version = protobuf_go_lite.CloneVTValue(m.Version)
+	r.CanonicalOperation = protobuf_go_lite.CloneBytes(m.CanonicalOperation)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOJournalIntent) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOJournalEncryptedPayload) CloneVT() *SOJournalEncryptedPayload {
+	if m == nil {
+		return (*SOJournalEncryptedPayload)(nil)
+	}
+	r := new(SOJournalEncryptedPayload)
+	r.Nonce = protobuf_go_lite.CloneBytes(m.Nonce)
+	r.Ciphertext = protobuf_go_lite.CloneBytes(m.Ciphertext)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOJournalEncryptedPayload) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOJournalLookup) CloneVT() *SOJournalLookup {
+	if m == nil {
+		return (*SOJournalLookup)(nil)
+	}
+	r := new(SOJournalLookup)
+	r.State = m.State
+	r.Key = protobuf_go_lite.CloneVTValue(m.Key)
+	r.Receipt = protobuf_go_lite.CloneVTValue(m.Receipt)
+	r.Response = protobuf_go_lite.CloneBytes(m.Response)
+	r.ResponseDigest = protobuf_go_lite.CloneBytes(m.ResponseDigest)
+	r.ConfigChainDigest = protobuf_go_lite.CloneBytes(m.ConfigChainDigest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOJournalLookup) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOJournalReceipt) CloneVT() *SOJournalReceipt {
+	if m == nil {
+		return (*SOJournalReceipt)(nil)
+	}
+	r := new(SOJournalReceipt)
+	r.Outcome = m.Outcome
+	r.AuthoritativeRootSeqno = m.AuthoritativeRootSeqno
+	r.TerminalUnixMillis = m.TerminalUnixMillis
+	r.Key = protobuf_go_lite.CloneVTValue(m.Key)
+	r.EnvelopeDigest = protobuf_go_lite.CloneBytes(m.EnvelopeDigest)
+	r.TerminalReceipt = protobuf_go_lite.CloneBytes(m.TerminalReceipt)
+	r.TerminalReceiptDigest = protobuf_go_lite.CloneBytes(m.TerminalReceiptDigest)
+	r.AuthoritativeRootDigest = protobuf_go_lite.CloneBytes(m.AuthoritativeRootDigest)
+	r.ConfigChainDigest = protobuf_go_lite.CloneBytes(m.ConfigChainDigest)
+	r.Supersedes = protobuf_go_lite.CloneVTValue(m.Supersedes)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOJournalReceipt) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOJournalAcknowledgement) CloneVT() *SOJournalAcknowledgement {
+	if m == nil {
+		return (*SOJournalAcknowledgement)(nil)
+	}
+	r := new(SOJournalAcknowledgement)
+	r.AcknowledgedUnixMillis = m.AcknowledgedUnixMillis
+	r.Key = protobuf_go_lite.CloneVTValue(m.Key)
+	r.ReceiptDigest = protobuf_go_lite.CloneBytes(m.ReceiptDigest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOJournalAcknowledgement) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOJournalProjection) CloneVT() *SOJournalProjection {
+	if m == nil {
+		return (*SOJournalProjection)(nil)
+	}
+	r := new(SOJournalProjection)
+	r.AuthoritativeRootSeqno = m.AuthoritativeRootSeqno
+	r.Key = protobuf_go_lite.CloneVTValue(m.Key)
+	r.ReceiptDigest = protobuf_go_lite.CloneBytes(m.ReceiptDigest)
+	r.AuthoritativeRootDigest = protobuf_go_lite.CloneBytes(m.AuthoritativeRootDigest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOJournalProjection) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOJournalRecord) CloneVT() *SOJournalRecord {
+	if m == nil {
+		return (*SOJournalRecord)(nil)
+	}
+	r := new(SOJournalRecord)
+	r.FormatVersion = m.FormatVersion
+	r.Sequence = m.Sequence
+	r.Kind = m.Kind
+	r.Readiness = m.Readiness
+	r.RecoveryReason = m.RecoveryReason
+	r.AttemptState = m.AttemptState
+	r.Key = protobuf_go_lite.CloneVTValue(m.Key)
+	r.Lineage = protobuf_go_lite.CloneVTValue(m.Lineage)
+	r.Version = protobuf_go_lite.CloneVTValue(m.Version)
+	r.Intent = protobuf_go_lite.CloneVTValue(m.Intent)
+	r.Envelope = protobuf_go_lite.CloneVTValue(m.Envelope)
+	r.Receipt = protobuf_go_lite.CloneVTValue(m.Receipt)
+	r.Acknowledgement = protobuf_go_lite.CloneVTValue(m.Acknowledgement)
+	r.Projection = protobuf_go_lite.CloneVTValue(m.Projection)
+	r.EnvelopeDigest = protobuf_go_lite.CloneBytes(m.EnvelopeDigest)
+	r.Lookup = protobuf_go_lite.CloneVTValue(m.Lookup)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOJournalRecord) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOJournalCheckpointAttempt) CloneVT() *SOJournalCheckpointAttempt {
+	if m == nil {
+		return (*SOJournalCheckpointAttempt)(nil)
+	}
+	r := new(SOJournalCheckpointAttempt)
+	r.State = m.State
+	r.Readiness = m.Readiness
+	r.SendAttempted = m.SendAttempted
+	r.ResendAuthorized = m.ResendAuthorized
+	r.LineageRecoveryBlocked = m.LineageRecoveryBlocked
+	r.IntentSequence = m.IntentSequence
+	r.EnvelopeSequence = m.EnvelopeSequence
+	r.CheckpointEligible = m.CheckpointEligible
+	r.Key = protobuf_go_lite.CloneVTValue(m.Key)
+	r.Lineage = protobuf_go_lite.CloneVTValue(m.Lineage)
+	r.Version = protobuf_go_lite.CloneVTValue(m.Version)
+	r.Intent = protobuf_go_lite.CloneVTValue(m.Intent)
+	r.Envelope = protobuf_go_lite.CloneVTValue(m.Envelope)
+	r.EnvelopeDigest = protobuf_go_lite.CloneBytes(m.EnvelopeDigest)
+	r.Receipt = protobuf_go_lite.CloneVTValue(m.Receipt)
+	r.Acknowledgement = protobuf_go_lite.CloneVTValue(m.Acknowledgement)
+	r.Projection = protobuf_go_lite.CloneVTValue(m.Projection)
+	r.Lookup = protobuf_go_lite.CloneVTValue(m.Lookup)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOJournalCheckpointAttempt) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SOJournalCheckpoint) CloneVT() *SOJournalCheckpoint {
+	if m == nil {
+		return (*SOJournalCheckpoint)(nil)
+	}
+	r := new(SOJournalCheckpoint)
+	r.Generation = m.Generation
+	r.NextSequence = m.NextSequence
+	r.JournalIdentity = protobuf_go_lite.CloneBytes(m.JournalIdentity)
+	r.Attempts = protobuf_go_lite.CloneVTSlice(m.Attempts)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SOJournalCheckpoint) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -3456,6 +4823,441 @@ func (this *SOJoinResponse) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *SOMutationKey) EqualVT(that *SOMutationKey) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.OriginScopeId, that.OriginScopeId) {
+		return false
+	}
+	if this.SharedObjectId != that.SharedObjectId {
+		return false
+	}
+	if this.ParticipantPeerId != that.ParticipantPeerId {
+		return false
+	}
+	if this.LocalId != that.LocalId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOMutationKey) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOMutationKey)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOJournalLineage) EqualVT(that *SOJournalLineage) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.RootKey, that.RootKey) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Supersedes, that.Supersedes) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOJournalLineage) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOJournalLineage)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOJournalVersionTuple) EqualVT(that *SOJournalVersionTuple) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.LocalVersion != that.LocalVersion {
+		return false
+	}
+	if this.RemoteVersion != that.RemoteVersion {
+		return false
+	}
+	if this.TransformEpoch != that.TransformEpoch {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ConfigChainDigest, that.ConfigChainDigest) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOJournalVersionTuple) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOJournalVersionTuple)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOJournalIntent) EqualVT(that *SOJournalIntent) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Key, that.Key) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Lineage, that.Lineage) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Version, that.Version) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.CanonicalOperation, that.CanonicalOperation) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOJournalIntent) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOJournalIntent)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOJournalEncryptedPayload) EqualVT(that *SOJournalEncryptedPayload) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Nonce, that.Nonce) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Ciphertext, that.Ciphertext) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOJournalEncryptedPayload) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOJournalEncryptedPayload)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOJournalLookup) EqualVT(that *SOJournalLookup) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Key, that.Key) {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Receipt, that.Receipt) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Response, that.Response) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ResponseDigest, that.ResponseDigest) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ConfigChainDigest, that.ConfigChainDigest) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOJournalLookup) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOJournalLookup)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOJournalReceipt) EqualVT(that *SOJournalReceipt) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Key, that.Key) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.EnvelopeDigest, that.EnvelopeDigest) {
+		return false
+	}
+	if this.Outcome != that.Outcome {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.TerminalReceipt, that.TerminalReceipt) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.TerminalReceiptDigest, that.TerminalReceiptDigest) {
+		return false
+	}
+	if this.AuthoritativeRootSeqno != that.AuthoritativeRootSeqno {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.AuthoritativeRootDigest, that.AuthoritativeRootDigest) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ConfigChainDigest, that.ConfigChainDigest) {
+		return false
+	}
+	if this.TerminalUnixMillis != that.TerminalUnixMillis {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Supersedes, that.Supersedes) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOJournalReceipt) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOJournalReceipt)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOJournalAcknowledgement) EqualVT(that *SOJournalAcknowledgement) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Key, that.Key) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ReceiptDigest, that.ReceiptDigest) {
+		return false
+	}
+	if this.AcknowledgedUnixMillis != that.AcknowledgedUnixMillis {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOJournalAcknowledgement) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOJournalAcknowledgement)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOJournalProjection) EqualVT(that *SOJournalProjection) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Key, that.Key) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ReceiptDigest, that.ReceiptDigest) {
+		return false
+	}
+	if this.AuthoritativeRootSeqno != that.AuthoritativeRootSeqno {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.AuthoritativeRootDigest, that.AuthoritativeRootDigest) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOJournalProjection) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOJournalProjection)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOJournalRecord) EqualVT(that *SOJournalRecord) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.FormatVersion != that.FormatVersion {
+		return false
+	}
+	if this.Sequence != that.Sequence {
+		return false
+	}
+	if this.Kind != that.Kind {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Key, that.Key) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Lineage, that.Lineage) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Version, that.Version) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Intent, that.Intent) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Envelope, that.Envelope) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Receipt, that.Receipt) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Acknowledgement, that.Acknowledgement) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Projection, that.Projection) {
+		return false
+	}
+	if this.Readiness != that.Readiness {
+		return false
+	}
+	if this.RecoveryReason != that.RecoveryReason {
+		return false
+	}
+	if this.AttemptState != that.AttemptState {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.EnvelopeDigest, that.EnvelopeDigest) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Lookup, that.Lookup) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOJournalRecord) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOJournalRecord)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOJournalCheckpointAttempt) EqualVT(that *SOJournalCheckpointAttempt) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Key, that.Key) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Lineage, that.Lineage) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Version, that.Version) {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	if this.Readiness != that.Readiness {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Intent, that.Intent) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Envelope, that.Envelope) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.EnvelopeDigest, that.EnvelopeDigest) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Receipt, that.Receipt) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Acknowledgement, that.Acknowledgement) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Projection, that.Projection) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Lookup, that.Lookup) {
+		return false
+	}
+	if this.SendAttempted != that.SendAttempted {
+		return false
+	}
+	if this.ResendAuthorized != that.ResendAuthorized {
+		return false
+	}
+	if this.LineageRecoveryBlocked != that.LineageRecoveryBlocked {
+		return false
+	}
+	if this.IntentSequence != that.IntentSequence {
+		return false
+	}
+	if this.EnvelopeSequence != that.EnvelopeSequence {
+		return false
+	}
+	if this.CheckpointEligible != that.CheckpointEligible {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOJournalCheckpointAttempt) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOJournalCheckpointAttempt)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SOJournalCheckpoint) EqualVT(that *SOJournalCheckpoint) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.JournalIdentity, that.JournalIdentity) {
+		return false
+	}
+	if this.Generation != that.Generation {
+		return false
+	}
+	if this.NextSequence != that.NextSequence {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Attempts, that.Attempts, func() *SOJournalCheckpointAttempt { return &SOJournalCheckpointAttempt{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SOJournalCheckpoint) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SOJournalCheckpoint)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 // MarshalProtoJSON marshals the SharedObjectHealthStatus to JSON.
 func (x SharedObjectHealthStatus) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteEnum(int32(x), SharedObjectHealthStatus_name)
@@ -3773,6 +5575,246 @@ func (x *SORevocationReason) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the SORevocationReason from JSON.
 func (x *SORevocationReason) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalRecordKind to JSON.
+func (x SOJournalRecordKind) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SOJournalRecordKind_name)
+}
+
+// MarshalText marshals the SOJournalRecordKind to text.
+func (x SOJournalRecordKind) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SOJournalRecordKind_name)), nil
+}
+
+// MarshalJSON marshals the SOJournalRecordKind to JSON.
+func (x SOJournalRecordKind) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalRecordKind from JSON.
+func (x *SOJournalRecordKind) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SOJournalRecordKind_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SOJournalRecordKind enum: %v", err)
+		return
+	}
+	*x = SOJournalRecordKind(v)
+}
+
+// UnmarshalText unmarshals the SOJournalRecordKind from text.
+func (x *SOJournalRecordKind) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SOJournalRecordKind_value)
+	if err != nil {
+		return err
+	}
+	*x = SOJournalRecordKind(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SOJournalRecordKind from JSON.
+func (x *SOJournalRecordKind) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalAttemptState to JSON.
+func (x SOJournalAttemptState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SOJournalAttemptState_name)
+}
+
+// MarshalText marshals the SOJournalAttemptState to text.
+func (x SOJournalAttemptState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SOJournalAttemptState_name)), nil
+}
+
+// MarshalJSON marshals the SOJournalAttemptState to JSON.
+func (x SOJournalAttemptState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalAttemptState from JSON.
+func (x *SOJournalAttemptState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SOJournalAttemptState_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SOJournalAttemptState enum: %v", err)
+		return
+	}
+	*x = SOJournalAttemptState(v)
+}
+
+// UnmarshalText unmarshals the SOJournalAttemptState from text.
+func (x *SOJournalAttemptState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SOJournalAttemptState_value)
+	if err != nil {
+		return err
+	}
+	*x = SOJournalAttemptState(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SOJournalAttemptState from JSON.
+func (x *SOJournalAttemptState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalOutcome to JSON.
+func (x SOJournalOutcome) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SOJournalOutcome_name)
+}
+
+// MarshalText marshals the SOJournalOutcome to text.
+func (x SOJournalOutcome) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SOJournalOutcome_name)), nil
+}
+
+// MarshalJSON marshals the SOJournalOutcome to JSON.
+func (x SOJournalOutcome) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalOutcome from JSON.
+func (x *SOJournalOutcome) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SOJournalOutcome_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SOJournalOutcome enum: %v", err)
+		return
+	}
+	*x = SOJournalOutcome(v)
+}
+
+// UnmarshalText unmarshals the SOJournalOutcome from text.
+func (x *SOJournalOutcome) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SOJournalOutcome_value)
+	if err != nil {
+		return err
+	}
+	*x = SOJournalOutcome(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SOJournalOutcome from JSON.
+func (x *SOJournalOutcome) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalLookupState to JSON.
+func (x SOJournalLookupState) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SOJournalLookupState_name)
+}
+
+// MarshalText marshals the SOJournalLookupState to text.
+func (x SOJournalLookupState) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SOJournalLookupState_name)), nil
+}
+
+// MarshalJSON marshals the SOJournalLookupState to JSON.
+func (x SOJournalLookupState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalLookupState from JSON.
+func (x *SOJournalLookupState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SOJournalLookupState_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SOJournalLookupState enum: %v", err)
+		return
+	}
+	*x = SOJournalLookupState(v)
+}
+
+// UnmarshalText unmarshals the SOJournalLookupState from text.
+func (x *SOJournalLookupState) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SOJournalLookupState_value)
+	if err != nil {
+		return err
+	}
+	*x = SOJournalLookupState(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SOJournalLookupState from JSON.
+func (x *SOJournalLookupState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalReadiness to JSON.
+func (x SOJournalReadiness) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SOJournalReadiness_name)
+}
+
+// MarshalText marshals the SOJournalReadiness to text.
+func (x SOJournalReadiness) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SOJournalReadiness_name)), nil
+}
+
+// MarshalJSON marshals the SOJournalReadiness to JSON.
+func (x SOJournalReadiness) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalReadiness from JSON.
+func (x *SOJournalReadiness) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SOJournalReadiness_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SOJournalReadiness enum: %v", err)
+		return
+	}
+	*x = SOJournalReadiness(v)
+}
+
+// UnmarshalText unmarshals the SOJournalReadiness from text.
+func (x *SOJournalReadiness) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SOJournalReadiness_value)
+	if err != nil {
+		return err
+	}
+	*x = SOJournalReadiness(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SOJournalReadiness from JSON.
+func (x *SOJournalReadiness) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalRecoveryReason to JSON.
+func (x SOJournalRecoveryReason) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), SOJournalRecoveryReason_name)
+}
+
+// MarshalText marshals the SOJournalRecoveryReason to text.
+func (x SOJournalRecoveryReason) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), SOJournalRecoveryReason_name)), nil
+}
+
+// MarshalJSON marshals the SOJournalRecoveryReason to JSON.
+func (x SOJournalRecoveryReason) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalRecoveryReason from JSON.
+func (x *SOJournalRecoveryReason) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(SOJournalRecoveryReason_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read SOJournalRecoveryReason enum: %v", err)
+		return
+	}
+	*x = SOJournalRecoveryReason(v)
+}
+
+// UnmarshalText unmarshals the SOJournalRecoveryReason from text.
+func (x *SOJournalRecoveryReason) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), SOJournalRecoveryReason_value)
+	if err != nil {
+		return err
+	}
+	*x = SOJournalRecoveryReason(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the SOJournalRecoveryReason from JSON.
+func (x *SOJournalRecoveryReason) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -6173,6 +8215,1167 @@ func (x *SOJoinResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SOMutationKey message to JSON.
+func (x *SOMutationKey) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.OriginScopeId) > 0 || s.HasField("originScopeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("originScopeId")
+		s.WriteBytes(x.OriginScopeId)
+	}
+	if x.SharedObjectId != "" || s.HasField("sharedObjectId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sharedObjectId")
+		s.WriteString(x.SharedObjectId)
+	}
+	if x.ParticipantPeerId != "" || s.HasField("participantPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("participantPeerId")
+		s.WriteString(x.ParticipantPeerId)
+	}
+	if x.LocalId != "" || s.HasField("localId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("localId")
+		s.WriteString(x.LocalId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOMutationKey to JSON.
+func (x *SOMutationKey) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOMutationKey message from JSON.
+func (x *SOMutationKey) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "origin_scope_id", "originScopeId":
+			s.AddField("origin_scope_id")
+			x.OriginScopeId = s.ReadBytes()
+		case "shared_object_id", "sharedObjectId":
+			s.AddField("shared_object_id")
+			x.SharedObjectId = s.ReadString()
+		case "participant_peer_id", "participantPeerId":
+			s.AddField("participant_peer_id")
+			x.ParticipantPeerId = s.ReadString()
+		case "local_id", "localId":
+			s.AddField("local_id")
+			x.LocalId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOMutationKey from JSON.
+func (x *SOMutationKey) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalLineage message to JSON.
+func (x *SOJournalLineage) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.RootKey != nil || s.HasField("rootKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rootKey")
+		x.RootKey.MarshalProtoJSON(s.WithField("rootKey"))
+	}
+	if x.Supersedes != nil || s.HasField("supersedes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("supersedes")
+		x.Supersedes.MarshalProtoJSON(s.WithField("supersedes"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOJournalLineage to JSON.
+func (x *SOJournalLineage) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalLineage message from JSON.
+func (x *SOJournalLineage) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "root_key", "rootKey":
+			if s.ReadNil() {
+				x.RootKey = nil
+				return
+			}
+			x.RootKey = &SOMutationKey{}
+			x.RootKey.UnmarshalProtoJSON(s.WithField("root_key", true))
+		case "supersedes":
+			if s.ReadNil() {
+				x.Supersedes = nil
+				return
+			}
+			x.Supersedes = &SOMutationKey{}
+			x.Supersedes.UnmarshalProtoJSON(s.WithField("supersedes", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOJournalLineage from JSON.
+func (x *SOJournalLineage) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalVersionTuple message to JSON.
+func (x *SOJournalVersionTuple) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.LocalVersion != 0 || s.HasField("localVersion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("localVersion")
+		s.WriteUint64(x.LocalVersion)
+	}
+	if x.RemoteVersion != 0 || s.HasField("remoteVersion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("remoteVersion")
+		s.WriteUint64(x.RemoteVersion)
+	}
+	if x.TransformEpoch != 0 || s.HasField("transformEpoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("transformEpoch")
+		s.WriteUint64(x.TransformEpoch)
+	}
+	if len(x.ConfigChainDigest) > 0 || s.HasField("configChainDigest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("configChainDigest")
+		s.WriteBytes(x.ConfigChainDigest)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOJournalVersionTuple to JSON.
+func (x *SOJournalVersionTuple) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalVersionTuple message from JSON.
+func (x *SOJournalVersionTuple) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "local_version", "localVersion":
+			s.AddField("local_version")
+			x.LocalVersion = s.ReadUint64()
+		case "remote_version", "remoteVersion":
+			s.AddField("remote_version")
+			x.RemoteVersion = s.ReadUint64()
+		case "transform_epoch", "transformEpoch":
+			s.AddField("transform_epoch")
+			x.TransformEpoch = s.ReadUint64()
+		case "config_chain_digest", "configChainDigest":
+			s.AddField("config_chain_digest")
+			x.ConfigChainDigest = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOJournalVersionTuple from JSON.
+func (x *SOJournalVersionTuple) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalIntent message to JSON.
+func (x *SOJournalIntent) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != nil || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		x.Key.MarshalProtoJSON(s.WithField("key"))
+	}
+	if x.Lineage != nil || s.HasField("lineage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lineage")
+		x.Lineage.MarshalProtoJSON(s.WithField("lineage"))
+	}
+	if x.Version != nil || s.HasField("version") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("version")
+		x.Version.MarshalProtoJSON(s.WithField("version"))
+	}
+	if len(x.CanonicalOperation) > 0 || s.HasField("canonicalOperation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("canonicalOperation")
+		s.WriteBytes(x.CanonicalOperation)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOJournalIntent to JSON.
+func (x *SOJournalIntent) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalIntent message from JSON.
+func (x *SOJournalIntent) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			if s.ReadNil() {
+				x.Key = nil
+				return
+			}
+			x.Key = &SOMutationKey{}
+			x.Key.UnmarshalProtoJSON(s.WithField("key", true))
+		case "lineage":
+			if s.ReadNil() {
+				x.Lineage = nil
+				return
+			}
+			x.Lineage = &SOJournalLineage{}
+			x.Lineage.UnmarshalProtoJSON(s.WithField("lineage", true))
+		case "version":
+			if s.ReadNil() {
+				x.Version = nil
+				return
+			}
+			x.Version = &SOJournalVersionTuple{}
+			x.Version.UnmarshalProtoJSON(s.WithField("version", true))
+		case "canonical_operation", "canonicalOperation":
+			s.AddField("canonical_operation")
+			x.CanonicalOperation = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOJournalIntent from JSON.
+func (x *SOJournalIntent) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalEncryptedPayload message to JSON.
+func (x *SOJournalEncryptedPayload) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Nonce) > 0 || s.HasField("nonce") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nonce")
+		s.WriteBytes(x.Nonce)
+	}
+	if len(x.Ciphertext) > 0 || s.HasField("ciphertext") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ciphertext")
+		s.WriteBytes(x.Ciphertext)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOJournalEncryptedPayload to JSON.
+func (x *SOJournalEncryptedPayload) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalEncryptedPayload message from JSON.
+func (x *SOJournalEncryptedPayload) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "nonce":
+			s.AddField("nonce")
+			x.Nonce = s.ReadBytes()
+		case "ciphertext":
+			s.AddField("ciphertext")
+			x.Ciphertext = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOJournalEncryptedPayload from JSON.
+func (x *SOJournalEncryptedPayload) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalLookup message to JSON.
+func (x *SOJournalLookup) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != nil || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		x.Key.MarshalProtoJSON(s.WithField("key"))
+	}
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
+	if x.Receipt != nil || s.HasField("receipt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("receipt")
+		x.Receipt.MarshalProtoJSON(s.WithField("receipt"))
+	}
+	if len(x.Response) > 0 || s.HasField("response") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("response")
+		s.WriteBytes(x.Response)
+	}
+	if len(x.ResponseDigest) > 0 || s.HasField("responseDigest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("responseDigest")
+		s.WriteBytes(x.ResponseDigest)
+	}
+	if len(x.ConfigChainDigest) > 0 || s.HasField("configChainDigest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("configChainDigest")
+		s.WriteBytes(x.ConfigChainDigest)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOJournalLookup to JSON.
+func (x *SOJournalLookup) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalLookup message from JSON.
+func (x *SOJournalLookup) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			if s.ReadNil() {
+				x.Key = nil
+				return
+			}
+			x.Key = &SOMutationKey{}
+			x.Key.UnmarshalProtoJSON(s.WithField("key", true))
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "receipt":
+			if s.ReadNil() {
+				x.Receipt = nil
+				return
+			}
+			x.Receipt = &SOJournalReceipt{}
+			x.Receipt.UnmarshalProtoJSON(s.WithField("receipt", true))
+		case "response":
+			s.AddField("response")
+			x.Response = s.ReadBytes()
+		case "response_digest", "responseDigest":
+			s.AddField("response_digest")
+			x.ResponseDigest = s.ReadBytes()
+		case "config_chain_digest", "configChainDigest":
+			s.AddField("config_chain_digest")
+			x.ConfigChainDigest = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOJournalLookup from JSON.
+func (x *SOJournalLookup) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalReceipt message to JSON.
+func (x *SOJournalReceipt) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != nil || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		x.Key.MarshalProtoJSON(s.WithField("key"))
+	}
+	if len(x.EnvelopeDigest) > 0 || s.HasField("envelopeDigest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("envelopeDigest")
+		s.WriteBytes(x.EnvelopeDigest)
+	}
+	if x.Outcome != 0 || s.HasField("outcome") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outcome")
+		x.Outcome.MarshalProtoJSON(s)
+	}
+	if len(x.TerminalReceipt) > 0 || s.HasField("terminalReceipt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("terminalReceipt")
+		s.WriteBytes(x.TerminalReceipt)
+	}
+	if len(x.TerminalReceiptDigest) > 0 || s.HasField("terminalReceiptDigest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("terminalReceiptDigest")
+		s.WriteBytes(x.TerminalReceiptDigest)
+	}
+	if x.AuthoritativeRootSeqno != 0 || s.HasField("authoritativeRootSeqno") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("authoritativeRootSeqno")
+		s.WriteUint64(x.AuthoritativeRootSeqno)
+	}
+	if len(x.AuthoritativeRootDigest) > 0 || s.HasField("authoritativeRootDigest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("authoritativeRootDigest")
+		s.WriteBytes(x.AuthoritativeRootDigest)
+	}
+	if len(x.ConfigChainDigest) > 0 || s.HasField("configChainDigest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("configChainDigest")
+		s.WriteBytes(x.ConfigChainDigest)
+	}
+	if x.TerminalUnixMillis != 0 || s.HasField("terminalUnixMillis") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("terminalUnixMillis")
+		s.WriteUint64(x.TerminalUnixMillis)
+	}
+	if x.Supersedes != nil || s.HasField("supersedes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("supersedes")
+		x.Supersedes.MarshalProtoJSON(s.WithField("supersedes"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOJournalReceipt to JSON.
+func (x *SOJournalReceipt) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalReceipt message from JSON.
+func (x *SOJournalReceipt) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			if s.ReadNil() {
+				x.Key = nil
+				return
+			}
+			x.Key = &SOMutationKey{}
+			x.Key.UnmarshalProtoJSON(s.WithField("key", true))
+		case "envelope_digest", "envelopeDigest":
+			s.AddField("envelope_digest")
+			x.EnvelopeDigest = s.ReadBytes()
+		case "outcome":
+			s.AddField("outcome")
+			x.Outcome.UnmarshalProtoJSON(s)
+		case "terminal_receipt", "terminalReceipt":
+			s.AddField("terminal_receipt")
+			x.TerminalReceipt = s.ReadBytes()
+		case "terminal_receipt_digest", "terminalReceiptDigest":
+			s.AddField("terminal_receipt_digest")
+			x.TerminalReceiptDigest = s.ReadBytes()
+		case "authoritative_root_seqno", "authoritativeRootSeqno":
+			s.AddField("authoritative_root_seqno")
+			x.AuthoritativeRootSeqno = s.ReadUint64()
+		case "authoritative_root_digest", "authoritativeRootDigest":
+			s.AddField("authoritative_root_digest")
+			x.AuthoritativeRootDigest = s.ReadBytes()
+		case "config_chain_digest", "configChainDigest":
+			s.AddField("config_chain_digest")
+			x.ConfigChainDigest = s.ReadBytes()
+		case "terminal_unix_millis", "terminalUnixMillis":
+			s.AddField("terminal_unix_millis")
+			x.TerminalUnixMillis = s.ReadUint64()
+		case "supersedes":
+			if s.ReadNil() {
+				x.Supersedes = nil
+				return
+			}
+			x.Supersedes = &SOMutationKey{}
+			x.Supersedes.UnmarshalProtoJSON(s.WithField("supersedes", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOJournalReceipt from JSON.
+func (x *SOJournalReceipt) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalAcknowledgement message to JSON.
+func (x *SOJournalAcknowledgement) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != nil || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		x.Key.MarshalProtoJSON(s.WithField("key"))
+	}
+	if len(x.ReceiptDigest) > 0 || s.HasField("receiptDigest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("receiptDigest")
+		s.WriteBytes(x.ReceiptDigest)
+	}
+	if x.AcknowledgedUnixMillis != 0 || s.HasField("acknowledgedUnixMillis") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("acknowledgedUnixMillis")
+		s.WriteUint64(x.AcknowledgedUnixMillis)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOJournalAcknowledgement to JSON.
+func (x *SOJournalAcknowledgement) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalAcknowledgement message from JSON.
+func (x *SOJournalAcknowledgement) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			if s.ReadNil() {
+				x.Key = nil
+				return
+			}
+			x.Key = &SOMutationKey{}
+			x.Key.UnmarshalProtoJSON(s.WithField("key", true))
+		case "receipt_digest", "receiptDigest":
+			s.AddField("receipt_digest")
+			x.ReceiptDigest = s.ReadBytes()
+		case "acknowledged_unix_millis", "acknowledgedUnixMillis":
+			s.AddField("acknowledged_unix_millis")
+			x.AcknowledgedUnixMillis = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOJournalAcknowledgement from JSON.
+func (x *SOJournalAcknowledgement) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalProjection message to JSON.
+func (x *SOJournalProjection) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != nil || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		x.Key.MarshalProtoJSON(s.WithField("key"))
+	}
+	if len(x.ReceiptDigest) > 0 || s.HasField("receiptDigest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("receiptDigest")
+		s.WriteBytes(x.ReceiptDigest)
+	}
+	if x.AuthoritativeRootSeqno != 0 || s.HasField("authoritativeRootSeqno") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("authoritativeRootSeqno")
+		s.WriteUint64(x.AuthoritativeRootSeqno)
+	}
+	if len(x.AuthoritativeRootDigest) > 0 || s.HasField("authoritativeRootDigest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("authoritativeRootDigest")
+		s.WriteBytes(x.AuthoritativeRootDigest)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOJournalProjection to JSON.
+func (x *SOJournalProjection) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalProjection message from JSON.
+func (x *SOJournalProjection) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			if s.ReadNil() {
+				x.Key = nil
+				return
+			}
+			x.Key = &SOMutationKey{}
+			x.Key.UnmarshalProtoJSON(s.WithField("key", true))
+		case "receipt_digest", "receiptDigest":
+			s.AddField("receipt_digest")
+			x.ReceiptDigest = s.ReadBytes()
+		case "authoritative_root_seqno", "authoritativeRootSeqno":
+			s.AddField("authoritative_root_seqno")
+			x.AuthoritativeRootSeqno = s.ReadUint64()
+		case "authoritative_root_digest", "authoritativeRootDigest":
+			s.AddField("authoritative_root_digest")
+			x.AuthoritativeRootDigest = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOJournalProjection from JSON.
+func (x *SOJournalProjection) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalRecord message to JSON.
+func (x *SOJournalRecord) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.FormatVersion != 0 || s.HasField("formatVersion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("formatVersion")
+		s.WriteUint32(x.FormatVersion)
+	}
+	if x.Sequence != 0 || s.HasField("sequence") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sequence")
+		s.WriteUint64(x.Sequence)
+	}
+	if x.Kind != 0 || s.HasField("kind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("kind")
+		x.Kind.MarshalProtoJSON(s)
+	}
+	if x.Key != nil || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		x.Key.MarshalProtoJSON(s.WithField("key"))
+	}
+	if x.Lineage != nil || s.HasField("lineage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lineage")
+		x.Lineage.MarshalProtoJSON(s.WithField("lineage"))
+	}
+	if x.Version != nil || s.HasField("version") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("version")
+		x.Version.MarshalProtoJSON(s.WithField("version"))
+	}
+	if x.Intent != nil || s.HasField("intent") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("intent")
+		x.Intent.MarshalProtoJSON(s.WithField("intent"))
+	}
+	if x.Envelope != nil || s.HasField("envelope") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("envelope")
+		x.Envelope.MarshalProtoJSON(s.WithField("envelope"))
+	}
+	if x.Receipt != nil || s.HasField("receipt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("receipt")
+		x.Receipt.MarshalProtoJSON(s.WithField("receipt"))
+	}
+	if x.Acknowledgement != nil || s.HasField("acknowledgement") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("acknowledgement")
+		x.Acknowledgement.MarshalProtoJSON(s.WithField("acknowledgement"))
+	}
+	if x.Projection != nil || s.HasField("projection") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("projection")
+		x.Projection.MarshalProtoJSON(s.WithField("projection"))
+	}
+	if x.Readiness != 0 || s.HasField("readiness") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("readiness")
+		x.Readiness.MarshalProtoJSON(s)
+	}
+	if x.RecoveryReason != 0 || s.HasField("recoveryReason") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("recoveryReason")
+		x.RecoveryReason.MarshalProtoJSON(s)
+	}
+	if x.AttemptState != 0 || s.HasField("attemptState") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("attemptState")
+		x.AttemptState.MarshalProtoJSON(s)
+	}
+	if len(x.EnvelopeDigest) > 0 || s.HasField("envelopeDigest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("envelopeDigest")
+		s.WriteBytes(x.EnvelopeDigest)
+	}
+	if x.Lookup != nil || s.HasField("lookup") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lookup")
+		x.Lookup.MarshalProtoJSON(s.WithField("lookup"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOJournalRecord to JSON.
+func (x *SOJournalRecord) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalRecord message from JSON.
+func (x *SOJournalRecord) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "format_version", "formatVersion":
+			s.AddField("format_version")
+			x.FormatVersion = s.ReadUint32()
+		case "sequence":
+			s.AddField("sequence")
+			x.Sequence = s.ReadUint64()
+		case "kind":
+			s.AddField("kind")
+			x.Kind.UnmarshalProtoJSON(s)
+		case "key":
+			if s.ReadNil() {
+				x.Key = nil
+				return
+			}
+			x.Key = &SOMutationKey{}
+			x.Key.UnmarshalProtoJSON(s.WithField("key", true))
+		case "lineage":
+			if s.ReadNil() {
+				x.Lineage = nil
+				return
+			}
+			x.Lineage = &SOJournalLineage{}
+			x.Lineage.UnmarshalProtoJSON(s.WithField("lineage", true))
+		case "version":
+			if s.ReadNil() {
+				x.Version = nil
+				return
+			}
+			x.Version = &SOJournalVersionTuple{}
+			x.Version.UnmarshalProtoJSON(s.WithField("version", true))
+		case "intent":
+			if s.ReadNil() {
+				x.Intent = nil
+				return
+			}
+			x.Intent = &SOJournalEncryptedPayload{}
+			x.Intent.UnmarshalProtoJSON(s.WithField("intent", true))
+		case "envelope":
+			if s.ReadNil() {
+				x.Envelope = nil
+				return
+			}
+			x.Envelope = &SOJournalEncryptedPayload{}
+			x.Envelope.UnmarshalProtoJSON(s.WithField("envelope", true))
+		case "receipt":
+			if s.ReadNil() {
+				x.Receipt = nil
+				return
+			}
+			x.Receipt = &SOJournalReceipt{}
+			x.Receipt.UnmarshalProtoJSON(s.WithField("receipt", true))
+		case "acknowledgement":
+			if s.ReadNil() {
+				x.Acknowledgement = nil
+				return
+			}
+			x.Acknowledgement = &SOJournalAcknowledgement{}
+			x.Acknowledgement.UnmarshalProtoJSON(s.WithField("acknowledgement", true))
+		case "projection":
+			if s.ReadNil() {
+				x.Projection = nil
+				return
+			}
+			x.Projection = &SOJournalProjection{}
+			x.Projection.UnmarshalProtoJSON(s.WithField("projection", true))
+		case "readiness":
+			s.AddField("readiness")
+			x.Readiness.UnmarshalProtoJSON(s)
+		case "recovery_reason", "recoveryReason":
+			s.AddField("recovery_reason")
+			x.RecoveryReason.UnmarshalProtoJSON(s)
+		case "attempt_state", "attemptState":
+			s.AddField("attempt_state")
+			x.AttemptState.UnmarshalProtoJSON(s)
+		case "envelope_digest", "envelopeDigest":
+			s.AddField("envelope_digest")
+			x.EnvelopeDigest = s.ReadBytes()
+		case "lookup":
+			if s.ReadNil() {
+				x.Lookup = nil
+				return
+			}
+			x.Lookup = &SOJournalLookup{}
+			x.Lookup.UnmarshalProtoJSON(s.WithField("lookup", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOJournalRecord from JSON.
+func (x *SOJournalRecord) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalCheckpointAttempt message to JSON.
+func (x *SOJournalCheckpointAttempt) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != nil || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		x.Key.MarshalProtoJSON(s.WithField("key"))
+	}
+	if x.Lineage != nil || s.HasField("lineage") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lineage")
+		x.Lineage.MarshalProtoJSON(s.WithField("lineage"))
+	}
+	if x.Version != nil || s.HasField("version") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("version")
+		x.Version.MarshalProtoJSON(s.WithField("version"))
+	}
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
+	if x.Readiness != 0 || s.HasField("readiness") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("readiness")
+		x.Readiness.MarshalProtoJSON(s)
+	}
+	if x.Intent != nil || s.HasField("intent") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("intent")
+		x.Intent.MarshalProtoJSON(s.WithField("intent"))
+	}
+	if x.Envelope != nil || s.HasField("envelope") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("envelope")
+		x.Envelope.MarshalProtoJSON(s.WithField("envelope"))
+	}
+	if len(x.EnvelopeDigest) > 0 || s.HasField("envelopeDigest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("envelopeDigest")
+		s.WriteBytes(x.EnvelopeDigest)
+	}
+	if x.Receipt != nil || s.HasField("receipt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("receipt")
+		x.Receipt.MarshalProtoJSON(s.WithField("receipt"))
+	}
+	if x.Acknowledgement != nil || s.HasField("acknowledgement") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("acknowledgement")
+		x.Acknowledgement.MarshalProtoJSON(s.WithField("acknowledgement"))
+	}
+	if x.Projection != nil || s.HasField("projection") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("projection")
+		x.Projection.MarshalProtoJSON(s.WithField("projection"))
+	}
+	if x.Lookup != nil || s.HasField("lookup") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lookup")
+		x.Lookup.MarshalProtoJSON(s.WithField("lookup"))
+	}
+	if x.SendAttempted || s.HasField("sendAttempted") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sendAttempted")
+		s.WriteBool(x.SendAttempted)
+	}
+	if x.ResendAuthorized || s.HasField("resendAuthorized") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resendAuthorized")
+		s.WriteBool(x.ResendAuthorized)
+	}
+	if x.LineageRecoveryBlocked || s.HasField("lineageRecoveryBlocked") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("lineageRecoveryBlocked")
+		s.WriteBool(x.LineageRecoveryBlocked)
+	}
+	if x.IntentSequence != 0 || s.HasField("intentSequence") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("intentSequence")
+		s.WriteUint64(x.IntentSequence)
+	}
+	if x.EnvelopeSequence != 0 || s.HasField("envelopeSequence") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("envelopeSequence")
+		s.WriteUint64(x.EnvelopeSequence)
+	}
+	if x.CheckpointEligible || s.HasField("checkpointEligible") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("checkpointEligible")
+		s.WriteBool(x.CheckpointEligible)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOJournalCheckpointAttempt to JSON.
+func (x *SOJournalCheckpointAttempt) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalCheckpointAttempt message from JSON.
+func (x *SOJournalCheckpointAttempt) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			if s.ReadNil() {
+				x.Key = nil
+				return
+			}
+			x.Key = &SOMutationKey{}
+			x.Key.UnmarshalProtoJSON(s.WithField("key", true))
+		case "lineage":
+			if s.ReadNil() {
+				x.Lineage = nil
+				return
+			}
+			x.Lineage = &SOJournalLineage{}
+			x.Lineage.UnmarshalProtoJSON(s.WithField("lineage", true))
+		case "version":
+			if s.ReadNil() {
+				x.Version = nil
+				return
+			}
+			x.Version = &SOJournalVersionTuple{}
+			x.Version.UnmarshalProtoJSON(s.WithField("version", true))
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "readiness":
+			s.AddField("readiness")
+			x.Readiness.UnmarshalProtoJSON(s)
+		case "intent":
+			if s.ReadNil() {
+				x.Intent = nil
+				return
+			}
+			x.Intent = &SOJournalEncryptedPayload{}
+			x.Intent.UnmarshalProtoJSON(s.WithField("intent", true))
+		case "envelope":
+			if s.ReadNil() {
+				x.Envelope = nil
+				return
+			}
+			x.Envelope = &SOJournalEncryptedPayload{}
+			x.Envelope.UnmarshalProtoJSON(s.WithField("envelope", true))
+		case "envelope_digest", "envelopeDigest":
+			s.AddField("envelope_digest")
+			x.EnvelopeDigest = s.ReadBytes()
+		case "receipt":
+			if s.ReadNil() {
+				x.Receipt = nil
+				return
+			}
+			x.Receipt = &SOJournalReceipt{}
+			x.Receipt.UnmarshalProtoJSON(s.WithField("receipt", true))
+		case "acknowledgement":
+			if s.ReadNil() {
+				x.Acknowledgement = nil
+				return
+			}
+			x.Acknowledgement = &SOJournalAcknowledgement{}
+			x.Acknowledgement.UnmarshalProtoJSON(s.WithField("acknowledgement", true))
+		case "projection":
+			if s.ReadNil() {
+				x.Projection = nil
+				return
+			}
+			x.Projection = &SOJournalProjection{}
+			x.Projection.UnmarshalProtoJSON(s.WithField("projection", true))
+		case "lookup":
+			if s.ReadNil() {
+				x.Lookup = nil
+				return
+			}
+			x.Lookup = &SOJournalLookup{}
+			x.Lookup.UnmarshalProtoJSON(s.WithField("lookup", true))
+		case "send_attempted", "sendAttempted":
+			s.AddField("send_attempted")
+			x.SendAttempted = s.ReadBool()
+		case "resend_authorized", "resendAuthorized":
+			s.AddField("resend_authorized")
+			x.ResendAuthorized = s.ReadBool()
+		case "lineage_recovery_blocked", "lineageRecoveryBlocked":
+			s.AddField("lineage_recovery_blocked")
+			x.LineageRecoveryBlocked = s.ReadBool()
+		case "intent_sequence", "intentSequence":
+			s.AddField("intent_sequence")
+			x.IntentSequence = s.ReadUint64()
+		case "envelope_sequence", "envelopeSequence":
+			s.AddField("envelope_sequence")
+			x.EnvelopeSequence = s.ReadUint64()
+		case "checkpoint_eligible", "checkpointEligible":
+			s.AddField("checkpoint_eligible")
+			x.CheckpointEligible = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOJournalCheckpointAttempt from JSON.
+func (x *SOJournalCheckpointAttempt) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SOJournalCheckpoint message to JSON.
+func (x *SOJournalCheckpoint) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.JournalIdentity) > 0 || s.HasField("journalIdentity") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("journalIdentity")
+		s.WriteBytes(x.JournalIdentity)
+	}
+	if x.Generation != 0 || s.HasField("generation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("generation")
+		s.WriteUint64(x.Generation)
+	}
+	if x.NextSequence != 0 || s.HasField("nextSequence") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nextSequence")
+		s.WriteUint64(x.NextSequence)
+	}
+	if len(x.Attempts) > 0 || s.HasField("attempts") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("attempts")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Attempts {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("attempts"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SOJournalCheckpoint to JSON.
+func (x *SOJournalCheckpoint) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SOJournalCheckpoint message from JSON.
+func (x *SOJournalCheckpoint) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "journal_identity", "journalIdentity":
+			s.AddField("journal_identity")
+			x.JournalIdentity = s.ReadBytes()
+		case "generation":
+			s.AddField("generation")
+			x.Generation = s.ReadUint64()
+		case "next_sequence", "nextSequence":
+			s.AddField("next_sequence")
+			x.NextSequence = s.ReadUint64()
+		case "attempts":
+			s.AddField("attempts")
+			if s.ReadNil() {
+				x.Attempts = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Attempts = append(x.Attempts, nil)
+					return
+				}
+				v := &SOJournalCheckpointAttempt{}
+				v.UnmarshalProtoJSON(s.WithField("attempts", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Attempts = append(x.Attempts, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SOJournalCheckpoint from JSON.
+func (x *SOJournalCheckpoint) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *SharedObjectRef) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -8026,6 +11229,935 @@ func (m *SOJoinResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *SOMutationKey) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOMutationKey) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOMutationKey) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.LocalId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.LocalId)
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.ParticipantPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ParticipantPeerId)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.SharedObjectId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SharedObjectId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.OriginScopeId) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.OriginScopeId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOJournalLineage) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOJournalLineage) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOJournalLineage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Supersedes != nil {
+		size, err := m.Supersedes.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.RootKey != nil {
+		size, err := m.RootKey.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOJournalVersionTuple) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOJournalVersionTuple) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOJournalVersionTuple) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ConfigChainDigest) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ConfigChainDigest)
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.TransformEpoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TransformEpoch))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.RemoteVersion != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RemoteVersion))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.LocalVersion != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.LocalVersion))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOJournalIntent) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOJournalIntent) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOJournalIntent) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.CanonicalOperation) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.CanonicalOperation)
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Version != nil {
+		size, err := m.Version.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Lineage != nil {
+		size, err := m.Lineage.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Key != nil {
+		size, err := m.Key.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOJournalEncryptedPayload) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOJournalEncryptedPayload) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOJournalEncryptedPayload) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Ciphertext) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Ciphertext)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Nonce) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Nonce)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOJournalLookup) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOJournalLookup) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOJournalLookup) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ConfigChainDigest) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ConfigChainDigest)
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.ResponseDigest) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ResponseDigest)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.Response) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Response)
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Receipt != nil {
+		size, err := m.Receipt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Key != nil {
+		size, err := m.Key.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOJournalReceipt) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOJournalReceipt) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOJournalReceipt) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Supersedes != nil {
+		size, err := m.Supersedes.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
+	}
+	if m.TerminalUnixMillis != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TerminalUnixMillis))
+		i--
+		dAtA[i] = 0x48
+	}
+	if len(m.ConfigChainDigest) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ConfigChainDigest)
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.AuthoritativeRootDigest) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.AuthoritativeRootDigest)
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.AuthoritativeRootSeqno != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AuthoritativeRootSeqno))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.TerminalReceiptDigest) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.TerminalReceiptDigest)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.TerminalReceipt) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.TerminalReceipt)
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Outcome != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Outcome))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.EnvelopeDigest) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.EnvelopeDigest)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Key != nil {
+		size, err := m.Key.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOJournalAcknowledgement) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOJournalAcknowledgement) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOJournalAcknowledgement) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.AcknowledgedUnixMillis != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AcknowledgedUnixMillis))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.ReceiptDigest) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ReceiptDigest)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Key != nil {
+		size, err := m.Key.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOJournalProjection) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOJournalProjection) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOJournalProjection) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.AuthoritativeRootDigest) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.AuthoritativeRootDigest)
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.AuthoritativeRootSeqno != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AuthoritativeRootSeqno))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.ReceiptDigest) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ReceiptDigest)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Key != nil {
+		size, err := m.Key.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOJournalRecord) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOJournalRecord) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOJournalRecord) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Lookup != nil {
+		size, err := m.Lookup.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x82
+	}
+	if len(m.EnvelopeDigest) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.EnvelopeDigest)
+		i--
+		dAtA[i] = 0x7a
+	}
+	if m.AttemptState != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AttemptState))
+		i--
+		dAtA[i] = 0x70
+	}
+	if m.RecoveryReason != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RecoveryReason))
+		i--
+		dAtA[i] = 0x68
+	}
+	if m.Readiness != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Readiness))
+		i--
+		dAtA[i] = 0x60
+	}
+	if m.Projection != nil {
+		size, err := m.Projection.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if m.Acknowledgement != nil {
+		size, err := m.Acknowledgement.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
+	}
+	if m.Receipt != nil {
+		size, err := m.Receipt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if m.Envelope != nil {
+		size, err := m.Envelope.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.Intent != nil {
+		size, err := m.Intent.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.Version != nil {
+		size, err := m.Version.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.Lineage != nil {
+		size, err := m.Lineage.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.Key != nil {
+		size, err := m.Key.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.Kind != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Kind))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Sequence != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Sequence))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.FormatVersion != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.FormatVersion))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOJournalCheckpointAttempt) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOJournalCheckpointAttempt) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOJournalCheckpointAttempt) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.CheckpointEligible {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.CheckpointEligible)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x90
+	}
+	if m.EnvelopeSequence != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EnvelopeSequence))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
+	}
+	if m.IntentSequence != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.IntentSequence))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	if m.LineageRecoveryBlocked {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.LineageRecoveryBlocked)
+		i--
+		dAtA[i] = 0x78
+	}
+	if m.ResendAuthorized {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.ResendAuthorized)
+		i--
+		dAtA[i] = 0x70
+	}
+	if m.SendAttempted {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.SendAttempted)
+		i--
+		dAtA[i] = 0x68
+	}
+	if m.Lookup != nil {
+		size, err := m.Lookup.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x62
+	}
+	if m.Projection != nil {
+		size, err := m.Projection.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x5a
+	}
+	if m.Acknowledgement != nil {
+		size, err := m.Acknowledgement.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
+	}
+	if m.Receipt != nil {
+		size, err := m.Receipt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.EnvelopeDigest) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.EnvelopeDigest)
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.Envelope != nil {
+		size, err := m.Envelope.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.Intent != nil {
+		size, err := m.Intent.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.Readiness != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Readiness))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Version != nil {
+		size, err := m.Version.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Lineage != nil {
+		size, err := m.Lineage.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Key != nil {
+		size, err := m.Key.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SOJournalCheckpoint) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SOJournalCheckpoint) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SOJournalCheckpoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Attempts) > 0 {
+		for iNdEx := len(m.Attempts) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Attempts[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if m.NextSequence != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NextSequence))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Generation != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Generation))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.JournalIdentity) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.JournalIdentity)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *SharedObjectRef) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -8595,6 +12727,293 @@ func (m *SOJoinResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *SOMutationKey) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.OriginScopeId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ParticipantPeerId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LocalId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOJournalLineage) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.RootKey != nil {
+		l = m.RootKey.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Supersedes != nil {
+		l = m.Supersedes.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOJournalVersionTuple) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.LocalVersion)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RemoteVersion)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.TransformEpoch)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigChainDigest)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOJournalIntent) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Key != nil {
+		l = m.Key.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Lineage != nil {
+		l = m.Lineage.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Version != nil {
+		l = m.Version.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.CanonicalOperation)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOJournalEncryptedPayload) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Nonce)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Ciphertext)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOJournalLookup) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Key != nil {
+		l = m.Key.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
+	if m.Receipt != nil {
+		l = m.Receipt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Response)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ResponseDigest)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigChainDigest)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOJournalReceipt) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Key != nil {
+		l = m.Key.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.EnvelopeDigest)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Outcome)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.TerminalReceipt)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.TerminalReceiptDigest)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.AuthoritativeRootSeqno)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.AuthoritativeRootDigest)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigChainDigest)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.TerminalUnixMillis)
+	if m.Supersedes != nil {
+		l = m.Supersedes.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOJournalAcknowledgement) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Key != nil {
+		l = m.Key.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ReceiptDigest)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.AcknowledgedUnixMillis)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOJournalProjection) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Key != nil {
+		l = m.Key.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ReceiptDigest)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.AuthoritativeRootSeqno)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.AuthoritativeRootDigest)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOJournalRecord) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.FormatVersion)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Sequence)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Kind)
+	if m.Key != nil {
+		l = m.Key.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Lineage != nil {
+		l = m.Lineage.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Version != nil {
+		l = m.Version.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Intent != nil {
+		l = m.Intent.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Envelope != nil {
+		l = m.Envelope.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Receipt != nil {
+		l = m.Receipt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Acknowledgement != nil {
+		l = m.Acknowledgement.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Projection != nil {
+		l = m.Projection.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Readiness)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RecoveryReason)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.AttemptState)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.EnvelopeDigest)
+	if m.Lookup != nil {
+		l = m.Lookup.SizeVT()
+		n += protobuf_go_lite.SizeMessage(2, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOJournalCheckpointAttempt) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Key != nil {
+		l = m.Key.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Lineage != nil {
+		l = m.Lineage.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Version != nil {
+		l = m.Version.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Readiness)
+	if m.Intent != nil {
+		l = m.Intent.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Envelope != nil {
+		l = m.Envelope.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.EnvelopeDigest)
+	if m.Receipt != nil {
+		l = m.Receipt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Acknowledgement != nil {
+		l = m.Acknowledgement.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Projection != nil {
+		l = m.Projection.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.Lookup != nil {
+		l = m.Lookup.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.SendAttempted)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.ResendAuthorized)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.LineageRecoveryBlocked)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.IntentSequence)
+	n += protobuf_go_lite.SizeVarintNonZero(2, m.EnvelopeSequence)
+	n += protobuf_go_lite.SizeBoolNonZero(2, m.CheckpointEligible)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SOJournalCheckpoint) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.JournalIdentity)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Generation)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.NextSequence)
+	for _, e := range m.Attempts {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
 func (x SharedObjectHealthStatus) MarshalProtoText() string {
 	return x.String()
 }
@@ -8624,6 +13043,30 @@ func (x SOConfigChangeType) MarshalProtoText() string {
 }
 
 func (x SORevocationReason) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x SOJournalRecordKind) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x SOJournalAttemptState) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x SOJournalOutcome) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x SOJournalLookupState) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x SOJournalReadiness) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x SOJournalRecoveryReason) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -9518,6 +13961,442 @@ func (x *SOJoinResponse) MarshalProtoText() string {
 }
 
 func (x *SOJoinResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOMutationKey) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOMutationKey")
+	if len(x.OriginScopeId) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "origin_scope_id")
+		protobuf_go_lite.TextWriteBytes(&sb, x.OriginScopeId)
+	}
+	if x.SharedObjectId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "shared_object_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SharedObjectId)
+	}
+	if x.ParticipantPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "participant_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ParticipantPeerId)
+	}
+	if x.LocalId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "local_id")
+		protobuf_go_lite.TextWriteString(&sb, x.LocalId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOMutationKey) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOJournalLineage) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOJournalLineage")
+	if x.RootKey != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_key")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RootKey)
+	}
+	if x.Supersedes != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "supersedes")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Supersedes)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOJournalLineage) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOJournalVersionTuple) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOJournalVersionTuple")
+	if x.LocalVersion != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "local_version")
+		protobuf_go_lite.TextWriteUint(&sb, x.LocalVersion)
+	}
+	if x.RemoteVersion != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "remote_version")
+		protobuf_go_lite.TextWriteUint(&sb, x.RemoteVersion)
+	}
+	if x.TransformEpoch != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "transform_epoch")
+		protobuf_go_lite.TextWriteUint(&sb, x.TransformEpoch)
+	}
+	if len(x.ConfigChainDigest) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config_chain_digest")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ConfigChainDigest)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOJournalVersionTuple) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOJournalIntent) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOJournalIntent")
+	if x.Key != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Key)
+	}
+	if x.Lineage != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "lineage")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Lineage)
+	}
+	if x.Version != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "version")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Version)
+	}
+	if len(x.CanonicalOperation) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "canonical_operation")
+		protobuf_go_lite.TextWriteBytes(&sb, x.CanonicalOperation)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOJournalIntent) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOJournalEncryptedPayload) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOJournalEncryptedPayload")
+	if len(x.Nonce) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "nonce")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Nonce)
+	}
+	if len(x.Ciphertext) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ciphertext")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Ciphertext)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOJournalEncryptedPayload) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOJournalLookup) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOJournalLookup")
+	if x.Key != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Key)
+	}
+	if x.State != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteStringer(&sb, SOJournalLookupState(x.State))
+	}
+	if x.Receipt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "receipt")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Receipt)
+	}
+	if len(x.Response) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "response")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Response)
+	}
+	if len(x.ResponseDigest) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "response_digest")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ResponseDigest)
+	}
+	if len(x.ConfigChainDigest) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config_chain_digest")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ConfigChainDigest)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOJournalLookup) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOJournalReceipt) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOJournalReceipt")
+	if x.Key != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Key)
+	}
+	if len(x.EnvelopeDigest) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "envelope_digest")
+		protobuf_go_lite.TextWriteBytes(&sb, x.EnvelopeDigest)
+	}
+	if x.Outcome != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "outcome")
+		protobuf_go_lite.TextWriteStringer(&sb, SOJournalOutcome(x.Outcome))
+	}
+	if len(x.TerminalReceipt) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "terminal_receipt")
+		protobuf_go_lite.TextWriteBytes(&sb, x.TerminalReceipt)
+	}
+	if len(x.TerminalReceiptDigest) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "terminal_receipt_digest")
+		protobuf_go_lite.TextWriteBytes(&sb, x.TerminalReceiptDigest)
+	}
+	if x.AuthoritativeRootSeqno != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "authoritative_root_seqno")
+		protobuf_go_lite.TextWriteUint(&sb, x.AuthoritativeRootSeqno)
+	}
+	if len(x.AuthoritativeRootDigest) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "authoritative_root_digest")
+		protobuf_go_lite.TextWriteBytes(&sb, x.AuthoritativeRootDigest)
+	}
+	if len(x.ConfigChainDigest) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config_chain_digest")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ConfigChainDigest)
+	}
+	if x.TerminalUnixMillis != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "terminal_unix_millis")
+		protobuf_go_lite.TextWriteUint(&sb, x.TerminalUnixMillis)
+	}
+	if x.Supersedes != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "supersedes")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Supersedes)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOJournalReceipt) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOJournalAcknowledgement) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOJournalAcknowledgement")
+	if x.Key != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Key)
+	}
+	if len(x.ReceiptDigest) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "receipt_digest")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ReceiptDigest)
+	}
+	if x.AcknowledgedUnixMillis != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "acknowledged_unix_millis")
+		protobuf_go_lite.TextWriteUint(&sb, x.AcknowledgedUnixMillis)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOJournalAcknowledgement) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOJournalProjection) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOJournalProjection")
+	if x.Key != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Key)
+	}
+	if len(x.ReceiptDigest) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "receipt_digest")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ReceiptDigest)
+	}
+	if x.AuthoritativeRootSeqno != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "authoritative_root_seqno")
+		protobuf_go_lite.TextWriteUint(&sb, x.AuthoritativeRootSeqno)
+	}
+	if len(x.AuthoritativeRootDigest) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "authoritative_root_digest")
+		protobuf_go_lite.TextWriteBytes(&sb, x.AuthoritativeRootDigest)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOJournalProjection) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOJournalRecord) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOJournalRecord")
+	if x.FormatVersion != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "format_version")
+		protobuf_go_lite.TextWriteUint(&sb, x.FormatVersion)
+	}
+	if x.Sequence != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sequence")
+		protobuf_go_lite.TextWriteUint(&sb, x.Sequence)
+	}
+	if x.Kind != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "kind")
+		protobuf_go_lite.TextWriteStringer(&sb, SOJournalRecordKind(x.Kind))
+	}
+	if x.Key != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Key)
+	}
+	if x.Lineage != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "lineage")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Lineage)
+	}
+	if x.Version != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "version")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Version)
+	}
+	if x.Intent != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "intent")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Intent)
+	}
+	if x.Envelope != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "envelope")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Envelope)
+	}
+	if x.Receipt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "receipt")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Receipt)
+	}
+	if x.Acknowledgement != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "acknowledgement")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Acknowledgement)
+	}
+	if x.Projection != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "projection")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Projection)
+	}
+	if x.Readiness != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "readiness")
+		protobuf_go_lite.TextWriteStringer(&sb, SOJournalReadiness(x.Readiness))
+	}
+	if x.RecoveryReason != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "recovery_reason")
+		protobuf_go_lite.TextWriteStringer(&sb, SOJournalRecoveryReason(x.RecoveryReason))
+	}
+	if x.AttemptState != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "attempt_state")
+		protobuf_go_lite.TextWriteStringer(&sb, SOJournalAttemptState(x.AttemptState))
+	}
+	if len(x.EnvelopeDigest) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "envelope_digest")
+		protobuf_go_lite.TextWriteBytes(&sb, x.EnvelopeDigest)
+	}
+	if x.Lookup != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "lookup")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Lookup)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOJournalRecord) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOJournalCheckpointAttempt) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOJournalCheckpointAttempt")
+	if x.Key != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Key)
+	}
+	if x.Lineage != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "lineage")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Lineage)
+	}
+	if x.Version != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "version")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Version)
+	}
+	if x.State != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteStringer(&sb, SOJournalAttemptState(x.State))
+	}
+	if x.Readiness != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "readiness")
+		protobuf_go_lite.TextWriteStringer(&sb, SOJournalReadiness(x.Readiness))
+	}
+	if x.Intent != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "intent")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Intent)
+	}
+	if x.Envelope != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "envelope")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Envelope)
+	}
+	if len(x.EnvelopeDigest) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "envelope_digest")
+		protobuf_go_lite.TextWriteBytes(&sb, x.EnvelopeDigest)
+	}
+	if x.Receipt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "receipt")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Receipt)
+	}
+	if x.Acknowledgement != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "acknowledgement")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Acknowledgement)
+	}
+	if x.Projection != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "projection")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Projection)
+	}
+	if x.Lookup != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "lookup")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Lookup)
+	}
+	if x.SendAttempted != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "send_attempted")
+		protobuf_go_lite.TextWriteBool(&sb, x.SendAttempted)
+	}
+	if x.ResendAuthorized != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resend_authorized")
+		protobuf_go_lite.TextWriteBool(&sb, x.ResendAuthorized)
+	}
+	if x.LineageRecoveryBlocked != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "lineage_recovery_blocked")
+		protobuf_go_lite.TextWriteBool(&sb, x.LineageRecoveryBlocked)
+	}
+	if x.IntentSequence != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "intent_sequence")
+		protobuf_go_lite.TextWriteUint(&sb, x.IntentSequence)
+	}
+	if x.EnvelopeSequence != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "envelope_sequence")
+		protobuf_go_lite.TextWriteUint(&sb, x.EnvelopeSequence)
+	}
+	if x.CheckpointEligible != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "checkpoint_eligible")
+		protobuf_go_lite.TextWriteBool(&sb, x.CheckpointEligible)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOJournalCheckpointAttempt) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SOJournalCheckpoint) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SOJournalCheckpoint")
+	if len(x.JournalIdentity) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "journal_identity")
+		protobuf_go_lite.TextWriteBytes(&sb, x.JournalIdentity)
+	}
+	if x.Generation != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "generation")
+		protobuf_go_lite.TextWriteUint(&sb, x.Generation)
+	}
+	if x.NextSequence != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "next_sequence")
+		protobuf_go_lite.TextWriteUint(&sb, x.NextSequence)
+	}
+	if len(x.Attempts) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "attempts")
+		for i, v := range x.Attempts {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &SOJournalCheckpointAttempt{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SOJournalCheckpoint) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -12160,6 +17039,1397 @@ func (m *SOJoinResponse) UnmarshalVT(dAtA []byte) error {
 				m.Signature = &peer.Signature{}
 			}
 			if err := m.Signature.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOMutationKey) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOMutationKey: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOMutationKey: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OriginScopeId", wireType)
+			}
+			m.OriginScopeId, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.OriginScopeId, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SharedObjectId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SharedObjectId = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ParticipantPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ParticipantPeerId = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LocalId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.LocalId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOJournalLineage) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOJournalLineage: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOJournalLineage: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootKey", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.RootKey == nil {
+				m.RootKey = &SOMutationKey{}
+			}
+			if err := m.RootKey.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Supersedes", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Supersedes == nil {
+				m.Supersedes = &SOMutationKey{}
+			}
+			if err := m.Supersedes.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOJournalVersionTuple) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOJournalVersionTuple: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOJournalVersionTuple: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LocalVersion", wireType)
+			}
+			m.LocalVersion = 0
+			m.LocalVersion, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RemoteVersion", wireType)
+			}
+			m.RemoteVersion = 0
+			m.RemoteVersion, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TransformEpoch", wireType)
+			}
+			m.TransformEpoch = 0
+			m.TransformEpoch, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigChainDigest", wireType)
+			}
+			m.ConfigChainDigest, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ConfigChainDigest, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOJournalIntent) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOJournalIntent: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOJournalIntent: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Key == nil {
+				m.Key = &SOMutationKey{}
+			}
+			if err := m.Key.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Lineage", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Lineage == nil {
+				m.Lineage = &SOJournalLineage{}
+			}
+			if err := m.Lineage.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Version == nil {
+				m.Version = &SOJournalVersionTuple{}
+			}
+			if err := m.Version.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanonicalOperation", wireType)
+			}
+			m.CanonicalOperation, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.CanonicalOperation, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOJournalEncryptedPayload) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOJournalEncryptedPayload: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOJournalEncryptedPayload: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
+			}
+			m.Nonce, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Nonce, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ciphertext", wireType)
+			}
+			m.Ciphertext, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Ciphertext, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOJournalLookup) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOJournalLookup: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOJournalLookup: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Key == nil {
+				m.Key = &SOMutationKey{}
+			}
+			if err := m.Key.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = SOJournalLookupState(_v)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Receipt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Receipt == nil {
+				m.Receipt = &SOJournalReceipt{}
+			}
+			if err := m.Receipt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Response", wireType)
+			}
+			m.Response, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Response, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResponseDigest", wireType)
+			}
+			m.ResponseDigest, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ResponseDigest, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigChainDigest", wireType)
+			}
+			m.ConfigChainDigest, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ConfigChainDigest, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOJournalReceipt) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOJournalReceipt: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOJournalReceipt: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Key == nil {
+				m.Key = &SOMutationKey{}
+			}
+			if err := m.Key.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EnvelopeDigest", wireType)
+			}
+			m.EnvelopeDigest, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.EnvelopeDigest, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outcome", wireType)
+			}
+			m.Outcome = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Outcome = SOJournalOutcome(_v)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TerminalReceipt", wireType)
+			}
+			m.TerminalReceipt, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.TerminalReceipt, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TerminalReceiptDigest", wireType)
+			}
+			m.TerminalReceiptDigest, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.TerminalReceiptDigest, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AuthoritativeRootSeqno", wireType)
+			}
+			m.AuthoritativeRootSeqno = 0
+			m.AuthoritativeRootSeqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AuthoritativeRootDigest", wireType)
+			}
+			m.AuthoritativeRootDigest, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.AuthoritativeRootDigest, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigChainDigest", wireType)
+			}
+			m.ConfigChainDigest, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ConfigChainDigest, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TerminalUnixMillis", wireType)
+			}
+			m.TerminalUnixMillis = 0
+			m.TerminalUnixMillis, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Supersedes", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Supersedes == nil {
+				m.Supersedes = &SOMutationKey{}
+			}
+			if err := m.Supersedes.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOJournalAcknowledgement) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOJournalAcknowledgement: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOJournalAcknowledgement: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Key == nil {
+				m.Key = &SOMutationKey{}
+			}
+			if err := m.Key.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReceiptDigest", wireType)
+			}
+			m.ReceiptDigest, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ReceiptDigest, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AcknowledgedUnixMillis", wireType)
+			}
+			m.AcknowledgedUnixMillis = 0
+			m.AcknowledgedUnixMillis, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOJournalProjection) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOJournalProjection: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOJournalProjection: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Key == nil {
+				m.Key = &SOMutationKey{}
+			}
+			if err := m.Key.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReceiptDigest", wireType)
+			}
+			m.ReceiptDigest, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ReceiptDigest, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AuthoritativeRootSeqno", wireType)
+			}
+			m.AuthoritativeRootSeqno = 0
+			m.AuthoritativeRootSeqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AuthoritativeRootDigest", wireType)
+			}
+			m.AuthoritativeRootDigest, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.AuthoritativeRootDigest, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOJournalRecord) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOJournalRecord: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOJournalRecord: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FormatVersion", wireType)
+			}
+			m.FormatVersion = 0
+			m.FormatVersion, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Sequence", wireType)
+			}
+			m.Sequence = 0
+			m.Sequence, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			m.Kind = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Kind = SOJournalRecordKind(_v)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Key == nil {
+				m.Key = &SOMutationKey{}
+			}
+			if err := m.Key.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Lineage", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Lineage == nil {
+				m.Lineage = &SOJournalLineage{}
+			}
+			if err := m.Lineage.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Version == nil {
+				m.Version = &SOJournalVersionTuple{}
+			}
+			if err := m.Version.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Intent", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Intent == nil {
+				m.Intent = &SOJournalEncryptedPayload{}
+			}
+			if err := m.Intent.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Envelope", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Envelope == nil {
+				m.Envelope = &SOJournalEncryptedPayload{}
+			}
+			if err := m.Envelope.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Receipt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Receipt == nil {
+				m.Receipt = &SOJournalReceipt{}
+			}
+			if err := m.Receipt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Acknowledgement", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Acknowledgement == nil {
+				m.Acknowledgement = &SOJournalAcknowledgement{}
+			}
+			if err := m.Acknowledgement.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Projection", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Projection == nil {
+				m.Projection = &SOJournalProjection{}
+			}
+			if err := m.Projection.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Readiness", wireType)
+			}
+			m.Readiness = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Readiness = SOJournalReadiness(_v)
+			if err != nil {
+				return err
+			}
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecoveryReason", wireType)
+			}
+			m.RecoveryReason = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.RecoveryReason = SOJournalRecoveryReason(_v)
+			if err != nil {
+				return err
+			}
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AttemptState", wireType)
+			}
+			m.AttemptState = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.AttemptState = SOJournalAttemptState(_v)
+			if err != nil {
+				return err
+			}
+		case 15:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EnvelopeDigest", wireType)
+			}
+			m.EnvelopeDigest, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.EnvelopeDigest, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Lookup", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Lookup == nil {
+				m.Lookup = &SOJournalLookup{}
+			}
+			if err := m.Lookup.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOJournalCheckpointAttempt) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOJournalCheckpointAttempt: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOJournalCheckpointAttempt: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Key == nil {
+				m.Key = &SOMutationKey{}
+			}
+			if err := m.Key.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Lineage", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Lineage == nil {
+				m.Lineage = &SOJournalLineage{}
+			}
+			if err := m.Lineage.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Version == nil {
+				m.Version = &SOJournalVersionTuple{}
+			}
+			if err := m.Version.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = SOJournalAttemptState(_v)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Readiness", wireType)
+			}
+			m.Readiness = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Readiness = SOJournalReadiness(_v)
+			if err != nil {
+				return err
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Intent", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Intent == nil {
+				m.Intent = &SOJournalEncryptedPayload{}
+			}
+			if err := m.Intent.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Envelope", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Envelope == nil {
+				m.Envelope = &SOJournalEncryptedPayload{}
+			}
+			if err := m.Envelope.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EnvelopeDigest", wireType)
+			}
+			m.EnvelopeDigest, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.EnvelopeDigest, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Receipt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Receipt == nil {
+				m.Receipt = &SOJournalReceipt{}
+			}
+			if err := m.Receipt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Acknowledgement", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Acknowledgement == nil {
+				m.Acknowledgement = &SOJournalAcknowledgement{}
+			}
+			if err := m.Acknowledgement.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Projection", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Projection == nil {
+				m.Projection = &SOJournalProjection{}
+			}
+			if err := m.Projection.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Lookup", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Lookup == nil {
+				m.Lookup = &SOJournalLookup{}
+			}
+			if err := m.Lookup.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SendAttempted", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SendAttempted = bool(v)
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResendAuthorized", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ResendAuthorized = bool(v)
+		case 15:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LineageRecoveryBlocked", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.LineageRecoveryBlocked = bool(v)
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IntentSequence", wireType)
+			}
+			m.IntentSequence = 0
+			m.IntentSequence, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 17:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EnvelopeSequence", wireType)
+			}
+			m.EnvelopeSequence = 0
+			m.EnvelopeSequence, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 18:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CheckpointEligible", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CheckpointEligible = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SOJournalCheckpoint) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SOJournalCheckpoint: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SOJournalCheckpoint: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JournalIdentity", wireType)
+			}
+			m.JournalIdentity, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.JournalIdentity, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Generation", wireType)
+			}
+			m.Generation = 0
+			m.Generation, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NextSequence", wireType)
+			}
+			m.NextSequence = 0
+			m.NextSequence, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Attempts", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Attempts = append(m.Attempts, &SOJournalCheckpointAttempt{})
+			if err := m.Attempts[len(m.Attempts)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

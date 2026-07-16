@@ -597,3 +597,267 @@ message SOJoinResponse {
   // Signature is the responder's signature over this message (without this field).
   .peer.Signature signature = 4;
 }
+// SOJournalRecordKind identifies the durable event in a mutation journal.
+enum SOJournalRecordKind {
+  SO_JOURNAL_RECORD_KIND_UNSPECIFIED = 0;
+  SO_JOURNAL_RECORD_KIND_INTENT = 1;
+  SO_JOURNAL_RECORD_KIND_SIGNED_ENVELOPE = 2;
+  SO_JOURNAL_RECORD_KIND_SENT = 3;
+  SO_JOURNAL_RECORD_KIND_RECEIPT = 4;
+  SO_JOURNAL_RECORD_KIND_ACKNOWLEDGEMENT = 5;
+  SO_JOURNAL_RECORD_KIND_BODY_PROJECTION = 6;
+  SO_JOURNAL_RECORD_KIND_STALE_TRANSFORM_EPOCH = 7;
+  SO_JOURNAL_RECORD_KIND_RECOVERY_BLOCKED = 8;
+  SO_JOURNAL_RECORD_KIND_LINEAGE_RECOVERY_BLOCKED = 9;
+  SO_JOURNAL_RECORD_KIND_RECEIPT_LOOKUP = 10;
+  SO_JOURNAL_RECORD_KIND_RESEND_AUTHORIZED = 11;
+}
+
+// SOJournalAttemptState identifies the attempt lifecycle state.
+enum SOJournalAttemptState {
+  SO_JOURNAL_ATTEMPT_STATE_UNSPECIFIED = 0;
+  SO_JOURNAL_ATTEMPT_STATE_INTENT_DURABLE = 1;
+  SO_JOURNAL_ATTEMPT_STATE_ENVELOPE_DURABLE = 2;
+  SO_JOURNAL_ATTEMPT_STATE_SENT = 3;
+  SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURABLE = 4;
+  SO_JOURNAL_ATTEMPT_STATE_STALE_TRANSFORM_EPOCH = 5;
+  SO_JOURNAL_ATTEMPT_STATE_RECOVERY_BLOCKED = 6;
+}
+
+// SOJournalOutcome identifies the authenticated terminal result of an attempt.
+enum SOJournalOutcome {
+  SO_JOURNAL_OUTCOME_UNSPECIFIED = 0;
+  SO_JOURNAL_OUTCOME_ACCEPTED = 1;
+  SO_JOURNAL_OUTCOME_REJECTED = 2;
+}
+
+// SOJournalLookupState identifies the exact-key receipt lookup result.
+enum SOJournalLookupState {
+  SO_JOURNAL_LOOKUP_STATE_UNSPECIFIED = 0;
+  SO_JOURNAL_LOOKUP_STATE_NO_RECORD = 1;
+  SO_JOURNAL_LOOKUP_STATE_PENDING = 2;
+  SO_JOURNAL_LOOKUP_STATE_ACCEPTED = 3;
+  SO_JOURNAL_LOOKUP_STATE_REJECTED = 4;
+}
+
+// SOJournalReadiness identifies whether the body owner can supply dependencies.
+enum SOJournalReadiness {
+  SO_JOURNAL_READINESS_UNSPECIFIED = 0;
+  SO_JOURNAL_READINESS_READY = 1;
+  SO_JOURNAL_READINESS_MISSING = 2;
+  SO_JOURNAL_READINESS_CORRUPT = 3;
+  SO_JOURNAL_READINESS_OBSOLETE = 4;
+}
+
+// SOJournalRecoveryReason identifies a typed recovery stop.
+enum SOJournalRecoveryReason {
+  SO_JOURNAL_RECOVERY_REASON_UNSPECIFIED = 0;
+  SO_JOURNAL_RECOVERY_REASON_STALE_TRANSFORM_EPOCH = 1;
+  SO_JOURNAL_RECOVERY_REASON_KEY_UNAVAILABLE = 2;
+  SO_JOURNAL_RECOVERY_REASON_AUTHORITY_FAILURE = 3;
+  SO_JOURNAL_RECOVERY_REASON_BODY_MISSING = 4;
+  SO_JOURNAL_RECOVERY_REASON_BODY_CORRUPT = 5;
+  SO_JOURNAL_RECOVERY_REASON_BODY_OBSOLETE = 6;
+}
+
+// SOMutationKey identifies one immutable exact participant attempt.
+message SOMutationKey {
+  // OriginScopeId is the stable opaque account/store scope identifier.
+  bytes origin_scope_id = 1;
+  // SharedObjectId is the object identity within the origin scope.
+  string shared_object_id = 2;
+  // ParticipantPeerId is the submitting participant identity.
+  string participant_peer_id = 3;
+  // LocalId is allocated once for this exact attempt.
+  string local_id = 4;
+}
+
+// SOJournalLineage links an immutable attempt to an optional predecessor.
+message SOJournalLineage {
+  // RootKey is the exact key carried by this lineage record.
+  SOMutationKey root_key = 1;
+  // Supersedes links a changed attempt to its predecessor.
+  SOMutationKey supersedes = 2;
+}
+
+// SOJournalVersionTuple carries local and remote observations needed for replay.
+message SOJournalVersionTuple {
+  // LocalVersion is the local journal version at preparation.
+  uint64 local_version = 1;
+  // RemoteVersion is the authoritative remote version observed at preparation.
+  uint64 remote_version = 2;
+  // TransformEpoch is the verified transform epoch used by the envelope.
+  uint64 transform_epoch = 3;
+  // ConfigChainDigest identifies the verified configuration chain.
+  bytes config_chain_digest = 4;
+}
+
+// SOJournalIntent is the canonical body-neutral operation before signing.
+message SOJournalIntent {
+  // Key identifies the exact operation attempt.
+  SOMutationKey key = 1;
+  // Lineage records the immutable predecessor relation.
+  SOJournalLineage lineage = 2;
+  // Version records the observations used to construct the operation.
+  SOJournalVersionTuple version = 3;
+  // CanonicalOperation contains operation input without body-specific metadata.
+  bytes canonical_operation = 4;
+}
+
+// SOJournalEncryptedPayload contains authenticated ciphertext and its nonce.
+message SOJournalEncryptedPayload {
+  // Nonce is unique within the derived journal key domain.
+  bytes nonce = 1;
+  // Ciphertext contains the encrypted staged payload and authentication tag.
+  bytes ciphertext = 2;
+}
+
+// SOJournalLookup records one serialized exact-key receipt lookup.
+message SOJournalLookup {
+  // Key identifies the exact lookup attempt.
+  SOMutationKey key = 1;
+  // State is the authoritative lookup result.
+  SOJournalLookupState state = 2;
+  // Receipt carries terminal evidence when state is accepted or rejected.
+  SOJournalReceipt receipt = 3;
+  // Response contains the opaque authenticated lookup response bytes.
+  bytes response = 4;
+  // ResponseDigest binds the retained response bytes.
+  bytes response_digest = 5;
+  // ConfigChainDigest identifies the verified lookup configuration.
+  bytes config_chain_digest = 6;
+}
+
+// SOJournalReceipt records terminal evidence without making projection implicit.
+message SOJournalReceipt {
+  // Key identifies the exact terminal attempt.
+  SOMutationKey key = 1;
+  // EnvelopeDigest binds the receipt to the immutable signed envelope.
+  bytes envelope_digest = 2;
+  // Outcome is the authenticated terminal result.
+  SOJournalOutcome outcome = 3;
+  // TerminalReceipt contains the verified signed remote receipt.
+  bytes terminal_receipt = 4;
+  // TerminalReceiptDigest identifies the durable receipt bytes.
+  bytes terminal_receipt_digest = 5;
+  // AuthoritativeRootSeqno is the root sequence named by the receipt.
+  uint64 authoritative_root_seqno = 6;
+  // AuthoritativeRootDigest is the root identity named by the receipt.
+  bytes authoritative_root_digest = 7;
+  // ConfigChainDigest identifies the verified historical configuration.
+  bytes config_chain_digest = 8;
+  // TerminalUnixMillis is the remote terminal timestamp.
+  uint64 terminal_unix_millis = 9;
+  // Supersedes links this receipt to a predecessor when applicable.
+  SOMutationKey supersedes = 10;
+}
+
+// SOJournalAcknowledgement records remote receipt acknowledgement.
+message SOJournalAcknowledgement {
+  // Key identifies the exact acknowledged attempt.
+  SOMutationKey key = 1;
+  // ReceiptDigest binds acknowledgement to one terminal receipt.
+  bytes receipt_digest = 2;
+  // AcknowledgedUnixMillis records when acknowledgement became durable.
+  uint64 acknowledged_unix_millis = 3;
+}
+
+// SOJournalProjection records the body's exact authoritative-root observation.
+message SOJournalProjection {
+  // Key identifies the projected attempt.
+  SOMutationKey key = 1;
+  // ReceiptDigest binds projection to the terminal receipt.
+  bytes receipt_digest = 2;
+  // AuthoritativeRootSeqno is the exact root sequence projected by the body.
+  uint64 authoritative_root_seqno = 3;
+  // AuthoritativeRootDigest is the exact root identity projected by the body.
+  bytes authoritative_root_digest = 4;
+}
+
+// SOJournalRecord is the generated body-neutral durable journal payload.
+message SOJournalRecord {
+  // FormatVersion identifies the journal payload schema.
+  uint32 format_version = 1;
+  // Sequence is the strictly increasing journal record sequence.
+  uint64 sequence = 2;
+  // Kind identifies which durable transition this record represents.
+  SOJournalRecordKind kind = 3;
+  // Key is the immutable exact mutation identity.
+  SOMutationKey key = 4;
+  // Lineage carries the immutable supersession relation.
+  SOJournalLineage lineage = 5;
+  // Version carries local/remote and transform observations.
+  SOJournalVersionTuple version = 6;
+  // Intent is encrypted canonical intent for an intent record.
+  SOJournalEncryptedPayload intent = 7;
+  // Envelope is encrypted immutable signed bytes for an envelope record.
+  SOJournalEncryptedPayload envelope = 8;
+  // Receipt is terminal evidence for a receipt record.
+  SOJournalReceipt receipt = 9;
+  // Acknowledgement is remote receipt acknowledgement.
+  SOJournalAcknowledgement acknowledgement = 10;
+  // Projection is the body owner's exact-root observation.
+  SOJournalProjection projection = 11;
+  // Readiness is the body-owned preparation result.
+  SOJournalReadiness readiness = 12;
+  // RecoveryReason carries a typed recovery stop.
+  SOJournalRecoveryReason recovery_reason = 13;
+  // AttemptState records the legal lifecycle state after this transition.
+  SOJournalAttemptState attempt_state = 14;
+  // EnvelopeDigest identifies the immutable signed-envelope plaintext.
+  bytes envelope_digest = 15;
+  // Lookup is the serialized exact-key receipt observation.
+  SOJournalLookup lookup = 16;
+}
+
+// SOJournalCheckpointAttempt is the bounded reducer state for one exact key.
+message SOJournalCheckpointAttempt {
+  // Key identifies the exact checkpointed mutation attempt.
+  SOMutationKey key = 1;
+  // Lineage carries the immutable supersession relation.
+  SOJournalLineage lineage = 2;
+  // Version carries local/remote and transform observations.
+  SOJournalVersionTuple version = 3;
+  // State is the legal lifecycle state at checkpoint publication.
+  SOJournalAttemptState state = 4;
+  // Readiness records body-owned preparation status.
+  SOJournalReadiness readiness = 5;
+  // Intent is the retained encrypted canonical operation.
+  SOJournalEncryptedPayload intent = 6;
+  // Envelope is the retained encrypted immutable signed bytes.
+  SOJournalEncryptedPayload envelope = 7;
+  // EnvelopeDigest binds the retained envelope plaintext.
+  bytes envelope_digest = 8;
+  // Receipt is terminal remote evidence kept separate from projection.
+  SOJournalReceipt receipt = 9;
+  // Acknowledgement records remote acknowledgement of the receipt.
+  SOJournalAcknowledgement acknowledgement = 10;
+  // Projection records the body's exact authoritative-root observation.
+  SOJournalProjection projection = 11;
+  // Lookup records the retained exact-key receipt lookup.
+  SOJournalLookup lookup = 12;
+  // SendAttempted records that transport crossed the durable send boundary.
+  bool send_attempted = 13;
+  // ResendAuthorized records authoritative no-record resend permission.
+  bool resend_authorized = 14;
+  // LineageRecoveryBlocked records that successor recovery is blocked.
+  bool lineage_recovery_blocked = 15;
+  // IntentSequence is the exact journal sequence used by the retained intent ciphertext.
+  uint64 intent_sequence = 16;
+  // EnvelopeSequence is the exact journal sequence used by the retained envelope ciphertext.
+  uint64 envelope_sequence = 17;
+  // CheckpointEligible is the derived receipt-plus-projection eligibility bit.
+  bool checkpoint_eligible = 18;
+}
+
+// SOJournalCheckpoint is a deterministic compact reducer snapshot.
+message SOJournalCheckpoint {
+  // JournalIdentity is the stable identity of the journal storage.
+  bytes journal_identity = 1;
+  // Generation identifies this compact snapshot publication.
+  uint64 generation = 2;
+  // NextSequence is the first sequence expected in the append tail.
+  uint64 next_sequence = 3;
+  // Attempts contains one bounded state snapshot per exact mutation key.
+  repeated SOJournalCheckpointAttempt attempts = 4;
+}

@@ -1465,7 +1465,7 @@
       "protoFiles": ["core/session/handoff/handoff.proto"]
     },
     "github.com/s4wave/spacewave/core/sobject": {
-      "hash": "74e1b0b3ec3c0159fac80053c8b7cd2fa9adddb06555617be5fad77a96920753",
+      "hash": "e8816679628f87c6c37c6e3cabd56476147713313e729c155bd6440fce0cb781",
       "generatedFiles": [
         "core/sobject/sobject.pb.cc",
         "core/sobject/sobject.pb.go",
