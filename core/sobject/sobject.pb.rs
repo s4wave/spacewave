@@ -613,7 +613,7 @@ pub struct SoJournalLookup {
     #[prost(message, optional, tag="1")]
     pub key: ::core::option::Option<SoMutationKey>,
     /// State is the authoritative lookup result.
-    #[prost(enumeration="SoJournalLookupState", tag="2")]
+    #[prost(enumeration="SoReceiptState", tag="2")]
     pub state: i32,
     /// Receipt carries terminal evidence when state is accepted or rejected.
     #[prost(message, optional, tag="3")]
@@ -816,6 +816,68 @@ pub struct SoJournalCheckpoint {
     /// Attempts contains one bounded state snapshot per exact mutation key.
     #[prost(message, repeated, tag="4")]
     pub attempts: ::prost::alloc::vec::Vec<SoJournalCheckpointAttempt>,
+}
+/// SOTerminalReceiptAccepted marks an accepted terminal mutation outcome.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SoTerminalReceiptAccepted {
+}
+/// SOTerminalReceiptInner is the deterministic signed evidence for one terminal mutation outcome.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SoTerminalReceiptInner {
+    /// Key identifies the exact immutable participant attempt.
+    #[prost(message, optional, tag="1")]
+    pub key: ::core::option::Option<SoMutationKey>,
+    /// EnvelopeDigest binds the receipt to the exact serialized signed envelope admitted for Key.
+    #[prost(bytes="vec", tag="2")]
+    pub envelope_digest: ::prost::alloc::vec::Vec<u8>,
+    /// AuthoritativeRootSeqno is the sequence number of the authoritative root terminalizing this mutation.
+    #[prost(uint64, tag="5")]
+    pub authoritative_root_seqno: u64,
+    /// AuthoritativeRootDigest identifies the authoritative root terminalizing this mutation.
+    #[prost(bytes="vec", tag="6")]
+    pub authoritative_root_digest: ::prost::alloc::vec::Vec<u8>,
+    /// ConfigChainDigest identifies the historical configuration used to verify this receipt.
+    #[prost(bytes="vec", tag="7")]
+    pub config_chain_digest: ::prost::alloc::vec::Vec<u8>,
+    /// ConsensusMode records the signature-set rule required for this receipt.
+    #[prost(enumeration="SoConsensusMode", tag="8")]
+    pub consensus_mode: i32,
+    /// ValidatorSetDigest identifies the validator set used to verify this receipt.
+    #[prost(bytes="vec", tag="9")]
+    pub validator_set_digest: ::prost::alloc::vec::Vec<u8>,
+    /// TerminalUnixMillis is the authoritative terminalization time in Unix milliseconds.
+    #[prost(uint64, tag="10")]
+    pub terminal_unix_millis: u64,
+    /// Supersedes links this mutation to an optional predecessor attempt.
+    #[prost(message, optional, tag="11")]
+    pub supersedes: ::core::option::Option<SoMutationKey>,
+    /// Outcome distinguishes acceptance from the existing signed rejection payload.
+    #[prost(oneof="so_terminal_receipt_inner::Outcome", tags="3, 4")]
+    pub outcome: ::core::option::Option<so_terminal_receipt_inner::Outcome>,
+}
+/// Nested message and enum types in `SOTerminalReceiptInner`.
+pub mod so_terminal_receipt_inner {
+    /// Outcome distinguishes acceptance from the existing signed rejection payload.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Outcome {
+        /// Accepted indicates that the mutation was applied by the authoritative root.
+        #[prost(message, tag="3")]
+        Accepted(super::SoTerminalReceiptAccepted),
+        /// SignedRejection is the existing validator-signed rejection for this mutation.
+        #[prost(message, tag="4")]
+        SignedRejection(super::SoOperationRejection),
+    }
+}
+/// SOTerminalReceipt is the signed terminal evidence for one exact mutation outcome.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SoTerminalReceipt {
+    /// Inner is the deterministic serialized SOTerminalReceiptInner covered by every validator signature.
+    #[prost(bytes="vec", tag="1")]
+    pub inner: ::prost::alloc::vec::Vec<u8>,
+    /// ValidatorSignatures are signatures by validators over the deterministic Inner bytes.
+    /// Signers must belong to the validator set identified by Inner.validator_set_digest and satisfy Inner.consensus_mode.
+    #[prost(message, repeated, tag="2")]
+    pub validator_signatures: ::prost::alloc::vec::Vec<super::peer::Signature>,
 }
 /// SharedObjectHealthStatus describes the lifecycle status of a SharedObject mount.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -1280,42 +1342,6 @@ impl SoJournalOutcome {
         }
     }
 }
-/// SOJournalLookupState identifies the exact-key receipt lookup result.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum SoJournalLookupState {
-    Unspecified = 0,
-    NoRecord = 1,
-    Pending = 2,
-    Accepted = 3,
-    Rejected = 4,
-}
-impl SoJournalLookupState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "SO_JOURNAL_LOOKUP_STATE_UNSPECIFIED",
-            Self::NoRecord => "SO_JOURNAL_LOOKUP_STATE_NO_RECORD",
-            Self::Pending => "SO_JOURNAL_LOOKUP_STATE_PENDING",
-            Self::Accepted => "SO_JOURNAL_LOOKUP_STATE_ACCEPTED",
-            Self::Rejected => "SO_JOURNAL_LOOKUP_STATE_REJECTED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "SO_JOURNAL_LOOKUP_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "SO_JOURNAL_LOOKUP_STATE_NO_RECORD" => Some(Self::NoRecord),
-            "SO_JOURNAL_LOOKUP_STATE_PENDING" => Some(Self::Pending),
-            "SO_JOURNAL_LOOKUP_STATE_ACCEPTED" => Some(Self::Accepted),
-            "SO_JOURNAL_LOOKUP_STATE_REJECTED" => Some(Self::Rejected),
-            _ => None,
-        }
-    }
-}
 /// SOJournalReadiness identifies whether the body owner can supply dependencies.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -1390,6 +1416,47 @@ impl SoJournalRecoveryReason {
             "SO_JOURNAL_RECOVERY_REASON_BODY_MISSING" => Some(Self::BodyMissing),
             "SO_JOURNAL_RECOVERY_REASON_BODY_CORRUPT" => Some(Self::BodyCorrupt),
             "SO_JOURNAL_RECOVERY_REASON_BODY_OBSOLETE" => Some(Self::BodyObsolete),
+            _ => None,
+        }
+    }
+}
+/// SOReceiptState identifies the authoritative state of one exact mutation key.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SoReceiptState {
+    /// SO_RECEIPT_STATE_UNSPECIFIED is the zero value.
+    Unspecified = 0,
+    /// SO_RECEIPT_STATE_NO_RECORD means no pending or terminal record exists at the lookup linearization point.
+    NoRecord = 1,
+    /// SO_RECEIPT_STATE_PENDING means the exact mutation has been durably admitted but not terminalized.
+    Pending = 2,
+    /// SO_RECEIPT_STATE_ACCEPTED means the exact mutation has an accepted terminal receipt.
+    Accepted = 3,
+    /// SO_RECEIPT_STATE_REJECTED means the exact mutation has a rejected terminal receipt.
+    Rejected = 4,
+}
+impl SoReceiptState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SO_RECEIPT_STATE_UNSPECIFIED",
+            Self::NoRecord => "SO_RECEIPT_STATE_NO_RECORD",
+            Self::Pending => "SO_RECEIPT_STATE_PENDING",
+            Self::Accepted => "SO_RECEIPT_STATE_ACCEPTED",
+            Self::Rejected => "SO_RECEIPT_STATE_REJECTED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SO_RECEIPT_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "SO_RECEIPT_STATE_NO_RECORD" => Some(Self::NoRecord),
+            "SO_RECEIPT_STATE_PENDING" => Some(Self::Pending),
+            "SO_RECEIPT_STATE_ACCEPTED" => Some(Self::Accepted),
+            "SO_RECEIPT_STATE_REJECTED" => Some(Self::Rejected),
             _ => None,
         }
     }

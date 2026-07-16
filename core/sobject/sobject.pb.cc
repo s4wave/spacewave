@@ -92,6 +92,24 @@ struct SharedObjectHealthDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SharedObjectHealthDefaultTypeInternal _SharedObjectHealth_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR SOTerminalReceiptAccepted::SOTerminalReceiptAccepted(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(SOTerminalReceiptAccepted_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct SOTerminalReceiptAcceptedDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOTerminalReceiptAcceptedDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOTerminalReceiptAcceptedDefaultTypeInternal() {}
+  union {
+    SOTerminalReceiptAccepted _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOTerminalReceiptAcceptedDefaultTypeInternal _SOTerminalReceiptAccepted_default_instance_;
 
 inline constexpr SORootInner::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -551,6 +569,34 @@ struct SharedObjectConfigDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SharedObjectConfigDefaultTypeInternal _SharedObjectConfig_default_instance_;
+
+inline constexpr SOTerminalReceipt::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        validator_signatures_{},
+        inner_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOTerminalReceipt::SOTerminalReceipt(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOTerminalReceipt_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOTerminalReceiptDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOTerminalReceiptDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOTerminalReceiptDefaultTypeInternal() {}
+  union {
+    SOTerminalReceipt _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOTerminalReceiptDefaultTypeInternal _SOTerminalReceipt_default_instance_;
 
 inline constexpr SORoot::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -1032,6 +1078,49 @@ struct SharedObjectListEntryDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SharedObjectListEntryDefaultTypeInternal _SharedObjectListEntry_default_instance_;
 
+inline constexpr SOTerminalReceiptInner::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        envelope_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        authoritative_root_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        config_chain_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        validator_set_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        key_{nullptr},
+        supersedes_{nullptr},
+        authoritative_root_seqno_{::uint64_t{0u}},
+        terminal_unix_millis_{::uint64_t{0u}},
+        consensus_mode_{static_cast< ::sobject::SOConsensusMode >(0)},
+        outcome_{},
+        _oneof_case_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOTerminalReceiptInner::SOTerminalReceiptInner(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOTerminalReceiptInner_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOTerminalReceiptInnerDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOTerminalReceiptInnerDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOTerminalReceiptInnerDefaultTypeInternal() {}
+  union {
+    SOTerminalReceiptInner _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOTerminalReceiptInnerDefaultTypeInternal _SOTerminalReceiptInner_default_instance_;
+
 inline constexpr SOPeerOpRejections::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -1102,7 +1191,7 @@ inline constexpr SOJournalLookup::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         key_{nullptr},
         receipt_{nullptr},
-        state_{static_cast< ::sobject::SOJournalLookupState >(0)} {}
+        state_{static_cast< ::sobject::SOReceiptState >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR SOJournalLookup::SOJournalLookup(::_pbi::ConstantInitialized)
@@ -1967,6 +2056,41 @@ const ::uint32_t
         2,
         3,
         0,
+        0x000, // bitmap
+        0x085, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_._has_bits_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_._oneof_case_[0]),
+        16, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.envelope_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.outcome_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.outcome_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.authoritative_root_seqno_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.authoritative_root_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.config_chain_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.consensus_mode_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.validator_set_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.terminal_unix_millis_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.supersedes_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.outcome_),
+        4,
+        0,
+        ~0u,
+        ~0u,
+        6,
+        1,
+        2,
+        8,
+        3,
+        7,
+        5,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceipt, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceipt, _impl_.inner_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceipt, _impl_.validator_signatures_),
+        1,
+        0,
 };
 
 static const ::_pbi::MigrationSchema
@@ -2016,6 +2140,9 @@ static const ::_pbi::MigrationSchema
         {434, sizeof(::sobject::SOJournalRecord)},
         {469, sizeof(::sobject::SOJournalCheckpointAttempt)},
         {508, sizeof(::sobject::SOJournalCheckpoint)},
+        {519, sizeof(::sobject::SOTerminalReceiptAccepted)},
+        {520, sizeof(::sobject::SOTerminalReceiptInner)},
+        {547, sizeof(::sobject::SOTerminalReceipt)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::sobject::_SharedObjectRef_default_instance_._instance,
@@ -2063,6 +2190,9 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::sobject::_SOJournalRecord_default_instance_._instance,
     &::sobject::_SOJournalCheckpointAttempt_default_instance_._instance,
     &::sobject::_SOJournalCheckpoint_default_instance_._instance,
+    &::sobject::_SOTerminalReceiptAccepted_default_instance_._instance,
+    &::sobject::_SOTerminalReceiptInner_default_instance_._instance,
+    &::sobject::_SOTerminalReceipt_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -2189,164 +2319,177 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     "urnalLineage\022/\n\007version\030\003 \001(\0132\036.sobject."
     "SOJournalVersionTuple\022\033\n\023canonical_opera"
     "tion\030\004 \001(\014\">\n\031SOJournalEncryptedPayload\022"
-    "\r\n\005nonce\030\001 \001(\014\022\022\n\nciphertext\030\002 \001(\014\"\330\001\n\017S"
+    "\r\n\005nonce\030\001 \001(\014\022\022\n\nciphertext\030\002 \001(\014\"\322\001\n\017S"
     "OJournalLookup\022#\n\003key\030\001 \001(\0132\026.sobject.SO"
-    "MutationKey\022,\n\005state\030\002 \001(\0162\035.sobject.SOJ"
-    "ournalLookupState\022*\n\007receipt\030\003 \001(\0132\031.sob"
-    "ject.SOJournalReceipt\022\020\n\010response\030\004 \001(\014\022"
-    "\027\n\017response_digest\030\005 \001(\014\022\033\n\023config_chain"
-    "_digest\030\006 \001(\014\"\343\002\n\020SOJournalReceipt\022#\n\003ke"
-    "y\030\001 \001(\0132\026.sobject.SOMutationKey\022\027\n\017envel"
-    "ope_digest\030\002 \001(\014\022*\n\007outcome\030\003 \001(\0162\031.sobj"
-    "ect.SOJournalOutcome\022\030\n\020terminal_receipt"
-    "\030\004 \001(\014\022\037\n\027terminal_receipt_digest\030\005 \001(\014\022"
-    " \n\030authoritative_root_seqno\030\006 \001(\004\022!\n\031aut"
-    "horitative_root_digest\030\007 \001(\014\022\033\n\023config_c"
-    "hain_digest\030\010 \001(\014\022\034\n\024terminal_unix_milli"
-    "s\030\t \001(\004\022*\n\nsupersedes\030\n \001(\0132\026.sobject.SO"
-    "MutationKey\"y\n\030SOJournalAcknowledgement\022"
-    "#\n\003key\030\001 \001(\0132\026.sobject.SOMutationKey\022\026\n\016"
-    "receipt_digest\030\002 \001(\014\022 \n\030acknowledged_uni"
-    "x_millis\030\003 \001(\004\"\227\001\n\023SOJournalProjection\022#"
-    "\n\003key\030\001 \001(\0132\026.sobject.SOMutationKey\022\026\n\016r"
-    "eceipt_digest\030\002 \001(\014\022 \n\030authoritative_roo"
-    "t_seqno\030\003 \001(\004\022!\n\031authoritative_root_dige"
-    "st\030\004 \001(\014\"\322\005\n\017SOJournalRecord\022\026\n\016format_v"
-    "ersion\030\001 \001(\r\022\020\n\010sequence\030\002 \001(\004\022*\n\004kind\030\003"
-    " \001(\0162\034.sobject.SOJournalRecordKind\022#\n\003ke"
-    "y\030\004 \001(\0132\026.sobject.SOMutationKey\022*\n\007linea"
-    "ge\030\005 \001(\0132\031.sobject.SOJournalLineage\022/\n\007v"
-    "ersion\030\006 \001(\0132\036.sobject.SOJournalVersionT"
-    "uple\0222\n\006intent\030\007 \001(\0132\".sobject.SOJournal"
-    "EncryptedPayload\0224\n\010envelope\030\010 \001(\0132\".sob"
-    "ject.SOJournalEncryptedPayload\022*\n\007receip"
-    "t\030\t \001(\0132\031.sobject.SOJournalReceipt\022:\n\017ac"
-    "knowledgement\030\n \001(\0132!.sobject.SOJournalA"
-    "cknowledgement\0220\n\nprojection\030\013 \001(\0132\034.sob"
-    "ject.SOJournalProjection\022.\n\treadiness\030\014 "
-    "\001(\0162\033.sobject.SOJournalReadiness\0229\n\017reco"
-    "very_reason\030\r \001(\0162 .sobject.SOJournalRec"
-    "overyReason\0225\n\rattempt_state\030\016 \001(\0162\036.sob"
-    "ject.SOJournalAttemptState\022\027\n\017envelope_d"
-    "igest\030\017 \001(\014\022(\n\006lookup\030\020 \001(\0132\030.sobject.SO"
-    "JournalLookup\"\352\005\n\032SOJournalCheckpointAtt"
-    "empt\022#\n\003key\030\001 \001(\0132\026.sobject.SOMutationKe"
-    "y\022*\n\007lineage\030\002 \001(\0132\031.sobject.SOJournalLi"
-    "neage\022/\n\007version\030\003 \001(\0132\036.sobject.SOJourn"
-    "alVersionTuple\022-\n\005state\030\004 \001(\0162\036.sobject."
-    "SOJournalAttemptState\022.\n\treadiness\030\005 \001(\016"
-    "2\033.sobject.SOJournalReadiness\0222\n\006intent\030"
-    "\006 \001(\0132\".sobject.SOJournalEncryptedPayloa"
-    "d\0224\n\010envelope\030\007 \001(\0132\".sobject.SOJournalE"
-    "ncryptedPayload\022\027\n\017envelope_digest\030\010 \001(\014"
-    "\022*\n\007receipt\030\t \001(\0132\031.sobject.SOJournalRec"
-    "eipt\022:\n\017acknowledgement\030\n \001(\0132!.sobject."
-    "SOJournalAcknowledgement\0220\n\nprojection\030\013"
-    " \001(\0132\034.sobject.SOJournalProjection\022(\n\006lo"
-    "okup\030\014 \001(\0132\030.sobject.SOJournalLookup\022\026\n\016"
-    "send_attempted\030\r \001(\010\022\031\n\021resend_authorize"
-    "d\030\016 \001(\010\022 \n\030lineage_recovery_blocked\030\017 \001("
-    "\010\022\027\n\017intent_sequence\030\020 \001(\004\022\031\n\021envelope_s"
-    "equence\030\021 \001(\004\022\033\n\023checkpoint_eligible\030\022 \001"
-    "(\010\"\221\001\n\023SOJournalCheckpoint\022\030\n\020journal_id"
-    "entity\030\001 \001(\014\022\022\n\ngeneration\030\002 \001(\004\022\025\n\rnext"
-    "_sequence\030\003 \001(\004\0225\n\010attempts\030\004 \003(\0132#.sobj"
-    "ect.SOJournalCheckpointAttempt*\345\001\n\030Share"
-    "dObjectHealthStatus\022\'\n#SHARED_OBJECT_HEA"
-    "LTH_STATUS_UNKNOWN\020\000\022\'\n#SHARED_OBJECT_HE"
-    "ALTH_STATUS_LOADING\020\001\022%\n!SHARED_OBJECT_H"
-    "EALTH_STATUS_READY\020\002\022(\n$SHARED_OBJECT_HE"
-    "ALTH_STATUS_DEGRADED\020\003\022&\n\"SHARED_OBJECT_"
-    "HEALTH_STATUS_CLOSED\020\004*\224\001\n\027SharedObjectH"
-    "ealthLayer\022&\n\"SHARED_OBJECT_HEALTH_LAYER"
-    "_UNKNOWN\020\000\022,\n(SHARED_OBJECT_HEALTH_LAYER"
-    "_SHARED_OBJECT\020\001\022#\n\037SHARED_OBJECT_HEALTH"
-    "_LAYER_BODY\020\002*\271\003\n\036SharedObjectHealthComm"
-    "onReason\022.\n*SHARED_OBJECT_HEALTH_COMMON_"
-    "REASON_UNKNOWN\020\000\0220\n,SHARED_OBJECT_HEALTH"
-    "_COMMON_REASON_NOT_FOUND\020\001\0225\n1SHARED_OBJ"
-    "ECT_HEALTH_COMMON_REASON_ACCESS_REVOKED\020"
-    "\002\022=\n9SHARED_OBJECT_HEALTH_COMMON_REASON_"
-    "INITIAL_STATE_REJECTED\020\003\0226\n2SHARED_OBJEC"
-    "T_HEALTH_COMMON_REASON_BLOCK_NOT_FOUND\020\004"
-    "\022E\nASHARED_OBJECT_HEALTH_COMMON_REASON_T"
-    "RANSFORM_CONFIG_DECODE_FAILED\020\005\022@\n<SHARE"
-    "D_OBJECT_HEALTH_COMMON_REASON_BODY_CONFI"
-    "G_DECODE_FAILED\020\006*\350\002\n!SharedObjectHealth"
-    "RemediationHint\0221\n-SHARED_OBJECT_HEALTH_"
-    "REMEDIATION_HINT_UNKNOWN\020\000\022.\n*SHARED_OBJ"
-    "ECT_HEALTH_REMEDIATION_HINT_NONE\020\001\022/\n+SH"
-    "ARED_OBJECT_HEALTH_REMEDIATION_HINT_RETR"
-    "Y\020\002\0228\n4SHARED_OBJECT_HEALTH_REMEDIATION_"
-    "HINT_REQUEST_ACCESS\020\003\0227\n3SHARED_OBJECT_H"
-    "EALTH_REMEDIATION_HINT_CONTACT_OWNER\020\004\022<"
-    "\n8SHARED_OBJECT_HEALTH_REMEDIATION_HINT_"
-    "REPAIR_SOURCE_DATA\020\005*\254\001\n\021SOParticipantRo"
-    "le\022\035\n\031SOParticipantRole_UNKNOWN\020\000\022\034\n\030SOP"
-    "articipantRole_READER\020\001\022\034\n\030SOParticipant"
-    "Role_WRITER\020\002\022\037\n\033SOParticipantRole_VALID"
-    "ATOR\020\003\022\033\n\027SOParticipantRole_OWNER\020\004*9\n\017S"
-    "OConsensusMode\022&\n\"SO_CONSENSUS_MODE_SING"
-    "LE_VALIDATOR\020\000*\337\002\n\022SOConfigChangeType\022!\n"
-    "\035SO_CONFIG_CHANGE_TYPE_UNKNOWN\020\000\022!\n\035SO_C"
-    "ONFIG_CHANGE_TYPE_GENESIS\020\001\022)\n%SO_CONFIG"
-    "_CHANGE_TYPE_ADD_PARTICIPANT\020\002\022,\n(SO_CON"
-    "FIG_CHANGE_TYPE_REMOVE_PARTICIPANT\020\003\022$\n "
-    "SO_CONFIG_CHANGE_TYPE_ADD_INVITE\020\004\022\'\n#SO"
-    "_CONFIG_CHANGE_TYPE_REVOKE_INVITE\020\005\022/\n+S"
-    "O_CONFIG_CHANGE_TYPE_INCREMENT_INVITE_US"
-    "ES\020\006\022*\n&SO_CONFIG_CHANGE_TYPE_SELF_ENROL"
-    "L_PEER\020\007*\327\001\n\022SORevocationReason\022 \n\034SO_RE"
-    "VOCATION_REASON_UNKNOWN\020\000\022(\n$SO_REVOCATI"
-    "ON_REASON_SESSION_REVOKED\020\001\022$\n SO_REVOCA"
-    "TION_REASON_ORG_REMOVED\020\002\022&\n\"SO_REVOCATI"
-    "ON_REASON_OWNER_REMOVED\020\003\022\'\n#SO_REVOCATI"
-    "ON_REASON_INVITE_REVOKED\020\004*\226\004\n\023SOJournal"
-    "RecordKind\022&\n\"SO_JOURNAL_RECORD_KIND_UNS"
-    "PECIFIED\020\000\022!\n\035SO_JOURNAL_RECORD_KIND_INT"
-    "ENT\020\001\022*\n&SO_JOURNAL_RECORD_KIND_SIGNED_E"
-    "NVELOPE\020\002\022\037\n\033SO_JOURNAL_RECORD_KIND_SENT"
-    "\020\003\022\"\n\036SO_JOURNAL_RECORD_KIND_RECEIPT\020\004\022*"
-    "\n&SO_JOURNAL_RECORD_KIND_ACKNOWLEDGEMENT"
-    "\020\005\022*\n&SO_JOURNAL_RECORD_KIND_BODY_PROJEC"
-    "TION\020\006\0220\n,SO_JOURNAL_RECORD_KIND_STALE_T"
-    "RANSFORM_EPOCH\020\007\022+\n\'SO_JOURNAL_RECORD_KI"
-    "ND_RECOVERY_BLOCKED\020\010\0223\n/SO_JOURNAL_RECO"
-    "RD_KIND_LINEAGE_RECOVERY_BLOCKED\020\t\022)\n%SO"
-    "_JOURNAL_RECORD_KIND_RECEIPT_LOOKUP\020\n\022,\n"
-    "(SO_JOURNAL_RECORD_KIND_RESEND_AUTHORIZE"
-    "D\020\013*\321\002\n\025SOJournalAttemptState\022(\n$SO_JOUR"
-    "NAL_ATTEMPT_STATE_UNSPECIFIED\020\000\022+\n\'SO_JO"
-    "URNAL_ATTEMPT_STATE_INTENT_DURABLE\020\001\022-\n)"
-    "SO_JOURNAL_ATTEMPT_STATE_ENVELOPE_DURABL"
-    "E\020\002\022!\n\035SO_JOURNAL_ATTEMPT_STATE_SENT\020\003\022,"
-    "\n(SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURAB"
-    "LE\020\004\0222\n.SO_JOURNAL_ATTEMPT_STATE_STALE_T"
-    "RANSFORM_EPOCH\020\005\022-\n)SO_JOURNAL_ATTEMPT_S"
-    "TATE_RECOVERY_BLOCKED\020\006*x\n\020SOJournalOutc"
-    "ome\022\"\n\036SO_JOURNAL_OUTCOME_UNSPECIFIED\020\000\022"
-    "\037\n\033SO_JOURNAL_OUTCOME_ACCEPTED\020\001\022\037\n\033SO_J"
-    "OURNAL_OUTCOME_REJECTED\020\002*\327\001\n\024SOJournalL"
-    "ookupState\022\'\n#SO_JOURNAL_LOOKUP_STATE_UN"
-    "SPECIFIED\020\000\022%\n!SO_JOURNAL_LOOKUP_STATE_N"
-    "O_RECORD\020\001\022#\n\037SO_JOURNAL_LOOKUP_STATE_PE"
-    "NDING\020\002\022$\n SO_JOURNAL_LOOKUP_STATE_ACCEP"
-    "TED\020\003\022$\n SO_JOURNAL_LOOKUP_STATE_REJECTE"
-    "D\020\004*\301\001\n\022SOJournalReadiness\022$\n SO_JOURNAL"
-    "_READINESS_UNSPECIFIED\020\000\022\036\n\032SO_JOURNAL_R"
-    "EADINESS_READY\020\001\022 \n\034SO_JOURNAL_READINESS"
-    "_MISSING\020\002\022 \n\034SO_JOURNAL_READINESS_CORRU"
-    "PT\020\003\022!\n\035SO_JOURNAL_READINESS_OBSOLETE\020\004*"
-    "\345\002\n\027SOJournalRecoveryReason\022*\n&SO_JOURNA"
-    "L_RECOVERY_REASON_UNSPECIFIED\020\000\0224\n0SO_JO"
-    "URNAL_RECOVERY_REASON_STALE_TRANSFORM_EP"
-    "OCH\020\001\022.\n*SO_JOURNAL_RECOVERY_REASON_KEY_"
-    "UNAVAILABLE\020\002\0220\n,SO_JOURNAL_RECOVERY_REA"
-    "SON_AUTHORITY_FAILURE\020\003\022+\n\'SO_JOURNAL_RE"
-    "COVERY_REASON_BODY_MISSING\020\004\022+\n\'SO_JOURN"
-    "AL_RECOVERY_REASON_BODY_CORRUPT\020\005\022,\n(SO_"
-    "JOURNAL_RECOVERY_REASON_BODY_OBSOLETE\020\006b"
-    "\006proto3"
+    "MutationKey\022&\n\005state\030\002 \001(\0162\027.sobject.SOR"
+    "eceiptState\022*\n\007receipt\030\003 \001(\0132\031.sobject.S"
+    "OJournalReceipt\022\020\n\010response\030\004 \001(\014\022\027\n\017res"
+    "ponse_digest\030\005 \001(\014\022\033\n\023config_chain_diges"
+    "t\030\006 \001(\014\"\343\002\n\020SOJournalReceipt\022#\n\003key\030\001 \001("
+    "\0132\026.sobject.SOMutationKey\022\027\n\017envelope_di"
+    "gest\030\002 \001(\014\022*\n\007outcome\030\003 \001(\0162\031.sobject.SO"
+    "JournalOutcome\022\030\n\020terminal_receipt\030\004 \001(\014"
+    "\022\037\n\027terminal_receipt_digest\030\005 \001(\014\022 \n\030aut"
+    "horitative_root_seqno\030\006 \001(\004\022!\n\031authorita"
+    "tive_root_digest\030\007 \001(\014\022\033\n\023config_chain_d"
+    "igest\030\010 \001(\014\022\034\n\024terminal_unix_millis\030\t \001("
+    "\004\022*\n\nsupersedes\030\n \001(\0132\026.sobject.SOMutati"
+    "onKey\"y\n\030SOJournalAcknowledgement\022#\n\003key"
+    "\030\001 \001(\0132\026.sobject.SOMutationKey\022\026\n\016receip"
+    "t_digest\030\002 \001(\014\022 \n\030acknowledged_unix_mill"
+    "is\030\003 \001(\004\"\227\001\n\023SOJournalProjection\022#\n\003key\030"
+    "\001 \001(\0132\026.sobject.SOMutationKey\022\026\n\016receipt"
+    "_digest\030\002 \001(\014\022 \n\030authoritative_root_seqn"
+    "o\030\003 \001(\004\022!\n\031authoritative_root_digest\030\004 \001"
+    "(\014\"\322\005\n\017SOJournalRecord\022\026\n\016format_version"
+    "\030\001 \001(\r\022\020\n\010sequence\030\002 \001(\004\022*\n\004kind\030\003 \001(\0162\034"
+    ".sobject.SOJournalRecordKind\022#\n\003key\030\004 \001("
+    "\0132\026.sobject.SOMutationKey\022*\n\007lineage\030\005 \001"
+    "(\0132\031.sobject.SOJournalLineage\022/\n\007version"
+    "\030\006 \001(\0132\036.sobject.SOJournalVersionTuple\0222"
+    "\n\006intent\030\007 \001(\0132\".sobject.SOJournalEncryp"
+    "tedPayload\0224\n\010envelope\030\010 \001(\0132\".sobject.S"
+    "OJournalEncryptedPayload\022*\n\007receipt\030\t \001("
+    "\0132\031.sobject.SOJournalReceipt\022:\n\017acknowle"
+    "dgement\030\n \001(\0132!.sobject.SOJournalAcknowl"
+    "edgement\0220\n\nprojection\030\013 \001(\0132\034.sobject.S"
+    "OJournalProjection\022.\n\treadiness\030\014 \001(\0162\033."
+    "sobject.SOJournalReadiness\0229\n\017recovery_r"
+    "eason\030\r \001(\0162 .sobject.SOJournalRecoveryR"
+    "eason\0225\n\rattempt_state\030\016 \001(\0162\036.sobject.S"
+    "OJournalAttemptState\022\027\n\017envelope_digest\030"
+    "\017 \001(\014\022(\n\006lookup\030\020 \001(\0132\030.sobject.SOJourna"
+    "lLookup\"\352\005\n\032SOJournalCheckpointAttempt\022#"
+    "\n\003key\030\001 \001(\0132\026.sobject.SOMutationKey\022*\n\007l"
+    "ineage\030\002 \001(\0132\031.sobject.SOJournalLineage\022"
+    "/\n\007version\030\003 \001(\0132\036.sobject.SOJournalVers"
+    "ionTuple\022-\n\005state\030\004 \001(\0162\036.sobject.SOJour"
+    "nalAttemptState\022.\n\treadiness\030\005 \001(\0162\033.sob"
+    "ject.SOJournalReadiness\0222\n\006intent\030\006 \001(\0132"
+    "\".sobject.SOJournalEncryptedPayload\0224\n\010e"
+    "nvelope\030\007 \001(\0132\".sobject.SOJournalEncrypt"
+    "edPayload\022\027\n\017envelope_digest\030\010 \001(\014\022*\n\007re"
+    "ceipt\030\t \001(\0132\031.sobject.SOJournalReceipt\022:"
+    "\n\017acknowledgement\030\n \001(\0132!.sobject.SOJour"
+    "nalAcknowledgement\0220\n\nprojection\030\013 \001(\0132\034"
+    ".sobject.SOJournalProjection\022(\n\006lookup\030\014"
+    " \001(\0132\030.sobject.SOJournalLookup\022\026\n\016send_a"
+    "ttempted\030\r \001(\010\022\031\n\021resend_authorized\030\016 \001("
+    "\010\022 \n\030lineage_recovery_blocked\030\017 \001(\010\022\027\n\017i"
+    "ntent_sequence\030\020 \001(\004\022\031\n\021envelope_sequenc"
+    "e\030\021 \001(\004\022\033\n\023checkpoint_eligible\030\022 \001(\010\"\221\001\n"
+    "\023SOJournalCheckpoint\022\030\n\020journal_identity"
+    "\030\001 \001(\014\022\022\n\ngeneration\030\002 \001(\004\022\025\n\rnext_seque"
+    "nce\030\003 \001(\004\0225\n\010attempts\030\004 \003(\0132#.sobject.SO"
+    "JournalCheckpointAttempt\"\033\n\031SOTerminalRe"
+    "ceiptAccepted\"\320\003\n\026SOTerminalReceiptInner"
+    "\022#\n\003key\030\001 \001(\0132\026.sobject.SOMutationKey\022\027\n"
+    "\017envelope_digest\030\002 \001(\014\0226\n\010accepted\030\003 \001(\013"
+    "2\".sobject.SOTerminalReceiptAcceptedH\000\0229"
+    "\n\020signed_rejection\030\004 \001(\0132\035.sobject.SOOpe"
+    "rationRejectionH\000\022 \n\030authoritative_root_"
+    "seqno\030\005 \001(\004\022!\n\031authoritative_root_digest"
+    "\030\006 \001(\014\022\033\n\023config_chain_digest\030\007 \001(\014\0220\n\016c"
+    "onsensus_mode\030\010 \001(\0162\030.sobject.SOConsensu"
+    "sMode\022\034\n\024validator_set_digest\030\t \001(\014\022\034\n\024t"
+    "erminal_unix_millis\030\n \001(\004\022*\n\nsupersedes\030"
+    "\013 \001(\0132\026.sobject.SOMutationKeyB\t\n\007outcome"
+    "\"Q\n\021SOTerminalReceipt\022\r\n\005inner\030\001 \001(\014\022-\n\024"
+    "validator_signatures\030\002 \003(\0132\017.peer.Signat"
+    "ure*\345\001\n\030SharedObjectHealthStatus\022\'\n#SHAR"
+    "ED_OBJECT_HEALTH_STATUS_UNKNOWN\020\000\022\'\n#SHA"
+    "RED_OBJECT_HEALTH_STATUS_LOADING\020\001\022%\n!SH"
+    "ARED_OBJECT_HEALTH_STATUS_READY\020\002\022(\n$SHA"
+    "RED_OBJECT_HEALTH_STATUS_DEGRADED\020\003\022&\n\"S"
+    "HARED_OBJECT_HEALTH_STATUS_CLOSED\020\004*\224\001\n\027"
+    "SharedObjectHealthLayer\022&\n\"SHARED_OBJECT"
+    "_HEALTH_LAYER_UNKNOWN\020\000\022,\n(SHARED_OBJECT"
+    "_HEALTH_LAYER_SHARED_OBJECT\020\001\022#\n\037SHARED_"
+    "OBJECT_HEALTH_LAYER_BODY\020\002*\271\003\n\036SharedObj"
+    "ectHealthCommonReason\022.\n*SHARED_OBJECT_H"
+    "EALTH_COMMON_REASON_UNKNOWN\020\000\0220\n,SHARED_"
+    "OBJECT_HEALTH_COMMON_REASON_NOT_FOUND\020\001\022"
+    "5\n1SHARED_OBJECT_HEALTH_COMMON_REASON_AC"
+    "CESS_REVOKED\020\002\022=\n9SHARED_OBJECT_HEALTH_C"
+    "OMMON_REASON_INITIAL_STATE_REJECTED\020\003\0226\n"
+    "2SHARED_OBJECT_HEALTH_COMMON_REASON_BLOC"
+    "K_NOT_FOUND\020\004\022E\nASHARED_OBJECT_HEALTH_CO"
+    "MMON_REASON_TRANSFORM_CONFIG_DECODE_FAIL"
+    "ED\020\005\022@\n<SHARED_OBJECT_HEALTH_COMMON_REAS"
+    "ON_BODY_CONFIG_DECODE_FAILED\020\006*\350\002\n!Share"
+    "dObjectHealthRemediationHint\0221\n-SHARED_O"
+    "BJECT_HEALTH_REMEDIATION_HINT_UNKNOWN\020\000\022"
+    ".\n*SHARED_OBJECT_HEALTH_REMEDIATION_HINT"
+    "_NONE\020\001\022/\n+SHARED_OBJECT_HEALTH_REMEDIAT"
+    "ION_HINT_RETRY\020\002\0228\n4SHARED_OBJECT_HEALTH"
+    "_REMEDIATION_HINT_REQUEST_ACCESS\020\003\0227\n3SH"
+    "ARED_OBJECT_HEALTH_REMEDIATION_HINT_CONT"
+    "ACT_OWNER\020\004\022<\n8SHARED_OBJECT_HEALTH_REME"
+    "DIATION_HINT_REPAIR_SOURCE_DATA\020\005*\254\001\n\021SO"
+    "ParticipantRole\022\035\n\031SOParticipantRole_UNK"
+    "NOWN\020\000\022\034\n\030SOParticipantRole_READER\020\001\022\034\n\030"
+    "SOParticipantRole_WRITER\020\002\022\037\n\033SOParticip"
+    "antRole_VALIDATOR\020\003\022\033\n\027SOParticipantRole"
+    "_OWNER\020\004*9\n\017SOConsensusMode\022&\n\"SO_CONSEN"
+    "SUS_MODE_SINGLE_VALIDATOR\020\000*\337\002\n\022SOConfig"
+    "ChangeType\022!\n\035SO_CONFIG_CHANGE_TYPE_UNKN"
+    "OWN\020\000\022!\n\035SO_CONFIG_CHANGE_TYPE_GENESIS\020\001"
+    "\022)\n%SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPAN"
+    "T\020\002\022,\n(SO_CONFIG_CHANGE_TYPE_REMOVE_PART"
+    "ICIPANT\020\003\022$\n SO_CONFIG_CHANGE_TYPE_ADD_I"
+    "NVITE\020\004\022\'\n#SO_CONFIG_CHANGE_TYPE_REVOKE_"
+    "INVITE\020\005\022/\n+SO_CONFIG_CHANGE_TYPE_INCREM"
+    "ENT_INVITE_USES\020\006\022*\n&SO_CONFIG_CHANGE_TY"
+    "PE_SELF_ENROLL_PEER\020\007*\327\001\n\022SORevocationRe"
+    "ason\022 \n\034SO_REVOCATION_REASON_UNKNOWN\020\000\022("
+    "\n$SO_REVOCATION_REASON_SESSION_REVOKED\020\001"
+    "\022$\n SO_REVOCATION_REASON_ORG_REMOVED\020\002\022&"
+    "\n\"SO_REVOCATION_REASON_OWNER_REMOVED\020\003\022\'"
+    "\n#SO_REVOCATION_REASON_INVITE_REVOKED\020\004*"
+    "\226\004\n\023SOJournalRecordKind\022&\n\"SO_JOURNAL_RE"
+    "CORD_KIND_UNSPECIFIED\020\000\022!\n\035SO_JOURNAL_RE"
+    "CORD_KIND_INTENT\020\001\022*\n&SO_JOURNAL_RECORD_"
+    "KIND_SIGNED_ENVELOPE\020\002\022\037\n\033SO_JOURNAL_REC"
+    "ORD_KIND_SENT\020\003\022\"\n\036SO_JOURNAL_RECORD_KIN"
+    "D_RECEIPT\020\004\022*\n&SO_JOURNAL_RECORD_KIND_AC"
+    "KNOWLEDGEMENT\020\005\022*\n&SO_JOURNAL_RECORD_KIN"
+    "D_BODY_PROJECTION\020\006\0220\n,SO_JOURNAL_RECORD"
+    "_KIND_STALE_TRANSFORM_EPOCH\020\007\022+\n\'SO_JOUR"
+    "NAL_RECORD_KIND_RECOVERY_BLOCKED\020\010\0223\n/SO"
+    "_JOURNAL_RECORD_KIND_LINEAGE_RECOVERY_BL"
+    "OCKED\020\t\022)\n%SO_JOURNAL_RECORD_KIND_RECEIP"
+    "T_LOOKUP\020\n\022,\n(SO_JOURNAL_RECORD_KIND_RES"
+    "END_AUTHORIZED\020\013*\321\002\n\025SOJournalAttemptSta"
+    "te\022(\n$SO_JOURNAL_ATTEMPT_STATE_UNSPECIFI"
+    "ED\020\000\022+\n\'SO_JOURNAL_ATTEMPT_STATE_INTENT_"
+    "DURABLE\020\001\022-\n)SO_JOURNAL_ATTEMPT_STATE_EN"
+    "VELOPE_DURABLE\020\002\022!\n\035SO_JOURNAL_ATTEMPT_S"
+    "TATE_SENT\020\003\022,\n(SO_JOURNAL_ATTEMPT_STATE_"
+    "RECEIPT_DURABLE\020\004\0222\n.SO_JOURNAL_ATTEMPT_"
+    "STATE_STALE_TRANSFORM_EPOCH\020\005\022-\n)SO_JOUR"
+    "NAL_ATTEMPT_STATE_RECOVERY_BLOCKED\020\006*x\n\020"
+    "SOJournalOutcome\022\"\n\036SO_JOURNAL_OUTCOME_U"
+    "NSPECIFIED\020\000\022\037\n\033SO_JOURNAL_OUTCOME_ACCEP"
+    "TED\020\001\022\037\n\033SO_JOURNAL_OUTCOME_REJECTED\020\002*\301"
+    "\001\n\022SOJournalReadiness\022$\n SO_JOURNAL_READ"
+    "INESS_UNSPECIFIED\020\000\022\036\n\032SO_JOURNAL_READIN"
+    "ESS_READY\020\001\022 \n\034SO_JOURNAL_READINESS_MISS"
+    "ING\020\002\022 \n\034SO_JOURNAL_READINESS_CORRUPT\020\003\022"
+    "!\n\035SO_JOURNAL_READINESS_OBSOLETE\020\004*\345\002\n\027S"
+    "OJournalRecoveryReason\022*\n&SO_JOURNAL_REC"
+    "OVERY_REASON_UNSPECIFIED\020\000\0224\n0SO_JOURNAL"
+    "_RECOVERY_REASON_STALE_TRANSFORM_EPOCH\020\001"
+    "\022.\n*SO_JOURNAL_RECOVERY_REASON_KEY_UNAVA"
+    "ILABLE\020\002\0220\n,SO_JOURNAL_RECOVERY_REASON_A"
+    "UTHORITY_FAILURE\020\003\022+\n\'SO_JOURNAL_RECOVER"
+    "Y_REASON_BODY_MISSING\020\004\022+\n\'SO_JOURNAL_RE"
+    "COVERY_REASON_BODY_CORRUPT\020\005\022,\n(SO_JOURN"
+    "AL_RECOVERY_REASON_BODY_OBSOLETE\020\006*\256\001\n\016S"
+    "OReceiptState\022 \n\034SO_RECEIPT_STATE_UNSPEC"
+    "IFIED\020\000\022\036\n\032SO_RECEIPT_STATE_NO_RECORD\020\001\022"
+    "\034\n\030SO_RECEIPT_STATE_PENDING\020\002\022\035\n\031SO_RECE"
+    "IPT_STATE_ACCEPTED\020\003\022\035\n\031SO_RECEIPT_STATE"
+    "_REJECTED\020\004b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto_deps[4] = {
@@ -2359,13 +2502,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fco
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto = {
     false,
     false,
-    11207,
+    11739,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
     "github.com/s4wave/spacewave/core/sobject/sobject.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto_deps,
     4,
-    45,
+    48,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto::offsets,
@@ -2439,24 +2582,24 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOJournalOutcome_desc
 }
 PROTOBUF_CONSTINIT const uint32_t SOJournalOutcome_internal_data_[] = {
     196608u, 0u, };
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOJournalLookupState_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[11];
-}
-PROTOBUF_CONSTINIT const uint32_t SOJournalLookupState_internal_data_[] = {
-    327680u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOJournalReadiness_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[12];
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[11];
 }
 PROTOBUF_CONSTINIT const uint32_t SOJournalReadiness_internal_data_[] = {
     327680u, 0u, };
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOJournalRecoveryReason_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto);
-  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[13];
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[12];
 }
 PROTOBUF_CONSTINIT const uint32_t SOJournalRecoveryReason_internal_data_[] = {
     458752u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOReceiptState_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[13];
+}
+PROTOBUF_CONSTINIT const uint32_t SOReceiptState_internal_data_[] = {
+    327680u, 0u, };
 // ===================================================================
 
 class SharedObjectRef::_Internal {
@@ -16845,7 +16988,7 @@ SOJournalLookup::_table_ = {
     {::_pbi::TcParser::FastMtS1,
      {10, 3, 0,
       PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.key_)}},
-    // .sobject.SOJournalLookupState state = 2;
+    // .sobject.SOReceiptState state = 2;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOJournalLookup, _impl_.state_), 5>(),
      {16, 5, 0,
       PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.state_)}},
@@ -16871,7 +17014,7 @@ SOJournalLookup::_table_ = {
   }}, {{
     // .sobject.SOMutationKey key = 1;
     {PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.key_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
-    // .sobject.SOJournalLookupState state = 2;
+    // .sobject.SOReceiptState state = 2;
     {PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.state_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // .sobject.SOJournalReceipt receipt = 3;
     {PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.receipt_), _Internal::kHasBitsOffset + 4, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
@@ -16947,7 +17090,7 @@ PROTOBUF_NOINLINE void SOJournalLookup::Clear() {
         stream);
   }
 
-  // .sobject.SOJournalLookupState state = 2;
+  // .sobject.SOReceiptState state = 2;
   if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     if (this_._internal_state() != 0) {
       target = stream->EnsureSpace(target);
@@ -17044,7 +17187,7 @@ PROTOBUF_NOINLINE void SOJournalLookup::Clear() {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.receipt_);
     }
-    // .sobject.SOJournalLookupState state = 2;
+    // .sobject.SOReceiptState state = 2;
     if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       if (this_._internal_state() != 0) {
         total_size += 1 +
@@ -20558,6 +20701,1169 @@ void SOJournalCheckpoint::InternalSwap(SOJournalCheckpoint* PROTOBUF_RESTRICT PR
 }
 
 ::google::protobuf::Metadata SOJournalCheckpoint::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOTerminalReceiptAccepted::_Internal {
+ public:
+};
+
+SOTerminalReceiptAccepted::SOTerminalReceiptAccepted(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, SOTerminalReceiptAccepted_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:sobject.SOTerminalReceiptAccepted)
+}
+SOTerminalReceiptAccepted::SOTerminalReceiptAccepted(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOTerminalReceiptAccepted& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, SOTerminalReceiptAccepted_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOTerminalReceiptAccepted* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOTerminalReceiptAccepted)
+}
+
+inline void* PROTOBUF_NONNULL SOTerminalReceiptAccepted::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOTerminalReceiptAccepted(arena);
+}
+constexpr auto SOTerminalReceiptAccepted::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(SOTerminalReceiptAccepted),
+                                            alignof(SOTerminalReceiptAccepted));
+}
+constexpr auto SOTerminalReceiptAccepted::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOTerminalReceiptAccepted_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOTerminalReceiptAccepted::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<SOTerminalReceiptAccepted>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOTerminalReceiptAccepted::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<SOTerminalReceiptAccepted>(), &SOTerminalReceiptAccepted::ByteSizeLong,
+              &SOTerminalReceiptAccepted::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOTerminalReceiptAccepted, _impl_._cached_size_),
+          false,
+      },
+      &SOTerminalReceiptAccepted::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOTerminalReceiptAccepted_class_data_ =
+        SOTerminalReceiptAccepted::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOTerminalReceiptAccepted::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOTerminalReceiptAccepted_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOTerminalReceiptAccepted_class_data_.tc_table);
+  return SOTerminalReceiptAccepted_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+SOTerminalReceiptAccepted::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    SOTerminalReceiptAccepted_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOTerminalReceiptAccepted>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata SOTerminalReceiptAccepted::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOTerminalReceiptInner::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOTerminalReceiptInner>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_._has_bits_);
+  static constexpr ::int32_t kOneofCaseOffset =
+      PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_._oneof_case_);
+};
+
+void SOTerminalReceiptInner::set_allocated_accepted(::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE accepted) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  clear_outcome();
+  if (accepted) {
+    ::google::protobuf::Arena* submessage_arena = accepted->GetArena();
+    if (message_arena != submessage_arena) {
+      accepted = ::google::protobuf::internal::GetOwnedMessage(message_arena, accepted, submessage_arena);
+    }
+    set_has_accepted();
+    _impl_.outcome_.accepted_ = accepted;
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.accepted)
+}
+void SOTerminalReceiptInner::set_allocated_signed_rejection(::sobject::SOOperationRejection* PROTOBUF_NULLABLE signed_rejection) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  clear_outcome();
+  if (signed_rejection) {
+    ::google::protobuf::Arena* submessage_arena = signed_rejection->GetArena();
+    if (message_arena != submessage_arena) {
+      signed_rejection = ::google::protobuf::internal::GetOwnedMessage(message_arena, signed_rejection, submessage_arena);
+    }
+    set_has_signed_rejection();
+    _impl_.outcome_.signed_rejection_ = signed_rejection;
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.signed_rejection)
+}
+SOTerminalReceiptInner::SOTerminalReceiptInner(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOTerminalReceiptInner_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOTerminalReceiptInner)
+}
+PROTOBUF_NDEBUG_INLINE SOTerminalReceiptInner::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOTerminalReceiptInner& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        envelope_digest_(arena, from.envelope_digest_),
+        authoritative_root_digest_(arena, from.authoritative_root_digest_),
+        config_chain_digest_(arena, from.config_chain_digest_),
+        validator_set_digest_(arena, from.validator_set_digest_),
+        outcome_{},
+        _oneof_case_{from._oneof_case_[0]} {}
+
+SOTerminalReceiptInner::SOTerminalReceiptInner(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOTerminalReceiptInner& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOTerminalReceiptInner_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOTerminalReceiptInner* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.key_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_)
+                : nullptr;
+  _impl_.supersedes_ = (CheckHasBit(cached_has_bits, 0x00000020U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.supersedes_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, authoritative_root_seqno_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, authoritative_root_seqno_),
+           offsetof(Impl_, consensus_mode_) -
+               offsetof(Impl_, authoritative_root_seqno_) +
+               sizeof(Impl_::consensus_mode_));
+  switch (outcome_case()) {
+    case OUTCOME_NOT_SET:
+      break;
+      case kAccepted:
+        _impl_.outcome_.accepted_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.outcome_.accepted_);
+        break;
+      case kSignedRejection:
+        _impl_.outcome_.signed_rejection_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.outcome_.signed_rejection_);
+        break;
+  }
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOTerminalReceiptInner)
+}
+PROTOBUF_NDEBUG_INLINE SOTerminalReceiptInner::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        envelope_digest_(arena),
+        authoritative_root_digest_(arena),
+        config_chain_digest_(arena),
+        validator_set_digest_(arena),
+        outcome_{},
+        _oneof_case_{} {}
+
+inline void SOTerminalReceiptInner::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, key_),
+           0,
+           offsetof(Impl_, consensus_mode_) -
+               offsetof(Impl_, key_) +
+               sizeof(Impl_::consensus_mode_));
+}
+SOTerminalReceiptInner::~SOTerminalReceiptInner() {
+  // @@protoc_insertion_point(destructor:sobject.SOTerminalReceiptInner)
+  SharedDtor(*this);
+}
+inline void SOTerminalReceiptInner::SharedDtor(MessageLite& self) {
+  SOTerminalReceiptInner& this_ = static_cast<SOTerminalReceiptInner&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.envelope_digest_.Destroy();
+  this_._impl_.authoritative_root_digest_.Destroy();
+  this_._impl_.config_chain_digest_.Destroy();
+  this_._impl_.validator_set_digest_.Destroy();
+  delete this_._impl_.key_;
+  delete this_._impl_.supersedes_;
+  if (this_.has_outcome()) {
+    this_.clear_outcome();
+  }
+  this_._impl_.~Impl_();
+}
+
+void SOTerminalReceiptInner::clear_outcome() {
+// @@protoc_insertion_point(one_of_clear_start:sobject.SOTerminalReceiptInner)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  switch (outcome_case()) {
+    case kAccepted: {
+      if (GetArena() == nullptr) {
+        delete _impl_.outcome_.accepted_;
+      } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+        ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.outcome_.accepted_);
+      }
+      break;
+    }
+    case kSignedRejection: {
+      if (GetArena() == nullptr) {
+        delete _impl_.outcome_.signed_rejection_;
+      } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+        ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.outcome_.signed_rejection_);
+      }
+      break;
+    }
+    case OUTCOME_NOT_SET: {
+      break;
+    }
+  }
+  _impl_._oneof_case_[0] = OUTCOME_NOT_SET;
+}
+
+
+inline void* PROTOBUF_NONNULL SOTerminalReceiptInner::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOTerminalReceiptInner(arena);
+}
+constexpr auto SOTerminalReceiptInner::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SOTerminalReceiptInner),
+                                            alignof(SOTerminalReceiptInner));
+}
+constexpr auto SOTerminalReceiptInner::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOTerminalReceiptInner_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOTerminalReceiptInner::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOTerminalReceiptInner>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOTerminalReceiptInner::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOTerminalReceiptInner>(), &SOTerminalReceiptInner::ByteSizeLong,
+              &SOTerminalReceiptInner::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_._cached_size_),
+          false,
+      },
+      &SOTerminalReceiptInner::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOTerminalReceiptInner_class_data_ =
+        SOTerminalReceiptInner::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOTerminalReceiptInner::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOTerminalReceiptInner_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOTerminalReceiptInner_class_data_.tc_table);
+  return SOTerminalReceiptInner_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 11, 4, 0, 2>
+SOTerminalReceiptInner::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_._has_bits_),
+    0, // no _extensions_
+    11, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294965248,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    11,  // num_field_entries
+    4,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SOTerminalReceiptInner_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOTerminalReceiptInner>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .sobject.SOMutationKey key = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 4, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.key_)}},
+    // bytes envelope_digest = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.envelope_digest_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    // uint64 authoritative_root_seqno = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOTerminalReceiptInner, _impl_.authoritative_root_seqno_), 6>(),
+     {40, 6, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.authoritative_root_seqno_)}},
+    // bytes authoritative_root_digest = 6;
+    {::_pbi::TcParser::FastBS1,
+     {50, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.authoritative_root_digest_)}},
+    // bytes config_chain_digest = 7;
+    {::_pbi::TcParser::FastBS1,
+     {58, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.config_chain_digest_)}},
+    // .sobject.SOConsensusMode consensus_mode = 8;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOTerminalReceiptInner, _impl_.consensus_mode_), 8>(),
+     {64, 8, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.consensus_mode_)}},
+    // bytes validator_set_digest = 9;
+    {::_pbi::TcParser::FastBS1,
+     {74, 3, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.validator_set_digest_)}},
+    // uint64 terminal_unix_millis = 10;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOTerminalReceiptInner, _impl_.terminal_unix_millis_), 7>(),
+     {80, 7, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.terminal_unix_millis_)}},
+    // .sobject.SOMutationKey supersedes = 11;
+    {::_pbi::TcParser::FastMtS1,
+     {90, 5, 3,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.supersedes_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .sobject.SOMutationKey key = 1;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.key_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bytes envelope_digest = 2;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.envelope_digest_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // .sobject.SOTerminalReceiptAccepted accepted = 3;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.outcome_.accepted_), _Internal::kOneofCaseOffset + 0, 1, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOOperationRejection signed_rejection = 4;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.outcome_.signed_rejection_), _Internal::kOneofCaseOffset + 0, 2, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint64 authoritative_root_seqno = 5;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.authoritative_root_seqno_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // bytes authoritative_root_digest = 6;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.authoritative_root_digest_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes config_chain_digest = 7;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.config_chain_digest_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // .sobject.SOConsensusMode consensus_mode = 8;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.consensus_mode_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // bytes validator_set_digest = 9;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.validator_set_digest_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // uint64 terminal_unix_millis = 10;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.terminal_unix_millis_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // .sobject.SOMutationKey supersedes = 11;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.supersedes_), _Internal::kHasBitsOffset + 5, 3, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::sobject::SOMutationKey>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOTerminalReceiptAccepted>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOOperationRejection>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOMutationKey>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SOTerminalReceiptInner::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOTerminalReceiptInner)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.envelope_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.authoritative_root_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.config_chain_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.validator_set_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(_impl_.key_ != nullptr);
+      _impl_.key_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(_impl_.supersedes_ != nullptr);
+      _impl_.supersedes_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x000000c0U)) {
+    ::memset(&_impl_.authoritative_root_seqno_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.terminal_unix_millis_) -
+        reinterpret_cast<char*>(&_impl_.authoritative_root_seqno_)) + sizeof(_impl_.terminal_unix_millis_));
+  }
+  _impl_.consensus_mode_ = 0;
+  clear_outcome();
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOTerminalReceiptInner::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOTerminalReceiptInner& this_ = static_cast<const SOTerminalReceiptInner&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOTerminalReceiptInner::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOTerminalReceiptInner& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOTerminalReceiptInner)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .sobject.SOMutationKey key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.key_, this_._impl_.key_->GetCachedSize(), target,
+        stream);
+  }
+
+  // bytes envelope_digest = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_envelope_digest().empty()) {
+      const ::std::string& _s = this_._internal_envelope_digest();
+      target = stream->WriteBytesMaybeAliased(2, _s, target);
+    }
+  }
+
+  switch (this_.outcome_case()) {
+    case kAccepted: {
+      target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+          3, *this_._impl_.outcome_.accepted_, this_._impl_.outcome_.accepted_->GetCachedSize(), target,
+          stream);
+      break;
+    }
+    case kSignedRejection: {
+      target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+          4, *this_._impl_.outcome_.signed_rejection_, this_._impl_.outcome_.signed_rejection_->GetCachedSize(), target,
+          stream);
+      break;
+    }
+    default:
+      break;
+  }
+  // uint64 authoritative_root_seqno = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_authoritative_root_seqno() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          5, this_._internal_authoritative_root_seqno(), target);
+    }
+  }
+
+  // bytes authoritative_root_digest = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_authoritative_root_digest().empty()) {
+      const ::std::string& _s = this_._internal_authoritative_root_digest();
+      target = stream->WriteBytesMaybeAliased(6, _s, target);
+    }
+  }
+
+  // bytes config_chain_digest = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_config_chain_digest().empty()) {
+      const ::std::string& _s = this_._internal_config_chain_digest();
+      target = stream->WriteBytesMaybeAliased(7, _s, target);
+    }
+  }
+
+  // .sobject.SOConsensusMode consensus_mode = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (this_._internal_consensus_mode() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          8, this_._internal_consensus_mode(), target);
+    }
+  }
+
+  // bytes validator_set_digest = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_validator_set_digest().empty()) {
+      const ::std::string& _s = this_._internal_validator_set_digest();
+      target = stream->WriteBytesMaybeAliased(9, _s, target);
+    }
+  }
+
+  // uint64 terminal_unix_millis = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (this_._internal_terminal_unix_millis() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          10, this_._internal_terminal_unix_millis(), target);
+    }
+  }
+
+  // .sobject.SOMutationKey supersedes = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        11, *this_._impl_.supersedes_, this_._impl_.supersedes_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOTerminalReceiptInner)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOTerminalReceiptInner::ByteSizeLong(const MessageLite& base) {
+  const SOTerminalReceiptInner& this_ = static_cast<const SOTerminalReceiptInner&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOTerminalReceiptInner::ByteSizeLong() const {
+  const SOTerminalReceiptInner& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOTerminalReceiptInner)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // bytes envelope_digest = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_envelope_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_envelope_digest());
+      }
+    }
+    // bytes authoritative_root_digest = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_authoritative_root_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_authoritative_root_digest());
+      }
+    }
+    // bytes config_chain_digest = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_config_chain_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_config_chain_digest());
+      }
+    }
+    // bytes validator_set_digest = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_validator_set_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_validator_set_digest());
+      }
+    }
+    // .sobject.SOMutationKey key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.key_);
+    }
+    // .sobject.SOMutationKey supersedes = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.supersedes_);
+    }
+    // uint64 authoritative_root_seqno = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_authoritative_root_seqno() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_authoritative_root_seqno());
+      }
+    }
+    // uint64 terminal_unix_millis = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (this_._internal_terminal_unix_millis() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_terminal_unix_millis());
+      }
+    }
+  }
+   {
+    // .sobject.SOConsensusMode consensus_mode = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (this_._internal_consensus_mode() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_consensus_mode());
+      }
+    }
+  }
+  switch (this_.outcome_case()) {
+    // .sobject.SOTerminalReceiptAccepted accepted = 3;
+    case kAccepted: {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.outcome_.accepted_);
+      break;
+    }
+    // .sobject.SOOperationRejection signed_rejection = 4;
+    case kSignedRejection: {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.outcome_.signed_rejection_);
+      break;
+    }
+    case OUTCOME_NOT_SET: {
+      break;
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOTerminalReceiptInner::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOTerminalReceiptInner*>(&to_msg);
+  auto& from = static_cast<const SOTerminalReceiptInner&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOTerminalReceiptInner)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_envelope_digest().empty()) {
+        _this->_internal_set_envelope_digest(from._internal_envelope_digest());
+      } else {
+        if (_this->_impl_.envelope_digest_.IsDefault()) {
+          _this->_internal_set_envelope_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_authoritative_root_digest().empty()) {
+        _this->_internal_set_authoritative_root_digest(from._internal_authoritative_root_digest());
+      } else {
+        if (_this->_impl_.authoritative_root_digest_.IsDefault()) {
+          _this->_internal_set_authoritative_root_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_config_chain_digest().empty()) {
+        _this->_internal_set_config_chain_digest(from._internal_config_chain_digest());
+      } else {
+        if (_this->_impl_.config_chain_digest_.IsDefault()) {
+          _this->_internal_set_config_chain_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_validator_set_digest().empty()) {
+        _this->_internal_set_validator_set_digest(from._internal_validator_set_digest());
+      } else {
+        if (_this->_impl_.validator_set_digest_.IsDefault()) {
+          _this->_internal_set_validator_set_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(from._impl_.key_ != nullptr);
+      if (_this->_impl_.key_ == nullptr) {
+        _this->_impl_.key_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_);
+      } else {
+        _this->_impl_.key_->MergeFrom(*from._impl_.key_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(from._impl_.supersedes_ != nullptr);
+      if (_this->_impl_.supersedes_ == nullptr) {
+        _this->_impl_.supersedes_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.supersedes_);
+      } else {
+        _this->_impl_.supersedes_->MergeFrom(*from._impl_.supersedes_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_authoritative_root_seqno() != 0) {
+        _this->_impl_.authoritative_root_seqno_ = from._impl_.authoritative_root_seqno_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (from._internal_terminal_unix_millis() != 0) {
+        _this->_impl_.terminal_unix_millis_ = from._impl_.terminal_unix_millis_;
+      }
+    }
+  }
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (from._internal_consensus_mode() != 0) {
+      _this->_impl_.consensus_mode_ = from._impl_.consensus_mode_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  if (const uint32_t oneof_from_case =
+          from._impl_._oneof_case_[0]) {
+    const uint32_t oneof_to_case = _this->_impl_._oneof_case_[0];
+    const bool oneof_needs_init = oneof_to_case != oneof_from_case;
+    if (oneof_needs_init) {
+      if (oneof_to_case != 0) {
+        _this->clear_outcome();
+      }
+      _this->_impl_._oneof_case_[0] = oneof_from_case;
+    }
+
+    switch (oneof_from_case) {
+      case kAccepted: {
+        if (oneof_needs_init) {
+          _this->_impl_.outcome_.accepted_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.outcome_.accepted_);
+        } else {
+          _this->_impl_.outcome_.accepted_->MergeFrom(*from._impl_.outcome_.accepted_);
+        }
+        break;
+      }
+      case kSignedRejection: {
+        if (oneof_needs_init) {
+          _this->_impl_.outcome_.signed_rejection_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.outcome_.signed_rejection_);
+        } else {
+          _this->_impl_.outcome_.signed_rejection_->MergeFrom(*from._impl_.outcome_.signed_rejection_);
+        }
+        break;
+      }
+      case OUTCOME_NOT_SET:
+        break;
+    }
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOTerminalReceiptInner::CopyFrom(const SOTerminalReceiptInner& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOTerminalReceiptInner)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOTerminalReceiptInner::InternalSwap(SOTerminalReceiptInner* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.envelope_digest_, &other->_impl_.envelope_digest_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.authoritative_root_digest_, &other->_impl_.authoritative_root_digest_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.config_chain_digest_, &other->_impl_.config_chain_digest_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.validator_set_digest_, &other->_impl_.validator_set_digest_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.consensus_mode_)
+      + sizeof(SOTerminalReceiptInner::_impl_.consensus_mode_)
+      - PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.key_)>(
+          reinterpret_cast<char*>(&_impl_.key_),
+          reinterpret_cast<char*>(&other->_impl_.key_));
+  swap(_impl_.outcome_, other->_impl_.outcome_);
+  swap(_impl_._oneof_case_[0], other->_impl_._oneof_case_[0]);
+}
+
+::google::protobuf::Metadata SOTerminalReceiptInner::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOTerminalReceipt::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOTerminalReceipt>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_._has_bits_);
+};
+
+void SOTerminalReceipt::clear_validator_signatures() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.validator_signatures_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+SOTerminalReceipt::SOTerminalReceipt(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOTerminalReceipt_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOTerminalReceipt)
+}
+PROTOBUF_NDEBUG_INLINE SOTerminalReceipt::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOTerminalReceipt& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        validator_signatures_{visibility, arena, from.validator_signatures_},
+        inner_(arena, from.inner_) {}
+
+SOTerminalReceipt::SOTerminalReceipt(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOTerminalReceipt& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOTerminalReceipt_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOTerminalReceipt* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOTerminalReceipt)
+}
+PROTOBUF_NDEBUG_INLINE SOTerminalReceipt::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        validator_signatures_{visibility, arena},
+        inner_(arena) {}
+
+inline void SOTerminalReceipt::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+SOTerminalReceipt::~SOTerminalReceipt() {
+  // @@protoc_insertion_point(destructor:sobject.SOTerminalReceipt)
+  SharedDtor(*this);
+}
+inline void SOTerminalReceipt::SharedDtor(MessageLite& self) {
+  SOTerminalReceipt& this_ = static_cast<SOTerminalReceipt&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.inner_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SOTerminalReceipt::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOTerminalReceipt(arena);
+}
+constexpr auto SOTerminalReceipt::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_.validator_signatures_) +
+          decltype(SOTerminalReceipt::_impl_.validator_signatures_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(SOTerminalReceipt), alignof(SOTerminalReceipt), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&SOTerminalReceipt::PlacementNew_,
+                                 sizeof(SOTerminalReceipt),
+                                 alignof(SOTerminalReceipt));
+  }
+}
+constexpr auto SOTerminalReceipt::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOTerminalReceipt_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOTerminalReceipt::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOTerminalReceipt>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOTerminalReceipt::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOTerminalReceipt>(), &SOTerminalReceipt::ByteSizeLong,
+              &SOTerminalReceipt::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_._cached_size_),
+          false,
+      },
+      &SOTerminalReceipt::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOTerminalReceipt_class_data_ =
+        SOTerminalReceipt::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOTerminalReceipt::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOTerminalReceipt_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOTerminalReceipt_class_data_.tc_table);
+  return SOTerminalReceipt_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 1, 0, 2>
+SOTerminalReceipt::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SOTerminalReceipt_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOTerminalReceipt>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated .peer.Signature validator_signatures = 2;
+    {::_pbi::TcParser::FastMtR1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_.validator_signatures_)}},
+    // bytes inner = 1;
+    {::_pbi::TcParser::FastBS1,
+     {10, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_.inner_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bytes inner = 1;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_.inner_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // repeated .peer.Signature validator_signatures = 2;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_.validator_signatures_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::peer::Signature>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SOTerminalReceipt::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOTerminalReceipt)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.validator_signatures_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.inner_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOTerminalReceipt::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOTerminalReceipt& this_ = static_cast<const SOTerminalReceipt&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOTerminalReceipt::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOTerminalReceipt& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOTerminalReceipt)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bytes inner = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_inner().empty()) {
+      const ::std::string& _s = this_._internal_inner();
+      target = stream->WriteBytesMaybeAliased(1, _s, target);
+    }
+  }
+
+  // repeated .peer.Signature validator_signatures = 2;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_validator_signatures_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_validator_signatures().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              2, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOTerminalReceipt)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOTerminalReceipt::ByteSizeLong(const MessageLite& base) {
+  const SOTerminalReceipt& this_ = static_cast<const SOTerminalReceipt&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOTerminalReceipt::ByteSizeLong() const {
+  const SOTerminalReceipt& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOTerminalReceipt)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // repeated .peer.Signature validator_signatures = 2;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_validator_signatures_size();
+      for (const auto& msg : this_._internal_validator_signatures()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // bytes inner = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_inner().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_inner());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOTerminalReceipt::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOTerminalReceipt*>(&to_msg);
+  auto& from = static_cast<const SOTerminalReceipt&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOTerminalReceipt)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_validator_signatures()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_validator_signatures());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_inner().empty()) {
+        _this->_internal_set_inner(from._internal_inner());
+      } else {
+        if (_this->_impl_.inner_.IsDefault()) {
+          _this->_internal_set_inner("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOTerminalReceipt::CopyFrom(const SOTerminalReceipt& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOTerminalReceipt)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOTerminalReceipt::InternalSwap(SOTerminalReceipt* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.validator_signatures_.InternalSwap(&other->_impl_.validator_signatures_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.inner_, &other->_impl_.inner_, arena);
+}
+
+::google::protobuf::Metadata SOTerminalReceipt::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

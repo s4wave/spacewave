@@ -145,6 +145,10 @@ pub struct SoStateMessage {
     /// burst a separate /config-chain request after every cold state pull.
     #[prost(message, optional, tag="6")]
     pub config_chain: ::core::option::Option<super::super::super::sobject::SoConfigChainResponse>,
+    /// ReceiptProtocolEpoch advertises the per-SharedObject receipt-v1 activation.
+    /// Zero keeps receipt-v1 disabled; one marks the receipt owner active.
+    #[prost(uint32, tag="7")]
+    pub receipt_protocol_epoch: u32,
     /// Content is the message payload.
     #[prost(oneof="so_state_message::Content", tags="2, 3, 4, 5")]
     pub content: ::core::option::Option<so_state_message::Content>,
@@ -213,6 +217,90 @@ pub struct PostRootRequest {
     /// RejectedOps are the operations the validator rejected while producing Root.
     #[prost(message, repeated, tag="2")]
     pub rejected_ops: ::prost::alloc::vec::Vec<super::super::super::sobject::SoOperationRejection>,
+    /// TerminalReceipts are validator-signed terminal receipts for every accepted or rejected attempt terminalized by Root.
+    /// Receipt signatures are separate from Root signatures and cover each receipt's deterministic inner bytes.
+    #[prost(message, repeated, tag="3")]
+    pub terminal_receipts: ::prost::alloc::vec::Vec<super::super::super::sobject::SoTerminalReceipt>,
+    /// ReceiptProtocolEpoch binds root terminalization to the per-SharedObject receipt-v1 activation.
+    /// Zero keeps receipt-v1 disabled; an active object requires its advertised epoch.
+    #[prost(uint32, tag="4")]
+    pub receipt_protocol_epoch: u32,
+}
+/// SubmitOperationV1Request is the exact-key body for receipt-v1 operation admission.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubmitOperationV1Request {
+    /// Key identifies the immutable participant attempt.
+    #[prost(message, optional, tag="1")]
+    pub key: ::core::option::Option<super::super::super::sobject::SoMutationKey>,
+    /// ExactEnvelope is the exact serialized signed SOOperation envelope.
+    #[prost(bytes="vec", tag="2")]
+    pub exact_envelope: ::prost::alloc::vec::Vec<u8>,
+}
+/// SubmitOperationV1Response is the receipt-v1 admission result.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SubmitOperationV1Response {
+    /// State is the authoritative state of the submitted exact key.
+    #[prost(enumeration="super::super::super::sobject::SoReceiptState", tag="1")]
+    pub state: i32,
+    /// TerminalReceipt is present only when State is accepted or rejected.
+    #[prost(message, optional, tag="2")]
+    pub terminal_receipt: ::core::option::Option<super::super::super::sobject::SoTerminalReceipt>,
+}
+/// LookupOperationReceiptInner is the deterministic signed lookup payload.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LookupOperationReceiptInner {
+    /// Key identifies the exact participant attempt to look up.
+    #[prost(message, optional, tag="1")]
+    pub key: ::core::option::Option<super::super::super::sobject::SoMutationKey>,
+}
+/// LookupOperationReceiptRequest is a participant-signed exact-key lookup.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LookupOperationReceiptRequest {
+    /// Inner is the deterministic serialized LookupOperationReceiptInner bytes.
+    #[prost(bytes="vec", tag="1")]
+    pub inner: ::prost::alloc::vec::Vec<u8>,
+    /// Signature is the participant's signature over Inner bytes.
+    /// The participant_peer_id in the decoded key must sign this payload.
+    #[prost(message, optional, tag="2")]
+    pub signature: ::core::option::Option<super::super::super::peer::Signature>,
+}
+/// LookupOperationReceiptResponse is the authoritative exact-key lookup result.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LookupOperationReceiptResponse {
+    /// State is exactly NO_RECORD, PENDING, ACCEPTED, or REJECTED.
+    #[prost(enumeration="super::super::super::sobject::SoReceiptState", tag="1")]
+    pub state: i32,
+    /// TerminalReceipt is present only when State is accepted or rejected.
+    #[prost(message, optional, tag="2")]
+    pub terminal_receipt: ::core::option::Option<super::super::super::sobject::SoTerminalReceipt>,
+}
+/// AcknowledgeOperationReceiptInner is the deterministic signed acknowledgement payload.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AcknowledgeOperationReceiptInner {
+    /// Key identifies the exact participant attempt being acknowledged.
+    #[prost(message, optional, tag="1")]
+    pub key: ::core::option::Option<super::super::super::sobject::SoMutationKey>,
+    /// ReceiptDigest binds acknowledgement to the exact terminal receipt bytes.
+    #[prost(bytes="vec", tag="2")]
+    pub receipt_digest: ::prost::alloc::vec::Vec<u8>,
+}
+/// AcknowledgeOperationReceiptRequest is a participant-signed receipt acknowledgement.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AcknowledgeOperationReceiptRequest {
+    /// Inner is the deterministic serialized AcknowledgeOperationReceiptInner bytes.
+    #[prost(bytes="vec", tag="1")]
+    pub inner: ::prost::alloc::vec::Vec<u8>,
+    /// Signature is the participant's signature over Inner bytes.
+    /// The participant_peer_id in the decoded key must sign this payload.
+    #[prost(message, optional, tag="2")]
+    pub signature: ::core::option::Option<super::super::super::peer::Signature>,
+}
+/// AcknowledgeOperationReceiptResponse reports durable acknowledgement.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AcknowledgeOperationReceiptResponse {
+    /// Acknowledged is true when the matching terminal receipt became prune-eligible.
+    #[prost(bool, tag="1")]
+    pub acknowledged: bool,
 }
 /// SessionMessage is the multiplexed WebSocket envelope sent from
 /// Session DO to connected clients. Wraps SO-specific messages with

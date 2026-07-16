@@ -133,7 +133,7 @@ func TestPhase1TransitionTable(t *testing.T) {
 	receipt := testReceipt(key, testDigest("envelope"), []byte("terminal"), 1, testDigest("root"))
 	lookup := &SOJournalLookup{
 		Key:               key.CloneVT(),
-		State:             SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD,
+		State:             SOReceiptState_SO_RECEIPT_STATE_NO_RECORD,
 		Response:          []byte("no-record"),
 		ResponseDigest:    testDigest("no-record"),
 		ConfigChainDigest: testDigest("config"),
@@ -181,7 +181,7 @@ func TestPhase1ExhaustiveTransitionMatrix(t *testing.T) {
 	receipt := testReceipt(key, testDigest("matrix-envelope"), []byte("matrix-terminal"), 1, testDigest("matrix-root"))
 	ack := &SOJournalAcknowledgement{Key: key.CloneVT(), ReceiptDigest: receipt.GetTerminalReceiptDigest()}
 	projection := &SOJournalProjection{Key: key.CloneVT(), ReceiptDigest: receipt.GetTerminalReceiptDigest(), AuthoritativeRootSeqno: 1, AuthoritativeRootDigest: testDigest("matrix-root")}
-	lookup := &SOJournalLookup{Key: key.CloneVT(), State: SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD, Response: []byte("matrix-no-record"), ResponseDigest: testDigest("matrix-no-record"), ConfigChainDigest: testDigest("config")}
+	lookup := &SOJournalLookup{Key: key.CloneVT(), State: SOReceiptState_SO_RECEIPT_STATE_NO_RECORD, Response: []byte("matrix-no-record"), ResponseDigest: testDigest("matrix-no-record"), ConfigChainDigest: testDigest("config")}
 	candidates := map[SOJournalRecordKind]*SOJournalRecord{
 		SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_INTENT:                   intent,
 		SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_SIGNED_ENVELOPE:          envelope,
@@ -936,7 +936,7 @@ func TestPhase1FileJournalMetadataLifecycle(t *testing.T) {
 	}
 }
 
-func prepareRetainedCheckpoint(t *testing.T, markerAhead bool, lookupState SOJournalLookupState) (*memoryJournalStorage, *JournalCrypto, *SOMutationKey, []byte, uint64, []byte) {
+func prepareRetainedCheckpoint(t *testing.T, markerAhead bool, lookupState SOReceiptState) (*memoryJournalStorage, *JournalCrypto, *SOMutationKey, []byte, uint64, []byte) {
 	t.Helper()
 	scope := testScope("activation-boundary")
 	crypto := testJournalCrypto(t, scope)
@@ -978,7 +978,7 @@ func prepareRetainedCheckpoint(t *testing.T, markerAhead bool, lookupState SOJou
 		if err := pipeline.appendRecord(NewJournalReceiptLookupRecord(key, lineage, version, lookup)); err != nil {
 			t.Fatal(err)
 		}
-		if lookupState == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD {
+		if lookupState == SOReceiptState_SO_RECEIPT_STATE_NO_RECORD {
 			if err := pipeline.AppendResendAuthorization(key); err != nil {
 				t.Fatal(err)
 			}
@@ -1022,15 +1022,15 @@ func TestPhase1ActivationVerificationBoundary(t *testing.T) {
 	for _, fixture := range []struct {
 		name             string
 		markerAhead      bool
-		lookupState      SOJournalLookupState
+		lookupState      SOReceiptState
 		wantVerification error
 	}{
 		{name: "receipt-marker-ahead", markerAhead: true, wantVerification: ErrJournalReceiptVerification},
 		{name: "receipt-marker-active", wantVerification: ErrJournalReceiptVerification},
-		{name: "no-record-marker-ahead", markerAhead: true, lookupState: SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD, wantVerification: ErrJournalLookupVerification},
-		{name: "no-record-marker-active", lookupState: SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD, wantVerification: ErrJournalLookupVerification},
-		{name: "pending-marker-ahead", markerAhead: true, lookupState: SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_PENDING, wantVerification: ErrJournalLookupVerification},
-		{name: "pending-marker-active", lookupState: SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_PENDING, wantVerification: ErrJournalLookupVerification},
+		{name: "no-record-marker-ahead", markerAhead: true, lookupState: SOReceiptState_SO_RECEIPT_STATE_NO_RECORD, wantVerification: ErrJournalLookupVerification},
+		{name: "no-record-marker-active", lookupState: SOReceiptState_SO_RECEIPT_STATE_NO_RECORD, wantVerification: ErrJournalLookupVerification},
+		{name: "pending-marker-ahead", markerAhead: true, lookupState: SOReceiptState_SO_RECEIPT_STATE_PENDING, wantVerification: ErrJournalLookupVerification},
+		{name: "pending-marker-active", lookupState: SOReceiptState_SO_RECEIPT_STATE_PENDING, wantVerification: ErrJournalLookupVerification},
 	} {
 		t.Run(fixture.name, func(t *testing.T) {
 			storage, crypto, _, markerBefore, floorBefore, oldBytes := prepareRetainedCheckpoint(t, fixture.markerAhead, fixture.lookupState)
@@ -1178,7 +1178,7 @@ func TestPhase1ResendAuthorizationTerminalClears(t *testing.T) {
 		response := []byte("resend-no-record")
 		lookup := &SOJournalLookup{
 			Key:               key.CloneVT(),
-			State:             SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD,
+			State:             SOReceiptState_SO_RECEIPT_STATE_NO_RECORD,
 			Response:          response,
 			ResponseDigest:    testDigest(string(response)),
 			ConfigChainDigest: testDigest("config"),
@@ -1611,7 +1611,7 @@ func TestPhase1AmbiguousSendRequiresLookup(t *testing.T) {
 	if sendCount != 1 {
 		t.Fatalf("recovered send count = %d, want 1", sendCount)
 	}
-	lookup := &SOJournalLookup{Key: key.CloneVT(), State: SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD, Response: []byte("no-record"), ResponseDigest: testDigest("no-record"), ConfigChainDigest: testDigest("config")}
+	lookup := &SOJournalLookup{Key: key.CloneVT(), State: SOReceiptState_SO_RECEIPT_STATE_NO_RECORD, Response: []byte("no-record"), ResponseDigest: testDigest("no-record"), ConfigChainDigest: testDigest("config")}
 	if err := reopened.appendRecord(NewJournalReceiptLookupRecord(key, lineage, version, lookup)); err != nil {
 		t.Fatal(err)
 	}
@@ -1730,7 +1730,7 @@ func TestPhase1ReceiptVerifierBoundary(t *testing.T) {
 	if err := pipeline.appendRecord(newJournalSentRecord(key, lineage, version)); err != nil {
 		t.Fatal(err)
 	}
-	lookup := &SOJournalLookup{Key: key.CloneVT(), State: SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD, Response: []byte("no-record"), ResponseDigest: testDigest("no-record"), ConfigChainDigest: testDigest("config")}
+	lookup := &SOJournalLookup{Key: key.CloneVT(), State: SOReceiptState_SO_RECEIPT_STATE_NO_RECORD, Response: []byte("no-record"), ResponseDigest: testDigest("no-record"), ConfigChainDigest: testDigest("config")}
 	if err := pipeline.appendRecord(NewJournalReceiptLookupRecord(key, lineage, version, lookup)); !errors.Is(err, ErrJournalLookupVerification) {
 		t.Fatalf("failed lookup verifier accepted append: %v", err)
 	}
@@ -1757,10 +1757,10 @@ func TestPhase1LookupVerifierReopenStates(t *testing.T) {
 	})
 	for _, fixture := range []struct {
 		name  string
-		state SOJournalLookupState
+		state SOReceiptState
 	}{
-		{name: "pending", state: SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_PENDING},
-		{name: "no-record", state: SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD},
+		{name: "pending", state: SOReceiptState_SO_RECEIPT_STATE_PENDING},
+		{name: "no-record", state: SOReceiptState_SO_RECEIPT_STATE_NO_RECORD},
 	} {
 		t.Run(fixture.name, func(t *testing.T) {
 			key := testMutationKey(scope, "peer", fixture.name)

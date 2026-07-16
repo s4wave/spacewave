@@ -22,6 +22,7 @@
 #include "google/protobuf/io/coded_stream.h"
 #include "google/protobuf/arena.h"
 #include "google/protobuf/arenastring.h"
+#include "google/protobuf/generated_message_bases.h"
 #include "google/protobuf/generated_message_tctable_decl.h"
 #include "google/protobuf/generated_message_util.h"
 #include "google/protobuf/metadata_lite.h"
@@ -66,8 +67,6 @@ enum SOConsensusMode : int;
 extern const uint32_t SOConsensusMode_internal_data_[];
 enum SOJournalAttemptState : int;
 extern const uint32_t SOJournalAttemptState_internal_data_[];
-enum SOJournalLookupState : int;
-extern const uint32_t SOJournalLookupState_internal_data_[];
 enum SOJournalOutcome : int;
 extern const uint32_t SOJournalOutcome_internal_data_[];
 enum SOJournalReadiness : int;
@@ -78,6 +77,8 @@ enum SOJournalRecoveryReason : int;
 extern const uint32_t SOJournalRecoveryReason_internal_data_[];
 enum SOParticipantRole : int;
 extern const uint32_t SOParticipantRole_internal_data_[];
+enum SOReceiptState : int;
+extern const uint32_t SOReceiptState_internal_data_[];
 enum SORevocationReason : int;
 extern const uint32_t SORevocationReason_internal_data_[];
 enum SharedObjectHealthCommonReason : int;
@@ -244,6 +245,18 @@ class SOState;
 struct SOStateDefaultTypeInternal;
 extern SOStateDefaultTypeInternal _SOState_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull SOState_class_data_;
+class SOTerminalReceipt;
+struct SOTerminalReceiptDefaultTypeInternal;
+extern SOTerminalReceiptDefaultTypeInternal _SOTerminalReceipt_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOTerminalReceipt_class_data_;
+class SOTerminalReceiptAccepted;
+struct SOTerminalReceiptAcceptedDefaultTypeInternal;
+extern SOTerminalReceiptAcceptedDefaultTypeInternal _SOTerminalReceiptAccepted_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOTerminalReceiptAccepted_class_data_;
+class SOTerminalReceiptInner;
+struct SOTerminalReceiptInnerDefaultTypeInternal;
+extern SOTerminalReceiptInnerDefaultTypeInternal _SOTerminalReceiptInner_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOTerminalReceiptInner_class_data_;
 class SharedObjectConfig;
 struct SharedObjectConfigDefaultTypeInternal;
 extern SharedObjectConfigDefaultTypeInternal _SharedObjectConfig_default_instance_;
@@ -281,9 +294,6 @@ template <>
 internal::EnumTraitsT<::sobject::SOJournalAttemptState_internal_data_>
     internal::EnumTraitsImpl::value<::sobject::SOJournalAttemptState>;
 template <>
-internal::EnumTraitsT<::sobject::SOJournalLookupState_internal_data_>
-    internal::EnumTraitsImpl::value<::sobject::SOJournalLookupState>;
-template <>
 internal::EnumTraitsT<::sobject::SOJournalOutcome_internal_data_>
     internal::EnumTraitsImpl::value<::sobject::SOJournalOutcome>;
 template <>
@@ -298,6 +308,9 @@ internal::EnumTraitsT<::sobject::SOJournalRecoveryReason_internal_data_>
 template <>
 internal::EnumTraitsT<::sobject::SOParticipantRole_internal_data_>
     internal::EnumTraitsImpl::value<::sobject::SOParticipantRole>;
+template <>
+internal::EnumTraitsT<::sobject::SOReceiptState_internal_data_>
+    internal::EnumTraitsImpl::value<::sobject::SOReceiptState>;
 template <>
 internal::EnumTraitsT<::sobject::SORevocationReason_internal_data_>
     internal::EnumTraitsImpl::value<::sobject::SORevocationReason>;
@@ -753,45 +766,6 @@ inline bool SOJournalOutcome_Parse(
   return ::google::protobuf::internal::ParseNamedEnum<SOJournalOutcome>(SOJournalOutcome_descriptor(), name,
                                            value);
 }
-enum SOJournalLookupState : int {
-  SO_JOURNAL_LOOKUP_STATE_UNSPECIFIED = 0,
-  SO_JOURNAL_LOOKUP_STATE_NO_RECORD = 1,
-  SO_JOURNAL_LOOKUP_STATE_PENDING = 2,
-  SO_JOURNAL_LOOKUP_STATE_ACCEPTED = 3,
-  SO_JOURNAL_LOOKUP_STATE_REJECTED = 4,
-  SOJournalLookupState_INT_MIN_SENTINEL_DO_NOT_USE_ =
-      ::std::numeric_limits<::int32_t>::min(),
-  SOJournalLookupState_INT_MAX_SENTINEL_DO_NOT_USE_ =
-      ::std::numeric_limits<::int32_t>::max(),
-};
-
-extern const uint32_t SOJournalLookupState_internal_data_[];
-inline constexpr SOJournalLookupState SOJournalLookupState_MIN =
-    static_cast<SOJournalLookupState>(0);
-inline constexpr SOJournalLookupState SOJournalLookupState_MAX =
-    static_cast<SOJournalLookupState>(4);
-inline bool SOJournalLookupState_IsValid(int value) {
-  return 0 <= value && value <= 4;
-}
-inline constexpr int SOJournalLookupState_ARRAYSIZE = 4 + 1;
-const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOJournalLookupState_descriptor();
-template <typename T>
-const ::std::string& SOJournalLookupState_Name(T value) {
-  static_assert(::std::is_same<T, SOJournalLookupState>::value ||
-                    ::std::is_integral<T>::value,
-                "Incorrect type passed to SOJournalLookupState_Name().");
-  return SOJournalLookupState_Name(static_cast<SOJournalLookupState>(value));
-}
-template <>
-inline const ::std::string& SOJournalLookupState_Name(SOJournalLookupState value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<SOJournalLookupState_descriptor, 0, 4>(
-      static_cast<int>(value));
-}
-inline bool SOJournalLookupState_Parse(
-    ::absl::string_view name, SOJournalLookupState* PROTOBUF_NONNULL value) {
-  return ::google::protobuf::internal::ParseNamedEnum<SOJournalLookupState>(SOJournalLookupState_descriptor(), name,
-                                           value);
-}
 enum SOJournalReadiness : int {
   SO_JOURNAL_READINESS_UNSPECIFIED = 0,
   SO_JOURNAL_READINESS_READY = 1,
@@ -870,6 +844,45 @@ inline const ::std::string& SOJournalRecoveryReason_Name(SOJournalRecoveryReason
 inline bool SOJournalRecoveryReason_Parse(
     ::absl::string_view name, SOJournalRecoveryReason* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<SOJournalRecoveryReason>(SOJournalRecoveryReason_descriptor(), name,
+                                           value);
+}
+enum SOReceiptState : int {
+  SO_RECEIPT_STATE_UNSPECIFIED = 0,
+  SO_RECEIPT_STATE_NO_RECORD = 1,
+  SO_RECEIPT_STATE_PENDING = 2,
+  SO_RECEIPT_STATE_ACCEPTED = 3,
+  SO_RECEIPT_STATE_REJECTED = 4,
+  SOReceiptState_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  SOReceiptState_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t SOReceiptState_internal_data_[];
+inline constexpr SOReceiptState SOReceiptState_MIN =
+    static_cast<SOReceiptState>(0);
+inline constexpr SOReceiptState SOReceiptState_MAX =
+    static_cast<SOReceiptState>(4);
+inline bool SOReceiptState_IsValid(int value) {
+  return 0 <= value && value <= 4;
+}
+inline constexpr int SOReceiptState_ARRAYSIZE = 4 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOReceiptState_descriptor();
+template <typename T>
+const ::std::string& SOReceiptState_Name(T value) {
+  static_assert(::std::is_same<T, SOReceiptState>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SOReceiptState_Name().");
+  return SOReceiptState_Name(static_cast<SOReceiptState>(value));
+}
+template <>
+inline const ::std::string& SOReceiptState_Name(SOReceiptState value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<SOReceiptState_descriptor, 0, 4>(
+      static_cast<int>(value));
+}
+inline bool SOReceiptState_Parse(
+    ::absl::string_view name, SOReceiptState* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SOReceiptState>(SOReceiptState_descriptor(), name,
                                            value);
 }
 
@@ -1360,6 +1373,140 @@ class SharedObjectHealth final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull SharedObjectHealth_class_data_;
+// -------------------------------------------------------------------
+
+class SOTerminalReceiptAccepted final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:sobject.SOTerminalReceiptAccepted) */ {
+ public:
+  inline SOTerminalReceiptAccepted() : SOTerminalReceiptAccepted(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOTerminalReceiptAccepted* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOTerminalReceiptAccepted));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOTerminalReceiptAccepted(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOTerminalReceiptAccepted(const SOTerminalReceiptAccepted& from) : SOTerminalReceiptAccepted(nullptr, from) {}
+  inline SOTerminalReceiptAccepted(SOTerminalReceiptAccepted&& from) noexcept
+      : SOTerminalReceiptAccepted(nullptr, ::std::move(from)) {}
+  inline SOTerminalReceiptAccepted& operator=(const SOTerminalReceiptAccepted& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOTerminalReceiptAccepted& operator=(SOTerminalReceiptAccepted&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOTerminalReceiptAccepted& default_instance() {
+    return *reinterpret_cast<const SOTerminalReceiptAccepted*>(
+        &_SOTerminalReceiptAccepted_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 45;
+  friend void swap(SOTerminalReceiptAccepted& a, SOTerminalReceiptAccepted& b) { a.Swap(&b); }
+  inline void Swap(SOTerminalReceiptAccepted* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOTerminalReceiptAccepted* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOTerminalReceiptAccepted* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<SOTerminalReceiptAccepted>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const SOTerminalReceiptAccepted& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const SOTerminalReceiptAccepted& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOTerminalReceiptAccepted"; }
+
+  explicit SOTerminalReceiptAccepted(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOTerminalReceiptAccepted(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOTerminalReceiptAccepted& from);
+  SOTerminalReceiptAccepted(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOTerminalReceiptAccepted&& from) noexcept
+      : SOTerminalReceiptAccepted(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:sobject.SOTerminalReceiptAccepted)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOTerminalReceiptAccepted_class_data_;
 // -------------------------------------------------------------------
 
 class SORootInner final : public ::google::protobuf::Message
@@ -4698,6 +4845,220 @@ class SharedObjectConfig final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull SharedObjectConfig_class_data_;
+// -------------------------------------------------------------------
+
+class SOTerminalReceipt final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOTerminalReceipt) */ {
+ public:
+  inline SOTerminalReceipt() : SOTerminalReceipt(nullptr) {}
+  ~SOTerminalReceipt() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOTerminalReceipt* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOTerminalReceipt));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOTerminalReceipt(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOTerminalReceipt(const SOTerminalReceipt& from) : SOTerminalReceipt(nullptr, from) {}
+  inline SOTerminalReceipt(SOTerminalReceipt&& from) noexcept
+      : SOTerminalReceipt(nullptr, ::std::move(from)) {}
+  inline SOTerminalReceipt& operator=(const SOTerminalReceipt& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOTerminalReceipt& operator=(SOTerminalReceipt&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOTerminalReceipt& default_instance() {
+    return *reinterpret_cast<const SOTerminalReceipt*>(
+        &_SOTerminalReceipt_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 47;
+  friend void swap(SOTerminalReceipt& a, SOTerminalReceipt& b) { a.Swap(&b); }
+  inline void Swap(SOTerminalReceipt* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOTerminalReceipt* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOTerminalReceipt* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOTerminalReceipt>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOTerminalReceipt& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOTerminalReceipt& from) { SOTerminalReceipt::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOTerminalReceipt* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOTerminalReceipt"; }
+
+  explicit SOTerminalReceipt(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOTerminalReceipt(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOTerminalReceipt& from);
+  SOTerminalReceipt(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOTerminalReceipt&& from) noexcept
+      : SOTerminalReceipt(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kValidatorSignaturesFieldNumber = 2,
+    kInnerFieldNumber = 1,
+  };
+  // repeated .peer.Signature validator_signatures = 2;
+  int validator_signatures_size() const;
+  private:
+  int _internal_validator_signatures_size() const;
+
+  public:
+  void clear_validator_signatures() ;
+  ::peer::Signature* PROTOBUF_NONNULL mutable_validator_signatures(int index);
+  ::google::protobuf::RepeatedPtrField<::peer::Signature>* PROTOBUF_NONNULL mutable_validator_signatures();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::peer::Signature>& _internal_validator_signatures() const;
+  ::google::protobuf::RepeatedPtrField<::peer::Signature>* PROTOBUF_NONNULL _internal_mutable_validator_signatures();
+  public:
+  const ::peer::Signature& validator_signatures(int index) const;
+  ::peer::Signature* PROTOBUF_NONNULL add_validator_signatures();
+  const ::google::protobuf::RepeatedPtrField<::peer::Signature>& validator_signatures() const;
+  // bytes inner = 1;
+  void clear_inner() ;
+  const ::std::string& inner() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_inner(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_inner();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_inner();
+  void set_allocated_inner(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_inner() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_inner(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_inner();
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.SOTerminalReceipt)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOTerminalReceipt& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::peer::Signature > validator_signatures_;
+    ::google::protobuf::internal::ArenaStringPtr inner_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOTerminalReceipt_class_data_;
 // -------------------------------------------------------------------
 
 class SORoot final : public ::google::protobuf::Message
@@ -8408,6 +8769,380 @@ class SharedObjectListEntry final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull SharedObjectListEntry_class_data_;
 // -------------------------------------------------------------------
 
+class SOTerminalReceiptInner final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOTerminalReceiptInner) */ {
+ public:
+  inline SOTerminalReceiptInner() : SOTerminalReceiptInner(nullptr) {}
+  ~SOTerminalReceiptInner() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOTerminalReceiptInner* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOTerminalReceiptInner));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOTerminalReceiptInner(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOTerminalReceiptInner(const SOTerminalReceiptInner& from) : SOTerminalReceiptInner(nullptr, from) {}
+  inline SOTerminalReceiptInner(SOTerminalReceiptInner&& from) noexcept
+      : SOTerminalReceiptInner(nullptr, ::std::move(from)) {}
+  inline SOTerminalReceiptInner& operator=(const SOTerminalReceiptInner& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOTerminalReceiptInner& operator=(SOTerminalReceiptInner&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOTerminalReceiptInner& default_instance() {
+    return *reinterpret_cast<const SOTerminalReceiptInner*>(
+        &_SOTerminalReceiptInner_default_instance_);
+  }
+  enum OutcomeCase {
+    kAccepted = 3,
+    kSignedRejection = 4,
+    OUTCOME_NOT_SET = 0,
+  };
+  static constexpr int kIndexInFileMessages = 46;
+  friend void swap(SOTerminalReceiptInner& a, SOTerminalReceiptInner& b) { a.Swap(&b); }
+  inline void Swap(SOTerminalReceiptInner* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOTerminalReceiptInner* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOTerminalReceiptInner* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOTerminalReceiptInner>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOTerminalReceiptInner& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOTerminalReceiptInner& from) { SOTerminalReceiptInner::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOTerminalReceiptInner* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOTerminalReceiptInner"; }
+
+  explicit SOTerminalReceiptInner(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOTerminalReceiptInner(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOTerminalReceiptInner& from);
+  SOTerminalReceiptInner(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOTerminalReceiptInner&& from) noexcept
+      : SOTerminalReceiptInner(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kEnvelopeDigestFieldNumber = 2,
+    kAuthoritativeRootDigestFieldNumber = 6,
+    kConfigChainDigestFieldNumber = 7,
+    kValidatorSetDigestFieldNumber = 9,
+    kKeyFieldNumber = 1,
+    kSupersedesFieldNumber = 11,
+    kAuthoritativeRootSeqnoFieldNumber = 5,
+    kTerminalUnixMillisFieldNumber = 10,
+    kConsensusModeFieldNumber = 8,
+    kAcceptedFieldNumber = 3,
+    kSignedRejectionFieldNumber = 4,
+  };
+  // bytes envelope_digest = 2;
+  void clear_envelope_digest() ;
+  const ::std::string& envelope_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_envelope_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_envelope_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_envelope_digest();
+  void set_allocated_envelope_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_envelope_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_envelope_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_envelope_digest();
+
+  public:
+  // bytes authoritative_root_digest = 6;
+  void clear_authoritative_root_digest() ;
+  const ::std::string& authoritative_root_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_authoritative_root_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_authoritative_root_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_authoritative_root_digest();
+  void set_allocated_authoritative_root_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_authoritative_root_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_authoritative_root_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_authoritative_root_digest();
+
+  public:
+  // bytes config_chain_digest = 7;
+  void clear_config_chain_digest() ;
+  const ::std::string& config_chain_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_config_chain_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_config_chain_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_config_chain_digest();
+  void set_allocated_config_chain_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_config_chain_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_config_chain_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_config_chain_digest();
+
+  public:
+  // bytes validator_set_digest = 9;
+  void clear_validator_set_digest() ;
+  const ::std::string& validator_set_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_validator_set_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_validator_set_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_validator_set_digest();
+  void set_allocated_validator_set_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_validator_set_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_validator_set_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_validator_set_digest();
+
+  public:
+  // .sobject.SOMutationKey key = 1;
+  bool has_key() const;
+  void clear_key() ;
+  const ::sobject::SOMutationKey& key() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_key();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_key();
+  void set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_key();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_key() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // .sobject.SOMutationKey supersedes = 11;
+  bool has_supersedes() const;
+  void clear_supersedes() ;
+  const ::sobject::SOMutationKey& supersedes() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_supersedes();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_supersedes();
+  void set_allocated_supersedes(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_supersedes(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_supersedes();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_supersedes() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_supersedes();
+
+  public:
+  // uint64 authoritative_root_seqno = 5;
+  void clear_authoritative_root_seqno() ;
+  ::uint64_t authoritative_root_seqno() const;
+  void set_authoritative_root_seqno(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_authoritative_root_seqno() const;
+  void _internal_set_authoritative_root_seqno(::uint64_t value);
+
+  public:
+  // uint64 terminal_unix_millis = 10;
+  void clear_terminal_unix_millis() ;
+  ::uint64_t terminal_unix_millis() const;
+  void set_terminal_unix_millis(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_terminal_unix_millis() const;
+  void _internal_set_terminal_unix_millis(::uint64_t value);
+
+  public:
+  // .sobject.SOConsensusMode consensus_mode = 8;
+  void clear_consensus_mode() ;
+  ::sobject::SOConsensusMode consensus_mode() const;
+  void set_consensus_mode(::sobject::SOConsensusMode value);
+
+  private:
+  ::sobject::SOConsensusMode _internal_consensus_mode() const;
+  void _internal_set_consensus_mode(::sobject::SOConsensusMode value);
+
+  public:
+  // .sobject.SOTerminalReceiptAccepted accepted = 3;
+  bool has_accepted() const;
+  private:
+  bool _internal_has_accepted() const;
+
+  public:
+  void clear_accepted() ;
+  const ::sobject::SOTerminalReceiptAccepted& accepted() const;
+  [[nodiscard]] ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE release_accepted();
+  ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NONNULL mutable_accepted();
+  void set_allocated_accepted(::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_accepted(::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE value);
+  ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE unsafe_arena_release_accepted();
+
+  private:
+  const ::sobject::SOTerminalReceiptAccepted& _internal_accepted() const;
+  ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NONNULL _internal_mutable_accepted();
+
+  public:
+  // .sobject.SOOperationRejection signed_rejection = 4;
+  bool has_signed_rejection() const;
+  private:
+  bool _internal_has_signed_rejection() const;
+
+  public:
+  void clear_signed_rejection() ;
+  const ::sobject::SOOperationRejection& signed_rejection() const;
+  [[nodiscard]] ::sobject::SOOperationRejection* PROTOBUF_NULLABLE release_signed_rejection();
+  ::sobject::SOOperationRejection* PROTOBUF_NONNULL mutable_signed_rejection();
+  void set_allocated_signed_rejection(::sobject::SOOperationRejection* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_signed_rejection(::sobject::SOOperationRejection* PROTOBUF_NULLABLE value);
+  ::sobject::SOOperationRejection* PROTOBUF_NULLABLE unsafe_arena_release_signed_rejection();
+
+  private:
+  const ::sobject::SOOperationRejection& _internal_signed_rejection() const;
+  ::sobject::SOOperationRejection* PROTOBUF_NONNULL _internal_mutable_signed_rejection();
+
+  public:
+  void clear_outcome();
+  OutcomeCase outcome_case() const;
+  // @@protoc_insertion_point(class_scope:sobject.SOTerminalReceiptInner)
+ private:
+  class _Internal;
+  void set_has_accepted();
+  void set_has_signed_rejection();
+  inline bool has_outcome() const;
+  inline void clear_has_outcome();
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<4, 11,
+                                   4, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOTerminalReceiptInner& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr envelope_digest_;
+    ::google::protobuf::internal::ArenaStringPtr authoritative_root_digest_;
+    ::google::protobuf::internal::ArenaStringPtr config_chain_digest_;
+    ::google::protobuf::internal::ArenaStringPtr validator_set_digest_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE key_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE supersedes_;
+    ::uint64_t authoritative_root_seqno_;
+    ::uint64_t terminal_unix_millis_;
+    int consensus_mode_;
+    union OutcomeUnion {
+      constexpr OutcomeUnion() : _constinit_{} {}
+      ::google::protobuf::internal::ConstantInitialized _constinit_;
+      ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE accepted_;
+      ::sobject::SOOperationRejection* PROTOBUF_NULLABLE signed_rejection_;
+    } outcome_;
+    ::uint32_t _oneof_case_[1];
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOTerminalReceiptInner_class_data_;
+// -------------------------------------------------------------------
+
 class SOPeerOpRejections final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:sobject.SOPeerOpRejections) */ {
  public:
@@ -9079,14 +9814,14 @@ class SOJournalLookup final : public ::google::protobuf::Message
   ::sobject::SOJournalReceipt* PROTOBUF_NONNULL _internal_mutable_receipt();
 
   public:
-  // .sobject.SOJournalLookupState state = 2;
+  // .sobject.SOReceiptState state = 2;
   void clear_state() ;
-  ::sobject::SOJournalLookupState state() const;
-  void set_state(::sobject::SOJournalLookupState value);
+  ::sobject::SOReceiptState state() const;
+  void set_state(::sobject::SOReceiptState value);
 
   private:
-  ::sobject::SOJournalLookupState _internal_state() const;
-  void _internal_set_state(::sobject::SOJournalLookupState value);
+  ::sobject::SOReceiptState _internal_state() const;
+  void _internal_set_state(::sobject::SOReceiptState value);
 
   public:
   // @@protoc_insertion_point(class_scope:sobject.SOJournalLookup)
@@ -19949,27 +20684,27 @@ inline void SOJournalLookup::set_allocated_key(::sobject::SOMutationKey* PROTOBU
   // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalLookup.key)
 }
 
-// .sobject.SOJournalLookupState state = 2;
+// .sobject.SOReceiptState state = 2;
 inline void SOJournalLookup::clear_state() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.state_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
                   0x00000020U);
 }
-inline ::sobject::SOJournalLookupState SOJournalLookup::state() const {
+inline ::sobject::SOReceiptState SOJournalLookup::state() const {
   // @@protoc_insertion_point(field_get:sobject.SOJournalLookup.state)
   return _internal_state();
 }
-inline void SOJournalLookup::set_state(::sobject::SOJournalLookupState value) {
+inline void SOJournalLookup::set_state(::sobject::SOReceiptState value) {
   _internal_set_state(value);
   SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   // @@protoc_insertion_point(field_set:sobject.SOJournalLookup.state)
 }
-inline ::sobject::SOJournalLookupState SOJournalLookup::_internal_state() const {
+inline ::sobject::SOReceiptState SOJournalLookup::_internal_state() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
-  return static_cast<::sobject::SOJournalLookupState>(_impl_.state_);
+  return static_cast<::sobject::SOReceiptState>(_impl_.state_);
 }
-inline void SOJournalLookup::_internal_set_state(::sobject::SOJournalLookupState value) {
+inline void SOJournalLookup::_internal_set_state(::sobject::SOReceiptState value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.state_ = value;
 }
@@ -23766,6 +24501,839 @@ SOJournalCheckpoint::_internal_mutable_attempts() {
   return &_impl_.attempts_;
 }
 
+// -------------------------------------------------------------------
+
+// SOTerminalReceiptAccepted
+
+// -------------------------------------------------------------------
+
+// SOTerminalReceiptInner
+
+// .sobject.SOMutationKey key = 1;
+inline bool SOTerminalReceiptInner::has_key() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  PROTOBUF_ASSUME(!value || _impl_.key_ != nullptr);
+  return value;
+}
+inline void SOTerminalReceiptInner::clear_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ != nullptr) _impl_.key_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::sobject::SOMutationKey& SOTerminalReceiptInner::_internal_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.key_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& SOTerminalReceiptInner::key() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.key)
+  return _internal_key();
+}
+inline void SOTerminalReceiptInner::unsafe_arena_set_allocated_key(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOTerminalReceiptInner.key)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::sobject::SOMutationKey* released = _impl_.key_;
+  _impl_.key_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOTerminalReceiptInner::unsafe_arena_release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.key)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::sobject::SOMutationKey* temp = _impl_.key_;
+  _impl_.key_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.key_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_key();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.key)
+  return _msg;
+}
+inline void SOTerminalReceiptInner::set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.key)
+}
+
+// bytes envelope_digest = 2;
+inline void SOTerminalReceiptInner::clear_envelope_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.envelope_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SOTerminalReceiptInner::envelope_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.envelope_digest)
+  return _internal_envelope_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOTerminalReceiptInner::set_envelope_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.envelope_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceiptInner.envelope_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_envelope_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_envelope_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.envelope_digest)
+  return _s;
+}
+inline const ::std::string& SOTerminalReceiptInner::_internal_envelope_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.envelope_digest_.Get();
+}
+inline void SOTerminalReceiptInner::_internal_set_envelope_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.envelope_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_envelope_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.envelope_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_envelope_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.envelope_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.envelope_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.envelope_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOTerminalReceiptInner::set_allocated_envelope_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.envelope_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.envelope_digest_.IsDefault()) {
+    _impl_.envelope_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.envelope_digest)
+}
+
+// .sobject.SOTerminalReceiptAccepted accepted = 3;
+inline bool SOTerminalReceiptInner::has_accepted() const {
+  return outcome_case() == kAccepted;
+}
+inline bool SOTerminalReceiptInner::_internal_has_accepted() const {
+  return outcome_case() == kAccepted;
+}
+inline void SOTerminalReceiptInner::set_has_accepted() {
+  _impl_._oneof_case_[0] = kAccepted;
+}
+inline void SOTerminalReceiptInner::clear_accepted() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (outcome_case() == kAccepted) {
+    if (GetArena() == nullptr) {
+      delete _impl_.outcome_.accepted_;
+    } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+      ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.outcome_.accepted_);
+    }
+    clear_has_outcome();
+  }
+}
+inline ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_accepted() {
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.accepted)
+  if (outcome_case() == kAccepted) {
+    clear_has_outcome();
+    auto* temp = _impl_.outcome_.accepted_;
+    if (GetArena() != nullptr) {
+      temp = ::google::protobuf::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.outcome_.accepted_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::sobject::SOTerminalReceiptAccepted& SOTerminalReceiptInner::_internal_accepted() const {
+  return outcome_case() == kAccepted ? static_cast<const ::sobject::SOTerminalReceiptAccepted&>(*_impl_.outcome_.accepted_)
+                     : reinterpret_cast<const ::sobject::SOTerminalReceiptAccepted&>(::sobject::_SOTerminalReceiptAccepted_default_instance_);
+}
+inline const ::sobject::SOTerminalReceiptAccepted& SOTerminalReceiptInner::accepted() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.accepted)
+  return _internal_accepted();
+}
+inline ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE SOTerminalReceiptInner::unsafe_arena_release_accepted() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:sobject.SOTerminalReceiptInner.accepted)
+  if (outcome_case() == kAccepted) {
+    clear_has_outcome();
+    auto* temp = _impl_.outcome_.accepted_;
+    _impl_.outcome_.accepted_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void SOTerminalReceiptInner::unsafe_arena_set_allocated_accepted(
+    ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE value) {
+  // We rely on the oneof clear method to free the earlier contents
+  // of this oneof. We can directly use the pointer we're given to
+  // set the new value.
+  clear_outcome();
+  if (value) {
+    set_has_accepted();
+    _impl_.outcome_.accepted_ = value;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOTerminalReceiptInner.accepted)
+}
+inline ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_accepted() {
+  if (outcome_case() != kAccepted) {
+    clear_outcome();
+    set_has_accepted();
+    _impl_.outcome_.accepted_ = 
+        ::google::protobuf::Message::DefaultConstruct<::sobject::SOTerminalReceiptAccepted>(GetArena());
+  }
+  return _impl_.outcome_.accepted_;
+}
+inline ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_accepted()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::sobject::SOTerminalReceiptAccepted* _msg = _internal_mutable_accepted();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.accepted)
+  return _msg;
+}
+
+// .sobject.SOOperationRejection signed_rejection = 4;
+inline bool SOTerminalReceiptInner::has_signed_rejection() const {
+  return outcome_case() == kSignedRejection;
+}
+inline bool SOTerminalReceiptInner::_internal_has_signed_rejection() const {
+  return outcome_case() == kSignedRejection;
+}
+inline void SOTerminalReceiptInner::set_has_signed_rejection() {
+  _impl_._oneof_case_[0] = kSignedRejection;
+}
+inline void SOTerminalReceiptInner::clear_signed_rejection() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (outcome_case() == kSignedRejection) {
+    if (GetArena() == nullptr) {
+      delete _impl_.outcome_.signed_rejection_;
+    } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+      ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.outcome_.signed_rejection_);
+    }
+    clear_has_outcome();
+  }
+}
+inline ::sobject::SOOperationRejection* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_signed_rejection() {
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.signed_rejection)
+  if (outcome_case() == kSignedRejection) {
+    clear_has_outcome();
+    auto* temp = _impl_.outcome_.signed_rejection_;
+    if (GetArena() != nullptr) {
+      temp = ::google::protobuf::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.outcome_.signed_rejection_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::sobject::SOOperationRejection& SOTerminalReceiptInner::_internal_signed_rejection() const {
+  return outcome_case() == kSignedRejection ? static_cast<const ::sobject::SOOperationRejection&>(*_impl_.outcome_.signed_rejection_)
+                     : reinterpret_cast<const ::sobject::SOOperationRejection&>(::sobject::_SOOperationRejection_default_instance_);
+}
+inline const ::sobject::SOOperationRejection& SOTerminalReceiptInner::signed_rejection() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.signed_rejection)
+  return _internal_signed_rejection();
+}
+inline ::sobject::SOOperationRejection* PROTOBUF_NULLABLE SOTerminalReceiptInner::unsafe_arena_release_signed_rejection() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:sobject.SOTerminalReceiptInner.signed_rejection)
+  if (outcome_case() == kSignedRejection) {
+    clear_has_outcome();
+    auto* temp = _impl_.outcome_.signed_rejection_;
+    _impl_.outcome_.signed_rejection_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void SOTerminalReceiptInner::unsafe_arena_set_allocated_signed_rejection(
+    ::sobject::SOOperationRejection* PROTOBUF_NULLABLE value) {
+  // We rely on the oneof clear method to free the earlier contents
+  // of this oneof. We can directly use the pointer we're given to
+  // set the new value.
+  clear_outcome();
+  if (value) {
+    set_has_signed_rejection();
+    _impl_.outcome_.signed_rejection_ = value;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOTerminalReceiptInner.signed_rejection)
+}
+inline ::sobject::SOOperationRejection* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_signed_rejection() {
+  if (outcome_case() != kSignedRejection) {
+    clear_outcome();
+    set_has_signed_rejection();
+    _impl_.outcome_.signed_rejection_ = 
+        ::google::protobuf::Message::DefaultConstruct<::sobject::SOOperationRejection>(GetArena());
+  }
+  return _impl_.outcome_.signed_rejection_;
+}
+inline ::sobject::SOOperationRejection* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_signed_rejection()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::sobject::SOOperationRejection* _msg = _internal_mutable_signed_rejection();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.signed_rejection)
+  return _msg;
+}
+
+// uint64 authoritative_root_seqno = 5;
+inline void SOTerminalReceiptInner::clear_authoritative_root_seqno() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_seqno_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::uint64_t SOTerminalReceiptInner::authoritative_root_seqno() const {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.authoritative_root_seqno)
+  return _internal_authoritative_root_seqno();
+}
+inline void SOTerminalReceiptInner::set_authoritative_root_seqno(::uint64_t value) {
+  _internal_set_authoritative_root_seqno(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceiptInner.authoritative_root_seqno)
+}
+inline ::uint64_t SOTerminalReceiptInner::_internal_authoritative_root_seqno() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.authoritative_root_seqno_;
+}
+inline void SOTerminalReceiptInner::_internal_set_authoritative_root_seqno(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_seqno_ = value;
+}
+
+// bytes authoritative_root_digest = 6;
+inline void SOTerminalReceiptInner::clear_authoritative_root_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SOTerminalReceiptInner::authoritative_root_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.authoritative_root_digest)
+  return _internal_authoritative_root_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOTerminalReceiptInner::set_authoritative_root_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.authoritative_root_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceiptInner.authoritative_root_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_authoritative_root_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_authoritative_root_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.authoritative_root_digest)
+  return _s;
+}
+inline const ::std::string& SOTerminalReceiptInner::_internal_authoritative_root_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.authoritative_root_digest_.Get();
+}
+inline void SOTerminalReceiptInner::_internal_set_authoritative_root_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_authoritative_root_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.authoritative_root_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_authoritative_root_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.authoritative_root_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.authoritative_root_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.authoritative_root_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOTerminalReceiptInner::set_allocated_authoritative_root_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.authoritative_root_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.authoritative_root_digest_.IsDefault()) {
+    _impl_.authoritative_root_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.authoritative_root_digest)
+}
+
+// bytes config_chain_digest = 7;
+inline void SOTerminalReceiptInner::clear_config_chain_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.config_chain_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& SOTerminalReceiptInner::config_chain_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.config_chain_digest)
+  return _internal_config_chain_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOTerminalReceiptInner::set_config_chain_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.config_chain_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceiptInner.config_chain_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_config_chain_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_config_chain_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.config_chain_digest)
+  return _s;
+}
+inline const ::std::string& SOTerminalReceiptInner::_internal_config_chain_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.config_chain_digest_.Get();
+}
+inline void SOTerminalReceiptInner::_internal_set_config_chain_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.config_chain_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_config_chain_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.config_chain_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_config_chain_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.config_chain_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.config_chain_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.config_chain_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOTerminalReceiptInner::set_allocated_config_chain_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.config_chain_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.config_chain_digest_.IsDefault()) {
+    _impl_.config_chain_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.config_chain_digest)
+}
+
+// .sobject.SOConsensusMode consensus_mode = 8;
+inline void SOTerminalReceiptInner::clear_consensus_mode() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.consensus_mode_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline ::sobject::SOConsensusMode SOTerminalReceiptInner::consensus_mode() const {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.consensus_mode)
+  return _internal_consensus_mode();
+}
+inline void SOTerminalReceiptInner::set_consensus_mode(::sobject::SOConsensusMode value) {
+  _internal_set_consensus_mode(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceiptInner.consensus_mode)
+}
+inline ::sobject::SOConsensusMode SOTerminalReceiptInner::_internal_consensus_mode() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::sobject::SOConsensusMode>(_impl_.consensus_mode_);
+}
+inline void SOTerminalReceiptInner::_internal_set_consensus_mode(::sobject::SOConsensusMode value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.consensus_mode_ = value;
+}
+
+// bytes validator_set_digest = 9;
+inline void SOTerminalReceiptInner::clear_validator_set_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.validator_set_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& SOTerminalReceiptInner::validator_set_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.validator_set_digest)
+  return _internal_validator_set_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOTerminalReceiptInner::set_validator_set_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.validator_set_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceiptInner.validator_set_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_validator_set_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_validator_set_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.validator_set_digest)
+  return _s;
+}
+inline const ::std::string& SOTerminalReceiptInner::_internal_validator_set_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.validator_set_digest_.Get();
+}
+inline void SOTerminalReceiptInner::_internal_set_validator_set_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.validator_set_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_validator_set_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.validator_set_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_validator_set_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.validator_set_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.validator_set_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.validator_set_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOTerminalReceiptInner::set_allocated_validator_set_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.validator_set_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.validator_set_digest_.IsDefault()) {
+    _impl_.validator_set_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.validator_set_digest)
+}
+
+// uint64 terminal_unix_millis = 10;
+inline void SOTerminalReceiptInner::clear_terminal_unix_millis() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.terminal_unix_millis_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline ::uint64_t SOTerminalReceiptInner::terminal_unix_millis() const {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.terminal_unix_millis)
+  return _internal_terminal_unix_millis();
+}
+inline void SOTerminalReceiptInner::set_terminal_unix_millis(::uint64_t value) {
+  _internal_set_terminal_unix_millis(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceiptInner.terminal_unix_millis)
+}
+inline ::uint64_t SOTerminalReceiptInner::_internal_terminal_unix_millis() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.terminal_unix_millis_;
+}
+inline void SOTerminalReceiptInner::_internal_set_terminal_unix_millis(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.terminal_unix_millis_ = value;
+}
+
+// .sobject.SOMutationKey supersedes = 11;
+inline bool SOTerminalReceiptInner::has_supersedes() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
+  PROTOBUF_ASSUME(!value || _impl_.supersedes_ != nullptr);
+  return value;
+}
+inline void SOTerminalReceiptInner::clear_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.supersedes_ != nullptr) _impl_.supersedes_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::sobject::SOMutationKey& SOTerminalReceiptInner::_internal_supersedes() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.supersedes_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& SOTerminalReceiptInner::supersedes() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.supersedes)
+  return _internal_supersedes();
+}
+inline void SOTerminalReceiptInner::unsafe_arena_set_allocated_supersedes(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.supersedes_);
+  }
+  _impl_.supersedes_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOTerminalReceiptInner.supersedes)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::sobject::SOMutationKey* released = _impl_.supersedes_;
+  _impl_.supersedes_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOTerminalReceiptInner::unsafe_arena_release_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.supersedes)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::sobject::SOMutationKey* temp = _impl_.supersedes_;
+  _impl_.supersedes_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.supersedes_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.supersedes_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.supersedes_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_supersedes()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_supersedes();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.supersedes)
+  return _msg;
+}
+inline void SOTerminalReceiptInner::set_allocated_supersedes(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.supersedes_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+
+  _impl_.supersedes_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.supersedes)
+}
+
+inline bool SOTerminalReceiptInner::has_outcome() const {
+  return outcome_case() != OUTCOME_NOT_SET;
+}
+inline void SOTerminalReceiptInner::clear_has_outcome() {
+  _impl_._oneof_case_[0] = OUTCOME_NOT_SET;
+}
+inline SOTerminalReceiptInner::OutcomeCase SOTerminalReceiptInner::outcome_case() const {
+  return SOTerminalReceiptInner::OutcomeCase(_impl_._oneof_case_[0]);
+}
+// -------------------------------------------------------------------
+
+// SOTerminalReceipt
+
+// bytes inner = 1;
+inline void SOTerminalReceipt::clear_inner() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.inner_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SOTerminalReceipt::inner() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceipt.inner)
+  return _internal_inner();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOTerminalReceipt::set_inner(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.inner_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceipt.inner)
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceipt::mutable_inner()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_inner();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceipt.inner)
+  return _s;
+}
+inline const ::std::string& SOTerminalReceipt::_internal_inner() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.inner_.Get();
+}
+inline void SOTerminalReceipt::_internal_set_inner(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.inner_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceipt::_internal_mutable_inner() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.inner_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOTerminalReceipt::release_inner() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceipt.inner)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.inner_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.inner_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOTerminalReceipt::set_allocated_inner(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.inner_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.inner_.IsDefault()) {
+    _impl_.inner_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceipt.inner)
+}
+
+// repeated .peer.Signature validator_signatures = 2;
+inline int SOTerminalReceipt::_internal_validator_signatures_size() const {
+  return _internal_validator_signatures().size();
+}
+inline int SOTerminalReceipt::validator_signatures_size() const {
+  return _internal_validator_signatures_size();
+}
+inline ::peer::Signature* PROTOBUF_NONNULL SOTerminalReceipt::mutable_validator_signatures(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceipt.validator_signatures)
+  return _internal_mutable_validator_signatures()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::peer::Signature>* PROTOBUF_NONNULL SOTerminalReceipt::mutable_validator_signatures()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:sobject.SOTerminalReceipt.validator_signatures)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_validator_signatures();
+}
+inline const ::peer::Signature& SOTerminalReceipt::validator_signatures(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceipt.validator_signatures)
+  return _internal_validator_signatures().Get(index);
+}
+inline ::peer::Signature* PROTOBUF_NONNULL SOTerminalReceipt::add_validator_signatures()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::peer::Signature* _add =
+      _internal_mutable_validator_signatures()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:sobject.SOTerminalReceipt.validator_signatures)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::peer::Signature>& SOTerminalReceipt::validator_signatures() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:sobject.SOTerminalReceipt.validator_signatures)
+  return _internal_validator_signatures();
+}
+inline const ::google::protobuf::RepeatedPtrField<::peer::Signature>&
+SOTerminalReceipt::_internal_validator_signatures() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.validator_signatures_;
+}
+inline ::google::protobuf::RepeatedPtrField<::peer::Signature>* PROTOBUF_NONNULL
+SOTerminalReceipt::_internal_mutable_validator_signatures() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.validator_signatures_;
+}
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif  // __GNUC__
@@ -23844,12 +25412,6 @@ inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::sobject::SOJou
   return ::sobject::SOJournalOutcome_descriptor();
 }
 template <>
-struct is_proto_enum<::sobject::SOJournalLookupState> : std::true_type {};
-template <>
-inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::sobject::SOJournalLookupState>() {
-  return ::sobject::SOJournalLookupState_descriptor();
-}
-template <>
 struct is_proto_enum<::sobject::SOJournalReadiness> : std::true_type {};
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::sobject::SOJournalReadiness>() {
@@ -23860,6 +25422,12 @@ struct is_proto_enum<::sobject::SOJournalRecoveryReason> : std::true_type {};
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::sobject::SOJournalRecoveryReason>() {
   return ::sobject::SOJournalRecoveryReason_descriptor();
+}
+template <>
+struct is_proto_enum<::sobject::SOReceiptState> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::sobject::SOReceiptState>() {
+  return ::sobject::SOReceiptState_descriptor();
 }
 
 }  // namespace protobuf

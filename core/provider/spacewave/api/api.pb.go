@@ -17,6 +17,7 @@ import (
 	session "github.com/s4wave/spacewave/core/session"
 	handoff "github.com/s4wave/spacewave/core/session/handoff"
 	sobject "github.com/s4wave/spacewave/core/sobject"
+	peer "github.com/s4wave/spacewave/net/peer"
 	spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
@@ -690,6 +691,9 @@ type SOStateMessage struct {
 	// snapshot's config_chain_hash. State responses include it so clients do not
 	// burst a separate /config-chain request after every cold state pull.
 	ConfigChain *sobject.SOConfigChainResponse `protobuf:"bytes,6,opt,name=config_chain,json=configChain,proto3" json:"configChain,omitempty"`
+	// ReceiptProtocolEpoch advertises the per-SharedObject receipt-v1 activation.
+	// Zero keeps receipt-v1 disabled; one marks the receipt owner active.
+	ReceiptProtocolEpoch uint32 `protobuf:"varint,7,opt,name=receipt_protocol_epoch,json=receiptProtocolEpoch,proto3" json:"receiptProtocolEpoch,omitempty"`
 }
 
 func (x *SOStateMessage) Reset() {
@@ -745,6 +749,13 @@ func (x *SOStateMessage) GetConfigChain() *sobject.SOConfigChainResponse {
 		return x.ConfigChain
 	}
 	return nil
+}
+
+func (x *SOStateMessage) GetReceiptProtocolEpoch() uint32 {
+	if x != nil {
+		return x.ReceiptProtocolEpoch
+	}
+	return 0
 }
 
 type isSOStateMessage_Content interface {
@@ -891,6 +902,12 @@ type PostRootRequest struct {
 	Root *sobject.SORoot `protobuf:"bytes,1,opt,name=root,proto3" json:"root,omitempty"`
 	// RejectedOps are the operations the validator rejected while producing Root.
 	RejectedOps []*sobject.SOOperationRejection `protobuf:"bytes,2,rep,name=rejected_ops,json=rejectedOps,proto3" json:"rejectedOps,omitempty"`
+	// TerminalReceipts are validator-signed terminal receipts for every accepted or rejected attempt terminalized by Root.
+	// Receipt signatures are separate from Root signatures and cover each receipt's deterministic inner bytes.
+	TerminalReceipts []*sobject.SOTerminalReceipt `protobuf:"bytes,3,rep,name=terminal_receipts,json=terminalReceipts,proto3" json:"terminalReceipts,omitempty"`
+	// ReceiptProtocolEpoch binds root terminalization to the per-SharedObject receipt-v1 activation.
+	// Zero keeps receipt-v1 disabled; an active object requires its advertised epoch.
+	ReceiptProtocolEpoch uint32 `protobuf:"varint,4,opt,name=receipt_protocol_epoch,json=receiptProtocolEpoch,proto3" json:"receiptProtocolEpoch,omitempty"`
 }
 
 func (x *PostRootRequest) Reset() {
@@ -911,6 +928,236 @@ func (x *PostRootRequest) GetRejectedOps() []*sobject.SOOperationRejection {
 		return x.RejectedOps
 	}
 	return nil
+}
+
+func (x *PostRootRequest) GetTerminalReceipts() []*sobject.SOTerminalReceipt {
+	if x != nil {
+		return x.TerminalReceipts
+	}
+	return nil
+}
+
+func (x *PostRootRequest) GetReceiptProtocolEpoch() uint32 {
+	if x != nil {
+		return x.ReceiptProtocolEpoch
+	}
+	return 0
+}
+
+// SubmitOperationV1Request is the exact-key body for receipt-v1 operation admission.
+type SubmitOperationV1Request struct {
+	unknownFields []byte
+	// Key identifies the immutable participant attempt.
+	Key *sobject.SOMutationKey `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// ExactEnvelope is the exact serialized signed SOOperation envelope.
+	ExactEnvelope []byte `protobuf:"bytes,2,opt,name=exact_envelope,json=exactEnvelope,proto3" json:"exactEnvelope,omitempty"`
+}
+
+func (x *SubmitOperationV1Request) Reset() {
+	*x = SubmitOperationV1Request{}
+}
+
+func (*SubmitOperationV1Request) ProtoMessage() {}
+
+func (x *SubmitOperationV1Request) GetKey() *sobject.SOMutationKey {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *SubmitOperationV1Request) GetExactEnvelope() []byte {
+	if x != nil {
+		return x.ExactEnvelope
+	}
+	return nil
+}
+
+// SubmitOperationV1Response is the receipt-v1 admission result.
+type SubmitOperationV1Response struct {
+	unknownFields []byte
+	// State is the authoritative state of the submitted exact key.
+	State sobject.SOReceiptState `protobuf:"varint,1,opt,name=state,proto3" json:"state,omitempty"`
+	// TerminalReceipt is present only when State is accepted or rejected.
+	TerminalReceipt *sobject.SOTerminalReceipt `protobuf:"bytes,2,opt,name=terminal_receipt,json=terminalReceipt,proto3" json:"terminalReceipt,omitempty"`
+}
+
+func (x *SubmitOperationV1Response) Reset() {
+	*x = SubmitOperationV1Response{}
+}
+
+func (*SubmitOperationV1Response) ProtoMessage() {}
+
+func (x *SubmitOperationV1Response) GetState() sobject.SOReceiptState {
+	if x != nil {
+		return x.State
+	}
+	return sobject.SOReceiptState(0)
+}
+
+func (x *SubmitOperationV1Response) GetTerminalReceipt() *sobject.SOTerminalReceipt {
+	if x != nil {
+		return x.TerminalReceipt
+	}
+	return nil
+}
+
+// LookupOperationReceiptInner is the deterministic signed lookup payload.
+type LookupOperationReceiptInner struct {
+	unknownFields []byte
+	// Key identifies the exact participant attempt to look up.
+	Key *sobject.SOMutationKey `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+}
+
+func (x *LookupOperationReceiptInner) Reset() {
+	*x = LookupOperationReceiptInner{}
+}
+
+func (*LookupOperationReceiptInner) ProtoMessage() {}
+
+func (x *LookupOperationReceiptInner) GetKey() *sobject.SOMutationKey {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+// LookupOperationReceiptRequest is a participant-signed exact-key lookup.
+type LookupOperationReceiptRequest struct {
+	unknownFields []byte
+	// Inner is the deterministic serialized LookupOperationReceiptInner bytes.
+	Inner []byte `protobuf:"bytes,1,opt,name=inner,proto3" json:"inner,omitempty"`
+	// Signature is the participant's signature over Inner bytes.
+	// The participant_peer_id in the decoded key must sign this payload.
+	Signature *peer.Signature `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
+}
+
+func (x *LookupOperationReceiptRequest) Reset() {
+	*x = LookupOperationReceiptRequest{}
+}
+
+func (*LookupOperationReceiptRequest) ProtoMessage() {}
+
+func (x *LookupOperationReceiptRequest) GetInner() []byte {
+	if x != nil {
+		return x.Inner
+	}
+	return nil
+}
+
+func (x *LookupOperationReceiptRequest) GetSignature() *peer.Signature {
+	if x != nil {
+		return x.Signature
+	}
+	return nil
+}
+
+// LookupOperationReceiptResponse is the authoritative exact-key lookup result.
+type LookupOperationReceiptResponse struct {
+	unknownFields []byte
+	// State is exactly NO_RECORD, PENDING, ACCEPTED, or REJECTED.
+	State sobject.SOReceiptState `protobuf:"varint,1,opt,name=state,proto3" json:"state,omitempty"`
+	// TerminalReceipt is present only when State is accepted or rejected.
+	TerminalReceipt *sobject.SOTerminalReceipt `protobuf:"bytes,2,opt,name=terminal_receipt,json=terminalReceipt,proto3" json:"terminalReceipt,omitempty"`
+}
+
+func (x *LookupOperationReceiptResponse) Reset() {
+	*x = LookupOperationReceiptResponse{}
+}
+
+func (*LookupOperationReceiptResponse) ProtoMessage() {}
+
+func (x *LookupOperationReceiptResponse) GetState() sobject.SOReceiptState {
+	if x != nil {
+		return x.State
+	}
+	return sobject.SOReceiptState(0)
+}
+
+func (x *LookupOperationReceiptResponse) GetTerminalReceipt() *sobject.SOTerminalReceipt {
+	if x != nil {
+		return x.TerminalReceipt
+	}
+	return nil
+}
+
+// AcknowledgeOperationReceiptInner is the deterministic signed acknowledgement payload.
+type AcknowledgeOperationReceiptInner struct {
+	unknownFields []byte
+	// Key identifies the exact participant attempt being acknowledged.
+	Key *sobject.SOMutationKey `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// ReceiptDigest binds acknowledgement to the exact terminal receipt bytes.
+	ReceiptDigest []byte `protobuf:"bytes,2,opt,name=receipt_digest,json=receiptDigest,proto3" json:"receiptDigest,omitempty"`
+}
+
+func (x *AcknowledgeOperationReceiptInner) Reset() {
+	*x = AcknowledgeOperationReceiptInner{}
+}
+
+func (*AcknowledgeOperationReceiptInner) ProtoMessage() {}
+
+func (x *AcknowledgeOperationReceiptInner) GetKey() *sobject.SOMutationKey {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *AcknowledgeOperationReceiptInner) GetReceiptDigest() []byte {
+	if x != nil {
+		return x.ReceiptDigest
+	}
+	return nil
+}
+
+// AcknowledgeOperationReceiptRequest is a participant-signed receipt acknowledgement.
+type AcknowledgeOperationReceiptRequest struct {
+	unknownFields []byte
+	// Inner is the deterministic serialized AcknowledgeOperationReceiptInner bytes.
+	Inner []byte `protobuf:"bytes,1,opt,name=inner,proto3" json:"inner,omitempty"`
+	// Signature is the participant's signature over Inner bytes.
+	// The participant_peer_id in the decoded key must sign this payload.
+	Signature *peer.Signature `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
+}
+
+func (x *AcknowledgeOperationReceiptRequest) Reset() {
+	*x = AcknowledgeOperationReceiptRequest{}
+}
+
+func (*AcknowledgeOperationReceiptRequest) ProtoMessage() {}
+
+func (x *AcknowledgeOperationReceiptRequest) GetInner() []byte {
+	if x != nil {
+		return x.Inner
+	}
+	return nil
+}
+
+func (x *AcknowledgeOperationReceiptRequest) GetSignature() *peer.Signature {
+	if x != nil {
+		return x.Signature
+	}
+	return nil
+}
+
+// AcknowledgeOperationReceiptResponse reports durable acknowledgement.
+type AcknowledgeOperationReceiptResponse struct {
+	unknownFields []byte
+	// Acknowledged is true when the matching terminal receipt became prune-eligible.
+	Acknowledged bool `protobuf:"varint,1,opt,name=acknowledged,proto3" json:"acknowledged,omitempty"`
+}
+
+func (x *AcknowledgeOperationReceiptResponse) Reset() {
+	*x = AcknowledgeOperationReceiptResponse{}
+}
+
+func (*AcknowledgeOperationReceiptResponse) ProtoMessage() {}
+
+func (x *AcknowledgeOperationReceiptResponse) GetAcknowledged() bool {
+	if x != nil {
+		return x.Acknowledged
+	}
+	return false
 }
 
 // SessionMessage is the multiplexed WebSocket envelope sent from
@@ -9903,6 +10150,7 @@ func (m *SOStateMessage) CloneVT() *SOStateMessage {
 	}
 	r := new(SOStateMessage)
 	r.Seqno = m.Seqno
+	r.ReceiptProtocolEpoch = m.ReceiptProtocolEpoch
 	if m.Content != nil {
 		r.Content = m.Content.(interface {
 			CloneOneofVT() isSOStateMessage_Content
@@ -10029,8 +10277,10 @@ func (m *PostRootRequest) CloneVT() *PostRootRequest {
 		return (*PostRootRequest)(nil)
 	}
 	r := new(PostRootRequest)
+	r.ReceiptProtocolEpoch = m.ReceiptProtocolEpoch
 	r.Root = protobuf_go_lite.CloneVTValue(m.Root)
 	r.RejectedOps = protobuf_go_lite.CloneVTSlice(m.RejectedOps)
+	r.TerminalReceipts = protobuf_go_lite.CloneVTSlice(m.TerminalReceipts)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -10038,6 +10288,140 @@ func (m *PostRootRequest) CloneVT() *PostRootRequest {
 }
 
 func (m *PostRootRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SubmitOperationV1Request) CloneVT() *SubmitOperationV1Request {
+	if m == nil {
+		return (*SubmitOperationV1Request)(nil)
+	}
+	r := new(SubmitOperationV1Request)
+	r.Key = protobuf_go_lite.CloneVTValue(m.Key)
+	r.ExactEnvelope = protobuf_go_lite.CloneBytes(m.ExactEnvelope)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SubmitOperationV1Request) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SubmitOperationV1Response) CloneVT() *SubmitOperationV1Response {
+	if m == nil {
+		return (*SubmitOperationV1Response)(nil)
+	}
+	r := new(SubmitOperationV1Response)
+	r.State = m.State
+	r.TerminalReceipt = protobuf_go_lite.CloneVTValue(m.TerminalReceipt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SubmitOperationV1Response) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *LookupOperationReceiptInner) CloneVT() *LookupOperationReceiptInner {
+	if m == nil {
+		return (*LookupOperationReceiptInner)(nil)
+	}
+	r := new(LookupOperationReceiptInner)
+	r.Key = protobuf_go_lite.CloneVTValue(m.Key)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LookupOperationReceiptInner) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *LookupOperationReceiptRequest) CloneVT() *LookupOperationReceiptRequest {
+	if m == nil {
+		return (*LookupOperationReceiptRequest)(nil)
+	}
+	r := new(LookupOperationReceiptRequest)
+	r.Inner = protobuf_go_lite.CloneBytes(m.Inner)
+	r.Signature = protobuf_go_lite.CloneVTValue(m.Signature)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LookupOperationReceiptRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *LookupOperationReceiptResponse) CloneVT() *LookupOperationReceiptResponse {
+	if m == nil {
+		return (*LookupOperationReceiptResponse)(nil)
+	}
+	r := new(LookupOperationReceiptResponse)
+	r.State = m.State
+	r.TerminalReceipt = protobuf_go_lite.CloneVTValue(m.TerminalReceipt)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *LookupOperationReceiptResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AcknowledgeOperationReceiptInner) CloneVT() *AcknowledgeOperationReceiptInner {
+	if m == nil {
+		return (*AcknowledgeOperationReceiptInner)(nil)
+	}
+	r := new(AcknowledgeOperationReceiptInner)
+	r.Key = protobuf_go_lite.CloneVTValue(m.Key)
+	r.ReceiptDigest = protobuf_go_lite.CloneBytes(m.ReceiptDigest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AcknowledgeOperationReceiptInner) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AcknowledgeOperationReceiptRequest) CloneVT() *AcknowledgeOperationReceiptRequest {
+	if m == nil {
+		return (*AcknowledgeOperationReceiptRequest)(nil)
+	}
+	r := new(AcknowledgeOperationReceiptRequest)
+	r.Inner = protobuf_go_lite.CloneBytes(m.Inner)
+	r.Signature = protobuf_go_lite.CloneVTValue(m.Signature)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AcknowledgeOperationReceiptRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AcknowledgeOperationReceiptResponse) CloneVT() *AcknowledgeOperationReceiptResponse {
+	if m == nil {
+		return (*AcknowledgeOperationReceiptResponse)(nil)
+	}
+	r := new(AcknowledgeOperationReceiptResponse)
+	r.Acknowledged = m.Acknowledged
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AcknowledgeOperationReceiptResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -14954,6 +15338,9 @@ func (this *SOStateMessage) EqualVT(that *SOStateMessage) bool {
 	if !protobuf_go_lite.IsEqualVT(this.ConfigChain, that.ConfigChain) {
 		return false
 	}
+	if this.ReceiptProtocolEpoch != that.ReceiptProtocolEpoch {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -15120,11 +15507,195 @@ func (this *PostRootRequest) EqualVT(that *PostRootRequest) bool {
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.RejectedOps, that.RejectedOps, func() *sobject.SOOperationRejection { return &sobject.SOOperationRejection{} }) {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.TerminalReceipts, that.TerminalReceipts, func() *sobject.SOTerminalReceipt { return &sobject.SOTerminalReceipt{} }) {
+		return false
+	}
+	if this.ReceiptProtocolEpoch != that.ReceiptProtocolEpoch {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *PostRootRequest) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*PostRootRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SubmitOperationV1Request) EqualVT(that *SubmitOperationV1Request) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Key, that.Key) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ExactEnvelope, that.ExactEnvelope) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SubmitOperationV1Request) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SubmitOperationV1Request)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SubmitOperationV1Response) EqualVT(that *SubmitOperationV1Response) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.TerminalReceipt, that.TerminalReceipt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SubmitOperationV1Response) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SubmitOperationV1Response)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *LookupOperationReceiptInner) EqualVT(that *LookupOperationReceiptInner) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Key, that.Key) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LookupOperationReceiptInner) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LookupOperationReceiptInner)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *LookupOperationReceiptRequest) EqualVT(that *LookupOperationReceiptRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Inner, that.Inner) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Signature, that.Signature) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LookupOperationReceiptRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LookupOperationReceiptRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *LookupOperationReceiptResponse) EqualVT(that *LookupOperationReceiptResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.TerminalReceipt, that.TerminalReceipt) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *LookupOperationReceiptResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*LookupOperationReceiptResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AcknowledgeOperationReceiptInner) EqualVT(that *AcknowledgeOperationReceiptInner) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Key, that.Key) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ReceiptDigest, that.ReceiptDigest) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AcknowledgeOperationReceiptInner) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AcknowledgeOperationReceiptInner)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AcknowledgeOperationReceiptRequest) EqualVT(that *AcknowledgeOperationReceiptRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Inner, that.Inner) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Signature, that.Signature) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AcknowledgeOperationReceiptRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AcknowledgeOperationReceiptRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AcknowledgeOperationReceiptResponse) EqualVT(that *AcknowledgeOperationReceiptResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Acknowledged != that.Acknowledged {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AcknowledgeOperationReceiptResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AcknowledgeOperationReceiptResponse)
 	if !ok {
 		return false
 	}
@@ -22463,6 +23034,11 @@ func (x *SOStateMessage) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("configChain")
 		x.ConfigChain.MarshalProtoJSON(s.WithField("configChain"))
 	}
+	if x.ReceiptProtocolEpoch != 0 || s.HasField("receiptProtocolEpoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("receiptProtocolEpoch")
+		s.WriteUint32(x.ReceiptProtocolEpoch)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -22526,6 +23102,9 @@ func (x *SOStateMessage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.ConfigChain = &sobject.SOConfigChainResponse{}
 			x.ConfigChain.UnmarshalProtoJSON(s.WithField("config_chain", true))
+		case "receipt_protocol_epoch", "receiptProtocolEpoch":
+			s.AddField("receipt_protocol_epoch")
+			x.ReceiptProtocolEpoch = s.ReadUint32()
 		}
 	})
 }
@@ -22746,6 +23325,22 @@ func (x *PostRootRequest) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if len(x.TerminalReceipts) > 0 || s.HasField("terminalReceipts") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("terminalReceipts")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.TerminalReceipts {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("terminalReceipts"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.ReceiptProtocolEpoch != 0 || s.HasField("receiptProtocolEpoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("receiptProtocolEpoch")
+		s.WriteUint32(x.ReceiptProtocolEpoch)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -22788,12 +23383,445 @@ func (x *PostRootRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.RejectedOps = append(x.RejectedOps, v)
 			})
+		case "terminal_receipts", "terminalReceipts":
+			s.AddField("terminal_receipts")
+			if s.ReadNil() {
+				x.TerminalReceipts = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.TerminalReceipts = append(x.TerminalReceipts, nil)
+					return
+				}
+				v := &sobject.SOTerminalReceipt{}
+				v.UnmarshalProtoJSON(s.WithField("terminal_receipts", false))
+				if s.Err() != nil {
+					return
+				}
+				x.TerminalReceipts = append(x.TerminalReceipts, v)
+			})
+		case "receipt_protocol_epoch", "receiptProtocolEpoch":
+			s.AddField("receipt_protocol_epoch")
+			x.ReceiptProtocolEpoch = s.ReadUint32()
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the PostRootRequest from JSON.
 func (x *PostRootRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SubmitOperationV1Request message to JSON.
+func (x *SubmitOperationV1Request) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != nil || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		x.Key.MarshalProtoJSON(s.WithField("key"))
+	}
+	if len(x.ExactEnvelope) > 0 || s.HasField("exactEnvelope") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("exactEnvelope")
+		s.WriteBytes(x.ExactEnvelope)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SubmitOperationV1Request to JSON.
+func (x *SubmitOperationV1Request) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SubmitOperationV1Request message from JSON.
+func (x *SubmitOperationV1Request) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			if s.ReadNil() {
+				x.Key = nil
+				return
+			}
+			x.Key = &sobject.SOMutationKey{}
+			x.Key.UnmarshalProtoJSON(s.WithField("key", true))
+		case "exact_envelope", "exactEnvelope":
+			s.AddField("exact_envelope")
+			x.ExactEnvelope = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SubmitOperationV1Request from JSON.
+func (x *SubmitOperationV1Request) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SubmitOperationV1Response message to JSON.
+func (x *SubmitOperationV1Response) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
+	if x.TerminalReceipt != nil || s.HasField("terminalReceipt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("terminalReceipt")
+		x.TerminalReceipt.MarshalProtoJSON(s.WithField("terminalReceipt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SubmitOperationV1Response to JSON.
+func (x *SubmitOperationV1Response) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SubmitOperationV1Response message from JSON.
+func (x *SubmitOperationV1Response) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "terminal_receipt", "terminalReceipt":
+			if s.ReadNil() {
+				x.TerminalReceipt = nil
+				return
+			}
+			x.TerminalReceipt = &sobject.SOTerminalReceipt{}
+			x.TerminalReceipt.UnmarshalProtoJSON(s.WithField("terminal_receipt", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SubmitOperationV1Response from JSON.
+func (x *SubmitOperationV1Response) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the LookupOperationReceiptInner message to JSON.
+func (x *LookupOperationReceiptInner) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != nil || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		x.Key.MarshalProtoJSON(s.WithField("key"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LookupOperationReceiptInner to JSON.
+func (x *LookupOperationReceiptInner) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LookupOperationReceiptInner message from JSON.
+func (x *LookupOperationReceiptInner) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			if s.ReadNil() {
+				x.Key = nil
+				return
+			}
+			x.Key = &sobject.SOMutationKey{}
+			x.Key.UnmarshalProtoJSON(s.WithField("key", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the LookupOperationReceiptInner from JSON.
+func (x *LookupOperationReceiptInner) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the LookupOperationReceiptRequest message to JSON.
+func (x *LookupOperationReceiptRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Inner) > 0 || s.HasField("inner") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("inner")
+		s.WriteBytes(x.Inner)
+	}
+	if x.Signature != nil || s.HasField("signature") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("signature")
+		x.Signature.MarshalProtoJSON(s.WithField("signature"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LookupOperationReceiptRequest to JSON.
+func (x *LookupOperationReceiptRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LookupOperationReceiptRequest message from JSON.
+func (x *LookupOperationReceiptRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "inner":
+			s.AddField("inner")
+			x.Inner = s.ReadBytes()
+		case "signature":
+			if s.ReadNil() {
+				x.Signature = nil
+				return
+			}
+			x.Signature = &peer.Signature{}
+			x.Signature.UnmarshalProtoJSON(s.WithField("signature", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the LookupOperationReceiptRequest from JSON.
+func (x *LookupOperationReceiptRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the LookupOperationReceiptResponse message to JSON.
+func (x *LookupOperationReceiptResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
+	if x.TerminalReceipt != nil || s.HasField("terminalReceipt") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("terminalReceipt")
+		x.TerminalReceipt.MarshalProtoJSON(s.WithField("terminalReceipt"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the LookupOperationReceiptResponse to JSON.
+func (x *LookupOperationReceiptResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the LookupOperationReceiptResponse message from JSON.
+func (x *LookupOperationReceiptResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "terminal_receipt", "terminalReceipt":
+			if s.ReadNil() {
+				x.TerminalReceipt = nil
+				return
+			}
+			x.TerminalReceipt = &sobject.SOTerminalReceipt{}
+			x.TerminalReceipt.UnmarshalProtoJSON(s.WithField("terminal_receipt", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the LookupOperationReceiptResponse from JSON.
+func (x *LookupOperationReceiptResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AcknowledgeOperationReceiptInner message to JSON.
+func (x *AcknowledgeOperationReceiptInner) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != nil || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		x.Key.MarshalProtoJSON(s.WithField("key"))
+	}
+	if len(x.ReceiptDigest) > 0 || s.HasField("receiptDigest") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("receiptDigest")
+		s.WriteBytes(x.ReceiptDigest)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AcknowledgeOperationReceiptInner to JSON.
+func (x *AcknowledgeOperationReceiptInner) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AcknowledgeOperationReceiptInner message from JSON.
+func (x *AcknowledgeOperationReceiptInner) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			if s.ReadNil() {
+				x.Key = nil
+				return
+			}
+			x.Key = &sobject.SOMutationKey{}
+			x.Key.UnmarshalProtoJSON(s.WithField("key", true))
+		case "receipt_digest", "receiptDigest":
+			s.AddField("receipt_digest")
+			x.ReceiptDigest = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AcknowledgeOperationReceiptInner from JSON.
+func (x *AcknowledgeOperationReceiptInner) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AcknowledgeOperationReceiptRequest message to JSON.
+func (x *AcknowledgeOperationReceiptRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Inner) > 0 || s.HasField("inner") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("inner")
+		s.WriteBytes(x.Inner)
+	}
+	if x.Signature != nil || s.HasField("signature") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("signature")
+		x.Signature.MarshalProtoJSON(s.WithField("signature"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AcknowledgeOperationReceiptRequest to JSON.
+func (x *AcknowledgeOperationReceiptRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AcknowledgeOperationReceiptRequest message from JSON.
+func (x *AcknowledgeOperationReceiptRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "inner":
+			s.AddField("inner")
+			x.Inner = s.ReadBytes()
+		case "signature":
+			if s.ReadNil() {
+				x.Signature = nil
+				return
+			}
+			x.Signature = &peer.Signature{}
+			x.Signature.UnmarshalProtoJSON(s.WithField("signature", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AcknowledgeOperationReceiptRequest from JSON.
+func (x *AcknowledgeOperationReceiptRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AcknowledgeOperationReceiptResponse message to JSON.
+func (x *AcknowledgeOperationReceiptResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Acknowledged || s.HasField("acknowledged") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("acknowledged")
+		s.WriteBool(x.Acknowledged)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AcknowledgeOperationReceiptResponse to JSON.
+func (x *AcknowledgeOperationReceiptResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AcknowledgeOperationReceiptResponse message from JSON.
+func (x *AcknowledgeOperationReceiptResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "acknowledged":
+			s.AddField("acknowledged")
+			x.Acknowledged = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AcknowledgeOperationReceiptResponse from JSON.
+func (x *AcknowledgeOperationReceiptResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -37314,6 +38342,11 @@ func (m *SOStateMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		}
 		i -= size
 	}
+	if m.ReceiptProtocolEpoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ReceiptProtocolEpoch))
+		i--
+		dAtA[i] = 0x38
+	}
 	if m.ConfigChain != nil {
 		size, err := m.ConfigChain.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -37600,6 +38633,23 @@ func (m *PostRootRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ReceiptProtocolEpoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ReceiptProtocolEpoch))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.TerminalReceipts) > 0 {
+		for iNdEx := len(m.TerminalReceipts) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.TerminalReceipts[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	if len(m.RejectedOps) > 0 {
 		for iNdEx := len(m.RejectedOps) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.RejectedOps[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -37621,6 +38671,367 @@ func (m *PostRootRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SubmitOperationV1Request) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SubmitOperationV1Request) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SubmitOperationV1Request) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ExactEnvelope) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ExactEnvelope)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Key != nil {
+		size, err := m.Key.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SubmitOperationV1Response) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SubmitOperationV1Response) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SubmitOperationV1Response) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.TerminalReceipt != nil {
+		size, err := m.TerminalReceipt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *LookupOperationReceiptInner) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LookupOperationReceiptInner) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LookupOperationReceiptInner) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Key != nil {
+		size, err := m.Key.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *LookupOperationReceiptRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LookupOperationReceiptRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LookupOperationReceiptRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Signature != nil {
+		size, err := m.Signature.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Inner) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Inner)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *LookupOperationReceiptResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LookupOperationReceiptResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *LookupOperationReceiptResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.TerminalReceipt != nil {
+		size, err := m.TerminalReceipt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AcknowledgeOperationReceiptInner) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AcknowledgeOperationReceiptInner) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AcknowledgeOperationReceiptInner) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ReceiptDigest) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ReceiptDigest)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Key != nil {
+		size, err := m.Key.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AcknowledgeOperationReceiptRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AcknowledgeOperationReceiptRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AcknowledgeOperationReceiptRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Signature != nil {
+		size, err := m.Signature.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Inner) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Inner)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AcknowledgeOperationReceiptResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AcknowledgeOperationReceiptResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AcknowledgeOperationReceiptResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Acknowledged {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Acknowledged)
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -49669,6 +51080,7 @@ func (m *SOStateMessage) SizeVT() (n int) {
 		l = m.ConfigChain.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ReceiptProtocolEpoch)
 	n += len(m.unknownFields)
 	return n
 }
@@ -49788,6 +51200,126 @@ func (m *PostRootRequest) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	for _, e := range m.TerminalReceipts {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ReceiptProtocolEpoch)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SubmitOperationV1Request) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Key != nil {
+		l = m.Key.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ExactEnvelope)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SubmitOperationV1Response) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
+	if m.TerminalReceipt != nil {
+		l = m.TerminalReceipt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *LookupOperationReceiptInner) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Key != nil {
+		l = m.Key.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *LookupOperationReceiptRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Inner)
+	if m.Signature != nil {
+		l = m.Signature.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *LookupOperationReceiptResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
+	if m.TerminalReceipt != nil {
+		l = m.TerminalReceipt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AcknowledgeOperationReceiptInner) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Key != nil {
+		l = m.Key.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ReceiptDigest)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AcknowledgeOperationReceiptRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Inner)
+	if m.Signature != nil {
+		l = m.Signature.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AcknowledgeOperationReceiptResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Acknowledged)
 	n += len(m.unknownFields)
 	return n
 }
@@ -53745,6 +55277,10 @@ func (x *SOStateMessage) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config_chain")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ConfigChain)
 	}
+	if x.ReceiptProtocolEpoch != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "receipt_protocol_epoch")
+		protobuf_go_lite.TextWriteUint(&sb, x.ReceiptProtocolEpoch)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -53841,10 +55377,162 @@ func (x *PostRootRequest) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if len(x.TerminalReceipts) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "terminal_receipts")
+		for i, v := range x.TerminalReceipts {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &sobject.SOTerminalReceipt{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.ReceiptProtocolEpoch != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "receipt_protocol_epoch")
+		protobuf_go_lite.TextWriteUint(&sb, x.ReceiptProtocolEpoch)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *PostRootRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SubmitOperationV1Request) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SubmitOperationV1Request")
+	if x.Key != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Key)
+	}
+	if len(x.ExactEnvelope) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "exact_envelope")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ExactEnvelope)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SubmitOperationV1Request) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SubmitOperationV1Response) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SubmitOperationV1Response")
+	if x.State != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteStringer(&sb, sobject.SOReceiptState(x.State))
+	}
+	if x.TerminalReceipt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "terminal_receipt")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TerminalReceipt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SubmitOperationV1Response) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *LookupOperationReceiptInner) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LookupOperationReceiptInner")
+	if x.Key != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Key)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *LookupOperationReceiptInner) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *LookupOperationReceiptRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LookupOperationReceiptRequest")
+	if len(x.Inner) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "inner")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Inner)
+	}
+	if x.Signature != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "signature")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Signature)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *LookupOperationReceiptRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *LookupOperationReceiptResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LookupOperationReceiptResponse")
+	if x.State != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteStringer(&sb, sobject.SOReceiptState(x.State))
+	}
+	if x.TerminalReceipt != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "terminal_receipt")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TerminalReceipt)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *LookupOperationReceiptResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AcknowledgeOperationReceiptInner) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AcknowledgeOperationReceiptInner")
+	if x.Key != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Key)
+	}
+	if len(x.ReceiptDigest) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "receipt_digest")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ReceiptDigest)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AcknowledgeOperationReceiptInner) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AcknowledgeOperationReceiptRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AcknowledgeOperationReceiptRequest")
+	if len(x.Inner) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "inner")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Inner)
+	}
+	if x.Signature != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "signature")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Signature)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AcknowledgeOperationReceiptRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AcknowledgeOperationReceiptResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AcknowledgeOperationReceiptResponse")
+	if x.Acknowledged != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "acknowledged")
+		protobuf_go_lite.TextWriteBool(&sb, x.Acknowledged)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AcknowledgeOperationReceiptResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -59905,6 +61593,15 @@ func (m *SOStateMessage) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReceiptProtocolEpoch", wireType)
+			}
+			m.ReceiptProtocolEpoch = 0
+			m.ReceiptProtocolEpoch, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -60184,6 +61881,541 @@ func (m *PostRootRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TerminalReceipts", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TerminalReceipts = append(m.TerminalReceipts, &sobject.SOTerminalReceipt{})
+			if err := m.TerminalReceipts[len(m.TerminalReceipts)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReceiptProtocolEpoch", wireType)
+			}
+			m.ReceiptProtocolEpoch = 0
+			m.ReceiptProtocolEpoch, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SubmitOperationV1Request) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SubmitOperationV1Request: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SubmitOperationV1Request: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Key == nil {
+				m.Key = &sobject.SOMutationKey{}
+			}
+			if err := m.Key.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExactEnvelope", wireType)
+			}
+			m.ExactEnvelope, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ExactEnvelope, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SubmitOperationV1Response) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SubmitOperationV1Response: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SubmitOperationV1Response: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = sobject.SOReceiptState(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TerminalReceipt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.TerminalReceipt == nil {
+				m.TerminalReceipt = &sobject.SOTerminalReceipt{}
+			}
+			if err := m.TerminalReceipt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *LookupOperationReceiptInner) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LookupOperationReceiptInner: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LookupOperationReceiptInner: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Key == nil {
+				m.Key = &sobject.SOMutationKey{}
+			}
+			if err := m.Key.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *LookupOperationReceiptRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LookupOperationReceiptRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LookupOperationReceiptRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Inner", wireType)
+			}
+			m.Inner, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Inner, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Signature == nil {
+				m.Signature = &peer.Signature{}
+			}
+			if err := m.Signature.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *LookupOperationReceiptResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LookupOperationReceiptResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LookupOperationReceiptResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = sobject.SOReceiptState(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TerminalReceipt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.TerminalReceipt == nil {
+				m.TerminalReceipt = &sobject.SOTerminalReceipt{}
+			}
+			if err := m.TerminalReceipt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AcknowledgeOperationReceiptInner) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AcknowledgeOperationReceiptInner: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AcknowledgeOperationReceiptInner: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Key == nil {
+				m.Key = &sobject.SOMutationKey{}
+			}
+			if err := m.Key.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReceiptDigest", wireType)
+			}
+			m.ReceiptDigest, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ReceiptDigest, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AcknowledgeOperationReceiptRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AcknowledgeOperationReceiptRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AcknowledgeOperationReceiptRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Inner", wireType)
+			}
+			m.Inner, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Inner, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Signature == nil {
+				m.Signature = &peer.Signature{}
+			}
+			if err := m.Signature.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AcknowledgeOperationReceiptResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AcknowledgeOperationReceiptResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AcknowledgeOperationReceiptResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Acknowledged", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Acknowledged = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

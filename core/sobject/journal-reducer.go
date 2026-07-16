@@ -219,19 +219,19 @@ func (r *JournalReducer) apply(record *SOJournalRecord, commit bool) error {
 		if attempt.State != SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_SENT || !attempt.SendAttempted || attempt.Receipt != nil {
 			return errors.Wrap(ErrJournalInvalidTransition, "receipt lookup requires one ambiguous send")
 		}
-		if attempt.Lookup != nil && attempt.Lookup.GetState() != SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_PENDING {
+		if attempt.Lookup != nil && attempt.Lookup.GetState() != SOReceiptState_SO_RECEIPT_STATE_PENDING {
 			return errors.Wrap(ErrJournalInvalidTransition, "receipt lookup already resolved for this send")
 		}
 		lookup := record.GetLookup()
 		if !lookup.GetKey().EqualExact(record.GetKey()) {
 			return errors.Wrap(ErrJournalInvalidKey, "lookup key differs from attempt key")
 		}
-		if attempt.Lookup != nil && attempt.Lookup.GetState() == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_PENDING && lookup.GetState() == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD {
+		if attempt.Lookup != nil && attempt.Lookup.GetState() == SOReceiptState_SO_RECEIPT_STATE_PENDING && lookup.GetState() == SOReceiptState_SO_RECEIPT_STATE_NO_RECORD {
 			return errors.Wrap(ErrJournalInvalidTransition, "pending receipt lookup cannot regress to no-record")
 		}
 		attempt.Lookup = lookup.CloneVT()
 		attempt.LookupHistory = []*SOJournalLookup{lookup.CloneVT()}
-		if lookup.GetState() == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_ACCEPTED || lookup.GetState() == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_REJECTED {
+		if lookup.GetState() == SOReceiptState_SO_RECEIPT_STATE_ACCEPTED || lookup.GetState() == SOReceiptState_SO_RECEIPT_STATE_REJECTED {
 			if !validJournalReceipt(lookup.GetReceipt(), record.GetKey(), record.GetLineage(), attempt.Version, attempt.EnvelopeDigest) {
 				return errors.Wrap(ErrJournalInvalidTransition, "lookup terminal receipt is not bound")
 			}
@@ -240,7 +240,7 @@ func (r *JournalReducer) apply(record *SOJournalRecord, commit bool) error {
 			attempt.State = SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURABLE
 		}
 	case SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_RESEND_AUTHORIZED:
-		if attempt.State != SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_SENT || attempt.Lookup == nil || attempt.Lookup.GetState() != SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD || attempt.ResendAuthorized {
+		if attempt.State != SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_SENT || attempt.Lookup == nil || attempt.Lookup.GetState() != SOReceiptState_SO_RECEIPT_STATE_NO_RECORD || attempt.ResendAuthorized {
 			return errors.Wrap(ErrJournalInvalidTransition, "resend requires an authoritative no-record lookup")
 		}
 		attempt.ResendAuthorized = true
@@ -370,7 +370,7 @@ func validateJournalRecord(record *SOJournalRecord) error {
 	case SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_RECEIPT_LOOKUP:
 		lookup := record.GetLookup()
 		expectedState := SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_SENT
-		if lookup.GetState() == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_ACCEPTED || lookup.GetState() == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_REJECTED {
+		if lookup.GetState() == SOReceiptState_SO_RECEIPT_STATE_ACCEPTED || lookup.GetState() == SOReceiptState_SO_RECEIPT_STATE_REJECTED {
 			expectedState = SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURABLE
 		}
 		if record.GetAttemptState() != expectedState || !validJournalLookup(lookup, record.GetKey(), record.GetLineage(), record.GetVersion()) {
@@ -429,9 +429,9 @@ func validJournalRecoveryReason(reason SOJournalRecoveryReason) bool {
 		reason <= SOJournalRecoveryReason_SO_JOURNAL_RECOVERY_REASON_BODY_OBSOLETE
 }
 
-func validJournalLookupState(state SOJournalLookupState) bool {
-	return state >= SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD &&
-		state <= SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_REJECTED
+func validJournalLookupState(state SOReceiptState) bool {
+	return state >= SOReceiptState_SO_RECEIPT_STATE_NO_RECORD &&
+		state <= SOReceiptState_SO_RECEIPT_STATE_REJECTED
 }
 
 func readinessMatchesRecovery(readiness SOJournalReadiness, reason SOJournalRecoveryReason) bool {
@@ -481,12 +481,12 @@ func validJournalLookup(lookup *SOJournalLookup, key *SOMutationKey, lineage *SO
 	if version != nil && !bytes.Equal(version.GetConfigChainDigest(), lookup.GetConfigChainDigest()) {
 		return false
 	}
-	if lookup.GetState() == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_ACCEPTED || lookup.GetState() == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_REJECTED {
+	if lookup.GetState() == SOReceiptState_SO_RECEIPT_STATE_ACCEPTED || lookup.GetState() == SOReceiptState_SO_RECEIPT_STATE_REJECTED {
 		receipt := lookup.GetReceipt()
 		if !validJournalReceipt(receipt, key, lineage, version, nil) {
 			return false
 		}
-		if lookup.GetState() == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_ACCEPTED {
+		if lookup.GetState() == SOReceiptState_SO_RECEIPT_STATE_ACCEPTED {
 			return receipt.GetOutcome() == SOJournalOutcome_SO_JOURNAL_OUTCOME_ACCEPTED
 		}
 		return receipt.GetOutcome() == SOJournalOutcome_SO_JOURNAL_OUTCOME_REJECTED
@@ -495,8 +495,8 @@ func validJournalLookup(lookup *SOJournalLookup, key *SOMutationKey, lineage *SO
 }
 
 func authoritativeLookupComplete(lookup *SOJournalLookup) bool {
-	return lookup != nil && lookup.GetState() != SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_UNSPECIFIED &&
-		lookup.GetState() != SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_PENDING
+	return lookup != nil && lookup.GetState() != SOReceiptState_SO_RECEIPT_STATE_UNSPECIFIED &&
+		lookup.GetState() != SOReceiptState_SO_RECEIPT_STATE_PENDING
 }
 
 func validJournalAcknowledgement(ack *SOJournalAcknowledgement, key *SOMutationKey) bool {

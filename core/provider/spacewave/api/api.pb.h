@@ -37,6 +37,7 @@
 #include "../../../session/session.pb.h"
 #include "../../../session/handoff/handoff.pb.h"
 #include "../../../sobject/sobject.pb.h"
+#include "../../../../net/peer/peer.pb.h"
 #include "google/protobuf/timestamp.pb.h"
 // @@protoc_insertion_point(includes)
 
@@ -118,6 +119,18 @@ class AccountStateResponse;
 struct AccountStateResponseDefaultTypeInternal;
 extern AccountStateResponseDefaultTypeInternal _AccountStateResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull AccountStateResponse_class_data_;
+class AcknowledgeOperationReceiptInner;
+struct AcknowledgeOperationReceiptInnerDefaultTypeInternal;
+extern AcknowledgeOperationReceiptInnerDefaultTypeInternal _AcknowledgeOperationReceiptInner_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AcknowledgeOperationReceiptInner_class_data_;
+class AcknowledgeOperationReceiptRequest;
+struct AcknowledgeOperationReceiptRequestDefaultTypeInternal;
+extern AcknowledgeOperationReceiptRequestDefaultTypeInternal _AcknowledgeOperationReceiptRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AcknowledgeOperationReceiptRequest_class_data_;
+class AcknowledgeOperationReceiptResponse;
+struct AcknowledgeOperationReceiptResponseDefaultTypeInternal;
+extern AcknowledgeOperationReceiptResponseDefaultTypeInternal _AcknowledgeOperationReceiptResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AcknowledgeOperationReceiptResponse_class_data_;
 class AddEmailRequest;
 struct AddEmailRequestDefaultTypeInternal;
 extern AddEmailRequestDefaultTypeInternal _AddEmailRequest_default_instance_;
@@ -514,6 +527,18 @@ class LookupInviteCodeResponse;
 struct LookupInviteCodeResponseDefaultTypeInternal;
 extern LookupInviteCodeResponseDefaultTypeInternal _LookupInviteCodeResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull LookupInviteCodeResponse_class_data_;
+class LookupOperationReceiptInner;
+struct LookupOperationReceiptInnerDefaultTypeInternal;
+extern LookupOperationReceiptInnerDefaultTypeInternal _LookupOperationReceiptInner_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull LookupOperationReceiptInner_class_data_;
+class LookupOperationReceiptRequest;
+struct LookupOperationReceiptRequestDefaultTypeInternal;
+extern LookupOperationReceiptRequestDefaultTypeInternal _LookupOperationReceiptRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull LookupOperationReceiptRequest_class_data_;
+class LookupOperationReceiptResponse;
+struct LookupOperationReceiptResponseDefaultTypeInternal;
+extern LookupOperationReceiptResponseDefaultTypeInternal _LookupOperationReceiptResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull LookupOperationReceiptResponse_class_data_;
 class MailboxEntry;
 struct MailboxEntryDefaultTypeInternal;
 extern MailboxEntryDefaultTypeInternal _MailboxEntry_default_instance_;
@@ -1014,6 +1039,14 @@ class SubmitOpResponse;
 struct SubmitOpResponseDefaultTypeInternal;
 extern SubmitOpResponseDefaultTypeInternal _SubmitOpResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull SubmitOpResponse_class_data_;
+class SubmitOperationV1Request;
+struct SubmitOperationV1RequestDefaultTypeInternal;
+extern SubmitOperationV1RequestDefaultTypeInternal _SubmitOperationV1Request_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SubmitOperationV1Request_class_data_;
+class SubmitOperationV1Response;
+struct SubmitOperationV1ResponseDefaultTypeInternal;
+extern SubmitOperationV1ResponseDefaultTypeInternal _SubmitOperationV1Response_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SubmitOperationV1Response_class_data_;
 class SubmitRootResponse;
 struct SubmitRootResponseDefaultTypeInternal;
 extern SubmitRootResponseDefaultTypeInternal _SubmitRootResponse_default_instance_;
@@ -1384,7 +1417,7 @@ class WriteTicketProofPayload final : public ::google::protobuf::Message
     return *reinterpret_cast<const WriteTicketProofPayload*>(
         &_WriteTicketProofPayload_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 43;
+  static constexpr int kIndexInFileMessages = 51;
   friend void swap(WriteTicketProofPayload& a, WriteTicketProofPayload& b) { a.Swap(&b); }
   inline void Swap(WriteTicketProofPayload* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1671,7 +1704,7 @@ class WriteTicketProof final : public ::google::protobuf::Message
     return *reinterpret_cast<const WriteTicketProof*>(
         &_WriteTicketProof_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 44;
+  static constexpr int kIndexInFileMessages = 52;
   friend void swap(WriteTicketProof& a, WriteTicketProof& b) { a.Swap(&b); }
   inline void Swap(WriteTicketProof* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1883,7 +1916,7 @@ class WriteTicketBundleResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WriteTicketBundleResponse*>(
         &_WriteTicketBundleResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 125;
+  static constexpr int kIndexInFileMessages = 133;
   friend void swap(WriteTicketBundleResponse& a, WriteTicketBundleResponse& b) { a.Swap(&b); }
   inline void Swap(WriteTicketBundleResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2111,7 +2144,7 @@ class VerifyFacetsLaunchGrantResponse final : public ::google::protobuf::interna
     return *reinterpret_cast<const VerifyFacetsLaunchGrantResponse*>(
         &_VerifyFacetsLaunchGrantResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 251;
+  static constexpr int kIndexInFileMessages = 259;
   friend void swap(VerifyFacetsLaunchGrantResponse& a, VerifyFacetsLaunchGrantResponse& b) { a.Swap(&b); }
   inline void Swap(VerifyFacetsLaunchGrantResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2246,7 +2279,7 @@ class VerifyFacetsLaunchGrantRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const VerifyFacetsLaunchGrantRequest*>(
         &_VerifyFacetsLaunchGrantRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 250;
+  static constexpr int kIndexInFileMessages = 258;
   friend void swap(VerifyFacetsLaunchGrantRequest& a, VerifyFacetsLaunchGrantRequest& b) { a.Swap(&b); }
   inline void Swap(VerifyFacetsLaunchGrantRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2509,7 +2542,7 @@ class UpdateThresholdAction final : public ::google::protobuf::Message
     return *reinterpret_cast<const UpdateThresholdAction*>(
         &_UpdateThresholdAction_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 34;
+  static constexpr int kIndexInFileMessages = 42;
   friend void swap(UpdateThresholdAction& a, UpdateThresholdAction& b) { a.Swap(&b); }
   inline void Swap(UpdateThresholdAction* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2699,7 +2732,7 @@ class UpdateOrgResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const UpdateOrgResponse*>(
         &_UpdateOrgResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 90;
+  static constexpr int kIndexInFileMessages = 98;
   friend void swap(UpdateOrgResponse& a, UpdateOrgResponse& b) { a.Swap(&b); }
   inline void Swap(UpdateOrgResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2894,7 +2927,7 @@ class UpdateOrgRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const UpdateOrgRequest*>(
         &_UpdateOrgRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 89;
+  static constexpr int kIndexInFileMessages = 97;
   friend void swap(UpdateOrgRequest& a, UpdateOrgRequest& b) { a.Swap(&b); }
   inline void Swap(UpdateOrgRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3088,7 +3121,7 @@ class UndoDeleteRequest final : public ::google::protobuf::internal::ZeroFieldsB
     return *reinterpret_cast<const UndoDeleteRequest*>(
         &_UndoDeleteRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 230;
+  static constexpr int kIndexInFileMessages = 238;
   friend void swap(UndoDeleteRequest& a, UndoDeleteRequest& b) { a.Swap(&b); }
   inline void Swap(UndoDeleteRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3223,7 +3256,7 @@ class UndoDeleteNowResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const UndoDeleteNowResponse*>(
         &_UndoDeleteNowResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 156;
+  static constexpr int kIndexInFileMessages = 164;
   friend void swap(UndoDeleteNowResponse& a, UndoDeleteNowResponse& b) { a.Swap(&b); }
   inline void Swap(UndoDeleteNowResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3413,7 +3446,7 @@ class TransferResourceRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const TransferResourceRequest*>(
         &_TransferResourceRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 93;
+  static constexpr int kIndexInFileMessages = 101;
   friend void swap(TransferResourceRequest& a, TransferResourceRequest& b) { a.Swap(&b); }
   inline void Swap(TransferResourceRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3642,7 +3675,7 @@ class TicketResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const TicketResponse*>(
         &_TicketResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 124;
+  static constexpr int kIndexInFileMessages = 132;
   friend void swap(TicketResponse& a, TicketResponse& b) { a.Swap(&b); }
   inline void Swap(TicketResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3837,7 +3870,7 @@ class ThresholdChangeResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const ThresholdChangeResult*>(
         &_ThresholdChangeResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 225;
+  static constexpr int kIndexInFileMessages = 233;
   friend void swap(ThresholdChangeResult& a, ThresholdChangeResult& b) { a.Swap(&b); }
   inline void Swap(ThresholdChangeResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4027,7 +4060,7 @@ class TargetedInvitationEnvelope final : public ::google::protobuf::Message
     return *reinterpret_cast<const TargetedInvitationEnvelope*>(
         &_TargetedInvitationEnvelope_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 71;
+  static constexpr int kIndexInFileMessages = 79;
   friend void swap(TargetedInvitationEnvelope& a, TargetedInvitationEnvelope& b) { a.Swap(&b); }
   inline void Swap(TargetedInvitationEnvelope* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4452,7 +4485,7 @@ class SwitchIntervalResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SwitchIntervalResponse*>(
         &_SwitchIntervalResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 48;
+  static constexpr int kIndexInFileMessages = 56;
   friend void swap(SwitchIntervalResponse& a, SwitchIntervalResponse& b) { a.Swap(&b); }
   inline void Swap(SwitchIntervalResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4642,7 +4675,7 @@ class SwitchIntervalRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SwitchIntervalRequest*>(
         &_SwitchIntervalRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 47;
+  static constexpr int kIndexInFileMessages = 55;
   friend void swap(SwitchIntervalRequest& a, SwitchIntervalRequest& b) { a.Swap(&b); }
   inline void Swap(SwitchIntervalRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4832,7 +4865,7 @@ class SubmitRootResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SubmitRootResponse*>(
         &_SubmitRootResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 58;
+  static constexpr int kIndexInFileMessages = 66;
   friend void swap(SubmitRootResponse& a, SubmitRootResponse& b) { a.Swap(&b); }
   inline void Swap(SubmitRootResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5022,7 +5055,7 @@ class SubmitOpResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SubmitOpResponse*>(
         &_SubmitOpResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 57;
+  static constexpr int kIndexInFileMessages = 65;
   friend void swap(SubmitOpResponse& a, SubmitOpResponse& b) { a.Swap(&b); }
   inline void Swap(SubmitOpResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5212,7 +5245,7 @@ class SubmitMailboxEntryResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SubmitMailboxEntryResponse*>(
         &_SubmitMailboxEntryResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 219;
+  static constexpr int kIndexInFileMessages = 227;
   friend void swap(SubmitMailboxEntryResponse& a, SubmitMailboxEntryResponse& b) { a.Swap(&b); }
   inline void Swap(SubmitMailboxEntryResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5419,7 +5452,7 @@ class StartDesktopPasskeyReauthRequest final : public ::google::protobuf::Messag
     return *reinterpret_cast<const StartDesktopPasskeyReauthRequest*>(
         &_StartDesktopPasskeyReauthRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 176;
+  static constexpr int kIndexInFileMessages = 184;
   friend void swap(StartDesktopPasskeyReauthRequest& a, StartDesktopPasskeyReauthRequest& b) { a.Swap(&b); }
   inline void Swap(StartDesktopPasskeyReauthRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5614,7 +5647,7 @@ class SsoLinkResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const SsoLinkResult*>(
         &_SsoLinkResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 228;
+  static constexpr int kIndexInFileMessages = 236;
   friend void swap(SsoLinkResult& a, SsoLinkResult& b) { a.Swap(&b); }
   inline void Swap(SsoLinkResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5821,7 +5854,7 @@ class SsoCallbackResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const SsoCallbackResult*>(
         &_SsoCallbackResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 252;
+  static constexpr int kIndexInFileMessages = 260;
   friend void swap(SsoCallbackResult& a, SsoCallbackResult& b) { a.Swap(&b); }
   inline void Swap(SsoCallbackResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6188,7 +6221,7 @@ class SpaceMetadataResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SpaceMetadataResponse*>(
         &_SpaceMetadataResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 65;
+  static constexpr int kIndexInFileMessages = 73;
   friend void swap(SpaceMetadataResponse& a, SpaceMetadataResponse& b) { a.Swap(&b); }
   inline void Swap(SpaceMetadataResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6446,7 +6479,7 @@ class SigningPayload final : public ::google::protobuf::Message
     return *reinterpret_cast<const SigningPayload*>(
         &_SigningPayload_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 42;
+  static constexpr int kIndexInFileMessages = 50;
   friend void swap(SigningPayload& a, SigningPayload& b) { a.Swap(&b); }
   inline void Swap(SigningPayload* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6733,7 +6766,7 @@ class SignalTicketResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SignalTicketResponse*>(
         &_SignalTicketResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 126;
+  static constexpr int kIndexInFileMessages = 134;
   friend void swap(SignalTicketResponse& a, SignalTicketResponse& b) { a.Swap(&b); }
   inline void Swap(SignalTicketResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6928,7 +6961,7 @@ class SetPrimaryEmailResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetPrimaryEmailResponse*>(
         &_SetPrimaryEmailResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 147;
+  static constexpr int kIndexInFileMessages = 155;
   friend void swap(SetPrimaryEmailResponse& a, SetPrimaryEmailResponse& b) { a.Swap(&b); }
   inline void Swap(SetPrimaryEmailResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7123,7 +7156,7 @@ class SetPrimaryEmailRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetPrimaryEmailRequest*>(
         &_SetPrimaryEmailRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 146;
+  static constexpr int kIndexInFileMessages = 154;
   friend void swap(SetPrimaryEmailRequest& a, SetPrimaryEmailRequest& b) { a.Swap(&b); }
   inline void Swap(SetPrimaryEmailRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7317,7 +7350,7 @@ class SessionTicketRequest final : public ::google::protobuf::internal::ZeroFiel
     return *reinterpret_cast<const SessionTicketRequest*>(
         &_SessionTicketRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 232;
+  static constexpr int kIndexInFileMessages = 240;
   friend void swap(SessionTicketRequest& a, SessionTicketRequest& b) { a.Swap(&b); }
   inline void Swap(SessionTicketRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7452,7 +7485,7 @@ class SessionRevokeResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const SessionRevokeResult*>(
         &_SessionRevokeResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 226;
+  static constexpr int kIndexInFileMessages = 234;
   friend void swap(SessionRevokeResult& a, SessionRevokeResult& b) { a.Swap(&b); }
   inline void Swap(SessionRevokeResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7642,7 +7675,7 @@ class SessionEvent final : public ::google::protobuf::Message
     return *reinterpret_cast<const SessionEvent*>(
         &_SessionEvent_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 15;
+  static constexpr int kIndexInFileMessages = 23;
   friend void swap(SessionEvent& a, SessionEvent& b) { a.Swap(&b); }
   inline void Swap(SessionEvent* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7871,7 +7904,7 @@ class SSOLinkAction final : public ::google::protobuf::Message
     return *reinterpret_cast<const SSOLinkAction*>(
         &_SSOLinkAction_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 38;
+  static constexpr int kIndexInFileMessages = 46;
   friend void swap(SSOLinkAction& a, SSOLinkAction& b) { a.Swap(&b); }
   inline void Swap(SSOLinkAction* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8151,7 +8184,7 @@ class SSOCodeExchangeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SSOCodeExchangeResponse*>(
         &_SSOCodeExchangeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 39;
+  static constexpr int kIndexInFileMessages = 47;
   friend void swap(SSOCodeExchangeResponse& a, SSOCodeExchangeResponse& b) { a.Swap(&b); }
   inline void Swap(SSOCodeExchangeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8518,7 +8551,7 @@ class SSOCodeExchangeRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SSOCodeExchangeRequest*>(
         &_SSOCodeExchangeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 157;
+  static constexpr int kIndexInFileMessages = 165;
   friend void swap(SSOCodeExchangeRequest& a, SSOCodeExchangeRequest& b) { a.Swap(&b); }
   inline void Swap(SSOCodeExchangeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9195,7 +9228,7 @@ class RevokeTargetedInvitationRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RevokeTargetedInvitationRequest*>(
         &_RevokeTargetedInvitationRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 79;
+  static constexpr int kIndexInFileMessages = 87;
   friend void swap(RevokeTargetedInvitationRequest& a, RevokeTargetedInvitationRequest& b) { a.Swap(&b); }
   inline void Swap(RevokeTargetedInvitationRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9390,7 +9423,7 @@ class RevokeSessionAction final : public ::google::protobuf::Message
     return *reinterpret_cast<const RevokeSessionAction*>(
         &_RevokeSessionAction_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 35;
+  static constexpr int kIndexInFileMessages = 43;
   friend void swap(RevokeSessionAction& a, RevokeSessionAction& b) { a.Swap(&b); }
   inline void Swap(RevokeSessionAction* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9585,7 +9618,7 @@ class ResourceListEntry final : public ::google::protobuf::Message
     return *reinterpret_cast<const ResourceListEntry*>(
         &_ResourceListEntry_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 91;
+  static constexpr int kIndexInFileMessages = 99;
   friend void swap(ResourceListEntry& a, ResourceListEntry& b) { a.Swap(&b); }
   inline void Swap(ResourceListEntry* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9797,7 +9830,7 @@ class ResolveUsernameResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ResolveUsernameResponse*>(
         &_ResolveUsernameResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 70;
+  static constexpr int kIndexInFileMessages = 78;
   friend void swap(ResolveUsernameResponse& a, ResolveUsernameResponse& b) { a.Swap(&b); }
   inline void Swap(ResolveUsernameResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10096,7 +10129,7 @@ class ResolveUsernameRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ResolveUsernameRequest*>(
         &_ResolveUsernameRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 69;
+  static constexpr int kIndexInFileMessages = 77;
   friend void swap(ResolveUsernameRequest& a, ResolveUsernameRequest& b) { a.Swap(&b); }
   inline void Swap(ResolveUsernameRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10337,7 +10370,7 @@ class ResolveMemberParticipantsResponse final : public ::google::protobuf::Messa
     return *reinterpret_cast<const ResolveMemberParticipantsResponse*>(
         &_ResolveMemberParticipantsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 208;
+  static constexpr int kIndexInFileMessages = 216;
   friend void swap(ResolveMemberParticipantsResponse& a, ResolveMemberParticipantsResponse& b) { a.Swap(&b); }
   inline void Swap(ResolveMemberParticipantsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10539,7 +10572,7 @@ class ResolveMemberParticipantsRequest final : public ::google::protobuf::Messag
     return *reinterpret_cast<const ResolveMemberParticipantsRequest*>(
         &_ResolveMemberParticipantsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 207;
+  static constexpr int kIndexInFileMessages = 215;
   friend void swap(ResolveMemberParticipantsRequest& a, ResolveMemberParticipantsRequest& b) { a.Swap(&b); }
   inline void Swap(ResolveMemberParticipantsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10734,7 +10767,7 @@ class RequestRecoveryEmailResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const RequestRecoveryEmailResponse*>(
         &_RequestRecoveryEmailResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 159;
+  static constexpr int kIndexInFileMessages = 167;
   friend void swap(RequestRecoveryEmailResponse& a, RequestRecoveryEmailResponse& b) { a.Swap(&b); }
   inline void Swap(RequestRecoveryEmailResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10924,7 +10957,7 @@ class RequestRecoveryEmailRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RequestRecoveryEmailRequest*>(
         &_RequestRecoveryEmailRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 158;
+  static constexpr int kIndexInFileMessages = 166;
   friend void swap(RequestRecoveryEmailRequest& a, RequestRecoveryEmailRequest& b) { a.Swap(&b); }
   inline void Swap(RequestRecoveryEmailRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11119,7 +11152,7 @@ class RequestEmailVerificationResponse final : public ::google::protobuf::Messag
     return *reinterpret_cast<const RequestEmailVerificationResponse*>(
         &_RequestEmailVerificationResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 149;
+  static constexpr int kIndexInFileMessages = 157;
   friend void swap(RequestEmailVerificationResponse& a, RequestEmailVerificationResponse& b) { a.Swap(&b); }
   inline void Swap(RequestEmailVerificationResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11321,7 +11354,7 @@ class RequestEmailVerificationRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RequestEmailVerificationRequest*>(
         &_RequestEmailVerificationRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 148;
+  static constexpr int kIndexInFileMessages = 156;
   friend void swap(RequestEmailVerificationRequest& a, RequestEmailVerificationRequest& b) { a.Swap(&b); }
   inline void Swap(RequestEmailVerificationRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11516,7 +11549,7 @@ class RequestDeleteNowEmailResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const RequestDeleteNowEmailResponse*>(
         &_RequestDeleteNowEmailResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 153;
+  static constexpr int kIndexInFileMessages = 161;
   friend void swap(RequestDeleteNowEmailResponse& a, RequestDeleteNowEmailResponse& b) { a.Swap(&b); }
   inline void Swap(RequestDeleteNowEmailResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11734,7 +11767,7 @@ class RequestDeleteNowEmailRequest final : public ::google::protobuf::internal::
     return *reinterpret_cast<const RequestDeleteNowEmailRequest*>(
         &_RequestDeleteNowEmailRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 152;
+  static constexpr int kIndexInFileMessages = 160;
   friend void swap(RequestDeleteNowEmailRequest& a, RequestDeleteNowEmailRequest& b) { a.Swap(&b); }
   inline void Swap(RequestDeleteNowEmailRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11868,7 +11901,7 @@ class RenameBillingAccountResponse final : public ::google::protobuf::internal::
     return *reinterpret_cast<const RenameBillingAccountResponse*>(
         &_RenameBillingAccountResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 102;
+  static constexpr int kIndexInFileMessages = 110;
   friend void swap(RenameBillingAccountResponse& a, RenameBillingAccountResponse& b) { a.Swap(&b); }
   inline void Swap(RenameBillingAccountResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12003,7 +12036,7 @@ class RenameBillingAccountRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RenameBillingAccountRequest*>(
         &_RenameBillingAccountRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 101;
+  static constexpr int kIndexInFileMessages = 109;
   friend void swap(RenameBillingAccountRequest& a, RenameBillingAccountRequest& b) { a.Swap(&b); }
   inline void Swap(RenameBillingAccountRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12215,7 +12248,7 @@ class RemoveOrgMemberResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveOrgMemberResponse*>(
         &_RemoveOrgMemberResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 239;
+  static constexpr int kIndexInFileMessages = 247;
   friend void swap(RemoveOrgMemberResponse& a, RemoveOrgMemberResponse& b) { a.Swap(&b); }
   inline void Swap(RemoveOrgMemberResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12409,7 +12442,7 @@ class RemoveOrgMemberRequest final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const RemoveOrgMemberRequest*>(
         &_RemoveOrgMemberRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 238;
+  static constexpr int kIndexInFileMessages = 246;
   friend void swap(RemoveOrgMemberRequest& a, RemoveOrgMemberRequest& b) { a.Swap(&b); }
   inline void Swap(RemoveOrgMemberRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12544,7 +12577,7 @@ class RemoveKeypairAction final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveKeypairAction*>(
         &_RemoveKeypairAction_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 33;
+  static constexpr int kIndexInFileMessages = 41;
   friend void swap(RemoveKeypairAction& a, RemoveKeypairAction& b) { a.Swap(&b); }
   inline void Swap(RemoveKeypairAction* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12738,7 +12771,7 @@ class RemoveEmailResponse final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const RemoveEmailResponse*>(
         &_RemoveEmailResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 145;
+  static constexpr int kIndexInFileMessages = 153;
   friend void swap(RemoveEmailResponse& a, RemoveEmailResponse& b) { a.Swap(&b); }
   inline void Swap(RemoveEmailResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12873,7 +12906,7 @@ class RemoveEmailRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RemoveEmailRequest*>(
         &_RemoveEmailRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 144;
+  static constexpr int kIndexInFileMessages = 152;
   friend void swap(RemoveEmailRequest& a, RemoveEmailRequest& b) { a.Swap(&b); }
   inline void Swap(RemoveEmailRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13067,7 +13100,7 @@ class ReinitializeSObjectResponse final : public ::google::protobuf::internal::Z
     return *reinterpret_cast<const ReinitializeSObjectResponse*>(
         &_ReinitializeSObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 62;
+  static constexpr int kIndexInFileMessages = 70;
   friend void swap(ReinitializeSObjectResponse& a, ReinitializeSObjectResponse& b) { a.Swap(&b); }
   inline void Swap(ReinitializeSObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13201,7 +13234,7 @@ class ReinitializeSObjectRequest final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const ReinitializeSObjectRequest*>(
         &_ReinitializeSObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 233;
+  static constexpr int kIndexInFileMessages = 241;
   friend void swap(ReinitializeSObjectRequest& a, ReinitializeSObjectRequest& b) { a.Swap(&b); }
   inline void Swap(ReinitializeSObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13593,7 +13626,7 @@ class RegisterPasskeyOptionsRequest final : public ::google::protobuf::internal:
     return *reinterpret_cast<const RegisterPasskeyOptionsRequest*>(
         &_RegisterPasskeyOptionsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 231;
+  static constexpr int kIndexInFileMessages = 239;
   friend void swap(RegisterPasskeyOptionsRequest& a, RegisterPasskeyOptionsRequest& b) { a.Swap(&b); }
   inline void Swap(RegisterPasskeyOptionsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13727,7 +13760,7 @@ class RegisterInviteCodeResponse final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const RegisterInviteCodeResponse*>(
         &_RegisterInviteCodeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 215;
+  static constexpr int kIndexInFileMessages = 223;
   friend void swap(RegisterInviteCodeResponse& a, RegisterInviteCodeResponse& b) { a.Swap(&b); }
   inline void Swap(RegisterInviteCodeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13862,7 +13895,7 @@ class RegisterInviteCodeRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RegisterInviteCodeRequest*>(
         &_RegisterInviteCodeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 214;
+  static constexpr int kIndexInFileMessages = 222;
   friend void swap(RegisterInviteCodeRequest& a, RegisterInviteCodeRequest& b) { a.Swap(&b); }
   inline void Swap(RegisterInviteCodeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14361,7 +14394,7 @@ class RecoverVerifyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const RecoverVerifyResponse*>(
         &_RecoverVerifyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 161;
+  static constexpr int kIndexInFileMessages = 169;
   friend void swap(RecoverVerifyResponse& a, RecoverVerifyResponse& b) { a.Swap(&b); }
   inline void Swap(RecoverVerifyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14626,7 +14659,7 @@ class RecoverVerifyRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RecoverVerifyRequest*>(
         &_RecoverVerifyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 160;
+  static constexpr int kIndexInFileMessages = 168;
   friend void swap(RecoverVerifyRequest& a, RecoverVerifyRequest& b) { a.Swap(&b); }
   inline void Swap(RecoverVerifyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14821,7 +14854,7 @@ class RecoverExecuteSignature final : public ::google::protobuf::Message
     return *reinterpret_cast<const RecoverExecuteSignature*>(
         &_RecoverExecuteSignature_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 164;
+  static constexpr int kIndexInFileMessages = 172;
   friend void swap(RecoverExecuteSignature& a, RecoverExecuteSignature& b) { a.Swap(&b); }
   inline void Swap(RecoverExecuteSignature* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15033,7 +15066,7 @@ class RecoverExecuteResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const RecoverExecuteResponse*>(
         &_RecoverExecuteResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 165;
+  static constexpr int kIndexInFileMessages = 173;
   friend void swap(RecoverExecuteResponse& a, RecoverExecuteResponse& b) { a.Swap(&b); }
   inline void Swap(RecoverExecuteResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15245,7 +15278,7 @@ class RecoverExecuteKeypair final : public ::google::protobuf::Message
     return *reinterpret_cast<const RecoverExecuteKeypair*>(
         &_RecoverExecuteKeypair_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 163;
+  static constexpr int kIndexInFileMessages = 171;
   friend void swap(RecoverExecuteKeypair& a, RecoverExecuteKeypair& b) { a.Swap(&b); }
   inline void Swap(RecoverExecuteKeypair* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15474,7 +15507,7 @@ class ReactivateBillingResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ReactivateBillingResponse*>(
         &_ReactivateBillingResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 245;
+  static constexpr int kIndexInFileMessages = 253;
   friend void swap(ReactivateBillingResponse& a, ReactivateBillingResponse& b) { a.Swap(&b); }
   inline void Swap(ReactivateBillingResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15668,7 +15701,7 @@ class ReactivateBillingRequest final : public ::google::protobuf::internal::Zero
     return *reinterpret_cast<const ReactivateBillingRequest*>(
         &_ReactivateBillingRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 244;
+  static constexpr int kIndexInFileMessages = 252;
   friend void swap(ReactivateBillingRequest& a, ReactivateBillingRequest& b) { a.Swap(&b); }
   inline void Swap(ReactivateBillingRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15803,7 +15836,7 @@ class RbacLastMutation final : public ::google::protobuf::Message
     return *reinterpret_cast<const RbacLastMutation*>(
         &_RbacLastMutation_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 133;
+  static constexpr int kIndexInFileMessages = 141;
   friend void swap(RbacLastMutation& a, RbacLastMutation& b) { a.Swap(&b); }
   inline void Swap(RbacLastMutation* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -16056,7 +16089,7 @@ class RbacGrantRevocation final : public ::google::protobuf::Message
     return *reinterpret_cast<const RbacGrantRevocation*>(
         &_RbacGrantRevocation_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 132;
+  static constexpr int kIndexInFileMessages = 140;
   friend void swap(RbacGrantRevocation& a, RbacGrantRevocation& b) { a.Swap(&b); }
   inline void Swap(RbacGrantRevocation* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -16246,7 +16279,7 @@ class RbacGrantPrincipal final : public ::google::protobuf::Message
     return *reinterpret_cast<const RbacGrantPrincipal*>(
         &_RbacGrantPrincipal_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 131;
+  static constexpr int kIndexInFileMessages = 139;
   friend void swap(RbacGrantPrincipal& a, RbacGrantPrincipal& b) { a.Swap(&b); }
   inline void Swap(RbacGrantPrincipal* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -16458,7 +16491,7 @@ class RbacGrantLifecycleQuery final : public ::google::protobuf::Message
     return *reinterpret_cast<const RbacGrantLifecycleQuery*>(
         &_RbacGrantLifecycleQuery_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 130;
+  static constexpr int kIndexInFileMessages = 138;
   friend void swap(RbacGrantLifecycleQuery& a, RbacGrantLifecycleQuery& b) { a.Swap(&b); }
   inline void Swap(RbacGrantLifecycleQuery* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -16653,7 +16686,7 @@ class RbacCapabilityFlagQuery final : public ::google::protobuf::Message
     return *reinterpret_cast<const RbacCapabilityFlagQuery*>(
         &_RbacCapabilityFlagQuery_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 134;
+  static constexpr int kIndexInFileMessages = 142;
   friend void swap(RbacCapabilityFlagQuery& a, RbacCapabilityFlagQuery& b) { a.Swap(&b); }
   inline void Swap(RbacCapabilityFlagQuery* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -16865,7 +16898,7 @@ class ProcessTargetedInvitationRequest final : public ::google::protobuf::Messag
     return *reinterpret_cast<const ProcessTargetedInvitationRequest*>(
         &_ProcessTargetedInvitationRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 81;
+  static constexpr int kIndexInFileMessages = 89;
   friend void swap(ProcessTargetedInvitationRequest& a, ProcessTargetedInvitationRequest& b) { a.Swap(&b); }
   inline void Swap(ProcessTargetedInvitationRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -17077,7 +17110,7 @@ class ProcessMailboxEntryResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ProcessMailboxEntryResponse*>(
         &_ProcessMailboxEntryResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 222;
+  static constexpr int kIndexInFileMessages = 230;
   friend void swap(ProcessMailboxEntryResponse& a, ProcessMailboxEntryResponse& b) { a.Swap(&b); }
   inline void Swap(ProcessMailboxEntryResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -17272,7 +17305,7 @@ class ProcessMailboxEntryRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ProcessMailboxEntryRequest*>(
         &_ProcessMailboxEntryRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 221;
+  static constexpr int kIndexInFileMessages = 229;
   friend void swap(ProcessMailboxEntryRequest& a, ProcessMailboxEntryRequest& b) { a.Swap(&b); }
   inline void Swap(ProcessMailboxEntryRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -17474,7 +17507,7 @@ class PrincipalAssignment final : public ::google::protobuf::Message
     return *reinterpret_cast<const PrincipalAssignment*>(
         &_PrincipalAssignment_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 99;
+  static constexpr int kIndexInFileMessages = 107;
   friend void swap(PrincipalAssignment& a, PrincipalAssignment& b) { a.Swap(&b); }
   inline void Swap(PrincipalAssignment* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -17702,7 +17735,7 @@ class PostKeyEpochResponse final : public ::google::protobuf::internal::ZeroFiel
     return *reinterpret_cast<const PostKeyEpochResponse*>(
         &_PostKeyEpochResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 61;
+  static constexpr int kIndexInFileMessages = 69;
   friend void swap(PostKeyEpochResponse& a, PostKeyEpochResponse& b) { a.Swap(&b); }
   inline void Swap(PostKeyEpochResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -17836,7 +17869,7 @@ class PostConfigStateResponse final : public ::google::protobuf::internal::ZeroF
     return *reinterpret_cast<const PostConfigStateResponse*>(
         &_PostConfigStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 60;
+  static constexpr int kIndexInFileMessages = 68;
   friend void swap(PostConfigStateResponse& a, PostConfigStateResponse& b) { a.Swap(&b); }
   inline void Swap(PostConfigStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -17970,7 +18003,7 @@ class PostConfigResponse final : public ::google::protobuf::internal::ZeroFields
     return *reinterpret_cast<const PostConfigResponse*>(
         &_PostConfigResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 59;
+  static constexpr int kIndexInFileMessages = 67;
   friend void swap(PostConfigResponse& a, PostConfigResponse& b) { a.Swap(&b); }
   inline void Swap(PostConfigResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -18105,7 +18138,7 @@ class PendingParticipantPayload final : public ::google::protobuf::Message
     return *reinterpret_cast<const PendingParticipantPayload*>(
         &_PendingParticipantPayload_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 24;
+  static constexpr int kIndexInFileMessages = 32;
   friend void swap(PendingParticipantPayload& a, PendingParticipantPayload& b) { a.Swap(&b); }
   inline void Swap(PendingParticipantPayload* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -18300,7 +18333,7 @@ class PasskeyRegisterVerifyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyRegisterVerifyResponse*>(
         &_PasskeyRegisterVerifyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 184;
+  static constexpr int kIndexInFileMessages = 192;
   friend void swap(PasskeyRegisterVerifyResponse& a, PasskeyRegisterVerifyResponse& b) { a.Swap(&b); }
   inline void Swap(PasskeyRegisterVerifyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -18507,7 +18540,7 @@ class PasskeyRegisterVerifyRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyRegisterVerifyRequest*>(
         &_PasskeyRegisterVerifyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 183;
+  static constexpr int kIndexInFileMessages = 191;
   friend void swap(PasskeyRegisterVerifyRequest& a, PasskeyRegisterVerifyRequest& b) { a.Swap(&b); }
   inline void Swap(PasskeyRegisterVerifyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -18782,7 +18815,7 @@ class PasskeyRegisterChallengeRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyRegisterChallengeRequest*>(
         &_PasskeyRegisterChallengeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 182;
+  static constexpr int kIndexInFileMessages = 190;
   friend void swap(PasskeyRegisterChallengeRequest& a, PasskeyRegisterChallengeRequest& b) { a.Swap(&b); }
   inline void Swap(PasskeyRegisterChallengeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -18977,7 +19010,7 @@ class PasskeyOptionsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyOptionsResponse*>(
         &_PasskeyOptionsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 180;
+  static constexpr int kIndexInFileMessages = 188;
   friend void swap(PasskeyOptionsResponse& a, PasskeyOptionsResponse& b) { a.Swap(&b); }
   inline void Swap(PasskeyOptionsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -19172,7 +19205,7 @@ class PasskeyConfirmResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyConfirmResponse*>(
         &_PasskeyConfirmResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 188;
+  static constexpr int kIndexInFileMessages = 196;
   friend void swap(PasskeyConfirmResponse& a, PasskeyConfirmResponse& b) { a.Swap(&b); }
   inline void Swap(PasskeyConfirmResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -19384,7 +19417,7 @@ class PasskeyConfirmRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyConfirmRequest*>(
         &_PasskeyConfirmRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 187;
+  static constexpr int kIndexInFileMessages = 195;
   friend void swap(PasskeyConfirmRequest& a, PasskeyConfirmRequest& b) { a.Swap(&b); }
   inline void Swap(PasskeyConfirmRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -19756,7 +19789,7 @@ class PasskeyCheckUsernameResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyCheckUsernameResponse*>(
         &_PasskeyCheckUsernameResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 190;
+  static constexpr int kIndexInFileMessages = 198;
   friend void swap(PasskeyCheckUsernameResponse& a, PasskeyCheckUsernameResponse& b) { a.Swap(&b); }
   inline void Swap(PasskeyCheckUsernameResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -19946,7 +19979,7 @@ class PasskeyCheckUsernameRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyCheckUsernameRequest*>(
         &_PasskeyCheckUsernameRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 189;
+  static constexpr int kIndexInFileMessages = 197;
   friend void swap(PasskeyCheckUsernameRequest& a, PasskeyCheckUsernameRequest& b) { a.Swap(&b); }
   inline void Swap(PasskeyCheckUsernameRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -20141,7 +20174,7 @@ class PasskeyAuthVerifyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyAuthVerifyResponse*>(
         &_PasskeyAuthVerifyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 186;
+  static constexpr int kIndexInFileMessages = 194;
   friend void swap(PasskeyAuthVerifyResponse& a, PasskeyAuthVerifyResponse& b) { a.Swap(&b); }
   inline void Swap(PasskeyAuthVerifyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -20440,7 +20473,7 @@ class PasskeyAuthVerifyRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyAuthVerifyRequest*>(
         &_PasskeyAuthVerifyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 185;
+  static constexpr int kIndexInFileMessages = 193;
   friend void swap(PasskeyAuthVerifyRequest& a, PasskeyAuthVerifyRequest& b) { a.Swap(&b); }
   inline void Swap(PasskeyAuthVerifyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -20635,7 +20668,7 @@ class PasskeyAuthOptionsRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const PasskeyAuthOptionsRequest*>(
         &_PasskeyAuthOptionsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 181;
+  static constexpr int kIndexInFileMessages = 189;
   friend void swap(PasskeyAuthOptionsRequest& a, PasskeyAuthOptionsRequest& b) { a.Swap(&b); }
   inline void Swap(PasskeyAuthOptionsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -20830,7 +20863,7 @@ class PairingResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PairingResponse*>(
         &_PairingResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 203;
+  static constexpr int kIndexInFileMessages = 211;
   friend void swap(PairingResponse& a, PairingResponse& b) { a.Swap(&b); }
   inline void Swap(PairingResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -21025,7 +21058,7 @@ class PairingRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const PairingRequest*>(
         &_PairingRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 202;
+  static constexpr int kIndexInFileMessages = 210;
   friend void swap(PairingRequest& a, PairingRequest& b) { a.Swap(&b); }
   inline void Swap(PairingRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -21237,7 +21270,7 @@ class PackMetadataRepairResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const PackMetadataRepairResponse*>(
         &_PackMetadataRepairResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 129;
+  static constexpr int kIndexInFileMessages = 137;
   friend void swap(PackMetadataRepairResponse& a, PackMetadataRepairResponse& b) { a.Swap(&b); }
   inline void Swap(PackMetadataRepairResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -21451,7 +21484,7 @@ class PackMetadataRepairEntry final : public ::google::protobuf::Message
     return *reinterpret_cast<const PackMetadataRepairEntry*>(
         &_PackMetadataRepairEntry_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 127;
+  static constexpr int kIndexInFileMessages = 135;
   friend void swap(PackMetadataRepairEntry& a, PackMetadataRepairEntry& b) { a.Swap(&b); }
   inline void Swap(PackMetadataRepairEntry* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -21704,7 +21737,7 @@ class OrgSpaceEntry final : public ::google::protobuf::Message
     return *reinterpret_cast<const OrgSpaceEntry*>(
         &_OrgSpaceEntry_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 108;
+  static constexpr int kIndexInFileMessages = 116;
   friend void swap(OrgSpaceEntry& a, OrgSpaceEntry& b) { a.Swap(&b); }
   inline void Swap(OrgSpaceEntry* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -21933,7 +21966,7 @@ class OrgResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const OrgResponse*>(
         &_OrgResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 85;
+  static constexpr int kIndexInFileMessages = 93;
   friend void swap(OrgResponse& a, OrgResponse& b) { a.Swap(&b); }
   inline void Swap(OrgResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -22186,7 +22219,7 @@ class OrgMember final : public ::google::protobuf::Message
     return *reinterpret_cast<const OrgMember*>(
         &_OrgMember_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 110;
+  static constexpr int kIndexInFileMessages = 118;
   friend void swap(OrgMember& a, OrgMember& b) { a.Swap(&b); }
   inline void Swap(OrgMember* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -22444,7 +22477,7 @@ class OrgLeaveResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const OrgLeaveResponse*>(
         &_OrgLeaveResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 237;
+  static constexpr int kIndexInFileMessages = 245;
   friend void swap(OrgLeaveResponse& a, OrgLeaveResponse& b) { a.Swap(&b); }
   inline void Swap(OrgLeaveResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -22638,7 +22671,7 @@ class OrgLeaveRequest final : public ::google::protobuf::internal::ZeroFieldsBas
     return *reinterpret_cast<const OrgLeaveRequest*>(
         &_OrgLeaveRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 236;
+  static constexpr int kIndexInFileMessages = 244;
   friend void swap(OrgLeaveRequest& a, OrgLeaveRequest& b) { a.Swap(&b); }
   inline void Swap(OrgLeaveRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -22773,7 +22806,7 @@ class OrgInviteResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const OrgInviteResponse*>(
         &_OrgInviteResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 87;
+  static constexpr int kIndexInFileMessages = 95;
   friend void swap(OrgInviteResponse& a, OrgInviteResponse& b) { a.Swap(&b); }
   inline void Swap(OrgInviteResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -23038,7 +23071,7 @@ class OrgDeleteResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const OrgDeleteResponse*>(
         &_OrgDeleteResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 235;
+  static constexpr int kIndexInFileMessages = 243;
   friend void swap(OrgDeleteResponse& a, OrgDeleteResponse& b) { a.Swap(&b); }
   inline void Swap(OrgDeleteResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -23232,7 +23265,7 @@ class OrgDeleteRequest final : public ::google::protobuf::internal::ZeroFieldsBa
     return *reinterpret_cast<const OrgDeleteRequest*>(
         &_OrgDeleteRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 234;
+  static constexpr int kIndexInFileMessages = 242;
   friend void swap(OrgDeleteRequest& a, OrgDeleteRequest& b) { a.Swap(&b); }
   inline void Swap(OrgDeleteRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -23367,7 +23400,7 @@ class OrgChangedPayload final : public ::google::protobuf::Message
     return *reinterpret_cast<const OrgChangedPayload*>(
         &_OrgChangedPayload_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 23;
+  static constexpr int kIndexInFileMessages = 31;
   friend void swap(OrgChangedPayload& a, OrgChangedPayload& b) { a.Swap(&b); }
   inline void Swap(OrgChangedPayload* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -23825,7 +23858,7 @@ class NotifySharedObjectChangeRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const NotifySharedObjectChangeRequest*>(
         &_NotifySharedObjectChangeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 16;
+  static constexpr int kIndexInFileMessages = 24;
   friend void swap(NotifySharedObjectChangeRequest& a, NotifySharedObjectChangeRequest& b) { a.Swap(&b); }
   inline void Swap(NotifySharedObjectChangeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -24037,7 +24070,7 @@ class NotifySessionEventRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const NotifySessionEventRequest*>(
         &_NotifySessionEventRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 20;
+  static constexpr int kIndexInFileMessages = 28;
   friend void swap(NotifySessionEventRequest& a, NotifySessionEventRequest& b) { a.Swap(&b); }
   inline void Swap(NotifySessionEventRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -24266,7 +24299,7 @@ class NotifyPendingParticipantRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const NotifyPendingParticipantRequest*>(
         &_NotifyPendingParticipantRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 19;
+  static constexpr int kIndexInFileMessages = 27;
   friend void swap(NotifyPendingParticipantRequest& a, NotifyPendingParticipantRequest& b) { a.Swap(&b); }
   inline void Swap(NotifyPendingParticipantRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -24478,7 +24511,7 @@ class NotifyOrganizationChangedRequest final : public ::google::protobuf::Messag
     return *reinterpret_cast<const NotifyOrganizationChangedRequest*>(
         &_NotifyOrganizationChangedRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 18;
+  static constexpr int kIndexInFileMessages = 26;
   friend void swap(NotifyOrganizationChangedRequest& a, NotifyOrganizationChangedRequest& b) { a.Swap(&b); }
   inline void Swap(NotifyOrganizationChangedRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -24673,7 +24706,7 @@ class NotifyAccountChangedRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const NotifyAccountChangedRequest*>(
         &_NotifyAccountChangedRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 17;
+  static constexpr int kIndexInFileMessages = 25;
   friend void swap(NotifyAccountChangedRequest& a, NotifyAccountChangedRequest& b) { a.Swap(&b); }
   inline void Swap(NotifyAccountChangedRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -24863,7 +24896,7 @@ class MultiSigActionEnvelope final : public ::google::protobuf::Message
     return *reinterpret_cast<const MultiSigActionEnvelope*>(
         &_MultiSigActionEnvelope_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 29;
+  static constexpr int kIndexInFileMessages = 37;
   friend void swap(MultiSigActionEnvelope& a, MultiSigActionEnvelope& b) { a.Swap(&b); }
   inline void Swap(MultiSigActionEnvelope* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -25121,7 +25154,7 @@ class MintFacetsLaunchGrantResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const MintFacetsLaunchGrantResponse*>(
         &_MintFacetsLaunchGrantResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 249;
+  static constexpr int kIndexInFileMessages = 257;
   friend void swap(MintFacetsLaunchGrantResponse& a, MintFacetsLaunchGrantResponse& b) { a.Swap(&b); }
   inline void Swap(MintFacetsLaunchGrantResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -25316,7 +25349,7 @@ class MintFacetsLaunchGrantRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const MintFacetsLaunchGrantRequest*>(
         &_MintFacetsLaunchGrantRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 248;
+  static constexpr int kIndexInFileMessages = 256;
   friend void swap(MintFacetsLaunchGrantRequest& a, MintFacetsLaunchGrantRequest& b) { a.Swap(&b); }
   inline void Swap(MintFacetsLaunchGrantRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -25545,7 +25578,7 @@ class MemberSessionChangedPayload final : public ::google::protobuf::Message
     return *reinterpret_cast<const MemberSessionChangedPayload*>(
         &_MemberSessionChangedPayload_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 26;
+  static constexpr int kIndexInFileMessages = 34;
   friend void swap(MemberSessionChangedPayload& a, MemberSessionChangedPayload& b) { a.Swap(&b); }
   inline void Swap(MemberSessionChangedPayload* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -25757,7 +25790,7 @@ class LookupInviteCodeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const LookupInviteCodeResponse*>(
         &_LookupInviteCodeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 216;
+  static constexpr int kIndexInFileMessages = 224;
   friend void swap(LookupInviteCodeResponse& a, LookupInviteCodeResponse& b) { a.Swap(&b); }
   inline void Swap(LookupInviteCodeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -25968,7 +26001,7 @@ class ListTargetedInvitationsRequest final : public ::google::protobuf::internal
     return *reinterpret_cast<const ListTargetedInvitationsRequest*>(
         &_ListTargetedInvitationsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 75;
+  static constexpr int kIndexInFileMessages = 83;
   friend void swap(ListTargetedInvitationsRequest& a, ListTargetedInvitationsRequest& b) { a.Swap(&b); }
   inline void Swap(ListTargetedInvitationsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -26102,7 +26135,7 @@ class ListManagedBillingAccountsRequest final : public ::google::protobuf::inter
     return *reinterpret_cast<const ListManagedBillingAccountsRequest*>(
         &_ListManagedBillingAccountsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 106;
+  static constexpr int kIndexInFileMessages = 114;
   friend void swap(ListManagedBillingAccountsRequest& a, ListManagedBillingAccountsRequest& b) { a.Swap(&b); }
   inline void Swap(ListManagedBillingAccountsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -26237,7 +26270,7 @@ class KeypairRemoveResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const KeypairRemoveResult*>(
         &_KeypairRemoveResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 224;
+  static constexpr int kIndexInFileMessages = 232;
   friend void swap(KeypairRemoveResult& a, KeypairRemoveResult& b) { a.Swap(&b); }
   inline void Swap(KeypairRemoveResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -26427,7 +26460,7 @@ class KeypairAddResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const KeypairAddResult*>(
         &_KeypairAddResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 223;
+  static constexpr int kIndexInFileMessages = 231;
   friend void swap(KeypairAddResult& a, KeypairAddResult& b) { a.Swap(&b); }
   inline void Swap(KeypairAddResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -26622,7 +26655,7 @@ class JoinOrgRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const JoinOrgRequest*>(
         &_JoinOrgRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 88;
+  static constexpr int kIndexInFileMessages = 96;
   friend void swap(JoinOrgRequest& a, JoinOrgRequest& b) { a.Swap(&b); }
   inline void Swap(JoinOrgRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -26816,7 +26849,7 @@ class InviteBeaconResponse final : public ::google::protobuf::internal::ZeroFiel
     return *reinterpret_cast<const InviteBeaconResponse*>(
         &_InviteBeaconResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 64;
+  static constexpr int kIndexInFileMessages = 72;
   friend void swap(InviteBeaconResponse& a, InviteBeaconResponse& b) { a.Swap(&b); }
   inline void Swap(InviteBeaconResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -26951,7 +26984,7 @@ class InviteBeaconRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const InviteBeaconRequest*>(
         &_InviteBeaconRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 63;
+  static constexpr int kIndexInFileMessages = 71;
   friend void swap(InviteBeaconRequest& a, InviteBeaconRequest& b) { a.Swap(&b); }
   inline void Swap(InviteBeaconRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -27175,7 +27208,7 @@ class GetTargetedInvitationRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetTargetedInvitationRequest*>(
         &_GetTargetedInvitationRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 77;
+  static constexpr int kIndexInFileMessages = 85;
   friend void swap(GetTargetedInvitationRequest& a, GetTargetedInvitationRequest& b) { a.Swap(&b); }
   inline void Swap(GetTargetedInvitationRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -27370,7 +27403,7 @@ class FinalizeAccountSObjectBindingRequest final : public ::google::protobuf::Me
     return *reinterpret_cast<const FinalizeAccountSObjectBindingRequest*>(
         &_FinalizeAccountSObjectBindingRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 119;
+  static constexpr int kIndexInFileMessages = 127;
   friend void swap(FinalizeAccountSObjectBindingRequest& a, FinalizeAccountSObjectBindingRequest& b) { a.Swap(&b); }
   inline void Swap(FinalizeAccountSObjectBindingRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -27818,7 +27851,7 @@ class EnsureAccountSObjectBindingRequest final : public ::google::protobuf::Mess
     return *reinterpret_cast<const EnsureAccountSObjectBindingRequest*>(
         &_EnsureAccountSObjectBindingRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 117;
+  static constexpr int kIndexInFileMessages = 125;
   friend void swap(EnsureAccountSObjectBindingRequest& a, EnsureAccountSObjectBindingRequest& b) { a.Swap(&b); }
   inline void Swap(EnsureAccountSObjectBindingRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -28013,7 +28046,7 @@ class EnrollMemberRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const EnrollMemberRequest*>(
         &_EnrollMemberRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 204;
+  static constexpr int kIndexInFileMessages = 212;
   friend void swap(EnrollMemberRequest& a, EnrollMemberRequest& b) { a.Swap(&b); }
   inline void Swap(EnrollMemberRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -28220,7 +28253,7 @@ class EnrollMemberPeer final : public ::google::protobuf::Message
     return *reinterpret_cast<const EnrollMemberPeer*>(
         &_EnrollMemberPeer_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 205;
+  static constexpr int kIndexInFileMessages = 213;
   friend void swap(EnrollMemberPeer& a, EnrollMemberPeer& b) { a.Swap(&b); }
   inline void Swap(EnrollMemberPeer* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -28415,7 +28448,7 @@ class EmailVerifyCodeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const EmailVerifyCodeResponse*>(
         &_EmailVerifyCodeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 151;
+  static constexpr int kIndexInFileMessages = 159;
   friend void swap(EmailVerifyCodeResponse& a, EmailVerifyCodeResponse& b) { a.Swap(&b); }
   inline void Swap(EmailVerifyCodeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -28605,7 +28638,7 @@ class EmailVerifyCodeRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const EmailVerifyCodeRequest*>(
         &_EmailVerifyCodeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 150;
+  static constexpr int kIndexInFileMessages = 158;
   friend void swap(EmailVerifyCodeRequest& a, EmailVerifyCodeRequest& b) { a.Swap(&b); }
   inline void Swap(EmailVerifyCodeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -28816,7 +28849,7 @@ class DetachBillingAccountResponse final : public ::google::protobuf::internal::
     return *reinterpret_cast<const DetachBillingAccountResponse*>(
         &_DetachBillingAccountResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 97;
+  static constexpr int kIndexInFileMessages = 105;
   friend void swap(DetachBillingAccountResponse& a, DetachBillingAccountResponse& b) { a.Swap(&b); }
   inline void Swap(DetachBillingAccountResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -28951,7 +28984,7 @@ class DetachBillingAccountRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const DetachBillingAccountRequest*>(
         &_DetachBillingAccountRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 96;
+  static constexpr int kIndexInFileMessages = 104;
   friend void swap(DetachBillingAccountRequest& a, DetachBillingAccountRequest& b) { a.Swap(&b); }
   inline void Swap(DetachBillingAccountRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -29163,7 +29196,7 @@ class DesktopSSOStartResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopSSOStartResponse*>(
         &_DesktopSSOStartResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 170;
+  static constexpr int kIndexInFileMessages = 178;
   friend void swap(DesktopSSOStartResponse& a, DesktopSSOStartResponse& b) { a.Swap(&b); }
   inline void Swap(DesktopSSOStartResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -29375,7 +29408,7 @@ class DesktopSSOStartRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopSSOStartRequest*>(
         &_DesktopSSOStartRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 169;
+  static constexpr int kIndexInFileMessages = 177;
   friend void swap(DesktopSSOStartRequest& a, DesktopSSOStartRequest& b) { a.Swap(&b); }
   inline void Swap(DesktopSSOStartRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -29587,7 +29620,7 @@ class DesktopSSOLinkStartResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopSSOLinkStartResponse*>(
         &_DesktopSSOLinkStartResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 172;
+  static constexpr int kIndexInFileMessages = 180;
   friend void swap(DesktopSSOLinkStartResponse& a, DesktopSSOLinkStartResponse& b) { a.Swap(&b); }
   inline void Swap(DesktopSSOLinkStartResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -29799,7 +29832,7 @@ class DesktopSSOLinkStartRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopSSOLinkStartRequest*>(
         &_DesktopSSOLinkStartRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 171;
+  static constexpr int kIndexInFileMessages = 179;
   friend void swap(DesktopSSOLinkStartRequest& a, DesktopSSOLinkStartRequest& b) { a.Swap(&b); }
   inline void Swap(DesktopSSOLinkStartRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -29994,7 +30027,7 @@ class DesktopSSOLinkResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopSSOLinkResult*>(
         &_DesktopSSOLinkResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 173;
+  static constexpr int kIndexInFileMessages = 181;
   friend void swap(DesktopSSOLinkResult& a, DesktopSSOLinkResult& b) { a.Swap(&b); }
   inline void Swap(DesktopSSOLinkResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -30223,7 +30256,7 @@ class DesktopPasskeyStartResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopPasskeyStartResponse*>(
         &_DesktopPasskeyStartResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 175;
+  static constexpr int kIndexInFileMessages = 183;
   friend void swap(DesktopPasskeyStartResponse& a, DesktopPasskeyStartResponse& b) { a.Swap(&b); }
   inline void Swap(DesktopPasskeyStartResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -30451,7 +30484,7 @@ class DesktopPasskeyStartRequest final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const DesktopPasskeyStartRequest*>(
         &_DesktopPasskeyStartRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 174;
+  static constexpr int kIndexInFileMessages = 182;
   friend void swap(DesktopPasskeyStartRequest& a, DesktopPasskeyStartRequest& b) { a.Swap(&b); }
   inline void Swap(DesktopPasskeyStartRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -30585,7 +30618,7 @@ class DesktopPasskeyRelayResponse final : public ::google::protobuf::internal::Z
     return *reinterpret_cast<const DesktopPasskeyRelayResponse*>(
         &_DesktopPasskeyRelayResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 194;
+  static constexpr int kIndexInFileMessages = 202;
   friend void swap(DesktopPasskeyRelayResponse& a, DesktopPasskeyRelayResponse& b) { a.Swap(&b); }
   inline void Swap(DesktopPasskeyRelayResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -30720,7 +30753,7 @@ class DesktopPasskeyRegisterResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopPasskeyRegisterResult*>(
         &_DesktopPasskeyRegisterResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 195;
+  static constexpr int kIndexInFileMessages = 203;
   friend void swap(DesktopPasskeyRegisterResult& a, DesktopPasskeyRegisterResult& b) { a.Swap(&b); }
   inline void Swap(DesktopPasskeyRegisterResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -30978,7 +31011,7 @@ class DesktopPasskeyRegisterChallengeResponse final : public ::google::protobuf:
     return *reinterpret_cast<const DesktopPasskeyRegisterChallengeResponse*>(
         &_DesktopPasskeyRegisterChallengeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 201;
+  static constexpr int kIndexInFileMessages = 209;
   friend void swap(DesktopPasskeyRegisterChallengeResponse& a, DesktopPasskeyRegisterChallengeResponse& b) { a.Swap(&b); }
   inline void Swap(DesktopPasskeyRegisterChallengeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -31190,7 +31223,7 @@ class DesktopPasskeyRegisterChallengeRequest final : public ::google::protobuf::
     return *reinterpret_cast<const DesktopPasskeyRegisterChallengeRequest*>(
         &_DesktopPasskeyRegisterChallengeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 200;
+  static constexpr int kIndexInFileMessages = 208;
   friend void swap(DesktopPasskeyRegisterChallengeRequest& a, DesktopPasskeyRegisterChallengeRequest& b) { a.Swap(&b); }
   inline void Swap(DesktopPasskeyRegisterChallengeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -31385,7 +31418,7 @@ class DesktopPasskeyReauthVerifyRequest final : public ::google::protobuf::Messa
     return *reinterpret_cast<const DesktopPasskeyReauthVerifyRequest*>(
         &_DesktopPasskeyReauthVerifyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 197;
+  static constexpr int kIndexInFileMessages = 205;
   friend void swap(DesktopPasskeyReauthVerifyRequest& a, DesktopPasskeyReauthVerifyRequest& b) { a.Swap(&b); }
   inline void Swap(DesktopPasskeyReauthVerifyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -31597,7 +31630,7 @@ class DesktopPasskeyReauthResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopPasskeyReauthResult*>(
         &_DesktopPasskeyReauthResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 198;
+  static constexpr int kIndexInFileMessages = 206;
   friend void swap(DesktopPasskeyReauthResult& a, DesktopPasskeyReauthResult& b) { a.Swap(&b); }
   inline void Swap(DesktopPasskeyReauthResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -31867,7 +31900,7 @@ class DesktopPasskeyNewAccountResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopPasskeyNewAccountResult*>(
         &_DesktopPasskeyNewAccountResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 192;
+  static constexpr int kIndexInFileMessages = 200;
   friend void swap(DesktopPasskeyNewAccountResult& a, DesktopPasskeyNewAccountResult& b) { a.Swap(&b); }
   inline void Swap(DesktopPasskeyNewAccountResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -32125,7 +32158,7 @@ class DesktopPasskeyLinkedResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopPasskeyLinkedResult*>(
         &_DesktopPasskeyLinkedResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 191;
+  static constexpr int kIndexInFileMessages = 199;
   friend void swap(DesktopPasskeyLinkedResult& a, DesktopPasskeyLinkedResult& b) { a.Swap(&b); }
   inline void Swap(DesktopPasskeyLinkedResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -32412,7 +32445,7 @@ class DeleteSObjectResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteSObjectResponse*>(
         &_DeleteSObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 56;
+  static constexpr int kIndexInFileMessages = 64;
   friend void swap(DeleteSObjectResponse& a, DeleteSObjectResponse& b) { a.Swap(&b); }
   inline void Swap(DeleteSObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -32602,7 +32635,7 @@ class DeleteNowVerifyCodeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteNowVerifyCodeResponse*>(
         &_DeleteNowVerifyCodeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 155;
+  static constexpr int kIndexInFileMessages = 163;
   friend void swap(DeleteNowVerifyCodeResponse& a, DeleteNowVerifyCodeResponse& b) { a.Swap(&b); }
   inline void Swap(DeleteNowVerifyCodeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -32942,7 +32975,7 @@ class DeleteNowVerifyCodeRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteNowVerifyCodeRequest*>(
         &_DeleteNowVerifyCodeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 154;
+  static constexpr int kIndexInFileMessages = 162;
   friend void swap(DeleteNowVerifyCodeRequest& a, DeleteNowVerifyCodeRequest& b) { a.Swap(&b); }
   inline void Swap(DeleteNowVerifyCodeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -33136,7 +33169,7 @@ class DeleteBillingAccountResponse final : public ::google::protobuf::internal::
     return *reinterpret_cast<const DeleteBillingAccountResponse*>(
         &_DeleteBillingAccountResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 104;
+  static constexpr int kIndexInFileMessages = 112;
   friend void swap(DeleteBillingAccountResponse& a, DeleteBillingAccountResponse& b) { a.Swap(&b); }
   inline void Swap(DeleteBillingAccountResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -33270,7 +33303,7 @@ class DeleteBillingAccountRequest final : public ::google::protobuf::internal::Z
     return *reinterpret_cast<const DeleteBillingAccountRequest*>(
         &_DeleteBillingAccountRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 103;
+  static constexpr int kIndexInFileMessages = 111;
   friend void swap(DeleteBillingAccountRequest& a, DeleteBillingAccountRequest& b) { a.Swap(&b); }
   inline void Swap(DeleteBillingAccountRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -33404,7 +33437,7 @@ class DeleteAccountAction final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const DeleteAccountAction*>(
         &_DeleteAccountAction_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 36;
+  static constexpr int kIndexInFileMessages = 44;
   friend void swap(DeleteAccountAction& a, DeleteAccountAction& b) { a.Swap(&b); }
   inline void Swap(DeleteAccountAction* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -33539,7 +33572,7 @@ class CustodiedKeyParams final : public ::google::protobuf::Message
     return *reinterpret_cast<const CustodiedKeyParams*>(
         &_CustodiedKeyParams_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 37;
+  static constexpr int kIndexInFileMessages = 45;
   friend void swap(CustodiedKeyParams& a, CustodiedKeyParams& b) { a.Swap(&b); }
   inline void Swap(CustodiedKeyParams* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -33729,7 +33762,7 @@ class CreateTargetedInviteDraftByUsernameResponse final : public ::google::proto
     return *reinterpret_cast<const CreateTargetedInviteDraftByUsernameResponse*>(
         &_CreateTargetedInviteDraftByUsernameResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 68;
+  static constexpr int kIndexInFileMessages = 76;
   friend void swap(CreateTargetedInviteDraftByUsernameResponse& a, CreateTargetedInviteDraftByUsernameResponse& b) { a.Swap(&b); }
   inline void Swap(CreateTargetedInviteDraftByUsernameResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -33919,7 +33952,7 @@ class CreateTargetedInviteDraftByUsernameRequest final : public ::google::protob
     return *reinterpret_cast<const CreateTargetedInviteDraftByUsernameRequest*>(
         &_CreateTargetedInviteDraftByUsernameRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 67;
+  static constexpr int kIndexInFileMessages = 75;
   friend void swap(CreateTargetedInviteDraftByUsernameRequest& a, CreateTargetedInviteDraftByUsernameRequest& b) { a.Swap(&b); }
   inline void Swap(CreateTargetedInviteDraftByUsernameRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -34189,7 +34222,7 @@ class CreateSObjectResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateSObjectResponse*>(
         &_CreateSObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 55;
+  static constexpr int kIndexInFileMessages = 63;
   friend void swap(CreateSObjectResponse& a, CreateSObjectResponse& b) { a.Swap(&b); }
   inline void Swap(CreateSObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -34401,7 +34434,7 @@ class CreateSObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateSObjectRequest*>(
         &_CreateSObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 54;
+  static constexpr int kIndexInFileMessages = 62;
   friend void swap(CreateSObjectRequest& a, CreateSObjectRequest& b) { a.Swap(&b); }
   inline void Swap(CreateSObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -34659,7 +34692,7 @@ class CreateOrgRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateOrgRequest*>(
         &_CreateOrgRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 66;
+  static constexpr int kIndexInFileMessages = 74;
   friend void swap(CreateOrgRequest& a, CreateOrgRequest& b) { a.Swap(&b); }
   inline void Swap(CreateOrgRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -34854,7 +34887,7 @@ class CreateOrgInviteRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateOrgInviteRequest*>(
         &_CreateOrgInviteRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 86;
+  static constexpr int kIndexInFileMessages = 94;
   friend void swap(CreateOrgInviteRequest& a, CreateOrgInviteRequest& b) { a.Swap(&b); }
   inline void Swap(CreateOrgInviteRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -35090,7 +35123,7 @@ class CreateBlockStoreResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateBlockStoreResponse*>(
         &_CreateBlockStoreResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 139;
+  static constexpr int kIndexInFileMessages = 147;
   friend void swap(CreateBlockStoreResponse& a, CreateBlockStoreResponse& b) { a.Swap(&b); }
   inline void Swap(CreateBlockStoreResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -35302,7 +35335,7 @@ class CreateBillingAccountResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateBillingAccountResponse*>(
         &_CreateBillingAccountResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 105;
+  static constexpr int kIndexInFileMessages = 113;
   friend void swap(CreateBillingAccountResponse& a, CreateBillingAccountResponse& b) { a.Swap(&b); }
   inline void Swap(CreateBillingAccountResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -35497,7 +35530,7 @@ class CreateBillingAccountRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateBillingAccountRequest*>(
         &_CreateBillingAccountRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 100;
+  static constexpr int kIndexInFileMessages = 108;
   friend void swap(CreateBillingAccountRequest& a, CreateBillingAccountRequest& b) { a.Swap(&b); }
   inline void Swap(CreateBillingAccountRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -35692,7 +35725,7 @@ class ConfirmSSOResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ConfirmSSOResponse*>(
         &_ConfirmSSOResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 41;
+  static constexpr int kIndexInFileMessages = 49;
   friend void swap(ConfirmSSOResponse& a, ConfirmSSOResponse& b) { a.Swap(&b); }
   inline void Swap(ConfirmSSOResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -35904,7 +35937,7 @@ class ConfirmSSORequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ConfirmSSORequest*>(
         &_ConfirmSSORequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 40;
+  static constexpr int kIndexInFileMessages = 48;
   friend void swap(ConfirmSSORequest& a, ConfirmSSORequest& b) { a.Swap(&b); }
   inline void Swap(ConfirmSSORequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -36179,7 +36212,7 @@ class ClientErrorReportResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ClientErrorReportResponse*>(
         &_ClientErrorReportResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 247;
+  static constexpr int kIndexInFileMessages = 255;
   friend void swap(ClientErrorReportResponse& a, ClientErrorReportResponse& b) { a.Swap(&b); }
   inline void Swap(ClientErrorReportResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -36381,7 +36414,7 @@ class ClientErrorReportRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ClientErrorReportRequest*>(
         &_ClientErrorReportRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 246;
+  static constexpr int kIndexInFileMessages = 254;
   friend void swap(ClientErrorReportRequest& a, ClientErrorReportRequest& b) { a.Swap(&b); }
   inline void Swap(ClientErrorReportRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -36644,7 +36677,7 @@ class CheckoutStatusMessage final : public ::google::protobuf::Message
     return *reinterpret_cast<const CheckoutStatusMessage*>(
         &_CheckoutStatusMessage_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 53;
+  static constexpr int kIndexInFileMessages = 61;
   friend void swap(CheckoutStatusMessage& a, CheckoutStatusMessage& b) { a.Swap(&b); }
   inline void Swap(CheckoutStatusMessage* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -36856,7 +36889,7 @@ class CheckoutResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CheckoutResponse*>(
         &_CheckoutResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 46;
+  static constexpr int kIndexInFileMessages = 54;
   friend void swap(CheckoutResponse& a, CheckoutResponse& b) { a.Swap(&b); }
   inline void Swap(CheckoutResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -37085,7 +37118,7 @@ class CheckoutRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CheckoutRequest*>(
         &_CheckoutRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 45;
+  static constexpr int kIndexInFileMessages = 53;
   friend void swap(CheckoutRequest& a, CheckoutRequest& b) { a.Swap(&b); }
   inline void Swap(CheckoutRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -37326,7 +37359,7 @@ class CancelOrgInviteResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CancelOrgInviteResponse*>(
         &_CancelOrgInviteResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 241;
+  static constexpr int kIndexInFileMessages = 249;
   friend void swap(CancelOrgInviteResponse& a, CancelOrgInviteResponse& b) { a.Swap(&b); }
   inline void Swap(CancelOrgInviteResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -37520,7 +37553,7 @@ class CancelOrgInviteRequest final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const CancelOrgInviteRequest*>(
         &_CancelOrgInviteRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 240;
+  static constexpr int kIndexInFileMessages = 248;
   friend void swap(CancelOrgInviteRequest& a, CancelOrgInviteRequest& b) { a.Swap(&b); }
   inline void Swap(CancelOrgInviteRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -37655,7 +37688,7 @@ class CancelBillingResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const CancelBillingResponse*>(
         &_CancelBillingResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 243;
+  static constexpr int kIndexInFileMessages = 251;
   friend void swap(CancelBillingResponse& a, CancelBillingResponse& b) { a.Swap(&b); }
   inline void Swap(CancelBillingResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -37849,7 +37882,7 @@ class CancelBillingRequest final : public ::google::protobuf::internal::ZeroFiel
     return *reinterpret_cast<const CancelBillingRequest*>(
         &_CancelBillingRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 242;
+  static constexpr int kIndexInFileMessages = 250;
   friend void swap(CancelBillingRequest& a, CancelBillingRequest& b) { a.Swap(&b); }
   inline void Swap(CancelBillingRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -37984,7 +38017,7 @@ class BlockStoreNonceEventPayload final : public ::google::protobuf::Message
     return *reinterpret_cast<const BlockStoreNonceEventPayload*>(
         &_BlockStoreNonceEventPayload_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 25;
+  static constexpr int kIndexInFileMessages = 33;
   friend void swap(BlockStoreNonceEventPayload& a, BlockStoreNonceEventPayload& b) { a.Swap(&b); }
   inline void Swap(BlockStoreNonceEventPayload* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -38191,7 +38224,7 @@ class BillingUsageResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const BillingUsageResponse*>(
         &_BillingUsageResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 52;
+  static constexpr int kIndexInFileMessages = 60;
   friend void swap(BillingUsageResponse& a, BillingUsageResponse& b) { a.Swap(&b); }
   inline void Swap(BillingUsageResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -38489,7 +38522,7 @@ class BillingStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const BillingStateResponse*>(
         &_BillingStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 51;
+  static constexpr int kIndexInFileMessages = 59;
   friend void swap(BillingStateResponse& a, BillingStateResponse& b) { a.Swap(&b); }
   inline void Swap(BillingStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -38792,7 +38825,7 @@ class BillingPortalResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const BillingPortalResponse*>(
         &_BillingPortalResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 50;
+  static constexpr int kIndexInFileMessages = 58;
   friend void swap(BillingPortalResponse& a, BillingPortalResponse& b) { a.Swap(&b); }
   inline void Swap(BillingPortalResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -38986,7 +39019,7 @@ class BillingPortalRequest final : public ::google::protobuf::internal::ZeroFiel
     return *reinterpret_cast<const BillingPortalRequest*>(
         &_BillingPortalRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 49;
+  static constexpr int kIndexInFileMessages = 57;
   friend void swap(BillingPortalRequest& a, BillingPortalRequest& b) { a.Swap(&b); }
   inline void Swap(BillingPortalRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -39121,7 +39154,7 @@ class AuthSessionResultExchangeRequest final : public ::google::protobuf::Messag
     return *reinterpret_cast<const AuthSessionResultExchangeRequest*>(
         &_AuthSessionResultExchangeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 168;
+  static constexpr int kIndexInFileMessages = 176;
   friend void swap(AuthSessionResultExchangeRequest& a, AuthSessionResultExchangeRequest& b) { a.Swap(&b); }
   inline void Swap(AuthSessionResultExchangeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -39316,7 +39349,7 @@ class AuthSessionDeleteResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AuthSessionDeleteResponse*>(
         &_AuthSessionDeleteResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 178;
+  static constexpr int kIndexInFileMessages = 186;
   friend void swap(AuthSessionDeleteResponse& a, AuthSessionDeleteResponse& b) { a.Swap(&b); }
   inline void Swap(AuthSessionDeleteResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -39506,7 +39539,7 @@ class AuthSessionDeleteRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AuthSessionDeleteRequest*>(
         &_AuthSessionDeleteRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 177;
+  static constexpr int kIndexInFileMessages = 185;
   friend void swap(AuthSessionDeleteRequest& a, AuthSessionDeleteRequest& b) { a.Swap(&b); }
   inline void Swap(AuthSessionDeleteRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -39718,7 +39751,7 @@ class AuthSessionCreateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AuthSessionCreateResponse*>(
         &_AuthSessionCreateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 167;
+  static constexpr int kIndexInFileMessages = 175;
   friend void swap(AuthSessionCreateResponse& a, AuthSessionCreateResponse& b) { a.Swap(&b); }
   inline void Swap(AuthSessionCreateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -39947,7 +39980,7 @@ class AuthSessionCreateRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AuthSessionCreateRequest*>(
         &_AuthSessionCreateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 166;
+  static constexpr int kIndexInFileMessages = 174;
   friend void swap(AuthSessionCreateRequest& a, AuthSessionCreateRequest& b) { a.Swap(&b); }
   inline void Swap(AuthSessionCreateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -40159,7 +40192,7 @@ class AuthConfigResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AuthConfigResponse*>(
         &_AuthConfigResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 179;
+  static constexpr int kIndexInFileMessages = 187;
   friend void swap(AuthConfigResponse& a, AuthConfigResponse& b) { a.Swap(&b); }
   inline void Swap(AuthConfigResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -40462,7 +40495,7 @@ class AssignBillingAccountResponse final : public ::google::protobuf::internal::
     return *reinterpret_cast<const AssignBillingAccountResponse*>(
         &_AssignBillingAccountResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 95;
+  static constexpr int kIndexInFileMessages = 103;
   friend void swap(AssignBillingAccountResponse& a, AssignBillingAccountResponse& b) { a.Swap(&b); }
   inline void Swap(AssignBillingAccountResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -40597,7 +40630,7 @@ class AssignBillingAccountRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AssignBillingAccountRequest*>(
         &_AssignBillingAccountRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 94;
+  static constexpr int kIndexInFileMessages = 102;
   friend void swap(AssignBillingAccountRequest& a, AssignBillingAccountRequest& b) { a.Swap(&b); }
   inline void Swap(AssignBillingAccountRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -40826,7 +40859,7 @@ class AddEmailResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AddEmailResponse*>(
         &_AddEmailResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 143;
+  static constexpr int kIndexInFileMessages = 151;
   friend void swap(AddEmailResponse& a, AddEmailResponse& b) { a.Swap(&b); }
   inline void Swap(AddEmailResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -41028,7 +41061,7 @@ class AddEmailRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AddEmailRequest*>(
         &_AddEmailRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 142;
+  static constexpr int kIndexInFileMessages = 150;
   friend void swap(AddEmailRequest& a, AddEmailRequest& b) { a.Swap(&b); }
   inline void Swap(AddEmailRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -41166,6 +41199,196 @@ class AddEmailRequest final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull AddEmailRequest_class_data_;
+// -------------------------------------------------------------------
+
+class AcknowledgeOperationReceiptResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:provider.spacewave.api.AcknowledgeOperationReceiptResponse) */ {
+ public:
+  inline AcknowledgeOperationReceiptResponse() : AcknowledgeOperationReceiptResponse(nullptr) {}
+  ~AcknowledgeOperationReceiptResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AcknowledgeOperationReceiptResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AcknowledgeOperationReceiptResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AcknowledgeOperationReceiptResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline AcknowledgeOperationReceiptResponse(const AcknowledgeOperationReceiptResponse& from) : AcknowledgeOperationReceiptResponse(nullptr, from) {}
+  inline AcknowledgeOperationReceiptResponse(AcknowledgeOperationReceiptResponse&& from) noexcept
+      : AcknowledgeOperationReceiptResponse(nullptr, ::std::move(from)) {}
+  inline AcknowledgeOperationReceiptResponse& operator=(const AcknowledgeOperationReceiptResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AcknowledgeOperationReceiptResponse& operator=(AcknowledgeOperationReceiptResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AcknowledgeOperationReceiptResponse& default_instance() {
+    return *reinterpret_cast<const AcknowledgeOperationReceiptResponse*>(
+        &_AcknowledgeOperationReceiptResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 20;
+  friend void swap(AcknowledgeOperationReceiptResponse& a, AcknowledgeOperationReceiptResponse& b) { a.Swap(&b); }
+  inline void Swap(AcknowledgeOperationReceiptResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AcknowledgeOperationReceiptResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AcknowledgeOperationReceiptResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AcknowledgeOperationReceiptResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AcknowledgeOperationReceiptResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AcknowledgeOperationReceiptResponse& from) { AcknowledgeOperationReceiptResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AcknowledgeOperationReceiptResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.AcknowledgeOperationReceiptResponse"; }
+
+  explicit AcknowledgeOperationReceiptResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AcknowledgeOperationReceiptResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AcknowledgeOperationReceiptResponse& from);
+  AcknowledgeOperationReceiptResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AcknowledgeOperationReceiptResponse&& from) noexcept
+      : AcknowledgeOperationReceiptResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kAcknowledgedFieldNumber = 1,
+  };
+  // bool acknowledged = 1;
+  void clear_acknowledged() ;
+  bool acknowledged() const;
+  void set_acknowledged(bool value);
+
+  private:
+  bool _internal_acknowledged() const;
+  void _internal_set_acknowledged(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:provider.spacewave.api.AcknowledgeOperationReceiptResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AcknowledgeOperationReceiptResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    bool acknowledged_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AcknowledgeOperationReceiptResponse_class_data_;
 // -------------------------------------------------------------------
 
 class AccountSessionInfo final : public ::google::protobuf::Message
@@ -41459,7 +41682,7 @@ class AccountSObjectBinding final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccountSObjectBinding*>(
         &_AccountSObjectBinding_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 116;
+  static constexpr int kIndexInFileMessages = 124;
   friend void swap(AccountSObjectBinding& a, AccountSObjectBinding& b) { a.Swap(&b); }
   inline void Swap(AccountSObjectBinding* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -41683,7 +41906,7 @@ class AccountInfoResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccountInfoResponse*>(
         &_AccountInfoResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 113;
+  static constexpr int kIndexInFileMessages = 121;
   friend void swap(AccountInfoResponse& a, AccountInfoResponse& b) { a.Swap(&b); }
   inline void Swap(AccountInfoResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -42037,7 +42260,7 @@ class AccountEmailInfo final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccountEmailInfo*>(
         &_AccountEmailInfo_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 140;
+  static constexpr int kIndexInFileMessages = 148;
   friend void swap(AccountEmailInfo& a, AccountEmailInfo& b) { a.Swap(&b); }
   inline void Swap(AccountEmailInfo* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -42273,7 +42496,7 @@ class AccountDeleteResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccountDeleteResult*>(
         &_AccountDeleteResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 227;
+  static constexpr int kIndexInFileMessages = 235;
   friend void swap(AccountDeleteResult& a, AccountDeleteResult& b) { a.Swap(&b); }
   inline void Swap(AccountDeleteResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -42463,7 +42686,7 @@ class AccountChangedPayload final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccountChangedPayload*>(
         &_AccountChangedPayload_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 22;
+  static constexpr int kIndexInFileMessages = 30;
   friend void swap(AccountChangedPayload& a, AccountChangedPayload& b) { a.Swap(&b); }
   inline void Swap(AccountChangedPayload* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -42653,7 +42876,7 @@ class AcceptTargetedOrganizationInvitationRequest final : public ::google::proto
     return *reinterpret_cast<const AcceptTargetedOrganizationInvitationRequest*>(
         &_AcceptTargetedOrganizationInvitationRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 83;
+  static constexpr int kIndexInFileMessages = 91;
   friend void swap(AcceptTargetedOrganizationInvitationRequest& a, AcceptTargetedOrganizationInvitationRequest& b) { a.Swap(&b); }
   inline void Swap(AcceptTargetedOrganizationInvitationRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -42852,7 +43075,7 @@ class WsBillingCheckoutServerFrame final : public ::google::protobuf::Message
     kStatus = 1,
     BODY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 255;
+  static constexpr int kIndexInFileMessages = 263;
   friend void swap(WsBillingCheckoutServerFrame& a, WsBillingCheckoutServerFrame& b) { a.Swap(&b); }
   inline void Swap(WsBillingCheckoutServerFrame* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -43060,7 +43283,7 @@ class TargetedInvitationInfo final : public ::google::protobuf::Message
     return *reinterpret_cast<const TargetedInvitationInfo*>(
         &_TargetedInvitationInfo_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 72;
+  static constexpr int kIndexInFileMessages = 80;
   friend void swap(TargetedInvitationInfo& a, TargetedInvitationInfo& b) { a.Swap(&b); }
   inline void Swap(TargetedInvitationInfo* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -43430,6 +43653,218 @@ class TargetedInvitationInfo final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull TargetedInvitationInfo_class_data_;
 // -------------------------------------------------------------------
 
+class SubmitOperationV1Request final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:provider.spacewave.api.SubmitOperationV1Request) */ {
+ public:
+  inline SubmitOperationV1Request() : SubmitOperationV1Request(nullptr) {}
+  ~SubmitOperationV1Request() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SubmitOperationV1Request* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SubmitOperationV1Request));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SubmitOperationV1Request(::google::protobuf::internal::ConstantInitialized);
+
+  inline SubmitOperationV1Request(const SubmitOperationV1Request& from) : SubmitOperationV1Request(nullptr, from) {}
+  inline SubmitOperationV1Request(SubmitOperationV1Request&& from) noexcept
+      : SubmitOperationV1Request(nullptr, ::std::move(from)) {}
+  inline SubmitOperationV1Request& operator=(const SubmitOperationV1Request& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SubmitOperationV1Request& operator=(SubmitOperationV1Request&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SubmitOperationV1Request& default_instance() {
+    return *reinterpret_cast<const SubmitOperationV1Request*>(
+        &_SubmitOperationV1Request_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 13;
+  friend void swap(SubmitOperationV1Request& a, SubmitOperationV1Request& b) { a.Swap(&b); }
+  inline void Swap(SubmitOperationV1Request* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SubmitOperationV1Request* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SubmitOperationV1Request* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SubmitOperationV1Request>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SubmitOperationV1Request& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SubmitOperationV1Request& from) { SubmitOperationV1Request::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SubmitOperationV1Request* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.SubmitOperationV1Request"; }
+
+  explicit SubmitOperationV1Request(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SubmitOperationV1Request(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SubmitOperationV1Request& from);
+  SubmitOperationV1Request(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SubmitOperationV1Request&& from) noexcept
+      : SubmitOperationV1Request(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kExactEnvelopeFieldNumber = 2,
+    kKeyFieldNumber = 1,
+  };
+  // bytes exact_envelope = 2;
+  void clear_exact_envelope() ;
+  const ::std::string& exact_envelope() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_exact_envelope(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_exact_envelope();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_exact_envelope();
+  void set_allocated_exact_envelope(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_exact_envelope() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_exact_envelope(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_exact_envelope();
+
+  public:
+  // .sobject.SOMutationKey key = 1;
+  bool has_key() const;
+  void clear_key() ;
+  const ::sobject::SOMutationKey& key() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_key();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_key();
+  void set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_key();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_key() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // @@protoc_insertion_point(class_scope:provider.spacewave.api.SubmitOperationV1Request)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SubmitOperationV1Request& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr exact_envelope_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE key_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SubmitOperationV1Request_class_data_;
+// -------------------------------------------------------------------
+
 class SOStateDelta final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:provider.spacewave.api.SOStateDelta) */ {
  public:
@@ -43694,7 +44129,7 @@ class SORecoveryEntityKeypairs final : public ::google::protobuf::Message
     return *reinterpret_cast<const SORecoveryEntityKeypairs*>(
         &_SORecoveryEntityKeypairs_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 209;
+  static constexpr int kIndexInFileMessages = 217;
   friend void swap(SORecoveryEntityKeypairs& a, SORecoveryEntityKeypairs& b) { a.Swap(&b); }
   inline void Swap(SORecoveryEntityKeypairs* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -44397,7 +44832,7 @@ class RecoverExecuteRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RecoverExecuteRequest*>(
         &_RecoverExecuteRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 162;
+  static constexpr int kIndexInFileMessages = 170;
   friend void swap(RecoverExecuteRequest& a, RecoverExecuteRequest& b) { a.Swap(&b); }
   inline void Swap(RecoverExecuteRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -44645,7 +45080,7 @@ class RbacGrantLifecycle final : public ::google::protobuf::Message
     return *reinterpret_cast<const RbacGrantLifecycle*>(
         &_RbacGrantLifecycle_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 135;
+  static constexpr int kIndexInFileMessages = 143;
   friend void swap(RbacGrantLifecycle& a, RbacGrantLifecycle& b) { a.Swap(&b); }
   inline void Swap(RbacGrantLifecycle* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -44967,7 +45402,7 @@ class RbacCapabilityFlagState final : public ::google::protobuf::Message
     return *reinterpret_cast<const RbacCapabilityFlagState*>(
         &_RbacCapabilityFlagState_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 136;
+  static constexpr int kIndexInFileMessages = 144;
   friend void swap(RbacCapabilityFlagState& a, RbacCapabilityFlagState& b) { a.Swap(&b); }
   inline void Swap(RbacCapabilityFlagState* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -45220,7 +45655,7 @@ class RbacAdminReadbackRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const RbacAdminReadbackRequest*>(
         &_RbacAdminReadbackRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 137;
+  static constexpr int kIndexInFileMessages = 145;
   friend void swap(RbacAdminReadbackRequest& a, RbacAdminReadbackRequest& b) { a.Swap(&b); }
   inline void Swap(RbacAdminReadbackRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -45432,7 +45867,7 @@ class PackMetadataRepairRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const PackMetadataRepairRequest*>(
         &_PackMetadataRepairRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 128;
+  static constexpr int kIndexInFileMessages = 136;
   friend void swap(PackMetadataRepairRequest& a, PackMetadataRepairRequest& b) { a.Swap(&b); }
   inline void Swap(PackMetadataRepairRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -45650,7 +46085,7 @@ class NotifySessionRequest final : public ::google::protobuf::Message
     kUpdateAvailable = 6,
     BODY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 21;
+  static constexpr int kIndexInFileMessages = 29;
   friend void swap(NotifySessionRequest& a, NotifySessionRequest& b) { a.Swap(&b); }
   inline void Swap(NotifySessionRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -45969,7 +46404,7 @@ class MultiSigActionResponse final : public ::google::protobuf::Message
     kSsoLink = 6,
     RESULT_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 229;
+  static constexpr int kIndexInFileMessages = 237;
   friend void swap(MultiSigActionResponse& a, MultiSigActionResponse& b) { a.Swap(&b); }
   inline void Swap(MultiSigActionResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -46287,7 +46722,7 @@ class ManagedBillingAccount final : public ::google::protobuf::Message
     return *reinterpret_cast<const ManagedBillingAccount*>(
         &_ManagedBillingAccount_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 98;
+  static constexpr int kIndexInFileMessages = 106;
   friend void swap(ManagedBillingAccount& a, ManagedBillingAccount& b) { a.Swap(&b); }
   inline void Swap(ManagedBillingAccount* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -46528,6 +46963,413 @@ class ManagedBillingAccount final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull ManagedBillingAccount_class_data_;
 // -------------------------------------------------------------------
 
+class LookupOperationReceiptRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:provider.spacewave.api.LookupOperationReceiptRequest) */ {
+ public:
+  inline LookupOperationReceiptRequest() : LookupOperationReceiptRequest(nullptr) {}
+  ~LookupOperationReceiptRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(LookupOperationReceiptRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(LookupOperationReceiptRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR LookupOperationReceiptRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline LookupOperationReceiptRequest(const LookupOperationReceiptRequest& from) : LookupOperationReceiptRequest(nullptr, from) {}
+  inline LookupOperationReceiptRequest(LookupOperationReceiptRequest&& from) noexcept
+      : LookupOperationReceiptRequest(nullptr, ::std::move(from)) {}
+  inline LookupOperationReceiptRequest& operator=(const LookupOperationReceiptRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline LookupOperationReceiptRequest& operator=(LookupOperationReceiptRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const LookupOperationReceiptRequest& default_instance() {
+    return *reinterpret_cast<const LookupOperationReceiptRequest*>(
+        &_LookupOperationReceiptRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 16;
+  friend void swap(LookupOperationReceiptRequest& a, LookupOperationReceiptRequest& b) { a.Swap(&b); }
+  inline void Swap(LookupOperationReceiptRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(LookupOperationReceiptRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  LookupOperationReceiptRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<LookupOperationReceiptRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const LookupOperationReceiptRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const LookupOperationReceiptRequest& from) { LookupOperationReceiptRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(LookupOperationReceiptRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.LookupOperationReceiptRequest"; }
+
+  explicit LookupOperationReceiptRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  LookupOperationReceiptRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const LookupOperationReceiptRequest& from);
+  LookupOperationReceiptRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, LookupOperationReceiptRequest&& from) noexcept
+      : LookupOperationReceiptRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kInnerFieldNumber = 1,
+    kSignatureFieldNumber = 2,
+  };
+  // bytes inner = 1;
+  void clear_inner() ;
+  const ::std::string& inner() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_inner(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_inner();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_inner();
+  void set_allocated_inner(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_inner() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_inner(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_inner();
+
+  public:
+  // .peer.Signature signature = 2;
+  bool has_signature() const;
+  void clear_signature() ;
+  const ::peer::Signature& signature() const;
+  [[nodiscard]] ::peer::Signature* PROTOBUF_NULLABLE release_signature();
+  ::peer::Signature* PROTOBUF_NONNULL mutable_signature();
+  void set_allocated_signature(::peer::Signature* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_signature(::peer::Signature* PROTOBUF_NULLABLE value);
+  ::peer::Signature* PROTOBUF_NULLABLE unsafe_arena_release_signature();
+
+  private:
+  const ::peer::Signature& _internal_signature() const;
+  ::peer::Signature* PROTOBUF_NONNULL _internal_mutable_signature();
+
+  public:
+  // @@protoc_insertion_point(class_scope:provider.spacewave.api.LookupOperationReceiptRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const LookupOperationReceiptRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr inner_;
+    ::peer::Signature* PROTOBUF_NULLABLE signature_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull LookupOperationReceiptRequest_class_data_;
+// -------------------------------------------------------------------
+
+class LookupOperationReceiptInner final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:provider.spacewave.api.LookupOperationReceiptInner) */ {
+ public:
+  inline LookupOperationReceiptInner() : LookupOperationReceiptInner(nullptr) {}
+  ~LookupOperationReceiptInner() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(LookupOperationReceiptInner* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(LookupOperationReceiptInner));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR LookupOperationReceiptInner(::google::protobuf::internal::ConstantInitialized);
+
+  inline LookupOperationReceiptInner(const LookupOperationReceiptInner& from) : LookupOperationReceiptInner(nullptr, from) {}
+  inline LookupOperationReceiptInner(LookupOperationReceiptInner&& from) noexcept
+      : LookupOperationReceiptInner(nullptr, ::std::move(from)) {}
+  inline LookupOperationReceiptInner& operator=(const LookupOperationReceiptInner& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline LookupOperationReceiptInner& operator=(LookupOperationReceiptInner&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const LookupOperationReceiptInner& default_instance() {
+    return *reinterpret_cast<const LookupOperationReceiptInner*>(
+        &_LookupOperationReceiptInner_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 15;
+  friend void swap(LookupOperationReceiptInner& a, LookupOperationReceiptInner& b) { a.Swap(&b); }
+  inline void Swap(LookupOperationReceiptInner* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(LookupOperationReceiptInner* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  LookupOperationReceiptInner* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<LookupOperationReceiptInner>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const LookupOperationReceiptInner& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const LookupOperationReceiptInner& from) { LookupOperationReceiptInner::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(LookupOperationReceiptInner* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.LookupOperationReceiptInner"; }
+
+  explicit LookupOperationReceiptInner(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  LookupOperationReceiptInner(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const LookupOperationReceiptInner& from);
+  LookupOperationReceiptInner(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, LookupOperationReceiptInner&& from) noexcept
+      : LookupOperationReceiptInner(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kKeyFieldNumber = 1,
+  };
+  // .sobject.SOMutationKey key = 1;
+  bool has_key() const;
+  void clear_key() ;
+  const ::sobject::SOMutationKey& key() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_key();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_key();
+  void set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_key();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_key() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // @@protoc_insertion_point(class_scope:provider.spacewave.api.LookupOperationReceiptInner)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const LookupOperationReceiptInner& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE key_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull LookupOperationReceiptInner_class_data_;
+// -------------------------------------------------------------------
+
 class ListResourcesResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:provider.spacewave.api.ListResourcesResponse) */ {
  public:
@@ -46583,7 +47425,7 @@ class ListResourcesResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListResourcesResponse*>(
         &_ListResourcesResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 92;
+  static constexpr int kIndexInFileMessages = 100;
   friend void swap(ListResourcesResponse& a, ListResourcesResponse& b) { a.Swap(&b); }
   inline void Swap(ListResourcesResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -46780,7 +47622,7 @@ class ListOrgsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListOrgsResponse*>(
         &_ListOrgsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 111;
+  static constexpr int kIndexInFileMessages = 119;
   friend void swap(ListOrgsResponse& a, ListOrgsResponse& b) { a.Swap(&b); }
   inline void Swap(ListOrgsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -46977,7 +47819,7 @@ class ListOrgInvitesResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListOrgInvitesResponse*>(
         &_ListOrgInvitesResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 112;
+  static constexpr int kIndexInFileMessages = 120;
   friend void swap(ListOrgInvitesResponse& a, ListOrgInvitesResponse& b) { a.Swap(&b); }
   inline void Swap(ListOrgInvitesResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -47174,7 +48016,7 @@ class ListKeypairsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListKeypairsResponse*>(
         &_ListKeypairsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 114;
+  static constexpr int kIndexInFileMessages = 122;
   friend void swap(ListKeypairsResponse& a, ListKeypairsResponse& b) { a.Swap(&b); }
   inline void Swap(ListKeypairsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -47568,7 +48410,7 @@ class ListAccountEmailsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListAccountEmailsResponse*>(
         &_ListAccountEmailsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 141;
+  static constexpr int kIndexInFileMessages = 149;
   friend void swap(ListAccountEmailsResponse& a, ListAccountEmailsResponse& b) { a.Swap(&b); }
   inline void Swap(ListAccountEmailsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -47765,7 +48607,7 @@ class GetSORecoveryEnvelopeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetSORecoveryEnvelopeResponse*>(
         &_GetSORecoveryEnvelopeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 211;
+  static constexpr int kIndexInFileMessages = 219;
   friend void swap(GetSORecoveryEnvelopeResponse& a, GetSORecoveryEnvelopeResponse& b) { a.Swap(&b); }
   inline void Swap(GetSORecoveryEnvelopeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -47960,7 +48802,7 @@ class GetOrgResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetOrgResponse*>(
         &_GetOrgResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 109;
+  static constexpr int kIndexInFileMessages = 117;
   friend void swap(GetOrgResponse& a, GetOrgResponse& b) { a.Swap(&b); }
   inline void Swap(GetOrgResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -48244,7 +49086,7 @@ class FinalizeAccountSObjectBindingResponse final : public ::google::protobuf::M
     return *reinterpret_cast<const FinalizeAccountSObjectBindingResponse*>(
         &_FinalizeAccountSObjectBindingResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 120;
+  static constexpr int kIndexInFileMessages = 128;
   friend void swap(FinalizeAccountSObjectBindingResponse& a, FinalizeAccountSObjectBindingResponse& b) { a.Swap(&b); }
   inline void Swap(FinalizeAccountSObjectBindingResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -48439,7 +49281,7 @@ class EntitySignature final : public ::google::protobuf::Message
     return *reinterpret_cast<const EntitySignature*>(
         &_EntitySignature_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 31;
+  static constexpr int kIndexInFileMessages = 39;
   friend void swap(EntitySignature& a, EntitySignature& b) { a.Swap(&b); }
   inline void Swap(EntitySignature* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -48668,7 +49510,7 @@ class EnsureAccountSObjectBindingResponse final : public ::google::protobuf::Mes
     return *reinterpret_cast<const EnsureAccountSObjectBindingResponse*>(
         &_EnsureAccountSObjectBindingResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 118;
+  static constexpr int kIndexInFileMessages = 126;
   friend void swap(EnsureAccountSObjectBindingResponse& a, EnsureAccountSObjectBindingResponse& b) { a.Swap(&b); }
   inline void Swap(EnsureAccountSObjectBindingResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -48863,7 +49705,7 @@ class EnrollMemberResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const EnrollMemberResponse*>(
         &_EnrollMemberResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 206;
+  static constexpr int kIndexInFileMessages = 214;
   friend void swap(EnrollMemberResponse& a, EnrollMemberResponse& b) { a.Swap(&b); }
   inline void Swap(EnrollMemberResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -49065,7 +49907,7 @@ class DesktopPasskeyRelayResult final : public ::google::protobuf::Message
     kNewAccount = 3,
     RESULT_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 193;
+  static constexpr int kIndexInFileMessages = 201;
   friend void swap(DesktopPasskeyRelayResult& a, DesktopPasskeyRelayResult& b) { a.Swap(&b); }
   inline void Swap(DesktopPasskeyRelayResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -49313,7 +50155,7 @@ class DesktopPasskeyRegisterRelayResult final : public ::google::protobuf::Messa
     return *reinterpret_cast<const DesktopPasskeyRegisterRelayResult*>(
         &_DesktopPasskeyRegisterRelayResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 196;
+  static constexpr int kIndexInFileMessages = 204;
   friend void swap(DesktopPasskeyRegisterRelayResult& a, DesktopPasskeyRegisterRelayResult& b) { a.Swap(&b); }
   inline void Swap(DesktopPasskeyRegisterRelayResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -49525,7 +50367,7 @@ class DesktopPasskeyReauthRelayResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const DesktopPasskeyReauthRelayResult*>(
         &_DesktopPasskeyReauthRelayResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 199;
+  static constexpr int kIndexInFileMessages = 207;
   friend void swap(DesktopPasskeyReauthRelayResult& a, DesktopPasskeyReauthRelayResult& b) { a.Swap(&b); }
   inline void Swap(DesktopPasskeyReauthRelayResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -49737,7 +50579,7 @@ class CreateTargetedInvitationRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CreateTargetedInvitationRequest*>(
         &_CreateTargetedInvitationRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 73;
+  static constexpr int kIndexInFileMessages = 81;
   friend void swap(CreateTargetedInvitationRequest& a, CreateTargetedInvitationRequest& b) { a.Swap(&b); }
   inline void Swap(CreateTargetedInvitationRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -50041,7 +50883,7 @@ class AddKeypairAction final : public ::google::protobuf::Message
     return *reinterpret_cast<const AddKeypairAction*>(
         &_AddKeypairAction_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 32;
+  static constexpr int kIndexInFileMessages = 40;
   friend void swap(AddKeypairAction& a, AddKeypairAction& b) { a.Swap(&b); }
   inline void Swap(AddKeypairAction* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -50181,6 +51023,430 @@ class AddKeypairAction final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull AddKeypairAction_class_data_;
 // -------------------------------------------------------------------
 
+class AcknowledgeOperationReceiptRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:provider.spacewave.api.AcknowledgeOperationReceiptRequest) */ {
+ public:
+  inline AcknowledgeOperationReceiptRequest() : AcknowledgeOperationReceiptRequest(nullptr) {}
+  ~AcknowledgeOperationReceiptRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AcknowledgeOperationReceiptRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AcknowledgeOperationReceiptRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AcknowledgeOperationReceiptRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline AcknowledgeOperationReceiptRequest(const AcknowledgeOperationReceiptRequest& from) : AcknowledgeOperationReceiptRequest(nullptr, from) {}
+  inline AcknowledgeOperationReceiptRequest(AcknowledgeOperationReceiptRequest&& from) noexcept
+      : AcknowledgeOperationReceiptRequest(nullptr, ::std::move(from)) {}
+  inline AcknowledgeOperationReceiptRequest& operator=(const AcknowledgeOperationReceiptRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AcknowledgeOperationReceiptRequest& operator=(AcknowledgeOperationReceiptRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AcknowledgeOperationReceiptRequest& default_instance() {
+    return *reinterpret_cast<const AcknowledgeOperationReceiptRequest*>(
+        &_AcknowledgeOperationReceiptRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 19;
+  friend void swap(AcknowledgeOperationReceiptRequest& a, AcknowledgeOperationReceiptRequest& b) { a.Swap(&b); }
+  inline void Swap(AcknowledgeOperationReceiptRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AcknowledgeOperationReceiptRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AcknowledgeOperationReceiptRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AcknowledgeOperationReceiptRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AcknowledgeOperationReceiptRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AcknowledgeOperationReceiptRequest& from) { AcknowledgeOperationReceiptRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AcknowledgeOperationReceiptRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.AcknowledgeOperationReceiptRequest"; }
+
+  explicit AcknowledgeOperationReceiptRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AcknowledgeOperationReceiptRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AcknowledgeOperationReceiptRequest& from);
+  AcknowledgeOperationReceiptRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AcknowledgeOperationReceiptRequest&& from) noexcept
+      : AcknowledgeOperationReceiptRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kInnerFieldNumber = 1,
+    kSignatureFieldNumber = 2,
+  };
+  // bytes inner = 1;
+  void clear_inner() ;
+  const ::std::string& inner() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_inner(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_inner();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_inner();
+  void set_allocated_inner(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_inner() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_inner(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_inner();
+
+  public:
+  // .peer.Signature signature = 2;
+  bool has_signature() const;
+  void clear_signature() ;
+  const ::peer::Signature& signature() const;
+  [[nodiscard]] ::peer::Signature* PROTOBUF_NULLABLE release_signature();
+  ::peer::Signature* PROTOBUF_NONNULL mutable_signature();
+  void set_allocated_signature(::peer::Signature* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_signature(::peer::Signature* PROTOBUF_NULLABLE value);
+  ::peer::Signature* PROTOBUF_NULLABLE unsafe_arena_release_signature();
+
+  private:
+  const ::peer::Signature& _internal_signature() const;
+  ::peer::Signature* PROTOBUF_NONNULL _internal_mutable_signature();
+
+  public:
+  // @@protoc_insertion_point(class_scope:provider.spacewave.api.AcknowledgeOperationReceiptRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AcknowledgeOperationReceiptRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr inner_;
+    ::peer::Signature* PROTOBUF_NULLABLE signature_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AcknowledgeOperationReceiptRequest_class_data_;
+// -------------------------------------------------------------------
+
+class AcknowledgeOperationReceiptInner final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:provider.spacewave.api.AcknowledgeOperationReceiptInner) */ {
+ public:
+  inline AcknowledgeOperationReceiptInner() : AcknowledgeOperationReceiptInner(nullptr) {}
+  ~AcknowledgeOperationReceiptInner() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AcknowledgeOperationReceiptInner* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AcknowledgeOperationReceiptInner));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AcknowledgeOperationReceiptInner(::google::protobuf::internal::ConstantInitialized);
+
+  inline AcknowledgeOperationReceiptInner(const AcknowledgeOperationReceiptInner& from) : AcknowledgeOperationReceiptInner(nullptr, from) {}
+  inline AcknowledgeOperationReceiptInner(AcknowledgeOperationReceiptInner&& from) noexcept
+      : AcknowledgeOperationReceiptInner(nullptr, ::std::move(from)) {}
+  inline AcknowledgeOperationReceiptInner& operator=(const AcknowledgeOperationReceiptInner& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AcknowledgeOperationReceiptInner& operator=(AcknowledgeOperationReceiptInner&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AcknowledgeOperationReceiptInner& default_instance() {
+    return *reinterpret_cast<const AcknowledgeOperationReceiptInner*>(
+        &_AcknowledgeOperationReceiptInner_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 18;
+  friend void swap(AcknowledgeOperationReceiptInner& a, AcknowledgeOperationReceiptInner& b) { a.Swap(&b); }
+  inline void Swap(AcknowledgeOperationReceiptInner* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AcknowledgeOperationReceiptInner* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AcknowledgeOperationReceiptInner* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AcknowledgeOperationReceiptInner>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AcknowledgeOperationReceiptInner& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AcknowledgeOperationReceiptInner& from) { AcknowledgeOperationReceiptInner::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AcknowledgeOperationReceiptInner* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.AcknowledgeOperationReceiptInner"; }
+
+  explicit AcknowledgeOperationReceiptInner(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AcknowledgeOperationReceiptInner(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AcknowledgeOperationReceiptInner& from);
+  AcknowledgeOperationReceiptInner(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AcknowledgeOperationReceiptInner&& from) noexcept
+      : AcknowledgeOperationReceiptInner(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kReceiptDigestFieldNumber = 2,
+    kKeyFieldNumber = 1,
+  };
+  // bytes receipt_digest = 2;
+  void clear_receipt_digest() ;
+  const ::std::string& receipt_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_receipt_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_receipt_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_receipt_digest();
+  void set_allocated_receipt_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_receipt_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_receipt_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_receipt_digest();
+
+  public:
+  // .sobject.SOMutationKey key = 1;
+  bool has_key() const;
+  void clear_key() ;
+  const ::sobject::SOMutationKey& key() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_key();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_key();
+  void set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_key();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_key() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // @@protoc_insertion_point(class_scope:provider.spacewave.api.AcknowledgeOperationReceiptInner)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AcknowledgeOperationReceiptInner& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr receipt_digest_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE key_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AcknowledgeOperationReceiptInner_class_data_;
+// -------------------------------------------------------------------
+
 class AccountAuthMethod final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:provider.spacewave.api.AccountAuthMethod) */ {
  public:
@@ -50236,7 +51502,7 @@ class AccountAuthMethod final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccountAuthMethod*>(
         &_AccountAuthMethod_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 115;
+  static constexpr int kIndexInFileMessages = 123;
   friend void swap(AccountAuthMethod& a, AccountAuthMethod& b) { a.Swap(&b); }
   inline void Swap(AccountAuthMethod* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -50456,6 +51722,213 @@ class AccountAuthMethod final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull AccountAuthMethod_class_data_;
 // -------------------------------------------------------------------
 
+class SubmitOperationV1Response final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:provider.spacewave.api.SubmitOperationV1Response) */ {
+ public:
+  inline SubmitOperationV1Response() : SubmitOperationV1Response(nullptr) {}
+  ~SubmitOperationV1Response() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SubmitOperationV1Response* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SubmitOperationV1Response));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SubmitOperationV1Response(::google::protobuf::internal::ConstantInitialized);
+
+  inline SubmitOperationV1Response(const SubmitOperationV1Response& from) : SubmitOperationV1Response(nullptr, from) {}
+  inline SubmitOperationV1Response(SubmitOperationV1Response&& from) noexcept
+      : SubmitOperationV1Response(nullptr, ::std::move(from)) {}
+  inline SubmitOperationV1Response& operator=(const SubmitOperationV1Response& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SubmitOperationV1Response& operator=(SubmitOperationV1Response&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SubmitOperationV1Response& default_instance() {
+    return *reinterpret_cast<const SubmitOperationV1Response*>(
+        &_SubmitOperationV1Response_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 14;
+  friend void swap(SubmitOperationV1Response& a, SubmitOperationV1Response& b) { a.Swap(&b); }
+  inline void Swap(SubmitOperationV1Response* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SubmitOperationV1Response* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SubmitOperationV1Response* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SubmitOperationV1Response>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SubmitOperationV1Response& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SubmitOperationV1Response& from) { SubmitOperationV1Response::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SubmitOperationV1Response* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.SubmitOperationV1Response"; }
+
+  explicit SubmitOperationV1Response(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SubmitOperationV1Response(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SubmitOperationV1Response& from);
+  SubmitOperationV1Response(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SubmitOperationV1Response&& from) noexcept
+      : SubmitOperationV1Response(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kTerminalReceiptFieldNumber = 2,
+    kStateFieldNumber = 1,
+  };
+  // .sobject.SOTerminalReceipt terminal_receipt = 2;
+  bool has_terminal_receipt() const;
+  void clear_terminal_receipt() ;
+  const ::sobject::SOTerminalReceipt& terminal_receipt() const;
+  [[nodiscard]] ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE release_terminal_receipt();
+  ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL mutable_terminal_receipt();
+  void set_allocated_terminal_receipt(::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_terminal_receipt(::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value);
+  ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE unsafe_arena_release_terminal_receipt();
+
+  private:
+  const ::sobject::SOTerminalReceipt& _internal_terminal_receipt() const;
+  ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL _internal_mutable_terminal_receipt();
+
+  public:
+  // .sobject.SOReceiptState state = 1;
+  void clear_state() ;
+  ::sobject::SOReceiptState state() const;
+  void set_state(::sobject::SOReceiptState value);
+
+  private:
+  ::sobject::SOReceiptState _internal_state() const;
+  void _internal_set_state(::sobject::SOReceiptState value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:provider.spacewave.api.SubmitOperationV1Response)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SubmitOperationV1Response& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE terminal_receipt_;
+    int state_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SubmitOperationV1Response_class_data_;
+// -------------------------------------------------------------------
+
 class SubmitMailboxEntryRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:provider.spacewave.api.SubmitMailboxEntryRequest) */ {
  public:
@@ -50511,7 +51984,7 @@ class SubmitMailboxEntryRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SubmitMailboxEntryRequest*>(
         &_SubmitMailboxEntryRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 218;
+  static constexpr int kIndexInFileMessages = 226;
   friend void swap(SubmitMailboxEntryRequest& a, SubmitMailboxEntryRequest& b) { a.Swap(&b); }
   inline void Swap(SubmitMailboxEntryRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -50757,7 +52230,7 @@ class RevokeTargetedInvitationResponse final : public ::google::protobuf::Messag
     return *reinterpret_cast<const RevokeTargetedInvitationResponse*>(
         &_RevokeTargetedInvitationResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 80;
+  static constexpr int kIndexInFileMessages = 88;
   friend void swap(RevokeTargetedInvitationResponse& a, RevokeTargetedInvitationResponse& b) { a.Swap(&b); }
   inline void Swap(RevokeTargetedInvitationResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -50952,7 +52425,7 @@ class RbacAdminReadbackResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const RbacAdminReadbackResponse*>(
         &_RbacAdminReadbackResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 138;
+  static constexpr int kIndexInFileMessages = 146;
   friend void swap(RbacAdminReadbackResponse& a, RbacAdminReadbackResponse& b) { a.Swap(&b); }
   inline void Swap(RbacAdminReadbackResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -51164,7 +52637,7 @@ class ProcessTargetedInvitationResponse final : public ::google::protobuf::Messa
     return *reinterpret_cast<const ProcessTargetedInvitationResponse*>(
         &_ProcessTargetedInvitationResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 82;
+  static constexpr int kIndexInFileMessages = 90;
   friend void swap(ProcessTargetedInvitationResponse& a, ProcessTargetedInvitationResponse& b) { a.Swap(&b); }
   inline void Swap(ProcessTargetedInvitationResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -51447,7 +52920,9 @@ class PostRootRequest final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kRejectedOpsFieldNumber = 2,
+    kTerminalReceiptsFieldNumber = 3,
     kRootFieldNumber = 1,
+    kReceiptProtocolEpochFieldNumber = 4,
   };
   // repeated .sobject.SOOperationRejection rejected_ops = 2;
   int rejected_ops_size() const;
@@ -51466,6 +52941,23 @@ class PostRootRequest final : public ::google::protobuf::Message
   const ::sobject::SOOperationRejection& rejected_ops(int index) const;
   ::sobject::SOOperationRejection* PROTOBUF_NONNULL add_rejected_ops();
   const ::google::protobuf::RepeatedPtrField<::sobject::SOOperationRejection>& rejected_ops() const;
+  // repeated .sobject.SOTerminalReceipt terminal_receipts = 3;
+  int terminal_receipts_size() const;
+  private:
+  int _internal_terminal_receipts_size() const;
+
+  public:
+  void clear_terminal_receipts() ;
+  ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL mutable_terminal_receipts(int index);
+  ::google::protobuf::RepeatedPtrField<::sobject::SOTerminalReceipt>* PROTOBUF_NONNULL mutable_terminal_receipts();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::sobject::SOTerminalReceipt>& _internal_terminal_receipts() const;
+  ::google::protobuf::RepeatedPtrField<::sobject::SOTerminalReceipt>* PROTOBUF_NONNULL _internal_mutable_terminal_receipts();
+  public:
+  const ::sobject::SOTerminalReceipt& terminal_receipts(int index) const;
+  ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL add_terminal_receipts();
+  const ::google::protobuf::RepeatedPtrField<::sobject::SOTerminalReceipt>& terminal_receipts() const;
   // .sobject.SORoot root = 1;
   bool has_root() const;
   void clear_root() ;
@@ -51481,12 +52973,22 @@ class PostRootRequest final : public ::google::protobuf::Message
   ::sobject::SORoot* PROTOBUF_NONNULL _internal_mutable_root();
 
   public:
+  // uint32 receipt_protocol_epoch = 4;
+  void clear_receipt_protocol_epoch() ;
+  ::uint32_t receipt_protocol_epoch() const;
+  void set_receipt_protocol_epoch(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_receipt_protocol_epoch() const;
+  void _internal_set_receipt_protocol_epoch(::uint32_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:provider.spacewave.api.PostRootRequest)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   2, 0,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   3, 0,
                                    2>
       _table_;
 
@@ -51508,7 +53010,9 @@ class PostRootRequest final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::RepeatedPtrField< ::sobject::SOOperationRejection > rejected_ops_;
+    ::google::protobuf::RepeatedPtrField< ::sobject::SOTerminalReceipt > terminal_receipts_;
     ::sobject::SORoot* PROTOBUF_NULLABLE root_;
+    ::uint32_t receipt_protocol_epoch_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -51583,7 +53087,7 @@ class PasskeyRelay final : public ::google::protobuf::Message
     kReauthRelay = 7,
     RELAY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 253;
+  static constexpr int kIndexInFileMessages = 261;
   friend void swap(PasskeyRelay& a, PasskeyRelay& b) { a.Swap(&b); }
   inline void Swap(PasskeyRelay* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -51923,7 +53427,7 @@ class MultiSigRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const MultiSigRequest*>(
         &_MultiSigRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 30;
+  static constexpr int kIndexInFileMessages = 38;
   friend void swap(MultiSigRequest& a, MultiSigRequest& b) { a.Swap(&b); }
   inline void Swap(MultiSigRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -52137,7 +53641,7 @@ class MailboxEntry final : public ::google::protobuf::Message
     return *reinterpret_cast<const MailboxEntry*>(
         &_MailboxEntry_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 220;
+  static constexpr int kIndexInFileMessages = 228;
   friend void swap(MailboxEntry& a, MailboxEntry& b) { a.Swap(&b); }
   inline void Swap(MailboxEntry* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -52403,6 +53907,213 @@ class MailboxEntry final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull MailboxEntry_class_data_;
 // -------------------------------------------------------------------
 
+class LookupOperationReceiptResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:provider.spacewave.api.LookupOperationReceiptResponse) */ {
+ public:
+  inline LookupOperationReceiptResponse() : LookupOperationReceiptResponse(nullptr) {}
+  ~LookupOperationReceiptResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(LookupOperationReceiptResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(LookupOperationReceiptResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR LookupOperationReceiptResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline LookupOperationReceiptResponse(const LookupOperationReceiptResponse& from) : LookupOperationReceiptResponse(nullptr, from) {}
+  inline LookupOperationReceiptResponse(LookupOperationReceiptResponse&& from) noexcept
+      : LookupOperationReceiptResponse(nullptr, ::std::move(from)) {}
+  inline LookupOperationReceiptResponse& operator=(const LookupOperationReceiptResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline LookupOperationReceiptResponse& operator=(LookupOperationReceiptResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const LookupOperationReceiptResponse& default_instance() {
+    return *reinterpret_cast<const LookupOperationReceiptResponse*>(
+        &_LookupOperationReceiptResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 17;
+  friend void swap(LookupOperationReceiptResponse& a, LookupOperationReceiptResponse& b) { a.Swap(&b); }
+  inline void Swap(LookupOperationReceiptResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(LookupOperationReceiptResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  LookupOperationReceiptResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<LookupOperationReceiptResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const LookupOperationReceiptResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const LookupOperationReceiptResponse& from) { LookupOperationReceiptResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(LookupOperationReceiptResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "provider.spacewave.api.LookupOperationReceiptResponse"; }
+
+  explicit LookupOperationReceiptResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  LookupOperationReceiptResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const LookupOperationReceiptResponse& from);
+  LookupOperationReceiptResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, LookupOperationReceiptResponse&& from) noexcept
+      : LookupOperationReceiptResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kTerminalReceiptFieldNumber = 2,
+    kStateFieldNumber = 1,
+  };
+  // .sobject.SOTerminalReceipt terminal_receipt = 2;
+  bool has_terminal_receipt() const;
+  void clear_terminal_receipt() ;
+  const ::sobject::SOTerminalReceipt& terminal_receipt() const;
+  [[nodiscard]] ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE release_terminal_receipt();
+  ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL mutable_terminal_receipt();
+  void set_allocated_terminal_receipt(::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_terminal_receipt(::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value);
+  ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE unsafe_arena_release_terminal_receipt();
+
+  private:
+  const ::sobject::SOTerminalReceipt& _internal_terminal_receipt() const;
+  ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL _internal_mutable_terminal_receipt();
+
+  public:
+  // .sobject.SOReceiptState state = 1;
+  void clear_state() ;
+  ::sobject::SOReceiptState state() const;
+  void set_state(::sobject::SOReceiptState value);
+
+  private:
+  ::sobject::SOReceiptState _internal_state() const;
+  void _internal_set_state(::sobject::SOReceiptState value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:provider.spacewave.api.LookupOperationReceiptResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const LookupOperationReceiptResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE terminal_receipt_;
+    int state_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fprovider_2fspacewave_2fapi_2fapi_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull LookupOperationReceiptResponse_class_data_;
+// -------------------------------------------------------------------
+
 class ListTargetedInvitationsResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:provider.spacewave.api.ListTargetedInvitationsResponse) */ {
  public:
@@ -52458,7 +54169,7 @@ class ListTargetedInvitationsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ListTargetedInvitationsResponse*>(
         &_ListTargetedInvitationsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 76;
+  static constexpr int kIndexInFileMessages = 84;
   friend void swap(ListTargetedInvitationsResponse& a, ListTargetedInvitationsResponse& b) { a.Swap(&b); }
   inline void Swap(ListTargetedInvitationsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -52655,7 +54366,7 @@ class ListSORecoveryEntityKeypairsResponse final : public ::google::protobuf::Me
     return *reinterpret_cast<const ListSORecoveryEntityKeypairsResponse*>(
         &_ListSORecoveryEntityKeypairsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 210;
+  static constexpr int kIndexInFileMessages = 218;
   friend void swap(ListSORecoveryEntityKeypairsResponse& a, ListSORecoveryEntityKeypairsResponse& b) { a.Swap(&b); }
   inline void Swap(ListSORecoveryEntityKeypairsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -52852,7 +54563,7 @@ class ListManagedBillingAccountsResponse final : public ::google::protobuf::Mess
     return *reinterpret_cast<const ListManagedBillingAccountsResponse*>(
         &_ListManagedBillingAccountsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 107;
+  static constexpr int kIndexInFileMessages = 115;
   friend void swap(ListManagedBillingAccountsResponse& a, ListManagedBillingAccountsResponse& b) { a.Swap(&b); }
   inline void Swap(ListManagedBillingAccountsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -53049,7 +54760,7 @@ class GetTargetedInvitationResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetTargetedInvitationResponse*>(
         &_GetTargetedInvitationResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 78;
+  static constexpr int kIndexInFileMessages = 86;
   friend void swap(GetTargetedInvitationResponse& a, GetTargetedInvitationResponse& b) { a.Swap(&b); }
   inline void Swap(GetTargetedInvitationResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -53244,7 +54955,7 @@ class CreateTargetedInvitationResponse final : public ::google::protobuf::Messag
     return *reinterpret_cast<const CreateTargetedInvitationResponse*>(
         &_CreateTargetedInvitationResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 74;
+  static constexpr int kIndexInFileMessages = 82;
   friend void swap(CreateTargetedInvitationResponse& a, CreateTargetedInvitationResponse& b) { a.Swap(&b); }
   inline void Swap(CreateTargetedInvitationResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -53439,7 +55150,7 @@ class AccountStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccountStateResponse*>(
         &_AccountStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 121;
+  static constexpr int kIndexInFileMessages = 129;
   friend void swap(AccountStateResponse& a, AccountStateResponse& b) { a.Swap(&b); }
   inline void Swap(AccountStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -53845,7 +55556,7 @@ class AcceptTargetedOrganizationInvitationResponse final : public ::google::prot
     return *reinterpret_cast<const AcceptTargetedOrganizationInvitationResponse*>(
         &_AcceptTargetedOrganizationInvitationResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 84;
+  static constexpr int kIndexInFileMessages = 92;
   friend void swap(AcceptTargetedOrganizationInvitationResponse& a, AcceptTargetedOrganizationInvitationResponse& b) { a.Swap(&b); }
   inline void Swap(AcceptTargetedOrganizationInvitationResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -54064,7 +55775,7 @@ class WsAuthSessionServerFrame final : public ::google::protobuf::Message
     kSsoLink = 4,
     BODY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 254;
+  static constexpr int kIndexInFileMessages = 262;
   friend void swap(WsAuthSessionServerFrame& a, WsAuthSessionServerFrame& b) { a.Swap(&b); }
   inline void Swap(WsAuthSessionServerFrame* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -54338,7 +56049,7 @@ class VerifiedSOStateCache final : public ::google::protobuf::Message
     return *reinterpret_cast<const VerifiedSOStateCache*>(
         &_VerifiedSOStateCache_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 123;
+  static constexpr int kIndexInFileMessages = 131;
   friend void swap(VerifiedSOStateCache& a, VerifiedSOStateCache& b) { a.Swap(&b); }
   inline void Swap(VerifiedSOStateCache* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -54598,7 +56309,7 @@ class PostKeyEpochRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const PostKeyEpochRequest*>(
         &_PostKeyEpochRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 213;
+  static constexpr int kIndexInFileMessages = 221;
   friend void swap(PostKeyEpochRequest& a, PostKeyEpochRequest& b) { a.Swap(&b); }
   inline void Swap(PostKeyEpochRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -54812,7 +56523,7 @@ class PostConfigStateRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const PostConfigStateRequest*>(
         &_PostConfigStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 212;
+  static constexpr int kIndexInFileMessages = 220;
   friend void swap(PostConfigStateRequest& a, PostConfigStateRequest& b) { a.Swap(&b); }
   inline void Swap(PostConfigStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -55062,7 +56773,7 @@ class InviteMailboxEventPayload final : public ::google::protobuf::Message
     return *reinterpret_cast<const InviteMailboxEventPayload*>(
         &_InviteMailboxEventPayload_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 27;
+  static constexpr int kIndexInFileMessages = 35;
   friend void swap(InviteMailboxEventPayload& a, InviteMailboxEventPayload& b) { a.Swap(&b); }
   inline void Swap(InviteMailboxEventPayload* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -55269,7 +56980,7 @@ class GetMailboxResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetMailboxResponse*>(
         &_GetMailboxResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 217;
+  static constexpr int kIndexInFileMessages = 225;
   friend void swap(GetMailboxResponse& a, GetMailboxResponse& b) { a.Swap(&b); }
   inline void Swap(GetMailboxResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -55466,7 +57177,7 @@ class AccountStateCache final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccountStateCache*>(
         &_AccountStateCache_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 122;
+  static constexpr int kIndexInFileMessages = 130;
   friend void swap(AccountStateCache& a, AccountStateCache& b) { a.Swap(&b); }
   inline void Swap(AccountStateCache* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -55769,6 +57480,7 @@ class SOStateMessage final : public ::google::protobuf::Message
   enum : int {
     kConfigChainFieldNumber = 6,
     kSeqnoFieldNumber = 1,
+    kReceiptProtocolEpochFieldNumber = 7,
     kSnapshotFieldNumber = 2,
     kDeltaFieldNumber = 3,
     kErrorFieldNumber = 4,
@@ -55797,6 +57509,16 @@ class SOStateMessage final : public ::google::protobuf::Message
   private:
   ::uint64_t _internal_seqno() const;
   void _internal_set_seqno(::uint64_t value);
+
+  public:
+  // uint32 receipt_protocol_epoch = 7;
+  void clear_receipt_protocol_epoch() ;
+  ::uint32_t receipt_protocol_epoch() const;
+  void set_receipt_protocol_epoch(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_receipt_protocol_epoch() const;
+  void _internal_set_receipt_protocol_epoch(::uint32_t value);
 
   public:
   // .sobject.SOState snapshot = 2;
@@ -55887,7 +57609,7 @@ class SOStateMessage final : public ::google::protobuf::Message
   inline bool has_content() const;
   inline void clear_has_content();
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 6,
+  static const ::google::protobuf::internal::TcParseTable<2, 7,
                                    5, 0,
                                    2>
       _table_;
@@ -55911,6 +57633,7 @@ class SOStateMessage final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::sobject::SOConfigChainResponse* PROTOBUF_NULLABLE config_chain_;
     ::uint64_t seqno_;
+    ::uint32_t receipt_protocol_epoch_;
     union ContentUnion {
       constexpr ContentUnion() : _constinit_{} {}
       ::google::protobuf::internal::ConstantInitialized _constinit_;
@@ -55984,7 +57707,7 @@ class SOSessionUpdate final : public ::google::protobuf::Message
     return *reinterpret_cast<const SOSessionUpdate*>(
         &_SOSessionUpdate_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 14;
+  static constexpr int kIndexInFileMessages = 22;
   friend void swap(SOSessionUpdate& a, SOSessionUpdate& b) { a.Swap(&b); }
   inline void Swap(SOSessionUpdate* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -56196,7 +57919,7 @@ class SONotifyEventPayload final : public ::google::protobuf::Message
     return *reinterpret_cast<const SONotifyEventPayload*>(
         &_SONotifyEventPayload_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 28;
+  static constexpr int kIndexInFileMessages = 36;
   friend void swap(SONotifyEventPayload& a, SONotifyEventPayload& b) { a.Swap(&b); }
   inline void Swap(SONotifyEventPayload* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -56455,7 +58178,7 @@ class SessionMessage final : public ::google::protobuf::Message
     kSessionEvent = 3,
     BODY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 13;
+  static constexpr int kIndexInFileMessages = 21;
   friend void swap(SessionMessage& a, SessionMessage& b) { a.Swap(&b); }
   inline void Swap(SessionMessage* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -58933,6 +60656,31 @@ inline void SOStateMessage::set_allocated_config_chain(::sobject::SOConfigChainR
   // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.SOStateMessage.config_chain)
 }
 
+// uint32 receipt_protocol_epoch = 7;
+inline void SOStateMessage::clear_receipt_protocol_epoch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.receipt_protocol_epoch_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint32_t SOStateMessage::receipt_protocol_epoch() const {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.SOStateMessage.receipt_protocol_epoch)
+  return _internal_receipt_protocol_epoch();
+}
+inline void SOStateMessage::set_receipt_protocol_epoch(::uint32_t value) {
+  _internal_set_receipt_protocol_epoch(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.SOStateMessage.receipt_protocol_epoch)
+}
+inline ::uint32_t SOStateMessage::_internal_receipt_protocol_epoch() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.receipt_protocol_epoch_;
+}
+inline void SOStateMessage::_internal_set_receipt_protocol_epoch(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.receipt_protocol_epoch_ = value;
+}
+
 inline bool SOStateMessage::has_content() const {
   return content_case() != CONTENT_NOT_SET;
 }
@@ -59351,7 +61099,7 @@ inline void SOStateDeltaEntry::set_allocated_change_data(::std::string* PROTOBUF
 
 // .sobject.SORoot root = 1;
 inline bool PostRootRequest::has_root() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
   PROTOBUF_ASSUME(!value || _impl_.root_ != nullptr);
   return value;
 }
@@ -59372,16 +61120,16 @@ inline void PostRootRequest::unsafe_arena_set_allocated_root(
   }
   _impl_.root_ = reinterpret_cast<::sobject::SORoot*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:provider.spacewave.api.PostRootRequest.root)
 }
 inline ::sobject::SORoot* PROTOBUF_NULLABLE PostRootRequest::release_root() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::sobject::SORoot* released = _impl_.root_;
   _impl_.root_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -59401,7 +61149,7 @@ inline ::sobject::SORoot* PROTOBUF_NULLABLE PostRootRequest::unsafe_arena_releas
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:provider.spacewave.api.PostRootRequest.root)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::sobject::SORoot* temp = _impl_.root_;
   _impl_.root_ = nullptr;
   return temp;
@@ -59416,7 +61164,7 @@ inline ::sobject::SORoot* PROTOBUF_NONNULL PostRootRequest::_internal_mutable_ro
 }
 inline ::sobject::SORoot* PROTOBUF_NONNULL PostRootRequest::mutable_root()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::sobject::SORoot* _msg = _internal_mutable_root();
   // @@protoc_insertion_point(field_mutable:provider.spacewave.api.PostRootRequest.root)
   return _msg;
@@ -59433,9 +61181,9 @@ inline void PostRootRequest::set_allocated_root(::sobject::SORoot* PROTOBUF_NULL
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
 
   _impl_.root_ = reinterpret_cast<::sobject::SORoot*>(value);
@@ -59490,6 +61238,1099 @@ inline ::google::protobuf::RepeatedPtrField<::sobject::SOOperationRejection>* PR
 PostRootRequest::_internal_mutable_rejected_ops() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.rejected_ops_;
+}
+
+// repeated .sobject.SOTerminalReceipt terminal_receipts = 3;
+inline int PostRootRequest::_internal_terminal_receipts_size() const {
+  return _internal_terminal_receipts().size();
+}
+inline int PostRootRequest::terminal_receipts_size() const {
+  return _internal_terminal_receipts_size();
+}
+inline ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL PostRootRequest::mutable_terminal_receipts(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.PostRootRequest.terminal_receipts)
+  return _internal_mutable_terminal_receipts()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::sobject::SOTerminalReceipt>* PROTOBUF_NONNULL PostRootRequest::mutable_terminal_receipts()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:provider.spacewave.api.PostRootRequest.terminal_receipts)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_terminal_receipts();
+}
+inline const ::sobject::SOTerminalReceipt& PostRootRequest::terminal_receipts(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.PostRootRequest.terminal_receipts)
+  return _internal_terminal_receipts().Get(index);
+}
+inline ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL PostRootRequest::add_terminal_receipts()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::sobject::SOTerminalReceipt* _add =
+      _internal_mutable_terminal_receipts()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:provider.spacewave.api.PostRootRequest.terminal_receipts)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::sobject::SOTerminalReceipt>& PostRootRequest::terminal_receipts() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:provider.spacewave.api.PostRootRequest.terminal_receipts)
+  return _internal_terminal_receipts();
+}
+inline const ::google::protobuf::RepeatedPtrField<::sobject::SOTerminalReceipt>&
+PostRootRequest::_internal_terminal_receipts() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.terminal_receipts_;
+}
+inline ::google::protobuf::RepeatedPtrField<::sobject::SOTerminalReceipt>* PROTOBUF_NONNULL
+PostRootRequest::_internal_mutable_terminal_receipts() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.terminal_receipts_;
+}
+
+// uint32 receipt_protocol_epoch = 4;
+inline void PostRootRequest::clear_receipt_protocol_epoch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.receipt_protocol_epoch_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::uint32_t PostRootRequest::receipt_protocol_epoch() const {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.PostRootRequest.receipt_protocol_epoch)
+  return _internal_receipt_protocol_epoch();
+}
+inline void PostRootRequest::set_receipt_protocol_epoch(::uint32_t value) {
+  _internal_set_receipt_protocol_epoch(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.PostRootRequest.receipt_protocol_epoch)
+}
+inline ::uint32_t PostRootRequest::_internal_receipt_protocol_epoch() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.receipt_protocol_epoch_;
+}
+inline void PostRootRequest::_internal_set_receipt_protocol_epoch(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.receipt_protocol_epoch_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// SubmitOperationV1Request
+
+// .sobject.SOMutationKey key = 1;
+inline bool SubmitOperationV1Request::has_key() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.key_ != nullptr);
+  return value;
+}
+inline const ::sobject::SOMutationKey& SubmitOperationV1Request::_internal_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.key_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& SubmitOperationV1Request::key() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.SubmitOperationV1Request.key)
+  return _internal_key();
+}
+inline void SubmitOperationV1Request::unsafe_arena_set_allocated_key(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:provider.spacewave.api.SubmitOperationV1Request.key)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SubmitOperationV1Request::release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* released = _impl_.key_;
+  _impl_.key_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SubmitOperationV1Request::unsafe_arena_release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.SubmitOperationV1Request.key)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* temp = _impl_.key_;
+  _impl_.key_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SubmitOperationV1Request::_internal_mutable_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.key_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SubmitOperationV1Request::mutable_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_key();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.SubmitOperationV1Request.key)
+  return _msg;
+}
+inline void SubmitOperationV1Request::set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.SubmitOperationV1Request.key)
+}
+
+// bytes exact_envelope = 2;
+inline void SubmitOperationV1Request::clear_exact_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.exact_envelope_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SubmitOperationV1Request::exact_envelope() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.SubmitOperationV1Request.exact_envelope)
+  return _internal_exact_envelope();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SubmitOperationV1Request::set_exact_envelope(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.exact_envelope_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.SubmitOperationV1Request.exact_envelope)
+}
+inline ::std::string* PROTOBUF_NONNULL SubmitOperationV1Request::mutable_exact_envelope()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_exact_envelope();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.SubmitOperationV1Request.exact_envelope)
+  return _s;
+}
+inline const ::std::string& SubmitOperationV1Request::_internal_exact_envelope() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.exact_envelope_.Get();
+}
+inline void SubmitOperationV1Request::_internal_set_exact_envelope(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.exact_envelope_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SubmitOperationV1Request::_internal_mutable_exact_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.exact_envelope_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SubmitOperationV1Request::release_exact_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.SubmitOperationV1Request.exact_envelope)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.exact_envelope_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.exact_envelope_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SubmitOperationV1Request::set_allocated_exact_envelope(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.exact_envelope_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.exact_envelope_.IsDefault()) {
+    _impl_.exact_envelope_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.SubmitOperationV1Request.exact_envelope)
+}
+
+// -------------------------------------------------------------------
+
+// SubmitOperationV1Response
+
+// .sobject.SOReceiptState state = 1;
+inline void SubmitOperationV1Response::clear_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::sobject::SOReceiptState SubmitOperationV1Response::state() const {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.SubmitOperationV1Response.state)
+  return _internal_state();
+}
+inline void SubmitOperationV1Response::set_state(::sobject::SOReceiptState value) {
+  _internal_set_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.SubmitOperationV1Response.state)
+}
+inline ::sobject::SOReceiptState SubmitOperationV1Response::_internal_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::sobject::SOReceiptState>(_impl_.state_);
+}
+inline void SubmitOperationV1Response::_internal_set_state(::sobject::SOReceiptState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = value;
+}
+
+// .sobject.SOTerminalReceipt terminal_receipt = 2;
+inline bool SubmitOperationV1Response::has_terminal_receipt() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.terminal_receipt_ != nullptr);
+  return value;
+}
+inline const ::sobject::SOTerminalReceipt& SubmitOperationV1Response::_internal_terminal_receipt() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOTerminalReceipt* p = _impl_.terminal_receipt_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOTerminalReceipt&>(::sobject::_SOTerminalReceipt_default_instance_);
+}
+inline const ::sobject::SOTerminalReceipt& SubmitOperationV1Response::terminal_receipt() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.SubmitOperationV1Response.terminal_receipt)
+  return _internal_terminal_receipt();
+}
+inline void SubmitOperationV1Response::unsafe_arena_set_allocated_terminal_receipt(
+    ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.terminal_receipt_);
+  }
+  _impl_.terminal_receipt_ = reinterpret_cast<::sobject::SOTerminalReceipt*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:provider.spacewave.api.SubmitOperationV1Response.terminal_receipt)
+}
+inline ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE SubmitOperationV1Response::release_terminal_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::sobject::SOTerminalReceipt* released = _impl_.terminal_receipt_;
+  _impl_.terminal_receipt_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE SubmitOperationV1Response::unsafe_arena_release_terminal_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.SubmitOperationV1Response.terminal_receipt)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::sobject::SOTerminalReceipt* temp = _impl_.terminal_receipt_;
+  _impl_.terminal_receipt_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL SubmitOperationV1Response::_internal_mutable_terminal_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.terminal_receipt_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOTerminalReceipt>(GetArena());
+    _impl_.terminal_receipt_ = reinterpret_cast<::sobject::SOTerminalReceipt*>(p);
+  }
+  return _impl_.terminal_receipt_;
+}
+inline ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL SubmitOperationV1Response::mutable_terminal_receipt()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::sobject::SOTerminalReceipt* _msg = _internal_mutable_terminal_receipt();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.SubmitOperationV1Response.terminal_receipt)
+  return _msg;
+}
+inline void SubmitOperationV1Response::set_allocated_terminal_receipt(::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.terminal_receipt_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.terminal_receipt_ = reinterpret_cast<::sobject::SOTerminalReceipt*>(value);
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.SubmitOperationV1Response.terminal_receipt)
+}
+
+// -------------------------------------------------------------------
+
+// LookupOperationReceiptInner
+
+// .sobject.SOMutationKey key = 1;
+inline bool LookupOperationReceiptInner::has_key() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.key_ != nullptr);
+  return value;
+}
+inline const ::sobject::SOMutationKey& LookupOperationReceiptInner::_internal_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.key_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& LookupOperationReceiptInner::key() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.LookupOperationReceiptInner.key)
+  return _internal_key();
+}
+inline void LookupOperationReceiptInner::unsafe_arena_set_allocated_key(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:provider.spacewave.api.LookupOperationReceiptInner.key)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE LookupOperationReceiptInner::release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::sobject::SOMutationKey* released = _impl_.key_;
+  _impl_.key_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE LookupOperationReceiptInner::unsafe_arena_release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.LookupOperationReceiptInner.key)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::sobject::SOMutationKey* temp = _impl_.key_;
+  _impl_.key_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL LookupOperationReceiptInner::_internal_mutable_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.key_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL LookupOperationReceiptInner::mutable_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_key();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.LookupOperationReceiptInner.key)
+  return _msg;
+}
+inline void LookupOperationReceiptInner::set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.LookupOperationReceiptInner.key)
+}
+
+// -------------------------------------------------------------------
+
+// LookupOperationReceiptRequest
+
+// bytes inner = 1;
+inline void LookupOperationReceiptRequest::clear_inner() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.inner_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& LookupOperationReceiptRequest::inner() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.LookupOperationReceiptRequest.inner)
+  return _internal_inner();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void LookupOperationReceiptRequest::set_inner(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.inner_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.LookupOperationReceiptRequest.inner)
+}
+inline ::std::string* PROTOBUF_NONNULL LookupOperationReceiptRequest::mutable_inner()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_inner();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.LookupOperationReceiptRequest.inner)
+  return _s;
+}
+inline const ::std::string& LookupOperationReceiptRequest::_internal_inner() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.inner_.Get();
+}
+inline void LookupOperationReceiptRequest::_internal_set_inner(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.inner_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL LookupOperationReceiptRequest::_internal_mutable_inner() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.inner_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE LookupOperationReceiptRequest::release_inner() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.LookupOperationReceiptRequest.inner)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.inner_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.inner_.Set("", GetArena());
+  }
+  return released;
+}
+inline void LookupOperationReceiptRequest::set_allocated_inner(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.inner_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.inner_.IsDefault()) {
+    _impl_.inner_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.LookupOperationReceiptRequest.inner)
+}
+
+// .peer.Signature signature = 2;
+inline bool LookupOperationReceiptRequest::has_signature() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.signature_ != nullptr);
+  return value;
+}
+inline const ::peer::Signature& LookupOperationReceiptRequest::_internal_signature() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::peer::Signature* p = _impl_.signature_;
+  return p != nullptr ? *p : reinterpret_cast<const ::peer::Signature&>(::peer::_Signature_default_instance_);
+}
+inline const ::peer::Signature& LookupOperationReceiptRequest::signature() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.LookupOperationReceiptRequest.signature)
+  return _internal_signature();
+}
+inline void LookupOperationReceiptRequest::unsafe_arena_set_allocated_signature(
+    ::peer::Signature* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.signature_);
+  }
+  _impl_.signature_ = reinterpret_cast<::peer::Signature*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:provider.spacewave.api.LookupOperationReceiptRequest.signature)
+}
+inline ::peer::Signature* PROTOBUF_NULLABLE LookupOperationReceiptRequest::release_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::peer::Signature* released = _impl_.signature_;
+  _impl_.signature_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::peer::Signature* PROTOBUF_NULLABLE LookupOperationReceiptRequest::unsafe_arena_release_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.LookupOperationReceiptRequest.signature)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::peer::Signature* temp = _impl_.signature_;
+  _impl_.signature_ = nullptr;
+  return temp;
+}
+inline ::peer::Signature* PROTOBUF_NONNULL LookupOperationReceiptRequest::_internal_mutable_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.signature_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::peer::Signature>(GetArena());
+    _impl_.signature_ = reinterpret_cast<::peer::Signature*>(p);
+  }
+  return _impl_.signature_;
+}
+inline ::peer::Signature* PROTOBUF_NONNULL LookupOperationReceiptRequest::mutable_signature()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::peer::Signature* _msg = _internal_mutable_signature();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.LookupOperationReceiptRequest.signature)
+  return _msg;
+}
+inline void LookupOperationReceiptRequest::set_allocated_signature(::peer::Signature* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.signature_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.signature_ = reinterpret_cast<::peer::Signature*>(value);
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.LookupOperationReceiptRequest.signature)
+}
+
+// -------------------------------------------------------------------
+
+// LookupOperationReceiptResponse
+
+// .sobject.SOReceiptState state = 1;
+inline void LookupOperationReceiptResponse::clear_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::sobject::SOReceiptState LookupOperationReceiptResponse::state() const {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.LookupOperationReceiptResponse.state)
+  return _internal_state();
+}
+inline void LookupOperationReceiptResponse::set_state(::sobject::SOReceiptState value) {
+  _internal_set_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.LookupOperationReceiptResponse.state)
+}
+inline ::sobject::SOReceiptState LookupOperationReceiptResponse::_internal_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::sobject::SOReceiptState>(_impl_.state_);
+}
+inline void LookupOperationReceiptResponse::_internal_set_state(::sobject::SOReceiptState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = value;
+}
+
+// .sobject.SOTerminalReceipt terminal_receipt = 2;
+inline bool LookupOperationReceiptResponse::has_terminal_receipt() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.terminal_receipt_ != nullptr);
+  return value;
+}
+inline const ::sobject::SOTerminalReceipt& LookupOperationReceiptResponse::_internal_terminal_receipt() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOTerminalReceipt* p = _impl_.terminal_receipt_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOTerminalReceipt&>(::sobject::_SOTerminalReceipt_default_instance_);
+}
+inline const ::sobject::SOTerminalReceipt& LookupOperationReceiptResponse::terminal_receipt() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.LookupOperationReceiptResponse.terminal_receipt)
+  return _internal_terminal_receipt();
+}
+inline void LookupOperationReceiptResponse::unsafe_arena_set_allocated_terminal_receipt(
+    ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.terminal_receipt_);
+  }
+  _impl_.terminal_receipt_ = reinterpret_cast<::sobject::SOTerminalReceipt*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:provider.spacewave.api.LookupOperationReceiptResponse.terminal_receipt)
+}
+inline ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE LookupOperationReceiptResponse::release_terminal_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::sobject::SOTerminalReceipt* released = _impl_.terminal_receipt_;
+  _impl_.terminal_receipt_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE LookupOperationReceiptResponse::unsafe_arena_release_terminal_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.LookupOperationReceiptResponse.terminal_receipt)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::sobject::SOTerminalReceipt* temp = _impl_.terminal_receipt_;
+  _impl_.terminal_receipt_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL LookupOperationReceiptResponse::_internal_mutable_terminal_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.terminal_receipt_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOTerminalReceipt>(GetArena());
+    _impl_.terminal_receipt_ = reinterpret_cast<::sobject::SOTerminalReceipt*>(p);
+  }
+  return _impl_.terminal_receipt_;
+}
+inline ::sobject::SOTerminalReceipt* PROTOBUF_NONNULL LookupOperationReceiptResponse::mutable_terminal_receipt()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::sobject::SOTerminalReceipt* _msg = _internal_mutable_terminal_receipt();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.LookupOperationReceiptResponse.terminal_receipt)
+  return _msg;
+}
+inline void LookupOperationReceiptResponse::set_allocated_terminal_receipt(::sobject::SOTerminalReceipt* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.terminal_receipt_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.terminal_receipt_ = reinterpret_cast<::sobject::SOTerminalReceipt*>(value);
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.LookupOperationReceiptResponse.terminal_receipt)
+}
+
+// -------------------------------------------------------------------
+
+// AcknowledgeOperationReceiptInner
+
+// .sobject.SOMutationKey key = 1;
+inline bool AcknowledgeOperationReceiptInner::has_key() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.key_ != nullptr);
+  return value;
+}
+inline const ::sobject::SOMutationKey& AcknowledgeOperationReceiptInner::_internal_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.key_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& AcknowledgeOperationReceiptInner::key() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.AcknowledgeOperationReceiptInner.key)
+  return _internal_key();
+}
+inline void AcknowledgeOperationReceiptInner::unsafe_arena_set_allocated_key(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:provider.spacewave.api.AcknowledgeOperationReceiptInner.key)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE AcknowledgeOperationReceiptInner::release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* released = _impl_.key_;
+  _impl_.key_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE AcknowledgeOperationReceiptInner::unsafe_arena_release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.AcknowledgeOperationReceiptInner.key)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* temp = _impl_.key_;
+  _impl_.key_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL AcknowledgeOperationReceiptInner::_internal_mutable_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.key_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL AcknowledgeOperationReceiptInner::mutable_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_key();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.AcknowledgeOperationReceiptInner.key)
+  return _msg;
+}
+inline void AcknowledgeOperationReceiptInner::set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.AcknowledgeOperationReceiptInner.key)
+}
+
+// bytes receipt_digest = 2;
+inline void AcknowledgeOperationReceiptInner::clear_receipt_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.receipt_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& AcknowledgeOperationReceiptInner::receipt_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.AcknowledgeOperationReceiptInner.receipt_digest)
+  return _internal_receipt_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AcknowledgeOperationReceiptInner::set_receipt_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.receipt_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.AcknowledgeOperationReceiptInner.receipt_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL AcknowledgeOperationReceiptInner::mutable_receipt_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_receipt_digest();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.AcknowledgeOperationReceiptInner.receipt_digest)
+  return _s;
+}
+inline const ::std::string& AcknowledgeOperationReceiptInner::_internal_receipt_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.receipt_digest_.Get();
+}
+inline void AcknowledgeOperationReceiptInner::_internal_set_receipt_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.receipt_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AcknowledgeOperationReceiptInner::_internal_mutable_receipt_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.receipt_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AcknowledgeOperationReceiptInner::release_receipt_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.AcknowledgeOperationReceiptInner.receipt_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.receipt_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.receipt_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AcknowledgeOperationReceiptInner::set_allocated_receipt_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.receipt_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.receipt_digest_.IsDefault()) {
+    _impl_.receipt_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.AcknowledgeOperationReceiptInner.receipt_digest)
+}
+
+// -------------------------------------------------------------------
+
+// AcknowledgeOperationReceiptRequest
+
+// bytes inner = 1;
+inline void AcknowledgeOperationReceiptRequest::clear_inner() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.inner_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& AcknowledgeOperationReceiptRequest::inner() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.AcknowledgeOperationReceiptRequest.inner)
+  return _internal_inner();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AcknowledgeOperationReceiptRequest::set_inner(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.inner_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.AcknowledgeOperationReceiptRequest.inner)
+}
+inline ::std::string* PROTOBUF_NONNULL AcknowledgeOperationReceiptRequest::mutable_inner()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_inner();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.AcknowledgeOperationReceiptRequest.inner)
+  return _s;
+}
+inline const ::std::string& AcknowledgeOperationReceiptRequest::_internal_inner() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.inner_.Get();
+}
+inline void AcknowledgeOperationReceiptRequest::_internal_set_inner(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.inner_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AcknowledgeOperationReceiptRequest::_internal_mutable_inner() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.inner_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AcknowledgeOperationReceiptRequest::release_inner() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.AcknowledgeOperationReceiptRequest.inner)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.inner_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.inner_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AcknowledgeOperationReceiptRequest::set_allocated_inner(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.inner_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.inner_.IsDefault()) {
+    _impl_.inner_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.AcknowledgeOperationReceiptRequest.inner)
+}
+
+// .peer.Signature signature = 2;
+inline bool AcknowledgeOperationReceiptRequest::has_signature() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.signature_ != nullptr);
+  return value;
+}
+inline const ::peer::Signature& AcknowledgeOperationReceiptRequest::_internal_signature() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::peer::Signature* p = _impl_.signature_;
+  return p != nullptr ? *p : reinterpret_cast<const ::peer::Signature&>(::peer::_Signature_default_instance_);
+}
+inline const ::peer::Signature& AcknowledgeOperationReceiptRequest::signature() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.AcknowledgeOperationReceiptRequest.signature)
+  return _internal_signature();
+}
+inline void AcknowledgeOperationReceiptRequest::unsafe_arena_set_allocated_signature(
+    ::peer::Signature* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.signature_);
+  }
+  _impl_.signature_ = reinterpret_cast<::peer::Signature*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:provider.spacewave.api.AcknowledgeOperationReceiptRequest.signature)
+}
+inline ::peer::Signature* PROTOBUF_NULLABLE AcknowledgeOperationReceiptRequest::release_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::peer::Signature* released = _impl_.signature_;
+  _impl_.signature_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::peer::Signature* PROTOBUF_NULLABLE AcknowledgeOperationReceiptRequest::unsafe_arena_release_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:provider.spacewave.api.AcknowledgeOperationReceiptRequest.signature)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::peer::Signature* temp = _impl_.signature_;
+  _impl_.signature_ = nullptr;
+  return temp;
+}
+inline ::peer::Signature* PROTOBUF_NONNULL AcknowledgeOperationReceiptRequest::_internal_mutable_signature() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.signature_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::peer::Signature>(GetArena());
+    _impl_.signature_ = reinterpret_cast<::peer::Signature*>(p);
+  }
+  return _impl_.signature_;
+}
+inline ::peer::Signature* PROTOBUF_NONNULL AcknowledgeOperationReceiptRequest::mutable_signature()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::peer::Signature* _msg = _internal_mutable_signature();
+  // @@protoc_insertion_point(field_mutable:provider.spacewave.api.AcknowledgeOperationReceiptRequest.signature)
+  return _msg;
+}
+inline void AcknowledgeOperationReceiptRequest::set_allocated_signature(::peer::Signature* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.signature_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.signature_ = reinterpret_cast<::peer::Signature*>(value);
+  // @@protoc_insertion_point(field_set_allocated:provider.spacewave.api.AcknowledgeOperationReceiptRequest.signature)
+}
+
+// -------------------------------------------------------------------
+
+// AcknowledgeOperationReceiptResponse
+
+// bool acknowledged = 1;
+inline void AcknowledgeOperationReceiptResponse::clear_acknowledged() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.acknowledged_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline bool AcknowledgeOperationReceiptResponse::acknowledged() const {
+  // @@protoc_insertion_point(field_get:provider.spacewave.api.AcknowledgeOperationReceiptResponse.acknowledged)
+  return _internal_acknowledged();
+}
+inline void AcknowledgeOperationReceiptResponse::set_acknowledged(bool value) {
+  _internal_set_acknowledged(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:provider.spacewave.api.AcknowledgeOperationReceiptResponse.acknowledged)
+}
+inline bool AcknowledgeOperationReceiptResponse::_internal_acknowledged() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.acknowledged_;
+}
+inline void AcknowledgeOperationReceiptResponse::_internal_set_acknowledged(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.acknowledged_ = value;
 }
 
 // -------------------------------------------------------------------

@@ -631,14 +631,6 @@ enum SOJournalOutcome {
   SO_JOURNAL_OUTCOME_REJECTED = 2;
 }
 
-// SOJournalLookupState identifies the exact-key receipt lookup result.
-enum SOJournalLookupState {
-  SO_JOURNAL_LOOKUP_STATE_UNSPECIFIED = 0;
-  SO_JOURNAL_LOOKUP_STATE_NO_RECORD = 1;
-  SO_JOURNAL_LOOKUP_STATE_PENDING = 2;
-  SO_JOURNAL_LOOKUP_STATE_ACCEPTED = 3;
-  SO_JOURNAL_LOOKUP_STATE_REJECTED = 4;
-}
 
 // SOJournalReadiness identifies whether the body owner can supply dependencies.
 enum SOJournalReadiness {
@@ -717,7 +709,7 @@ message SOJournalLookup {
   // Key identifies the exact lookup attempt.
   SOMutationKey key = 1;
   // State is the authoritative lookup result.
-  SOJournalLookupState state = 2;
+  SOReceiptState state = 2;
   // Receipt carries terminal evidence when state is accepted or rejected.
   SOJournalReceipt receipt = 3;
   // Response contains the opaque authenticated lookup response bytes.
@@ -860,4 +852,59 @@ message SOJournalCheckpoint {
   uint64 next_sequence = 3;
   // Attempts contains one bounded state snapshot per exact mutation key.
   repeated SOJournalCheckpointAttempt attempts = 4;
+}
+
+// SOReceiptState identifies the authoritative state of one exact mutation key.
+enum SOReceiptState {
+  // SO_RECEIPT_STATE_UNSPECIFIED is the zero value.
+  SO_RECEIPT_STATE_UNSPECIFIED = 0;
+  // SO_RECEIPT_STATE_NO_RECORD means no pending or terminal record exists at the lookup linearization point.
+  SO_RECEIPT_STATE_NO_RECORD = 1;
+  // SO_RECEIPT_STATE_PENDING means the exact mutation has been durably admitted but not terminalized.
+  SO_RECEIPT_STATE_PENDING = 2;
+  // SO_RECEIPT_STATE_ACCEPTED means the exact mutation has an accepted terminal receipt.
+  SO_RECEIPT_STATE_ACCEPTED = 3;
+  // SO_RECEIPT_STATE_REJECTED means the exact mutation has a rejected terminal receipt.
+  SO_RECEIPT_STATE_REJECTED = 4;
+}
+
+// SOTerminalReceiptAccepted marks an accepted terminal mutation outcome.
+message SOTerminalReceiptAccepted {}
+
+// SOTerminalReceiptInner is the deterministic signed evidence for one terminal mutation outcome.
+message SOTerminalReceiptInner {
+  // Key identifies the exact immutable participant attempt.
+  SOMutationKey key = 1;
+  // EnvelopeDigest binds the receipt to the exact serialized signed envelope admitted for Key.
+  bytes envelope_digest = 2;
+  // Outcome distinguishes acceptance from the existing signed rejection payload.
+  oneof outcome {
+    // Accepted indicates that the mutation was applied by the authoritative root.
+    SOTerminalReceiptAccepted accepted = 3;
+    // SignedRejection is the existing validator-signed rejection for this mutation.
+    SOOperationRejection signed_rejection = 4;
+  }
+  // AuthoritativeRootSeqno is the sequence number of the authoritative root terminalizing this mutation.
+  uint64 authoritative_root_seqno = 5;
+  // AuthoritativeRootDigest identifies the authoritative root terminalizing this mutation.
+  bytes authoritative_root_digest = 6;
+  // ConfigChainDigest identifies the historical configuration used to verify this receipt.
+  bytes config_chain_digest = 7;
+  // ConsensusMode records the signature-set rule required for this receipt.
+  SOConsensusMode consensus_mode = 8;
+  // ValidatorSetDigest identifies the validator set used to verify this receipt.
+  bytes validator_set_digest = 9;
+  // TerminalUnixMillis is the authoritative terminalization time in Unix milliseconds.
+  uint64 terminal_unix_millis = 10;
+  // Supersedes links this mutation to an optional predecessor attempt.
+  SOMutationKey supersedes = 11;
+}
+
+// SOTerminalReceipt is the signed terminal evidence for one exact mutation outcome.
+message SOTerminalReceipt {
+  // Inner is the deterministic serialized SOTerminalReceiptInner covered by every validator signature.
+  bytes inner = 1;
+  // ValidatorSignatures are signatures by validators over the deterministic Inner bytes.
+  // Signers must belong to the validator set identified by Inner.validator_set_digest and satisfy Inner.consensus_mode.
+  repeated .peer.Signature validator_signatures = 2;
 }

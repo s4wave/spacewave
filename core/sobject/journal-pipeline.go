@@ -153,7 +153,7 @@ func journalRecordReceipt(record *SOJournalRecord) *SOJournalReceipt {
 	}
 	if record.GetKind() == SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_RECEIPT_LOOKUP {
 		lookup := record.GetLookup()
-		if lookup != nil && (lookup.GetState() == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_ACCEPTED || lookup.GetState() == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_REJECTED) {
+		if lookup != nil && (lookup.GetState() == SOReceiptState_SO_RECEIPT_STATE_ACCEPTED || lookup.GetState() == SOReceiptState_SO_RECEIPT_STATE_REJECTED) {
 			return lookup.GetReceipt()
 		}
 	}
@@ -675,7 +675,7 @@ func NewJournalLineageRecoveryBlockedRecord(key *SOMutationKey, lineage *SOJourn
 // any recovered resend.
 func NewJournalReceiptLookupRecord(key *SOMutationKey, lineage *SOJournalLineage, version *SOJournalVersionTuple, lookup *SOJournalLookup) *SOJournalRecord {
 	state := SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_SENT
-	if lookup != nil && (lookup.GetState() == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_ACCEPTED || lookup.GetState() == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_REJECTED) {
+	if lookup != nil && (lookup.GetState() == SOReceiptState_SO_RECEIPT_STATE_ACCEPTED || lookup.GetState() == SOReceiptState_SO_RECEIPT_STATE_REJECTED) {
 		state = SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURABLE
 	}
 	return newJournalRecord(SOJournalRecordKind_SO_JOURNAL_RECORD_KIND_RECEIPT_LOOKUP, state, key, lineage, version, func(record *SOJournalRecord) {

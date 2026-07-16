@@ -5,7 +5,10 @@
 import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { ProviderResourceRef } from '../provider/provider.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
-import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
@@ -610,49 +613,6 @@ export const SOJournalOutcome_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
- * SOJournalLookupState identifies the exact-key receipt lookup result.
- *
- * @generated from enum sobject.SOJournalLookupState
- */
-export enum SOJournalLookupState {
-  /**
-   * @generated from enum value: SO_JOURNAL_LOOKUP_STATE_UNSPECIFIED = 0;
-   */
-  SO_JOURNAL_LOOKUP_STATE_UNSPECIFIED = 0,
-
-  /**
-   * @generated from enum value: SO_JOURNAL_LOOKUP_STATE_NO_RECORD = 1;
-   */
-  SO_JOURNAL_LOOKUP_STATE_NO_RECORD = 1,
-
-  /**
-   * @generated from enum value: SO_JOURNAL_LOOKUP_STATE_PENDING = 2;
-   */
-  SO_JOURNAL_LOOKUP_STATE_PENDING = 2,
-
-  /**
-   * @generated from enum value: SO_JOURNAL_LOOKUP_STATE_ACCEPTED = 3;
-   */
-  SO_JOURNAL_LOOKUP_STATE_ACCEPTED = 3,
-
-  /**
-   * @generated from enum value: SO_JOURNAL_LOOKUP_STATE_REJECTED = 4;
-   */
-  SO_JOURNAL_LOOKUP_STATE_REJECTED = 4,
-}
-
-export const SOJournalLookupState_Enum = /* @__PURE__ */ createEnumType(
-  'sobject.SOJournalLookupState',
-  [
-    [0, 'SO_JOURNAL_LOOKUP_STATE_UNSPECIFIED'],
-    [1, 'SO_JOURNAL_LOOKUP_STATE_NO_RECORD'],
-    [2, 'SO_JOURNAL_LOOKUP_STATE_PENDING'],
-    [3, 'SO_JOURNAL_LOOKUP_STATE_ACCEPTED'],
-    [4, 'SO_JOURNAL_LOOKUP_STATE_REJECTED'],
-  ],
-)
-
-/**
  * SOJournalReadiness identifies whether the body owner can supply dependencies.
  *
  * @generated from enum sobject.SOJournalReadiness
@@ -747,6 +707,59 @@ export const SOJournalRecoveryReason_Enum = /* @__PURE__ */ createEnumType(
     [4, 'SO_JOURNAL_RECOVERY_REASON_BODY_MISSING'],
     [5, 'SO_JOURNAL_RECOVERY_REASON_BODY_CORRUPT'],
     [6, 'SO_JOURNAL_RECOVERY_REASON_BODY_OBSOLETE'],
+  ],
+)
+
+/**
+ * SOReceiptState identifies the authoritative state of one exact mutation key.
+ *
+ * @generated from enum sobject.SOReceiptState
+ */
+export enum SOReceiptState {
+  /**
+   * SO_RECEIPT_STATE_UNSPECIFIED is the zero value.
+   *
+   * @generated from enum value: SO_RECEIPT_STATE_UNSPECIFIED = 0;
+   */
+  SO_RECEIPT_STATE_UNSPECIFIED = 0,
+
+  /**
+   * SO_RECEIPT_STATE_NO_RECORD means no pending or terminal record exists at the lookup linearization point.
+   *
+   * @generated from enum value: SO_RECEIPT_STATE_NO_RECORD = 1;
+   */
+  SO_RECEIPT_STATE_NO_RECORD = 1,
+
+  /**
+   * SO_RECEIPT_STATE_PENDING means the exact mutation has been durably admitted but not terminalized.
+   *
+   * @generated from enum value: SO_RECEIPT_STATE_PENDING = 2;
+   */
+  SO_RECEIPT_STATE_PENDING = 2,
+
+  /**
+   * SO_RECEIPT_STATE_ACCEPTED means the exact mutation has an accepted terminal receipt.
+   *
+   * @generated from enum value: SO_RECEIPT_STATE_ACCEPTED = 3;
+   */
+  SO_RECEIPT_STATE_ACCEPTED = 3,
+
+  /**
+   * SO_RECEIPT_STATE_REJECTED means the exact mutation has a rejected terminal receipt.
+   *
+   * @generated from enum value: SO_RECEIPT_STATE_REJECTED = 4;
+   */
+  SO_RECEIPT_STATE_REJECTED = 4,
+}
+
+export const SOReceiptState_Enum = /* @__PURE__ */ createEnumType(
+  'sobject.SOReceiptState',
+  [
+    [0, 'SO_RECEIPT_STATE_UNSPECIFIED'],
+    [1, 'SO_RECEIPT_STATE_NO_RECORD'],
+    [2, 'SO_RECEIPT_STATE_PENDING'],
+    [3, 'SO_RECEIPT_STATE_ACCEPTED'],
+    [4, 'SO_RECEIPT_STATE_REJECTED'],
   ],
 )
 
@@ -2617,9 +2630,9 @@ export interface SOJournalLookup {
   /**
    * State is the authoritative lookup result.
    *
-   * @generated from field: sobject.SOJournalLookupState state = 2;
+   * @generated from field: sobject.SOReceiptState state = 2;
    */
-  state?: SOJournalLookupState
+  state?: SOReceiptState
   /**
    * Receipt carries terminal evidence when state is accepted or rejected.
    *
@@ -2651,7 +2664,7 @@ export const SOJournalLookup: MessageType<SOJournalLookup> =
     typeName: 'sobject.SOJournalLookup',
     fields: [
       { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
-      { no: 2, name: 'state', kind: 'enum', T: SOJournalLookupState_Enum },
+      { no: 2, name: 'state', kind: 'enum', T: SOReceiptState_Enum },
       { no: 3, name: 'receipt', kind: 'message', T: () => SOJournalReceipt },
       { no: 4, name: 'response', kind: 'scalar', T: ScalarType.BYTES },
       { no: 5, name: 'response_digest', kind: 'scalar', T: ScalarType.BYTES },
@@ -3150,6 +3163,203 @@ export const SOJournalCheckpoint: MessageType<SOJournalCheckpoint> =
         name: 'attempts',
         kind: 'message',
         T: () => SOJournalCheckpointAttempt,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOTerminalReceiptAccepted marks an accepted terminal mutation outcome.
+ *
+ * @generated from message sobject.SOTerminalReceiptAccepted
+ */
+export interface SOTerminalReceiptAccepted {}
+
+export const SOTerminalReceiptAccepted: MessageType<SOTerminalReceiptAccepted> =
+  /* @__PURE__ */ createEmptyMessageType<SOTerminalReceiptAccepted>(
+    'sobject.SOTerminalReceiptAccepted',
+    true,
+  )
+
+/**
+ * SOTerminalReceiptInner is the deterministic signed evidence for one terminal mutation outcome.
+ *
+ * @generated from message sobject.SOTerminalReceiptInner
+ */
+export interface SOTerminalReceiptInner {
+  /**
+   * Key identifies the exact immutable participant attempt.
+   *
+   * @generated from field: sobject.SOMutationKey key = 1;
+   */
+  key?: SOMutationKey
+  /**
+   * EnvelopeDigest binds the receipt to the exact serialized signed envelope admitted for Key.
+   *
+   * @generated from field: bytes envelope_digest = 2;
+   */
+  envelopeDigest?: Uint8Array
+  /**
+   * AuthoritativeRootSeqno is the sequence number of the authoritative root terminalizing this mutation.
+   *
+   * @generated from field: uint64 authoritative_root_seqno = 5;
+   */
+  authoritativeRootSeqno?: bigint
+  /**
+   * AuthoritativeRootDigest identifies the authoritative root terminalizing this mutation.
+   *
+   * @generated from field: bytes authoritative_root_digest = 6;
+   */
+  authoritativeRootDigest?: Uint8Array
+  /**
+   * ConfigChainDigest identifies the historical configuration used to verify this receipt.
+   *
+   * @generated from field: bytes config_chain_digest = 7;
+   */
+  configChainDigest?: Uint8Array
+  /**
+   * ConsensusMode records the signature-set rule required for this receipt.
+   *
+   * @generated from field: sobject.SOConsensusMode consensus_mode = 8;
+   */
+  consensusMode?: SOConsensusMode
+  /**
+   * ValidatorSetDigest identifies the validator set used to verify this receipt.
+   *
+   * @generated from field: bytes validator_set_digest = 9;
+   */
+  validatorSetDigest?: Uint8Array
+  /**
+   * TerminalUnixMillis is the authoritative terminalization time in Unix milliseconds.
+   *
+   * @generated from field: uint64 terminal_unix_millis = 10;
+   */
+  terminalUnixMillis?: bigint
+  /**
+   * Supersedes links this mutation to an optional predecessor attempt.
+   *
+   * @generated from field: sobject.SOMutationKey supersedes = 11;
+   */
+  supersedes?: SOMutationKey
+
+  /**
+   * Outcome distinguishes acceptance from the existing signed rejection payload.
+   *
+   * @generated from oneof sobject.SOTerminalReceiptInner.outcome
+   */
+  outcome?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * Accepted indicates that the mutation was applied by the authoritative root.
+         *
+         * @generated from field: sobject.SOTerminalReceiptAccepted accepted = 3;
+         */
+        value: SOTerminalReceiptAccepted
+        case: 'accepted'
+      }
+    | {
+        /**
+         * SignedRejection is the existing validator-signed rejection for this mutation.
+         *
+         * @generated from field: sobject.SOOperationRejection signed_rejection = 4;
+         */
+        value: SOOperationRejection
+        case: 'signedRejection'
+      }
+}
+
+export const SOTerminalReceiptInner: MessageType<SOTerminalReceiptInner> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOTerminalReceiptInner',
+    fields: [
+      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 2, name: 'envelope_digest', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 3,
+        name: 'accepted',
+        kind: 'message',
+        T: () => SOTerminalReceiptAccepted,
+        oneof: 'outcome',
+      },
+      {
+        no: 4,
+        name: 'signed_rejection',
+        kind: 'message',
+        T: () => SOOperationRejection,
+        oneof: 'outcome',
+      },
+      {
+        no: 5,
+        name: 'authoritative_root_seqno',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      {
+        no: 6,
+        name: 'authoritative_root_digest',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      {
+        no: 7,
+        name: 'config_chain_digest',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      { no: 8, name: 'consensus_mode', kind: 'enum', T: SOConsensusMode_Enum },
+      {
+        no: 9,
+        name: 'validator_set_digest',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      {
+        no: 10,
+        name: 'terminal_unix_millis',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      { no: 11, name: 'supersedes', kind: 'message', T: () => SOMutationKey },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOTerminalReceipt is the signed terminal evidence for one exact mutation outcome.
+ *
+ * @generated from message sobject.SOTerminalReceipt
+ */
+export interface SOTerminalReceipt {
+  /**
+   * Inner is the deterministic serialized SOTerminalReceiptInner covered by every validator signature.
+   *
+   * @generated from field: bytes inner = 1;
+   */
+  inner?: Uint8Array
+  /**
+   * ValidatorSignatures are signatures by validators over the deterministic Inner bytes.
+   * Signers must belong to the validator set identified by Inner.validator_set_digest and satisfy Inner.consensus_mode.
+   *
+   * @generated from field: repeated peer.Signature validator_signatures = 2;
+   */
+  validatorSignatures?: Signature[]
+}
+
+export const SOTerminalReceipt: MessageType<SOTerminalReceipt> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOTerminalReceipt',
+    fields: [
+      { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 2,
+        name: 'validator_signatures',
+        kind: 'message',
+        T: () => Signature,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],

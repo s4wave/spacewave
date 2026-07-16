@@ -891,15 +891,15 @@ func validateCheckpointAttempt(attempt *JournalAttemptSnapshot) error {
 	if attempt.Receipt == nil && (attempt.Acknowledgement != nil || attempt.Projection != nil) {
 		return fail("checkpoint acknowledgement or projection without receipt")
 	}
-	if attempt.Lookup != nil && (attempt.Lookup.GetState() == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_ACCEPTED ||
-		attempt.Lookup.GetState() == SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_REJECTED) {
+	if attempt.Lookup != nil && (attempt.Lookup.GetState() == SOReceiptState_SO_RECEIPT_STATE_ACCEPTED ||
+		attempt.Lookup.GetState() == SOReceiptState_SO_RECEIPT_STATE_REJECTED) {
 		if attempt.Receipt == nil || !attempt.Receipt.EqualVT(attempt.Lookup.GetReceipt()) {
 			return fail("checkpoint lookup receipt diverges")
 		}
 	}
 	if attempt.ResendAuthorized && (attempt.State != SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_SENT ||
 		!attempt.SendAttempted || attempt.Lookup == nil ||
-		attempt.Lookup.GetState() != SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD) {
+		attempt.Lookup.GetState() != SOReceiptState_SO_RECEIPT_STATE_NO_RECORD) {
 		return fail("checkpoint resend authorization is incoherent")
 	}
 	if attempt.LineageRecoveryBlocked && attempt.State != SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_STALE_TRANSFORM_EPOCH {
@@ -920,17 +920,17 @@ func validateCheckpointAttempt(attempt *JournalAttemptSnapshot) error {
 	case SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_SENT:
 		if attempt.Readiness != SOJournalReadiness_SO_JOURNAL_READINESS_READY || attempt.Envelope == nil ||
 			!attempt.SendAttempted || attempt.Receipt != nil || attempt.Acknowledgement != nil || attempt.Projection != nil ||
-			(attempt.Lookup != nil && attempt.Lookup.GetState() != SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_PENDING &&
-				attempt.Lookup.GetState() != SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD) {
+			(attempt.Lookup != nil && attempt.Lookup.GetState() != SOReceiptState_SO_RECEIPT_STATE_PENDING &&
+				attempt.Lookup.GetState() != SOReceiptState_SO_RECEIPT_STATE_NO_RECORD) {
 			return fail("checkpoint sent state is incoherent")
 		}
 	case SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURABLE:
 		if attempt.Readiness != SOJournalReadiness_SO_JOURNAL_READINESS_READY || attempt.Envelope == nil ||
 			!attempt.SendAttempted || attempt.Receipt == nil || attempt.ResendAuthorized ||
-			(attempt.Lookup != nil && attempt.Lookup.GetState() != SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_ACCEPTED &&
-				attempt.Lookup.GetState() != SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_REJECTED &&
-				attempt.Lookup.GetState() != SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_PENDING &&
-				attempt.Lookup.GetState() != SOJournalLookupState_SO_JOURNAL_LOOKUP_STATE_NO_RECORD) {
+			(attempt.Lookup != nil && attempt.Lookup.GetState() != SOReceiptState_SO_RECEIPT_STATE_ACCEPTED &&
+				attempt.Lookup.GetState() != SOReceiptState_SO_RECEIPT_STATE_REJECTED &&
+				attempt.Lookup.GetState() != SOReceiptState_SO_RECEIPT_STATE_PENDING &&
+				attempt.Lookup.GetState() != SOReceiptState_SO_RECEIPT_STATE_NO_RECORD) {
 			return fail("checkpoint receipt state is incoherent")
 		}
 	case SOJournalAttemptState_SO_JOURNAL_ATTEMPT_STATE_STALE_TRANSFORM_EPOCH:
