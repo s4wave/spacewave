@@ -102,6 +102,42 @@ struct GetPluginInfoRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetPluginInfoRequestDefaultTypeInternal _GetPluginInfoRequest_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR CompleteInitialCapabilityRegistrationResponse::CompleteInitialCapabilityRegistrationResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(CompleteInitialCapabilityRegistrationResponse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct CompleteInitialCapabilityRegistrationResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CompleteInitialCapabilityRegistrationResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CompleteInitialCapabilityRegistrationResponseDefaultTypeInternal() {}
+  union {
+    CompleteInitialCapabilityRegistrationResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CompleteInitialCapabilityRegistrationResponseDefaultTypeInternal _CompleteInitialCapabilityRegistrationResponse_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR CompleteInitialCapabilityRegistrationRequest::CompleteInitialCapabilityRegistrationRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(CompleteInitialCapabilityRegistrationRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct CompleteInitialCapabilityRegistrationRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CompleteInitialCapabilityRegistrationRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CompleteInitialCapabilityRegistrationRequestDefaultTypeInternal() {}
+  union {
+    CompleteInitialCapabilityRegistrationRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CompleteInitialCapabilityRegistrationRequestDefaultTypeInternal _CompleteInitialCapabilityRegistrationRequest_default_instance_;
 
 inline constexpr AccessVolumeResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -377,6 +413,8 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::host::RegisterObjectTypeResponse, _impl_.resource_id_),
         0,
         0x000, // bitmap
+        0x000, // bitmap
+        0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::host::AccessAssetsFSResponse, _impl_._has_bits_),
         4, // hasbit index offset
@@ -424,22 +462,26 @@ static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::bldr::plugin::host::RegisterObjectTypeRequest)},
         {7, sizeof(::bldr::plugin::host::RegisterObjectTypeResponse)},
-        {12, sizeof(::bldr::plugin::host::AccessAssetsFSRequest)},
-        {13, sizeof(::bldr::plugin::host::AccessAssetsFSResponse)},
-        {18, sizeof(::bldr::plugin::host::AccessDistFSRequest)},
-        {19, sizeof(::bldr::plugin::host::AccessDistFSResponse)},
-        {24, sizeof(::bldr::plugin::host::AccessVolumeRequest)},
-        {25, sizeof(::bldr::plugin::host::AccessVolumeResponse)},
-        {30, sizeof(::bldr::plugin::host::AccessStateAtomRequest)},
-        {35, sizeof(::bldr::plugin::host::AccessStateAtomResponse)},
-        {40, sizeof(::bldr::plugin::host::AccessDesktopTrayRequest)},
-        {41, sizeof(::bldr::plugin::host::AccessDesktopTrayResponse)},
-        {46, sizeof(::bldr::plugin::host::GetPluginInfoRequest)},
-        {47, sizeof(::bldr::plugin::host::GetPluginInfoResponse)},
+        {12, sizeof(::bldr::plugin::host::CompleteInitialCapabilityRegistrationRequest)},
+        {13, sizeof(::bldr::plugin::host::CompleteInitialCapabilityRegistrationResponse)},
+        {14, sizeof(::bldr::plugin::host::AccessAssetsFSRequest)},
+        {15, sizeof(::bldr::plugin::host::AccessAssetsFSResponse)},
+        {20, sizeof(::bldr::plugin::host::AccessDistFSRequest)},
+        {21, sizeof(::bldr::plugin::host::AccessDistFSResponse)},
+        {26, sizeof(::bldr::plugin::host::AccessVolumeRequest)},
+        {27, sizeof(::bldr::plugin::host::AccessVolumeResponse)},
+        {32, sizeof(::bldr::plugin::host::AccessStateAtomRequest)},
+        {37, sizeof(::bldr::plugin::host::AccessStateAtomResponse)},
+        {42, sizeof(::bldr::plugin::host::AccessDesktopTrayRequest)},
+        {43, sizeof(::bldr::plugin::host::AccessDesktopTrayResponse)},
+        {48, sizeof(::bldr::plugin::host::GetPluginInfoRequest)},
+        {49, sizeof(::bldr::plugin::host::GetPluginInfoResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::plugin::host::_RegisterObjectTypeRequest_default_instance_._instance,
     &::bldr::plugin::host::_RegisterObjectTypeResponse_default_instance_._instance,
+    &::bldr::plugin::host::_CompleteInitialCapabilityRegistrationRequest_default_instance_._instance,
+    &::bldr::plugin::host::_CompleteInitialCapabilityRegistrationResponse_default_instance_._instance,
     &::bldr::plugin::host::_AccessAssetsFSRequest_default_instance_._instance,
     &::bldr::plugin::host::_AccessAssetsFSResponse_default_instance_._instance,
     &::bldr::plugin::host::_AccessDistFSRequest_default_instance_._instance,
@@ -462,39 +504,46 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "bjectTypeRequest\022\017\n\007type_id\030\001 \001(\t\022@\n\010met"
     "adata\030\002 \001(\0132..s4wave.objecttype.registry"
     ".ObjectTypeMetadata\"1\n\032RegisterObjectTyp"
-    "eResponse\022\023\n\013resource_id\030\001 \001(\r\"\027\n\025Access"
-    "AssetsFSRequest\"-\n\026AccessAssetsFSRespons"
-    "e\022\023\n\013resource_id\030\001 \001(\r\"\025\n\023AccessDistFSRe"
-    "quest\"+\n\024AccessDistFSResponse\022\023\n\013resourc"
-    "e_id\030\001 \001(\r\"\025\n\023AccessVolumeRequest\"+\n\024Acc"
-    "essVolumeResponse\022\023\n\013resource_id\030\001 \001(\r\"*"
-    "\n\026AccessStateAtomRequest\022\020\n\010store_id\030\001 \001"
-    "(\t\".\n\027AccessStateAtomResponse\022\023\n\013resourc"
-    "e_id\030\001 \001(\r\"\032\n\030AccessDesktopTrayRequest\"0"
-    "\n\031AccessDesktopTrayResponse\022\023\n\013resource_"
-    "id\030\001 \001(\r\"\026\n\024GetPluginInfoRequest\">\n\025GetP"
-    "luginInfoResponse\022\021\n\tplugin_id\030\001 \001(\t\022\022\n\n"
-    "entrypoint\030\002 \001(\t2\347\005\n\031PluginHostResourceS"
-    "ervice\022c\n\016AccessAssetsFS\022\'.bldr.plugin.h"
-    "ost.AccessAssetsFSRequest\032(.bldr.plugin."
-    "host.AccessAssetsFSResponse\022]\n\014AccessDis"
-    "tFS\022%.bldr.plugin.host.AccessDistFSReque"
-    "st\032&.bldr.plugin.host.AccessDistFSRespon"
-    "se\022]\n\014AccessVolume\022%.bldr.plugin.host.Ac"
-    "cessVolumeRequest\032&.bldr.plugin.host.Acc"
-    "essVolumeResponse\022f\n\017AccessStateAtom\022(.b"
-    "ldr.plugin.host.AccessStateAtomRequest\032)"
-    ".bldr.plugin.host.AccessStateAtomRespons"
-    "e\022l\n\021AccessDesktopTray\022*.bldr.plugin.hos"
-    "t.AccessDesktopTrayRequest\032+.bldr.plugin"
-    ".host.AccessDesktopTrayResponse\022`\n\rGetPl"
-    "uginInfo\022&.bldr.plugin.host.GetPluginInf"
-    "oRequest\032\'.bldr.plugin.host.GetPluginInf"
-    "oResponse\022o\n\022RegisterObjectType\022+.bldr.p"
-    "lugin.host.RegisterObjectTypeRequest\032,.b"
-    "ldr.plugin.host.RegisterObjectTypeRespon"
-    "seBCZAgithub.com/s4wave/spacewave/bldr/s"
-    "dk/plugin/host;bldr_plugin_hostb\006proto3"
+    "eResponse\022\023\n\013resource_id\030\001 \001(\r\".\n,Comple"
+    "teInitialCapabilityRegistrationRequest\"/"
+    "\n-CompleteInitialCapabilityRegistrationR"
+    "esponse\"\027\n\025AccessAssetsFSRequest\"-\n\026Acce"
+    "ssAssetsFSResponse\022\023\n\013resource_id\030\001 \001(\r\""
+    "\025\n\023AccessDistFSRequest\"+\n\024AccessDistFSRe"
+    "sponse\022\023\n\013resource_id\030\001 \001(\r\"\025\n\023AccessVol"
+    "umeRequest\"+\n\024AccessVolumeResponse\022\023\n\013re"
+    "source_id\030\001 \001(\r\"*\n\026AccessStateAtomReques"
+    "t\022\020\n\010store_id\030\001 \001(\t\".\n\027AccessStateAtomRe"
+    "sponse\022\023\n\013resource_id\030\001 \001(\r\"\032\n\030AccessDes"
+    "ktopTrayRequest\"0\n\031AccessDesktopTrayResp"
+    "onse\022\023\n\013resource_id\030\001 \001(\r\"\026\n\024GetPluginIn"
+    "foRequest\">\n\025GetPluginInfoResponse\022\021\n\tpl"
+    "ugin_id\030\001 \001(\t\022\022\n\nentrypoint\030\002 \001(\t2\222\007\n\031Pl"
+    "uginHostResourceService\022c\n\016AccessAssetsF"
+    "S\022\'.bldr.plugin.host.AccessAssetsFSReque"
+    "st\032(.bldr.plugin.host.AccessAssetsFSResp"
+    "onse\022]\n\014AccessDistFS\022%.bldr.plugin.host."
+    "AccessDistFSRequest\032&.bldr.plugin.host.A"
+    "ccessDistFSResponse\022]\n\014AccessVolume\022%.bl"
+    "dr.plugin.host.AccessVolumeRequest\032&.bld"
+    "r.plugin.host.AccessVolumeResponse\022f\n\017Ac"
+    "cessStateAtom\022(.bldr.plugin.host.AccessS"
+    "tateAtomRequest\032).bldr.plugin.host.Acces"
+    "sStateAtomResponse\022l\n\021AccessDesktopTray\022"
+    "*.bldr.plugin.host.AccessDesktopTrayRequ"
+    "est\032+.bldr.plugin.host.AccessDesktopTray"
+    "Response\022`\n\rGetPluginInfo\022&.bldr.plugin."
+    "host.GetPluginInfoRequest\032\'.bldr.plugin."
+    "host.GetPluginInfoResponse\022o\n\022RegisterOb"
+    "jectType\022+.bldr.plugin.host.RegisterObje"
+    "ctTypeRequest\032,.bldr.plugin.host.Registe"
+    "rObjectTypeResponse\022\250\001\n%CompleteInitialC"
+    "apabilityRegistration\022>.bldr.plugin.host"
+    ".CompleteInitialCapabilityRegistrationRe"
+    "quest\032\?.bldr.plugin.host.CompleteInitial"
+    "CapabilityRegistrationResponseBCZAgithub"
+    ".com/s4wave/spacewave/bldr/sdk/plugin/ho"
+    "st;bldr_plugin_hostb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_deps[1] = {
@@ -504,13 +553,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto = {
     false,
     false,
-    1599,
+    1867,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
     "github.com/s4wave/spacewave/bldr/sdk/plugin/host/host.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_deps,
     1,
-    14,
+    16,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto::offsets,
@@ -1093,6 +1142,224 @@ void RegisterObjectTypeResponse::InternalSwap(RegisterObjectTypeResponse* PROTOB
 
 ::google::protobuf::Metadata RegisterObjectTypeResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CompleteInitialCapabilityRegistrationRequest::_Internal {
+ public:
+};
+
+CompleteInitialCapabilityRegistrationRequest::CompleteInitialCapabilityRegistrationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, CompleteInitialCapabilityRegistrationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:bldr.plugin.host.CompleteInitialCapabilityRegistrationRequest)
+}
+CompleteInitialCapabilityRegistrationRequest::CompleteInitialCapabilityRegistrationRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CompleteInitialCapabilityRegistrationRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, CompleteInitialCapabilityRegistrationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CompleteInitialCapabilityRegistrationRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:bldr.plugin.host.CompleteInitialCapabilityRegistrationRequest)
+}
+
+inline void* PROTOBUF_NONNULL CompleteInitialCapabilityRegistrationRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CompleteInitialCapabilityRegistrationRequest(arena);
+}
+constexpr auto CompleteInitialCapabilityRegistrationRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(CompleteInitialCapabilityRegistrationRequest),
+                                            alignof(CompleteInitialCapabilityRegistrationRequest));
+}
+constexpr auto CompleteInitialCapabilityRegistrationRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CompleteInitialCapabilityRegistrationRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CompleteInitialCapabilityRegistrationRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<CompleteInitialCapabilityRegistrationRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CompleteInitialCapabilityRegistrationRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<CompleteInitialCapabilityRegistrationRequest>(), &CompleteInitialCapabilityRegistrationRequest::ByteSizeLong,
+              &CompleteInitialCapabilityRegistrationRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CompleteInitialCapabilityRegistrationRequest, _impl_._cached_size_),
+          false,
+      },
+      &CompleteInitialCapabilityRegistrationRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CompleteInitialCapabilityRegistrationRequest_class_data_ =
+        CompleteInitialCapabilityRegistrationRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CompleteInitialCapabilityRegistrationRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CompleteInitialCapabilityRegistrationRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CompleteInitialCapabilityRegistrationRequest_class_data_.tc_table);
+  return CompleteInitialCapabilityRegistrationRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+CompleteInitialCapabilityRegistrationRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CompleteInitialCapabilityRegistrationRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::plugin::host::CompleteInitialCapabilityRegistrationRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata CompleteInitialCapabilityRegistrationRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CompleteInitialCapabilityRegistrationResponse::_Internal {
+ public:
+};
+
+CompleteInitialCapabilityRegistrationResponse::CompleteInitialCapabilityRegistrationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, CompleteInitialCapabilityRegistrationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:bldr.plugin.host.CompleteInitialCapabilityRegistrationResponse)
+}
+CompleteInitialCapabilityRegistrationResponse::CompleteInitialCapabilityRegistrationResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CompleteInitialCapabilityRegistrationResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, CompleteInitialCapabilityRegistrationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CompleteInitialCapabilityRegistrationResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:bldr.plugin.host.CompleteInitialCapabilityRegistrationResponse)
+}
+
+inline void* PROTOBUF_NONNULL CompleteInitialCapabilityRegistrationResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CompleteInitialCapabilityRegistrationResponse(arena);
+}
+constexpr auto CompleteInitialCapabilityRegistrationResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(CompleteInitialCapabilityRegistrationResponse),
+                                            alignof(CompleteInitialCapabilityRegistrationResponse));
+}
+constexpr auto CompleteInitialCapabilityRegistrationResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CompleteInitialCapabilityRegistrationResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CompleteInitialCapabilityRegistrationResponse::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<CompleteInitialCapabilityRegistrationResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CompleteInitialCapabilityRegistrationResponse::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<CompleteInitialCapabilityRegistrationResponse>(), &CompleteInitialCapabilityRegistrationResponse::ByteSizeLong,
+              &CompleteInitialCapabilityRegistrationResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CompleteInitialCapabilityRegistrationResponse, _impl_._cached_size_),
+          false,
+      },
+      &CompleteInitialCapabilityRegistrationResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CompleteInitialCapabilityRegistrationResponse_class_data_ =
+        CompleteInitialCapabilityRegistrationResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CompleteInitialCapabilityRegistrationResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CompleteInitialCapabilityRegistrationResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CompleteInitialCapabilityRegistrationResponse_class_data_.tc_table);
+  return CompleteInitialCapabilityRegistrationResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+CompleteInitialCapabilityRegistrationResponse::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CompleteInitialCapabilityRegistrationResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::plugin::host::CompleteInitialCapabilityRegistrationResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata CompleteInitialCapabilityRegistrationResponse::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 

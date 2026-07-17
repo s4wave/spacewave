@@ -176,7 +176,7 @@ func TestPluginHostRootRegistersObjectTypeThroughCore(t *testing.T) {
 	t.Cleanup(releaseCoreController)
 
 	hostRoot := plugin_host_root.NewRoot()
-	pluginRoot := NewPluginHostRoot(ctx, le, b, "test-plugin", "main", nil, nil, nil, hostRoot, "atoms", "volume")
+	pluginRoot := NewPluginHostRoot(ctx, le, b, "test-plugin", "main", nil, nil, nil, hostRoot, "atoms", "volume", nil)
 	pluginClient := newTestResourceClientContext(ctx)
 	register := func() (*sdk_plugin_host.RegisterObjectTypeResponse, error) {
 		return pluginRoot.RegisterObjectType(
@@ -224,10 +224,64 @@ func TestPluginHostRootRegistersObjectTypeThroughCore(t *testing.T) {
 	}
 }
 
+func TestPluginHostRootReportsInitialCapabilityRegistrationTerminalState(t *testing.T) {
+	ctx := t.Context()
+	hostRoot := plugin_host_root.NewRoot()
+	var completed []bool
+	pluginRoot := NewPluginHostRoot(
+		ctx,
+		nil,
+		nil,
+		"test-plugin",
+		"main",
+		nil,
+		nil,
+		nil,
+		hostRoot,
+		"atoms",
+		"volume",
+		func(complete bool) {
+			completed = append(completed, complete)
+		},
+	)
+	if _, err := pluginRoot.CompleteInitialCapabilityRegistration(
+		ctx,
+		&sdk_plugin_host.CompleteInitialCapabilityRegistrationRequest{},
+	); err != nil {
+		t.Fatal(err)
+	}
+	pluginRoot.Release()
+	if len(completed) != 1 || !completed[0] {
+		t.Fatalf("completion reports = %v, want [true]", completed)
+	}
+
+	completed = nil
+	pluginRoot = NewPluginHostRoot(
+		ctx,
+		nil,
+		nil,
+		"test-plugin",
+		"main",
+		nil,
+		nil,
+		nil,
+		hostRoot,
+		"atoms",
+		"volume",
+		func(complete bool) {
+			completed = append(completed, complete)
+		},
+	)
+	pluginRoot.Release()
+	if len(completed) != 1 || completed[0] {
+		t.Fatalf("release reports = %v, want [false]", completed)
+	}
+}
+
 func TestPluginHostRootAccessDesktopTrayUsesProcessLifetimeRoot(t *testing.T) {
 	ctx := context.Background()
 	hostRoot := plugin_host_root.NewRoot()
-	pluginRoot := NewPluginHostRoot(ctx, nil, nil, "test-plugin", "main", nil, nil, nil, hostRoot, "atoms", "volume")
+	pluginRoot := NewPluginHostRoot(ctx, nil, nil, "test-plugin", "main", nil, nil, nil, hostRoot, "atoms", "volume", nil)
 	pluginClient := newTestResourceClientContext(ctx)
 
 	resp, err := pluginRoot.AccessDesktopTray(

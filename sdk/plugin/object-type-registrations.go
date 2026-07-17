@@ -61,6 +61,14 @@ func RegisterObjectTypes(
 		}
 		refs = append(refs, client.CreateResourceReference(resp.GetResourceId()))
 	}
+	if _, err := service.CompleteInitialCapabilityRegistration(
+		ctx,
+		&sdk_plugin_host.CompleteInitialCapabilityRegistrationRequest{},
+	); err != nil {
+		releaseObjectTypeRefs(refs)
+		client.Release()
+		return nil, errors.Wrap(err, "complete initial capability registration")
+	}
 
 	return &ObjectTypeRegistrations{client: client, refs: refs}, nil
 }

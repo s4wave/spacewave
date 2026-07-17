@@ -366,6 +366,7 @@ func (c *Controller) buildPluginMux(
 	distFS,
 	assetsFS *unixfs.FSHandle,
 	hostRoot *plugin_host_root.Root,
+	registrationDone plugin_host_resource.InitialCapabilityRegistrationDoneFunc,
 ) (srpc.Mux, func()) {
 	// fallback to a LookupRpcService on the bus
 	mux := srpc.NewMux(bifrost_rpc.NewInvoker(c.bus, bldr_plugin.PluginServerID(pluginID, ""), true))
@@ -399,6 +400,7 @@ func (c *Controller) buildPluginMux(
 		hostRoot,
 		"plugin-state-atoms",
 		bldr_plugin.PluginVolumeID,
+		registrationDone,
 	)
 	resourceSrv := resource_server.NewResourceServer(pluginHostRoot.GetMux())
 	_ = resourceSrv.Register(mux)

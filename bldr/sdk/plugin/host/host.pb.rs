@@ -17,6 +17,18 @@ pub struct RegisterObjectTypeResponse {
     #[prost(uint32, tag="1")]
     pub resource_id: u32,
 }
+/// CompleteInitialCapabilityRegistrationRequest marks initial registration complete.
+///
+/// The plugin calls this once after its entrypoint's startup
+/// capability-registration pass. Plugins that register no capabilities call it
+/// after the empty pass.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CompleteInitialCapabilityRegistrationRequest {
+}
+/// CompleteInitialCapabilityRegistrationResponse acknowledges initial registration.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CompleteInitialCapabilityRegistrationResponse {
+}
 /// AccessAssetsFSRequest is the request for AccessAssetsFS.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AccessAssetsFsRequest {

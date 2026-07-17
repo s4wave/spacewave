@@ -15,6 +15,10 @@ type LookupObjectType interface {
 
 	// LookupObjectTypeID returns the object type ID to lookup.
 	LookupObjectTypeID() string
+
+	// LookupObjectTypeEngineID returns the world engine whose demanded plugins
+	// can satisfy the lookup during startup.
+	LookupObjectTypeEngineID() string
 }
 
 // LookupObjectTypeValue is the result type for LookupObjectType.
@@ -29,7 +33,13 @@ func ExLookupObjectType(
 	b bus.Bus,
 	typeID string,
 ) (ObjectType, directive.Reference, error) {
-	av, _, avRef, err := bus.ExecOneOffTyped[LookupObjectTypeValue](ctx, b, NewLookupObjectType(typeID), bus.ReturnWhenIdle(), nil)
+	av, _, avRef, err := bus.ExecOneOffTyped[LookupObjectTypeValue](
+		ctx,
+		b,
+		NewLookupObjectTypeForEngine(typeID, EngineIDFromContext(ctx)),
+		bus.ReturnWhenIdle(),
+		nil,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -45,12 +55,20 @@ func ExLookupObjectType(
 // lookupObjectType implements LookupObjectType
 type lookupObjectType struct {
 	objectTypeID string
+	engineID     string
 }
 
-// NewLookupObjectType constructs a new LookupObjectType directive.
+// NewLookupObjectType constructs an unscoped LookupObjectType directive.
 func NewLookupObjectType(objectTypeID string) LookupObjectType {
+	return NewLookupObjectTypeForEngine(objectTypeID, "")
+}
+
+// NewLookupObjectTypeForEngine constructs a LookupObjectType directive scoped
+// to the demanded plugins of one world engine.
+func NewLookupObjectTypeForEngine(objectTypeID, engineID string) LookupObjectType {
 	return &lookupObjectType{
 		objectTypeID: objectTypeID,
+		engineID:     engineID,
 	}
 }
 
@@ -75,6 +93,12 @@ func (d *lookupObjectType) LookupObjectTypeID() string {
 	return d.objectTypeID
 }
 
+// LookupObjectTypeEngineID returns the world engine whose demanded plugins can
+// satisfy the lookup during startup.
+func (d *lookupObjectType) LookupObjectTypeEngineID() string {
+	return d.engineID
+}
+
 // IsEquivalent checks if the other directive is equivalent. If two
 // directives are equivalent, and the new directive does not superceed the
 // old, then the new directive will be merged (de-duplicated) into the old.
@@ -85,6 +109,9 @@ func (d *lookupObjectType) IsEquivalent(other directive.Directive) bool {
 	}
 
 	if d.LookupObjectTypeID() != od.LookupObjectTypeID() {
+		return false
+	}
+	if d.LookupObjectTypeEngineID() != od.LookupObjectTypeEngineID() {
 		return false
 	}
 
@@ -110,6 +137,9 @@ func (d *lookupObjectType) GetDebugVals() directive.DebugValues {
 	vals := directive.DebugValues{}
 	if d.objectTypeID != "" {
 		vals["object-type-id"] = []string{d.objectTypeID}
+	}
+	if d.engineID != "" {
+		vals["engine-id"] = []string{d.engineID}
 	}
 	return vals
 }

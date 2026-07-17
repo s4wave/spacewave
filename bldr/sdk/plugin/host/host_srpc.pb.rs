@@ -25,6 +25,8 @@ pub trait PluginHostResourceServiceClient: Send + Sync {
     async fn get_plugin_info(&self, request: &GetPluginInfoRequest) -> starpc::Result<GetPluginInfoResponse>;
     /// RegisterObjectType.
     async fn register_object_type(&self, request: &RegisterObjectTypeRequest) -> starpc::Result<RegisterObjectTypeResponse>;
+    /// CompleteInitialCapabilityRegistration.
+    async fn complete_initial_capability_registration(&self, request: &CompleteInitialCapabilityRegistrationRequest) -> starpc::Result<CompleteInitialCapabilityRegistrationResponse>;
 }
 
 /// Client implementation for PluginHostResourceService.
@@ -62,6 +64,9 @@ impl<C: starpc::Client + 'static> PluginHostResourceServiceClient for PluginHost
     async fn register_object_type(&self, request: &RegisterObjectTypeRequest) -> starpc::Result<RegisterObjectTypeResponse> {
         self.client.exec_call("bldr.plugin.host.PluginHostResourceService", "RegisterObjectType", request).await
     }
+    async fn complete_initial_capability_registration(&self, request: &CompleteInitialCapabilityRegistrationRequest) -> starpc::Result<CompleteInitialCapabilityRegistrationResponse> {
+        self.client.exec_call("bldr.plugin.host.PluginHostResourceService", "CompleteInitialCapabilityRegistration", request).await
+    }
 }
 
 /// Server trait for PluginHostResourceService.
@@ -81,6 +86,8 @@ pub trait PluginHostResourceServiceServer: Send + Sync {
     async fn get_plugin_info(&self, request: GetPluginInfoRequest) -> starpc::Result<GetPluginInfoResponse>;
     /// RegisterObjectType.
     async fn register_object_type(&self, request: RegisterObjectTypeRequest) -> starpc::Result<RegisterObjectTypeResponse>;
+    /// CompleteInitialCapabilityRegistration.
+    async fn complete_initial_capability_registration(&self, request: CompleteInitialCapabilityRegistrationRequest) -> starpc::Result<CompleteInitialCapabilityRegistrationResponse>;
 }
 
 const PLUGIN_HOST_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
@@ -91,6 +98,7 @@ const PLUGIN_HOST_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "AccessDesktopTray",
     "GetPluginInfo",
     "RegisterObjectType",
+    "CompleteInitialCapabilityRegistration",
 ];
 
 /// Handler for PluginHostResourceService.
@@ -215,6 +223,21 @@ impl<S: PluginHostResourceServiceServer + 'static> starpc::Invoker for PluginHos
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.register_object_type(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "CompleteInitialCapabilityRegistration" => {
+                let request: CompleteInitialCapabilityRegistrationRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.complete_initial_capability_registration(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

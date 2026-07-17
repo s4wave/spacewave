@@ -21,6 +21,9 @@ service PluginHostResourceService {
   rpc GetPluginInfo(GetPluginInfoRequest) returns (GetPluginInfoResponse);
   // RegisterObjectType registers an ObjectType served by the running plugin.
   rpc RegisterObjectType(RegisterObjectTypeRequest) returns (RegisterObjectTypeResponse);
+  // CompleteInitialCapabilityRegistration marks the plugin's startup capability-registration pass complete.
+  rpc CompleteInitialCapabilityRegistration(CompleteInitialCapabilityRegistrationRequest)
+    returns (CompleteInitialCapabilityRegistrationResponse);
 }
 
 // RegisterObjectTypeRequest is the request for RegisterObjectType.
@@ -36,6 +39,16 @@ message RegisterObjectTypeResponse {
   // ResourceId is the registration resource. Releasing it unregisters the type.
   uint32 resource_id = 1;
 }
+
+// CompleteInitialCapabilityRegistrationRequest marks initial registration complete.
+//
+// The plugin calls this once after its entrypoint's startup
+// capability-registration pass. Plugins that register no capabilities call it
+// after the empty pass.
+message CompleteInitialCapabilityRegistrationRequest {}
+
+// CompleteInitialCapabilityRegistrationResponse acknowledges initial registration.
+message CompleteInitialCapabilityRegistrationResponse {}
 
 // AccessAssetsFSRequest is the request for AccessAssetsFS.
 message AccessAssetsFSRequest {}

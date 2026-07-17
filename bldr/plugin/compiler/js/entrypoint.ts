@@ -12,6 +12,7 @@ import {
   SetHtmlLinksRequest,
   SetRenderModeRequest,
 } from '@aptre/bldr'
+import { PluginHostRoot } from '../../../sdk/plugin/host/plugin-host-root.js'
 import { createAbortController } from '../../../web/bldr/abort.js'
 import {
   WebPlugin,
@@ -570,6 +571,16 @@ function pendingForever(): Promise<never> {
   })
 }
 
+async function completeInitialCapabilityRegistration(
+  backendAPI: BackendAPI,
+  abortSignal: AbortSignal,
+): Promise<void> {
+  using pluginHostRoot = new PluginHostRoot(
+    await backendAPI.resourceClient.accessRootResource(),
+  )
+  await pluginHostRoot.completeInitialCapabilityRegistration(abortSignal)
+}
+
 /**
  * Main execution function for the plugin entrypoint.
  * Loads and executes configured backend and frontend modules.
@@ -616,6 +627,7 @@ export default async function main(
   await Promise.race([frontendReady, capabilityFailure])
   reportQuickJSReadiness(quickJSPluginFrontendReadyMarker)
   await capabilityReady
+  await completeInitialCapabilityRegistration(backendAPI, abortSignal)
   reportQuickJSReadiness(quickJSPluginCapabilityReadyMarker)
 
   console.info('Bldr JS plugin entrypoint finished initialization.')

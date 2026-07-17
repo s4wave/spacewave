@@ -23,24 +23,30 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// InitialCapabilityRegistrationDoneFunc reports whether the plugin completed
+// its initial capability-registration pass before its instance ended.
+type InitialCapabilityRegistrationDoneFunc func(complete bool)
+
 // PluginHostRoot is the root resource handler for plugins.
 // It wraps all plugin resources and implements PluginHostResourceService.
 type PluginHostRoot struct {
-	ctx           context.Context
-	le            *logrus.Entry
-	b             bus.Bus
-	pluginID      string
-	entrypoint    string
-	distFS        *unixfs.FSHandle
-	assetsFS      *unixfs.FSHandle
-	proxyHostVol  *volume_rpc_server.ProxyVolume
-	stateAtomMgr  *resource_state.StateAtomManager
-	hostRoot      *plugin_host_root.Root
-	mux           srpc.Invoker
-	releaseOnce   sync.Once
-	objectTypeMtx sync.Mutex
-	objectTypes   map[*objectTypeRegistration]struct{}
-	released      bool
+	ctx                  context.Context
+	le                   *logrus.Entry
+	b                    bus.Bus
+	pluginID             string
+	entrypoint           string
+	distFS               *unixfs.FSHandle
+	assetsFS             *unixfs.FSHandle
+	proxyHostVol         *volume_rpc_server.ProxyVolume
+	stateAtomMgr         *resource_state.StateAtomManager
+	hostRoot             *plugin_host_root.Root
+	mux                  srpc.Invoker
+	releaseOnce          sync.Once
+	registrationDoneOnce sync.Once
+	registrationDone     InitialCapabilityRegistrationDoneFunc
+	objectTypeMtx        sync.Mutex
+	objectTypes          map[*objectTypeRegistration]struct{}
+	released             bool
 }
 
 type objectTypeRegistration struct {
@@ -70,18 +76,20 @@ func NewPluginHostRoot(
 	proxyHostVol *volume_rpc_server.ProxyVolume,
 	hostRoot *plugin_host_root.Root,
 	stateAtomObjectStoreID, stateAtomVolumeID string,
+	registrationDone InitialCapabilityRegistrationDoneFunc,
 ) *PluginHostRoot {
 	r := &PluginHostRoot{
-		ctx:          ctx,
-		le:           le,
-		b:            b,
-		pluginID:     pluginID,
-		entrypoint:   entrypoint,
-		distFS:       distFS,
-		assetsFS:     assetsFS,
-		proxyHostVol: proxyHostVol,
-		hostRoot:     hostRoot,
-		objectTypes:  make(map[*objectTypeRegistration]struct{}),
+		ctx:              ctx,
+		le:               le,
+		b:                b,
+		pluginID:         pluginID,
+		entrypoint:       entrypoint,
+		distFS:           distFS,
+		assetsFS:         assetsFS,
+		proxyHostVol:     proxyHostVol,
+		hostRoot:         hostRoot,
+		objectTypes:      make(map[*objectTypeRegistration]struct{}),
+		registrationDone: registrationDone,
 	}
 	r.stateAtomMgr = resource_state.NewStateAtomManager(b, stateAtomObjectStoreID, stateAtomVolumeID)
 	mux := resource_server.NewResourceMux(func(m srpc.Mux) error {
@@ -98,6 +106,7 @@ func (r *PluginHostRoot) GetMux() srpc.Invoker {
 
 // Release releases all resources held by the root.
 func (r *PluginHostRoot) Release() {
+	r.finishInitialCapabilityRegistration(false)
 	r.releaseOnce.Do(func() {
 		r.objectTypeMtx.Lock()
 		r.released = true
@@ -112,6 +121,24 @@ func (r *PluginHostRoot) Release() {
 			registration.release()
 		}
 		r.stateAtomMgr.Release()
+	})
+}
+
+// CompleteInitialCapabilityRegistration marks the plugin's initial capability
+// registration pass complete.
+func (r *PluginHostRoot) CompleteInitialCapabilityRegistration(
+	context.Context,
+	*sdk_plugin_host.CompleteInitialCapabilityRegistrationRequest,
+) (*sdk_plugin_host.CompleteInitialCapabilityRegistrationResponse, error) {
+	r.finishInitialCapabilityRegistration(true)
+	return &sdk_plugin_host.CompleteInitialCapabilityRegistrationResponse{}, nil
+}
+
+func (r *PluginHostRoot) finishInitialCapabilityRegistration(complete bool) {
+	r.registrationDoneOnce.Do(func() {
+		if r.registrationDone != nil {
+			r.registrationDone(complete)
+		}
 	})
 }
 

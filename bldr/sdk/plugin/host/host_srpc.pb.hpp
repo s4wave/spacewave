@@ -43,6 +43,8 @@ class SRPCPluginHostResourceServiceClient {
   virtual starpc::Error GetPluginInfo(const bldr::plugin::host::GetPluginInfoRequest& in, bldr::plugin::host::GetPluginInfoResponse* out) = 0;
   // RegisterObjectType
   virtual starpc::Error RegisterObjectType(const bldr::plugin::host::RegisterObjectTypeRequest& in, bldr::plugin::host::RegisterObjectTypeResponse* out) = 0;
+  // CompleteInitialCapabilityRegistration
+  virtual starpc::Error CompleteInitialCapabilityRegistration(const bldr::plugin::host::CompleteInitialCapabilityRegistrationRequest& in, bldr::plugin::host::CompleteInitialCapabilityRegistrationResponse* out) = 0;
 };
 
 // SRPCPluginHostResourceServiceClientImpl implements SRPCPluginHostResourceServiceClient.
@@ -67,6 +69,8 @@ class SRPCPluginHostResourceServiceClientImpl : public SRPCPluginHostResourceSer
   virtual starpc::Error GetPluginInfo(const bldr::plugin::host::GetPluginInfoRequest& in, bldr::plugin::host::GetPluginInfoResponse* out) override;
   // RegisterObjectType
   virtual starpc::Error RegisterObjectType(const bldr::plugin::host::RegisterObjectTypeRequest& in, bldr::plugin::host::RegisterObjectTypeResponse* out) override;
+  // CompleteInitialCapabilityRegistration
+  virtual starpc::Error CompleteInitialCapabilityRegistration(const bldr::plugin::host::CompleteInitialCapabilityRegistrationRequest& in, bldr::plugin::host::CompleteInitialCapabilityRegistrationResponse* out) override;
 
  private:
   starpc::Client* cc_;
@@ -97,6 +101,8 @@ class SRPCPluginHostResourceServiceServer {
   virtual starpc::Error GetPluginInfo(const bldr::plugin::host::GetPluginInfoRequest& req, bldr::plugin::host::GetPluginInfoResponse* resp) = 0;
   // RegisterObjectType
   virtual starpc::Error RegisterObjectType(const bldr::plugin::host::RegisterObjectTypeRequest& req, bldr::plugin::host::RegisterObjectTypeResponse* resp) = 0;
+  // CompleteInitialCapabilityRegistration
+  virtual starpc::Error CompleteInitialCapabilityRegistration(const bldr::plugin::host::CompleteInitialCapabilityRegistrationRequest& req, bldr::plugin::host::CompleteInitialCapabilityRegistrationResponse* resp) = 0;
 };
 
 // SRPCPluginHostResourceServiceHandler implements starpc::Handler for PluginHostResourceService.

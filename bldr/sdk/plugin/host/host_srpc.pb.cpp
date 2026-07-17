@@ -36,6 +36,10 @@ starpc::Error SRPCPluginHostResourceServiceClientImpl::RegisterObjectType(const 
   return cc_->ExecCall(service_id_, "RegisterObjectType", in, out);
 }
 
+starpc::Error SRPCPluginHostResourceServiceClientImpl::CompleteInitialCapabilityRegistration(const bldr::plugin::host::CompleteInitialCapabilityRegistrationRequest& in, bldr::plugin::host::CompleteInitialCapabilityRegistrationResponse* out) {
+  return cc_->ExecCall(service_id_, "CompleteInitialCapabilityRegistration", in, out);
+}
+
 std::vector<std::string> SRPCPluginHostResourceServiceHandler::GetMethodIDs() const {
   return {
     "AccessAssetsFS",
@@ -45,6 +49,7 @@ std::vector<std::string> SRPCPluginHostResourceServiceHandler::GetMethodIDs() co
     "AccessDesktopTray",
     "GetPluginInfo",
     "RegisterObjectType",
+    "CompleteInitialCapabilityRegistration",
   };
 }
 
@@ -110,6 +115,14 @@ std::pair<bool, starpc::Error> SRPCPluginHostResourceServiceHandler::InvokeMetho
     if (err != starpc::Error::OK) return {true, err};
     bldr::plugin::host::RegisterObjectTypeResponse resp;
     err = impl_->RegisterObjectType(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "CompleteInitialCapabilityRegistration") {
+    bldr::plugin::host::CompleteInitialCapabilityRegistrationRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    bldr::plugin::host::CompleteInitialCapabilityRegistrationResponse resp;
+    err = impl_->CompleteInitialCapabilityRegistration(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   }

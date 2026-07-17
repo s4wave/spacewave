@@ -2041,6 +2041,12 @@ func TestExecPluginReadsExternalManifestViaLookupBlockFromNetwork(t *testing.T) 
 		le:               le,
 		pluginID:         "spacewave-core",
 		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
+		pluginLoadStateCtr: ccontainer.NewCContainer(
+			bldr_plugin.NewPluginLoadState(
+				nil,
+				bldr_plugin.InitialCapabilityRegistrationPending,
+			),
+		),
 	}
 	if err := pi.execPlugin(ctx, &executePluginArgs{
 		manifestSnapshot: &bldr_manifest.ManifestSnapshot{

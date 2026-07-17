@@ -45,6 +45,7 @@ func TestOpenPluginHostDesktopTrayUsesPluginHostResourceBoundary(t *testing.T) {
 		hostRoot,
 		"state-atoms",
 		bldr_plugin.PluginVolumeID,
+		nil,
 	)
 	defer pluginRoot.Release()
 
@@ -130,6 +131,7 @@ func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *
 		hostRoot,
 		"state-atoms",
 		bldr_plugin.PluginVolumeID,
+		nil,
 	)
 	defer pluginRoot.Release()
 

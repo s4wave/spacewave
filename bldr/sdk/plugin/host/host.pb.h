@@ -99,6 +99,14 @@ class AccessVolumeResponse;
 struct AccessVolumeResponseDefaultTypeInternal;
 extern AccessVolumeResponseDefaultTypeInternal _AccessVolumeResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull AccessVolumeResponse_class_data_;
+class CompleteInitialCapabilityRegistrationRequest;
+struct CompleteInitialCapabilityRegistrationRequestDefaultTypeInternal;
+extern CompleteInitialCapabilityRegistrationRequestDefaultTypeInternal _CompleteInitialCapabilityRegistrationRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CompleteInitialCapabilityRegistrationRequest_class_data_;
+class CompleteInitialCapabilityRegistrationResponse;
+struct CompleteInitialCapabilityRegistrationResponseDefaultTypeInternal;
+extern CompleteInitialCapabilityRegistrationResponseDefaultTypeInternal _CompleteInitialCapabilityRegistrationResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull CompleteInitialCapabilityRegistrationResponse_class_data_;
 class GetPluginInfoRequest;
 struct GetPluginInfoRequestDefaultTypeInternal;
 extern GetPluginInfoRequestDefaultTypeInternal _GetPluginInfoRequest_default_instance_;
@@ -377,7 +385,7 @@ class GetPluginInfoResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetPluginInfoResponse*>(
         &_GetPluginInfoResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 13;
+  static constexpr int kIndexInFileMessages = 15;
   friend void swap(GetPluginInfoResponse& a, GetPluginInfoResponse& b) { a.Swap(&b); }
   inline void Swap(GetPluginInfoResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -588,7 +596,7 @@ class GetPluginInfoRequest final : public ::google::protobuf::internal::ZeroFiel
     return *reinterpret_cast<const GetPluginInfoRequest*>(
         &_GetPluginInfoRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 12;
+  static constexpr int kIndexInFileMessages = 14;
   friend void swap(GetPluginInfoRequest& a, GetPluginInfoRequest& b) { a.Swap(&b); }
   inline void Swap(GetPluginInfoRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -668,6 +676,274 @@ class GetPluginInfoRequest final : public ::google::protobuf::internal::ZeroFiel
 extern const ::google::protobuf::internal::ClassDataFull GetPluginInfoRequest_class_data_;
 // -------------------------------------------------------------------
 
+class CompleteInitialCapabilityRegistrationResponse final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:bldr.plugin.host.CompleteInitialCapabilityRegistrationResponse) */ {
+ public:
+  inline CompleteInitialCapabilityRegistrationResponse() : CompleteInitialCapabilityRegistrationResponse(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CompleteInitialCapabilityRegistrationResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CompleteInitialCapabilityRegistrationResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CompleteInitialCapabilityRegistrationResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline CompleteInitialCapabilityRegistrationResponse(const CompleteInitialCapabilityRegistrationResponse& from) : CompleteInitialCapabilityRegistrationResponse(nullptr, from) {}
+  inline CompleteInitialCapabilityRegistrationResponse(CompleteInitialCapabilityRegistrationResponse&& from) noexcept
+      : CompleteInitialCapabilityRegistrationResponse(nullptr, ::std::move(from)) {}
+  inline CompleteInitialCapabilityRegistrationResponse& operator=(const CompleteInitialCapabilityRegistrationResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CompleteInitialCapabilityRegistrationResponse& operator=(CompleteInitialCapabilityRegistrationResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CompleteInitialCapabilityRegistrationResponse& default_instance() {
+    return *reinterpret_cast<const CompleteInitialCapabilityRegistrationResponse*>(
+        &_CompleteInitialCapabilityRegistrationResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 3;
+  friend void swap(CompleteInitialCapabilityRegistrationResponse& a, CompleteInitialCapabilityRegistrationResponse& b) { a.Swap(&b); }
+  inline void Swap(CompleteInitialCapabilityRegistrationResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CompleteInitialCapabilityRegistrationResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CompleteInitialCapabilityRegistrationResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<CompleteInitialCapabilityRegistrationResponse>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const CompleteInitialCapabilityRegistrationResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const CompleteInitialCapabilityRegistrationResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "bldr.plugin.host.CompleteInitialCapabilityRegistrationResponse"; }
+
+  explicit CompleteInitialCapabilityRegistrationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CompleteInitialCapabilityRegistrationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CompleteInitialCapabilityRegistrationResponse& from);
+  CompleteInitialCapabilityRegistrationResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CompleteInitialCapabilityRegistrationResponse&& from) noexcept
+      : CompleteInitialCapabilityRegistrationResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:bldr.plugin.host.CompleteInitialCapabilityRegistrationResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CompleteInitialCapabilityRegistrationResponse_class_data_;
+// -------------------------------------------------------------------
+
+class CompleteInitialCapabilityRegistrationRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:bldr.plugin.host.CompleteInitialCapabilityRegistrationRequest) */ {
+ public:
+  inline CompleteInitialCapabilityRegistrationRequest() : CompleteInitialCapabilityRegistrationRequest(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(CompleteInitialCapabilityRegistrationRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(CompleteInitialCapabilityRegistrationRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR CompleteInitialCapabilityRegistrationRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline CompleteInitialCapabilityRegistrationRequest(const CompleteInitialCapabilityRegistrationRequest& from) : CompleteInitialCapabilityRegistrationRequest(nullptr, from) {}
+  inline CompleteInitialCapabilityRegistrationRequest(CompleteInitialCapabilityRegistrationRequest&& from) noexcept
+      : CompleteInitialCapabilityRegistrationRequest(nullptr, ::std::move(from)) {}
+  inline CompleteInitialCapabilityRegistrationRequest& operator=(const CompleteInitialCapabilityRegistrationRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline CompleteInitialCapabilityRegistrationRequest& operator=(CompleteInitialCapabilityRegistrationRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const CompleteInitialCapabilityRegistrationRequest& default_instance() {
+    return *reinterpret_cast<const CompleteInitialCapabilityRegistrationRequest*>(
+        &_CompleteInitialCapabilityRegistrationRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 2;
+  friend void swap(CompleteInitialCapabilityRegistrationRequest& a, CompleteInitialCapabilityRegistrationRequest& b) { a.Swap(&b); }
+  inline void Swap(CompleteInitialCapabilityRegistrationRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(CompleteInitialCapabilityRegistrationRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  CompleteInitialCapabilityRegistrationRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<CompleteInitialCapabilityRegistrationRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const CompleteInitialCapabilityRegistrationRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const CompleteInitialCapabilityRegistrationRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "bldr.plugin.host.CompleteInitialCapabilityRegistrationRequest"; }
+
+  explicit CompleteInitialCapabilityRegistrationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  CompleteInitialCapabilityRegistrationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const CompleteInitialCapabilityRegistrationRequest& from);
+  CompleteInitialCapabilityRegistrationRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, CompleteInitialCapabilityRegistrationRequest&& from) noexcept
+      : CompleteInitialCapabilityRegistrationRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:bldr.plugin.host.CompleteInitialCapabilityRegistrationRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull CompleteInitialCapabilityRegistrationRequest_class_data_;
+// -------------------------------------------------------------------
+
 class AccessVolumeResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:bldr.plugin.host.AccessVolumeResponse) */ {
  public:
@@ -723,7 +999,7 @@ class AccessVolumeResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessVolumeResponse*>(
         &_AccessVolumeResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(AccessVolumeResponse& a, AccessVolumeResponse& b) { a.Swap(&b); }
   inline void Swap(AccessVolumeResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -912,7 +1188,7 @@ class AccessVolumeRequest final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const AccessVolumeRequest*>(
         &_AccessVolumeRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(AccessVolumeRequest& a, AccessVolumeRequest& b) { a.Swap(&b); }
   inline void Swap(AccessVolumeRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1047,7 +1323,7 @@ class AccessStateAtomResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessStateAtomResponse*>(
         &_AccessStateAtomResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(AccessStateAtomResponse& a, AccessStateAtomResponse& b) { a.Swap(&b); }
   inline void Swap(AccessStateAtomResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1237,7 +1513,7 @@ class AccessStateAtomRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessStateAtomRequest*>(
         &_AccessStateAtomRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(AccessStateAtomRequest& a, AccessStateAtomRequest& b) { a.Swap(&b); }
   inline void Swap(AccessStateAtomRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1432,7 +1708,7 @@ class AccessDistFSResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessDistFSResponse*>(
         &_AccessDistFSResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(AccessDistFSResponse& a, AccessDistFSResponse& b) { a.Swap(&b); }
   inline void Swap(AccessDistFSResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1621,7 +1897,7 @@ class AccessDistFSRequest final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const AccessDistFSRequest*>(
         &_AccessDistFSRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(AccessDistFSRequest& a, AccessDistFSRequest& b) { a.Swap(&b); }
   inline void Swap(AccessDistFSRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1756,7 +2032,7 @@ class AccessDesktopTrayResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessDesktopTrayResponse*>(
         &_AccessDesktopTrayResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 13;
   friend void swap(AccessDesktopTrayResponse& a, AccessDesktopTrayResponse& b) { a.Swap(&b); }
   inline void Swap(AccessDesktopTrayResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1945,7 +2221,7 @@ class AccessDesktopTrayRequest final : public ::google::protobuf::internal::Zero
     return *reinterpret_cast<const AccessDesktopTrayRequest*>(
         &_AccessDesktopTrayRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(AccessDesktopTrayRequest& a, AccessDesktopTrayRequest& b) { a.Swap(&b); }
   inline void Swap(AccessDesktopTrayRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2080,7 +2356,7 @@ class AccessAssetsFSResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessAssetsFSResponse*>(
         &_AccessAssetsFSResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(AccessAssetsFSResponse& a, AccessAssetsFSResponse& b) { a.Swap(&b); }
   inline void Swap(AccessAssetsFSResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2269,7 +2545,7 @@ class AccessAssetsFSRequest final : public ::google::protobuf::internal::ZeroFie
     return *reinterpret_cast<const AccessAssetsFSRequest*>(
         &_AccessAssetsFSRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(AccessAssetsFSRequest& a, AccessAssetsFSRequest& b) { a.Swap(&b); }
   inline void Swap(AccessAssetsFSRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2762,6 +3038,14 @@ inline void RegisterObjectTypeResponse::_internal_set_resource_id(::uint32_t val
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.resource_id_ = value;
 }
+
+// -------------------------------------------------------------------
+
+// CompleteInitialCapabilityRegistrationRequest
+
+// -------------------------------------------------------------------
+
+// CompleteInitialCapabilityRegistrationResponse
 
 // -------------------------------------------------------------------
 

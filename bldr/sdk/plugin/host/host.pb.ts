@@ -67,6 +67,36 @@ export const RegisterObjectTypeResponse: MessageType<RegisterObjectTypeResponse>
   })
 
 /**
+ * CompleteInitialCapabilityRegistrationRequest marks initial registration complete.
+ *
+ * The plugin calls this once after its entrypoint's startup
+ * capability-registration pass. Plugins that register no capabilities call it
+ * after the empty pass.
+ *
+ * @generated from message bldr.plugin.host.CompleteInitialCapabilityRegistrationRequest
+ */
+export interface CompleteInitialCapabilityRegistrationRequest {}
+
+export const CompleteInitialCapabilityRegistrationRequest: MessageType<CompleteInitialCapabilityRegistrationRequest> =
+  /* @__PURE__ */ createEmptyMessageType<CompleteInitialCapabilityRegistrationRequest>(
+    'bldr.plugin.host.CompleteInitialCapabilityRegistrationRequest',
+    true,
+  )
+
+/**
+ * CompleteInitialCapabilityRegistrationResponse acknowledges initial registration.
+ *
+ * @generated from message bldr.plugin.host.CompleteInitialCapabilityRegistrationResponse
+ */
+export interface CompleteInitialCapabilityRegistrationResponse {}
+
+export const CompleteInitialCapabilityRegistrationResponse: MessageType<CompleteInitialCapabilityRegistrationResponse> =
+  /* @__PURE__ */ createEmptyMessageType<CompleteInitialCapabilityRegistrationResponse>(
+    'bldr.plugin.host.CompleteInitialCapabilityRegistrationResponse',
+    true,
+  )
+
+/**
  * AccessAssetsFSRequest is the request for AccessAssetsFS.
  *
  * @generated from message bldr.plugin.host.AccessAssetsFSRequest
