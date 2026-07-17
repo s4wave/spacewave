@@ -50,6 +50,7 @@ const bootAssetPath = '/boot.mjs'
 const browserIndexPath = '/b/__index.html'
 const rootNavigationPath = '/'
 const browserReleaseStatePath = '/__bldr/browser-release-state.json'
+const pluginManifestRootPathPrefix = '/__bldr/plugin-manifest-root/'
 const pluginDistPathPrefix = '/b/pd/'
 const pluginAssetsPathPrefix = '/b/pa/'
 const pluginWebPkgPathPrefix = '/b/pkg/'
@@ -150,6 +151,18 @@ export interface BrowserControlCacheRow {
   kind: BrowserControlCacheRowKind
   path: string
   cacheName: typeof controlCacheName
+}
+
+interface CacheRow {
+  kind?: BrowserControlCacheRowKind
+  path: string
+  cacheName: string
+}
+
+interface PluginManifestRootMetadata {
+  pluginId: string
+  rootHash: string
+  serviceWorkerURL: string
 }
 
 // BrowserRuntimeFetchErrorCode is the bounded failure vocabulary for runtime fetches.
@@ -255,7 +268,7 @@ function buildCacheRequest(path: string): Request {
   return new Request(new URL(path, baseURL).toString())
 }
 
-function buildControlCacheRequest(row: BrowserControlCacheRow): Request {
+function buildControlCacheRequest(row: CacheRow): Request {
   return buildCacheRequest(row.path)
 }
 
@@ -352,9 +365,7 @@ function responseForMethod(request: Request, response: Response): Response {
   return response
 }
 
-async function readCachedJson<T>(
-  row: BrowserControlCacheRow,
-): Promise<T | null> {
+async function readCachedJson<T>(row: CacheRow): Promise<T | null> {
   const request = buildControlCacheRequest(row)
   if (!canCacheRequest(request)) {
     return null
@@ -368,7 +379,7 @@ async function readCachedJson<T>(
 }
 
 async function writeCachedJson(
-  row: BrowserControlCacheRow,
+  row: CacheRow,
   value: unknown,
 ): Promise<boolean> {
   const request = buildControlCacheRequest(row)
@@ -381,6 +392,35 @@ async function writeCachedJson(
     operation: 'write control JSON',
     controlRowKind: row.kind,
   })
+}
+
+async function readPluginManifestRoot(
+  pluginId: string,
+): Promise<string | null> {
+  try {
+    const metadata = await readCachedJson<PluginManifestRootMetadata>({
+      path: `${pluginManifestRootPathPrefix}${encodeURIComponent(pluginId)}.json`,
+      cacheName: controlCacheName,
+    })
+    if (
+      !metadata ||
+      metadata.pluginId !== pluginId ||
+      metadata.serviceWorkerURL !== self.location.href ||
+      typeof metadata.rootHash !== 'string' ||
+      metadata.rootHash === ''
+    ) {
+      return null
+    }
+    return metadata.rootHash
+  } catch (error) {
+    console.warn(
+      'ServiceWorker: %s: plugin root metadata read failed: plugin=%s: %s',
+      serviceWorkerId,
+      pluginId,
+      castToError(error, 'unknown error').message,
+    )
+    return null
+  }
 }
 
 async function loadBrowserReleaseState(): Promise<BrowserReleaseState> {
@@ -811,9 +851,9 @@ interface StaticPluginAsset {
   rootHash: string
 }
 
-function parseStaticPluginAsset(
+async function resolveStaticPluginAsset(
   source: BrowserFetchSource,
-): StaticPluginAsset | null {
+): Promise<StaticPluginAsset | null> {
   let prefix: string
   if (source.path.startsWith(pluginDistPathPrefix)) {
     prefix = pluginDistPathPrefix
@@ -828,9 +868,23 @@ function parseStaticPluginAsset(
     return null
   }
   const pluginId = pathAfterPrefix.slice(0, slash)
-  const rootHash = activePluginRoots.get(pluginId)
+  let rootHash = activePluginRoots.get(pluginId)
   if (!rootHash) {
-    return null
+    await pluginRootUpdates.get(pluginId)
+    rootHash = activePluginRoots.get(pluginId)
+  }
+  if (!rootHash) {
+    const persistedRootHash = await readPluginManifestRoot(pluginId)
+    if (!persistedRootHash) {
+      return null
+    }
+    const desiredRootHash = desiredPluginRoots.get(pluginId)
+    if (desiredRootHash && desiredRootHash !== persistedRootHash) {
+      return null
+    }
+    rootHash = persistedRootHash
+    desiredPluginRoots.set(pluginId, rootHash)
+    activePluginRoots.set(pluginId, rootHash)
   }
   return { pluginId, rootHash }
 }
@@ -900,19 +954,45 @@ async function activatePluginManifestRoot(
   const cacheName = buildPluginCacheName(pluginId, rootHash)
   const cachePrefix = buildPluginCachePrefix(pluginId)
   try {
+    if (desiredPluginRoots.get(pluginId) !== rootHash) {
+      return
+    }
+    const persisted = await writeCachedJson(
+      {
+        path: `${pluginManifestRootPathPrefix}${encodeURIComponent(pluginId)}.json`,
+        cacheName: controlCacheName,
+      },
+      {
+        pluginId,
+        rootHash,
+        serviceWorkerURL: self.location.href,
+      },
+    )
+    if (!persisted || desiredPluginRoots.get(pluginId) !== rootHash) {
+      return
+    }
+    activePluginRoots.set(pluginId, rootHash)
+  } catch (error) {
+    activePluginRoots.delete(pluginId)
+    console.warn(
+      'ServiceWorker: %s: plugin cache activation failed: plugin=%s root=%s: %s',
+      serviceWorkerId,
+      pluginId,
+      rootHash,
+      castToError(error, 'unknown error').message,
+    )
+    return
+  }
+  try {
     const cacheNames = await caches.keys()
     await Promise.all(
       cacheNames
         .filter((name) => name.startsWith(cachePrefix) && name !== cacheName)
         .map((name) => caches.delete(name)),
     )
-    if (desiredPluginRoots.get(pluginId) === rootHash) {
-      activePluginRoots.set(pluginId, rootHash)
-    }
   } catch (error) {
-    activePluginRoots.delete(pluginId)
     console.warn(
-      'ServiceWorker: %s: plugin cache activation failed: plugin=%s root=%s: %s',
+      'ServiceWorker: %s: stale plugin cache cleanup failed: plugin=%s root=%s: %s',
       serviceWorkerId,
       pluginId,
       rootHash,
@@ -1834,7 +1914,7 @@ export async function swFetch(
   const staticPluginAssetSource =
     source.path.startsWith(pluginDistPathPrefix) ||
     source.path.startsWith(pluginAssetsPathPrefix)
-  let staticPluginAsset = parseStaticPluginAsset(source)
+  let staticPluginAsset = await resolveStaticPluginAsset(source)
   if (staticPluginAsset) {
     const cached = await matchStaticPluginAsset(staticPluginAsset, request)
     if (cached) {
@@ -1918,7 +1998,7 @@ export async function swFetch(
     ) {
       await pluginRootUpdates.get(staticPluginAsset.pluginId)
       if (attempt === 0) {
-        staticPluginAsset = parseStaticPluginAsset(source)
+        staticPluginAsset = await resolveStaticPluginAsset(source)
         continue
       }
       return new Response('plugin manifest root changed during fetch', {
