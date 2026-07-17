@@ -12,11 +12,12 @@ import (
 	forge_task "github.com/s4wave/spacewave/forge/task"
 	s4wave_sobject "github.com/s4wave/spacewave/sdk/sobject"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
-	s4wave_world "github.com/s4wave/spacewave/sdk/world"
+	sdk_world_engine "github.com/s4wave/spacewave/sdk/world/engine"
 )
 
 type mountedForgeSpace struct {
-	engine          *s4wave_world.Engine
+	eng             *sdk_world_engine.SDKEngine
+	engWs           hydra_world.WorldState
 	sharedObjectRef resource_client.ResourceRef
 	spaceRef        resource_client.ResourceRef
 	contentsRef     resource_client.ResourceRef
@@ -74,7 +75,7 @@ func mountForgeSpace(
 	}
 
 	engineRef := sess.ResourceClient().CreateResourceReference(accessWorldResp.GetResourceId())
-	engine, err := s4wave_world.NewEngine(sess.ResourceClient(), engineRef)
+	eng, err := sdk_world_engine.NewSDKEngine(sess.ResourceClient(), engineRef)
 	if err != nil {
 		engineRef.Release()
 		spaceRef.Release()
@@ -84,7 +85,7 @@ func mountForgeSpace(
 
 	contentsResp, err := spaceSvc.MountSpaceContents(ctx, &s4wave_space.MountSpaceContentsRequest{})
 	if err != nil {
-		engine.Release()
+		eng.Release()
 		spaceRef.Release()
 		sharedObjectRef.Release()
 		t.Fatalf("MountSpaceContents: %v", err)
@@ -94,14 +95,15 @@ func mountForgeSpace(
 	contentsSrpcClient, err := contentsRef.GetClient()
 	if err != nil {
 		contentsRef.Release()
-		engine.Release()
+		eng.Release()
 		spaceRef.Release()
 		sharedObjectRef.Release()
 		t.Fatalf("GetClient(contents): %v", err)
 	}
 
 	return &mountedForgeSpace{
-		engine:          engine,
+		eng:             eng,
+		engWs:           hydra_world.NewEngineWorldState(eng, false),
 		sharedObjectRef: sharedObjectRef,
 		spaceRef:        spaceRef,
 		contentsRef:     contentsRef,
@@ -113,8 +115,8 @@ func (m *mountedForgeSpace) Release() {
 	if m.contentsRef != nil {
 		m.contentsRef.Release()
 	}
-	if m.engine != nil {
-		m.engine.Release()
+	if m.eng != nil {
+		m.eng.Release()
 	}
 	if m.spaceRef != nil {
 		m.spaceRef.Release()
@@ -126,7 +128,7 @@ func (m *mountedForgeSpace) Release() {
 
 func listLinkedObjectKeys(
 	ctx context.Context,
-	tx *s4wave_world.Tx,
+	tx hydra_world.WorldState,
 	predicate string,
 	subjectKeys ...string,
 ) ([]string, error) {
@@ -159,7 +161,7 @@ func listLinkedObjectKeys(
 func assertNoForgePasses(
 	ctx context.Context,
 	t testing.TB,
-	engine *s4wave_world.Engine,
+	engine hydra_world.Engine,
 	jobKey string,
 ) {
 	t.Helper()
@@ -168,7 +170,7 @@ func assertNoForgePasses(
 	if err != nil {
 		t.Fatalf("NewTransaction: %v", err)
 	}
-	defer tx.Discard(ctx)
+	defer tx.Discard()
 
 	taskKeys, err := listLinkedObjectKeys(ctx, tx, forge_job.PredJobToTask.String(), jobKey)
 	if err != nil {
