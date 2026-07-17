@@ -84,6 +84,18 @@ function TabPathProbe() {
   )
 }
 
+function TabsProjectionProbe({ testId }: { testId: string }) {
+  const { activeTabId, tabs } = useShellTabs()
+  return (
+    <div data-testid={testId}>
+      {JSON.stringify({
+        activeTabId,
+        tabs: tabs.map(({ id, path }) => ({ id, path })),
+      })}
+    </div>
+  )
+}
+
 function TabStateProbe() {
   const [count, setCount] = useStateAtom<number>(null, 'count', 0)
   return (
@@ -555,6 +567,68 @@ describe('ShellTabContext', () => {
       ),
     ).toBeNull()
     expect(localStorage.getItem('tab-state-old-tab')).toBeNull()
+  })
+
+  it('preserves another document projection when closing its inactive record', async () => {
+    seedShellTabs([
+      { id: 'tab-a', name: 'A', path: '/a-only' },
+      { id: 'shared', name: 'Shared Docs', path: '/docs' },
+      { id: 'tab-b', name: 'B', path: '/b-only' },
+    ])
+    const store = new BrowserShellTabsStore()
+
+    render(
+      <>
+        <ShellTabsProvider
+          store={store}
+          entry={{
+            kind: 'handoff',
+            path: '/a-only',
+            params: {},
+            tabId: 'tab-a',
+            incarnation: 'document-a',
+          }}
+        >
+          <TabsProjectionProbe testId="projection-a" />
+        </ShellTabsProvider>
+        <ShellTabsProvider
+          store={store}
+          entry={{
+            kind: 'handoff',
+            path: '/docs',
+            params: {},
+            tabId: 'shared',
+            incarnation: 'document-b',
+          }}
+        >
+          <CloseProbe tabId="shared" />
+        </ShellTabsProvider>
+      </>,
+    )
+
+    expect(
+      JSON.parse(screen.getByTestId('projection-a').textContent ?? '{}'),
+    ).toEqual({
+      activeTabId: 'tab-a',
+      tabs: [
+        { id: 'tab-a', path: '/a-only' },
+        { id: 'shared', path: '/docs' },
+        { id: 'tab-b', path: '/b-only' },
+      ],
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Close Shell Tab' }))
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('projection-a').textContent ?? '{}'),
+      ).toEqual({
+        activeTabId: 'tab-a',
+        tabs: [
+          { id: 'tab-a', path: '/a-only' },
+          { id: 'tab-b', path: '/b-only' },
+        ],
+      })
+    })
   })
 
   it('normalizes a final explicit close to a fresh default record', async () => {

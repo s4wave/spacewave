@@ -5,6 +5,7 @@ package releasewasm
 import (
 	"fmt"
 	"os"
+	"slices"
 	"testing"
 
 	playwright "github.com/mxschmitt/playwright-go"
@@ -23,6 +24,36 @@ func TestIgnoreBrowserErrorFiltersGoRuntimeInfoLogs(t *testing.T) {
 	msg := `level=warning msg="rejecting tx: apply failed" error="space/world/set-settings: operation type was not handled"`
 	if ignoreBrowserError(msg) {
 		t.Fatalf("expected warning log to remain fatal: %s", msg)
+	}
+}
+
+func TestExpectedReleaseWasmHTTPError(t *testing.T) {
+	if !isExpectedReleaseWasmHTTPError("http://127.0.0.1:1234/api/auth/config") {
+		t.Fatal("expected static auth config probe to be ignored")
+	}
+	if isExpectedReleaseWasmHTTPError("http://127.0.0.1:1234/b/pa/app.mjs") {
+		t.Fatal("expected release asset errors to remain fatal")
+	}
+}
+
+func TestPersistentBrowserContextLaunchOptionsReuseChromiumOwner(t *testing.T) {
+	t.Setenv(chromiumGPUEnv, "1")
+
+	got := persistentBrowserContextLaunchOptions("chromium")
+	want := chromiumLaunchOptions(true)
+	if got.Headless == nil || want.Headless == nil || *got.Headless != *want.Headless {
+		t.Fatalf("persistent headless=%v, want shared Chromium value %v", got.Headless, want.Headless)
+	}
+	if got.Channel == nil || want.Channel == nil || *got.Channel != *want.Channel {
+		t.Fatalf("persistent channel=%v, want shared Chromium value %v", got.Channel, want.Channel)
+	}
+	if !slices.Equal(got.Args, want.Args) {
+		t.Fatalf("persistent args=%v, want shared Chromium args %v", got.Args, want.Args)
+	}
+
+	other := persistentBrowserContextLaunchOptions("firefox")
+	if other.Headless == nil || !*other.Headless || other.Channel != nil || len(other.Args) != 0 {
+		t.Fatalf("non-Chromium persistent options inherited Chromium state: %#v", other)
 	}
 }
 

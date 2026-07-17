@@ -176,6 +176,19 @@ func chromiumLaunchOptions(headless bool) playwright.BrowserTypeLaunchOptions {
 	return opts
 }
 
+func persistentBrowserContextLaunchOptions(browserName string) playwright.BrowserTypeLaunchPersistentContextOptions {
+	options := playwright.BrowserTypeLaunchPersistentContextOptions{
+		Headless: new(true),
+	}
+	if browserName == "chromium" {
+		launchOptions := chromiumLaunchOptions(true)
+		options.Headless = launchOptions.Headless
+		options.Channel = launchOptions.Channel
+		options.Args = launchOptions.Args
+	}
+	return options
+}
+
 func chromiumHardwareGPUEnabled() bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv(chromiumGPUEnv))) {
 	case "true", "1", "yes", "on":
@@ -414,6 +427,21 @@ func (h *harness) newPageInContext(t testing.TB, ctx playwright.BrowserContext) 
 	return page
 }
 
+func (h *harness) newPersistentBrowserContext(t testing.TB, userDataDir string) playwright.BrowserContext {
+	t.Helper()
+
+	browserType, err := playwrightBrowserType(h.pw, h.browserName)
+	if err != nil {
+		t.Fatalf("resolve persistent release browser type: %v", err)
+	}
+	options := persistentBrowserContextLaunchOptions(h.browserName)
+	ctx, err := browserType.LaunchPersistentContext(userDataDir, options)
+	if err != nil {
+		t.Fatalf("launch persistent release browser context: %v", err)
+	}
+	return ctx
+}
+
 func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) {
 	t.Helper()
 
@@ -513,7 +541,9 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) {
 			return
 		}
 		url := resp.URL()
-		if strings.HasPrefix(url, h.baseURL) && !strings.HasSuffix(url, "/.vite/manifest.json") {
+		if strings.HasPrefix(url, h.baseURL) &&
+			!strings.HasSuffix(url, "/.vite/manifest.json") &&
+			!isExpectedReleaseWasmHTTPError(url) {
 			recordBrowserError("http " + resp.StatusText() + ": " + resp.URL())
 			return
 		}
@@ -549,6 +579,13 @@ func isRelevantReleaseWasmRequest(url string) bool {
 		return true
 	}
 	return false
+}
+
+// isExpectedReleaseWasmHTTPError identifies endpoints intentionally absent from
+// the static release server. The app probes auth configuration even when the
+// release proof runs without a cloud auth service.
+func isExpectedReleaseWasmHTTPError(url string) bool {
+	return strings.HasSuffix(url, "/api/auth/config")
 }
 
 func isBrowserAbortedRequest(failure string) bool {
