@@ -440,13 +440,13 @@ func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldSt
 		return nil
 	}
 
-	c.le.Infof("clearing %d unknown / out of date plugins", len(unknownPlugins))
+	c.le.WithField("count", len(unknownPlugins)).Info("clearing unknown or out-of-date plugins")
 	for _, unknownPlugin := range unknownPlugins {
 		if err := host.DeletePlugin(ctx, unknownPlugin); err != nil {
 			if err == context.Canceled {
 				return err
 			}
-			c.le.WithError(err).Warnf("unable to clear old plugin: %s", unknownPlugin)
+			c.le.WithError(err).WithField("plugin-id", unknownPlugin).Warn("unable to clear old plugin")
 		}
 	}
 

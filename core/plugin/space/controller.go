@@ -418,7 +418,7 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 
 func (c *Controller) reconcileProcessConfigs(le *logrus.Entry, desired map[string]processConfig) {
 	active := c.processes.GetKeysWithData()
-	le.WithField("enabled", len(desired)).WithField("active", len(active)).Debug("reconcileProcesses")
+	le.WithField("enabled", len(desired)).WithField("active", len(active)).Debug("reconciling space processes")
 
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		c.processConfigs = desired
