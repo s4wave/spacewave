@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	provider "github.com/s4wave/spacewave/core/provider"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -415,4 +416,25 @@ func (tx *accountFetcherCacheTx) Commit(ctx context.Context) error {
 	}
 	tx.committed()
 	return nil
+}
+
+func TestGetAccountStateWaitsForSigningSession(t *testing.T) {
+	acc := NewTestProviderAccount(t, "https://example.com")
+	acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		acc.sessionClient = NewSessionClient(
+			http.DefaultClient,
+			"https://example.com",
+			DefaultSigningEnvPrefix,
+			nil,
+			"",
+		)
+		broadcast()
+	})
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	_, err := acc.GetAccountState(ctx)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("GetAccountState error = %v, want context cancellation while signer is unavailable", err)
+	}
 }

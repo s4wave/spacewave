@@ -956,7 +956,9 @@ func (a *ProviderAccount) GetAccountState(ctx context.Context) (*api.AccountStat
 		a.accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			info = a.state.info
 			cli = a.sessionClient
-			if info == nil && !a.state.infoFetching && cli != nil {
+			if info == nil && !a.state.infoFetching &&
+				cli != nil && cli.SignedHTTPClient != nil &&
+				cli.peerID != "" && (cli.priv != nil || cli.sign != nil) {
 				a.state.infoFetching = true
 				shouldFetch = true
 			}

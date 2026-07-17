@@ -86,9 +86,10 @@ func (a *ProviderAccount) getReadySessionClientForSession(
 			sess.sessionPid.String(),
 		)
 		cli = a.configureSessionClient(cli)
-		a.accountBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			a.sessionClient = cli
 			a.sessionClientSessionID = entry.Key
+			broadcast()
 		})
 		return cli, sess.sessionPriv, sess.sessionPid, true
 	}
