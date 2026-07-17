@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/fastjson"
@@ -862,7 +863,16 @@ func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, m
 
 func BuildServiceWorkerBundleWithRuntimeDeps(le *logrus.Entry, bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) (string, error) {
 	le.Debug("generating service-worker bundle")
+	result, _, err := runEsbuildBundle(serviceWorkerBundleOpts(bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode))
+	if err != nil {
+		return "", err
+	}
+	return singleWorkerOutputName(result)
+}
 
+// serviceWorkerBundleOpts builds the fully configured service worker esbuild
+// options for buildDir.
+func serviceWorkerBundleOpts(bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) esbuild.BuildOptions {
 	swOpts := ServiceWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, buildPkgsDir, minify, sourcemaps, !devMode)
 	swOpts.Outdir = buildDir
 	swOpts.Write = true
@@ -870,10 +880,12 @@ func BuildServiceWorkerBundleWithRuntimeDeps(le *logrus.Entry, bldrDistRoot, bui
 		swOpts.Sourcemap = esbuild.SourceMapInline
 	}
 	swOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
-	result := esbuild.Build(swOpts)
-	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
-		return "", err
-	}
+	return swOpts
+}
+
+// singleWorkerOutputName returns the base filename of a worker build that must
+// produce exactly one output file.
+func singleWorkerOutputName(result esbuild.BuildResult) (string, error) {
 	if len(result.OutputFiles) != 1 {
 		return "", errors.Errorf("expected %d output files but got %d", 1, len(result.OutputFiles))
 	}
@@ -889,7 +901,16 @@ func BuildSharedWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, mi
 
 func BuildSharedWorkerBundleWithRuntimeDeps(le *logrus.Entry, bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) (string, error) {
 	le.Debug("generating shared-worker bundle")
+	result, _, err := runEsbuildBundle(sharedWorkerBundleOpts(bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode))
+	if err != nil {
+		return "", err
+	}
+	return mjsWorkerOutputName(result, "shared worker")
+}
 
+// sharedWorkerBundleOpts builds the fully configured shared worker esbuild
+// options for buildDir.
+func sharedWorkerBundleOpts(bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) esbuild.BuildOptions {
 	shwOpts := SharedWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, buildPkgsDir, minify, sourcemaps, !devMode)
 	shwOpts.Outdir = buildDir
 	shwOpts.Write = true
@@ -897,16 +918,17 @@ func BuildSharedWorkerBundleWithRuntimeDeps(le *logrus.Entry, bldrDistRoot, buil
 		shwOpts.Sourcemap = esbuild.SourceMapInline
 	}
 	shwOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
-	result := esbuild.Build(shwOpts)
-	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
-		return "", err
-	}
+	return shwOpts
+}
+
+// mjsWorkerOutputName returns the base filename of the first .mjs output file.
+func mjsWorkerOutputName(result esbuild.BuildResult, label string) (string, error) {
 	for _, f := range result.OutputFiles {
 		if strings.HasSuffix(f.Path, ".mjs") {
 			return filepath.Base(f.Path), nil
 		}
 	}
-	return "", errors.New("shared worker build produced no .mjs output")
+	return "", errors.Errorf("%s build produced no .mjs output", label)
 }
 
 // OpfsWorkerBuildOpts creates the BuildOpts for the OPFS protocol worker.
@@ -936,7 +958,16 @@ func BuildOpfsWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, mini
 
 func BuildOpfsWorkerBundleWithRuntimeDeps(le *logrus.Entry, bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) (string, error) {
 	le.Debug("generating OPFS worker bundle")
+	result, _, err := runEsbuildBundle(opfsWorkerBundleOpts(bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode))
+	if err != nil {
+		return "", err
+	}
+	return mjsWorkerOutputName(result, "OPFS worker")
+}
 
+// opfsWorkerBundleOpts builds the fully configured OPFS worker esbuild options
+// for buildDir.
+func opfsWorkerBundleOpts(bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) esbuild.BuildOptions {
 	opfsWorkerOpts := OpfsWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, buildPkgsDir, minify, sourcemaps, !devMode)
 	opfsWorkerOpts.Outdir = buildDir
 	opfsWorkerOpts.Write = true
@@ -944,32 +975,30 @@ func BuildOpfsWorkerBundleWithRuntimeDeps(le *logrus.Entry, bldrDistRoot, buildD
 		opfsWorkerOpts.Sourcemap = esbuild.SourceMapInline
 	}
 	opfsWorkerOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
-	result := esbuild.Build(opfsWorkerOpts)
-	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
-		return "", err
-	}
-	for _, f := range result.OutputFiles {
-		if strings.HasSuffix(f.Path, ".mjs") {
-			return filepath.Base(f.Path), nil
-		}
-	}
-	return "", errors.New("OPFS worker build produced no .mjs output")
+	return opfsWorkerOpts
 }
 
 // BuildRendererIndex builds the web renderer index.html.
 //
 // importMap contains the web pkg import map entries (from BuildWebPkgsBundle).
 func BuildRendererIndex(buildDir, entrypointPath string, importMap web_entrypoint_index.ImportMap) error {
-	// render index.html
-	indexHtml, err := web_entrypoint_index.RenderIndexHTML(web_entrypoint_index.IndexData{
+	indexHTML, err := renderIndexHTML(entrypointPath, importMap)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(buildDir, "index.html"), indexHTML, 0o644)
+}
+
+// renderIndexHTML renders the web renderer index.html to bytes.
+func renderIndexHTML(entrypointPath string, importMap web_entrypoint_index.ImportMap) ([]byte, error) {
+	indexHTML, err := web_entrypoint_index.RenderIndexHTML(web_entrypoint_index.IndexData{
 		ImportMap:      importMap,
 		EntrypointPath: entrypointPath,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	rendererHtmlOut := filepath.Join(buildDir, "index.html")
-	return os.WriteFile(rendererHtmlOut, []byte(indexHtml), 0o644)
+	return []byte(indexHTML), nil
 }
 
 // BuildRendererBundle builds the web renderer bundle files.
@@ -1002,7 +1031,41 @@ func BuildRendererBundle(
 		return nil, err
 	}
 
-	// entrypoint
+	rendererBuildOpts, err := rendererBundleOpts(
+		sourcesRoot, bldrDistRoot, buildDir,
+		runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath,
+		webStartupSrcPath, entrypointHash,
+		minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	res := esbuild.Build(rendererBuildOpts)
+	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
+		return nil, err
+	}
+	return collectRendererCSSPaths(res, buildDir), nil
+}
+
+// rendererBundleOpts builds the fully configured browser renderer esbuild
+// options for buildDir.
+func rendererBundleOpts(
+	sourcesRoot,
+	bldrDistRoot,
+	buildDir,
+	runtimeJsPath,
+	runtimeSwPath,
+	runtimeShwPath,
+	runtimeOpfsWorkerPath,
+	webStartupSrcPath,
+	entrypointHash string,
+	minify,
+	sourcemaps,
+	forceDedicatedWorkers,
+	forceMessagePortWorkerComms,
+	devMode bool,
+) (esbuild.BuildOptions, error) {
 	webEntrypointOut := filepath.Join(buildDir, "entrypoint")
 	if entrypointHash != "" {
 		webEntrypointOut = filepath.Join(webEntrypointOut, entrypointHash)
@@ -1024,11 +1087,9 @@ func BuildRendererBundle(
 	if runtimeJsPath != "" {
 		rendererBuildOpts.Define["BLDR_RUNTIME_JS"] = strconv.Quote(runtimeJsPath)
 	}
-
 	if runtimeSwPath != "" {
 		rendererBuildOpts.Define["BLDR_SW_JS"] = strconv.Quote(runtimeSwPath)
 	}
-
 	if runtimeShwPath != "" {
 		rendererBuildOpts.Define["BLDR_SHW_JS"] = strconv.Quote(runtimeShwPath)
 	}
@@ -1038,32 +1099,28 @@ func BuildRendererBundle(
 
 	distSourcesDirToSourcesRoot, err := filepath.Rel(bldrDistRoot, sourcesRoot)
 	if err != nil {
-		return nil, err
+		return esbuild.BuildOptions{}, err
 	}
-
 	if webStartupSrcPath != "" {
-		// esbuild interprets this path in an import() statement
-		// we need a relative path from the entrypoint.tsx to the src path.
-		// add an extra .. for the "web/entrypoint"
+		// esbuild interprets this path in an import() statement; we need a path
+		// relative to entrypoint.tsx, adding an extra .. for "web/entrypoint".
 		webStartupSrcPathRel := filepath.Join(distSourcesDirToSourcesRoot, "../..", webStartupSrcPath)
 		rendererBuildOpts.Define["BLDR_STARTUP_JS"] = strconv.Quote(webStartupSrcPathRel)
 	}
 
 	rendererBuildOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
-
 	if forceDedicatedWorkers {
 		rendererBuildOpts.Define["BLDR_FORCE_DEDICATED_WORKERS"] = "true"
 	}
 	if forceMessagePortWorkerComms {
 		rendererBuildOpts.Define["BLDR_FORCE_MESSAGEPORT_WORKER_COMMS"] = "true"
 	}
+	return rendererBuildOpts, nil
+}
 
-	res := esbuild.Build(rendererBuildOpts)
-	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
-		return nil, err
-	}
-
-	// collect CSS output paths relative to buildDir
+// collectRendererCSSPaths returns the renderer CSS output paths relative to
+// buildDir.
+func collectRendererCSSPaths(res esbuild.BuildResult, buildDir string) []string {
 	var cssPaths []string
 	for _, f := range res.OutputFiles {
 		if strings.HasSuffix(f.Path, ".css") {
@@ -1073,7 +1130,17 @@ func BuildRendererBundle(
 			}
 		}
 	}
-	return cssPaths, nil
+	return cssPaths
+}
+
+// rendererEntrypointRelPath returns the renderer entrypoint output path relative
+// to the build dir.
+func rendererEntrypointRelPath(entrypointHash string) string {
+	entrypointPath := "entrypoint"
+	if entrypointHash != "" {
+		entrypointPath += "/" + entrypointHash
+	}
+	return entrypointPath + "/entrypoint.mjs"
 }
 
 // BuildBrowserBundle builds and outputs the web & service worker files.
@@ -1109,23 +1176,32 @@ func BuildBrowserBundle(
 		return nil, err
 	}
 
+	// The bundle cache reuses unchanged worker and renderer outputs across builds
+	// by validating each bundle's source-file identities and config digest.
+	// cachedBundleElapsed accumulates only the cached bundle phases so the log
+	// reports their reuse savings without the uncached web-package build.
+	cache := newBundleCache(le, buildDir, bldrDistRoot)
+	var cachedBundleElapsed time.Duration
+	workersStart := time.Now()
+
 	// service worker
-	swFilename, err := BuildServiceWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
+	swFilename, err := buildServiceWorkerCached(cache, bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
 	if err != nil {
 		return nil, err
 	}
 
 	// shared worker
-	shwFilename, err := BuildSharedWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
+	shwFilename, err := buildSharedWorkerCached(cache, bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
 	if err != nil {
 		return nil, err
 	}
 
 	// OPFS protocol worker
-	opfsWorkerFilename, err := BuildOpfsWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
+	opfsWorkerFilename, err := buildOpfsWorkerCached(cache, bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
 	if err != nil {
 		return nil, err
 	}
+	cachedBundleElapsed += time.Since(workersStart)
 
 	// replace the filename in runtimeSwPath with the sw filename
 	runtimeSwPath = filepath.Join(filepath.Dir(runtimeSwPath), swFilename)
@@ -1157,13 +1233,20 @@ func BuildBrowserBundle(
 	}
 
 	// renderer bundle
-	cssPaths, err := BuildRendererBundle(le, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath, webStartupSrcPath, entrypointHash, minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, webPkgImportMap)
+	rendererStart := time.Now()
+	cssPaths, err := buildRendererCached(cache, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath, webStartupSrcPath, entrypointHash, minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, webPkgImportMap)
 	if err != nil {
 		return nil, err
 	}
+	cachedBundleElapsed += time.Since(rendererStart)
 	if err := WriteStableBootAsset(buildDir); err != nil {
 		return nil, err
 	}
+	le.WithFields(logrus.Fields{
+		"built":   cache.Builds(),
+		"reused":  cache.Reuses(),
+		"elapsed": cachedBundleElapsed.String(),
+	}).Info("browser bundle cache")
 
 	// build the entrypoint path relative to the build dir
 	entrypointPath := "entrypoint"
