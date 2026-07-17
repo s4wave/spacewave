@@ -53,7 +53,16 @@ var controllerDescrip = "js plugin compiler controller"
 // Controller is the compiler controller.
 type Controller struct {
 	*bus.BusController[*Config]
-	preBuildHooks []PreBuildHook
+	preBuildHooks []preBuildHookEntry
+}
+
+// preBuildHookEntry pairs a pre-build hook with its optional provenance declaration.
+type preBuildHookEntry struct {
+	// hook is the pre-build callback.
+	hook PreBuildHook
+	// provenance declares the hook's deterministic inputs, or nil when the hook
+	// is undeclared and keeps the compiler always-building.
+	provenance *PreBuildHookProvenance
 }
 
 // Factory is the factory for the compiler controller.
@@ -105,11 +114,23 @@ type PreBuildHook func(
 	worldEng world.Engine,
 ) (*PreBuildHookResult, error)
 
-// AddPreBuildHook adds a callback that is called just after constructing the plugin working dir.
+// AddPreBuildHook adds a callback that is called just after constructing the
+// plugin working dir. The hook declares no provenance, so it keeps the compiler
+// always-building.
 // NOTE: may be removed in future
 func (c *Controller) AddPreBuildHook(hook PreBuildHook) {
+	c.AddPreBuildHookWithProvenance(hook, nil)
+}
+
+// AddPreBuildHookWithProvenance registers a pre-build hook together with a
+// declaration of its complete deterministic provenance. A hook whose declared
+// inputs fully determine its outputs becomes eligible for startup cache reuse:
+// its declared inputs are folded into the build's startup input set and
+// validated on every startup like any other build input. A nil provenance
+// registers an undeclared, always-building hook.
+func (c *Controller) AddPreBuildHookWithProvenance(hook PreBuildHook, provenance *PreBuildHookProvenance) {
 	if hook != nil {
-		c.preBuildHooks = append(c.preBuildHooks, hook)
+		c.preBuildHooks = append(c.preBuildHooks, preBuildHookEntry{hook: hook, provenance: provenance})
 	}
 }
 
@@ -119,8 +140,16 @@ func (c *Controller) Execute(ctx context.Context) error {
 }
 
 // SupportsStartupManifestCache returns true if startup cache reuse is safe.
+// Reuse is safe when every registered pre-build hook has declared complete
+// deterministic provenance; an undeclared hook keeps the compiler
+// always-building.
 func (c *Controller) SupportsStartupManifestCache() bool {
-	return len(c.preBuildHooks) == 0
+	for _, entry := range c.preBuildHooks {
+		if entry.provenance == nil {
+			return false
+		}
+	}
+	return true
 }
 
 // BuildManifest compiles the manifest with the given builder args.
@@ -210,15 +239,24 @@ func (c *Controller) BuildManifest(
 	// apply the per-platform-type configs
 	buildCtrlConf.FlattenPlatformTypes(buildPlatform)
 
-	// call any pre-build hooks
-	for _, hook := range c.preBuildHooks {
-		res, err := hook(ctx, builderConf, buildWorld)
+	// call any pre-build hooks, folding each hook's declared deterministic
+	// provenance into the build's startup input set so the cache validates hook
+	// inputs like any other build input. Undeclared hooks contribute nothing and
+	// the compiler stays startup-cache-ineligible.
+	var hookStartupInputPaths []string
+	var hookEnvStartupInputs []*bldr_manifest_builder.InputManifest_StartupInput
+	for _, entry := range c.preBuildHooks {
+		res, err := entry.hook(ctx, builderConf, buildWorld)
 		if err != nil {
 			return nil, err
 		}
 
 		// merge the returned config
 		buildCtrlConf.Merge(res.GetConfig())
+
+		// record the hook's declared deterministic provenance
+		hookStartupInputPaths = append(hookStartupInputPaths, entry.provenance.StartupInputPaths(builderConf.GetSourcePath())...)
+		hookEnvStartupInputs = append(hookEnvStartupInputs, entry.provenance.EnvStartupInputs()...)
 	}
 
 	// Compact web packages list
@@ -540,6 +578,8 @@ func (c *Controller) BuildManifest(
 	} else if !os.IsNotExist(err) {
 		return nil, err
 	}
+	// Declared pre-build hook file provenance validates like any source input.
+	startupInputPaths = append(startupInputPaths, hookStartupInputPaths...)
 	for i, inputPath := range startupInputPaths {
 		if !filepath.IsAbs(inputPath) {
 			startupInputPaths[i] = filepath.Join(builderConf.GetSourcePath(), filepath.FromSlash(inputPath))
@@ -578,6 +618,13 @@ func (c *Controller) BuildManifest(
 	// Create the InputManifest object. Sub-manifest source files and the
 	// entrypoint bundle graph jointly determine the cached JS artifact.
 	inputManifest := bldr_manifest_builder.NewInputManifest(startupInputPaths, inputManifestMetaBin)
+
+	// Fold declared pre-build hook environment provenance into the startup inputs
+	// so a changed value invalidates the cache on the next startup.
+	for _, envInput := range hookEnvStartupInputs {
+		inputManifest.AddStartupInput(envInput)
+	}
+	inputManifest.SortStartupInputs()
 
 	// -- Commit assets to the manifest store --
 	tx, err := buildWorld.NewTransaction(ctx, true)

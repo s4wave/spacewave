@@ -231,7 +231,75 @@ func TestPluginCompilerJsStartupCacheRequiresStaticInputs(t *testing.T) {
 		return nil, nil
 	})
 	if ctrl.SupportsStartupManifestCache() {
-		t.Fatal("JS compiler with dynamic pre-build hooks must bypass startup cache")
+		t.Fatal("JS compiler with an undeclared pre-build hook must bypass startup cache")
+	}
+}
+
+func TestPluginCompilerJsStartupCacheHonorsDeclaredProvenance(t *testing.T) {
+	noopHook := func(
+		context.Context,
+		*bldr_manifest_builder.BuilderConfig,
+		world.Engine,
+	) (*bldr_plugin_compiler_js.PreBuildHookResult, error) {
+		return nil, nil
+	}
+
+	// A hook that declares complete deterministic provenance is cache-eligible.
+	ctrl := &bldr_plugin_compiler_js.Controller{}
+	ctrl.AddPreBuildHookWithProvenance(noopHook, &bldr_plugin_compiler_js.PreBuildHookProvenance{
+		InputFiles: []string{"hook/input.json"},
+		EnvVars:    []string{"BLDR_TEST_HOOK_ENV"},
+	})
+	if !ctrl.SupportsStartupManifestCache() {
+		t.Fatal("JS compiler with a declared-provenance hook must support startup cache")
+	}
+
+	// A single undeclared hook among declared ones still forces always-build.
+	ctrl.AddPreBuildHookWithProvenance(noopHook, nil)
+	if ctrl.SupportsStartupManifestCache() {
+		t.Fatal("JS compiler with any undeclared hook must bypass startup cache")
+	}
+}
+
+func TestPreBuildHookProvenanceResolvesStartupInputs(t *testing.T) {
+	t.Setenv("BLDR_TEST_HOOK_ENV", "declared-value")
+	provenance := &bldr_plugin_compiler_js.PreBuildHookProvenance{
+		InputFiles: []string{"hook/input.json", "", "/abs/input.txt"},
+		EnvVars:    []string{"BLDR_TEST_HOOK_ENV", ""},
+	}
+
+	paths := provenance.StartupInputPaths("/src/root")
+	wantPaths := []string{
+		filepath.Join("/src/root", "hook", "input.json"),
+		"/abs/input.txt",
+	}
+	if len(paths) != len(wantPaths) {
+		t.Fatalf("expected %d startup input paths, got %d: %v", len(wantPaths), len(paths), paths)
+	}
+	for i, want := range wantPaths {
+		if paths[i] != want {
+			t.Fatalf("startup input path[%d] = %q, want %q", i, paths[i], want)
+		}
+	}
+
+	envInputs := provenance.EnvStartupInputs()
+	if len(envInputs) != 1 {
+		t.Fatalf("expected 1 env startup input, got %d", len(envInputs))
+	}
+	if got := envInputs[0].GetKey(); got != "BLDR_TEST_HOOK_ENV" {
+		t.Fatalf("env startup input key = %q, want BLDR_TEST_HOOK_ENV", got)
+	}
+	if got := envInputs[0].GetStringValue(); got != "declared-value" {
+		t.Fatalf("env startup input value = %q, want declared-value", got)
+	}
+
+	// A nil provenance (undeclared hook) contributes no inputs.
+	var nilProvenance *bldr_plugin_compiler_js.PreBuildHookProvenance
+	if got := nilProvenance.StartupInputPaths("/src/root"); got != nil {
+		t.Fatalf("nil provenance produced startup input paths: %v", got)
+	}
+	if got := nilProvenance.EnvStartupInputs(); got != nil {
+		t.Fatalf("nil provenance produced env startup inputs: %v", got)
 	}
 }
 

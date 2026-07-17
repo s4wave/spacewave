@@ -424,6 +424,74 @@ func TestValidateStartupInputsRejectsOldCacheFormat(t *testing.T) {
 	}
 }
 
+func TestValidateStartupHookDeclaredProvenanceInvalidation(t *testing.T) {
+	t.Setenv("BLDR_TEST_HOOK_ENV", "declared-value")
+	tmpDir := t.TempDir()
+	hookInputPath := filepath.Join(tmpDir, "hook", "input.json")
+	if err := os.MkdirAll(filepath.Dir(hookInputPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(hookInputPath, []byte("{\"v\":1}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	controllerConfig := &configset_proto.ControllerConfig{}
+	meta := bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1)
+	builderConfig := &bldr_manifest_builder.BuilderConfig{ManifestMeta: meta, SourcePath: tmpDir}
+
+	// Mirror the JS compiler folding a declared-provenance hook's inputs: the
+	// declared file becomes an input file and the declared env var a startup
+	// input, then generic enrichment adds the config digest and format marker.
+	buildInputManifest := func() *bldr_manifest_builder.InputManifest {
+		inputManifest := bldr_manifest_builder.NewInputManifest([]string{"hook/input.json"}, nil)
+		inputManifest.AddStartupInput(
+			bldr_manifest_builder.NewEnvStartupInput("BLDR_TEST_HOOK_ENV", os.Getenv("BLDR_TEST_HOOK_ENV")),
+		)
+		builderResult := bldr_manifest_builder.NewBuilderResult(
+			bldr_manifest.NewManifest(meta, "dist/demo"),
+			&bucket.ObjectRef{BucketId: "manifest-bucket"},
+			inputManifest,
+		)
+		if err := enrichBuilderResultForStartupReuse(builderConfig, controllerConfig, builderResult); err != nil {
+			t.Fatal(err)
+		}
+		return builderResult.GetInputManifest()
+	}
+
+	// Unchanged declared provenance reuses the cache.
+	inputManifest := buildInputManifest()
+	if err := validateStartupFiles(tmpDir, inputManifest); err != nil {
+		t.Fatalf("unchanged declared file validation: %v", err)
+	}
+	if err := validateStartupInputs(controllerConfig, inputManifest); err != nil {
+		t.Fatalf("unchanged declared env validation: %v", err)
+	}
+
+	// A changed declared input file forces a rebuild.
+	if err := os.WriteFile(hookInputPath, []byte("{\"v\":2}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateStartupFiles(tmpDir, inputManifest); err == nil {
+		t.Fatal("expected rebuild after declared input file changed")
+	}
+
+	// A changed declared environment variable forces a rebuild.
+	fresh := buildInputManifest()
+	t.Setenv("BLDR_TEST_HOOK_ENV", "changed-value")
+	if err := validateStartupInputs(controllerConfig, fresh); err == nil {
+		t.Fatal("expected rebuild after declared env var changed")
+	}
+	// An unset declared environment variable still participates in identity.
+	if err := os.Unsetenv("BLDR_TEST_HOOK_ENV"); err != nil {
+		t.Fatal(err)
+	}
+	unset := buildInputManifest()
+	t.Setenv("BLDR_TEST_HOOK_ENV", "set-after-unset")
+	if err := validateStartupInputs(controllerConfig, unset); err == nil {
+		t.Fatal("expected rebuild after declared env var changed from unset")
+	}
+}
+
 func TestEnrichBuilderResultForStartupReuse(t *testing.T) {
 	tmpDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
