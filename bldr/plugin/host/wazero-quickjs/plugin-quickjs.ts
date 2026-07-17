@@ -9,6 +9,7 @@ import { pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
 import { applyPolyfills } from './quickjs/polyfill.js'
 import { BackendApiImpl } from '../../../sdk/impl/backend-api.js'
+import { PluginHostRoot } from '../../../sdk/plugin/host/plugin-host-root.js'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 
 // Utility function to properly log errors
@@ -151,6 +152,12 @@ async function startPlugin() {
 
   // Call the imported module's main function, passing the API implementation.
   await script.default(backendAPI, abortSignal)
+  {
+    using pluginHostRoot = new PluginHostRoot(
+      await backendAPI.resourceClient.accessRootResource(),
+    )
+    await pluginHostRoot.completeInitialCapabilityRegistration(abortSignal)
+  }
   await pluginLifetime
 }
 
