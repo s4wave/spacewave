@@ -34,6 +34,10 @@ const bundleCacheDirName = ".bundle-cache"
 // esbuildModulePath is the Go module path of the vendored esbuild compiler.
 const esbuildModulePath = "github.com/aperturerobotics/esbuild"
 
+// esbuildPinnedVersion is the module version compiled into this checkout. It
+// must be updated with the dependency and cache format when build info is absent.
+const esbuildPinnedVersion = "v0.24.1-0.20260219011422-6d4b923e2023"
+
 // bundleCache reuses browser bundle outputs only when their complete deterministic
 // provenance and output content are still valid.
 type bundleCache struct {
@@ -419,12 +423,13 @@ func parseIdentity(item *fastjson.Value) (*bldr_manifest_builder.InputManifest_F
 	}, nil
 }
 
-// esbuildCompilerID returns the vendored esbuild module version. An unavailable
-// or development version is empty, which deliberately disables cache reuse.
+// esbuildCompilerID returns the vendored esbuild module version. The pinned
+// fallback keeps cache identity stable for test binaries without build info.
 func esbuildCompilerID() string {
+	fallback := "esbuild@" + esbuildPinnedVersion
 	info, ok := debug.ReadBuildInfo()
 	if !ok {
-		return ""
+		return fallback
 	}
 	for _, dep := range info.Deps {
 		if dep.Path != esbuildModulePath {
@@ -435,11 +440,11 @@ func esbuildCompilerID() string {
 			version = dep.Replace.Path + "@" + dep.Replace.Version
 		}
 		if version == "" || version == "(devel)" {
-			return ""
+			return fallback
 		}
 		return "esbuild@" + version
 	}
-	return ""
+	return fallback
 }
 
 // runEsbuildBundle runs opts with a metafile and returns the consumed input file paths.
