@@ -2431,11 +2431,12 @@ func TestForgeScenarioSequence(t *testing.T) {
 // TestForgeWorkerExecution verifies binding approval starts the quickstart
 // worker and drives the Forge pass/execution path to durable completion.
 func TestForgeWorkerExecution(t *testing.T) {
-	sess := harness(t).NewCleanSession(t)
+	h := harness(t)
+	sess := h.NewCleanSession(t)
 
-	scenario := CreateForgeScenario(t, harness(t), sess)
+	scenario := CreateForgeScenario(t, h, sess)
 	page := scenario.GetSession().Page()
-	WaitForForgeReady(t, harness(t), page)
+	WaitForForgeReady(t, h, page)
 
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
 	defer cancel()
@@ -2470,7 +2471,7 @@ func TestForgeWorkerExecution(t *testing.T) {
 		t.Fatalf("expected approved worker binding, got %+v", state.GetProcessBindings())
 	}
 
-	job, err := forge_job.WaitJobComplete(ctx, nil, mounted.engWs, jobKey)
+	job, err := forge_job.WaitJobComplete(ctx, h.le, mounted.engWs, jobKey)
 	if err != nil {
 		t.Fatalf("WaitJobComplete: %v", err)
 	}
