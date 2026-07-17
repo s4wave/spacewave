@@ -5,6 +5,8 @@ package entrypoint_browser_bundle
 import (
 	"os"
 	"path/filepath"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
@@ -46,7 +48,11 @@ func (f *bundleCacheFixture) write(t *testing.T, rel, content string) {
 }
 
 func (f *bundleCacheFixture) newCache() *bundleCache {
-	return newBundleCache(logrus.NewEntry(logrus.New()), f.buildDir, f.baseRoot)
+	cache := newBundleCache(logrus.NewEntry(logrus.New()), f.buildDir, f.baseRoot)
+	// Test binaries may not carry module build information. The production path
+	// disables reuse in that case; this explicit identity tests cache mechanics.
+	cache.compilerID = "test-esbuild@pinned"
+	return cache
 }
 
 func (f *bundleCacheFixture) opts(entryRel string) esbuild.BuildOptions {
@@ -77,10 +83,14 @@ func (f *bundleCacheFixture) build(t *testing.T, cache *bundleCache, name, entry
 		if err != nil {
 			return nil, err
 		}
+		verify, err := resultOutputPaths(result, f.buildDir)
+		if err != nil {
+			return nil, err
+		}
 		return &bundleBuildOutput{
 			inputs: inputs,
 			values: map[string]string{"filename": filename},
-			verify: []string{filename},
+			verify: verify,
 		}, nil
 	})
 	if err != nil {
@@ -121,14 +131,12 @@ func TestBundleCacheWarmReuseZeroBuilds(t *testing.T) {
 }
 
 // TestBundleCacheContentKeyedIgnoresModtime proves a rewritten-but-identical
-// source tree (fresh modification times, unchanged bytes) still reuses, matching
-// the harness re-syncing its dist sources on every boot.
+// source tree still reuses, matching the harness re-syncing its dist sources.
 func TestBundleCacheContentKeyedIgnoresModtime(t *testing.T) {
 	f := newBundleCacheFixture(t)
 	cold := f.newCache()
 	f.build(t, cold, "renderer", "renderer.ts")
 
-	// Rewrite both inputs with identical content, bumping their modtimes.
 	f.write(t, "renderer.ts", "import {shared} from './shared'\nexport const renderer = shared + 1\n")
 	f.write(t, "shared.ts", "export const shared = 1\n")
 
@@ -138,46 +146,180 @@ func TestBundleCacheContentKeyedIgnoresModtime(t *testing.T) {
 	}
 }
 
-// TestBundleCacheEntrypointSourceInvalidatesOnlyRenderer proves touching a
-// renderer-graph source rebuilds only the renderer bundle.
-func TestBundleCacheEntrypointSourceInvalidatesOnlyRenderer(t *testing.T) {
+// TestBundleCacheFourBundleInvalidation proves one changed graph rebuilds only
+// its own service, shared, OPFS, or renderer bundle kind.
+func TestBundleCacheFourBundleInvalidation(t *testing.T) {
+	f := newBundleCacheFixture(t)
+	entries := []struct {
+		name  string
+		entry string
+	}{
+		{"service-worker", "service.ts"},
+		{"shared-worker", "shared-worker.ts"},
+		{"opfs-worker", "opfs.ts"},
+		{"renderer", "renderer.ts"},
+	}
+	f.write(t, "service.ts", "export const service = 1\n")
+	f.write(t, "shared-worker.ts", "export const sharedWorker = 1\n")
+	f.write(t, "opfs.ts", "export const opfs = 1\n")
+
+	cold := f.newCache()
+	for _, item := range entries {
+		if !f.build(t, cold, item.name, item.entry) {
+			t.Fatalf("cold %s build should compile", item.name)
+		}
+	}
+	f.write(t, "service.ts", "export const service = 2\n")
+
+	warm := f.newCache()
+	for _, item := range entries {
+		built := f.build(t, warm, item.name, item.entry)
+		if item.name == "service-worker" && !built {
+			t.Fatal("service-worker should rebuild after its input changed")
+		}
+		if item.name != "service-worker" && built {
+			t.Fatalf("%s rebuilt after an unrelated service-worker input change", item.name)
+		}
+	}
+	if warm.Builds() != 1 || warm.Reuses() != 3 {
+		t.Fatalf("warm seam counts = built %d reused %d, want 1 and 3", warm.Builds(), warm.Reuses())
+	}
+}
+
+// TestBundleCacheOutputContentInvalidates proves a damaged output cannot be
+// reused even when its size and modification time are unchanged.
+func TestBundleCacheOutputContentInvalidates(t *testing.T) {
 	f := newBundleCacheFixture(t)
 	cold := f.newCache()
 	f.build(t, cold, "renderer", "renderer.ts")
-	f.build(t, cold, "worker", "worker.ts")
 
-	f.write(t, "shared.ts", "export const shared = 42\n")
+	outputPath := filepath.Join(f.buildDir, "renderer.js")
+	info, err := os.Stat(outputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	contents, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	contents[0] ^= 1
+	if err := os.WriteFile(outputPath, contents, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(outputPath, info.ModTime(), info.ModTime()); err != nil {
+		t.Fatal(err)
+	}
 
 	warm := f.newCache()
 	if !f.build(t, warm, "renderer", "renderer.ts") {
-		t.Fatal("renderer should rebuild after its input changed")
-	}
-	if f.build(t, warm, "worker", "worker.ts") {
-		t.Fatal("worker should reuse when only a renderer input changed")
+		t.Fatal("renderer should rebuild after output content corruption")
 	}
 }
 
-// TestBundleCacheWorkerSourceInvalidatesOnlyWorker proves touching a worker-graph
-// source rebuilds only that worker bundle.
-func TestBundleCacheWorkerSourceInvalidatesOnlyWorker(t *testing.T) {
+// TestBundleCacheConfigInputsInvalidate proves tsconfig changes invalidate the
+// bundle even though esbuild does not report the config in its input graph.
+func TestBundleCacheConfigInputsInvalidate(t *testing.T) {
 	f := newBundleCacheFixture(t)
+	f.write(t, "tsconfig.json", `{"compilerOptions":{"target":"ES2022"}}`)
 	cold := f.newCache()
 	f.build(t, cold, "renderer", "renderer.ts")
-	f.build(t, cold, "worker", "worker.ts")
 
-	f.write(t, "worker-impl.ts", "export function run() { return 99 }\n")
-
+	f.write(t, "tsconfig.json", `{"compilerOptions":{"target":"ES2020"}}`)
 	warm := f.newCache()
-	if !f.build(t, warm, "worker", "worker.ts") {
-		t.Fatal("worker should rebuild after its input changed")
-	}
-	if f.build(t, warm, "renderer", "renderer.ts") {
-		t.Fatal("renderer should reuse when only a worker input changed")
+	if !f.build(t, warm, "renderer", "renderer.ts") {
+		t.Fatal("renderer should rebuild after tsconfig changed")
 	}
 }
 
-// TestBundleCacheConfigDigestChangeRebuilds proves a config change (unrelated to
-// source files) invalidates reuse.
+// TestBundleCacheCompilerIdentityRequired proves a process without a pinned
+// esbuild module identity always builds rather than guessing compatibility.
+func TestBundleCacheCompilerIdentityRequired(t *testing.T) {
+	f := newBundleCacheFixture(t)
+	cache := f.newCache()
+	cache.compilerID = ""
+	if !f.build(t, cache, "renderer", "renderer.ts") {
+		t.Fatal("compiler-unknown build should compile")
+	}
+	if !f.build(t, cache, "renderer", "renderer.ts") {
+		t.Fatal("compiler-unknown build should always compile")
+	}
+	if cache.Reuses() != 0 {
+		t.Fatal("compiler-unknown build reused a cache record")
+	}
+}
+
+// TestBundleCacheVirtualInputAlwaysBuilds proves an input the cache cannot map
+// to a file is treated as incomplete provenance rather than cached optimistically.
+func TestBundleCacheVirtualInputAlwaysBuilds(t *testing.T) {
+	f := newBundleCacheFixture(t)
+	opts := f.opts("renderer.ts")
+	cache := f.newCache()
+	build := func() {
+		_, err := cache.build("virtual", opts, nil, func() (*bundleBuildOutput, error) {
+			result, _, err := runEsbuildBundle(opts)
+			if err != nil {
+				return nil, err
+			}
+			verify, err := resultOutputPaths(result, f.buildDir)
+			if err != nil {
+				return nil, err
+			}
+			return &bundleBuildOutput{inputs: []string{"virtual:generated"}, verify: verify}, nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	build()
+	build()
+	if cache.Builds() != 2 || cache.Reuses() != 0 {
+		t.Fatalf("virtual input seam counts = built %d reused %d, want 2 and 0", cache.Builds(), cache.Reuses())
+	}
+}
+
+// TestBundleCacheConcurrentBuilds proves same-name builds serialize through the
+// shared cache lock and cannot publish competing provenance records.
+func TestBundleCacheConcurrentBuilds(t *testing.T) {
+	f := newBundleCacheFixture(t)
+	opts := f.opts("renderer.ts")
+	var callbackBuilds atomic.Int32
+	start := make(chan struct{})
+	errs := make(chan error, 2)
+	var wg sync.WaitGroup
+	for range 2 {
+		cache := f.newCache()
+		wg.Go(func() {
+			<-start
+			_, err := cache.build("renderer", opts, nil, func() (*bundleBuildOutput, error) {
+				callbackBuilds.Add(1)
+				result, inputs, err := runEsbuildBundle(opts)
+				if err != nil {
+					return nil, err
+				}
+				verify, err := resultOutputPaths(result, f.buildDir)
+				if err != nil {
+					return nil, err
+				}
+				return &bundleBuildOutput{inputs: inputs, verify: verify}, nil
+			})
+			errs <- err
+		})
+	}
+	close(start)
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if callbackBuilds.Load() != 1 {
+		t.Fatalf("concurrent build callbacks = %d, want 1", callbackBuilds.Load())
+	}
+}
+
+// TestBundleCacheConfigDigestChangeRebuilds proves a config change unrelated to
+// source files invalidates reuse.
 func TestBundleCacheConfigDigestChangeRebuilds(t *testing.T) {
 	f := newBundleCacheFixture(t)
 	cold := f.newCache()
@@ -185,18 +327,18 @@ func TestBundleCacheConfigDigestChangeRebuilds(t *testing.T) {
 
 	warm := f.newCache()
 	opts := f.opts("renderer.ts")
-	opts.MinifySyntax = true // change the esbuild option digest
+	opts.MinifySyntax = true
 	before := warm.Builds()
 	_, err := warm.build("renderer", opts, nil, func() (*bundleBuildOutput, error) {
 		result, inputs, err := runEsbuildBundle(opts)
 		if err != nil {
 			return nil, err
 		}
-		filename, err := singleWorkerOutputName(result)
+		verify, err := resultOutputPaths(result, f.buildDir)
 		if err != nil {
 			return nil, err
 		}
-		return &bundleBuildOutput{inputs: inputs, values: map[string]string{"filename": filename}, verify: []string{filename}}, nil
+		return &bundleBuildOutput{inputs: inputs, verify: verify}, nil
 	})
 	if err != nil {
 		t.Fatalf("build: %v", err)
@@ -206,8 +348,8 @@ func TestBundleCacheConfigDigestChangeRebuilds(t *testing.T) {
 	}
 }
 
-// TestBundleCacheExtraDigestChangeRebuilds proves a non-esbuild input change
-// (for example the renderer index-map digest) invalidates reuse.
+// TestBundleCacheExtraDigestChangeRebuilds proves a non-esbuild input change,
+// such as the renderer index-map digest, invalidates reuse.
 func TestBundleCacheExtraDigestChangeRebuilds(t *testing.T) {
 	f := newBundleCacheFixture(t)
 	opts := f.opts("renderer.ts")
@@ -218,11 +360,11 @@ func TestBundleCacheExtraDigestChangeRebuilds(t *testing.T) {
 			if err != nil {
 				return nil, err
 			}
-			filename, err := singleWorkerOutputName(result)
+			verify, err := resultOutputPaths(result, f.buildDir)
 			if err != nil {
 				return nil, err
 			}
-			return &bundleBuildOutput{inputs: inputs, values: map[string]string{"filename": filename}, verify: []string{filename}}, nil
+			return &bundleBuildOutput{inputs: inputs, verify: verify}, nil
 		})
 		if err != nil {
 			t.Fatalf("build: %v", err)
@@ -241,8 +383,7 @@ func TestBundleCacheExtraDigestChangeRebuilds(t *testing.T) {
 	}
 }
 
-// TestBundleCacheMissingOutputRebuilds proves a removed output file invalidates
-// reuse even when the inputs are unchanged.
+// TestBundleCacheMissingOutputRebuilds proves a removed output invalidates reuse.
 func TestBundleCacheMissingOutputRebuilds(t *testing.T) {
 	f := newBundleCacheFixture(t)
 	cold := f.newCache()

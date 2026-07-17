@@ -46,17 +46,15 @@ func CaptureFileIdentity(filePath string) (*InputManifest_FileIdentity, error) {
 
 // MatchesFile reports whether the file at filePath still matches this identity.
 //
-// It compares size and modification time first, then falls back to a SHA-256
-// content comparison so a rewritten-but-identical file, such as a source tree
-// re-synced with fresh modification times, does not force a rebuild.
+// It compares the SHA-256 digest on every validation. Size and modification
+// time remain recorded as diagnostics but are not trusted as content identity.
 func (id *InputManifest_FileIdentity) MatchesFile(filePath string) (bool, error) {
+	if len(id.GetSha256()) == 0 {
+		return false, nil
+	}
 	current, err := CaptureFileIdentity(filePath)
 	if err != nil {
 		return false, err
-	}
-	if id.GetSizeBytes() == current.GetSizeBytes() &&
-		id.GetModTimeUnixNano() == current.GetModTimeUnixNano() {
-		return true, nil
 	}
 	return bytes.Equal(id.GetSha256(), current.GetSha256()), nil
 }

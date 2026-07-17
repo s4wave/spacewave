@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"io"
 	"maps"
 	"os"
 	"path"
@@ -342,18 +341,13 @@ func validateStartupFiles(sourcePath string, inputManifest *bldr_manifest_builde
 			return errors.Errorf("startup file %q is missing cached identity", inputFile.GetPath())
 		}
 		filePath := resolveStartupInputPath(sourcePath, inputFile.GetPath())
-		currentIdentity, err := captureFileIdentity(filePath)
+		match, err := fileIdentity.MatchesFile(filePath)
 		if err != nil {
 			return errors.Wrapf(err, "validate startup file %q", inputFile.GetPath())
 		}
-		if fileIdentity.GetSizeBytes() == currentIdentity.GetSizeBytes() &&
-			fileIdentity.GetModTimeUnixNano() == currentIdentity.GetModTimeUnixNano() {
-			continue
+		if !match {
+			return errors.Errorf("startup file %q changed", inputFile.GetPath())
 		}
-		if bytes.Equal(fileIdentity.GetSha256(), currentIdentity.GetSha256()) {
-			continue
-		}
-		return errors.Errorf("startup file %q changed", inputFile.GetPath())
 	}
 	return nil
 }
@@ -427,7 +421,9 @@ func newStartupCacheFormatInput() *bldr_manifest_builder.InputManifest_StartupIn
 // captureFileIdentities captures file identities on all input manifest files.
 func captureFileIdentities(sourcePath string, inputManifest *bldr_manifest_builder.InputManifest) error {
 	for _, inputFile := range inputManifest.GetFiles() {
-		fileIdentity, err := captureFileIdentity(resolveStartupInputPath(sourcePath, inputFile.GetPath()))
+		fileIdentity, err := bldr_manifest_builder.CaptureFileIdentity(
+			resolveStartupInputPath(sourcePath, inputFile.GetPath()),
+		)
 		if err != nil {
 			return errors.Wrapf(err, "capture startup identity for %q", inputFile.GetPath())
 		}
@@ -466,37 +462,6 @@ func resolveStartupInputPath(sourcePath, inputPath string) string {
 	}
 
 	return filePath
-}
-
-// captureFileIdentity captures the file identity for one path.
-func captureFileIdentity(filePath string) (*bldr_manifest_builder.InputManifest_FileIdentity, error) {
-	fileInfo, err := os.Stat(filePath)
-	if err != nil {
-		return nil, err
-	}
-	if fileInfo.IsDir() {
-		return nil, errors.Errorf("path is a directory: %s", filePath)
-	}
-
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	h := sha256.New()
-	if _, err := io.Copy(h, file); err != nil {
-		return nil, err
-	}
-	if fileInfo.Size() < 0 {
-		return nil, errors.Errorf("negative file size: %d", fileInfo.Size())
-	}
-	return &bldr_manifest_builder.InputManifest_FileIdentity{
-		// #nosec G115 -- fileInfo.Size() is validated as non-negative immediately above.
-		SizeBytes:       uint64(fileInfo.Size()),
-		ModTimeUnixNano: fileInfo.ModTime().UnixNano(),
-		Sha256:          h.Sum(nil),
-	}, nil
 }
 
 // marshalControllerConfigDigest marshals the controller config to a digest.

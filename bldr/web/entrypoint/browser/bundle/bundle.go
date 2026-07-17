@@ -1135,13 +1135,6 @@ func collectRendererCSSPaths(res esbuild.BuildResult, buildDir string) []string 
 
 // rendererEntrypointRelPath returns the renderer entrypoint output path relative
 // to the build dir.
-func rendererEntrypointRelPath(entrypointHash string) string {
-	entrypointPath := "entrypoint"
-	if entrypointHash != "" {
-		entrypointPath += "/" + entrypointHash
-	}
-	return entrypointPath + "/entrypoint.mjs"
-}
 
 // BuildBrowserBundle builds and outputs the web & service worker files.
 //
@@ -1166,8 +1159,18 @@ func BuildBrowserBundle(
 	forceDedicatedWorkers,
 	forceMessagePortWorkerComms bool,
 ) (*BrowserBundleResult, error) {
-	err := os.MkdirAll(buildDir, 0o755)
+	if err := os.MkdirAll(buildDir, 0o755); err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	buildLock, err := acquireBundleCacheLock(filepath.Join(buildDir, bundleCacheDirName, "build.lock"))
 	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = buildLock.Close() }()
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
