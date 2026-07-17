@@ -23,7 +23,7 @@ func readVideoFixture(t testing.TB, name string) []byte {
 func waitForDriveEntry(t testing.TB, page playwright.Page, name string) {
 	t.Helper()
 
-	err := page.Locator("[data-testid='unixfs-browser'] [role='row']:has-text('" + name + "')").First().WaitFor()
+	err := visibleDriveBrowser(page).Locator("[role='row']:has-text('" + name + "')").First().WaitFor()
 	if err != nil {
 		t.Fatalf("wait for drive entry %q: %v", name, err)
 	}
@@ -32,27 +32,17 @@ func waitForDriveEntry(t testing.TB, page playwright.Page, name string) {
 func openDriveEntry(t testing.TB, page playwright.Page, name string) {
 	t.Helper()
 
-	row := page.Locator("[data-testid='unixfs-browser'] [role='row']:has-text('" + name + "')").First()
+	row := visibleDriveBrowser(page).Locator("[role='row']:has-text('" + name + "')").First()
 	if err := row.WaitFor(); err != nil {
 		t.Fatalf("wait for %s row: %v", name, err)
 	}
-	_, err := page.Evaluate(`({name}) => {
-		const browser = document.querySelector('[data-testid="unixfs-browser"]')
-		if (!(browser instanceof HTMLElement)) {
-			throw new Error('drive browser not found')
-		}
-		const row = Array.from(browser.querySelectorAll('[role="row"]')).find((el) => {
-			return el instanceof HTMLElement && el.textContent?.includes(name)
-		})
-		if (!(row instanceof HTMLElement)) {
-			throw new Error('drive entry row not found: ' + name)
-		}
+	_, err := row.Evaluate(`(row) => {
 		row.dispatchEvent(new MouseEvent('dblclick', {
 			bubbles: true,
 			cancelable: true,
 			view: window,
 		}))
-	}`, map[string]any{"name": name})
+	}`, nil)
 	if err != nil {
 		t.Fatalf("open %s row: %v", name, err)
 	}

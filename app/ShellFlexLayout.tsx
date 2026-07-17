@@ -396,6 +396,7 @@ function ShellTabStripInner({
     }
     initializedRef.current = true
     markShellEngaged()
+    handleHashChange()
   }, [activeTabId, isGridMode, markShellEngaged, model, tabs])
 
   // Sync URL hash when active tab selection changes (after initialization).
@@ -443,6 +444,7 @@ function ShellTabStripInner({
 
   // Listen for hash changes (back/forward navigation)
   const handleHashChange = useEffectEvent(() => {
+    if (!initializedRef.current) return
     // Don't handle hash changes in grid mode
     if (isGridMode()) return
 
@@ -497,8 +499,6 @@ function ShellTabStripInner({
   })
 
   useEffect(() => {
-    if (!initializedRef.current) return
-
     const onHashChange = () => {
       handleHashChange()
     }

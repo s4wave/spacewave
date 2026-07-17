@@ -183,12 +183,16 @@ func NavigateHash(t testing.TB, h *Harness, page playwright.Page, hash string) {
 	}
 }
 
+func visibleDriveBrowser(page playwright.Page) playwright.Locator {
+	return page.Locator("[data-testid='unixfs-browser']:visible").First()
+}
+
 // WaitForDriveShell waits for the drive viewer shell to render.
 func WaitForDriveShell(t testing.TB, page playwright.Page) {
 	t.Helper()
 
 	CompleteDriveIntroWizardIfPresent(t, page)
-	err := page.Locator("[data-testid='unixfs-browser']").WaitFor(
+	err := visibleDriveBrowser(page).WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(120000)},
 	)
 	if err != nil {

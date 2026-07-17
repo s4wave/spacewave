@@ -596,6 +596,26 @@ describe('ShellTabStrip', () => {
     })
   })
 
+  it('reconciles a hash change received during fresh tab creation', async () => {
+    const browser = restoreTestBrowser
+    if (!browser) throw new Error('Shell Tab test browser is not installed.')
+    const blockedMutation = browser.blockNextMutation()
+
+    render(<ShellTabStrip entry={continuationEntry} />)
+
+    await blockedMutation
+    act(() => {
+      window.location.hash = '#/changelog'
+    })
+    browser.releaseBlockedMutation()
+
+    await waitFor(() => {
+      expect(readShellTabsSnapshot().records).toEqual([
+        expect.objectContaining({ path: '/changelog' }),
+      ])
+    })
+  })
+
   it('retains the shell tabset while records hydrate asynchronously', async () => {
     localStorage.clear()
     resetBrowserShellTabsStoreForTests()

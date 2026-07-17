@@ -19,11 +19,12 @@ const (
 func createDriveFolder(t testing.TB, page playwright.Page, name string) {
 	t.Helper()
 
+	browser := visibleDriveBrowser(page)
 	waitForDriveSettled(t, page)
-	if err := page.Locator("button[title='New folder']:not([disabled])").First().Click(); err != nil {
+	if err := browser.Locator("button[title='New folder']:not([disabled])").Click(); err != nil {
 		t.Fatalf("click new folder: %v", err)
 	}
-	input := page.Locator("input[placeholder='Folder name']").First()
+	input := browser.Locator("input[placeholder='Folder name']")
 	if err := input.WaitFor(); err != nil {
 		t.Fatalf("wait for new folder input %q: %v", name, err)
 	}
@@ -39,7 +40,7 @@ func createDriveFolder(t testing.TB, page playwright.Page, name string) {
 func waitForDriveSettled(t testing.TB, page playwright.Page) {
 	t.Helper()
 
-	diagnostics := page.Locator("[data-testid='unixfs-loading-diagnostics']")
+	diagnostics := visibleDriveBrowser(page).Locator("[data-testid='unixfs-loading-diagnostics']")
 	if err := diagnostics.WaitFor(playwright.LocatorWaitForOptions{
 		State: playwright.WaitForSelectorStateHidden,
 	}); err != nil {
@@ -51,7 +52,7 @@ func openGettingStartedFile(t testing.TB, page playwright.Page) {
 	t.Helper()
 
 	waitForDriveEntry(t, page, gettingStartedFileName)
-	row := page.Locator("[data-testid='unixfs-browser'] [role='row']:has-text('" + gettingStartedFileName + "')").First()
+	row := visibleDriveBrowser(page).Locator("[role='row']:has-text('" + gettingStartedFileName + "')").First()
 	if err := row.Dblclick(); err != nil {
 		t.Fatalf("open %s row: %v", gettingStartedFileName, err)
 	}
@@ -61,7 +62,7 @@ func openGettingStartedFile(t testing.TB, page playwright.Page) {
 func waitForGettingStartedContentView(t testing.TB, page playwright.Page) {
 	t.Helper()
 
-	content := page.Locator("[data-testid='unixfs-browser'] pre").First()
+	content := visibleDriveBrowser(page).Locator("pre").First()
 	if err := content.WaitFor(); err != nil {
 		t.Fatalf("wait for %s content view: %v", gettingStartedFileName, err)
 	}
