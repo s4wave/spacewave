@@ -5,9 +5,11 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
+	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
@@ -16,12 +18,10 @@ import (
 	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
 	unixfs_rpc_server "github.com/s4wave/spacewave/db/unixfs/rpc/server"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
-	s4wave_plugin "github.com/s4wave/spacewave/sdk/plugin"
 	"github.com/sirupsen/logrus"
 )
-
-const corePluginID = "spacewave-core"
 
 // PluginHostRoot is the root resource handler for plugins.
 // It wraps all plugin resources and implements PluginHostResourceService.
@@ -44,15 +44,19 @@ type PluginHostRoot struct {
 }
 
 type objectTypeRegistration struct {
-	once      sync.Once
-	resources *s4wave_plugin.PluginResources
-	ref       resource_client.ResourceRef
+	once       sync.Once
+	resources  *resource_client.Client
+	serviceRef directive.Reference
+	ref        resource_client.ResourceRef
 }
 
 func (r *objectTypeRegistration) release() {
 	r.once.Do(func() {
-		r.ref.Release()
+		if r.ref != nil {
+			r.ref.Release()
+		}
 		r.resources.Release()
+		r.serviceRef.Release()
 	})
 }
 
@@ -121,15 +125,38 @@ func (r *PluginHostRoot) RegisterObjectType(
 		return nil, err
 	}
 
-	resources, err := s4wave_plugin.ConnectPluginResources(r.ctx, r.b, corePluginID)
+	invokers, _, serviceRef, err := bifrost_rpc.ExLookupRpcService(
+		r.ctx,
+		r.b,
+		resource.SRPCResourceServiceServiceID,
+		"",
+		true,
+		nil,
+	)
 	if err != nil {
+		return nil, errors.Wrap(err, "lookup core Resource service")
+	}
+	if len(invokers) == 0 {
+		serviceRef.Release()
+		return nil, errors.New("core Resource service not found")
+	}
+	resourceService := resource.NewSRPCResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invokers[0]))),
+	)
+	resources, err := resource_client.NewClient(r.ctx, resourceService)
+	if err != nil {
+		serviceRef.Release()
 		return nil, errors.Wrap(err, "connect to core ObjectType registry")
 	}
-	rootRef := resources.Client.AccessRootResource()
+	registration := &objectTypeRegistration{
+		resources:  resources,
+		serviceRef: serviceRef,
+	}
+	rootRef := resources.AccessRootResource()
 	rootClient, err := rootRef.GetClient()
 	if err != nil {
 		rootRef.Release()
-		resources.Release()
+		registration.release()
 		return nil, err
 	}
 	service := s4wave_objecttype_registry.NewSRPCObjectTypeRegistryResourceServiceClient(rootClient)
@@ -140,18 +167,14 @@ func (r *PluginHostRoot) RegisterObjectType(
 	})
 	rootRef.Release()
 	if err != nil {
-		resources.Release()
+		registration.release()
 		return nil, err
 	}
 	if resp.GetResourceId() == 0 {
-		resources.Release()
+		registration.release()
 		return nil, errors.New("core ObjectType registration returned zero resource id")
 	}
-
-	registration := &objectTypeRegistration{
-		resources: resources,
-		ref:       resources.Client.CreateResourceReference(resp.GetResourceId()),
-	}
+	registration.ref = resources.CreateResourceReference(resp.GetResourceId())
 	r.objectTypeMtx.Lock()
 	if r.released {
 		r.objectTypeMtx.Unlock()

@@ -2,6 +2,7 @@ package plugin_host_resource
 
 import (
 	"context"
+	"errors"
 	"io"
 	"testing"
 
@@ -17,6 +18,7 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	sdk_plugin_host "github.com/s4wave/spacewave/bldr/sdk/plugin/host"
 	resource_objecttype_registry "github.com/s4wave/spacewave/core/resource/objecttype/registry"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
 	"github.com/sirupsen/logrus"
 )
@@ -80,33 +82,38 @@ func (c *testResourceClientContext) GetAttachedResource(id uint32) (srpc.Client,
 	return nil, resource.ErrResourceNotFound
 }
 
-type corePluginLoadController struct {
-	client srpc.Client
+type coreResourceController struct {
+	mux srpc.Invoker
 }
 
-func (c *corePluginLoadController) GetControllerInfo() *controller.Info {
-	return controller.NewInfo("test/core-plugin-load", controller.MustParseVersion("0.0.1"), "test core plugin load")
+func (c *coreResourceController) GetControllerInfo() *controller.Info {
+	return controller.NewInfo("test/core-resource", controller.MustParseVersion("0.0.1"), "test core resource")
 }
 
-func (c *corePluginLoadController) Execute(ctx context.Context) error {
+func (c *coreResourceController) Execute(ctx context.Context) error {
 	<-ctx.Done()
 	return nil
 }
 
-func (c *corePluginLoadController) HandleDirective(
+func (c *coreResourceController) HandleDirective(
 	ctx context.Context,
 	inst directive.Instance,
 ) ([]directive.Resolver, error) {
-	dir, ok := inst.GetDirective().(bldr_plugin.LoadPlugin)
-	if !ok || dir.LoadPluginID() != corePluginID {
-		return nil, nil
+	switch dir := inst.GetDirective().(type) {
+	case bifrost_rpc.LookupRpcService:
+		if dir.LookupRpcServiceID() == resource.SRPCResourceServiceServiceID &&
+			dir.LookupRpcServerID() == "" {
+			return directive.R(bifrost_rpc.NewLookupRpcServiceResolver(c.mux), nil)
+		}
+	case bldr_plugin.LoadPlugin:
+		if dir.LoadPluginID() == "spacewave-core" {
+			return nil, errors.New("unexpected core plugin load")
+		}
 	}
-	return directive.R(directive.NewValueResolver([]bldr_plugin.LoadPluginValue{
-		bldr_plugin.NewRunningPlugin(c.client),
-	}), nil)
+	return nil, nil
 }
 
-func (c *corePluginLoadController) Close() error {
+func (c *coreResourceController) Close() error {
 	return nil
 }
 
@@ -161,13 +168,12 @@ func TestPluginHostRootRegistersObjectTypeThroughCore(t *testing.T) {
 	if err := resource_server.NewResourceServer(registry.GetMux()).Register(coreMux); err != nil {
 		t.Fatal(err)
 	}
-	coreClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(coreMux)))
-	loadController := &corePluginLoadController{client: coreClient}
-	releaseLoadController, err := b.AddController(ctx, loadController, nil)
+	coreController := &coreResourceController{mux: coreMux}
+	releaseCoreController, err := b.AddController(ctx, coreController, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(releaseLoadController)
+	t.Cleanup(releaseCoreController)
 
 	hostRoot := plugin_host_root.NewRoot()
 	pluginRoot := NewPluginHostRoot(ctx, le, b, "test-plugin", "main", nil, nil, nil, hostRoot, "atoms", "volume")
