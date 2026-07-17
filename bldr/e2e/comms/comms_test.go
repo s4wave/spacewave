@@ -1,3 +1,5 @@
+//go:build !skip_e2e && !js
+
 package comms
 
 import (
