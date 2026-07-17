@@ -7,8 +7,11 @@ import (
 	"context"
 	"crypto/sha256"
 	"io"
+	"maps"
 	"os"
+	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -28,9 +31,9 @@ import (
 )
 
 // startupCacheFormatEnvKey is bumped when compiler-owned output policy changes
-// without changing a plugin source file. V8 invalidates GoScript web-plugin
-// manifests cached before browser stderr output moved onto console.log.
-const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V8"
+// without changing a plugin source file. V9 requires persisted nested builder
+// provenance and valid asset-only Manifest entrypoints.
+const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V9"
 
 // startupValidationResult contains the startup cache validation result.
 type startupValidationResult struct {
@@ -38,6 +41,8 @@ type startupValidationResult struct {
 	builderResult *bldr_manifest_builder.BuilderResult
 	// manifestDepSnapshot holds the current manifest dependency refs.
 	manifestDepSnapshot map[string]*bucket.ObjectRef
+	// subManifestIDs contains recursively validated child Manifest IDs.
+	subManifestIDs []string
 	// reason describes why startup reuse was rejected.
 	reason string
 }
@@ -80,6 +85,14 @@ func (c *Controller) validateStartupBuilderResult(
 		return &startupValidationResult{reason: reason}, nil
 	}
 
+	subManifestIDs, reason, err := c.validateStartupSubManifestResults(ctx, le, startupBuilderResult)
+	if err != nil {
+		return nil, err
+	}
+	if reason != "" {
+		return &startupValidationResult{reason: reason}, nil
+	}
+
 	manifestDepSnapshot, err := c.validateStartupManifestDeps(ctx, le, inputManifest)
 	if err != nil {
 		return nil, err
@@ -91,6 +104,7 @@ func (c *Controller) validateStartupBuilderResult(
 	return &startupValidationResult{
 		builderResult:       startupBuilderResult.CloneVT(),
 		manifestDepSnapshot: manifestDepSnapshot,
+		subManifestIDs:      subManifestIDs,
 	}, nil
 }
 
@@ -174,6 +188,9 @@ func (c *Controller) validateStartupManifestAvailability(
 			distFS,
 			_ *unixfs.FSHandle,
 		) error {
+			if entrypoint == "" {
+				return nil
+			}
 			entrypointHandle, _, err := distFS.LookupPath(ctx, entrypoint)
 			if err != nil {
 				return errors.Wrap(err, "lookup startup entrypoint")
@@ -189,6 +206,40 @@ func (c *Controller) validateStartupManifestAvailability(
 		return errors.Wrap(err, "access startup manifest").Error(), nil
 	}
 	return "", nil
+}
+
+func (c *Controller) validateStartupSubManifestResults(
+	ctx context.Context,
+	le *logrus.Entry,
+	builderResult *bldr_manifest_builder.BuilderResult,
+) ([]string, string, error) {
+	var manifestIDs []string
+	for _, subManifestID := range slices.Sorted(maps.Keys(builderResult.GetSubManifestResults())) {
+		subManifestResult := builderResult.GetSubManifestResults()[subManifestID]
+		if err := subManifestResult.Validate(); err != nil {
+			return nil, errors.Wrapf(err, "invalid startup sub-manifest %q", subManifestID).Error(), nil
+		}
+		inputManifest := subManifestResult.GetInputManifest()
+		// The parent InputManifest contains the transitive child file union.
+		// Rechecking files here would hash every nested input twice.
+		if err := validateNestedStartupInputs(inputManifest); err != nil {
+			return nil, errors.Wrapf(err, "validate startup sub-manifest %q", subManifestID).Error(), nil
+		}
+		reason, err := c.validateStartupManifestAvailability(ctx, le, subManifestResult)
+		if err != nil {
+			return nil, "", err
+		}
+		if reason != "" {
+			return nil, errors.Wrapf(errors.New(reason), "validate startup sub-manifest %q", subManifestID).Error(), nil
+		}
+		nestedManifestIDs, reason, err := c.validateStartupSubManifestResults(ctx, le, subManifestResult)
+		if err != nil || reason != "" {
+			return nil, reason, err
+		}
+		manifestIDs = append(manifestIDs, nestedManifestIDs...)
+		manifestIDs = append(manifestIDs, subManifestResult.GetManifest().GetMeta().GetManifestId())
+	}
+	return manifestIDs, "", nil
 }
 
 // validateStartupManifestDeps validates the cached manifest dependency refs.
@@ -244,6 +295,45 @@ func enrichBuilderResultForStartupReuse(
 	return nil
 }
 
+func addSubManifestResultForStartupReuse(
+	builderResult *bldr_manifest_builder.BuilderResult,
+	subManifestID string,
+	subManifestResult *bldr_manifest_builder.BuilderResult,
+) error {
+	if builderResult == nil || subManifestResult == nil {
+		return nil
+	}
+	if err := subManifestResult.Validate(); err != nil {
+		return errors.Wrapf(err, "invalid sub-manifest result %q", subManifestID)
+	}
+	inputManifest := builderResult.GetInputManifest()
+	if inputManifest == nil {
+		return errors.New("builder result has no input manifest")
+	}
+
+	if builderResult.SubManifestResults == nil {
+		builderResult.SubManifestResults = make(map[string]*bldr_manifest_builder.BuilderResult)
+	}
+	builderResult.SubManifestResults[subManifestID] = subManifestResult.CloneVT()
+
+	seenPaths := make(map[string]struct{}, len(inputManifest.GetFiles()))
+	for _, inputFile := range inputManifest.GetFiles() {
+		seenPaths[path.Clean(inputFile.GetPath())] = struct{}{}
+	}
+	for _, inputFile := range subManifestResult.GetInputManifest().GetFiles() {
+		cleanPath := path.Clean(inputFile.GetPath())
+		if _, ok := seenPaths[cleanPath]; ok {
+			continue
+		}
+		startupFile := inputFile.CloneVT()
+		startupFile.StartupOnly = true
+		inputManifest.Files = append(inputManifest.Files, startupFile)
+		seenPaths[cleanPath] = struct{}{}
+	}
+	inputManifest.SortFiles()
+	return nil
+}
+
 // validateStartupFiles validates cached file identities against the filesystem.
 func validateStartupFiles(sourcePath string, inputManifest *bldr_manifest_builder.InputManifest) error {
 	for _, inputFile := range inputManifest.GetFiles() {
@@ -273,6 +363,20 @@ func validateStartupInputs(
 	controllerConfig *configset_proto.ControllerConfig,
 	inputManifest *bldr_manifest_builder.InputManifest,
 ) error {
+	return validateStartupInputsWithControllerConfig(controllerConfig, inputManifest, true)
+}
+
+// validateNestedStartupInputs validates child inputs whose effective config is
+// derived from and covered by the validated parent controller config.
+func validateNestedStartupInputs(inputManifest *bldr_manifest_builder.InputManifest) error {
+	return validateStartupInputsWithControllerConfig(nil, inputManifest, false)
+}
+
+func validateStartupInputsWithControllerConfig(
+	controllerConfig *configset_proto.ControllerConfig,
+	inputManifest *bldr_manifest_builder.InputManifest,
+	validateControllerConfig bool,
+) error {
 	var controllerConfigDigest []byte
 	var foundControllerConfigDigest bool
 	var foundStartupCacheFormat bool
@@ -287,6 +391,9 @@ func validateStartupInputs(
 			}
 		case bldr_manifest_builder.InputManifest_StartupInputKind_CONTROLLER_CONFIG_DIGEST:
 			foundControllerConfigDigest = true
+			if !validateControllerConfig {
+				continue
+			}
 			if len(controllerConfigDigest) == 0 {
 				digest, err := marshalControllerConfigDigest(controllerConfig)
 				if err != nil {

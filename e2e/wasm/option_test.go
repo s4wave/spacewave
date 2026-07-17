@@ -585,29 +585,25 @@ func mustMarshalGoPluginConfig(t *testing.T, conf *bldr_plugin_compiler_go.Confi
 	return data
 }
 
-func TestStartupBuildCacheDefaultsToTinyGo(t *testing.T) {
+func TestStartupBuildCacheDefaultsOnWithExplicitFreshBuildEscape(t *testing.T) {
 	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "")
-	t.Setenv(E2EWasmLegacyTinyGoEnv, "")
-	t.Setenv(E2EWasmCompilerEnv, "")
-	if E2EWasmStartupBuildCacheEnabled() {
-		t.Fatal("startup build cache should default off with GoScript")
-	}
-	t.Setenv(E2EWasmCompilerEnv, "tinygo")
 	if !E2EWasmStartupBuildCacheEnabled() {
-		t.Fatal("startup build cache should default on with TinyGo")
+		t.Fatal("startup build cache should default on")
 	}
-	t.Setenv(E2EWasmCompilerEnv, "goscript")
-	if E2EWasmStartupBuildCacheEnabled() {
-		t.Fatal("startup build cache should default off with GoScript")
-	}
+
 	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "false")
 	if E2EWasmStartupBuildCacheEnabled() {
-		t.Fatal("explicit startup build cache false should override compiler defaults")
+		t.Fatal("explicit startup build cache false should force a fresh build")
 	}
+
 	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "true")
-	t.Setenv(E2EWasmCompilerEnv, "")
 	if !E2EWasmStartupBuildCacheEnabled() {
 		t.Fatal("explicit startup build cache true should enable cache")
+	}
+
+	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "invalid")
+	if _, err := ResolveE2EWasmStartupBuildCacheEnabled(); err == nil {
+		t.Fatal("invalid startup build cache value should fail")
 	}
 }
 
@@ -762,12 +758,17 @@ func TestClearHarnessStateRootPreservesStartupBuildCache(t *testing.T) {
 	if err := clearHarnessStateRoot(root, true); err != nil {
 		t.Fatal(err)
 	}
-	for _, rel := range []string{"devtool.s4wave", "devtool.s4wave-lock", "devtool.db"} {
+	for _, rel := range []string{
+		"devtool.s4wave",
+		"devtool.s4wave-lock",
+		"devtool.db",
+		"build/web/js/wasm/spacewave-core/out",
+	} {
 		if _, err := os.Stat(filepath.Join(root, rel)); err != nil {
 			t.Fatalf("expected %s to be preserved: %v", rel, err)
 		}
 	}
-	for _, rel := range []string{"logs", "src", "plugin", "build", "cli"} {
+	for _, rel := range []string{"logs", "src", "plugin", "cli"} {
 		if _, err := os.Stat(filepath.Join(root, rel)); !os.IsNotExist(err) {
 			t.Fatalf("expected %s to be removed, err=%v", rel, err)
 		}

@@ -55,6 +55,9 @@ message BuilderResult {
   // InputManifest details which files were used to produce Manifest.
   // Used for change detection.
   InputManifest input_manifest = 3;
+  // SubManifestResults contains child builder results keyed by sub-manifest ID.
+  // Persisting child provenance lets startup validation reuse nested builders.
+  map<string, BuilderResult> sub_manifest_results = 4;
 }
 
 // InputManifest is an object describing the consumed source files.

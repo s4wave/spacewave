@@ -120,7 +120,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 // SupportsStartupManifestCache returns true if startup cache reuse is safe.
 func (c *Controller) SupportsStartupManifestCache() bool {
-	return false
+	return len(c.preBuildHooks) == 0
 }
 
 // BuildManifest compiles the manifest with the given builder args.
@@ -295,6 +295,7 @@ func (c *Controller) BuildManifest(
 	// Store output metadata from bundlers
 	var esbuildOutputMeta []*bldr_web_bundler_esbuild.EsbuildOutputMeta
 	var viteOutputMeta []*bldr_web_bundler_vite.ViteOutputMeta
+	var startupInputPaths []string
 
 	// Build Esbuild bundles if configured
 	if len(esbuildBundleMetas) != 0 {
@@ -314,7 +315,7 @@ func (c *Controller) BuildManifest(
 			return nil, errors.Wrap(err, "failed to marshal esbuild bundler config")
 		}
 
-		esbuildWebPkgRefs, _, esbuildOutMeta, err := bldr_plugin_compiler.BuildAndCheckoutEsbuildSubManifest(
+		esbuildWebPkgRefs, esbuildSrcFiles, esbuildOutMeta, err := bldr_plugin_compiler.BuildAndCheckoutEsbuildSubManifest(
 			ctx,
 			le,
 			host,
@@ -327,6 +328,7 @@ func (c *Controller) BuildManifest(
 		}
 		esbuildOutputMeta = esbuildOutMeta
 		allWebPkgRefs = append(allWebPkgRefs, esbuildWebPkgRefs...)
+		startupInputPaths = append(startupInputPaths, esbuildSrcFiles...)
 	}
 
 	// Build Vite bundles if configured
@@ -347,7 +349,7 @@ func (c *Controller) BuildManifest(
 			return nil, errors.Wrap(err, "failed to marshal vite bundler config")
 		}
 
-		viteWebPkgRefs, _, viteOutMeta, err := bldr_plugin_compiler.BuildAndCheckoutViteSubManifest(
+		viteWebPkgRefs, viteSrcFiles, viteOutMeta, err := bldr_plugin_compiler.BuildAndCheckoutViteSubManifest(
 			ctx,
 			le,
 			host,
@@ -360,6 +362,7 @@ func (c *Controller) BuildManifest(
 		}
 		viteOutputMeta = viteOutMeta
 		allWebPkgRefs = append(allWebPkgRefs, viteWebPkgRefs...)
+		startupInputPaths = append(startupInputPaths, viteSrcFiles...)
 
 		// Match outputs to the input modules and create entrypoints with actual hashed paths
 		backendEntrypoints, frontendEntrypoints = CreateEntrypointsFromViteOutputs(
@@ -384,7 +387,8 @@ func (c *Controller) BuildManifest(
 	// The entrypoint bundles @aptre/bldr which transitively imports packages
 	// (like workbox-window) that must be resolved via dist/deps/package.json.
 	distDepsDir := filepath.Join(workingPath, "dist-deps")
-	if err := npm.EnsureBunInstall(ctx, le, workingPath, bldr.ResolveDistSourcePath(distSourcePath, "dist", "deps", "package.json"), distDepsDir); err != nil {
+	distDepsPackagePath := bldr.ResolveDistSourcePath(distSourcePath, "dist", "deps", "package.json")
+	if err := npm.EnsureBunInstall(ctx, le, workingPath, distDepsPackagePath, distDepsDir); err != nil {
 		return nil, errors.Wrap(err, "failed to install dist deps for entrypoint")
 	}
 	distDepsNodeModules := filepath.Join(distDepsDir, "node_modules")
@@ -520,6 +524,36 @@ func (c *Controller) BuildManifest(
 
 	le.Debugf("compiled js plugin entrypoint to %s", compiledEntrypointRelPath)
 
+	for inputPath := range metafileData.Inputs {
+		if strings.HasPrefix(inputPath, "<define:") {
+			continue
+		}
+		if !filepath.IsAbs(inputPath) {
+			inputPath = filepath.Join(distSourcePath, filepath.FromSlash(inputPath))
+		}
+		startupInputPaths = append(startupInputPaths, inputPath)
+	}
+	startupInputPaths = append(startupInputPaths, distDepsPackagePath)
+	distDepsLockPath := filepath.Join(filepath.Dir(distDepsPackagePath), "bun.lock")
+	if _, err := os.Stat(distDepsLockPath); err == nil {
+		startupInputPaths = append(startupInputPaths, distDepsLockPath)
+	} else if !os.IsNotExist(err) {
+		return nil, err
+	}
+	for i, inputPath := range startupInputPaths {
+		if !filepath.IsAbs(inputPath) {
+			startupInputPaths[i] = filepath.Join(builderConf.GetSourcePath(), filepath.FromSlash(inputPath))
+		}
+	}
+	if err := fsutil.ConvertPathsToRelative(builderConf.GetSourcePath(), startupInputPaths); err != nil {
+		return nil, err
+	}
+	for i := range startupInputPaths {
+		startupInputPaths[i] = filepath.ToSlash(filepath.Clean(startupInputPaths[i]))
+	}
+	slices.Sort(startupInputPaths)
+	startupInputPaths = slices.Compact(startupInputPaths)
+
 	// Build final input manifest metadata
 	inputManifestMeta := &InputManifestMeta{
 		WebPkgRefs: allWebPkgRefs,
@@ -541,10 +575,9 @@ func (c *Controller) BuildManifest(
 		return nil, errors.Wrap(err, "failed to marshal input manifest metadata")
 	}
 
-	// Create the InputManifest object
-	//
-	// NOTE: All input files are tracked by the sub-manifest system.
-	inputManifest := bldr_manifest_builder.NewInputManifest(nil, inputManifestMetaBin)
+	// Create the InputManifest object. Sub-manifest source files and the
+	// entrypoint bundle graph jointly determine the cached JS artifact.
+	inputManifest := bldr_manifest_builder.NewInputManifest(startupInputPaths, inputManifestMetaBin)
 
 	// -- Commit assets to the manifest store --
 	tx, err := buildWorld.NewTransaction(ctx, true)

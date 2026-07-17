@@ -27,6 +27,7 @@ import (
 	bldr_web_bundler_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	bldr_web_bundler_vite_compiler "github.com/s4wave/spacewave/bldr/web/bundler/vite/compiler"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
 
@@ -161,6 +162,29 @@ func TestPluginCompilerJs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	if buildResult.GetSubManifestResults()["vite"] == nil {
+		t.Fatal("expected persisted Vite builder result")
+	}
+	var foundModuleInput, foundEntrypointInput, foundDistDepsInput bool
+	for _, inputFile := range buildResult.GetInputManifest().GetFiles() {
+		inputPath := filepath.ToSlash(inputFile.GetPath())
+		switch {
+		case strings.HasSuffix(inputPath, "bldr/plugin/host/wazero-quickjs/plugin-quickjs_test.ts"):
+			foundModuleInput = true
+		case strings.HasSuffix(inputPath, "bldr/plugin/compiler/js/entrypoint.ts"):
+			foundEntrypointInput = true
+		case strings.HasSuffix(inputPath, "bldr/dist/deps/package.json"):
+			foundDistDepsInput = true
+		}
+	}
+	if !foundModuleInput || !foundEntrypointInput || !foundDistDepsInput {
+		t.Fatalf(
+			"startup inputs missing module=%t entrypoint=%t dist-deps=%t",
+			foundModuleInput,
+			foundEntrypointInput,
+			foundDistDepsInput,
+		)
+	}
 	if _, err := os.Stat(staleEntryPath); !os.IsNotExist(err) {
 		t.Fatalf("stale plugin entrypoint survived rebuild: %v", err)
 	}
@@ -192,6 +216,23 @@ func TestPluginCompilerJs(t *testing.T) {
 	}
 
 	le.Infof("plugin successfully called host rpc with message: %v", string(calledMsgDat))
+}
+
+func TestPluginCompilerJsStartupCacheRequiresStaticInputs(t *testing.T) {
+	ctrl := &bldr_plugin_compiler_js.Controller{}
+	if !ctrl.SupportsStartupManifestCache() {
+		t.Fatal("JS compiler with static inputs should support startup cache")
+	}
+	ctrl.AddPreBuildHook(func(
+		context.Context,
+		*bldr_manifest_builder.BuilderConfig,
+		world.Engine,
+	) (*bldr_plugin_compiler_js.PreBuildHookResult, error) {
+		return nil, nil
+	})
+	if ctrl.SupportsStartupManifestCache() {
+		t.Fatal("JS compiler with dynamic pre-build hooks must bypass startup cache")
+	}
 }
 
 func TestCreateEntrypointsFromViteOutputsBackendImportPath(t *testing.T) {

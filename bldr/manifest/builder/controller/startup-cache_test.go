@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"github.com/go-git/go-billy/v6/memfs"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
+	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/s4wave/spacewave/bldr/testbed"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -31,8 +33,11 @@ import (
 const testStartupCacheBuilderConfigID = "test/startup-cache-builder"
 
 var testStartupCacheBuilderState struct {
-	cacheSafe  atomic.Bool
-	buildCalls atomic.Int32
+	cacheSafe        atomic.Bool
+	buildCalls       atomic.Int32
+	buildSubManifest atomic.Bool
+	buildHookMtx     sync.Mutex
+	buildHook        func(context.Context, int32) error
 }
 
 type testStartupCacheBuilderConfig struct{}
@@ -103,13 +108,45 @@ func (c *testStartupCacheBuilder) BuildManifest(
 	args *bldr_manifest_builder.BuildManifestArgs,
 	host bldr_manifest_builder.BuildManifestHost,
 ) (*bldr_manifest_builder.BuilderResult, error) {
-	testStartupCacheBuilderState.buildCalls.Add(1)
+	buildCall := testStartupCacheBuilderState.buildCalls.Add(1)
+	testStartupCacheBuilderState.buildHookMtx.Lock()
+	buildHook := testStartupCacheBuilderState.buildHook
+	testStartupCacheBuilderState.buildHookMtx.Unlock()
+	if buildHook != nil {
+		if err := buildHook(ctx, buildCall); err != nil {
+			return nil, err
+		}
+	}
 	builderConfig := args.GetBuilderConfig()
 	meta := builderConfig.GetManifestMeta().CloneVT()
+	inputPath := "main.go"
+	bucketID := "built-bucket"
+	if strings.HasSuffix(meta.GetManifestId(), "-child") {
+		inputPath = "child.ts"
+		bucketID = "built-child-bucket"
+	}
+	if testStartupCacheBuilderState.buildSubManifest.Load() && meta.GetManifestId() == "demo" {
+		childBuilderConfig, err := configset_proto.NewControllerConfig(
+			configset.NewControllerConfig(1, &testStartupCacheBuilderConfig{}),
+			true,
+		)
+		if err != nil {
+			return nil, err
+		}
+		childPromise, err := host.BuildSubManifest(ctx, "child", &bldr_project.ManifestConfig{
+			Builder: childBuilderConfig,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if _, err := childPromise.Await(ctx); err != nil {
+			return nil, err
+		}
+	}
 	return bldr_manifest_builder.NewBuilderResult(
 		bldr_manifest.NewManifest(meta, "dist/demo"),
-		&bucket.ObjectRef{BucketId: "built-bucket"},
-		bldr_manifest_builder.NewInputManifest([]string{"main.go"}, nil),
+		&bucket.ObjectRef{BucketId: bucketID},
+		bldr_manifest_builder.NewInputManifest([]string{inputPath}, nil),
 	), nil
 }
 
@@ -192,6 +229,75 @@ func TestValidateStartupFilesHashFallback(t *testing.T) {
 	}
 	if err := validateStartupFiles(tmpDir, inputManifest); err == nil {
 		t.Fatal("expected validation error after content change")
+	}
+}
+
+func TestValidateStartupFilesInvalidatesOnlyOwningArtifacts(t *testing.T) {
+	artifactInputs := map[string][]string{
+		"go-core":    {"main.go", "model.proto"},
+		"js-app":     {"app.ts", "model.proto"},
+		"web-static": {"index.html"},
+	}
+	tests := []struct {
+		name       string
+		path       string
+		content    string
+		wantMisses map[string]bool
+	}{
+		{
+			name:       "Go",
+			path:       "main.go",
+			content:    "package main\n// changed\n",
+			wantMisses: map[string]bool{"go-core": true},
+		},
+		{
+			name:       "TypeScript",
+			path:       "app.ts",
+			content:    "export const app = false;\n",
+			wantMisses: map[string]bool{"js-app": true},
+		},
+		{
+			name:       "proto",
+			path:       "model.proto",
+			content:    "syntax = \"proto3\";\nmessage Changed {}\n",
+			wantMisses: map[string]bool{"go-core": true, "js-app": true},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			files := map[string]string{
+				"main.go":     "package main\n",
+				"app.ts":      "export const app = true;\n",
+				"model.proto": "syntax = \"proto3\";\nmessage Model {}\n",
+				"index.html":  "<main></main>\n",
+			}
+			for filePath, content := range files {
+				if err := os.WriteFile(filepath.Join(tmpDir, filePath), []byte(content), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			manifests := make(map[string]*bldr_manifest_builder.InputManifest, len(artifactInputs))
+			for artifact, paths := range artifactInputs {
+				inputManifest := bldr_manifest_builder.NewInputManifest(paths, nil)
+				if err := captureFileIdentities(tmpDir, inputManifest); err != nil {
+					t.Fatal(err)
+				}
+				manifests[artifact] = inputManifest
+			}
+
+			if err := os.WriteFile(filepath.Join(tmpDir, test.path), []byte(test.content), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			for artifact, inputManifest := range manifests {
+				missed := validateStartupFiles(tmpDir, inputManifest) != nil
+				if missed != test.wantMisses[artifact] {
+					t.Fatalf("%s cache miss = %t, want %t", artifact, missed, test.wantMisses[artifact])
+				}
+			}
+		})
 	}
 }
 
@@ -366,8 +472,8 @@ func TestEnrichBuilderResultForStartupReuse(t *testing.T) {
 	if !foundCacheFormat {
 		t.Fatal("expected startup cache format marker input")
 	}
-	if startupCacheFormatEnvKey != "BLDR_STARTUP_CACHE_FORMAT_V8" {
-		t.Fatalf("startup cache format marker = %s, want V8", startupCacheFormatEnvKey)
+	if startupCacheFormatEnvKey != "BLDR_STARTUP_CACHE_FORMAT_V9" {
+		t.Fatalf("startup cache format marker = %s, want V9", startupCacheFormatEnvKey)
 	}
 }
 
@@ -407,6 +513,64 @@ func TestControllerStartupCacheHitSkipsBuild(t *testing.T) {
 	}
 	if result.GetManifestRef().GetManifestRef().GetBucketId() != "startup-bucket" {
 		t.Fatal("expected startup builder result to be reused")
+	}
+}
+
+func TestControllerPersistsAndReusesSubManifestResults(t *testing.T) {
+	tmpDir := t.TempDir()
+	mainPath := filepath.Join(tmpDir, "main.go")
+	childPath := filepath.Join(tmpDir, "child.ts")
+	if err := os.WriteFile(mainPath, []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(childPath, []byte("export const child = true;\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	testStartupCacheBuilderState.buildSubManifest.Store(true)
+	t.Cleanup(func() {
+		testStartupCacheBuilderState.buildSubManifest.Store(false)
+	})
+
+	startupResult, buildCalls := runStartupExecuteTest(t, tmpDir, nil, true, nil)
+	if buildCalls != 2 {
+		t.Fatalf("initial build calls = %d, want parent and child", buildCalls)
+	}
+	if startupResult.GetSubManifestResults()["child"] == nil {
+		t.Fatal("parent result did not persist child builder result")
+	}
+	var childStartupFile bool
+	for _, inputFile := range startupResult.GetInputManifest().GetFiles() {
+		if inputFile.GetPath() == "child.ts" && inputFile.GetStartupOnly() {
+			childStartupFile = true
+		}
+	}
+	if !childStartupFile {
+		t.Fatal("parent result did not retain child input for startup validation")
+	}
+
+	_, buildCalls = runStartupExecuteTest(t, tmpDir, startupResult, true, nil)
+	if buildCalls != 0 {
+		t.Fatalf("unchanged build calls = %d, want 0", buildCalls)
+	}
+
+	if err := os.WriteFile(mainPath, []byte("package main\n// changed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, buildCalls = runStartupExecuteTest(t, tmpDir, startupResult, true, nil)
+	if buildCalls != 1 {
+		t.Fatalf("parent-only mutation build calls = %d, want parent only", buildCalls)
+	}
+
+	if err := os.WriteFile(mainPath, []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(childPath, []byte("export const child = false;\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, buildCalls = runStartupExecuteTest(t, tmpDir, startupResult, true, nil)
+	if buildCalls != 2 {
+		t.Fatalf("child mutation build calls = %d, want parent and child", buildCalls)
 	}
 }
 
@@ -638,6 +802,79 @@ func TestControllerStartupManifestDepMissRebuilds(t *testing.T) {
 	}
 	if result.GetManifestRef().GetManifestRef().GetBucketId() != "built-bucket" {
 		t.Fatal("expected rebuilt result")
+	}
+}
+
+func TestControllerCapturesManifestDepThatAppearsDuringBuild(t *testing.T) {
+	tmpDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	rootLogger := logrus.New()
+	rootLogger.SetLevel(logrus.DebugLevel)
+	tb, err := testbed.BuildTestbed(ctx, logrus.NewEntry(rootLogger))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	var expectedRef *bucket.ObjectRef
+	testStartupCacheBuilderState.buildHookMtx.Lock()
+	testStartupCacheBuilderState.buildHook = func(ctx context.Context, buildCall int32) error {
+		if buildCall != 1 {
+			return nil
+		}
+		_, _, err := tb.CreateManifestWithBilly(
+			ctx,
+			bldr_manifest.NewManifestMeta("web", bldr_manifest.BuildType_DEV, "other/platform", 2),
+			"",
+			nil,
+			nil,
+			nil,
+		)
+		if err != nil {
+			return err
+		}
+		_, manifestRef, err := tb.CreateManifestWithBilly(
+			ctx,
+			bldr_manifest.NewManifestMeta("web", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1),
+			"",
+			nil,
+			nil,
+			nil,
+		)
+		if err == nil {
+			expectedRef = manifestRef.GetManifestRef()
+		}
+		return err
+	}
+	testStartupCacheBuilderState.buildHookMtx.Unlock()
+	t.Cleanup(func() {
+		testStartupCacheBuilderState.buildHookMtx.Lock()
+		testStartupCacheBuilderState.buildHook = nil
+		testStartupCacheBuilderState.buildHookMtx.Unlock()
+	})
+
+	result, buildCalls := runStartupExecuteWithTestbed(
+		t,
+		tb,
+		tmpDir,
+		nil,
+		true,
+		[]string{"web"},
+		tb.GetWorldEngineID(),
+	)
+	if buildCalls != 1 {
+		t.Fatalf("build calls = %d, want 1", buildCalls)
+	}
+	deps := result.GetInputManifest().GetManifestDeps()
+	if len(deps) != 1 || deps[0].GetManifestId() != "web" ||
+		!deps[0].GetManifestRef().EqualVT(expectedRef) {
+		t.Fatalf("persisted manifest deps = %v, want platform-matched web ref", deps)
 	}
 }
 
@@ -960,6 +1197,7 @@ func runStartupExecuteWithTestbed(
 	testStartupCacheBuilderState.cacheSafe.Store(cacheSafe)
 	testStartupCacheBuilderState.buildCalls.Store(0)
 	tb.GetStaticResolver().AddFactory(newTestStartupCacheBuilderFactory(tb.GetBus()))
+	tb.GetStaticResolver().AddFactory(NewFactory(tb.GetBus()))
 	ctx := tb.GetContext()
 
 	builderControllerConfig, err := configset_proto.NewControllerConfig(
@@ -971,9 +1209,10 @@ func runStartupExecuteWithTestbed(
 	}
 
 	builderConfig := &bldr_manifest_builder.BuilderConfig{
-		ManifestMeta: bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1),
-		SourcePath:   sourcePath,
-		EngineId:     engineID,
+		ManifestMeta:   bldr_manifest.NewManifestMeta("demo", bldr_manifest.BuildType_DEV, "desktop/linux/amd64", 1),
+		SourcePath:     sourcePath,
+		EngineId:       engineID,
+		LinkObjectKeys: []string{tb.GetPluginHostObjKey()},
 	}
 	controllerConfig := NewConfig(
 		builderConfig,

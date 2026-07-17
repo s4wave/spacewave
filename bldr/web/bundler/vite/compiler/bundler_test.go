@@ -282,6 +282,48 @@ func TestBuildViteBundleOmitsExcludedWebPackagesFromBuildRequest(t *testing.T) {
 	}
 }
 
+func TestBuildInputManifestDeduplicatesSharedSources(t *testing.T) {
+	sourcePath := t.TempDir()
+	sharedPath := filepath.Join(sourcePath, "app", "shared.ts")
+	viteOnlyPath := filepath.Join(sourcePath, "app", "vite.ts")
+
+	inputManifest, err := (&Controller{}).buildInputManifest(
+		sourcePath,
+		&viteBuildResult{viteSrcFiles: []string{
+			sharedPath,
+			"app/shared.ts",
+			viteOnlyPath,
+		}},
+		nil,
+		nil,
+		[]string{sharedPath},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := inputManifest.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	if len(inputManifest.GetFiles()) != 2 {
+		t.Fatalf("input file count=%d want 2", len(inputManifest.GetFiles()))
+	}
+
+	kinds := make(map[string]InputFileKind, len(inputManifest.GetFiles()))
+	for _, inputFile := range inputManifest.GetFiles() {
+		meta := &InputFileMeta{}
+		if err := meta.UnmarshalVT(inputFile.GetMetadata()); err != nil {
+			t.Fatal(err)
+		}
+		kinds[filepath.ToSlash(inputFile.GetPath())] = meta.GetKind()
+	}
+	if got := kinds["app/shared.ts"]; got != InputFileKind_InputFileKind_WEB_PKG {
+		t.Fatalf("shared source kind=%v want WEB_PKG", got)
+	}
+	if got := kinds["app/vite.ts"]; got != InputFileKind_InputFileKind_VITE {
+		t.Fatalf("vite source kind=%v want VITE", got)
+	}
+}
+
 func TestStopViteBundlersRemovesReleaseKeys(t *testing.T) {
 	controller := &Controller{}
 	controller.viteBundlers = keyed.NewKeyedRefCount(

@@ -60,6 +60,10 @@ pub struct BuilderResult {
     /// Used for change detection.
     #[prost(message, optional, tag="3")]
     pub input_manifest: ::core::option::Option<InputManifest>,
+    /// SubManifestResults contains child builder results keyed by sub-manifest ID.
+    /// Persisting child provenance lets startup validation reuse nested builders.
+    #[prost(map="string, message", tag="4")]
+    pub sub_manifest_results: ::std::collections::HashMap<::prost::alloc::string::String, BuilderResult>,
 }
 /// InputManifest is an object describing the consumed source files.
 #[derive(Clone, PartialEq, ::prost::Message)]

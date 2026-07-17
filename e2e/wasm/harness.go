@@ -1308,13 +1308,13 @@ func buildHarnessStateRoot(repoRoot string, preserveStartupBuildCache bool) (str
 var harnessStartupBuildCacheGlobs = []string{
 	"devtool.db*",
 	"devtool.s4wave*",
+	"build",
 }
 
 var harnessTransientStateCleanupGlobs = []string{
 	"logs",
 	"src",
 	"plugin",
-	"build",
 	"cli",
 }
 
