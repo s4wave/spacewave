@@ -22,6 +22,7 @@ import (
 	"github.com/aperturerobotics/util/gitroot"
 	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/e2e/releasewasm/artifact"
 	"github.com/sirupsen/logrus"
 )
 
@@ -185,15 +186,37 @@ func chromiumHardwareGPUEnabled() bool {
 }
 
 func prepareReleaseWasmDist(ctx context.Context, le *logrus.Entry, repoRoot string) (releaseWasmDistDirs, error) {
-	if dirs, ok, err := prebuiltReleaseWasmDistDirs(repoRoot); ok || err != nil {
-		if err != nil {
-			return releaseWasmDistDirs{}, err
+	identity, err := computeReleaseWasmArtifactIdentity(ctx, repoRoot)
+	if err != nil {
+		return releaseWasmDistDirs{}, errors.Wrap(err, "compute release artifact identity")
+	}
+
+	prebuiltDirs, prebuilt, err := prebuiltReleaseWasmDistDirs(repoRoot)
+	if err != nil {
+		return releaseWasmDistDirs{}, err
+	}
+	forceBuild := false
+	if prebuilt {
+		validationErr := artifact.Validate(prebuiltDirs.releaseDist, prebuiltDirs.prerender, identity)
+		if validationErr == nil {
+			le.WithFields(logrus.Fields{
+				"dist":      prebuiltDirs.releaseDist,
+				"identity":  identity.Digest,
+				"prerender": prebuiltDirs.prerender,
+			}).Info("release artifact cache hit")
+			return prebuiltDirs, nil
 		}
-		le.WithFields(logrus.Fields{
-			"dist":      dirs.releaseDist,
-			"prerender": dirs.prerender,
-		}).Info("using prebuilt release web bundle")
-		return dirs, nil
+		forceBuild = true
+		le.WithError(validationErr).WithField("identity", identity.Digest).Info("prebuilt release artifact rejected; rebuilding")
+	}
+
+	if !forceBuild {
+		releaseDir, prerenderDir, err := artifact.Current(releaseWasmArtifactStoreDir(repoRoot), identity)
+		if err == nil {
+			le.WithField("identity", identity.Digest).Info("release artifact cache hit")
+			return releaseWasmDistDirs{releaseDist: releaseDir, prerender: prerenderDir}, nil
+		}
+		le.WithError(err).WithField("identity", identity.Digest).Info("release artifact cache miss; rebuilding")
 	}
 
 	if err := os.RemoveAll(filepath.Join(repoRoot, prerenderDistRelPath)); err != nil {
@@ -223,10 +246,17 @@ func prepareReleaseWasmDist(ctx context.Context, le *logrus.Entry, repoRoot stri
 	}
 
 	staticDir := filepath.Join(repoRoot, prerenderDistRelPath)
-	if err := validateReleaseWasmDist(distDir, staticDir); err != nil {
-		return releaseWasmDistDirs{}, err
+	releaseDir, prerenderDir, err := artifact.Publish(
+		releaseWasmArtifactStoreDir(repoRoot),
+		distDir,
+		staticDir,
+		identity,
+	)
+	if err != nil {
+		return releaseWasmDistDirs{}, errors.Wrap(err, "publish release artifact")
 	}
-	return releaseWasmDistDirs{releaseDist: distDir, prerender: staticDir}, nil
+	le.WithField("identity", identity.Digest).Info("release artifact rebuilt and published")
+	return releaseWasmDistDirs{releaseDist: releaseDir, prerender: prerenderDir}, nil
 }
 
 func prebuiltReleaseWasmDistDirs(repoRoot string) (releaseWasmDistDirs, bool, error) {
@@ -238,12 +268,10 @@ func prebuiltReleaseWasmDistDirs(repoRoot string) (releaseWasmDistDirs, bool, er
 	if distDir == "" || prerenderDir == "" {
 		return releaseWasmDistDirs{}, true, errors.Errorf("%s and %s must be set together", releaseWasmDistDirEnv, releaseWasmPrerenderDistEnv)
 	}
-	distDir = repoPath(repoRoot, distDir)
-	prerenderDir = repoPath(repoRoot, prerenderDir)
-	if err := validateReleaseWasmDist(distDir, prerenderDir); err != nil {
-		return releaseWasmDistDirs{}, true, err
-	}
-	return releaseWasmDistDirs{releaseDist: distDir, prerender: prerenderDir}, true, nil
+	return releaseWasmDistDirs{
+		releaseDist: repoPath(repoRoot, distDir),
+		prerender:   repoPath(repoRoot, prerenderDir),
+	}, true, nil
 }
 
 func repoPath(repoRoot, path string) string {
@@ -251,16 +279,6 @@ func repoPath(repoRoot, path string) string {
 		return path
 	}
 	return filepath.Join(repoRoot, path)
-}
-
-func validateReleaseWasmDist(distDir, prerenderDir string) error {
-	if _, err := os.Stat(filepath.Join(distDir, "browser-release.json")); err != nil {
-		return errors.Wrap(err, "stat browser-release.json")
-	}
-	if _, err := os.Stat(filepath.Join(prerenderDir, "index.html")); err != nil {
-		return errors.Wrap(err, "stat prerender index.html")
-	}
-	return nil
 }
 
 func releaseWasmBrowserName() (string, error) {
