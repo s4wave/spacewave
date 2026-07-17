@@ -11,7 +11,57 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
 )
+
+// RegisterObjectTypeRequest is the request for RegisterObjectType.
+type RegisterObjectTypeRequest struct {
+	unknownFields []byte
+	// TypeId is the ObjectType ID to register.
+	TypeId string `protobuf:"bytes,1,opt,name=type_id,json=typeId,proto3" json:"typeId,omitempty"`
+	// Metadata is user-facing display metadata for the ObjectType.
+	Metadata *registry.ObjectTypeMetadata `protobuf:"bytes,2,opt,name=metadata,proto3" json:"metadata,omitempty"`
+}
+
+func (x *RegisterObjectTypeRequest) Reset() {
+	*x = RegisterObjectTypeRequest{}
+}
+
+func (*RegisterObjectTypeRequest) ProtoMessage() {}
+
+func (x *RegisterObjectTypeRequest) GetTypeId() string {
+	if x != nil {
+		return x.TypeId
+	}
+	return ""
+}
+
+func (x *RegisterObjectTypeRequest) GetMetadata() *registry.ObjectTypeMetadata {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+// RegisterObjectTypeResponse is the response for RegisterObjectType.
+type RegisterObjectTypeResponse struct {
+	unknownFields []byte
+	// ResourceId is the registration resource. Releasing it unregisters the type.
+	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
+}
+
+func (x *RegisterObjectTypeResponse) Reset() {
+	*x = RegisterObjectTypeResponse{}
+}
+
+func (*RegisterObjectTypeResponse) ProtoMessage() {}
+
+func (x *RegisterObjectTypeResponse) GetResourceId() uint32 {
+	if x != nil {
+		return x.ResourceId
+	}
+	return 0
+}
 
 // AccessAssetsFSRequest is the request for AccessAssetsFS.
 type AccessAssetsFSRequest struct {
@@ -217,6 +267,39 @@ func (x *GetPluginInfoResponse) GetEntrypoint() string {
 	return ""
 }
 
+func (m *RegisterObjectTypeRequest) CloneVT() *RegisterObjectTypeRequest {
+	if m == nil {
+		return (*RegisterObjectTypeRequest)(nil)
+	}
+	r := new(RegisterObjectTypeRequest)
+	r.TypeId = m.TypeId
+	r.Metadata = protobuf_go_lite.CloneVTValue(m.Metadata)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RegisterObjectTypeRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *RegisterObjectTypeResponse) CloneVT() *RegisterObjectTypeResponse {
+	if m == nil {
+		return (*RegisterObjectTypeResponse)(nil)
+	}
+	r := new(RegisterObjectTypeResponse)
+	r.ResourceId = m.ResourceId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *RegisterObjectTypeResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *AccessAssetsFSRequest) CloneVT() *AccessAssetsFSRequest {
 	if m == nil {
 		return (*AccessAssetsFSRequest)(nil)
@@ -403,6 +486,49 @@ func (m *GetPluginInfoResponse) CloneVT() *GetPluginInfoResponse {
 
 func (m *GetPluginInfoResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
+}
+
+func (this *RegisterObjectTypeRequest) EqualVT(that *RegisterObjectTypeRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.TypeId != that.TypeId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Metadata, that.Metadata) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RegisterObjectTypeRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RegisterObjectTypeRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *RegisterObjectTypeResponse) EqualVT(that *RegisterObjectTypeResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ResourceId != that.ResourceId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *RegisterObjectTypeResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*RegisterObjectTypeResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
 }
 
 func (this *AccessAssetsFSRequest) EqualVT(that *AccessAssetsFSRequest) bool {
@@ -631,6 +757,102 @@ func (this *GetPluginInfoResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the RegisterObjectTypeRequest message to JSON.
+func (x *RegisterObjectTypeRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.TypeId != "" || s.HasField("typeId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("typeId")
+		s.WriteString(x.TypeId)
+	}
+	if x.Metadata != nil || s.HasField("metadata") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("metadata")
+		x.Metadata.MarshalProtoJSON(s.WithField("metadata"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RegisterObjectTypeRequest to JSON.
+func (x *RegisterObjectTypeRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RegisterObjectTypeRequest message from JSON.
+func (x *RegisterObjectTypeRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "type_id", "typeId":
+			s.AddField("type_id")
+			x.TypeId = s.ReadString()
+		case "metadata":
+			if s.ReadNil() {
+				x.Metadata = nil
+				return
+			}
+			x.Metadata = &registry.ObjectTypeMetadata{}
+			x.Metadata.UnmarshalProtoJSON(s.WithField("metadata", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RegisterObjectTypeRequest from JSON.
+func (x *RegisterObjectTypeRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the RegisterObjectTypeResponse message to JSON.
+func (x *RegisterObjectTypeResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ResourceId != 0 || s.HasField("resourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resourceId")
+		s.WriteUint32(x.ResourceId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the RegisterObjectTypeResponse to JSON.
+func (x *RegisterObjectTypeResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the RegisterObjectTypeResponse message from JSON.
+func (x *RegisterObjectTypeResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "resource_id", "resourceId":
+			s.AddField("resource_id")
+			x.ResourceId = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the RegisterObjectTypeResponse from JSON.
+func (x *RegisterObjectTypeResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the AccessAssetsFSRequest message to JSON.
@@ -1085,6 +1307,90 @@ func (x *GetPluginInfoResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+func (m *RegisterObjectTypeRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RegisterObjectTypeRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RegisterObjectTypeRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Metadata != nil {
+		size, err := m.Metadata.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.TypeId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.TypeId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RegisterObjectTypeResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RegisterObjectTypeResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *RegisterObjectTypeResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResourceId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *AccessAssetsFSRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1509,6 +1815,32 @@ func (m *GetPluginInfoResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
+func (m *RegisterObjectTypeRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TypeId)
+	if m.Metadata != nil {
+		l = m.Metadata.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *RegisterObjectTypeResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *AccessAssetsFSRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1635,6 +1967,38 @@ func (m *GetPluginInfoResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Entrypoint)
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x *RegisterObjectTypeRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RegisterObjectTypeRequest")
+	if x.TypeId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "type_id")
+		protobuf_go_lite.TextWriteString(&sb, x.TypeId)
+	}
+	if x.Metadata != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "metadata")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Metadata)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RegisterObjectTypeRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *RegisterObjectTypeResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RegisterObjectTypeResponse")
+	if x.ResourceId != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resource_id")
+		protobuf_go_lite.TextWriteUint(&sb, x.ResourceId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *RegisterObjectTypeResponse) String() string {
+	return x.MarshalProtoText()
 }
 
 func (x *AccessAssetsFSRequest) MarshalProtoText() string {
@@ -1787,6 +2151,126 @@ func (x *GetPluginInfoResponse) MarshalProtoText() string {
 
 func (x *GetPluginInfoResponse) String() string {
 	return x.MarshalProtoText()
+}
+
+func (m *RegisterObjectTypeRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RegisterObjectTypeRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RegisterObjectTypeRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TypeId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TypeId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Metadata == nil {
+				m.Metadata = &registry.ObjectTypeMetadata{}
+			}
+			if err := m.Metadata.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *RegisterObjectTypeResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RegisterObjectTypeResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RegisterObjectTypeResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)
+			}
+			m.ResourceId = 0
+			m.ResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 func (m *AccessAssetsFSRequest) UnmarshalVT(dAtA []byte) error {

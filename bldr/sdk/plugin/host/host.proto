@@ -1,6 +1,8 @@
 syntax = "proto3";
 package bldr.plugin.host;
 
+import "github.com/s4wave/spacewave/sdk/objecttype/registry/registry.proto";
+
 option go_package = "github.com/s4wave/spacewave/bldr/sdk/plugin/host;bldr_plugin_host";
 
 // PluginHostResourceService provides resource access for plugins.
@@ -17,6 +19,22 @@ service PluginHostResourceService {
   rpc AccessDesktopTray(AccessDesktopTrayRequest) returns (AccessDesktopTrayResponse);
   // GetPluginInfo returns information about the running plugin.
   rpc GetPluginInfo(GetPluginInfoRequest) returns (GetPluginInfoResponse);
+  // RegisterObjectType registers an ObjectType served by the running plugin.
+  rpc RegisterObjectType(RegisterObjectTypeRequest) returns (RegisterObjectTypeResponse);
+}
+
+// RegisterObjectTypeRequest is the request for RegisterObjectType.
+message RegisterObjectTypeRequest {
+  // TypeId is the ObjectType ID to register.
+  string type_id = 1;
+  // Metadata is user-facing display metadata for the ObjectType.
+  .s4wave.objecttype.registry.ObjectTypeMetadata metadata = 2;
+}
+
+// RegisterObjectTypeResponse is the response for RegisterObjectType.
+message RegisterObjectTypeResponse {
+  // ResourceId is the registration resource. Releasing it unregisters the type.
+  uint32 resource_id = 1;
 }
 
 // AccessAssetsFSRequest is the request for AccessAssetsFS.

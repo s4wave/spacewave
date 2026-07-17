@@ -41,6 +41,8 @@ class SRPCPluginHostResourceServiceClient {
   virtual starpc::Error AccessDesktopTray(const bldr::plugin::host::AccessDesktopTrayRequest& in, bldr::plugin::host::AccessDesktopTrayResponse* out) = 0;
   // GetPluginInfo
   virtual starpc::Error GetPluginInfo(const bldr::plugin::host::GetPluginInfoRequest& in, bldr::plugin::host::GetPluginInfoResponse* out) = 0;
+  // RegisterObjectType
+  virtual starpc::Error RegisterObjectType(const bldr::plugin::host::RegisterObjectTypeRequest& in, bldr::plugin::host::RegisterObjectTypeResponse* out) = 0;
 };
 
 // SRPCPluginHostResourceServiceClientImpl implements SRPCPluginHostResourceServiceClient.
@@ -63,6 +65,8 @@ class SRPCPluginHostResourceServiceClientImpl : public SRPCPluginHostResourceSer
   virtual starpc::Error AccessDesktopTray(const bldr::plugin::host::AccessDesktopTrayRequest& in, bldr::plugin::host::AccessDesktopTrayResponse* out) override;
   // GetPluginInfo
   virtual starpc::Error GetPluginInfo(const bldr::plugin::host::GetPluginInfoRequest& in, bldr::plugin::host::GetPluginInfoResponse* out) override;
+  // RegisterObjectType
+  virtual starpc::Error RegisterObjectType(const bldr::plugin::host::RegisterObjectTypeRequest& in, bldr::plugin::host::RegisterObjectTypeResponse* out) override;
 
  private:
   starpc::Client* cc_;
@@ -91,6 +95,8 @@ class SRPCPluginHostResourceServiceServer {
   virtual starpc::Error AccessDesktopTray(const bldr::plugin::host::AccessDesktopTrayRequest& req, bldr::plugin::host::AccessDesktopTrayResponse* resp) = 0;
   // GetPluginInfo
   virtual starpc::Error GetPluginInfo(const bldr::plugin::host::GetPluginInfoRequest& req, bldr::plugin::host::GetPluginInfoResponse* resp) = 0;
+  // RegisterObjectType
+  virtual starpc::Error RegisterObjectType(const bldr::plugin::host::RegisterObjectTypeRequest& req, bldr::plugin::host::RegisterObjectTypeResponse* resp) = 0;
 };
 
 // SRPCPluginHostResourceServiceHandler implements starpc::Handler for PluginHostResourceService.

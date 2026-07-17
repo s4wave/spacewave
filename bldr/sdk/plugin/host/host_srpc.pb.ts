@@ -15,6 +15,8 @@ import {
   AccessVolumeResponse,
   GetPluginInfoRequest,
   GetPluginInfoResponse,
+  RegisterObjectTypeRequest,
+  RegisterObjectTypeResponse,
 } from './host.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
 import { ProtoRpc } from 'starpc'
@@ -93,6 +95,17 @@ export const PluginHostResourceServiceDefinition = {
       O: GetPluginInfoResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * RegisterObjectType registers an ObjectType served by the running plugin.
+     *
+     * @generated from rpc bldr.plugin.host.PluginHostResourceService.RegisterObjectType
+     */
+    RegisterObjectType: {
+      name: 'RegisterObjectType',
+      I: RegisterObjectTypeRequest,
+      O: RegisterObjectTypeResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -161,6 +174,16 @@ export interface PluginHostResourceService {
     request: GetPluginInfoRequest,
     abortSignal?: AbortSignal,
   ): Promise<GetPluginInfoResponse>
+
+  /**
+   * RegisterObjectType registers an ObjectType served by the running plugin.
+   *
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.RegisterObjectType
+   */
+  RegisterObjectType(
+    request: RegisterObjectTypeRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RegisterObjectTypeResponse>
 }
 
 export const PluginHostResourceServiceServiceName =
@@ -178,6 +201,7 @@ export class PluginHostResourceServiceClient implements PluginHostResourceServic
     this.AccessStateAtom = this.AccessStateAtom.bind(this)
     this.AccessDesktopTray = this.AccessDesktopTray.bind(this)
     this.GetPluginInfo = this.GetPluginInfo.bind(this)
+    this.RegisterObjectType = this.RegisterObjectType.bind(this)
   }
   /**
    * AccessAssetsFS returns a resource ID for the plugin's assets filesystem.
@@ -291,5 +315,24 @@ export class PluginHostResourceServiceClient implements PluginHostResourceServic
       abortSignal || undefined,
     )
     return GetPluginInfoResponse.fromBinary(result)
+  }
+
+  /**
+   * RegisterObjectType registers an ObjectType served by the running plugin.
+   *
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.RegisterObjectType
+   */
+  async RegisterObjectType(
+    request: RegisterObjectTypeRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<RegisterObjectTypeResponse> {
+    const requestMsg = RegisterObjectTypeRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      PluginHostResourceServiceDefinition.methods.RegisterObjectType.name,
+      RegisterObjectTypeRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return RegisterObjectTypeResponse.fromBinary(result)
   }
 }

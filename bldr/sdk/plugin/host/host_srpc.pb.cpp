@@ -32,6 +32,10 @@ starpc::Error SRPCPluginHostResourceServiceClientImpl::GetPluginInfo(const bldr:
   return cc_->ExecCall(service_id_, "GetPluginInfo", in, out);
 }
 
+starpc::Error SRPCPluginHostResourceServiceClientImpl::RegisterObjectType(const bldr::plugin::host::RegisterObjectTypeRequest& in, bldr::plugin::host::RegisterObjectTypeResponse* out) {
+  return cc_->ExecCall(service_id_, "RegisterObjectType", in, out);
+}
+
 std::vector<std::string> SRPCPluginHostResourceServiceHandler::GetMethodIDs() const {
   return {
     "AccessAssetsFS",
@@ -40,6 +44,7 @@ std::vector<std::string> SRPCPluginHostResourceServiceHandler::GetMethodIDs() co
     "AccessStateAtom",
     "AccessDesktopTray",
     "GetPluginInfo",
+    "RegisterObjectType",
   };
 }
 
@@ -97,6 +102,14 @@ std::pair<bool, starpc::Error> SRPCPluginHostResourceServiceHandler::InvokeMetho
     if (err != starpc::Error::OK) return {true, err};
     bldr::plugin::host::GetPluginInfoResponse resp;
     err = impl_->GetPluginInfo(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
+  } else if (method_id == "RegisterObjectType") {
+    bldr::plugin::host::RegisterObjectTypeRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    bldr::plugin::host::RegisterObjectTypeResponse resp;
+    err = impl_->RegisterObjectType(req, &resp);
     if (err != starpc::Error::OK) return {true, err};
     return {true, strm->MsgSend(resp)};
   }

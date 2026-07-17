@@ -34,6 +34,7 @@ func TestOpenPluginHostDesktopTrayUsesPluginHostResourceBoundary(t *testing.T) {
 
 	hostRoot := plugin_host_root.NewRoot()
 	pluginRoot := plugin_host_resource.NewPluginHostRoot(
+		ctx,
 		le,
 		b,
 		"web",
@@ -118,6 +119,7 @@ func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *
 
 	hostRoot := plugin_host_root.NewRoot()
 	pluginRoot := plugin_host_resource.NewPluginHostRoot(
+		ctx,
 		le,
 		b,
 		"web",

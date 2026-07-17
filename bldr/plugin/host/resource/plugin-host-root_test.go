@@ -5,12 +5,20 @@ import (
 	"io"
 	"testing"
 
+	"github.com/aperturerobotics/controllerbus/bus/inmem"
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
+	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/aperturerobotics/starpc/srpc"
 	desktop_tray "github.com/s4wave/spacewave/bldr/desktop/tray"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	sdk_plugin_host "github.com/s4wave/spacewave/bldr/sdk/plugin/host"
+	resource_objecttype_registry "github.com/s4wave/spacewave/core/resource/objecttype/registry"
+	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
+	"github.com/sirupsen/logrus"
 )
 
 type testResourceClientContext struct {
@@ -72,6 +80,36 @@ func (c *testResourceClientContext) GetAttachedResource(id uint32) (srpc.Client,
 	return nil, resource.ErrResourceNotFound
 }
 
+type corePluginLoadController struct {
+	client srpc.Client
+}
+
+func (c *corePluginLoadController) GetControllerInfo() *controller.Info {
+	return controller.NewInfo("test/core-plugin-load", controller.MustParseVersion("0.0.1"), "test core plugin load")
+}
+
+func (c *corePluginLoadController) Execute(ctx context.Context) error {
+	<-ctx.Done()
+	return nil
+}
+
+func (c *corePluginLoadController) HandleDirective(
+	ctx context.Context,
+	inst directive.Instance,
+) ([]directive.Resolver, error) {
+	dir, ok := inst.GetDirective().(bldr_plugin.LoadPlugin)
+	if !ok || dir.LoadPluginID() != corePluginID {
+		return nil, nil
+	}
+	return directive.R(directive.NewValueResolver([]bldr_plugin.LoadPluginValue{
+		bldr_plugin.NewRunningPlugin(c.client),
+	}), nil)
+}
+
+func (c *corePluginLoadController) Close() error {
+	return nil
+}
+
 type testWatchStream struct {
 	ctx    context.Context
 	cancel func()
@@ -113,10 +151,77 @@ func (s *testWatchStream) SendAndClose(resp *desktop_tray.WatchDesktopTrayRespon
 	return nil
 }
 
+func TestPluginHostRootRegistersObjectTypeThroughCore(t *testing.T) {
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	b := inmem.NewBus(directive_controller.NewController(ctx, le))
+
+	registry := resource_objecttype_registry.NewObjectTypeRegistryResource()
+	coreMux := srpc.NewMux()
+	if err := resource_server.NewResourceServer(registry.GetMux()).Register(coreMux); err != nil {
+		t.Fatal(err)
+	}
+	coreClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(coreMux)))
+	loadController := &corePluginLoadController{client: coreClient}
+	releaseLoadController, err := b.AddController(ctx, loadController, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releaseLoadController)
+
+	hostRoot := plugin_host_root.NewRoot()
+	pluginRoot := NewPluginHostRoot(ctx, le, b, "test-plugin", "main", nil, nil, nil, hostRoot, "atoms", "volume")
+	pluginClient := newTestResourceClientContext(ctx)
+	register := func() (*sdk_plugin_host.RegisterObjectTypeResponse, error) {
+		return pluginRoot.RegisterObjectType(
+			resource_server.WithResourceClientContext(ctx, pluginClient),
+			&sdk_plugin_host.RegisterObjectTypeRequest{
+				TypeId: "test/type",
+				Metadata: &s4wave_objecttype_registry.ObjectTypeMetadata{
+					DisplayName: "Test Type",
+				},
+			},
+		)
+	}
+
+	resp, err := register()
+	if err != nil {
+		t.Fatal(err)
+	}
+	registration := registry.LookupRegistration("test/type")
+	if registration == nil {
+		t.Fatal("expected core ObjectType registration")
+	}
+	if registration.GetPluginId() != "test-plugin" {
+		t.Fatalf("plugin ID = %q, want test-plugin", registration.GetPluginId())
+	}
+	if registration.GetMetadata().GetDisplayName() != "Test Type" {
+		t.Fatalf("display name = %q, want Test Type", registration.GetMetadata().GetDisplayName())
+	}
+
+	if _, err := register(); err == nil {
+		t.Fatal("expected duplicate ObjectType registration to fail")
+	}
+	if !pluginClient.ReleaseResource(resp.GetResourceId()) {
+		t.Fatal("expected registration resource release")
+	}
+	if registration := registry.LookupRegistration("test/type"); registration != nil {
+		t.Fatal("registration remained after resource release")
+	}
+
+	if _, err := register(); err != nil {
+		t.Fatal(err)
+	}
+	pluginRoot.Release()
+	if registration := registry.LookupRegistration("test/type"); registration != nil {
+		t.Fatal("registration remained after plugin root release")
+	}
+}
+
 func TestPluginHostRootAccessDesktopTrayUsesProcessLifetimeRoot(t *testing.T) {
 	ctx := context.Background()
 	hostRoot := plugin_host_root.NewRoot()
-	pluginRoot := NewPluginHostRoot(nil, nil, "test-plugin", "main", nil, nil, nil, hostRoot, "atoms", "volume")
+	pluginRoot := NewPluginHostRoot(ctx, nil, nil, "test-plugin", "main", nil, nil, nil, hostRoot, "atoms", "volume")
 	pluginClient := newTestResourceClientContext(ctx)
 
 	resp, err := pluginRoot.AccessDesktopTray(
