@@ -465,7 +465,8 @@ func (c *Cursor) followRefWithOpArgs(
 	refTconf := objRef.GetTransformConf()
 	// A cross-bucket reference with no transform metadata is raw in its
 	// destination bucket. Do not carry the source bucket's decoder across it.
-	if c.opArgs.GetBucketId() != opArgs.GetBucketId() &&
+	if c.opArgs.GetBucketId() != "" &&
+		c.opArgs.GetBucketId() != opArgs.GetBucketId() &&
 		refTconf.GetEmpty() && refTconfRef.GetEmpty() {
 		transformConf = nil
 		xfrm = nil

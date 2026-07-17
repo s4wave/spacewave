@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
+	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
 	"github.com/s4wave/spacewave/db/volume"
@@ -57,7 +58,7 @@ func NewBlockStoreBuilder(le *logrus.Entry, b bus.Bus, conf *Config) block_store
 				releaseCache()
 			}
 		}
-		var indexCache *manifest.IndexCache
+		var indexCache packfile_store.IndexCache
 		if cacheID := conf.GetCacheBlockStoreId(); cacheID != "" {
 			var err error
 			var cacheRef directive.Reference
@@ -69,7 +70,7 @@ func NewBlockStoreBuilder(le *logrus.Entry, b bus.Bus, conf *Config) block_store
 			objHandle, _, objRef, err := volume.ExBuildObjectStoreAPI(
 				ctx,
 				b,
-				false,
+				true,
 				cdn_bstore.PackIndexObjectStoreID(conf.GetSpaceId()),
 				cacheID,
 				released,
@@ -78,8 +79,10 @@ func NewBlockStoreBuilder(le *logrus.Entry, b bus.Bus, conf *Config) block_store
 				releaseRefs()
 				return nil, nil, err
 			}
-			releaseIndex = objRef.Release
-			indexCache = manifest.NewIndexCache(objHandle.GetObjectStore())
+			if objHandle != nil {
+				releaseIndex = objRef.Release
+				indexCache = manifest.NewIndexCache(objHandle.GetObjectStore())
+			}
 		}
 		cdnStore, err := cdn_bstore.NewCdnBlockStore(cdn_bstore.Options{
 			CdnBaseURL: conf.GetCdnBaseUrl(),

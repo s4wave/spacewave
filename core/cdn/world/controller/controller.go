@@ -12,6 +12,7 @@ import (
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
 	cdn_sharedobject "github.com/s4wave/spacewave/core/cdn/sharedobject"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
+	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	block_store "github.com/s4wave/spacewave/db/block/store"
@@ -55,7 +56,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 func (c *Controller) newBlockStore(ctx context.Context) (*cdn_bstore.CdnBlockStore, func(), error) {
 	pointerTTL, _ := c.conf.ParsePointerTTLDur()
 	cacheID := c.conf.GetCacheBlockStoreId()
-	var indexCache *manifest.IndexCache
+	var indexCache packfile_store.IndexCache
 	var cacheStore block_store.LookupBlockStoreValue
 	var releaseCache, releaseIndex func()
 	releaseRefs := func() {
@@ -77,7 +78,7 @@ func (c *Controller) newBlockStore(ctx context.Context) (*cdn_bstore.CdnBlockSto
 		objHandle, _, objRef, err := volume.ExBuildObjectStoreAPI(
 			ctx,
 			c.b,
-			false,
+			true,
 			cdn_bstore.PackIndexObjectStoreID(c.conf.GetSpaceId()),
 			cacheID,
 			nil,
@@ -86,8 +87,10 @@ func (c *Controller) newBlockStore(ctx context.Context) (*cdn_bstore.CdnBlockSto
 			releaseRefs()
 			return nil, nil, err
 		}
-		releaseIndex = objRef.Release
-		indexCache = manifest.NewIndexCache(objHandle.GetObjectStore())
+		if objHandle != nil {
+			releaseIndex = objRef.Release
+			indexCache = manifest.NewIndexCache(objHandle.GetObjectStore())
+		}
 	}
 	store, err := cdn_bstore.NewCdnBlockStore(cdn_bstore.Options{
 		CdnBaseURL: c.conf.GetCdnBaseUrl(),
