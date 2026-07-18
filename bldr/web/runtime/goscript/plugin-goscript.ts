@@ -23,6 +23,7 @@ declare global {
         onReject: (errMsg: string) => void,
       ) => void)
     | undefined
+  var BLDR_PLUGIN_MARK_READY: (() => void) | undefined
   var BLDR_PLUGIN_SET_ACCEPT_STREAM:
     | ((acceptStream?: (localPort: MessagePort) => void) => void)
     | undefined
@@ -64,6 +65,13 @@ class GoScriptPluginGeneration {
     }
   }
 
+  public markReady() {
+    if (this.terminalError) {
+      return
+    }
+    this.startup.resolve()
+  }
+
   public setAcceptStream(acceptStrm?: (localPort: MessagePort) => void) {
     if (this.terminalError) {
       this.installTerminalAcceptHandler(this.terminalError)
@@ -100,7 +108,7 @@ class GoScriptPluginGeneration {
         closeMessagePortDuplex(duplex)
       }
     })
-    this.startup.resolve()
+    this.markReady()
   }
 
   private fail(err: unknown) {
@@ -200,6 +208,10 @@ export default function main(
         onReject(castToError(err).toString())
       },
     )
+  }
+
+  globalScope.BLDR_PLUGIN_MARK_READY = () => {
+    generation.markReady()
   }
 
   globalScope.BLDR_PLUGIN_SET_ACCEPT_STREAM = (
