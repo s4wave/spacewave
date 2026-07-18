@@ -3,7 +3,7 @@
     <img width="324" src="./doc/img/spacewave-github.png" alt="Spacewave">
   </a>
 
-  <h3>Your own cloud, built for humans and agents</h3>
+  <h3>Effortless self-hosted cloud with peer-to-peer sync</h3>
 
   <p>
     Private workspace that runs on your computers, syncs peer-to-peer, and keeps working offline.
@@ -14,29 +14,27 @@
 
 **Spacewave** turns your computers into a local-first cloud you control. Start
 with a private workspace, use it from the browser or desktop app, sync it
-peer-to-peer, and keep working even when you are offline.
+peer-to-peer, and keep working offline.
 
-As your work grows, that workspace becomes a Space: shared encrypted state for
-files, notes, apps, layouts, devices, workflows, and plugin data without putting
-everything inside someone else's database.
+As your work grows, the workspace becomes a Space: shared encrypted state for
+files, notes, apps, layouts, devices, workflows, and plugin data, without
+putting everything inside someone else's database.
 
-People, apps, devices, and AI agents can all work against the same Space. That
-means automation can operate on durable state you can inspect, edit, share, and
-recover, instead of disappearing into a chat transcript.
+People, apps, and devices work against the same Space. Automation operates on
+durable state you can inspect, edit, share, and recover.
 
 Spacewave combines the convenience of cloud apps with the freedom of
 open-source software. The cloud can help with accounts, relay, backup, storage,
-and networking, but it does not become the owner of your work.
+and networking, but it never owns your work.
 
-When you want to go deeper, Spacewave is also a full-stack for local-first apps
-and plugins, built with Go, TypeScript, React, and WebAssembly - a home for your
-personal operating system.
+To go deeper, Spacewave is a full stack for local-first apps and plugins, built
+with Go, TypeScript, React, and WebAssembly: a home for your personal operating
+system.
 
 Features:
 
 - **Spaces**: Shared local-first state for files, apps, devices, and workflows
 - **Peer-to-Peer Sync**: Work offline and sync directly when peers are available
-- **Human and Agent Ready**: Give people, plugins, and AI agents the same durable state
 - **Open-Source Full Stack**: Build apps and plugins with Go, TypeScript, React, and WebAssembly
 - **Pluggable Storage**: Store data in local, browser, cloud, or self-hosted backends
 - **End-to-End Encrypted**: Keep storage, sync, and collaboration private by default
