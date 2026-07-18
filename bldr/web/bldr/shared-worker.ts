@@ -11,6 +11,7 @@
 // The script provides its own message listeners and WebDocumentTracker.
 
 import { HandleStreamCtr, HandleStreamFunc } from 'starpc'
+import { isBackendEntrypointFunc } from '@aptre/bldr-sdk'
 
 import {
   checkSharedWorker,
@@ -18,6 +19,7 @@ import {
   type PluginStartOpts,
 } from '../runtime/plugin-worker.js'
 import { BackendApiImpl } from '../../sdk/impl/backend-api.js'
+import { startWorkerPluginEntrypoint } from './plugin-entrypoint.js'
 import { createTransportFactory } from './plugin-transport.js'
 import { detectWorkerCommsConfig } from './worker-comms-detect.js'
 
@@ -105,12 +107,21 @@ if (isPlugin) {
     pluginWorker.notifyStartupMark('plugin.script-import-ready', {
       path: scriptPath,
     })
-    if (typeof pluginModule.default !== 'function') {
+    if (!isBackendEntrypointFunc(pluginModule.default)) {
       throw new Error(
         `shared-worker: Imported module "${scriptPath}" does not have a default export function.`,
       )
     }
-    await pluginModule.default(backendAPI, abortSignal, opts.runtimeWasmEnv)
+    await startWorkerPluginEntrypoint(
+      pluginModule.default,
+      backendAPI,
+      abortSignal,
+      opts.runtimeWasmEnv,
+      (err) => {
+        console.warn('shared-worker: plugin runtime failed:', err)
+        void pluginWorker.reportRuntimeFailure(err)
+      },
+    )
   }
 
   const pluginWorker = new PluginWorker(

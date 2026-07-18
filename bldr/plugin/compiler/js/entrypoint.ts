@@ -1,9 +1,9 @@
 // Import types generated from protobuf definitions.
 import { Client, isAbortError } from 'starpc'
-import type {
-  BackendAPI,
-  BackendEntrypointFunc,
-  BackendEntrypointLifecycle,
+import {
+  isBackendEntrypointFunc,
+  isBackendEntrypointLifecycle,
+  type BackendAPI,
 } from '@aptre/bldr-sdk'
 import { BackendEntrypoint, FrontendEntrypoint } from './compiler.pb.js'
 import { ConfigSet } from '@go/github.com/aperturerobotics/controllerbus/controller/configset/proto/configset.pb.js'
@@ -12,7 +12,7 @@ import {
   SetHtmlLinksRequest,
   SetRenderModeRequest,
 } from '@aptre/bldr'
-import { PluginHostRoot } from '../../../sdk/plugin/host/plugin-host-root.js'
+import { PluginHostResourceServiceClient } from '../../../sdk/plugin/host/host_srpc.pb.js'
 import { createAbortController } from '../../../web/bldr/abort.js'
 import {
   WebPlugin,
@@ -128,16 +128,6 @@ function observeBackendEntrypointCompletion(
     })
 }
 
-function isBackendEntrypointLifecycle(
-  result: ReturnType<BackendEntrypointFunc>,
-): result is BackendEntrypointLifecycle {
-  return (
-    typeof result === 'object' &&
-    result !== null &&
-    ('startup' in result || 'done' in result)
-  )
-}
-
 /**
  * Loads and executes a single backend entrypoint module.
  * @param entrypoint - The backend entrypoint configuration.
@@ -170,7 +160,7 @@ export async function startBackendEntrypoint(
     const mod = await loadModule(importPath)
     const modFunc = mod[importName]
 
-    if (typeof modFunc !== 'function') {
+    if (!isBackendEntrypointFunc(modFunc)) {
       // Backend readiness must fail closed: a configured entrypoint owns the
       // capability startup marker, so a missing export cannot be treated as
       // successful startup.
@@ -180,10 +170,7 @@ export async function startBackendEntrypoint(
     }
 
     console.debug(`Executing backend entrypoint: ${entrypointId}`)
-    const entrypointResult = (modFunc as BackendEntrypointFunc)(
-      backendAPI,
-      abortSignal,
-    )
+    const entrypointResult = modFunc(backendAPI, abortSignal)
     if (isBackendEntrypointLifecycle(entrypointResult)) {
       await entrypointResult.startup
       observeBackendEntrypointCompletion(entrypointId, entrypointResult.done)
@@ -565,20 +552,13 @@ function reportQuickJSReadiness(marker: string): void {
   }
 }
 
-function pendingForever(): Promise<never> {
-  return new Promise((resolve) => {
-    void resolve
-  })
-}
-
 async function completeInitialCapabilityRegistration(
   backendAPI: BackendAPI,
   abortSignal: AbortSignal,
 ): Promise<void> {
-  using pluginHostRoot = new PluginHostRoot(
-    await backendAPI.resourceClient.accessRootResource(),
-  )
-  await pluginHostRoot.completeInitialCapabilityRegistration(abortSignal)
+  using rootRef = await backendAPI.resourceClient.accessRootResource()
+  const svc = new PluginHostResourceServiceClient(rootRef.client)
+  await svc.CompleteInitialCapabilityRegistration({}, abortSignal)
 }
 
 /**
@@ -619,16 +599,28 @@ export default async function main(
 
   const frontendReady = loadWebPlugin(backendAPI, pluginId, abortSignal)
   const capabilityReady = loadBackendEntrypoints(backendAPI, abortSignal)
-  const capabilityFailure = capabilityReady.then(pendingForever)
+  const capabilityRegistrationReady = capabilityReady.then(() =>
+    completeInitialCapabilityRegistration(backendAPI, abortSignal),
+  )
 
-  // Keep frontend/capability marker order stable, but do not let a frontend
-  // retry loop hide backend startup rejection. Backgrounded tabs may throttle
-  // timers, so readiness is event-driven instead of timeout-driven.
-  await Promise.race([frontendReady, capabilityFailure])
-  reportQuickJSReadiness(quickJSPluginFrontendReadyMarker)
-  await capabilityReady
-  await completeInitialCapabilityRegistration(backendAPI, abortSignal)
-  reportQuickJSReadiness(quickJSPluginCapabilityReadyMarker)
+  if (isQuickJSRuntime()) {
+    const capabilityFailure = capabilityRegistrationReady.then(
+      () => Promise.withResolvers<never>().promise,
+    )
+    await Promise.race([frontendReady, capabilityFailure])
+    reportQuickJSReadiness(quickJSPluginFrontendReadyMarker)
+    await capabilityRegistrationReady
+    reportQuickJSReadiness(quickJSPluginCapabilityReadyMarker)
+  } else {
+    void frontendReady.catch((err) => {
+      if (abortSignal.aborted) return
+      const globals = globalThis as typeof globalThis & {
+        BLDR_PLUGIN_REPORT_RUNTIME_FAILURE?: (err: unknown) => void
+      }
+      globals.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE?.(err)
+    })
+    await capabilityRegistrationReady
+  }
 
   console.info('Bldr JS plugin entrypoint finished initialization.')
   reportQuickJSReadiness(quickJSPluginReadyMarker)

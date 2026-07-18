@@ -100,11 +100,18 @@ export interface BackendAPI {
   }
 }
 
+// BackendEntrypointResult is the startup result returned by a plugin backend entrypoint.
+export type BackendEntrypointResult =
+  | void
+  | Promise<void>
+  | BackendEntrypointLifecycle
+
 // BackendEntrypointFunc is the default function exported from a plugin backend entrypoint.
 export type BackendEntrypointFunc = (
   api: BackendAPI,
   abortSignal: AbortSignal,
-) => void | Promise<void> | BackendEntrypointLifecycle
+  runtimeWasmEnv?: Record<string, string>,
+) => BackendEntrypointResult
 
 // BackendEntrypointLifecycle lets a backend distinguish startup work from
 // process-lifetime work. The generic plugin entrypoint waits for startup before
@@ -112,4 +119,22 @@ export type BackendEntrypointFunc = (
 export interface BackendEntrypointLifecycle {
   startup?: void | Promise<void>
   done?: void | Promise<void>
+}
+
+// isBackendEntrypointFunc reports whether a module export is a backend entrypoint.
+export function isBackendEntrypointFunc(
+  entrypoint: unknown,
+): entrypoint is BackendEntrypointFunc {
+  return typeof entrypoint === 'function'
+}
+
+// isBackendEntrypointLifecycle reports whether an entrypoint separates startup from process lifetime.
+export function isBackendEntrypointLifecycle(
+  result: BackendEntrypointResult,
+): result is BackendEntrypointLifecycle {
+  return (
+    typeof result === 'object' &&
+    result !== null &&
+    ('startup' in result || 'done' in result)
+  )
 }

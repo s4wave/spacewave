@@ -131,7 +131,8 @@ func Run(
 		addFactoryFuncs,
 		configSetFuncs,
 		srpc.NewClientWithMuxedConn(muxedConn),
-		func(ctx context.Context, srv *srpc.Server) error {
+		func(ctx context.Context, srv *srpc.Server, ready func()) error {
+			ready()
 			return srv.AcceptMuxedConn(ctx, muxedConn)
 		},
 	)
