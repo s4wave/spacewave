@@ -50,8 +50,26 @@ func (t *TxStart) ExecuteTx(
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
 ) error {
-	// ensure PENDING
+	// A restart or concurrent reconciler may observe the already-promoted
+	// execution. Starting it again is an idempotent adoption.
 	execState := root.GetExecutionState()
+	if execState == forge_execution.State_ExecutionState_RUNNING {
+		txPeerID, err := t.ParsePeerID()
+		if err != nil {
+			return err
+		}
+		if len(txPeerID) == 0 {
+			return peer.ErrEmptyPeerID
+		}
+		if len(sender) != 0 && sender != txPeerID {
+			return errors.Errorf(
+				"tx body peer id %s must match sender %s",
+				txPeerID.String(), sender.String(),
+			)
+		}
+		return nil
+	}
+	// ensure PENDING
 	if execState != forge_execution.State_ExecutionState_PENDING {
 		return errors.Wrapf(
 			forge_value.ErrUnknownState,
@@ -75,7 +93,6 @@ func (t *TxStart) ExecuteTx(
 			)
 		}
 	}
-
 	// promote to RUNNING
 	root.ExecutionState = forge_execution.State_ExecutionState_RUNNING
 	exCursor.SetBlock(root, true)

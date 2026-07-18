@@ -46,11 +46,17 @@ func (t *TxComplete) ExecuteTx(
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
 ) error {
+	// A restarted or concurrent execution controller may finish after another
+	// owner has already persisted the terminal state. Preserve that result.
+	execState := root.GetExecutionState()
+	if execState == forge_execution.State_ExecutionState_COMPLETE {
+		return nil
+	}
 	// ensure RUNNING
-	if root.GetExecutionState() != forge_execution.State_ExecutionState_RUNNING {
+	if execState != forge_execution.State_ExecutionState_RUNNING {
 		return errors.Errorf(
 			"cannot complete execution in state: %s",
-			root.GetExecutionState().String(),
+			execState.String(),
 		)
 	}
 

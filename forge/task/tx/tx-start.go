@@ -51,12 +51,17 @@ func (t *TxStart) ExecuteTx(
 	bcs *block.Cursor,
 	root *forge_task.Task,
 ) error {
+	// A restart or concurrent reconciler may observe the already-promoted
+	// task. Starting it again is an idempotent adoption.
+	taskState := root.GetTaskState()
+	if taskState == forge_task.State_TaskState_RUNNING {
+		return nil
+	}
 	// ensure PENDING
-	passState := root.GetTaskState()
-	if passState != forge_task.State_TaskState_PENDING {
+	if taskState != forge_task.State_TaskState_PENDING {
 		return errors.Wrapf(
 			forge_value.ErrUnknownState,
-			"%s", passState.String(),
+			"%s", taskState.String(),
 		)
 	}
 

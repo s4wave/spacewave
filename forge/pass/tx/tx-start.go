@@ -56,8 +56,13 @@ func (t *TxStart) ExecuteTx(
 	bcs *block.Cursor,
 	root *forge_pass.Pass,
 ) error {
-	// ensure PENDING
+	// A restart or concurrent reconciler may observe the already-promoted
+	// pass. Starting it again is an idempotent adoption.
 	passState := root.GetPassState()
+	if passState == forge_pass.State_PassState_RUNNING {
+		return nil
+	}
+	// ensure PENDING
 	if passState != forge_pass.State_PassState_PENDING {
 		return errors.Wrapf(
 			forge_value.ErrUnknownState,
