@@ -2438,9 +2438,7 @@ func TestForgeWorkerExecution(t *testing.T) {
 	page := scenario.GetSession().Page()
 	WaitForForgeReady(t, h, page)
 
-	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
-	defer cancel()
-
+	ctx := t.Context()
 	mounted := mountForgeSpace(ctx, t, sess, scenario.GetSessionIndex(), scenario.GetSpaceID())
 	defer mounted.Release()
 
@@ -2471,7 +2469,11 @@ func TestForgeWorkerExecution(t *testing.T) {
 		t.Fatalf("expected approved worker binding, got %+v", state.GetProcessBindings())
 	}
 
-	job, err := forge_job.WaitJobComplete(ctx, h.le, mounted.engWs, jobKey)
+	// Start the completion budget after setup has observed the approved worker.
+	// Browser/plugin startup and World mounting must not consume wait time.
+	waitCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+	defer cancel()
+	job, err := forge_job.WaitJobComplete(waitCtx, h.le, mounted.engWs, jobKey)
 	if err != nil {
 		t.Fatalf("WaitJobComplete: %v", err)
 	}
