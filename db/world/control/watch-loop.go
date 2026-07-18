@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
@@ -177,7 +178,13 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 			ws, objState,
 			rootRef, rev,
 		)
-		if err != nil && c.le != nil && err != context.Canceled {
+		if errors.Is(err, world.ErrUnhandledOp) {
+			if c.le != nil {
+				c.le.Debug("handler skipped unhandled operation")
+			}
+			waitForChanges = true
+			err = nil
+		} else if err != nil && c.le != nil && err != context.Canceled {
 			le := c.le.WithError(err)
 			if c.objectKey != "" {
 				le = le.WithField("object-key", c.objectKey)

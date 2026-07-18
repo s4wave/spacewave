@@ -285,6 +285,50 @@ func TestWatchLoopCancellationDuringWait(t *testing.T) {
 		t.Fatal("watch loop did not exit")
 	}
 }
+func TestWatchLoopSkipsUnhandledOperation(t *testing.T) {
+	ctx := t.Context()
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+
+	calls := make(chan int, 2)
+	count := 0
+	loop := world_control.NewWatchLoop(
+		tb.Logger,
+		"",
+		world_control.NewWaitForStateHandler(func(
+			_ context.Context,
+			_ world.WorldState,
+			_ world.ObjectState,
+			_ *block.Cursor,
+			_ uint64,
+		) (bool, error) {
+			count++
+			calls <- count
+			if count == 1 {
+				return false, world.ErrUnhandledOp
+			}
+			return false, nil
+		}),
+	)
+	done := make(chan error, 1)
+	go func() {
+		done <- loop.Execute(ctx, tb.WorldState)
+	}()
+
+	recvWatchLoopValue(t, calls, "initial handler")
+	loop.Wake()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("Execute err = %v, want nil", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("watch loop did not continue after unhandled operation")
+	}
+}
 
 func recvWatchLoopEvent(t *testing.T, ch <-chan struct{}, name string) {
 	t.Helper()
