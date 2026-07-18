@@ -14,7 +14,7 @@ import (
 func TestIgnoreBrowserErrorFiltersGoRuntimeInfoLogs(t *testing.T) {
 	for _, msg := range []string{
 		`level=debug msg="added directive" directive=LookupBlockStore`,
-		`level=info msg="mounted space contents"`,
+		`level=debug msg="fast-forward space contents"`,
 	} {
 		if !ignoreBrowserError(msg) {
 			t.Fatalf("expected runtime log to be ignored: %s", msg)

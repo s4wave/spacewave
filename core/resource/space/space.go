@@ -360,7 +360,7 @@ func (r *SpaceResource) MountSpaceContents(
 	r.le.
 		WithField("space-id", spaceID).
 		WithField("resource-id", id).
-		Info("mounted space contents")
+		Debug("fast-forward space contents")
 
 	return &s4wave_space.MountSpaceContentsResponse{ResourceId: id}, nil
 }
