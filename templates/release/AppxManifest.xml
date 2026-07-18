@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
          xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
          xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+         xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
          xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-         IgnorableNamespaces="uap uap10 rescap">
+         IgnorableNamespaces="uap uap3 uap10 desktop rescap">
   <Identity Name="ApertureRobotics.Spacewave"
             Publisher="{{PUBLISHER}}"
             Version="{{VERSION}}"
@@ -32,6 +34,25 @@
                           BackgroundColor="transparent"
                           Square150x150Logo="Assets\Square128x128Logo.png"
                           Square44x44Logo="Assets\Square48x48Logo.png" />
+    </Application>
+    <Application Id="SpacewaveHelper"
+                 Executable="spacewave-helper.exe"
+                 EntryPoint="Windows.FullTrustApplication"
+                 uap10:TrustLevel="mediumIL">
+      <uap:VisualElements AppListEntry="none"
+                          DisplayName="Spacewave Loading Helper"
+                          Description="Spacewave Loading Helper"
+                          BackgroundColor="transparent"
+                          Square150x150Logo="Assets\Square128x128Logo.png"
+                          Square44x44Logo="Assets\Square48x48Logo.png" />
+      <Extensions>
+        <uap3:Extension Category="windows.appExecutionAlias"
+                       EntryPoint="Windows.FullTrustApplication">
+          <uap3:AppExecutionAlias>
+            <desktop:ExecutionAlias Alias="spacewave-helper.exe" />
+          </uap3:AppExecutionAlias>
+        </uap3:Extension>
+      </Extensions>
     </Application>
   </Applications>
   <Capabilities>
