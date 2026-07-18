@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "d0f658654dc166df98350660ad83c8740f15f2bedfe6abdbe0c6ffd9c32a8db5",
+  "protocFlagsHash": "58ee2b6fc5aa99fdc59462e5a8fa89fb7ce0d86fa8c33d4e6990ee2db9a9f780",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.15.1-0.20260716074925-e2a146f45568,starpc=v0.49.18,protobuf-es-lite=1.1.1",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -151,7 +151,7 @@
       "protoFiles": ["bldr/manifest/build/policy.proto"]
     },
     "github.com/s4wave/spacewave/bldr/manifest/builder": {
-      "hash": "e2519f0d1c3b376c22be03ec212fa55533b37406e7cb5b3dac018c407378f181",
+      "hash": "84d8b6275c383e0828a1467ac218f1aaa2970406727c5ceab7880576211c5814",
       "generatedFiles": [
         "bldr/manifest/builder/builder.pb.cc",
         "bldr/manifest/builder/builder.pb.go",
@@ -523,7 +523,7 @@
       "protoFiles": ["bldr/resource/state/state.proto"]
     },
     "github.com/s4wave/spacewave/bldr/sdk/plugin/host": {
-      "hash": "7b74c0bbcd4b079f8347d30e30a1da1eb7c9473202d3818fed19c2147849280d",
+      "hash": "d9b0c7555d2c74157360ccea6c6db5f15fa5992f339b458c2bab01154a794b51",
       "generatedFiles": [
         "bldr/sdk/plugin/host/host.pb.cc",
         "bldr/sdk/plugin/host/host.pb.go",
@@ -1079,7 +1079,7 @@
       "protoFiles": ["core/cdn/bstore/controller/controller.proto"]
     },
     "github.com/s4wave/spacewave/core/cdn/world/controller": {
-      "hash": "3abf451564bf57b585c1c62d9fa6d84ee434839021873be8c79a88dc8de5e2be",
+      "hash": "41a2075ad6d843e2042c58bbd601b5a51f54b77e33578753e567535b529f0551",
       "generatedFiles": [
         "core/cdn/world/controller/controller.pb.cc",
         "core/cdn/world/controller/controller.pb.go",

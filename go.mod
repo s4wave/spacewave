@@ -2,7 +2,7 @@ module github.com/s4wave/spacewave
 
 go 1.26.4
 
-require github.com/s4wave/goscript v0.2.22-0.20260716212031-a4c9b97f3988 // master
+require github.com/s4wave/goscript v0.2.22-0.20260717232158-0657ae5f8eac // master
 
 replace (
 	// aperture: use compatibility forks
@@ -30,7 +30,7 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260705021747-c5ec5d20d2b6 // master
 	github.com/aperturerobotics/cli v1.1.0 // latest
-	github.com/aperturerobotics/common v0.34.2 // latest
+	github.com/aperturerobotics/common v0.34.3-0.20260717063645-aed352835e14 // master
 	github.com/aperturerobotics/controllerbus v0.53.5-0.20260705010846-96899d3b0492 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]

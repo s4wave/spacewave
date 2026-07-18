@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 )
 
 func TestIsWebRuntimeClientClosed(t *testing.T) {
@@ -60,7 +61,7 @@ func TestIsWebRuntimeClientClosed(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if got := isWebRuntimeClientClosed(test.err); got != test.want {
+			if got := web_runtime.IsWebRuntimeClientClosed(test.err); got != test.want {
 				t.Fatalf("isWebRuntimeClientClosed() = %v, want %v", got, test.want)
 			}
 		})

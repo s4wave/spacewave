@@ -49,9 +49,9 @@ export async function appRequestHandler(
   req: GlobalRequest,
 ): Promise<GlobalResponse> {
   const reqUrl = new URL(req.url)
-  let reqPath = path.normalize(reqUrl.pathname)
-  if (reqPath.length === 0 || reqPath === path.sep) {
-    reqPath = path.sep + 'index.html'
+  let reqPath = path.posix.normalize(reqUrl.pathname)
+  if (reqPath.length === 0 || reqPath === '/') {
+    reqPath = '/index.html'
   }
 
   // Forward Bldr runtime requests to the Go runtime fetch service.
@@ -72,7 +72,7 @@ export async function appRequestHandler(
   // Serve a file from the Electron app.asar.
   // Make sure the path is within the distPath.
   let filePath = distPath
-  if (reqPath.startsWith(path.sep + 'node_modules' + path.sep)) {
+  if (reqPath.startsWith('/node_modules/')) {
     filePath = path.join(filePath, '../../../')
   }
   filePath = path.join(filePath, reqPath)

@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import path from 'path'
 
 const electronMock = vi.hoisted(() => ({
   app: {
@@ -22,6 +23,10 @@ describe('electron protocol', () => {
   beforeEach(() => {
     vi.resetModules()
     vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    vi.doUnmock('path')
   })
 
   it('registers app scheme as fetch-capable without ServiceWorker privilege', async () => {
@@ -88,6 +93,22 @@ describe('electron protocol', () => {
     expectCrossOriginIsolationHeaders(resp)
     expect(await resp.text()).toBe('sw body')
     expect(swFetch).toHaveBeenCalledWith(req, 'electron-init')
+  })
+
+  it('keeps Bldr request paths slash-separated on Windows', async () => {
+    vi.doMock('path', () => ({ default: path.win32 }))
+    const { appRequestHandler } = await importProtocolWithFreshModuleState()
+    const swFetch = vi.fn().mockResolvedValue(new Response('windows-ok'))
+    const req = buildRequestLike(
+      'app://index.html/b/pa/plugin/v/b/fe/app/App.mjs',
+      'app://index.html?webDocumentId=electron-init',
+    )
+
+    const resp = await appRequestHandler(swFetch, req)
+
+    expect(await resp.text()).toBe('windows-ok')
+    expect(swFetch).toHaveBeenCalledWith(req, 'electron-init')
+    expect(electronMock.net.fetch).not.toHaveBeenCalled()
   })
 
   it('leaves non-plugin Bldr runtime responses unclassified while adding cross-origin isolation headers', async () => {

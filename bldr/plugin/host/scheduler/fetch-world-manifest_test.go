@@ -32,6 +32,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
+	"github.com/s4wave/spacewave/db/dex"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -1748,6 +1749,177 @@ func TestProcessManifestWorldStateRunsDownloadAndExecuteForRemoteManifest(t *tes
 		copyStatus.destinationIdentity != manifestCopyIdentityLocal {
 		t.Fatalf("selected manifest accounting = %#v, want external source and local destination", copyStatus)
 	}
+	if execState.manifestSnapshot.GetManifest() == nil ||
+		!execState.manifestSnapshot.GetManifest().GetMeta().EqualVT(ref.GetMeta()) {
+		t.Fatal("execute manifest metadata changed")
+	}
+}
+
+func TestCollectStartupManifestEligibilityDemandsExternalRefAndUsesWriteback(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const lookupBucketID = "startup-demand-release-bucket"
+	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
+		NotFoundBehavior: lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
+	}))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	bucketConf, err := bucket.NewConfig(lookupBucketID, 1, bucketLkConfig)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, _, _, err := tb.Volume.ApplyBucketConfig(ctx, bucketConf); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	lookupObserver := &startupDemandLookupObserver{waiting: make(chan struct{}, 1)}
+	observerRel, err := tb.Bus.AddController(ctx, lookupObserver, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer observerRel()
+
+	remote := newTestExternalManifestRefWithDistAssets(
+		t,
+		ctx,
+		lookupBucketID,
+		"spacewave-core",
+		"desktop/darwin/arm64",
+		14,
+	)
+	cacheKey, err := store_kvkey.NewKVKey(nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	cacheStore := block_store_kvtx.NewKVTxBlock(cacheKey, store_kvtx_inmem.NewStore(), 0, true)
+	networkGets := &atomic.Uint32{}
+	provider := block_store.NewStore(
+		"test/startup-demand-provider",
+		&writebackLookupBlockStore{
+			StoreOps:    remote.store,
+			cache:       cacheStore,
+			networkGets: networkGets,
+		},
+	)
+	storeCtrl := block_store_controller.NewController(
+		le,
+		controller.NewInfo("test/startup-demand-provider", controller.MustParseVersion("0.0.1"), ""),
+		block_store_controller.NewBlockStoreBuilder(provider),
+		nil,
+		true,
+		[]string{lookupBucketID},
+		true,
+		false,
+	)
+
+	manifestKey := bldr_manifest.NewManifestKey(objKey, remote.ref.GetMeta())
+	if err := bldr_manifest_world.ExStoreManifestOp(
+		ctx,
+		ws,
+		peer.ID("test"),
+		manifestKey,
+		[]string{objKey},
+		remote.ref,
+	); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	collect := func() ([]*bldr_manifest_world.StartupManifestCandidateEligibility, error) {
+		collectCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		return bldr_manifest_world.CollectStartupManifestEligibilityForManifestID(
+			collectCtx,
+			ws,
+			"spacewave-core",
+			[]string{"desktop/darwin/arm64"},
+			objKey,
+		)
+	}
+
+	type collectResult struct {
+		candidates []*bldr_manifest_world.StartupManifestCandidateEligibility
+		err        error
+	}
+	collectDone := make(chan collectResult, 1)
+	go func() {
+		candidates, err := collect()
+		collectDone <- collectResult{candidates: candidates, err: err}
+	}()
+
+	select {
+	case <-lookupObserver.waiting:
+	case result := <-collectDone:
+		t.Fatalf("startup eligibility completed before lookup provider readiness: %v", result.err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("startup eligibility did not reach remote block lookup")
+	}
+	select {
+	case result := <-collectDone:
+		t.Fatalf("startup eligibility completed before provider registration: %v", result.err)
+	default:
+	}
+
+	storeRel, err := tb.Bus.AddController(ctx, storeCtrl, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer storeRel()
+
+	result := <-collectDone
+	if result.err != nil {
+		t.Fatal(result.err.Error())
+	}
+	first := result.candidates
+
+	if len(first) != 1 || first[0].Eligibility != bldr_manifest_world.StartupManifestEligibilityEligible {
+		t.Fatalf("first startup candidates = %s", bldr_manifest_world.SummarizeStartupManifestEligibility(first, -1))
+	}
+
+	if !first[0].ManifestRef.EqualVT(remote.ref.GetManifestRef()) ||
+		!first[0].Manifest.GetMeta().EqualVT(remote.ref.GetMeta()) {
+		t.Fatal("first startup candidate changed external ref or metadata")
+	}
+	if selected := bldr_manifest_world.SelectableStartupManifests(first); len(selected) != 1 {
+		t.Fatalf("selected startup manifests = %d, want 1", len(selected))
+	}
+	if got := networkGets.Load(); got != 1 {
+		t.Fatalf("network block fetches after first startup read = %d, want 1", got)
+	}
+
+	second, err := collect()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(second) != 1 || second[0].Eligibility != bldr_manifest_world.StartupManifestEligibilityEligible {
+		t.Fatalf("second startup candidates = %s", bldr_manifest_world.SummarizeStartupManifestEligibility(second, -1))
+	}
+	if got := networkGets.Load(); got != 1 {
+		t.Fatalf("network block fetches after cached startup read = %d, want 1", got)
+	}
 }
 
 func TestExecPluginReadsExternalManifestViaLookupBlockFromNetwork(t *testing.T) {
@@ -1869,6 +2041,12 @@ func TestExecPluginReadsExternalManifestViaLookupBlockFromNetwork(t *testing.T) 
 		le:               le,
 		pluginID:         "spacewave-core",
 		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
+		pluginLoadStateCtr: ccontainer.NewCContainer(
+			bldr_plugin.NewPluginLoadState(
+				nil,
+				bldr_plugin.InitialCapabilityRegistrationPending,
+			),
+		),
 	}
 	if err := pi.execPlugin(ctx, &executePluginArgs{
 		manifestSnapshot: &bldr_manifest.ManifestSnapshot{
@@ -2178,6 +2356,135 @@ func TestDownloadManifestCopiesRemoteDAGAndStoresLocalWorldRef(t *testing.T) {
 		return err
 	}); err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+func TestDownloadManifestCopiesExternalVolumeDAGAndCachesSourceReads(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const remoteBucketID = "spacewave-release"
+	remote := newTestExternalManifestRefWithDistAssets(t, ctx, remoteBucketID, "spacewave-core", "desktop/darwin/arm64", 14)
+	cacheKey, err := store_kvkey.NewKVKey(nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	cache := block_store_kvtx.NewKVTxBlock(cacheKey, store_kvtx_inmem.NewStore(), 0, true)
+	networkGets := &atomic.Uint32{}
+	sourceStore := &writebackLookupBlockStore{
+		StoreOps:    remote.store,
+		cache:       cache,
+		networkGets: networkGets,
+	}
+	sourceConf, err := bucket.NewConfig(remoteBucketID, 1, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	lookupRel, err := tb.Bus.AddController(ctx, &testSchedulerStaticLookupController{
+		bucketID: remoteBucketID,
+		handle: &testSchedulerStaticLookupHandle{
+			conf:   sourceConf,
+			lookup: &testSchedulerStaticLookup{store: sourceStore},
+		},
+	}, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer lookupRel()
+
+	var worldBucketID string
+	if err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		worldBucketID = cursor.GetOpArgs().GetBucketId()
+		return nil
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	var wsv world.WorldState = ws
+	pi := &pluginInstance{
+		c: &Controller{
+			conf:            &Config{},
+			objKey:          objKey,
+			peerID:          peer.ID("test"),
+			worldStateCtr:   ccontainer.NewCContainer(wsv),
+			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
+			pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+		},
+		le:       le,
+		pluginID: "spacewave-core",
+	}
+	snapshot := &bldr_manifest.ManifestSnapshot{
+		ManifestRef: remote.ref.GetManifestRef(),
+		Manifest:    remote.manifest,
+	}
+
+	var firstRoot *block.BlockRef
+	for i := range 2 {
+		if err := pi.execDownloadManifest(ctx, snapshot); err != nil {
+			t.Fatalf("copy attempt %d: %v", i+1, err)
+		}
+		got, errs, err := bldr_manifest_world.CollectManifestsForManifestID(
+			ctx,
+			ws,
+			"spacewave-core",
+			[]string{"desktop/darwin/arm64"},
+			objKey,
+		)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if len(errs) != 0 {
+			t.Fatalf("manifest errors after copy attempt %d = %v", i+1, errs)
+		}
+		if len(got) != 1 {
+			t.Fatalf("manifest count after copy attempt %d = %d, want 1", i+1, len(got))
+		}
+		localRef := got[0].ManifestRef
+		if localRef.GetBucketId() != worldBucketID {
+			t.Fatalf("manifest bucket after copy attempt %d = %q, want %q", i+1, localRef.GetBucketId(), worldBucketID)
+		}
+		if !localRef.GetRootRef().EqualVT(remote.ref.GetManifestRef().GetRootRef()) {
+			t.Fatalf("manifest root after copy attempt %d changed", i+1)
+		}
+		if !got[0].Manifest.GetMeta().EqualVT(remote.manifest.GetMeta()) {
+			t.Fatalf("manifest metadata after copy attempt %d changed", i+1)
+		}
+		if firstRoot == nil {
+			firstRoot = localRef.GetRootRef().CloneVT()
+		} else if !firstRoot.EqualVT(localRef.GetRootRef()) {
+			t.Fatal("local manifest root changed across cache-only copy")
+		}
+	}
+	if got := networkGets.Load(); got == 0 {
+		t.Fatal("external manifest copy did not demand any source blocks")
+	}
+	firstGets := networkGets.Load()
+	if err := pi.execDownloadManifest(ctx, snapshot); err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := networkGets.Load(); got != firstGets {
+		t.Fatalf("source network fetches after cache-only copy = %d, want %d", got, firstGets)
 	}
 }
 
@@ -2788,6 +3095,179 @@ func newTestExternalManifestRefWithDistAssets(
 		store:    store,
 	}
 }
+
+type startupDemandLookupObserver struct {
+	waiting chan struct{}
+}
+
+func (c *startupDemandLookupObserver) Execute(ctx context.Context) error {
+	<-ctx.Done()
+	return context.Canceled
+}
+
+func (c *startupDemandLookupObserver) GetControllerInfo() *controller.Info {
+	return controller.NewInfo(
+		"test/startup-demand-lookup-observer",
+		controller.MustParseVersion("0.0.1"),
+		"",
+	)
+}
+
+func (c *startupDemandLookupObserver) HandleDirective(
+	_ context.Context,
+	di directive.Instance,
+) ([]directive.Resolver, error) {
+	if _, ok := di.GetDirective().(dex.LookupBlockFromNetwork); ok {
+		select {
+		case c.waiting <- struct{}{}:
+		default:
+		}
+		return directive.R(startupDemandLookupObserverResolver{}, nil)
+	}
+	return nil, nil
+}
+
+func (startupDemandLookupObserverResolver) Resolve(
+	ctx context.Context,
+	_ directive.ResolverHandler,
+) error {
+	<-ctx.Done()
+	return context.Canceled
+}
+
+func (c *startupDemandLookupObserver) Close() error {
+	return nil
+}
+
+type startupDemandLookupObserverResolver struct{}
+
+type testSchedulerStaticLookup struct {
+	store block.StoreOps
+}
+
+func (l *testSchedulerStaticLookup) LookupBlock(
+	ctx context.Context,
+	ref *block.BlockRef,
+	_ ...bucket_lookup.LookupBlockOption,
+) ([]byte, bool, error) {
+	return l.store.GetBlock(ctx, ref)
+}
+
+func (l *testSchedulerStaticLookup) LookupBlockExistsBatch(
+	ctx context.Context,
+	refs []*block.BlockRef,
+	_ ...bucket_lookup.LookupBlockOption,
+) ([]bool, error) {
+	return l.store.GetBlockExistsBatch(ctx, refs)
+}
+
+func (l *testSchedulerStaticLookup) PutBlock(
+	context.Context,
+	[]byte,
+	*block.PutOpts,
+) ([]*bucket.ObjectRef, bool, error) {
+	return nil, false, bucket_lookup.ErrNotImplemented
+}
+
+type testSchedulerStaticLookupHandle struct {
+	conf   *bucket.Config
+	lookup bucket_lookup.Lookup
+}
+
+func (h *testSchedulerStaticLookupHandle) GetDisposed() bool {
+	return false
+}
+
+func (h *testSchedulerStaticLookupHandle) GetBucketConfig() *bucket.Config {
+	return h.conf
+}
+
+func (h *testSchedulerStaticLookupHandle) GetLookup(context.Context) (bucket_lookup.Lookup, error) {
+	return h.lookup, nil
+}
+
+type testSchedulerStaticLookupController struct {
+	bucketID string
+	handle   bucket_lookup.Handle
+}
+
+func (c *testSchedulerStaticLookupController) Execute(ctx context.Context) error {
+	<-ctx.Done()
+	return context.Canceled
+}
+
+func (c *testSchedulerStaticLookupController) GetControllerInfo() *controller.Info {
+	return controller.NewInfo(
+		"test/scheduler-static-lookup",
+		controller.MustParseVersion("0.0.1"),
+		"",
+	)
+}
+
+func (c *testSchedulerStaticLookupController) HandleDirective(
+	_ context.Context,
+	di directive.Instance,
+) ([]directive.Resolver, error) {
+	d, ok := di.GetDirective().(bucket_lookup.BuildBucketLookup)
+	if !ok || d.BuildBucketLookupBucketID() != c.bucketID {
+		return nil, nil
+	}
+	return directive.R(
+		directive.NewValueResolver([]bucket_lookup.BuildBucketLookupValue{c.handle}),
+		nil,
+	)
+}
+
+func (c *testSchedulerStaticLookupController) Close() error {
+	return nil
+}
+
+type writebackLookupBlockStore struct {
+	block.StoreOps
+	cache       block.StoreOps
+	networkGets *atomic.Uint32
+}
+
+func (s *writebackLookupBlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	source, sourceRel, err := s.StoreOps.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	cache, cacheRel, err := s.cache.BeginReadOperation(ctx)
+	if err != nil {
+		sourceRel()
+		return nil, nil, err
+	}
+	return &writebackLookupBlockStore{
+			StoreOps:    source,
+			cache:       cache,
+			networkGets: s.networkGets,
+		},
+		func() {
+			cacheRel()
+			sourceRel()
+		},
+		nil
+}
+
+func (s *writebackLookupBlockStore) GetBlock(
+	ctx context.Context,
+	ref *block.BlockRef,
+) ([]byte, bool, error) {
+	data, found, err := s.cache.GetBlock(ctx, ref)
+	if err != nil || found {
+		return data, found, err
+	}
+	s.networkGets.Add(1)
+	data, found, err = s.StoreOps.GetBlock(ctx, ref)
+	if err != nil || !found {
+		return data, found, err
+	}
+	_, _, err = s.cache.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref})
+	return data, true, err
+}
+
+var _ block.StoreOps = ((*writebackLookupBlockStore)(nil))
 
 type countingBlockStore struct {
 	store block.StoreOps

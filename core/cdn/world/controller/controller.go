@@ -11,8 +11,12 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
 	cdn_sharedobject "github.com/s4wave/spacewave/core/cdn/sharedobject"
+	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
+	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	"github.com/s4wave/spacewave/core/sobject"
 	space_world_optypes "github.com/s4wave/spacewave/core/space/world/optypes"
+	block_store "github.com/s4wave/spacewave/db/block/store"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
@@ -49,19 +53,72 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(ControllerID, Version, "CDN world controller: "+c.conf.GetEngineId())
 }
 
-// Execute builds the read-only CDN world engine and holds it until shutdown.
-func (c *Controller) Execute(ctx context.Context) error {
+func (c *Controller) newBlockStore(ctx context.Context) (*cdn_bstore.CdnBlockStore, func(), error) {
 	pointerTTL, _ := c.conf.ParsePointerTTLDur()
+	cacheID := c.conf.GetCacheBlockStoreId()
+	var indexCache packfile_store.IndexCache
+	var cacheStore block_store.LookupBlockStoreValue
+	var releaseCache, releaseIndex func()
+	releaseRefs := func() {
+		if releaseIndex != nil {
+			releaseIndex()
+		}
+		if releaseCache != nil {
+			releaseCache()
+		}
+	}
+	if cacheID != "" {
+		var err error
+		var cacheRef directive.Reference
+		cacheStore, _, cacheRef, err = block_store.ExLookupFirstBlockStore(ctx, c.b, cacheID, false, nil)
+		if err != nil {
+			return nil, nil, err
+		}
+		releaseCache = cacheRef.Release
+		objHandle, _, objRef, err := volume.ExBuildObjectStoreAPI(
+			ctx,
+			c.b,
+			true,
+			cdn_bstore.PackIndexObjectStoreID(c.conf.GetSpaceId()),
+			cacheID,
+			nil,
+		)
+		if err != nil {
+			releaseRefs()
+			return nil, nil, err
+		}
+		if objHandle != nil {
+			releaseIndex = objRef.Release
+			indexCache = manifest.NewIndexCache(objHandle.GetObjectStore())
+		}
+	}
 	store, err := cdn_bstore.NewCdnBlockStore(cdn_bstore.Options{
 		CdnBaseURL: c.conf.GetCdnBaseUrl(),
 		SpaceID:    c.conf.GetSpaceId(),
 		HttpClient: http.DefaultClient,
 		PointerTTL: pointerTTL,
+		IndexCache: indexCache,
 	})
+	if err != nil {
+		releaseRefs()
+		return nil, nil, err
+	}
+	if cacheID != "" {
+		store.SetWriteback(ctx, cacheStore, c.conf.GetWritebackWindowBytes())
+	}
+	return store, func() {
+		store.Close()
+		releaseRefs()
+	}, nil
+}
+
+// Execute builds the CDN world engine and holds it until shutdown.
+func (c *Controller) Execute(ctx context.Context) error {
+	store, releaseStore, err := c.newBlockStore(ctx)
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer releaseStore()
 	so, err := cdn_sharedobject.NewCdnSharedObject(cdn_sharedobject.CdnSharedObjectOptions{
 		SpaceID:    c.conf.GetSpaceId(),
 		BlockStore: store,

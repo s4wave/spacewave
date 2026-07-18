@@ -161,6 +161,8 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 		}
 		defer hostRootRef.Release()
 
+		t.beginInitialCapabilityRegistration()
+
 		// build the mux for handling incoming RPCs from the plugin
 		hostMux, relHostMux := t.c.buildPluginMux(
 			ctx,
@@ -171,6 +173,7 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 			distFS,
 			assetsFS,
 			hostRoot,
+			t.finishInitialCapabilityRegistration,
 		)
 		defer relHostMux()
 
@@ -211,32 +214,56 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 	return accessErr
 }
 
+// beginInitialCapabilityRegistration resets readiness for a new plugin
+// instance execution.
+func (t *pluginInstance) beginInitialCapabilityRegistration() {
+	state := bldr_plugin.NewPluginLoadState(
+		nil,
+		bldr_plugin.InitialCapabilityRegistrationPending,
+	)
+	t.pluginLoadStateCtr.SetValue(state)
+	t.publishPluginLoadState(state)
+}
+
 // updateRpcClient is called by the plugin when the RPC client changes.
 func (t *pluginInstance) updateRpcClient(client srpc.Client) {
-	_ = t.runningPluginCtr.SwapValue(func(rp bldr_plugin.RunningPlugin) bldr_plugin.RunningPlugin {
-		var val srpc.Client
-		if rp != nil {
-			val = rp.GetRpcClient()
-		}
-		changed := val != client
-		if !changed {
-			return rp
-		}
+	state := t.pluginLoadStateCtr.SwapValue(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
+		registrationState := current.GetInitialCapabilityRegistrationState()
 		if client == nil {
-			t.le.Debug("plugin rpc client is unset")
-			t.c.setPluginStatus(
-				t.pluginID,
-				t.instanceKey,
-				bldr_plugin.PluginState_PluginState_REQUESTED,
-			)
-			return nil
+			registrationState = bldr_plugin.InitialCapabilityRegistrationFailed
 		}
-		t.le.Debug("plugin rpc client is ready")
-		t.c.setPluginStatusClearingError(
+		return bldr_plugin.NewPluginLoadState(client, registrationState)
+	})
+	t.publishPluginLoadState(state)
+}
+
+func (t *pluginInstance) finishInitialCapabilityRegistration(complete bool) {
+	state := t.pluginLoadStateCtr.SwapValue(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
+		registrationState := bldr_plugin.InitialCapabilityRegistrationFailed
+		if complete {
+			registrationState = bldr_plugin.InitialCapabilityRegistrationComplete
+		}
+		return bldr_plugin.NewPluginLoadState(current.GetRpcClient(), registrationState)
+	})
+	t.publishPluginLoadState(state)
+}
+
+func (t *pluginInstance) publishPluginLoadState(state bldr_plugin.PluginLoadState) {
+	running := state.GetRunningPlugin()
+	t.runningPluginCtr.SetValue(running)
+	if running == nil {
+		t.le.Debug("plugin is awaiting initial capability registration")
+		t.c.setPluginStatus(
 			t.pluginID,
 			t.instanceKey,
-			bldr_plugin.PluginState_PluginState_RUNNING,
+			bldr_plugin.PluginState_PluginState_REQUESTED,
 		)
-		return bldr_plugin.NewRunningPlugin(client)
-	})
+		return
+	}
+	t.le.Debug("plugin rpc client and initial capabilities are ready")
+	t.c.setPluginStatusClearingError(
+		t.pluginID,
+		t.instanceKey,
+		bldr_plugin.PluginState_PluginState_RUNNING,
+	)
 }

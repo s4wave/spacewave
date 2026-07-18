@@ -237,7 +237,8 @@ inline constexpr BuilderResult::Impl_::Impl_(
       : _cached_size_{0},
         manifest_{nullptr},
         manifest_ref_{nullptr},
-        input_manifest_{nullptr} {}
+        input_manifest_{nullptr},
+        sub_manifest_results_{} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR BuilderResult::BuilderResult(::_pbi::ConstantInitialized)
@@ -258,6 +259,24 @@ struct BuilderResultDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BuilderResultDefaultTypeInternal _BuilderResult_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR BuilderResult_SubManifestResultsEntry_DoNotUse::BuilderResult_SubManifestResultsEntry_DoNotUse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : BuilderResult_SubManifestResultsEntry_DoNotUse::MapEntry(BuilderResult_SubManifestResultsEntry_DoNotUse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : BuilderResult_SubManifestResultsEntry_DoNotUse::MapEntry() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct BuilderResult_SubManifestResultsEntry_DoNotUseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR BuilderResult_SubManifestResultsEntry_DoNotUseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~BuilderResult_SubManifestResultsEntry_DoNotUseDefaultTypeInternal() {}
+  union {
+    BuilderResult_SubManifestResultsEntry_DoNotUse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 BuilderResult_SubManifestResultsEntry_DoNotUseDefaultTypeInternal _BuilderResult_SubManifestResultsEntry_DoNotUse_default_instance_;
 
 inline constexpr BuildManifestArgs::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -321,14 +340,23 @@ const ::uint32_t
         1,
         10,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderResult_SubManifestResultsEntry_DoNotUse, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderResult_SubManifestResultsEntry_DoNotUse, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderResult_SubManifestResultsEntry_DoNotUse, _impl_.value_),
+        0,
+        1,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderResult, _impl_._has_bits_),
-        6, // hasbit index offset
+        7, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderResult, _impl_.manifest_),
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderResult, _impl_.manifest_ref_),
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderResult, _impl_.input_manifest_),
+        PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::BuilderResult, _impl_.sub_manifest_results_),
         0,
         1,
         2,
+        3,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::manifest::builder::InputManifest_FileIdentity, _impl_._has_bits_),
         6, // hasbit index offset
@@ -392,16 +420,18 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::bldr::manifest::builder::BuilderConfig)},
-        {25, sizeof(::bldr::manifest::builder::BuilderResult)},
-        {34, sizeof(::bldr::manifest::builder::InputManifest_FileIdentity)},
-        {43, sizeof(::bldr::manifest::builder::InputManifest_File)},
-        {54, sizeof(::bldr::manifest::builder::InputManifest_ManifestDep)},
-        {61, sizeof(::bldr::manifest::builder::InputManifest_StartupInput)},
-        {72, sizeof(::bldr::manifest::builder::InputManifest)},
-        {83, sizeof(::bldr::manifest::builder::BuildManifestArgs)},
+        {25, sizeof(::bldr::manifest::builder::BuilderResult_SubManifestResultsEntry_DoNotUse)},
+        {32, sizeof(::bldr::manifest::builder::BuilderResult)},
+        {43, sizeof(::bldr::manifest::builder::InputManifest_FileIdentity)},
+        {52, sizeof(::bldr::manifest::builder::InputManifest_File)},
+        {63, sizeof(::bldr::manifest::builder::InputManifest_ManifestDep)},
+        {70, sizeof(::bldr::manifest::builder::InputManifest_StartupInput)},
+        {81, sizeof(::bldr::manifest::builder::InputManifest)},
+        {92, sizeof(::bldr::manifest::builder::BuildManifestArgs)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::bldr::manifest::builder::_BuilderConfig_default_instance_._instance,
+    &::bldr::manifest::builder::_BuilderResult_SubManifestResultsEntry_DoNotUse_default_instance_._instance,
     &::bldr::manifest::builder::_BuilderResult_default_instance_._instance,
     &::bldr::manifest::builder::_InputManifest_FileIdentity_default_instance_._instance,
     &::bldr::manifest::builder::_InputManifest_File_default_instance_._instance,
@@ -426,37 +456,42 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "\n\020link_object_keys\030\007 \003(\t\022\017\n\007peer_id\030\010 \001("
     "\t\022\022\n\nproject_id\030\t \001(\t\022\033\n\023target_platform"
     "_ids\030\n \003(\t\0226\n\014build_policy\030\013 \001(\0132 .bldr."
-    "manifest.build.BuildPolicy\"\252\001\n\rBuilderRe"
+    "manifest.build.BuildPolicy\"\347\002\n\rBuilderRe"
     "sult\022)\n\010manifest\030\001 \001(\0132\027.bldr.manifest.M"
     "anifest\0220\n\014manifest_ref\030\002 \001(\0132\032.bldr.man"
     "ifest.ManifestRef\022<\n\016input_manifest\030\003 \001("
-    "\0132$.bldr.manifest.builder.InputManifest\""
-    "\235\006\n\rInputManifest\0228\n\005files\030\001 \003(\0132).bldr."
-    "manifest.builder.InputManifest.File\022\020\n\010m"
-    "etadata\030\002 \001(\014\022G\n\rmanifest_deps\030\003 \003(\01320.b"
-    "ldr.manifest.builder.InputManifest.Manif"
-    "estDep\022I\n\016startup_inputs\030\004 \003(\01321.bldr.ma"
+    "\0132$.bldr.manifest.builder.InputManifest\022"
+    "Z\n\024sub_manifest_results\030\004 \003(\0132<.bldr.man"
+    "ifest.builder.BuilderResult.SubManifestR"
+    "esultsEntry\032_\n\027SubManifestResultsEntry\022\013"
+    "\n\003key\030\001 \001(\t\0223\n\005value\030\002 \001(\0132$.bldr.manife"
+    "st.builder.BuilderResult:\0028\001\"\235\006\n\rInputMa"
+    "nifest\0228\n\005files\030\001 \003(\0132).bldr.manifest.bu"
+    "ilder.InputManifest.File\022\020\n\010metadata\030\002 \001"
+    "(\014\022G\n\rmanifest_deps\030\003 \003(\01320.bldr.manifes"
+    "t.builder.InputManifest.ManifestDep\022I\n\016s"
+    "tartup_inputs\030\004 \003(\01321.bldr.manifest.buil"
+    "der.InputManifest.StartupInput\032N\n\014FileId"
+    "entity\022\022\n\nsize_bytes\030\001 \001(\004\022\032\n\022mod_time_u"
+    "nix_nano\030\002 \001(\003\022\016\n\006sha256\030\003 \001(\014\032\201\001\n\004File\022"
+    "\014\n\004path\030\001 \001(\t\022\020\n\010metadata\030\002 \001(\014\022C\n\010ident"
+    "ity\030\003 \001(\01321.bldr.manifest.builder.InputM"
+    "anifest.FileIdentity\022\024\n\014startup_only\030\004 \001"
+    "(\010\032K\n\013ManifestDep\022\023\n\013manifest_id\030\001 \001(\t\022\'"
+    "\n\014manifest_ref\030\002 \001(\0132\021.bucket.ObjectRef\032"
+    "\213\001\n\014StartupInput\022C\n\004kind\030\001 \001(\01625.bldr.ma"
     "nifest.builder.InputManifest.StartupInpu"
-    "t\032N\n\014FileIdentity\022\022\n\nsize_bytes\030\001 \001(\004\022\032\n"
-    "\022mod_time_unix_nano\030\002 \001(\003\022\016\n\006sha256\030\003 \001("
-    "\014\032\201\001\n\004File\022\014\n\004path\030\001 \001(\t\022\020\n\010metadata\030\002 \001"
-    "(\014\022C\n\010identity\030\003 \001(\01321.bldr.manifest.bui"
-    "lder.InputManifest.FileIdentity\022\024\n\014start"
-    "up_only\030\004 \001(\010\032K\n\013ManifestDep\022\023\n\013manifest"
-    "_id\030\001 \001(\t\022\'\n\014manifest_ref\030\002 \001(\0132\021.bucket"
-    ".ObjectRef\032\213\001\n\014StartupInput\022C\n\004kind\030\001 \001("
-    "\01625.bldr.manifest.builder.InputManifest."
-    "StartupInputKind\022\013\n\003key\030\002 \001(\t\022\024\n\014string_"
-    "value\030\003 \001(\t\022\023\n\013bytes_value\030\004 \001(\014\"}\n\020Star"
-    "tupInputKind\022\034\n\030StartupInputKind_UNKNOWN"
-    "\020\000\022\034\n\030StartupInputKind_ENV_VAR\020\001\022-\n)Star"
-    "tupInputKind_CONTROLLER_CONFIG_DIGEST\020\002\""
-    "\326\001\n\021BuildManifestArgs\022<\n\016builder_config\030"
-    "\001 \001(\0132$.bldr.manifest.builder.BuilderCon"
-    "fig\022A\n\023prev_builder_result\030\002 \001(\0132$.bldr."
-    "manifest.builder.BuilderResult\022@\n\rchange"
-    "d_files\030\003 \003(\0132).bldr.manifest.builder.In"
-    "putManifest.Fileb\006proto3"
+    "tKind\022\013\n\003key\030\002 \001(\t\022\024\n\014string_value\030\003 \001(\t"
+    "\022\023\n\013bytes_value\030\004 \001(\014\"}\n\020StartupInputKin"
+    "d\022\034\n\030StartupInputKind_UNKNOWN\020\000\022\034\n\030Start"
+    "upInputKind_ENV_VAR\020\001\022-\n)StartupInputKin"
+    "d_CONTROLLER_CONFIG_DIGEST\020\002\"\326\001\n\021BuildMa"
+    "nifestArgs\022<\n\016builder_config\030\001 \001(\0132$.bld"
+    "r.manifest.builder.BuilderConfig\022A\n\023prev"
+    "_builder_result\030\002 \001(\0132$.bldr.manifest.bu"
+    "ilder.BuilderResult\022@\n\rchanged_files\030\003 \003"
+    "(\0132).bldr.manifest.builder.InputManifest"
+    ".Fileb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_deps[3] = {
@@ -468,13 +503,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto = {
     false,
     false,
-    1784,
+    1973,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
     "github.com/s4wave/spacewave/bldr/manifest/builder/builder.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto_deps,
     3,
-    8,
+    9,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto::offsets,
@@ -1210,6 +1245,105 @@ void BuilderConfig::InternalSwap(BuilderConfig* PROTOBUF_RESTRICT PROTOBUF_NONNU
 }
 // ===================================================================
 
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+BuilderResult_SubManifestResultsEntry_DoNotUse::BuilderResult_SubManifestResultsEntry_DoNotUse()
+    : SuperType(BuilderResult_SubManifestResultsEntry_DoNotUse_class_data_.base()) {}
+BuilderResult_SubManifestResultsEntry_DoNotUse::BuilderResult_SubManifestResultsEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+    : SuperType(arena, BuilderResult_SubManifestResultsEntry_DoNotUse_class_data_.base()) {}
+#else   // PROTOBUF_CUSTOM_VTABLE
+BuilderResult_SubManifestResultsEntry_DoNotUse::BuilderResult_SubManifestResultsEntry_DoNotUse() : SuperType() {}
+BuilderResult_SubManifestResultsEntry_DoNotUse::BuilderResult_SubManifestResultsEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena) : SuperType(arena) {}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+inline void* PROTOBUF_NONNULL BuilderResult_SubManifestResultsEntry_DoNotUse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) BuilderResult_SubManifestResultsEntry_DoNotUse(arena);
+}
+constexpr auto BuilderResult_SubManifestResultsEntry_DoNotUse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(BuilderResult_SubManifestResultsEntry_DoNotUse),
+                                            alignof(BuilderResult_SubManifestResultsEntry_DoNotUse));
+}
+constexpr auto BuilderResult_SubManifestResultsEntry_DoNotUse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_BuilderResult_SubManifestResultsEntry_DoNotUse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &BuilderResult_SubManifestResultsEntry_DoNotUse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<BuilderResult_SubManifestResultsEntry_DoNotUse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &BuilderResult_SubManifestResultsEntry_DoNotUse::SharedDtor,
+          static_cast<void (::google::protobuf::MessageLite::*)()>(&BuilderResult_SubManifestResultsEntry_DoNotUse::ClearImpl),
+              ::google::protobuf::Message::ByteSizeLongImpl, ::google::protobuf::Message::_InternalSerializeImpl
+              ,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(BuilderResult_SubManifestResultsEntry_DoNotUse, _impl_._cached_size_),
+          false,
+      },
+      &BuilderResult_SubManifestResultsEntry_DoNotUse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull BuilderResult_SubManifestResultsEntry_DoNotUse_class_data_ =
+        BuilderResult_SubManifestResultsEntry_DoNotUse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+BuilderResult_SubManifestResultsEntry_DoNotUse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&BuilderResult_SubManifestResultsEntry_DoNotUse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(BuilderResult_SubManifestResultsEntry_DoNotUse_class_data_.tc_table);
+  return BuilderResult_SubManifestResultsEntry_DoNotUse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 1, 71, 2>
+BuilderResult_SubManifestResultsEntry_DoNotUse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(BuilderResult_SubManifestResultsEntry_DoNotUse, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    BuilderResult_SubManifestResultsEntry_DoNotUse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::DiscardEverythingFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::manifest::builder::BuilderResult_SubManifestResultsEntry_DoNotUse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .bldr.manifest.builder.BuilderResult value = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(BuilderResult_SubManifestResultsEntry_DoNotUse, _impl_.value_)}},
+    // string key = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(BuilderResult_SubManifestResultsEntry_DoNotUse, _impl_.key_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string key = 1;
+    {PROTOBUF_FIELD_OFFSET(BuilderResult_SubManifestResultsEntry_DoNotUse, _impl_.key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .bldr.manifest.builder.BuilderResult value = 2;
+    {PROTOBUF_FIELD_OFFSET(BuilderResult_SubManifestResultsEntry_DoNotUse, _impl_.value_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::bldr::manifest::builder::BuilderResult>()},
+  }},
+  {{
+    "\73\3\0\0\0\0\0\0"
+    "bldr.manifest.builder.BuilderResult.SubManifestResultsEntry"
+    "key"
+  }},
+};
+// ===================================================================
+
 class BuilderResult::_Internal {
  public:
   using HasBits =
@@ -1244,7 +1378,8 @@ PROTOBUF_NDEBUG_INLINE BuilderResult::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
     [[maybe_unused]] const ::bldr::manifest::builder::BuilderResult& from_msg)
       : _has_bits_{from._has_bits_},
-        _cached_size_{0} {}
+        _cached_size_{0},
+        sub_manifest_results_{visibility, arena, from.sub_manifest_results_} {}
 
 BuilderResult::BuilderResult(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -1275,7 +1410,8 @@ BuilderResult::BuilderResult(
 PROTOBUF_NDEBUG_INLINE BuilderResult::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0} {}
+      : _cached_size_{0},
+        sub_manifest_results_{visibility, arena} {}
 
 inline void BuilderResult::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -1309,8 +1445,20 @@ inline void* PROTOBUF_NONNULL BuilderResult::PlacementNew_(
   return ::new (mem) BuilderResult(arena);
 }
 constexpr auto BuilderResult::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(BuilderResult),
-                                            alignof(BuilderResult));
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(BuilderResult, _impl_.sub_manifest_results_) +
+          decltype(BuilderResult::_impl_.sub_manifest_results_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(BuilderResult), alignof(BuilderResult), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&BuilderResult::PlacementNew_,
+                                 sizeof(BuilderResult),
+                                 alignof(BuilderResult));
+  }
 }
 constexpr auto BuilderResult::InternalGenerateClassData_() {
   return ::google::protobuf::internal::ClassDataFull{
@@ -1346,17 +1494,17 @@ BuilderResult::GetClassData() const {
   return BuilderResult_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 3, 3, 0, 2>
+const ::_pbi::TcParseTable<2, 4, 5, 64, 2>
 BuilderResult::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(BuilderResult, _impl_._has_bits_),
     0, // no _extensions_
-    3, 24,  // max_field_number, fast_idx_mask
+    4, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967288,  // skipmap
+    4294967280,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    3,  // num_field_entries
-    3,  // num_aux_entries
+    4,  // num_field_entries
+    5,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     BuilderResult_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -1387,13 +1535,21 @@ BuilderResult::_table_ = {
     {PROTOBUF_FIELD_OFFSET(BuilderResult, _impl_.manifest_ref_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .bldr.manifest.builder.InputManifest input_manifest = 3;
     {PROTOBUF_FIELD_OFFSET(BuilderResult, _impl_.input_manifest_), _Internal::kHasBitsOffset + 2, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // map<string, .bldr.manifest.builder.BuilderResult> sub_manifest_results = 4;
+    {PROTOBUF_FIELD_OFFSET(BuilderResult, _impl_.sub_manifest_results_), _Internal::kHasBitsOffset + 3, 3, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::bldr::manifest::Manifest>()},
       {::_pbi::TcParser::GetTable<::bldr::manifest::ManifestRef>()},
       {::_pbi::TcParser::GetTable<::bldr::manifest::builder::InputManifest>()},
+      {::_pbi::TcParser::GetMapAuxInfo(
+          1, 0, 9, 11, 0)},
+      {::_pbi::TcParser::GetTable<::bldr::manifest::builder::BuilderResult>()},
   }},
   {{
+    "\43\0\0\0\24\0\0\0"
+    "bldr.manifest.builder.BuilderResult"
+    "sub_manifest_results"
   }},
 };
 PROTOBUF_NOINLINE void BuilderResult::Clear() {
@@ -1404,7 +1560,7 @@ PROTOBUF_NOINLINE void BuilderResult::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       ABSL_DCHECK(_impl_.manifest_ != nullptr);
       _impl_.manifest_->Clear();
@@ -1416,6 +1572,9 @@ PROTOBUF_NOINLINE void BuilderResult::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       ABSL_DCHECK(_impl_.input_manifest_ != nullptr);
       _impl_.input_manifest_->Clear();
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      _impl_.sub_manifest_results_.Clear();
     }
   }
   _impl_._has_bits_.Clear();
@@ -1462,6 +1621,35 @@ PROTOBUF_NOINLINE void BuilderResult::Clear() {
         stream);
   }
 
+  // map<string, .bldr.manifest.builder.BuilderResult> sub_manifest_results = 4;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_sub_manifest_results().empty()) {
+      using MapType = ::google::protobuf::Map<::std::string, ::bldr::manifest::builder::BuilderResult>;
+      using WireHelper = _pbi::MapEntryFuncs<::std::string, ::bldr::manifest::builder::BuilderResult,
+                                     _pbi::WireFormatLite::TYPE_STRING,
+                                     _pbi::WireFormatLite::TYPE_MESSAGE>;
+      const auto& field = this_._internal_sub_manifest_results();
+
+      if (stream->IsSerializationDeterministic() && field.size() > 1) {
+        for (const auto& entry : ::google::protobuf::internal::MapSorterPtr<MapType>(field)) {
+          target = WireHelper::InternalSerialize(
+              4, entry.first, entry.second, target, stream);
+          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+              entry.first.data(), static_cast<int>(entry.first.length()),
+ ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.manifest.builder.BuilderResult.sub_manifest_results");
+        }
+      } else {
+        for (const auto& entry : field) {
+          target = WireHelper::InternalSerialize(
+              4, entry.first, entry.second, target, stream);
+          ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+              entry.first.data(), static_cast<int>(entry.first.length()),
+ ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.manifest.builder.BuilderResult.sub_manifest_results");
+        }
+      }
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1487,7 +1675,7 @@ PROTOBUF_NOINLINE void BuilderResult::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     // .bldr.manifest.Manifest manifest = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       total_size += 1 +
@@ -1502,6 +1690,16 @@ PROTOBUF_NOINLINE void BuilderResult::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.input_manifest_);
+    }
+    // map<string, .bldr.manifest.builder.BuilderResult> sub_manifest_results = 4;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_sub_manifest_results_size());
+      for (const auto& entry : this_._internal_sub_manifest_results()) {
+        total_size += _pbi::MapEntryFuncs<::std::string, ::bldr::manifest::builder::BuilderResult,
+                                       _pbi::WireFormatLite::TYPE_STRING,
+                                       _pbi::WireFormatLite::TYPE_MESSAGE>::ByteSizeLong(entry.first, entry.second);
+      }
     }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
@@ -1523,7 +1721,7 @@ void BuilderResult::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       ABSL_DCHECK(from._impl_.manifest_ != nullptr);
       if (_this->_impl_.manifest_ == nullptr) {
@@ -1547,6 +1745,9 @@ void BuilderResult::MergeImpl(::google::protobuf::MessageLite& to_msg,
       } else {
         _this->_impl_.input_manifest_->MergeFrom(*from._impl_.input_manifest_);
       }
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000008U)) {
+      _this->_impl_.sub_manifest_results_.MergeFrom(from._impl_.sub_manifest_results_);
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -1572,6 +1773,7 @@ void BuilderResult::InternalSwap(BuilderResult* PROTOBUF_RESTRICT PROTOBUF_NONNU
       - PROTOBUF_FIELD_OFFSET(BuilderResult, _impl_.manifest_)>(
           reinterpret_cast<char*>(&_impl_.manifest_),
           reinterpret_cast<char*>(&other->_impl_.manifest_));
+  _impl_.sub_manifest_results_.InternalSwap(&other->_impl_.sub_manifest_results_);
 }
 
 ::google::protobuf::Metadata BuilderResult::GetMetadata() const {

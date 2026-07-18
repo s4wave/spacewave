@@ -93,6 +93,46 @@ func (a *ProviderAccount) loadLinkedCloudAccountID(ctx context.Context) (string,
 	return linkedCloudAccountID, nil
 }
 
+func findLinkedCloudSessionRef(
+	entries []*session.SessionListEntry,
+	cloudAccountID string,
+) *session.SessionRef {
+	for _, entry := range entries {
+		ref := entry.GetSessionRef()
+		providerRef := ref.GetProviderResourceRef()
+		if providerRef.GetProviderId() == "spacewave" &&
+			providerRef.GetProviderAccountId() == cloudAccountID {
+			return ref
+		}
+	}
+	return nil
+}
+
+func waitForLinkedCloudSessionRef(
+	ctx context.Context,
+	ctrl session.SessionController,
+	cloudAccountID string,
+) (*session.SessionRef, error) {
+	for {
+		var waitCh <-chan struct{}
+		ctrl.GetSessionBroadcast().HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			waitCh = getWaitCh()
+		})
+		entries, err := ctrl.ListSessions(ctx)
+		if err != nil {
+			return nil, errors.Wrap(err, "list sessions")
+		}
+		if ref := findLinkedCloudSessionRef(entries, cloudAccountID); ref != nil {
+			return ref, nil
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-waitCh:
+		}
+	}
+}
+
 func (a *ProviderAccount) runAccountSettingsCloudSync(
 	ctx context.Context,
 	cloudAccountID string,
@@ -107,8 +147,52 @@ func (a *ProviderAccount) runAccountSettingsCloudSync(
 	}
 	defer relLocalSO()
 
-	provAcc, provAccRef, err := provider.ExAccessProviderAccount(
+	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(
 		ctx,
+		a.t.p.b,
+		"",
+		false,
+		nil,
+	)
+	if err != nil {
+		return errors.Wrap(err, "lookup session controller")
+	}
+	defer sessionCtrlRef.Release()
+	cloudSessionRef, err := waitForLinkedCloudSessionRef(ctx, sessionCtrl, cloudAccountID)
+	if err != nil {
+		return errors.Wrap(err, "wait for linked cloud session")
+	}
+	cloudSession, cloudSessionDiRef, err := session.ExMountSession(
+		ctx,
+		a.t.p.b,
+		cloudSessionRef,
+		false,
+		nil,
+	)
+	if err != nil {
+		return errors.Wrap(err, "mount cloud session")
+	}
+	if cloudSession == nil || cloudSessionDiRef == nil {
+		return errors.New("cloud session not available")
+	}
+	defer cloudSessionDiRef.Release()
+
+	syncCtx, syncCancel := context.WithCancel(ctx)
+	defer syncCancel()
+	errCh := make(chan error, 3)
+	go func() {
+		err := cloudSession.WatchLockState(syncCtx, func(_ session.SessionLockMode, locked bool) {
+			if locked {
+				syncCancel()
+			}
+		})
+		if err != nil && syncCtx.Err() == nil {
+			errCh <- errors.Wrap(err, "watch cloud session lock state")
+		}
+	}()
+
+	provAcc, provAccRef, err := provider.ExAccessProviderAccount(
+		syncCtx,
 		a.t.p.b,
 		"spacewave",
 		cloudAccountID,
@@ -118,9 +202,8 @@ func (a *ProviderAccount) runAccountSettingsCloudSync(
 	if err != nil {
 		return errors.Wrap(err, "access cloud provider account")
 	}
-	if provAcc == nil {
-		return errors.New("cloud provider account not available")
-	}
+	// Retain the mount while its authenticated dependents are live. A lock
+	// cancels those dependents before releasing the mount for a fresh tracker.
 	defer provAccRef.Release()
 
 	swAcc, ok := provAcc.(*provider_spacewave.ProviderAccount)
@@ -128,38 +211,37 @@ func (a *ProviderAccount) runAccountSettingsCloudSync(
 		return errors.New("unexpected cloud provider account type")
 	}
 
-	cloudRef, err := waitForCloudAccountSettingsRef(ctx, swAcc)
+	cloudRef, err := waitForCloudAccountSettingsRef(syncCtx, swAcc)
 	if err != nil {
 		return err
 	}
-	cloudSO, relCloudSO, err := swAcc.MountSharedObject(ctx, cloudRef, nil)
+	cloudSO, relCloudSO, err := swAcc.MountSharedObject(syncCtx, cloudRef, nil)
 	if err != nil {
 		return errors.Wrap(err, "mount cloud account settings")
 	}
 	defer relCloudSO()
 
-	localCtr, relLocalCtr, err := localSO.AccessSharedObjectState(ctx, nil)
+	localCtr, relLocalCtr, err := localSO.AccessSharedObjectState(syncCtx, nil)
 	if err != nil {
 		return errors.Wrap(err, "access local account settings state")
 	}
 	defer relLocalCtr()
-	cloudCtr, relCloudCtr, err := cloudSO.AccessSharedObjectState(ctx, nil)
+	cloudCtr, relCloudCtr, err := cloudSO.AccessSharedObjectState(syncCtx, nil)
 	if err != nil {
 		return errors.Wrap(err, "access cloud account settings state")
 	}
 	defer relCloudCtr()
 
 	evCh := make(chan accountSettingsSyncEvent)
-	errCh := make(chan error, 2)
 	go watchAccountSettingsSyncState(
-		ctx,
+		syncCtx,
 		localCtr,
 		accountSettingsSyncSourceLocal,
 		evCh,
 		errCh,
 	)
 	go watchAccountSettingsSyncState(
-		ctx,
+		syncCtx,
 		cloudCtr,
 		accountSettingsSyncSourceCloud,
 		evCh,
@@ -179,15 +261,18 @@ func (a *ProviderAccount) runAccountSettingsCloudSync(
 	writeAllowed, accountCh := loadCloudAccountSettingsSyncState(swAcc)
 	for {
 		select {
-		case <-ctx.Done():
-			return ctx.Err()
+		case <-syncCtx.Done():
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			return errors.New("cloud session locked")
 		case err := <-errCh:
 			return err
 		case <-accountCh:
 			writeAllowed, accountCh = loadCloudAccountSettingsSyncState(swAcc)
 			if writeAllowed && localReady && cloudReady {
 				if err := syncAccountSettingsState(
-					ctx,
+					syncCtx,
 					localSettings,
 					cloudSettings,
 					cloudSO,
@@ -214,7 +299,7 @@ func (a *ProviderAccount) runAccountSettingsCloudSync(
 					continue
 				}
 				if err := syncAccountSettingsState(
-					ctx,
+					syncCtx,
 					localSettings,
 					cloudSettings,
 					cloudSO,
@@ -224,7 +309,7 @@ func (a *ProviderAccount) runAccountSettingsCloudSync(
 				continue
 			}
 			if err := syncAccountSettingsState(
-				ctx,
+				syncCtx,
 				cloudSettings,
 				localSettings,
 				localSO,

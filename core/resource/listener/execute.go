@@ -72,7 +72,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	for {
 		handoff, handoffWaitCh := broker.SnapshotHandoff()
-		if handoff.Active && handoff.SocketPath == absPath {
+		if handoffBlocksListener(handoff) {
 			le.Infof("resource listener waiting for runtime handoff reclaim on %s", absPath)
 			select {
 			case <-ctx.Done():
@@ -98,6 +98,10 @@ func (c *Controller) Execute(ctx context.Context) error {
 			le.Info("reclaim signal received, re-binding socket")
 		}
 	}
+}
+
+func handoffBlocksListener(handoff yield_policy.HandoffState) bool {
+	return handoff.Active
 }
 
 // serveOnce takes over the socket, listens, serves until either the

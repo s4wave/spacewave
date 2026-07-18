@@ -9,6 +9,7 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	transform_lz4 "github.com/s4wave/spacewave/db/block/transform/lz4"
+	transform_s2 "github.com/s4wave/spacewave/db/block/transform/s2"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
@@ -188,4 +189,110 @@ func TestCopyObjectToBucket(t *testing.T) {
 	}
 
 	le.Infof("copied block graph successfully: %s", outRef.MarshalString())
+}
+
+// TestCopyObjectToBucketResetsRawSourceTransformAtTransformedDestination
+// verifies that a raw source copied below a transformed parent carries an
+// explicit empty transform configuration for later traversals.
+func TestCopyObjectToBucketResetsRawSourceTransformAtTransformedDestination(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	baseCursor, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer baseCursor.Release()
+
+	btx, bcs := baseCursor.BuildTransaction(nil)
+	rootBlk := &block_mock.Root{ExampleSubBlock: &block_mock.SubBlock{}}
+	bcs.SetBlock(rootBlk, true)
+	exampleBlk := block_mock.NewExample("raw source")
+	bcs.FollowSubBlock(1).FollowRef(1, nil).SetBlock(exampleBlk, true)
+	srcRef, _, err := btx.Write(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	baseCursor.SetRootRef(srcRef)
+
+	const destBucketID = "object-copy-raw-dest"
+	if _, _, _, err := tb.Volume.ApplyBucketConfig(ctx, &bucket.Config{
+		Id:  destBucketID,
+		Rev: 1,
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+	destTransformConf, err := block_transform.NewConfig([]config.Config{
+		&transform_s2.Config{},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	destCursor, err := baseCursor.FollowRef(ctx, &bucket.ObjectRef{
+		BucketId:      destBucketID,
+		TransformConf: destTransformConf,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer destCursor.Release()
+
+	outRef, _, err := bucket_lookup.CopyObjectToBucketWithStats(
+		ctx,
+		destCursor,
+		baseCursor,
+		block_mock.NewRootBlock,
+		-1,
+		false,
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	// Reopen the transformed destination parent so no decoded source state can
+	// mask the returned reference's inherited-transform behavior.
+	reopenedParent, err := baseCursor.FollowRef(ctx, &bucket.ObjectRef{
+		BucketId:      destBucketID,
+		TransformConf: destTransformConf,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer reopenedParent.Release()
+	resultCursor, err := reopenedParent.FollowRef(ctx, outRef)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer resultCursor.Release()
+
+	_, resultBcs := resultCursor.BuildTransaction(nil)
+	outRootBlk, err := resultBcs.Unmarshal(ctx, block_mock.NewRootBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !outRootBlk.(*block_mock.Root).EqualVT(rootBlk) {
+		t.Fatal("reopened copied root differs from raw source root")
+	}
+	outExampleBlk, err := resultBcs.
+		FollowSubBlock(1).
+		FollowRef(1, outRootBlk.(*block_mock.Root).GetExampleSubBlock().GetExamplePtr()).
+		Unmarshal(ctx, block_mock.NewExampleBlock)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !outExampleBlk.(*block_mock.Example).EqualVT(exampleBlk) {
+		t.Fatal("reopened copied nested block differs from raw source block")
+	}
+	if outRef.GetTransformConfRef().GetEmpty() {
+		t.Fatal("copied raw object ref is missing explicit empty transform config")
+	}
+	if !outRef.GetTransformConf().GetEmpty() {
+		t.Fatal("copied raw object ref unexpectedly carries inline transform config")
+	}
 }

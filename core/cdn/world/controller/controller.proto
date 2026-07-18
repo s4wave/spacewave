@@ -12,4 +12,9 @@ message Config {
   // PointerTtlDur is the cached root pointer TTL.
   // Empty uses the CDN block store default. Negative disables expiry.
   string pointer_ttl_dur = 4;
+  // CacheBlockStoreId optionally resolves the lifecycle-owned local block store
+  // used for durable writeback while reading remote pack ranges.
+  string cache_block_store_id = 5;
+  // WritebackWindowBytes sets the semantic co-block writeback window.
+  int64 writeback_window_bytes = 6;
 }

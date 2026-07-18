@@ -16,5 +16,12 @@ pub struct Config {
     /// Empty uses the CDN block store default. Negative disables expiry.
     #[prost(string, tag="4")]
     pub pointer_ttl_dur: ::prost::alloc::string::String,
+    /// CacheBlockStoreId optionally resolves the lifecycle-owned local block store
+    /// used for durable writeback while reading remote pack ranges.
+    #[prost(string, tag="5")]
+    pub cache_block_store_id: ::prost::alloc::string::String,
+    /// WritebackWindowBytes sets the semantic co-block writeback window.
+    #[prost(int64, tag="6")]
+    pub writeback_window_bytes: i64,
 }
 // @@protoc_insertion_point(module)

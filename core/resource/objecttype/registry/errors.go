@@ -8,5 +8,8 @@ var ErrTypeIdRequired = errors.New("type_id is required")
 // ErrPluginIdRequired is returned when the plugin_id field is empty.
 var ErrPluginIdRequired = errors.New("plugin_id is required")
 
+// ErrTypeIdAlreadyRegistered is returned when the type_id already has an active registration.
+var ErrTypeIdAlreadyRegistered = errors.New("type_id is already registered")
+
 // ErrTypeIdMustHavePluginPrefix is returned when the type_id has no namespace prefix before '/'.
 var ErrTypeIdMustHavePluginPrefix = errors.New("type_id must contain a namespace prefix before '/'")

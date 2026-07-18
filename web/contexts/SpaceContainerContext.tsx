@@ -30,6 +30,8 @@ export type BuildExportUrlFunc = () => string
 export interface SpaceContainerContextValue {
   // spaceId is the space shared object id
   spaceId: string
+  // spaceName is the live human-readable Space name.
+  spaceName?: string
   // spaceState is the space state
   spaceState: SpaceState
   // spaceSharingState is the combined sharing snapshot for the space
@@ -72,6 +74,7 @@ const Provider: React.FC<
   switchObjectAtCurrentPosition,
   navigateToRoot,
   spaceId,
+  spaceName,
   spaceState,
   spaceSharingState,
   orgState,
@@ -90,6 +93,7 @@ const Provider: React.FC<
       switchObjectAtCurrentPosition,
       navigateToRoot,
       spaceId,
+      spaceName,
       spaceState,
       spaceSharingState,
       orgState,
@@ -107,6 +111,7 @@ const Provider: React.FC<
       switchObjectAtCurrentPosition,
       navigateToRoot,
       spaceId,
+      spaceName,
       spaceState,
       spaceSharingState,
       orgState,

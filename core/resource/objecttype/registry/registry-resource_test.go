@@ -3,6 +3,7 @@ package resource_objecttype_registry
 import (
 	"testing"
 
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
 )
 
@@ -20,6 +21,35 @@ func TestNewObjectTypeRegistryResource(t *testing.T) {
 	}
 	if r.nextID != 1 {
 		t.Fatalf("expected nextID=1, got %d", r.nextID)
+	}
+}
+
+func TestRegisterObjectTypeRejectsDuplicateTypeID(t *testing.T) {
+	r := NewObjectTypeRegistryResource()
+	r.registrations[1] = &s4wave_objecttype_registry.ObjectTypeRegistration{
+		TypeId:         "test-plugin/duplicate",
+		RegistrationId: 1,
+		PluginId:       "test-plugin",
+	}
+	r.nextID = 2
+	client := &testResourceClientContext{ctx: t.Context()}
+
+	_, err := r.RegisterObjectType(
+		resource_server.WithResourceClientContext(t.Context(), client),
+		&s4wave_objecttype_registry.RegisterObjectTypeRequest{
+			TypeId:   "test-plugin/duplicate",
+			PluginId: "other-plugin",
+		},
+	)
+	if err != ErrTypeIdAlreadyRegistered {
+		t.Fatalf("RegisterObjectType() error = %v, want %v", err, ErrTypeIdAlreadyRegistered)
+	}
+	if r.nextID != 2 {
+		t.Fatalf("next registration ID = %d, want 2", r.nextID)
+	}
+	registration := r.LookupRegistration("test-plugin/duplicate")
+	if registration.GetPluginId() != "test-plugin" {
+		t.Fatalf("duplicate changed plugin ID to %q", registration.GetPluginId())
 	}
 }
 

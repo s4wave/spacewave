@@ -956,7 +956,9 @@ func (a *ProviderAccount) GetAccountState(ctx context.Context) (*api.AccountStat
 		a.accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			info = a.state.info
 			cli = a.sessionClient
-			if info == nil && !a.state.infoFetching && cli != nil {
+			if info == nil && !a.state.infoFetching &&
+				cli != nil && cli.SignedHTTPClient != nil &&
+				cli.peerID != "" && (cli.priv != nil || cli.sign != nil) {
 				a.state.infoFetching = true
 				shouldFetch = true
 			}
@@ -968,10 +970,30 @@ func (a *ProviderAccount) GetAccountState(ctx context.Context) (*api.AccountStat
 		if shouldFetch {
 			fetched, err := cli.GetAccountState(ctx)
 			if err != nil {
-				a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				var (
+					waitCh       <-chan struct{}
+					retryOnEvent bool
+				)
+				a.accountBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 					a.state.infoFetching = false
 					broadcast()
+					waitCh = getWaitCh()
+					current := a.sessionClient
+					retryOnEvent = current != cli &&
+						current != nil && current.SignedHTTPClient != nil &&
+						current.peerID != "" && (current.priv != nil || current.sign != nil)
 				})
+				if errors.Is(err, ErrSigningUnavailable) {
+					if retryOnEvent {
+						continue
+					}
+					select {
+					case <-ctx.Done():
+						return nil, ctx.Err()
+					case <-waitCh:
+						continue
+					}
+				}
 				return nil, err
 			}
 			a.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {

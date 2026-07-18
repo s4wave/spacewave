@@ -80,12 +80,17 @@ func (t *subManifestBuilderTracker) executeBuilderRoutine(ctx context.Context, m
 	manifestBuilderConf.LinkObjectKeys = nil // TODO should we link this?
 	manifestBuilderConf.WorkingPath = workingPath
 
+	var startupBuilderResult *bldr_manifest_builder.BuilderResult
+	if parentStartupResult := ctrlConf.GetStartupBuilderResult(); parentStartupResult != nil {
+		startupBuilderResult = parentStartupResult.GetSubManifestResults()[subManifestID]
+	}
+
 	builderConf := NewConfig(
 		manifestBuilderConf,
 		manifestConfig.GetBuilder(),
 		ctrlConf.GetBuildBackoff(),
 		ctrlConf.GetWatch(),
-		nil,
+		startupBuilderResult,
 	)
 
 	builderCtrl, _, ctrlRef, err := loader.WaitExecControllerRunningTyped[*Controller](

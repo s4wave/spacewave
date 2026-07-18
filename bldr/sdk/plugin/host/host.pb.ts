@@ -2,6 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/bldr/sdk/plugin/host/host.proto (package bldr.plugin.host, syntax proto3)
 /* eslint-disable */
 
+import { ObjectTypeMetadata } from '../../../../sdk/objecttype/registry/registry.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
   createEmptyMessageType,
@@ -11,6 +12,89 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'bldr.plugin.host'
+
+/**
+ * RegisterObjectTypeRequest is the request for RegisterObjectType.
+ *
+ * @generated from message bldr.plugin.host.RegisterObjectTypeRequest
+ */
+export interface RegisterObjectTypeRequest {
+  /**
+   * TypeId is the ObjectType ID to register.
+   *
+   * @generated from field: string type_id = 1;
+   */
+  typeId?: string
+  /**
+   * Metadata is user-facing display metadata for the ObjectType.
+   *
+   * @generated from field: s4wave.objecttype.registry.ObjectTypeMetadata metadata = 2;
+   */
+  metadata?: ObjectTypeMetadata
+}
+
+export const RegisterObjectTypeRequest: MessageType<RegisterObjectTypeRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.plugin.host.RegisterObjectTypeRequest',
+    fields: [
+      { no: 1, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'metadata', kind: 'message', T: () => ObjectTypeMetadata },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * RegisterObjectTypeResponse is the response for RegisterObjectType.
+ *
+ * @generated from message bldr.plugin.host.RegisterObjectTypeResponse
+ */
+export interface RegisterObjectTypeResponse {
+  /**
+   * ResourceId is the registration resource. Releasing it unregisters the type.
+   *
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+}
+
+export const RegisterObjectTypeResponse: MessageType<RegisterObjectTypeResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.plugin.host.RegisterObjectTypeResponse',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CompleteInitialCapabilityRegistrationRequest marks initial registration complete.
+ *
+ * The plugin calls this once after its entrypoint's startup
+ * capability-registration pass. Plugins that register no capabilities call it
+ * after the empty pass.
+ *
+ * @generated from message bldr.plugin.host.CompleteInitialCapabilityRegistrationRequest
+ */
+export interface CompleteInitialCapabilityRegistrationRequest {}
+
+export const CompleteInitialCapabilityRegistrationRequest: MessageType<CompleteInitialCapabilityRegistrationRequest> =
+  /* @__PURE__ */ createEmptyMessageType<CompleteInitialCapabilityRegistrationRequest>(
+    'bldr.plugin.host.CompleteInitialCapabilityRegistrationRequest',
+    true,
+  )
+
+/**
+ * CompleteInitialCapabilityRegistrationResponse acknowledges initial registration.
+ *
+ * @generated from message bldr.plugin.host.CompleteInitialCapabilityRegistrationResponse
+ */
+export interface CompleteInitialCapabilityRegistrationResponse {}
+
+export const CompleteInitialCapabilityRegistrationResponse: MessageType<CompleteInitialCapabilityRegistrationResponse> =
+  /* @__PURE__ */ createEmptyMessageType<CompleteInitialCapabilityRegistrationResponse>(
+    'bldr.plugin.host.CompleteInitialCapabilityRegistrationResponse',
+    true,
+  )
 
 /**
  * AccessAssetsFSRequest is the request for AccessAssetsFS.

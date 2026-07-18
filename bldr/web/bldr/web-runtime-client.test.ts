@@ -224,6 +224,7 @@ describe('WebRuntimeClient', () => {
       startupMark: {
         label: 'manifest-copy.done',
         detail: {
+          pluginId: 'spacewave-cli-plugin',
           blocksSeen: 3,
           blocksWritten: 2,
           logicalSourceBytes: 1024,
@@ -241,6 +242,7 @@ describe('WebRuntimeClient', () => {
         source: 'runtime',
         runtimeId: 'runtime',
         clientId: 'document',
+        pluginId: 'spacewave-cli-plugin',
         blocksSeen: 3,
         blocksWritten: 2,
         logicalSourceBytes: 1024,

@@ -52,6 +52,26 @@ func TestFormatDistEntrypointWeb(t *testing.T) {
 	}
 }
 
+func TestDistEntrypointLDFlags(t *testing.T) {
+	for _, tc := range []struct {
+		platformID string
+		role       string
+		want       []string
+	}{
+		{"desktop/windows/amd64", bldr_dist.EntrypointRoleDesktop, []string{"-H=windowsgui"}},
+		{"desktop/windows/amd64", bldr_dist.EntrypointRoleCLI, nil},
+		{"desktop/darwin/arm64", bldr_dist.EntrypointRoleDesktop, nil},
+	} {
+		platform, err := bldr_platform.ParsePlatform(tc.platformID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := distEntrypointLDFlags(platform, tc.role); !slices.Equal(got, tc.want) {
+			t.Fatalf("dist entrypoint ldflags for %s/%s = %v, want %v", tc.platformID, tc.role, got, tc.want)
+		}
+	}
+}
+
 func TestResolveDistGoCompiler(t *testing.T) {
 	platform, err := bldr_platform.ParsePlatform("web/js/wasm")
 	if err != nil {

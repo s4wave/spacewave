@@ -7,12 +7,11 @@ import (
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/core/cdn"
+	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/net/hash"
-
-	"github.com/s4wave/spacewave/core/cdn"
-	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 )
 
 // DefaultPointerTTL is the fallback TTL for cached root pointers when the
@@ -31,6 +30,14 @@ type Options struct {
 	// back to DefaultPointerTTL. Negative disables the TTL (pointer is cached
 	// until explicitly invalidated).
 	PointerTTL time.Duration
+	// IndexCache optionally persists raw packfile index tails across restarts.
+	IndexCache packfile_store.IndexCache
+}
+
+// PackIndexObjectStoreID returns the stable metadata ObjectStore ID for a CDN
+// Space's durable packfile index cache.
+func PackIndexObjectStoreID(spaceID string) string {
+	return "cdn/" + spaceID + "/pack-index"
 }
 
 // CdnBlockStore is a read-only block.StoreOps backed by the public Spacewave
@@ -38,11 +45,11 @@ type Options struct {
 // HTTP Range opener. Writes return ErrReadOnly. The cached root pointer is
 // refreshed lazily when the TTL expires or Invalidate is called.
 type CdnBlockStore struct {
-	opts   Options
-	cli    *http.Client
-	opener packfile_store.Opener
-	cache  *memIndexCache
-	pfs    *packfile_store.PackfileStore
+	opts     Options
+	cli      *http.Client
+	opener   packfile_store.Opener
+	memCache *memIndexCache
+	pfs      *packfile_store.PackfileStore
 
 	decodedBlocks   *block.DecodedBlockCache
 	bcast           broadcast.Broadcast
@@ -66,7 +73,12 @@ func NewCdnBlockStore(opts Options) (*CdnBlockStore, error) {
 	if cli == nil {
 		cli = http.DefaultClient
 	}
-	cache := newMemIndexCache()
+	cache := opts.IndexCache
+	var memCache *memIndexCache
+	if cache == nil {
+		memCache = newMemIndexCache()
+		cache = memCache
+	}
 	opener := NewAnonymousOpener(cli, opts.CdnBaseURL, opts.SpaceID)
 	pfs := packfile_store.NewPackfileStore(opener, cache)
 	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
@@ -77,7 +89,7 @@ func NewCdnBlockStore(opts Options) (*CdnBlockStore, error) {
 		opts:          opts,
 		cli:           cli,
 		opener:        opener,
-		cache:         cache,
+		memCache:      memCache,
 		pfs:           pfs,
 		decodedBlocks: decodedBlocks,
 	}, nil
@@ -126,6 +138,7 @@ func (s *CdnBlockStore) SetWriteback(ctx context.Context, target block.StoreOps,
 		broadcastFn()
 	})
 	s.pfs.SetWriteback(ctx, target, windowBytes)
+	s.pfs.SetVerifyBeforeServe(target != nil)
 }
 
 // SetRangeCacheMaxBytes sets the resident range-cache budget per pack reader.
@@ -228,7 +241,9 @@ func (s *CdnBlockStore) Refresh(ctx context.Context) (*cdn.CdnRootPointer, error
 // Invalidate drops the cached pointer so the next read re-fetches.
 func (s *CdnBlockStore) Invalidate() {
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
-		s.cache.reset()
+		if s.memCache != nil {
+			s.memCache.reset()
+		}
 		s.invalidateDecodedBlocks(context.Background())
 		s.pfs.UpdateManifest(nil)
 		s.pointer = nil
@@ -245,6 +260,7 @@ func (s *CdnBlockStore) SetPointer(ptr *cdn.CdnRootPointer) {
 	s.setPointer(context.Background(), ptr)
 }
 
+// EnsureDecodedBlockCacheFresh refreshes pointer state before decoded cache reads.
 func (s *CdnBlockStore) EnsureDecodedBlockCacheFresh(ctx context.Context) error {
 	// Decoded cache hits can otherwise bypass ensurePointer entirely. Keep CDN
 	// pointer TTL freshness on the store owner, before any decoded object reuse.
@@ -255,7 +271,9 @@ func (s *CdnBlockStore) EnsureDecodedBlockCacheFresh(ctx context.Context) error 
 func (s *CdnBlockStore) setPointer(ctx context.Context, ptr *cdn.CdnRootPointer) uint64 {
 	var epoch uint64
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
-		s.cache.reset()
+		if s.memCache != nil {
+			s.memCache.reset()
+		}
 		// Pointer, manifest, and decoded-cache epoch publish under one owner lock.
 		// Reads take the same lock while snapshotting the manifest so they cannot
 		// pair an old pointer decision with a new manifest view.

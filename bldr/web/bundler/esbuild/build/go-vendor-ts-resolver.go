@@ -4,6 +4,7 @@ package bldr_web_bundler_esbuild_build
 
 import (
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -96,6 +97,29 @@ func resolveExistingSourcePath(jsPath string) (string, bool) {
 	return "", false
 }
 
+func (r goVendorTsResolver) resolveEscapedRelativeImport(importer, importPath string) (string, bool) {
+	if importer == "" || strings.HasPrefix(importer, "\x00") {
+		return "", false
+	}
+
+	relImporter, err := filepath.Rel(r.distSourcePath, importer)
+	if err != nil || filepath.IsAbs(relImporter) || relImporter == ".." ||
+		strings.HasPrefix(relImporter, ".."+string(filepath.Separator)) {
+		return "", false
+	}
+
+	target := filepath.Clean(filepath.Join(filepath.Dir(importer), filepath.FromSlash(importPath)))
+	relTarget, err := filepath.Rel(r.distSourcePath, target)
+	if err != nil || filepath.IsAbs(relTarget) ||
+		(relTarget != ".." && !strings.HasPrefix(relTarget, ".."+string(filepath.Separator))) {
+		return "", false
+	}
+
+	modulePath := path.Join(localModulePrefix+"bldr", filepath.ToSlash(relImporter))
+	modulePath = path.Clean(path.Join(path.Dir(modulePath), filepath.ToSlash(importPath)))
+	return resolveExistingSourcePath(r.resolveGoImportPath(modulePath))
+}
+
 func GoVendorTsResolverPlugin(sourcePath, distSourcePath string) esbuild.Plugin {
 	resolver := newGoVendorTsResolver(sourcePath, distSourcePath)
 	return esbuild.Plugin{
@@ -131,6 +155,7 @@ func GoVendorTsResolverPlugin(sourcePath, distSourcePath string) esbuild.Plugin 
 				var result esbuild.OnResolveResult
 				if args.Importer == "bldr-go-vendor-ts-resolver" {
 					return result, nil
+
 				}
 				if !strings.HasSuffix(args.Path, ".js") {
 					return result, nil
@@ -147,6 +172,27 @@ func GoVendorTsResolverPlugin(sourcePath, distSourcePath string) esbuild.Plugin 
 
 				return result, nil
 			})
+			build.OnResolve(esbuild.OnResolveOptions{
+				Filter: `^\.\.?/.*\.js$`,
+			}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
+				var result esbuild.OnResolveResult
+				if args.Importer == "bldr-go-vendor-ts-resolver" {
+					return result, nil
+				}
+				if !strings.HasPrefix(args.Path, "./") && !strings.HasPrefix(args.Path, "../") {
+					return result, nil
+				}
+				if !strings.HasSuffix(args.Path, ".js") {
+					return result, nil
+				}
+
+				if sourcePath, ok := resolver.resolveEscapedRelativeImport(args.Importer, args.Path); ok {
+					result.Path = sourcePath
+					return result, nil
+				}
+				return result, nil
+			})
+
 		},
 	}
 }

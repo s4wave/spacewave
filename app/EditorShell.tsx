@@ -14,6 +14,11 @@ import { WhichKeyPanel } from '@s4wave/web/command/WhichKeyPanel.js'
 import { ShellTabFocusContextProvider } from '@s4wave/web/command/FocusContext.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
+import {
+  DocumentTitleProvider,
+  getRouteDocumentTitleParts,
+  useDocumentTitle,
+} from '@s4wave/web/title/DocumentTitleContext.js'
 import { BuiltinCommands } from '@s4wave/app/BuiltinCommands.js'
 import { CliTerminalSessionProvider } from '@s4wave/app/terminal/CliTerminalSessionProvider.js'
 import { DebugCommands } from '@s4wave/app/DebugCommands.js'
@@ -21,6 +26,7 @@ import {
   TabContextProvider,
   type TabContextValue,
 } from '@s4wave/web/object/TabContext.js'
+import { getTabDisplayName } from './shell-tab.js'
 import { ShellTabStrip } from './ShellFlexLayout.js'
 import { ShellGridLayout } from './ShellGridLayout.js'
 import { ShellMenuBar } from './ShellMenuBar.js'
@@ -111,14 +117,28 @@ function ActiveTabCommandScope({ children }: { children: ReactNode }) {
   )
 }
 
+function ShellDocumentTitle() {
+  const { tabs, activeTabId } = useShellTabs()
+  const activeTab = tabs.find((tab) => tab.id === activeTabId)
+  useDocumentTitle(
+    getRouteDocumentTitleParts(
+      activeTab?.path ?? '/',
+      activeTab ? getTabDisplayName(activeTab) : '',
+    ),
+  )
+  return null
+}
+
 // EditorShell is the main application shell with FlexLayout draggable tabs.
 // The FlexLayout spans the entire content area, enabling drag-to-split anywhere.
 // When splits are created, it transitions to grid mode via URL.
 export function EditorShell() {
   return (
-    <CliTerminalSessionProvider>
-      <EditorShellContent />
-    </CliTerminalSessionProvider>
+    <DocumentTitleProvider>
+      <CliTerminalSessionProvider>
+        <EditorShellContent />
+      </CliTerminalSessionProvider>
+    </DocumentTitleProvider>
   )
 }
 function useShellDocumentEntry(): ShellDocumentEntry {
@@ -157,6 +177,7 @@ function EditorShellContent() {
     return (
       <ShellProvider isGridMode={true}>
         <ShellTabsProvider entry={documentEntry}>
+          <ShellDocumentTitle />
           <ActiveTabCommandScope>
             <BottomBarRoot openMenu={openMenu} setOpenMenu={setOpenMenu}>
               <div className="flex h-full flex-1 flex-col overflow-hidden">
@@ -190,6 +211,7 @@ function EditorShellContent() {
     <ShellProvider isGridMode={false}>
       <BottomBarRoot openMenu={openMenu} setOpenMenu={setOpenMenu}>
         <ShellTabStrip entry={documentEntry}>
+          <ShellDocumentTitle />
           <CommandRuntime>
             <ShellMenuBar />
           </CommandRuntime>

@@ -7,6 +7,7 @@ import (
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	provider "github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/session"
+	session_controller "github.com/s4wave/spacewave/core/session/controller"
 	"github.com/s4wave/spacewave/testbed"
 )
 
@@ -92,5 +93,101 @@ func TestLoadLinkedCloudAccountID(t *testing.T) {
 	}
 	if cloudAccountID != "cloud-account-123" {
 		t.Fatalf("expected linked cloud account id, got %q", cloudAccountID)
+	}
+}
+
+func TestFindLinkedCloudSessionRef(t *testing.T) {
+	want := &session.SessionRef{
+		ProviderResourceRef: &provider.ProviderResourceRef{
+			Id:                "cloud-session",
+			ProviderId:        "spacewave",
+			ProviderAccountId: "cloud-account",
+		},
+	}
+	entries := []*session.SessionListEntry{
+		{
+			SessionRef: &session.SessionRef{
+				ProviderResourceRef: &provider.ProviderResourceRef{
+					Id:                "local-session",
+					ProviderId:        "local",
+					ProviderAccountId: "cloud-account",
+				},
+			},
+		},
+		{
+			SessionRef: &session.SessionRef{
+				ProviderResourceRef: &provider.ProviderResourceRef{
+					Id:                "other-cloud-session",
+					ProviderId:        "spacewave",
+					ProviderAccountId: "other-account",
+				},
+			},
+		},
+		{SessionRef: want},
+	}
+
+	got := findLinkedCloudSessionRef(entries, "cloud-account")
+	if !got.EqualVT(want) {
+		t.Fatalf("linked cloud session ref = %v, want %v", got, want)
+	}
+	if got := findLinkedCloudSessionRef(entries, "missing"); got != nil {
+		t.Fatalf("missing linked cloud session ref = %v, want nil", got)
+	}
+}
+
+func TestWaitForLinkedCloudSessionRef(t *testing.T) {
+	ctx := t.Context()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	tb.StaticResolver.AddFactory(session_controller.NewFactory(tb.Bus))
+	_, sessionCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&session_controller.Config{
+		VolumeId: tb.EngineVolumeID,
+	}), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sessionCtrlRef.Release()
+
+	ctrl, ctrlRef, err := session.ExLookupSessionController(ctx, tb.Bus, "", false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ctrlRef.Release()
+
+	type result struct {
+		ref *session.SessionRef
+		err error
+	}
+	resultCh := make(chan result, 1)
+	go func() {
+		ref, err := waitForLinkedCloudSessionRef(ctx, ctrl, "cloud-account")
+		resultCh <- result{ref: ref, err: err}
+	}()
+
+	want := &session.SessionRef{
+		ProviderResourceRef: &provider.ProviderResourceRef{
+			Id:                "cloud-session",
+			ProviderId:        "spacewave",
+			ProviderAccountId: "cloud-account",
+		},
+	}
+	if _, err := ctrl.RegisterSession(ctx, want, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case got := <-resultCh:
+		if got.err != nil {
+			t.Fatal(got.err)
+		}
+		if !got.ref.EqualVT(want) {
+			t.Fatalf("linked cloud session ref = %v, want %v", got.ref, want)
+		}
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
 	}
 }

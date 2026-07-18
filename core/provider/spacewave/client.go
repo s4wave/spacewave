@@ -271,7 +271,7 @@ func (c *SignedHTTPClient) signRequest(req *http.Request, body []byte) error {
 // signRequestPrecomputed signs an HTTP request using a pre-computed body hash and content length.
 func (c *SignedHTTPClient) signRequestPrecomputed(req *http.Request, bodyHash []byte, contentLength int64) error {
 	if c.priv == nil && c.sign == nil {
-		return errors.New("no private key or signing function configured for signing")
+		return ErrSigningUnavailable
 	}
 
 	// Collect signed headers (only those present on the request).

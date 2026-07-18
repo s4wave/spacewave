@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/fs"
 	"strings"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -11,6 +12,7 @@ import (
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/core"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
@@ -20,6 +22,7 @@ import (
 	vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
 	storage_controller "github.com/s4wave/spacewave/bldr/storage/controller"
 	web_fetch_service "github.com/s4wave/spacewave/bldr/web/fetch/service"
+	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
 	unixfs_access "github.com/s4wave/spacewave/db/unixfs/access"
 	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
@@ -27,6 +30,7 @@ import (
 	volume_rpc_client "github.com/s4wave/spacewave/db/volume/rpc/client"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	bifrost_rpc_access "github.com/s4wave/spacewave/net/rpc/access"
+	sdk_plugin "github.com/s4wave/spacewave/sdk/plugin"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,6 +40,10 @@ type AddFactoryFunc func(b bus.Bus) []controller.Factory
 // BuildConfigSetFunc is a function to build a list of ConfigSet to apply.
 type BuildConfigSetFunc func(ctx context.Context, b bus.Bus, le *logrus.Entry) ([]configset.ConfigSet, error)
 
+// AcceptPluginHostStreamsFunc serves incoming plugin host streams and reports
+// when the handler is ready.
+type AcceptPluginHostStreamsFunc func(ctx context.Context, srv *srpc.Server, ready func()) error
+
 // ExecutePluginEntrypoint builds the bus & starts common controllers.
 func ExecutePluginEntrypoint(
 	rctx context.Context,
@@ -44,7 +52,7 @@ func ExecutePluginEntrypoint(
 	addFactoryFuncs []AddFactoryFunc,
 	configSetFuncs []BuildConfigSetFunc,
 	pluginHostClient srpc.Client,
-	acceptPluginHostStreams func(ctx context.Context, srv *srpc.Server) error,
+	acceptPluginHostStreams AcceptPluginHostStreamsFunc,
 ) error {
 	var rels []func()
 	rel := func() {
@@ -152,10 +160,7 @@ func ExecutePluginEntrypoint(
 	// errCh will interrupt the program
 	errCh := make(chan error, 5)
 	handleErr := func(err error) {
-		select {
-		case errCh <- err:
-		default:
-		}
+		handlePluginEntrypointError(errCh, err)
 	}
 
 	// serve the host volume proxy controller
@@ -231,16 +236,26 @@ func ExecutePluginEntrypoint(
 	// handle incoming PluginRpc calls by forwarding to the bus
 	_ = bldr_plugin.SRPCRegisterPlugin(rpcMux, bldr_plugin.NewPluginServer(b))
 
-	// construct the rpc client controller
-	// listen for incoming requests
-	if acceptPluginHostStreams != nil {
-		go func() {
-			srv := srpc.NewServer(rpcMux)
-			if err := acceptPluginHostStreams(ctx, srv); err != nil {
-				errCh <- err
+	// listen for incoming requests before publishing initial capabilities
+	srv := srpc.NewServer(rpcMux)
+	initialRegistrationRel, err := startInitialCapabilityRegistration(
+		ctx,
+		srv,
+		acceptPluginHostStreams,
+		errCh,
+		func(ctx context.Context) (func(), error) {
+			registrations, err := sdk_plugin.RegisterObjectTypes(ctx, b)
+			if err != nil {
+				return nil, err
 			}
-		}()
+			return registrations.Release, nil
+		},
+	)
+	if err != nil {
+		rel()
+		return err
 	}
+	rels = append(rels, initialRegistrationRel)
 
 	// start the plugin storage controller and use the default storage id
 	// on js/wasm, this resolves to direct OPFS access
@@ -257,6 +272,7 @@ func ExecutePluginEntrypoint(
 	)
 	relHostStorageCtrl, err := b.AddController(ctx, hostStorageCtrl, handleErr)
 	if err != nil {
+		rel()
 		return err
 	}
 	defer relHostStorageCtrl()
@@ -271,6 +287,54 @@ func ExecutePluginEntrypoint(
 		rel()
 		return err
 	}
+}
+
+func startInitialCapabilityRegistration(
+	ctx context.Context,
+	srv *srpc.Server,
+	acceptPluginHostStreams AcceptPluginHostStreamsFunc,
+	errCh chan error,
+	complete func(context.Context) (func(), error),
+) (func(), error) {
+	if acceptPluginHostStreams == nil {
+		return nil, errors.New("plugin host stream handler is not configured")
+	}
+
+	readyCh := make(chan struct{})
+	var readyOnce sync.Once
+	go func() {
+		if err := acceptPluginHostStreams(ctx, srv, func() {
+			readyOnce.Do(func() {
+				close(readyCh)
+			})
+		}); err != nil {
+			errCh <- err
+		}
+	}()
+
+	select {
+	case <-readyCh:
+	case err := <-errCh:
+		return nil, err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
+	return complete(ctx)
+}
+
+func handlePluginEntrypointError(errCh chan<- error, err error) {
+	if web_runtime.IsNormalWebRuntimeClientClose(err) {
+		return
+	}
+	select {
+	case errCh <- err:
+	default:
+	}
+}
+
+func isExpectedPluginEntrypointError(err error) bool {
+	return err == context.Canceled || web_runtime.IsNormalWebRuntimeClientClose(err)
 }
 
 // BuildPluginAssetsFSController builds a unixfs_access controller for the plugin assets.

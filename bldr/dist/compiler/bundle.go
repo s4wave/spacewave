@@ -528,7 +528,7 @@ func BuildDistBundle(
 		enableCgo,
 		enableTinygo,
 		nil,
-		nil,
+		distEntrypointLDFlags(buildPlatform, meta.GetEntrypointRole()),
 	)
 	if err != nil {
 		return err
@@ -547,6 +547,14 @@ func BuildDistBundle(
 	}
 
 	return nil
+}
+
+func distEntrypointLDFlags(buildPlatform bldr_platform.Platform, entrypointRole string) []string {
+	native, ok := buildPlatform.(*bldr_platform.NativePlatform)
+	if !ok || native.GetGOOS() != "windows" || entrypointRole != bldr_dist.EntrypointRoleDesktop {
+		return nil
+	}
+	return []string{"-H=windowsgui"}
 }
 
 func resolveDistGoCompiler(

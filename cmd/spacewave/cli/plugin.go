@@ -5,11 +5,13 @@ package spacewave_cli
 import (
 	"context"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	protojson "github.com/aperturerobotics/protobuf-go-lite/json"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -288,10 +290,43 @@ func followManifestBlockRefs(
 	return nil
 }
 
+func pluginLifecycleStateLabel(state s4wave_space.SpacePluginLifecycleState) string {
+	const prefix = "SpacePluginLifecycleState_"
+	return strings.ToLower(strings.TrimPrefix(state.String(), prefix))
+}
+
+func formatPluginStatus(p *s4wave_space.SpacePluginStatus) string {
+	fields := []string{p.GetPluginId(), pluginLifecycleStateLabel(p.GetState())}
+	if detail := p.GetDetail(); detail != "" {
+		fields = append(fields, detail)
+	}
+	if description := p.GetDescription(); description != "" {
+		fields = append(fields, description)
+	}
+	return strings.Join(fields, "  ") + "\n"
+}
+
+func marshalPluginListJSON(plugins []*s4wave_space.SpacePluginStatus) ([]byte, error) {
+	data, err := protojson.MarshalSlice(protojson.MarshalerConfig{}, plugins)
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal plugin list")
+	}
+	return data, nil
+}
+
+func writePluginListJSON(plugins []*s4wave_space.SpacePluginStatus, outputFormat string) error {
+	data, err := marshalPluginListJSON(plugins)
+	if err != nil {
+		return err
+	}
+	return formatOutput(data, outputFormat)
+}
+
 // buildPluginListCommand builds the plugin list subcommand.
 func buildPluginListCommand() *cli.Command {
 	var statePath string
 	var sessionIdx uint
+	var outputFormat string
 	return &cli.Command{
 		Name:  "list",
 		Usage: "list plugins and their load state",
@@ -305,6 +340,14 @@ func buildPluginListCommand() *cli.Command {
 				Name:    "watch",
 				Usage:   "watch for changes (append mode)",
 				EnvVars: []string{"SPACEWAVE_WATCH"},
+			},
+			&cli.StringFlag{
+				Name:        "output",
+				Aliases:     []string{"o"},
+				Usage:       "output format (text/json/yaml)",
+				EnvVars:     []string{"SPACEWAVE_OUTPUT"},
+				Value:       "text",
+				Destination: &outputFormat,
 			},
 		),
 		Action: func(c *cli.Context) error {
@@ -345,7 +388,6 @@ func buildPluginListCommand() *cli.Command {
 				return errors.Wrap(err, "watch state")
 			}
 			defer strm.Close()
-
 			w := os.Stdout
 			for {
 				state, err := strm.Recv()
@@ -354,21 +396,15 @@ func buildPluginListCommand() *cli.Command {
 				}
 
 				plugins := state.GetPlugins()
-				if len(plugins) == 0 {
+				if outputFormat == "json" || outputFormat == "yaml" {
+					if err := writePluginListJSON(plugins, outputFormat); err != nil {
+						return err
+					}
+				} else if len(plugins) == 0 {
 					w.WriteString("no plugins\n")
 				} else {
 					for _, p := range plugins {
-						w.WriteString(p.GetPluginId())
-						state := "loading"
-						if p.GetLoaded() {
-							state = "loaded"
-						}
-						w.WriteString("  " + state)
-						desc := p.GetDescription()
-						if desc != "" {
-							w.WriteString("  " + desc)
-						}
-						w.WriteString("\n")
+						w.WriteString(formatPluginStatus(p))
 					}
 				}
 

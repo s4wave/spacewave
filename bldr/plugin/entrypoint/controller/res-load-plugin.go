@@ -21,7 +21,13 @@ func (c *Controller) resolveLoadPlugin(
 		pluginID:         dir.LoadPluginID(),
 		instanceKey:      dir.LoadPluginInstanceKey(),
 		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
-		bo:               buildBackoff(),
+		pluginLoadStateCtr: ccontainer.NewCContainer[bldr_plugin.PluginLoadState](
+			bldr_plugin.NewPluginLoadState(
+				nil,
+				bldr_plugin.InitialCapabilityRegistrationPending,
+			),
+		),
+		bo: buildBackoff(),
 	}, nil
 }
 
@@ -36,6 +42,8 @@ type loadPluginResolver struct {
 	// runningPluginCtr contains the running plugin when the plugin is running
 	// nil otherwise
 	runningPluginCtr *ccontainer.CContainer[bldr_plugin.RunningPlugin]
+	// pluginLoadStateCtr atomically tracks the remote plugin's readiness.
+	pluginLoadStateCtr *ccontainer.CContainer[bldr_plugin.PluginLoadState]
 	// bo is the backoff
 	bo cbackoff.BackOff
 }
@@ -50,6 +58,10 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 
 	return retry.Retry(ctx, le, func(ctx context.Context, success func()) error {
 		r.runningPluginCtr.SetValue(nil)
+		r.pluginLoadStateCtr.SetValue(bldr_plugin.NewPluginLoadState(
+			nil,
+			bldr_plugin.InitialCapabilityRegistrationPending,
+		))
 		_ = handler.ClearValues()
 
 		strm, err := r.c.srv.LoadPlugin(ctx, &bldr_plugin.LoadPluginRequest{
@@ -79,6 +91,10 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 			if !running {
 				le.Debug("plugin not yet loaded")
 				r.runningPluginCtr.SetValue(nil)
+				r.pluginLoadStateCtr.SetValue(bldr_plugin.NewPluginLoadState(
+					nil,
+					bldr_plugin.InitialCapabilityRegistrationPending,
+				))
 				_ = handler.ClearValues()
 				continue
 			}
@@ -88,6 +104,10 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 			rpcClient := r.c.BuildRemotePluginClient(r.pluginID, r.instanceKey, false)
 			val := bldr_plugin.NewRunningPlugin(rpcClient)
 			r.runningPluginCtr.SetValue(val)
+			r.pluginLoadStateCtr.SetValue(bldr_plugin.NewPluginLoadState(
+				rpcClient,
+				bldr_plugin.InitialCapabilityRegistrationComplete,
+			))
 			_, _ = handler.AddValue(val)
 			handler.MarkIdle(true)
 		}
@@ -98,6 +118,12 @@ func (r *loadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 // May be changed (or set to nil) when the instance changes.
 func (r *loadPluginResolver) GetRunningPluginCtr() ccontainer.Watchable[bldr_plugin.RunningPlugin] {
 	return r.runningPluginCtr
+}
+
+// GetPluginLoadStateCtr returns the atomic RPC-client and initial
+// capability-registration state for the remote plugin.
+func (r *loadPluginResolver) GetPluginLoadStateCtr() ccontainer.Watchable[bldr_plugin.PluginLoadState] {
+	return r.pluginLoadStateCtr
 }
 
 // _ is a type assertion

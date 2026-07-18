@@ -366,6 +366,7 @@ func (c *Controller) buildPluginMux(
 	distFS,
 	assetsFS *unixfs.FSHandle,
 	hostRoot *plugin_host_root.Root,
+	registrationDone plugin_host_resource.InitialCapabilityRegistrationDoneFunc,
 ) (srpc.Mux, func()) {
 	// fallback to a LookupRpcService on the bus
 	mux := srpc.NewMux(bifrost_rpc.NewInvoker(c.bus, bldr_plugin.PluginServerID(pluginID, ""), true))
@@ -393,11 +394,13 @@ func (c *Controller) buildPluginMux(
 
 	// register resource server for plugin resource access
 	pluginHostRoot := plugin_host_resource.NewPluginHostRoot(
+		ctx,
 		c.le, c.bus, pluginID, manifest.GetManifest().GetEntrypoint(),
 		distFS, assetsFS, proxyHostVol,
 		hostRoot,
 		"plugin-state-atoms",
 		bldr_plugin.PluginVolumeID,
+		registrationDone,
 	)
 	resourceSrv := resource_server.NewResourceServer(pluginHostRoot.GetMux())
 	_ = resourceSrv.Register(mux)
@@ -439,13 +442,13 @@ func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldSt
 		return nil
 	}
 
-	c.le.Infof("clearing %d unknown / out of date plugins", len(unknownPlugins))
+	c.le.WithField("count", len(unknownPlugins)).Info("clearing unknown or out-of-date plugins")
 	for _, unknownPlugin := range unknownPlugins {
 		if err := host.DeletePlugin(ctx, unknownPlugin); err != nil {
 			if err == context.Canceled {
 				return err
 			}
-			c.le.WithError(err).Warnf("unable to clear old plugin: %s", unknownPlugin)
+			c.le.WithError(err).WithField("plugin-id", unknownPlugin).Warn("unable to clear old plugin")
 		}
 	}
 

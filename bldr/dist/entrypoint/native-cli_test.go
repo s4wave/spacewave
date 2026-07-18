@@ -2,10 +2,10 @@ package dist_entrypoint
 
 import (
 	"bytes"
-	"encoding/json"
 	"testing"
 
 	"github.com/aperturerobotics/cli"
+	"github.com/aperturerobotics/fastjson"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	"github.com/s4wave/spacewave/db/bucket"
 )
@@ -30,20 +30,21 @@ func TestDistVersionCommandReportsManagedCLIIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var got distVersionIdentity
-	if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+	var parser fastjson.Parser
+	got, err := parser.ParseBytes(buf.Bytes())
+	if err != nil {
 		t.Fatal(err)
 	}
-	if got.EntrypointRole != bldr_dist.EntrypointRoleCLI {
-		t.Fatalf("entrypoint role = %q, want cli", got.EntrypointRole)
+	if role := string(got.GetStringBytes("entrypointRole")); role != bldr_dist.EntrypointRoleCLI {
+		t.Fatalf("entrypoint role = %q, want cli", role)
 	}
-	if got.ChannelKey != "stable" {
-		t.Fatalf("channel = %q, want stable", got.ChannelKey)
+	if channel := string(got.GetStringBytes("channelKey")); channel != "stable" {
+		t.Fatalf("channel = %q, want stable", channel)
 	}
-	if got.PlatformID != "desktop/darwin/arm64" {
-		t.Fatalf("platform = %q, want desktop/darwin/arm64", got.PlatformID)
+	if platform := string(got.GetStringBytes("platformId")); platform != "desktop/darwin/arm64" {
+		t.Fatalf("platform = %q, want desktop/darwin/arm64", platform)
 	}
-	if got.Manifest.ManifestID != "spacewave-dist" || got.Manifest.Rev != 224 {
-		t.Fatalf("manifest identity = %#v, want spacewave-dist rev 224", got.Manifest)
+	if manifestID, rev := string(got.GetStringBytes("manifest", "manifestId")), got.GetUint64("manifest", "rev"); manifestID != "spacewave-dist" || rev != 224 {
+		t.Fatalf("manifest identity = %s rev %d, want spacewave-dist rev 224", manifestID, rev)
 	}
 }

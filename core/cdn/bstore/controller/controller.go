@@ -6,9 +6,13 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
+	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/manifest"
+	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
+	"github.com/s4wave/spacewave/db/volume"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,28 +48,58 @@ func NewController(le *logrus.Entry, b bus.Bus, conf *Config) *Controller {
 func NewBlockStoreBuilder(le *logrus.Entry, b bus.Bus, conf *Config) block_store_controller.BlockStoreBuilder {
 	return func(ctx context.Context, released func()) (block_store.Store, func(), error) {
 		pointerTTL, _ := conf.ParsePointerTTLDur()
+		var cacheStore block_store.LookupBlockStoreValue
+		var releaseCache, releaseIndex func()
+		releaseRefs := func() {
+			if releaseIndex != nil {
+				releaseIndex()
+			}
+			if releaseCache != nil {
+				releaseCache()
+			}
+		}
+		var indexCache packfile_store.IndexCache
+		if cacheID := conf.GetCacheBlockStoreId(); cacheID != "" {
+			var err error
+			var cacheRef directive.Reference
+			cacheStore, _, cacheRef, err = block_store.ExLookupFirstBlockStore(ctx, b, cacheID, false, released)
+			if err != nil {
+				return nil, nil, err
+			}
+			releaseCache = cacheRef.Release
+			objHandle, _, objRef, err := volume.ExBuildObjectStoreAPI(
+				ctx,
+				b,
+				true,
+				cdn_bstore.PackIndexObjectStoreID(conf.GetSpaceId()),
+				cacheID,
+				released,
+			)
+			if err != nil {
+				releaseRefs()
+				return nil, nil, err
+			}
+			if objHandle != nil {
+				releaseIndex = objRef.Release
+				indexCache = manifest.NewIndexCache(objHandle.GetObjectStore())
+			}
+		}
 		cdnStore, err := cdn_bstore.NewCdnBlockStore(cdn_bstore.Options{
 			CdnBaseURL: conf.GetCdnBaseUrl(),
 			SpaceID:    conf.GetSpaceId(),
 			HttpClient: http.DefaultClient,
 			PointerTTL: pointerTTL,
+			IndexCache: indexCache,
 		})
 		if err != nil {
+			releaseRefs()
 			return nil, nil, err
 		}
 		if maxBytes := conf.GetRangeCacheMaxBytes(); maxBytes > 0 {
 			cdnStore.SetRangeCacheMaxBytes(maxBytes)
 		}
-
-		var rel func()
-		if cacheID := conf.GetCacheBlockStoreId(); cacheID != "" {
-			cacheStore, _, cacheRef, err := block_store.ExLookupFirstBlockStore(ctx, b, cacheID, false, released)
-			if err != nil {
-				cdnStore.Close()
-				return nil, nil, err
-			}
+		if cacheStore != nil {
 			cdnStore.SetWriteback(ctx, cacheStore, conf.GetWritebackWindowBytes())
-			rel = cacheRef.Release
 		}
 
 		store := &blockStoreHandle{
@@ -74,9 +108,7 @@ func NewBlockStoreBuilder(le *logrus.Entry, b bus.Bus, conf *Config) block_store
 		}
 		return store, func() {
 			cdnStore.Close()
-			if rel != nil {
-				rel()
-			}
+			releaseRefs()
 		}, nil
 	}
 }

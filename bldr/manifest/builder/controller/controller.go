@@ -251,6 +251,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 					CacheHit: true,
 					Summary:  "startup cache hit",
 				})
+				for _, subManifestID := range startupValidationResult.subManifestIDs {
+					le.WithField("manifest-id", subManifestID).
+						WithField("startup-cache", true).
+						Info("reused cached startup manifest build")
+				}
 				le.WithField("startup-cache", true).Info("reused cached startup manifest build")
 			}
 			if startupValidationResult.builderResult == nil {
@@ -317,20 +322,43 @@ func (c *Controller) Execute(ctx context.Context) error {
 					continue
 				}
 			}
-			if err == nil {
-				err = enrichBuilderResultForStartupReuse(builderConfig, c.c.GetControllerConfig(), result)
-			}
 		}
 
-		// Delete any sub-manifests that were not observed this run
+		if err == nil && result != nil && len(watchManifestIDs) != 0 {
+			// A one-shot parent can start before its provider and finish after
+			// it. Persist the dependency state at parent completion, not the
+			// incomplete pre-build snapshot.
+			buildManifestDeps, buildManifestDepRefs = c.resolveManifestDeps(
+				attempt.ctx,
+				le,
+				watchManifestIDs,
+			)
+		}
+
+		// Delete sub-manifests that were not observed this run and persist the
+		// observed child provenance with a newly built parent result.
 		var subManifestCount int
 		for _, prevSubManifestTracker := range c.subManifestBuilderTrackers.GetKeysWithData() {
 			tkr := prevSubManifestTracker.Data
-			if !tkr.build.observedInParentAttempt() {
+			subManifestResult, subManifestErr, observed := tkr.build.observedResult()
+			if !observed {
 				c.subManifestBuilderTrackers.RemoveKey(prevSubManifestTracker.Key)
 				continue
 			}
 			subManifestCount++
+			if err == nil && subManifestErr != nil {
+				err = errors.Wrapf(subManifestErr, "persist sub-manifest %q", prevSubManifestTracker.Key)
+			}
+			if err == nil && result != nil && !cacheHit && subManifestResult != nil {
+				err = addSubManifestResultForStartupReuse(
+					result,
+					prevSubManifestTracker.Key,
+					subManifestResult,
+				)
+			}
+		}
+		if err == nil && !cacheHit {
+			err = enrichBuilderResultForStartupReuse(builderConfig, c.c.GetControllerConfig(), result)
 		}
 
 		// Set the result promise
@@ -565,8 +593,18 @@ func (c *Controller) collectManifestRefs(
 	ws world.WorldState,
 	manifestIDs []string,
 ) map[string]*bucket.ObjectRef {
-	linkObjKeys := c.c.GetBuilderConfig().GetLinkObjectKeys()
-	manifests, manifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, nil, linkObjKeys...)
+	builderConfig := c.c.GetBuilderConfig()
+	linkObjKeys := builderConfig.GetLinkObjectKeys()
+	var platformIDs []string
+	if platformID := builderConfig.GetManifestMeta().GetPlatformId(); platformID != "" {
+		platformIDs = []string{platformID}
+	}
+	manifests, manifestErrs, err := bldr_manifest_world.CollectManifests(
+		ctx,
+		ws,
+		platformIDs,
+		linkObjKeys...,
+	)
 	if err != nil {
 		le.WithError(err).Warn("failed to collect manifest refs")
 		return nil

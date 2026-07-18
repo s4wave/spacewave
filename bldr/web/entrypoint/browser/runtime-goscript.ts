@@ -27,6 +27,7 @@ interface Global {
   BLDR_NOTIFY_STARTUP_MARK?: (
     label: string,
     phase: string,
+    pluginId: string,
     blocksSeen: number,
     blocksCopied: number,
     blocksExisting: number,
@@ -60,6 +61,7 @@ const webRuntime = new WebRuntime(
 globalScope.BLDR_NOTIFY_STARTUP_MARK = (
   label,
   phase,
+  pluginId,
   blocksSeen,
   blocksCopied,
   blocksExisting,
@@ -75,6 +77,7 @@ globalScope.BLDR_NOTIFY_STARTUP_MARK = (
   webRuntime.broadcastStartupMark(label, {
     source: 'scheduler',
     manifestCopyPhase: phase,
+    pluginId,
     blocksSeen,
     blocksCopied,
     blocksExisting,

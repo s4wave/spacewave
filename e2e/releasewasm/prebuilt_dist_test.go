@@ -6,9 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/s4wave/spacewave/e2e/releasewasm/artifact"
 )
 
-func TestPrebuiltReleaseWasmDistDirsUsesArtifactDirs(t *testing.T) {
+func TestPrebuiltReleaseWasmDistDirsRejectsIdentitylessArtifact(t *testing.T) {
 	repoRoot := t.TempDir()
 	distDir := filepath.Join(repoRoot, ".tmp", "release-dist")
 	prerenderDir := filepath.Join(repoRoot, ".tmp", "prerender")
@@ -39,6 +41,9 @@ func TestPrebuiltReleaseWasmDistDirsUsesArtifactDirs(t *testing.T) {
 	}
 	if dirs.prerender != prerenderDir {
 		t.Fatalf("prerender dist = %q, want %q", dirs.prerender, prerenderDir)
+	}
+	if err := artifact.Validate(dirs.releaseDist, dirs.prerender, &artifact.Identity{}); err == nil {
+		t.Fatal("identityless prebuilt release-wasm artifact validated")
 	}
 }
 

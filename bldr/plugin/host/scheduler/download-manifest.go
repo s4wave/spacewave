@@ -170,69 +170,74 @@ func (t *pluginInstance) execDownloadManifest(
 	// Access the world root bucket (dest) then the manifest source bucket (src).
 	accessCtx, accessTask := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/access-world-state")
 	err = ws.AccessWorldState(accessCtx, nil, func(dest *bucket_lookup.Cursor) error {
-		return ws.AccessWorldState(accessCtx, ref, func(src *bucket_lookup.Cursor) error {
-			destBucketID := dest.GetOpArgs().GetBucketId()
-			accounting = t.updateManifestCopyBuckets(accessCtx, accounting, src.GetOpArgs().GetBucketId(), destBucketID)
-			trace.Log(accessCtx, "world-bucket-id", destBucketID)
-			trace.Log(accessCtx, "source-bucket-id", src.GetOpArgs().GetBucketId())
-			le.Infof("copying manifest DAG from bucket %s to %s", src.GetOpArgs().GetBucketId(), destBucketID)
+		src, err := bldr_manifest_world.FollowObjectRefReadOnly(accessCtx, dest, ref)
+		if err != nil {
+			return err
+		}
+		defer src.Release()
+		destBucketID := dest.GetOpArgs().GetBucketId()
+		accounting = t.updateManifestCopyBuckets(accessCtx, accounting, src.GetOpArgs().GetBucketId(), destBucketID)
+		trace.Log(accessCtx, "world-bucket-id", destBucketID)
+		trace.Log(accessCtx, "source-bucket-id", src.GetOpArgs().GetBucketId())
+		le.Infof("copying manifest DAG from bucket %s to %s", src.GetOpArgs().GetBucketId(), destBucketID)
 
-			copyCtx, copyTask := trace.NewTask(accessCtx, "bldr/plugin-host-scheduler/download-manifest/copy-dag")
-			trace.Log(copyCtx, "accounting-phase", "decode-verify-deserialize-block-publish")
-			localRef, stats, err := bucket_lookup.CopyObjectToBucketWithStats(
-				copyCtx,
-				dest,
-				src,
-				bldr_manifest.NewManifestBlock,
-				1,
-				false,
-				nil,
-			)
-			copyStats = accounting.apply(stats)
-			copyTask.End()
-			if err != nil {
-				return errors.Wrap(err, "copy manifest block DAG")
-			}
-			if !t.c.conf.GetDisableStoreManifest() {
-				storeCtx, storeTask := trace.NewTask(accessCtx, "bldr/plugin-host-scheduler/download-manifest/store-local-ref")
-				trace.Log(storeCtx, "accounting-phase", "world-op-store-local-manifest-ref")
-				trace.Log(storeCtx, "manifest-copy-phase", "local-ref-publication")
-				manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, manifestMeta)
-				if err := bldr_manifest_world.ExStoreManifestOp(
-					storeCtx,
-					ws,
-					t.c.peerID,
-					manifestKey,
-					[]string{t.c.objKey},
-					bldr_manifest.NewManifestRef(manifestMeta, localRef),
-				); err != nil {
-					storeTask.End()
-					return errors.Wrap(err, "store local manifest ref")
-				}
+		copyCtx, copyTask := trace.NewTask(accessCtx, "bldr/plugin-host-scheduler/download-manifest/copy-dag")
+		trace.Log(copyCtx, "accounting-phase", "decode-verify-deserialize-block-publish")
+		localRef, stats, err := bucket_lookup.CopyObjectToBucketWithStats(
+			copyCtx,
+			dest,
+			src,
+			bldr_manifest.NewManifestBlock,
+			1,
+			false,
+			nil,
+		)
+		copyStats = accounting.apply(stats)
+		copyTask.End()
+		if err != nil {
+			return errors.Wrap(err, "copy manifest block DAG")
+		}
+		logObjectRefAccountingFields(accessCtx, "local-manifest", localRef)
+
+		if !t.c.conf.GetDisableStoreManifest() {
+			storeCtx, storeTask := trace.NewTask(accessCtx, "bldr/plugin-host-scheduler/download-manifest/store-local-ref")
+			trace.Log(storeCtx, "accounting-phase", "world-op-store-local-manifest-ref")
+			trace.Log(storeCtx, "manifest-copy-phase", "local-ref-publication")
+			manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, manifestMeta)
+			if err := bldr_manifest_world.ExStoreManifestOp(
+				storeCtx,
+				ws,
+				t.c.peerID,
+				manifestKey,
+				[]string{t.c.objKey},
+				bldr_manifest.NewManifestRef(manifestMeta, localRef),
+			); err != nil {
 				storeTask.End()
+				return errors.Wrap(err, "store local manifest ref")
 			}
+			storeTask.End()
+		}
 
-			syncCtx, syncTask := trace.NewTask(accessCtx, "bldr/plugin-host-scheduler/download-manifest/sync")
-			trace.Log(syncCtx, "accounting-phase", "world-sync-block-barrier-and-head-commit")
-			synced, syncErr := ws.Sync(syncCtx)
-			if syncErr != nil {
-				syncTask.End()
-				return errors.Wrap(syncErr, "sync local manifest blocks")
-			}
-			if synced && dest.GetTransformer() == nil {
-				copyStats.DestinationDurableBytes = copyStats.LogicalSourceBytes
-				copyStats.DestinationDurableBytesKnown = true
-			}
-			trace.Logf(syncCtx, "destination-durable-bytes", "%d", copyStats.DestinationDurableBytes)
-			trace.Logf(syncCtx, "destination-durable-bytes-known", "%t", copyStats.DestinationDurableBytesKnown)
-			trace.Log(syncCtx, "manifest-copy-phase", "sync-complete")
+		syncCtx, syncTask := trace.NewTask(accessCtx, "bldr/plugin-host-scheduler/download-manifest/sync")
+		trace.Log(syncCtx, "accounting-phase", "world-sync-block-barrier-and-head-commit")
+		synced, syncErr := ws.Sync(syncCtx)
+		if syncErr != nil {
 			syncTask.End()
-			copyStats = accounting.apply(copyStats)
-			t.setManifestCopyStatus(manifestCopyPhaseDone, class, manifestSnapshot, accounting, copyStats)
-			t.emitManifestCopyStartupMark(manifestCopyPhaseDone, copyStats, accounting)
-			le.Info("manifest download complete")
-			return nil
-		})
+			return errors.Wrap(syncErr, "sync local manifest blocks")
+		}
+		if synced && dest.GetTransformer() == nil {
+			copyStats.DestinationDurableBytes = copyStats.LogicalSourceBytes
+			copyStats.DestinationDurableBytesKnown = true
+		}
+		trace.Logf(syncCtx, "destination-durable-bytes", "%d", copyStats.DestinationDurableBytes)
+		trace.Logf(syncCtx, "destination-durable-bytes-known", "%t", copyStats.DestinationDurableBytesKnown)
+		trace.Log(syncCtx, "manifest-copy-phase", "sync-complete")
+		syncTask.End()
+		copyStats = accounting.apply(copyStats)
+		t.setManifestCopyStatus(manifestCopyPhaseDone, class, manifestSnapshot, accounting, copyStats)
+		t.emitManifestCopyStartupMark(manifestCopyPhaseDone, copyStats, accounting)
+		le.Info("manifest download complete")
+		return nil
 	})
 	accessTask.End()
 	return err

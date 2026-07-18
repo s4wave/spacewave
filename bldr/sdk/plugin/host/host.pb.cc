@@ -30,6 +30,31 @@ namespace bldr {
 namespace plugin {
 namespace host {
 
+inline constexpr RegisterObjectTypeResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        resource_id_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR RegisterObjectTypeResponse::RegisterObjectTypeResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(RegisterObjectTypeResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct RegisterObjectTypeResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RegisterObjectTypeResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RegisterObjectTypeResponseDefaultTypeInternal() {}
+  union {
+    RegisterObjectTypeResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RegisterObjectTypeResponseDefaultTypeInternal _RegisterObjectTypeResponse_default_instance_;
+
 inline constexpr GetPluginInfoResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -77,6 +102,42 @@ struct GetPluginInfoRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetPluginInfoRequestDefaultTypeInternal _GetPluginInfoRequest_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR CompleteInitialCapabilityRegistrationResponse::CompleteInitialCapabilityRegistrationResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(CompleteInitialCapabilityRegistrationResponse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct CompleteInitialCapabilityRegistrationResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CompleteInitialCapabilityRegistrationResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CompleteInitialCapabilityRegistrationResponseDefaultTypeInternal() {}
+  union {
+    CompleteInitialCapabilityRegistrationResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CompleteInitialCapabilityRegistrationResponseDefaultTypeInternal _CompleteInitialCapabilityRegistrationResponse_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR CompleteInitialCapabilityRegistrationRequest::CompleteInitialCapabilityRegistrationRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(CompleteInitialCapabilityRegistrationRequest_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct CompleteInitialCapabilityRegistrationRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR CompleteInitialCapabilityRegistrationRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~CompleteInitialCapabilityRegistrationRequestDefaultTypeInternal() {}
+  union {
+    CompleteInitialCapabilityRegistrationRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CompleteInitialCapabilityRegistrationRequestDefaultTypeInternal _CompleteInitialCapabilityRegistrationRequest_default_instance_;
 
 inline constexpr AccessVolumeResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -301,6 +362,34 @@ struct AccessAssetsFSRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AccessAssetsFSRequestDefaultTypeInternal _AccessAssetsFSRequest_default_instance_;
+
+inline constexpr RegisterObjectTypeRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        type_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        metadata_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR RegisterObjectTypeRequest::RegisterObjectTypeRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(RegisterObjectTypeRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct RegisterObjectTypeRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RegisterObjectTypeRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RegisterObjectTypeRequestDefaultTypeInternal() {}
+  union {
+    RegisterObjectTypeRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RegisterObjectTypeRequestDefaultTypeInternal _RegisterObjectTypeRequest_default_instance_;
 }  // namespace host
 }  // namespace plugin
 }  // namespace bldr
@@ -311,6 +400,20 @@ static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULL
 const ::uint32_t
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::host::RegisterObjectTypeRequest, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::host::RegisterObjectTypeRequest, _impl_.type_id_),
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::host::RegisterObjectTypeRequest, _impl_.metadata_),
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::host::RegisterObjectTypeResponse, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::bldr::plugin::host::RegisterObjectTypeResponse, _impl_.resource_id_),
+        0,
+        0x000, // bitmap
+        0x000, // bitmap
         0x000, // bitmap
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::bldr::plugin::host::AccessAssetsFSResponse, _impl_._has_bits_),
@@ -357,20 +460,28 @@ const ::uint32_t
 
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-        {0, sizeof(::bldr::plugin::host::AccessAssetsFSRequest)},
-        {1, sizeof(::bldr::plugin::host::AccessAssetsFSResponse)},
-        {6, sizeof(::bldr::plugin::host::AccessDistFSRequest)},
-        {7, sizeof(::bldr::plugin::host::AccessDistFSResponse)},
-        {12, sizeof(::bldr::plugin::host::AccessVolumeRequest)},
-        {13, sizeof(::bldr::plugin::host::AccessVolumeResponse)},
-        {18, sizeof(::bldr::plugin::host::AccessStateAtomRequest)},
-        {23, sizeof(::bldr::plugin::host::AccessStateAtomResponse)},
-        {28, sizeof(::bldr::plugin::host::AccessDesktopTrayRequest)},
-        {29, sizeof(::bldr::plugin::host::AccessDesktopTrayResponse)},
-        {34, sizeof(::bldr::plugin::host::GetPluginInfoRequest)},
-        {35, sizeof(::bldr::plugin::host::GetPluginInfoResponse)},
+        {0, sizeof(::bldr::plugin::host::RegisterObjectTypeRequest)},
+        {7, sizeof(::bldr::plugin::host::RegisterObjectTypeResponse)},
+        {12, sizeof(::bldr::plugin::host::CompleteInitialCapabilityRegistrationRequest)},
+        {13, sizeof(::bldr::plugin::host::CompleteInitialCapabilityRegistrationResponse)},
+        {14, sizeof(::bldr::plugin::host::AccessAssetsFSRequest)},
+        {15, sizeof(::bldr::plugin::host::AccessAssetsFSResponse)},
+        {20, sizeof(::bldr::plugin::host::AccessDistFSRequest)},
+        {21, sizeof(::bldr::plugin::host::AccessDistFSResponse)},
+        {26, sizeof(::bldr::plugin::host::AccessVolumeRequest)},
+        {27, sizeof(::bldr::plugin::host::AccessVolumeResponse)},
+        {32, sizeof(::bldr::plugin::host::AccessStateAtomRequest)},
+        {37, sizeof(::bldr::plugin::host::AccessStateAtomResponse)},
+        {42, sizeof(::bldr::plugin::host::AccessDesktopTrayRequest)},
+        {43, sizeof(::bldr::plugin::host::AccessDesktopTrayResponse)},
+        {48, sizeof(::bldr::plugin::host::GetPluginInfoRequest)},
+        {49, sizeof(::bldr::plugin::host::GetPluginInfoResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
+    &::bldr::plugin::host::_RegisterObjectTypeRequest_default_instance_._instance,
+    &::bldr::plugin::host::_RegisterObjectTypeResponse_default_instance_._instance,
+    &::bldr::plugin::host::_CompleteInitialCapabilityRegistrationRequest_default_instance_._instance,
+    &::bldr::plugin::host::_CompleteInitialCapabilityRegistrationResponse_default_instance_._instance,
     &::bldr::plugin::host::_AccessAssetsFSRequest_default_instance_._instance,
     &::bldr::plugin::host::_AccessAssetsFSResponse_default_instance_._instance,
     &::bldr::plugin::host::_AccessDistFSRequest_default_instance_._instance,
@@ -387,49 +498,68 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
     "\n;github.com/s4wave/spacewave/bldr/sdk/p"
-    "lugin/host/host.proto\022\020bldr.plugin.host\""
-    "\027\n\025AccessAssetsFSRequest\"-\n\026AccessAssets"
-    "FSResponse\022\023\n\013resource_id\030\001 \001(\r\"\025\n\023Acces"
-    "sDistFSRequest\"+\n\024AccessDistFSResponse\022\023"
-    "\n\013resource_id\030\001 \001(\r\"\025\n\023AccessVolumeReque"
-    "st\"+\n\024AccessVolumeResponse\022\023\n\013resource_i"
-    "d\030\001 \001(\r\"*\n\026AccessStateAtomRequest\022\020\n\010sto"
-    "re_id\030\001 \001(\t\".\n\027AccessStateAtomResponse\022\023"
-    "\n\013resource_id\030\001 \001(\r\"\032\n\030AccessDesktopTray"
-    "Request\"0\n\031AccessDesktopTrayResponse\022\023\n\013"
-    "resource_id\030\001 \001(\r\"\026\n\024GetPluginInfoReques"
-    "t\">\n\025GetPluginInfoResponse\022\021\n\tplugin_id\030"
-    "\001 \001(\t\022\022\n\nentrypoint\030\002 \001(\t2\366\004\n\031PluginHost"
-    "ResourceService\022c\n\016AccessAssetsFS\022\'.bldr"
-    ".plugin.host.AccessAssetsFSRequest\032(.bld"
-    "r.plugin.host.AccessAssetsFSResponse\022]\n\014"
-    "AccessDistFS\022%.bldr.plugin.host.AccessDi"
-    "stFSRequest\032&.bldr.plugin.host.AccessDis"
-    "tFSResponse\022]\n\014AccessVolume\022%.bldr.plugi"
-    "n.host.AccessVolumeRequest\032&.bldr.plugin"
-    ".host.AccessVolumeResponse\022f\n\017AccessStat"
-    "eAtom\022(.bldr.plugin.host.AccessStateAtom"
-    "Request\032).bldr.plugin.host.AccessStateAt"
-    "omResponse\022l\n\021AccessDesktopTray\022*.bldr.p"
-    "lugin.host.AccessDesktopTrayRequest\032+.bl"
-    "dr.plugin.host.AccessDesktopTrayResponse"
-    "\022`\n\rGetPluginInfo\022&.bldr.plugin.host.Get"
-    "PluginInfoRequest\032\'.bldr.plugin.host.Get"
-    "PluginInfoResponseBCZAgithub.com/s4wave/"
-    "spacewave/bldr/sdk/plugin/host;bldr_plug"
-    "in_hostb\006proto3"
+    "lugin/host/host.proto\022\020bldr.plugin.host\032"
+    "Bgithub.com/s4wave/spacewave/sdk/objectt"
+    "ype/registry/registry.proto\"n\n\031RegisterO"
+    "bjectTypeRequest\022\017\n\007type_id\030\001 \001(\t\022@\n\010met"
+    "adata\030\002 \001(\0132..s4wave.objecttype.registry"
+    ".ObjectTypeMetadata\"1\n\032RegisterObjectTyp"
+    "eResponse\022\023\n\013resource_id\030\001 \001(\r\".\n,Comple"
+    "teInitialCapabilityRegistrationRequest\"/"
+    "\n-CompleteInitialCapabilityRegistrationR"
+    "esponse\"\027\n\025AccessAssetsFSRequest\"-\n\026Acce"
+    "ssAssetsFSResponse\022\023\n\013resource_id\030\001 \001(\r\""
+    "\025\n\023AccessDistFSRequest\"+\n\024AccessDistFSRe"
+    "sponse\022\023\n\013resource_id\030\001 \001(\r\"\025\n\023AccessVol"
+    "umeRequest\"+\n\024AccessVolumeResponse\022\023\n\013re"
+    "source_id\030\001 \001(\r\"*\n\026AccessStateAtomReques"
+    "t\022\020\n\010store_id\030\001 \001(\t\".\n\027AccessStateAtomRe"
+    "sponse\022\023\n\013resource_id\030\001 \001(\r\"\032\n\030AccessDes"
+    "ktopTrayRequest\"0\n\031AccessDesktopTrayResp"
+    "onse\022\023\n\013resource_id\030\001 \001(\r\"\026\n\024GetPluginIn"
+    "foRequest\">\n\025GetPluginInfoResponse\022\021\n\tpl"
+    "ugin_id\030\001 \001(\t\022\022\n\nentrypoint\030\002 \001(\t2\222\007\n\031Pl"
+    "uginHostResourceService\022c\n\016AccessAssetsF"
+    "S\022\'.bldr.plugin.host.AccessAssetsFSReque"
+    "st\032(.bldr.plugin.host.AccessAssetsFSResp"
+    "onse\022]\n\014AccessDistFS\022%.bldr.plugin.host."
+    "AccessDistFSRequest\032&.bldr.plugin.host.A"
+    "ccessDistFSResponse\022]\n\014AccessVolume\022%.bl"
+    "dr.plugin.host.AccessVolumeRequest\032&.bld"
+    "r.plugin.host.AccessVolumeResponse\022f\n\017Ac"
+    "cessStateAtom\022(.bldr.plugin.host.AccessS"
+    "tateAtomRequest\032).bldr.plugin.host.Acces"
+    "sStateAtomResponse\022l\n\021AccessDesktopTray\022"
+    "*.bldr.plugin.host.AccessDesktopTrayRequ"
+    "est\032+.bldr.plugin.host.AccessDesktopTray"
+    "Response\022`\n\rGetPluginInfo\022&.bldr.plugin."
+    "host.GetPluginInfoRequest\032\'.bldr.plugin."
+    "host.GetPluginInfoResponse\022o\n\022RegisterOb"
+    "jectType\022+.bldr.plugin.host.RegisterObje"
+    "ctTypeRequest\032,.bldr.plugin.host.Registe"
+    "rObjectTypeResponse\022\250\001\n%CompleteInitialC"
+    "apabilityRegistration\022>.bldr.plugin.host"
+    ".CompleteInitialCapabilityRegistrationRe"
+    "quest\032\?.bldr.plugin.host.CompleteInitial"
+    "CapabilityRegistrationResponseBCZAgithub"
+    ".com/s4wave/spacewave/bldr/sdk/plugin/ho"
+    "st;bldr_plugin_hostb\006proto3"
+};
+static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_deps[1] = {
+        &::descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fobjecttype_2fregistry_2fregistry_2eproto,
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto = {
     false,
     false,
-    1255,
+    1867,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
     "github.com/s4wave/spacewave/bldr/sdk/plugin/host/host.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_once,
-    nullptr,
-    0,
-    12,
+    descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto_deps,
+    1,
+    16,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto::offsets,
@@ -439,6 +569,798 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 namespace bldr {
 namespace plugin {
 namespace host {
+// ===================================================================
+
+class RegisterObjectTypeRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<RegisterObjectTypeRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(RegisterObjectTypeRequest, _impl_._has_bits_);
+};
+
+void RegisterObjectTypeRequest::clear_metadata() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.metadata_ != nullptr) _impl_.metadata_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+RegisterObjectTypeRequest::RegisterObjectTypeRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RegisterObjectTypeRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:bldr.plugin.host.RegisterObjectTypeRequest)
+}
+PROTOBUF_NDEBUG_INLINE RegisterObjectTypeRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::bldr::plugin::host::RegisterObjectTypeRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        type_id_(arena, from.type_id_) {}
+
+RegisterObjectTypeRequest::RegisterObjectTypeRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const RegisterObjectTypeRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RegisterObjectTypeRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  RegisterObjectTypeRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.metadata_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.metadata_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:bldr.plugin.host.RegisterObjectTypeRequest)
+}
+PROTOBUF_NDEBUG_INLINE RegisterObjectTypeRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        type_id_(arena) {}
+
+inline void RegisterObjectTypeRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.metadata_ = {};
+}
+RegisterObjectTypeRequest::~RegisterObjectTypeRequest() {
+  // @@protoc_insertion_point(destructor:bldr.plugin.host.RegisterObjectTypeRequest)
+  SharedDtor(*this);
+}
+inline void RegisterObjectTypeRequest::SharedDtor(MessageLite& self) {
+  RegisterObjectTypeRequest& this_ = static_cast<RegisterObjectTypeRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.type_id_.Destroy();
+  delete this_._impl_.metadata_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL RegisterObjectTypeRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) RegisterObjectTypeRequest(arena);
+}
+constexpr auto RegisterObjectTypeRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(RegisterObjectTypeRequest),
+                                            alignof(RegisterObjectTypeRequest));
+}
+constexpr auto RegisterObjectTypeRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_RegisterObjectTypeRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &RegisterObjectTypeRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<RegisterObjectTypeRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &RegisterObjectTypeRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<RegisterObjectTypeRequest>(), &RegisterObjectTypeRequest::ByteSizeLong,
+              &RegisterObjectTypeRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(RegisterObjectTypeRequest, _impl_._cached_size_),
+          false,
+      },
+      &RegisterObjectTypeRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull RegisterObjectTypeRequest_class_data_ =
+        RegisterObjectTypeRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+RegisterObjectTypeRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&RegisterObjectTypeRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(RegisterObjectTypeRequest_class_data_.tc_table);
+  return RegisterObjectTypeRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 1, 58, 2>
+RegisterObjectTypeRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(RegisterObjectTypeRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    RegisterObjectTypeRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::plugin::host::RegisterObjectTypeRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .s4wave.objecttype.registry.ObjectTypeMetadata metadata = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(RegisterObjectTypeRequest, _impl_.metadata_)}},
+    // string type_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(RegisterObjectTypeRequest, _impl_.type_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string type_id = 1;
+    {PROTOBUF_FIELD_OFFSET(RegisterObjectTypeRequest, _impl_.type_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.objecttype.registry.ObjectTypeMetadata metadata = 2;
+    {PROTOBUF_FIELD_OFFSET(RegisterObjectTypeRequest, _impl_.metadata_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::objecttype::registry::ObjectTypeMetadata>()},
+  }},
+  {{
+    "\52\7\0\0\0\0\0\0"
+    "bldr.plugin.host.RegisterObjectTypeRequest"
+    "type_id"
+  }},
+};
+PROTOBUF_NOINLINE void RegisterObjectTypeRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.plugin.host.RegisterObjectTypeRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.type_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.metadata_ != nullptr);
+      _impl_.metadata_->Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL RegisterObjectTypeRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const RegisterObjectTypeRequest& this_ = static_cast<const RegisterObjectTypeRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL RegisterObjectTypeRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const RegisterObjectTypeRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.plugin.host.RegisterObjectTypeRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string type_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_type_id().empty()) {
+      const ::std::string& _s = this_._internal_type_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "bldr.plugin.host.RegisterObjectTypeRequest.type_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // .s4wave.objecttype.registry.ObjectTypeMetadata metadata = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.metadata_, this_._impl_.metadata_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.plugin.host.RegisterObjectTypeRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t RegisterObjectTypeRequest::ByteSizeLong(const MessageLite& base) {
+  const RegisterObjectTypeRequest& this_ = static_cast<const RegisterObjectTypeRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t RegisterObjectTypeRequest::ByteSizeLong() const {
+  const RegisterObjectTypeRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:bldr.plugin.host.RegisterObjectTypeRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string type_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_type_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_type_id());
+      }
+    }
+    // .s4wave.objecttype.registry.ObjectTypeMetadata metadata = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.metadata_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void RegisterObjectTypeRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<RegisterObjectTypeRequest*>(&to_msg);
+  auto& from = static_cast<const RegisterObjectTypeRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.plugin.host.RegisterObjectTypeRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_type_id().empty()) {
+        _this->_internal_set_type_id(from._internal_type_id());
+      } else {
+        if (_this->_impl_.type_id_.IsDefault()) {
+          _this->_internal_set_type_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.metadata_ != nullptr);
+      if (_this->_impl_.metadata_ == nullptr) {
+        _this->_impl_.metadata_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.metadata_);
+      } else {
+        _this->_impl_.metadata_->MergeFrom(*from._impl_.metadata_);
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void RegisterObjectTypeRequest::CopyFrom(const RegisterObjectTypeRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.plugin.host.RegisterObjectTypeRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void RegisterObjectTypeRequest::InternalSwap(RegisterObjectTypeRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.type_id_, &other->_impl_.type_id_, arena);
+  swap(_impl_.metadata_, other->_impl_.metadata_);
+}
+
+::google::protobuf::Metadata RegisterObjectTypeRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class RegisterObjectTypeResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<RegisterObjectTypeResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(RegisterObjectTypeResponse, _impl_._has_bits_);
+};
+
+RegisterObjectTypeResponse::RegisterObjectTypeResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RegisterObjectTypeResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:bldr.plugin.host.RegisterObjectTypeResponse)
+}
+RegisterObjectTypeResponse::RegisterObjectTypeResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const RegisterObjectTypeResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, RegisterObjectTypeResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE RegisterObjectTypeResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void RegisterObjectTypeResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.resource_id_ = {};
+}
+RegisterObjectTypeResponse::~RegisterObjectTypeResponse() {
+  // @@protoc_insertion_point(destructor:bldr.plugin.host.RegisterObjectTypeResponse)
+  SharedDtor(*this);
+}
+inline void RegisterObjectTypeResponse::SharedDtor(MessageLite& self) {
+  RegisterObjectTypeResponse& this_ = static_cast<RegisterObjectTypeResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL RegisterObjectTypeResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) RegisterObjectTypeResponse(arena);
+}
+constexpr auto RegisterObjectTypeResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(RegisterObjectTypeResponse),
+                                            alignof(RegisterObjectTypeResponse));
+}
+constexpr auto RegisterObjectTypeResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_RegisterObjectTypeResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &RegisterObjectTypeResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<RegisterObjectTypeResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &RegisterObjectTypeResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<RegisterObjectTypeResponse>(), &RegisterObjectTypeResponse::ByteSizeLong,
+              &RegisterObjectTypeResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(RegisterObjectTypeResponse, _impl_._cached_size_),
+          false,
+      },
+      &RegisterObjectTypeResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull RegisterObjectTypeResponse_class_data_ =
+        RegisterObjectTypeResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+RegisterObjectTypeResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&RegisterObjectTypeResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(RegisterObjectTypeResponse_class_data_.tc_table);
+  return RegisterObjectTypeResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
+RegisterObjectTypeResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(RegisterObjectTypeResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    RegisterObjectTypeResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::plugin::host::RegisterObjectTypeResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // uint32 resource_id = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(RegisterObjectTypeResponse, _impl_.resource_id_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(RegisterObjectTypeResponse, _impl_.resource_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // uint32 resource_id = 1;
+    {PROTOBUF_FIELD_OFFSET(RegisterObjectTypeResponse, _impl_.resource_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void RegisterObjectTypeResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:bldr.plugin.host.RegisterObjectTypeResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.resource_id_ = 0u;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL RegisterObjectTypeResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const RegisterObjectTypeResponse& this_ = static_cast<const RegisterObjectTypeResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL RegisterObjectTypeResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const RegisterObjectTypeResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:bldr.plugin.host.RegisterObjectTypeResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // uint32 resource_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_resource_id() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          1, this_._internal_resource_id(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:bldr.plugin.host.RegisterObjectTypeResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t RegisterObjectTypeResponse::ByteSizeLong(const MessageLite& base) {
+  const RegisterObjectTypeResponse& this_ = static_cast<const RegisterObjectTypeResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t RegisterObjectTypeResponse::ByteSizeLong() const {
+  const RegisterObjectTypeResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:bldr.plugin.host.RegisterObjectTypeResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // uint32 resource_id = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_resource_id() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_resource_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void RegisterObjectTypeResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<RegisterObjectTypeResponse*>(&to_msg);
+  auto& from = static_cast<const RegisterObjectTypeResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:bldr.plugin.host.RegisterObjectTypeResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_resource_id() != 0) {
+      _this->_impl_.resource_id_ = from._impl_.resource_id_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void RegisterObjectTypeResponse::CopyFrom(const RegisterObjectTypeResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:bldr.plugin.host.RegisterObjectTypeResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void RegisterObjectTypeResponse::InternalSwap(RegisterObjectTypeResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.resource_id_, other->_impl_.resource_id_);
+}
+
+::google::protobuf::Metadata RegisterObjectTypeResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CompleteInitialCapabilityRegistrationRequest::_Internal {
+ public:
+};
+
+CompleteInitialCapabilityRegistrationRequest::CompleteInitialCapabilityRegistrationRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, CompleteInitialCapabilityRegistrationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:bldr.plugin.host.CompleteInitialCapabilityRegistrationRequest)
+}
+CompleteInitialCapabilityRegistrationRequest::CompleteInitialCapabilityRegistrationRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CompleteInitialCapabilityRegistrationRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, CompleteInitialCapabilityRegistrationRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CompleteInitialCapabilityRegistrationRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:bldr.plugin.host.CompleteInitialCapabilityRegistrationRequest)
+}
+
+inline void* PROTOBUF_NONNULL CompleteInitialCapabilityRegistrationRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CompleteInitialCapabilityRegistrationRequest(arena);
+}
+constexpr auto CompleteInitialCapabilityRegistrationRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(CompleteInitialCapabilityRegistrationRequest),
+                                            alignof(CompleteInitialCapabilityRegistrationRequest));
+}
+constexpr auto CompleteInitialCapabilityRegistrationRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CompleteInitialCapabilityRegistrationRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CompleteInitialCapabilityRegistrationRequest::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<CompleteInitialCapabilityRegistrationRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CompleteInitialCapabilityRegistrationRequest::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<CompleteInitialCapabilityRegistrationRequest>(), &CompleteInitialCapabilityRegistrationRequest::ByteSizeLong,
+              &CompleteInitialCapabilityRegistrationRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CompleteInitialCapabilityRegistrationRequest, _impl_._cached_size_),
+          false,
+      },
+      &CompleteInitialCapabilityRegistrationRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CompleteInitialCapabilityRegistrationRequest_class_data_ =
+        CompleteInitialCapabilityRegistrationRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CompleteInitialCapabilityRegistrationRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CompleteInitialCapabilityRegistrationRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CompleteInitialCapabilityRegistrationRequest_class_data_.tc_table);
+  return CompleteInitialCapabilityRegistrationRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+CompleteInitialCapabilityRegistrationRequest::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CompleteInitialCapabilityRegistrationRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::plugin::host::CompleteInitialCapabilityRegistrationRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata CompleteInitialCapabilityRegistrationRequest::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class CompleteInitialCapabilityRegistrationResponse::_Internal {
+ public:
+};
+
+CompleteInitialCapabilityRegistrationResponse::CompleteInitialCapabilityRegistrationResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, CompleteInitialCapabilityRegistrationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:bldr.plugin.host.CompleteInitialCapabilityRegistrationResponse)
+}
+CompleteInitialCapabilityRegistrationResponse::CompleteInitialCapabilityRegistrationResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const CompleteInitialCapabilityRegistrationResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, CompleteInitialCapabilityRegistrationResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  CompleteInitialCapabilityRegistrationResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:bldr.plugin.host.CompleteInitialCapabilityRegistrationResponse)
+}
+
+inline void* PROTOBUF_NONNULL CompleteInitialCapabilityRegistrationResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) CompleteInitialCapabilityRegistrationResponse(arena);
+}
+constexpr auto CompleteInitialCapabilityRegistrationResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(CompleteInitialCapabilityRegistrationResponse),
+                                            alignof(CompleteInitialCapabilityRegistrationResponse));
+}
+constexpr auto CompleteInitialCapabilityRegistrationResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_CompleteInitialCapabilityRegistrationResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &CompleteInitialCapabilityRegistrationResponse::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<CompleteInitialCapabilityRegistrationResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &CompleteInitialCapabilityRegistrationResponse::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<CompleteInitialCapabilityRegistrationResponse>(), &CompleteInitialCapabilityRegistrationResponse::ByteSizeLong,
+              &CompleteInitialCapabilityRegistrationResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(CompleteInitialCapabilityRegistrationResponse, _impl_._cached_size_),
+          false,
+      },
+      &CompleteInitialCapabilityRegistrationResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fsdk_2fplugin_2fhost_2fhost_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull CompleteInitialCapabilityRegistrationResponse_class_data_ =
+        CompleteInitialCapabilityRegistrationResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+CompleteInitialCapabilityRegistrationResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&CompleteInitialCapabilityRegistrationResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(CompleteInitialCapabilityRegistrationResponse_class_data_.tc_table);
+  return CompleteInitialCapabilityRegistrationResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+CompleteInitialCapabilityRegistrationResponse::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    CompleteInitialCapabilityRegistrationResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::bldr::plugin::host::CompleteInitialCapabilityRegistrationResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata CompleteInitialCapabilityRegistrationResponse::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
 // ===================================================================
 
 class AccessAssetsFSRequest::_Internal {

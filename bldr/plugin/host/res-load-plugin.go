@@ -27,21 +27,26 @@ func (r *LoadPluginResolver) Resolve(ctx context.Context, handler directive.Reso
 	ref, relRef := r.c.AddPluginReference(r.pluginID, r.instanceKey)
 	defer relRef()
 
-	rpCtr := ref.GetRunningPluginCtr()
-	var currVal bldr_plugin.RunningPlugin
+	stateCtr := ref.GetPluginLoadStateCtr()
+	var current bldr_plugin.PluginLoadState
 	for {
-		nextVal, err := rpCtr.WaitValueChange(ctx, currVal, nil)
+		next, err := stateCtr.WaitValueChange(ctx, current, nil)
 		_ = handler.ClearValues()
 		if err != nil {
 			return err
 		}
 
-		currVal = nextVal
-		if nextVal != nil {
-			val := nextVal
-			_, _ = handler.AddValue(val)
+		current = next
+		if running := next.GetRunningPlugin(); running != nil {
+			_, _ = handler.AddValue(running)
 			handler.MarkIdle(true)
+			continue
 		}
+		if next.GetInitialCapabilityRegistrationState() == bldr_plugin.InitialCapabilityRegistrationFailed {
+			handler.MarkIdle(true)
+			continue
+		}
+		handler.MarkIdle(false)
 	}
 }
 

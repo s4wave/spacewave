@@ -1231,6 +1231,121 @@ describe('service worker fetch release cache routing', () => {
     expect(proxyFetch).not.toHaveBeenCalled()
   })
 
+  it('rehydrates persisted plugin root authority after service worker restart', async () => {
+    await announcePluginRoot('spacewave-app', '2abc')
+    const body = 'export const App2 = () => null\n'
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response(body, {
+        status: 200,
+        headers: { 'Content-Type': 'application/javascript' },
+      }),
+    )
+
+    const warm = buildClientFetchEvent(
+      '/b/pd/spacewave-app/backend.mjs',
+      'client-a',
+    )
+    const warmResponse = await swFetch(warm.ev)
+    expect(warmResponse.status).toBe(200)
+    expect(await warmResponse.text()).toBe(body)
+    await Promise.all(warm.waitUntilPromises)
+
+    // Simulate a ServiceWorker restart without deleting CacheStorage.
+    resetServiceWorkerTestState()
+    vi.mocked(proxyFetch).mockClear()
+    const restartedResponse = await swFetch(
+      buildFetchOnlyEvent('/b/pd/spacewave-app/backend.mjs'),
+    )
+    expect(restartedResponse.status).toBe(200)
+    expect(await restartedResponse.text()).toBe(body)
+    expect(proxyFetch).not.toHaveBeenCalled()
+  })
+
+  it('rejects plugin root metadata from another service worker release', async () => {
+    const caches = globalThis.caches as unknown as FakeCacheStorage
+    const path = '/b/pd/spacewave-app/backend.mjs'
+    await writeControlCacheResponse(
+      caches,
+      '/__bldr/plugin-manifest-root/spacewave-app.json',
+      new Response(
+        JSON.stringify({
+          pluginId: 'spacewave-app',
+          rootHash: '2abc',
+          serviceWorkerURL: `${self.location.href}?stale=1`,
+        }),
+      ),
+    )
+    const pluginCache = await caches.open('bldr-plugin-spacewave-app-2abc')
+    await pluginCache.put(
+      new Request(new URL(path, self.location.href)),
+      new Response('stale app', { status: 200 }),
+    )
+    resetServiceWorkerTestState()
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response('current app', { status: 200 }),
+    )
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(path, undefined, 'client-a'),
+    )
+    expect(response.status).toBe(200)
+    expect(await response.text()).toBe('current app')
+    expect(proxyFetch).toHaveBeenCalledOnce()
+  })
+
+  it('does not activate a plugin root when durable metadata write fails', async () => {
+    const caches = new FakeCacheStorage((cacheName, request) => {
+      if (
+        cacheName === 'bldr-control' &&
+        new URL(request.url).pathname.startsWith(
+          '/__bldr/plugin-manifest-root/',
+        )
+      ) {
+        return newCachePutError()
+      }
+      return undefined
+    })
+    vi.stubGlobal('caches', caches)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await announcePluginRoot('spacewave-app', '2abc')
+    const body = 'export const App2 = () => null\n'
+    vi.mocked(proxyFetch).mockImplementation(() =>
+      Promise.resolve(
+        new Response(body, {
+          status: 200,
+          headers: { 'Content-Type': 'application/javascript' },
+        }),
+      ),
+    )
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await swFetch(
+        buildFetchOnlyEvent(
+          '/b/pd/spacewave-app/backend.mjs',
+          undefined,
+          'client-a',
+        ),
+      )
+      expect(response.status).toBe(200)
+      expect(await response.text()).toBe(body)
+    }
+    expect(proxyFetch).toHaveBeenCalledTimes(2)
+
+    resetServiceWorkerTestState()
+    vi.mocked(proxyFetch).mockClear()
+    const restartedResponse = await swFetch(
+      buildFetchOnlyEvent(
+        '/b/pd/spacewave-app/backend.mjs',
+        undefined,
+        'client-a',
+      ),
+    )
+    expect(restartedResponse.status).toBe(200)
+    expect(await restartedResponse.text()).toBe(body)
+    expect(proxyFetch).toHaveBeenCalledOnce()
+    expect(warn).toHaveBeenCalled()
+  })
+
   it('keeps static plugin asset fetches successful when cache writes fail', async () => {
     const caches = new FakeCacheStorage((cacheName) => {
       if (cacheName.startsWith('bldr-plugin-spacewave-app-')) {
@@ -1384,7 +1499,7 @@ describe('service worker fetch release cache routing', () => {
     expect(proxyFetch).toHaveBeenCalledTimes(2)
   })
 
-  it('fails a root transition toward runtime refetch when plugin flush fails', async () => {
+  it('keeps the new root active when stale plugin cache cleanup fails', async () => {
     const caches = new FakeCacheStorage(undefined, (cacheName) => {
       if (cacheName === 'bldr-plugin-spacewave-app-2abc') {
         return new Error('cache delete failed')
@@ -1410,9 +1525,9 @@ describe('service worker fetch release cache routing', () => {
     const second = buildClientFetchEvent(appPath, 'client-a')
     expect(await (await swFetch(first.ev)).text()).toBe('runtime app')
     expect(await (await swFetch(second.ev)).text()).toBe('runtime app')
-    expect(proxyFetch).toHaveBeenCalledTimes(3)
+    expect(proxyFetch).toHaveBeenCalledTimes(2)
     expect(warn).toHaveBeenCalledWith(
-      'ServiceWorker: %s: plugin cache activation failed: plugin=%s root=%s: %s',
+      'ServiceWorker: %s: stale plugin cache cleanup failed: plugin=%s root=%s: %s',
       expect.any(String),
       'spacewave-app',
       '3def',

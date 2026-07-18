@@ -224,6 +224,8 @@ class Config final : public ::google::protobuf::Message
     kSpaceIdFieldNumber = 2,
     kCdnBaseUrlFieldNumber = 3,
     kPointerTtlDurFieldNumber = 4,
+    kCacheBlockStoreIdFieldNumber = 5,
+    kWritebackWindowBytesFieldNumber = 6,
   };
   // string engine_id = 1;
   void clear_engine_id() ;
@@ -285,12 +287,37 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_pointer_ttl_dur();
 
   public:
+  // string cache_block_store_id = 5;
+  void clear_cache_block_store_id() ;
+  const ::std::string& cache_block_store_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_cache_block_store_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_cache_block_store_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_cache_block_store_id();
+  void set_allocated_cache_block_store_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_cache_block_store_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_cache_block_store_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_cache_block_store_id();
+
+  public:
+  // int64 writeback_window_bytes = 6;
+  void clear_writeback_window_bytes() ;
+  ::int64_t writeback_window_bytes() const;
+  void set_writeback_window_bytes(::int64_t value);
+
+  private:
+  ::int64_t _internal_writeback_window_bytes() const;
+  void _internal_set_writeback_window_bytes(::int64_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:cdn.world.controller.Config)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 4,
-                                   0, 80,
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   0, 100,
                                    2>
       _table_;
 
@@ -315,6 +342,8 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr space_id_;
     ::google::protobuf::internal::ArenaStringPtr cdn_base_url_;
     ::google::protobuf::internal::ArenaStringPtr pointer_ttl_dur_;
+    ::google::protobuf::internal::ArenaStringPtr cache_block_store_id_;
+    ::int64_t writeback_window_bytes_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -597,6 +626,96 @@ inline void Config::set_allocated_pointer_ttl_dur(::std::string* PROTOBUF_NULLAB
     _impl_.pointer_ttl_dur_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:cdn.world.controller.Config.pointer_ttl_dur)
+}
+
+// string cache_block_store_id = 5;
+inline void Config::clear_cache_block_store_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cache_block_store_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& Config::cache_block_store_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:cdn.world.controller.Config.cache_block_store_id)
+  return _internal_cache_block_store_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_cache_block_store_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.cache_block_store_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:cdn.world.controller.Config.cache_block_store_id)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_cache_block_store_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_cache_block_store_id();
+  // @@protoc_insertion_point(field_mutable:cdn.world.controller.Config.cache_block_store_id)
+  return _s;
+}
+inline const ::std::string& Config::_internal_cache_block_store_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.cache_block_store_id_.Get();
+}
+inline void Config::_internal_set_cache_block_store_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cache_block_store_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_cache_block_store_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.cache_block_store_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_cache_block_store_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:cdn.world.controller.Config.cache_block_store_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.cache_block_store_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.cache_block_store_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_cache_block_store_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.cache_block_store_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.cache_block_store_id_.IsDefault()) {
+    _impl_.cache_block_store_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:cdn.world.controller.Config.cache_block_store_id)
+}
+
+// int64 writeback_window_bytes = 6;
+inline void Config::clear_writeback_window_bytes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.writeback_window_bytes_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::int64_t Config::writeback_window_bytes() const {
+  // @@protoc_insertion_point(field_get:cdn.world.controller.Config.writeback_window_bytes)
+  return _internal_writeback_window_bytes();
+}
+inline void Config::set_writeback_window_bytes(::int64_t value) {
+  _internal_set_writeback_window_bytes(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:cdn.world.controller.Config.writeback_window_bytes)
+}
+inline ::int64_t Config::_internal_writeback_window_bytes() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.writeback_window_bytes_;
+}
+inline void Config::_internal_set_writeback_window_bytes(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.writeback_window_bytes_ = value;
 }
 
 #ifdef __GNUC__

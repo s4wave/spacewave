@@ -15,6 +15,8 @@ import {
   getViewersForType,
 } from '@s4wave/web/hooks/useViewerRegistry.js'
 import { RootContext } from '@s4wave/web/contexts/contexts.js'
+import { useDocumentTitle } from '@s4wave/web/title/DocumentTitleContext.js'
+import { useDocumentTitleFocus } from '@s4wave/web/title/DocumentTitleFocusContext.js'
 import type { ObjectViewerComponent } from './object.js'
 import { BottomBarItem } from '@s4wave/web/frame/bottom-bar-item.js'
 import { ComponentSelector } from './ComponentSelector.js'
@@ -25,7 +27,10 @@ import {
 } from '@s4wave/web/frame/bottom-bar-context.js'
 import type { BottomBarContextMenuItem } from '@s4wave/web/frame/bottom-bar-context.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
-import { buildSpaceObjectActionTargets } from '@s4wave/web/space/object-tree.js'
+import {
+  buildSpaceObjectActionTargets,
+  getObjectDisplayName,
+} from '@s4wave/web/space/object-tree.js'
 import { createSpaceObjectNavigationActions } from '@s4wave/web/space/space-object-navigation-actions.js'
 import { useObjectTypeMetadata } from '@s4wave/web/hooks/useObjectTypeMetadata.js'
 import { useTabContext } from './TabContext.js'
@@ -255,6 +260,29 @@ export function useObjectViewer({
 
   const selectedComponentIDDisplay = selectedComponent?.componentID ?? 'default'
   const hasMultipleComponents = visibleComponents.length > 1
+  const isTabActive = useIsTabActive()
+  const focusedTabId = useDocumentTitleFocus()
+  const isTopLevelObject = !!objectKey && spaceContext?.objectKey === objectKey
+  const isFocusedLayoutTab =
+    tabContext?.isObjectLayout === true &&
+    !!tabContext.tabId &&
+    tabContext.tabId === focusedTabId
+  const objectTitle = objectKey
+    ? getObjectDisplayName(objectKey) || 'Object'
+    : isUnixfs
+      ? 'Files'
+      : 'Object'
+  const viewTitle =
+    visibleComponents.length > 1 && selectedComponent?.name
+      ? `${objectTitle} · ${selectedComponent.name}`
+      : objectTitle
+  useDocumentTitle(
+    { view: viewTitle, space: spaceContext?.spaceName ?? 'Space' },
+    {
+      active: isTabActive && (isTopLevelObject || isFocusedLayoutTab),
+      priority: isFocusedLayoutTab ? 30 : 20,
+    },
+  )
   const displayKey = objectKey ?? (isUnixfs ? 'UnixFS' : 'No object')
   const spaceObjectTargets = useMemo(
     () =>
@@ -469,7 +497,6 @@ export function useObjectViewer({
   const contextMenuLabel = `${displayKey} actions`
 
   // Export object command: active when viewing a world object with an export URL.
-  const isTabActive = useIsTabActive()
   const objectExportUrl = useMemo(
     () =>
       exportUrl && objectKey

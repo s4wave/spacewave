@@ -44,7 +44,11 @@ inline constexpr Config::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         pointer_ttl_dur_(
             &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()) {}
+            ::_pbi::ConstantInitialized()),
+        cache_block_store_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        writeback_window_bytes_{::int64_t{0}} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR Config::Config(::_pbi::ConstantInitialized)
@@ -77,15 +81,19 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::cdn::world::controller::Config, _impl_._has_bits_),
-        7, // hasbit index offset
+        9, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::cdn::world::controller::Config, _impl_.engine_id_),
         PROTOBUF_FIELD_OFFSET(::cdn::world::controller::Config, _impl_.space_id_),
         PROTOBUF_FIELD_OFFSET(::cdn::world::controller::Config, _impl_.cdn_base_url_),
         PROTOBUF_FIELD_OFFSET(::cdn::world::controller::Config, _impl_.pointer_ttl_dur_),
+        PROTOBUF_FIELD_OFFSET(::cdn::world::controller::Config, _impl_.cache_block_store_id_),
+        PROTOBUF_FIELD_OFFSET(::cdn::world::controller::Config, _impl_.writeback_window_bytes_),
         0,
         1,
         2,
         3,
+        4,
+        5,
 };
 
 static const ::_pbi::MigrationSchema
@@ -99,15 +107,17 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     protodesc_cold) = {
     "\nFgithub.com/s4wave/spacewave/core/cdn/w"
     "orld/controller/controller.proto\022\024cdn.wo"
-    "rld.controller\"\\\n\006Config\022\021\n\tengine_id\030\001 "
-    "\001(\t\022\020\n\010space_id\030\002 \001(\t\022\024\n\014cdn_base_url\030\003 "
-    "\001(\t\022\027\n\017pointer_ttl_dur\030\004 \001(\tb\006proto3"
+    "rld.controller\"\232\001\n\006Config\022\021\n\tengine_id\030\001"
+    " \001(\t\022\020\n\010space_id\030\002 \001(\t\022\024\n\014cdn_base_url\030\003"
+    " \001(\t\022\027\n\017pointer_ttl_dur\030\004 \001(\t\022\034\n\024cache_b"
+    "lock_store_id\030\005 \001(\t\022\036\n\026writeback_window_"
+    "bytes\030\006 \001(\003b\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fcdn_2fworld_2fcontroller_2fcontroller_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fcdn_2fworld_2fcontroller_2fcontroller_2eproto = {
     false,
     false,
-    196,
+    259,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fcdn_2fworld_2fcontroller_2fcontroller_2eproto,
     "github.com/s4wave/spacewave/core/cdn/world/controller/controller.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fcdn_2fworld_2fcontroller_2fcontroller_2eproto_once,
@@ -151,7 +161,8 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         engine_id_(arena, from.engine_id_),
         space_id_(arena, from.space_id_),
         cdn_base_url_(arena, from.cdn_base_url_),
-        pointer_ttl_dur_(arena, from.pointer_ttl_dur_) {}
+        pointer_ttl_dur_(arena, from.pointer_ttl_dur_),
+        cache_block_store_id_(arena, from.cache_block_store_id_) {}
 
 Config::Config(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -166,6 +177,7 @@ Config::Config(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.writeback_window_bytes_ = from._impl_.writeback_window_bytes_;
 
   // @@protoc_insertion_point(copy_constructor:cdn.world.controller.Config)
 }
@@ -176,10 +188,12 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         engine_id_(arena),
         space_id_(arena),
         cdn_base_url_(arena),
-        pointer_ttl_dur_(arena) {}
+        pointer_ttl_dur_(arena),
+        cache_block_store_id_(arena) {}
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.writeback_window_bytes_ = {};
 }
 Config::~Config() {
   // @@protoc_insertion_point(destructor:cdn.world.controller.Config)
@@ -196,6 +210,7 @@ inline void Config::SharedDtor(MessageLite& self) {
   this_._impl_.space_id_.Destroy();
   this_._impl_.cdn_base_url_.Destroy();
   this_._impl_.pointer_ttl_dur_.Destroy();
+  this_._impl_.cache_block_store_id_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -242,16 +257,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 4, 0, 80, 2>
+const ::_pbi::TcParseTable<3, 6, 0, 100, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    4, 24,  // max_field_number, fast_idx_mask
+    6, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
+    4294967232,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
+    6,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     Config_class_data_.base(),
@@ -261,10 +276,7 @@ Config::_table_ = {
     ::_pbi::TcParser::GetTable<::cdn::world::controller::Config>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // string pointer_ttl_dur = 4;
-    {::_pbi::TcParser::FastUS1,
-     {34, 3, 0,
-      PROTOBUF_FIELD_OFFSET(Config, _impl_.pointer_ttl_dur_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // string engine_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -277,6 +289,19 @@ Config::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {26, 2, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.cdn_base_url_)}},
+    // string pointer_ttl_dur = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 3, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.pointer_ttl_dur_)}},
+    // string cache_block_store_id = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 4, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.cache_block_store_id_)}},
+    // int64 writeback_window_bytes = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(Config, _impl_.writeback_window_bytes_), 5>(),
+     {48, 5, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.writeback_window_bytes_)}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
@@ -288,15 +313,20 @@ Config::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.cdn_base_url_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string pointer_ttl_dur = 4;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.pointer_ttl_dur_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string cache_block_store_id = 5;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.cache_block_store_id_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // int64 writeback_window_bytes = 6;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.writeback_window_bytes_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt64)},
   }},
   // no aux_entries
   {{
-    "\33\11\10\14\17\0\0\0"
+    "\33\11\10\14\17\24\0\0"
     "cdn.world.controller.Config"
     "engine_id"
     "space_id"
     "cdn_base_url"
     "pointer_ttl_dur"
+    "cache_block_store_id"
   }},
 };
 PROTOBUF_NOINLINE void Config::Clear() {
@@ -307,7 +337,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.engine_id_.ClearNonDefaultToEmpty();
     }
@@ -320,7 +350,11 @@ PROTOBUF_NOINLINE void Config::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       _impl_.pointer_ttl_dur_.ClearNonDefaultToEmpty();
     }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.cache_block_store_id_.ClearNonDefaultToEmpty();
+    }
   }
+  _impl_.writeback_window_bytes_ = ::int64_t{0};
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -384,6 +418,25 @@ PROTOBUF_NOINLINE void Config::Clear() {
     }
   }
 
+  // string cache_block_store_id = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_cache_block_store_id().empty()) {
+      const ::std::string& _s = this_._internal_cache_block_store_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "cdn.world.controller.Config.cache_block_store_id");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  // int64 writeback_window_bytes = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_writeback_window_bytes() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt64ToArrayWithField<6>(
+              stream, this_._internal_writeback_window_bytes(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -409,7 +462,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     // string engine_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_engine_id().empty()) {
@@ -438,6 +491,20 @@ PROTOBUF_NOINLINE void Config::Clear() {
                                         this_._internal_pointer_ttl_dur());
       }
     }
+    // string cache_block_store_id = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_cache_block_store_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_cache_block_store_id());
+      }
+    }
+    // int64 writeback_window_bytes = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_writeback_window_bytes() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this_._internal_writeback_window_bytes());
+      }
+    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -457,7 +524,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_engine_id().empty()) {
         _this->_internal_set_engine_id(from._internal_engine_id());
@@ -494,6 +561,20 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_cache_block_store_id().empty()) {
+        _this->_internal_set_cache_block_store_id(from._internal_cache_block_store_id());
+      } else {
+        if (_this->_impl_.cache_block_store_id_.IsDefault()) {
+          _this->_internal_set_cache_block_store_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_writeback_window_bytes() != 0) {
+        _this->_impl_.writeback_window_bytes_ = from._impl_.writeback_window_bytes_;
+      }
+    }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -518,6 +599,8 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.space_id_, &other->_impl_.space_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.cdn_base_url_, &other->_impl_.cdn_base_url_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.pointer_ttl_dur_, &other->_impl_.pointer_ttl_dur_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.cache_block_store_id_, &other->_impl_.cache_block_store_id_, arena);
+  swap(_impl_.writeback_window_bytes_, other->_impl_.writeback_window_bytes_);
 }
 
 ::google::protobuf::Metadata Config::GetMetadata() const {

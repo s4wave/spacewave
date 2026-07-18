@@ -223,7 +223,7 @@ func classifyDirectStartupManifestEligibility(
 	expectedManifestID string,
 	filterPlatformIDs []string,
 ) (*StartupManifestCandidateEligibility, error) {
-	manifest, manifestRef, err := LookupManifest(ctx, ws, candidate.ObjectKey)
+	manifest, manifestRef, err := lookupStartupManifestObject(ctx, ws, candidate.ObjectKey)
 	if err != nil {
 		if ctxErr := startupContextError(err); ctxErr != nil {
 			return nil, ctxErr
@@ -288,7 +288,7 @@ func classifyManifestRefStartupEligibility(
 		return candidate, nil
 	}
 
-	manifest, err := lookupStartupManifestObjectRef(ctx, ws, manifestRef.GetManifestRef())
+	manifest, err := lookupStartupManifestObjectRefLocal(ctx, ws, manifestRef.GetManifestRef())
 	if err != nil {
 		if ctxErr := startupContextError(err); ctxErr != nil {
 			return nil, ctxErr
@@ -328,7 +328,7 @@ func classifyUnknownTypedStartupCandidate(
 	filterPlatformIDs []string,
 	refErr error,
 ) (*StartupManifestCandidateEligibility, error) {
-	manifest, manifestRef, manifestErr := LookupManifest(ctx, ws, candidate.ObjectKey)
+	manifest, manifestRef, manifestErr := lookupStartupManifestObject(ctx, ws, candidate.ObjectKey)
 	if manifestErr == nil && manifest != nil {
 		candidate.Manifest = manifest
 		candidate.ManifestRef = manifestRef.Clone()

@@ -10,7 +10,7 @@ func (t *pluginInstance) emitManifestCopyStartupMark(
 	if t == nil || accounting == nil || t.manifestCopyAccounting.Load() != accounting {
 		return false
 	}
-	emitManifestCopyStartupMarkToBrowser(phase, accounting.apply(stats))
+	emitManifestCopyStartupMarkToBrowser(t.pluginID, phase, accounting.apply(stats))
 	return true
 }
 

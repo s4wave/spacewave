@@ -235,7 +235,7 @@ func (c *Controller) BuildManifest(
 		le,
 		tx,
 		meta,
-		"", // no entrypoint
+		bldr_manifest_builder.SubManifestEntrypoint,
 		outDistPath,
 		outAssetsPath,
 	)
@@ -462,28 +462,36 @@ func (c *Controller) buildInputManifest(
 	}
 
 	updatedManifestMeta := &bldr_manifest_builder.InputManifest{Metadata: inputManifestMetaBin}
-	inputFileKinds := map[InputFileKind][]string{
-		InputFileKind_InputFileKind_VITE: viteBuildResult.viteSrcFiles,
+	viteSrcPaths, err := filterSourceRelativePaths(sourcePath, slices.Clone(viteBuildResult.viteSrcFiles))
+	if err != nil {
+		return nil, err
+	}
+	webPkgSrcPaths, err := filterSourceRelativePaths(sourcePath, slices.Clone(webPkgSrcFiles))
+	if err != nil {
+		return nil, err
 	}
 
-	if len(webPkgSrcFiles) != 0 {
-		inputFileKinds[InputFileKind_InputFileKind_WEB_PKG] = webPkgSrcFiles
+	webPkgSrcSet := make(map[string]struct{}, len(webPkgSrcPaths))
+	for _, srcPath := range webPkgSrcPaths {
+		webPkgSrcSet[srcPath] = struct{}{}
 	}
-
-	for kind, srcPaths := range inputFileKinds {
-		meta := &InputFileMeta{Kind: kind}
-		metaBin, err := meta.MarshalVT()
+	for _, input := range []struct {
+		kind     InputFileKind
+		srcPaths []string
+	}{
+		{InputFileKind_InputFileKind_VITE, viteSrcPaths},
+		{InputFileKind_InputFileKind_WEB_PKG, webPkgSrcPaths},
+	} {
+		metaBin, err := (&InputFileMeta{Kind: input.kind}).MarshalVT()
 		if err != nil {
 			return nil, err
 		}
-
-		srcPathsCopy := slices.Clone(srcPaths)
-		srcPathsCopy, err = filterSourceRelativePaths(sourcePath, srcPathsCopy)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, srcPath := range srcPathsCopy {
+		for _, srcPath := range input.srcPaths {
+			if input.kind == InputFileKind_InputFileKind_VITE {
+				if _, isWebPkgSrc := webPkgSrcSet[srcPath]; isWebPkgSrc {
+					continue
+				}
+			}
 			updatedManifestMeta.Files = append(updatedManifestMeta.Files, &bldr_manifest_builder.InputManifest_File{
 				Path:     srcPath,
 				Metadata: metaBin,
@@ -666,6 +674,7 @@ func filterSourceRelativePaths(sourcePath string, srcPaths []string) ([]string, 
 		relPaths = append(relPaths, srcPath)
 	}
 
+	slices.Sort(relPaths)
 	return slices.Compact(relPaths), nil
 }
 
@@ -692,6 +701,9 @@ func (c *Controller) performFullRebuild(
 		return nil, err
 	}
 	if err := fsutil.CleanCreateDir(outAssetsPath); err != nil {
+		return nil, err
+	}
+	if err := bldr_manifest_builder.WriteSubManifestEntrypoint(outDistPath); err != nil {
 		return nil, err
 	}
 

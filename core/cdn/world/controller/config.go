@@ -34,6 +34,9 @@ func (c *Config) Validate() error {
 	if _, err := c.ParsePointerTTLDur(); err != nil {
 		return errors.Wrap(err, "pointer_ttl_dur")
 	}
+	if c.GetWritebackWindowBytes() < 0 {
+		return errors.New("writeback_window_bytes cannot be negative")
+	}
 	return nil
 }
 

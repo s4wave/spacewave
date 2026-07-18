@@ -314,25 +314,22 @@ func ApplyE2EWasmTinyGoCompilerEnv() error {
 	return nil
 }
 
-// E2EWasmStartupBuildCacheEnabled reports whether the harness should preserve
-// world-backed startup Manifest build results between test process boots.
+// ResolveE2EWasmStartupBuildCacheEnabled reports whether the harness should
+// preserve world-backed startup Manifest build results between test boots.
 func ResolveE2EWasmStartupBuildCacheEnabled() (bool, error) {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv("E2E_WASM_STARTUP_BUILD_CACHE"))) {
-	case "true", "1", "yes", "on":
+	value := strings.ToLower(strings.TrimSpace(os.Getenv("E2E_WASM_STARTUP_BUILD_CACHE")))
+	switch value {
+	case "", "true", "1", "yes", "on":
 		return true, nil
 	case "false", "0", "no", "off":
 		return false, nil
 	default:
-		compiler, err := ResolveE2EWasmCompiler()
-		if err != nil {
-			return false, err
-		}
-		return compiler == E2EWasmCompilerTinyGo, nil
+		return false, errors.Errorf("invalid E2E_WASM_STARTUP_BUILD_CACHE value: %q", value)
 	}
 }
 
 // E2EWasmStartupBuildCacheEnabled reports whether the harness should preserve
-// world-backed startup Manifest build results between test process boots.
+// world-backed startup Manifest build results between test boots.
 func E2EWasmStartupBuildCacheEnabled() bool {
 	enabled, err := ResolveE2EWasmStartupBuildCacheEnabled()
 	return err == nil && enabled
