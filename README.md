@@ -12,7 +12,7 @@
 
 --------
 
-**Spacewave** is a cloud with no landlord. Open it in your browser and you have
+**Spacewave** is a cloud with no landlord. Open it [in your browser] and you have
 a private, encrypted workspace running entirely on your own machine: no
 account, no setup, no server to run. Sync it peer-to-peer between your devices
 and keep working offline.
@@ -47,6 +47,7 @@ Features:
   - [SkiffOS] for running and managing Linux hosts
   - ...and more!
 
+[in your browser]: https://spacewave.app
 [Spacewave App]: https://spacewave.app
 [SkiffOS]: https://skiffos.com
 
