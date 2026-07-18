@@ -16,3 +16,7 @@ var ErrSharedObjectMetadataDeleted = errors.New("shared object metadata deleted"
 // ErrSpaceLinkNonceConsumed is returned when a SpaceLink approval tries to
 // reuse a nonce already consumed by this provider account.
 var ErrSpaceLinkNonceConsumed = errors.New("spacelink nonce already consumed")
+
+// ErrSigningUnavailable indicates that a session client cannot sign requests
+// until its signing capability is installed.
+var ErrSigningUnavailable = errors.New("no private key or signing function configured for signing")
