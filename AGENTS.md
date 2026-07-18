@@ -344,6 +344,25 @@ a subdirectory.
 - When identifiers share a wire shape but mean different domain roles, encode
   the distinction in the owner library API with semantic helpers. Callers choose
   by meaning, not byte shape.
+- World object keys are `<stable-type-root>/<self-contained-id>`. The
+  identifier is this object's own identity: an opaque ID or a natural external
+  identity such as `owner/repo`. Never embed a FOREIGN owner's World object key
+  as an identity segment; carry cross-owner relationships as typed fields or
+  graph quads, never as key substrings.
+- Owner-local parent-scoped child keys (`<ownKey>/<role>`,
+  `<jobKey>/pass/<n>`) are legitimate for owned children when depth is bounded
+  and the segment carries information. Reject constant segments whose nonce can
+  never vary; a retry ordinal or role name carries information, a fixed filler
+  word does not.
+- Every key builder ships its inverse: a parser that splits `(type root,
+  self-contained id)` without knowing another object's grammar, counting
+  unbounded cross-owner depth, or `TrimPrefix`-recovering an embedded foreign
+  key. A prefix scan over one type root enumerates one standalone object
+  family.
+- Changing a durable key grammar is a data migration, not a refactor: it needs
+  an explicit reset, migration, or clean-break decision, and an authorized
+  rename uses `RenameObject(descendants=true)` plus rewriting every graph quad
+  that stores the renamed key.
 
 ## Protobufs And Generated Sources
 
