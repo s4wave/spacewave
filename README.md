@@ -20,9 +20,6 @@ As your work grows, the workspace becomes a Space: shared encrypted state for
 files, notes, apps, layouts, devices, workflows, and plugin data, without
 putting everything inside someone else's database.
 
-People, apps, and devices work against the same Space. Automation operates on
-durable state you can inspect, edit, share, and recover.
-
 Spacewave combines the convenience of cloud apps with the freedom of
 open-source software. The cloud can help with accounts, relay, backup, storage,
 and networking, but it never owns your work.
