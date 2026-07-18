@@ -35,6 +35,7 @@ import {
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state'
 import { cn } from '@s4wave/web/style/utils.js'
+import { DocumentTitleFocusContext } from '@s4wave/web/title/DocumentTitleFocusContext.js'
 
 import type { ObjectViewerComponentProps } from './object.js'
 import { getObjectKey } from './object.js'
@@ -215,6 +216,12 @@ export function LayoutObjectViewer({
   const [contextMenu, setContextMenu] =
     useState<ObjectLayoutTabContextMenuState | null>(null)
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null)
+  const selectedTabIds = Object.values(localState.tabSetSelected)
+  const focusedTabId = localState.activeTabSet
+    ? (localState.tabSetSelected[localState.activeTabSet] ?? null)
+    : selectedTabIds.length === 1
+      ? selectedTabIds[0]
+      : null
 
   const handleRenameHandled = useCallback(() => {
     setRenamingTabId(null)
@@ -433,13 +440,15 @@ export function LayoutObjectViewer({
   return (
     <div className="space-flexlayout bg-foreground/6 relative flex h-full w-full flex-col gap-1 overflow-hidden text-xs">
       <div className="relative flex h-full w-full flex-1 flex-col">
-        <BaseLayout
-          layoutHost={layoutHost}
-          renderTab={renderTab}
-          flexLayoutProps={flexLayoutProps}
-          localState={memoizedLocalState}
-          onLocalStateChange={handleLocalStateChange}
-        />
+        <DocumentTitleFocusContext.Provider value={focusedTabId}>
+          <BaseLayout
+            layoutHost={layoutHost}
+            renderTab={renderTab}
+            flexLayoutProps={flexLayoutProps}
+            localState={memoizedLocalState}
+            onLocalStateChange={handleLocalStateChange}
+          />
+        </DocumentTitleFocusContext.Provider>
         <FlexTabContextMenu
           state={contextMenu}
           items={contextMenuItems}

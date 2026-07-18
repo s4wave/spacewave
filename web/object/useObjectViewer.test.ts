@@ -7,6 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createElement, type ReactNode } from 'react'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import {
@@ -14,8 +15,11 @@ import {
   type ObjectTypeMetadata,
 } from '@s4wave/sdk/objecttype/registry/registry.pb.js'
 import { buildObjectTypeMetadataMap } from '@s4wave/web/space/object-tree.js'
+import { DocumentTitleProvider } from '@s4wave/web/title/DocumentTitleContext.js'
+import { DocumentTitleFocusContext } from '@s4wave/web/title/DocumentTitleFocusContext.js'
 
 import type { ObjectViewerComponent } from './object.js'
+import { TabContextProvider } from './TabContext.js'
 import {
   getDefaultStateNamespace,
   resolveObjectViewerSelection,
@@ -30,7 +34,7 @@ const h = vi.hoisted(() => {
     worldSetup: {
       typeID: 'canvas',
       rootRef: '',
-      visibleComponents: [],
+      visibleComponents: [] as ObjectViewerComponent[],
       objectState: {
         value: { id: 'visible-doc' },
         loading: false,
@@ -39,6 +43,8 @@ const h = vi.hoisted(() => {
       },
     },
     spaceContext: {
+      objectKey: 'visible-doc',
+      spaceName: 'Research',
       spaceState: {
         ready: true,
         worldContents: {
@@ -92,6 +98,8 @@ beforeEach(() => {
     },
   }
   h.spaceContext = {
+    objectKey: 'visible-doc',
+    spaceName: 'Research',
     spaceState: {
       ready: true,
       worldContents: {
@@ -431,6 +439,86 @@ describe('useObjectViewer context menu targets', () => {
 
     render(result.current.overlayContent)
     expect(screen.queryByText('Danger Zone')).toBeNull()
+  })
+})
+
+describe('useObjectViewer document title', () => {
+  it('publishes live object and selected viewer context', async () => {
+    h.worldSetup.visibleComponents = [
+      component('canvas.viewer', 'Canvas'),
+      component('debug.viewer', 'Debug'),
+    ]
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(DocumentTitleProvider, null, children)
+
+    renderHook(
+      () =>
+        useObjectViewer({
+          objectInfo: {
+            info: {
+              case: 'worldObjectInfo',
+              value: {
+                objectKey: 'visible-doc',
+                objectType: 'canvas',
+              },
+            },
+          },
+          worldState: emptyWorldState,
+        }),
+      { wrapper },
+    )
+
+    await waitFor(() =>
+      expect(document.title).toBe(
+        'Visible Doc · Canvas - Research - Spacewave',
+      ),
+    )
+  })
+
+  it('publishes only the focused ObjectLayout pane', async () => {
+    h.spaceContext.objectKey = 'object-layout'
+    h.worldSetup.visibleComponents = [component('canvas.viewer', 'Canvas')]
+    let focusedTabId = 'tab-a'
+    const tabContext = {
+      tabId: 'tab-a',
+      addTab: vi.fn(),
+      navigateTab: vi.fn(),
+      isObjectLayout: true,
+    }
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(
+        DocumentTitleProvider,
+        null,
+        createElement(
+          DocumentTitleFocusContext.Provider,
+          { value: focusedTabId },
+          createElement(TabContextProvider, { value: tabContext }, children),
+        ),
+      )
+
+    const view = renderHook(
+      () =>
+        useObjectViewer({
+          objectInfo: {
+            info: {
+              case: 'worldObjectInfo',
+              value: {
+                objectKey: 'visible-doc',
+                objectType: 'canvas',
+              },
+            },
+          },
+          worldState: emptyWorldState,
+        }),
+      { wrapper },
+    )
+    await waitFor(() =>
+      expect(document.title).toBe('Visible Doc - Research - Spacewave'),
+    )
+
+    focusedTabId = 'tab-b'
+    view.rerender()
+    await waitFor(() => expect(document.title).toBe('Spacewave'))
   })
 })
 

@@ -15,10 +15,17 @@ import {
   writeAppDragEnvelope,
 } from '@s4wave/web/dnd/app-drag.js'
 import { ObjectLayoutTab } from '@s4wave/sdk/layout/world/world.pb.js'
+import { useDocumentTitleFocus } from '@s4wave/web/title/DocumentTitleFocusContext.js'
 
 const mockUseResourceValue = vi.hoisted(() => vi.fn())
 const mockUseAccessTypedHandle = vi.hoisted(() => vi.fn())
 const mockBaseLayout = vi.hoisted(() => vi.fn())
+const mockLocalState = vi.hoisted(() => ({
+  value: { tabSetSelected: {} } as {
+    activeTabSet?: string
+    tabSetSelected: Record<string, string>
+  },
+}))
 
 type MockFlexLayoutProps = {
   onExternalDrag?: (event: unknown) => unknown
@@ -56,15 +63,17 @@ vi.mock('@s4wave/web/object/object.js', () => ({
 
 vi.mock('@s4wave/web/state', () => ({
   useStateNamespace: () => ['layout', 'world/layout-1'],
-  useStateAtom: () => [{ tabSetSelected: {} }, vi.fn()],
+  useStateAtom: () => [mockLocalState.value, vi.fn()],
 }))
 
 vi.mock('@s4wave/web/layout/BaseLayout.js', () => ({
   BaseLayout: (props: MockBaseLayoutProps) => {
+    const focusedTabId = useDocumentTitleFocus()
     mockBaseLayout(props)
     return (
       <div
         data-testid="base-layout"
+        data-focused-tab={focusedTabId ?? ''}
         data-has-external-drag={
           typeof props.flexLayoutProps?.onExternalDrag === 'function'
             ? 'yes'
@@ -87,7 +96,13 @@ vi.mock('@s4wave/web/layout/BaseLayout.js', () => ({
 }))
 
 vi.mock('@s4wave/web/ui/DropdownMenu.js', () => ({
-  DropdownMenu: ({ children, open }: { children: ReactNode; open?: boolean }) =>
+  DropdownMenu: ({
+    children,
+    open,
+  }: {
+    children: ReactNode
+    open?: boolean
+  }) =>
     open === false ? null : (
       <div data-testid={open ? 'context-menu' : undefined}>{children}</div>
     ),
@@ -291,6 +306,7 @@ describe('LayoutObjectViewer', () => {
     })
     mockUseResourceValue.mockReset()
     mockBaseLayout.mockReset()
+    mockLocalState.value = { tabSetSelected: {} }
   })
 
   afterEach(() => {
@@ -345,6 +361,25 @@ describe('LayoutObjectViewer', () => {
     expect(
       screen.getByTestId('base-layout').getAttribute('data-has-close-icon'),
     ).toBe('yes')
+  })
+
+  it('publishes the selected tab from the active ObjectLayout tabset', () => {
+    mockUseResourceValue.mockReturnValue({ id: 'layout-host' })
+    mockLocalState.value = {
+      activeTabSet: 'tabset-1',
+      tabSetSelected: { 'tabset-1': 'tab-2' },
+    }
+
+    render(
+      <LayoutObjectViewer
+        objectInfo={objectInfo as never}
+        worldState={null as never}
+      />,
+    )
+
+    expect(
+      screen.getByTestId('base-layout').getAttribute('data-focused-tab'),
+    ).toBe('tab-2')
   })
 
   it('renders inline rename and a shell-shaped close button for object tabs', () => {
