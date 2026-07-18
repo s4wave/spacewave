@@ -349,6 +349,10 @@ a subdirectory.
   identity such as `owner/repo`. Never embed a FOREIGN owner's World object key
   as an identity segment; carry cross-owner relationships as typed fields or
   graph quads, never as key substrings.
+- Prefer World Graph edges over storing a foreign object key in a field for
+  cross-object references. A key-valued field is the exception and needs a
+  stated reason (a consumer that genuinely needs the direct key without a
+  graph read); the graph edge is the primary reference.
 - Owner-local parent-scoped child keys (`<ownKey>/<role>`,
   `<jobKey>/pass/<n>`) are legitimate for owned children when depth is bounded
   and the segment carries information. Reject constant segments whose nonce can
