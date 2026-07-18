@@ -7,45 +7,58 @@ import main from './plugin-goscript.js'
 
 const originalMessageChannel = globalThis.MessageChannel
 const originalConsoleWarn = console.warn
-let reportedFailures: unknown[]
 
 describe('plugin-goscript generation lifecycle', () => {
   beforeEach(() => {
     globalThis.MessageChannel = originalMessageChannel
     console.warn = vi.fn()
-    reportedFailures = []
     delete globalThis.BLDR_PLUGIN_START_INFO
-    globalThis.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE = (err: unknown) => {
-      reportedFailures.push(err)
-    }
   })
 
   afterEach(() => {
     globalThis.MessageChannel = originalMessageChannel
     console.warn = originalConsoleWarn
+    delete globalThis.BLDR_PLUGIN_SET_ACCEPT_STREAM
   })
 
-  it('publishes start info and reports plugin main failure', async () => {
+  it('publishes start info and rejects lifecycle on plugin main failure', async () => {
     const err = new Error('fatal goscript exit')
     const api = buildBackendAPI()
-    const failureReported = new Promise<void>((resolve) => {
-      globalThis.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE = (
-        reportedErr: unknown,
-      ) => {
-        reportedFailures.push(reportedErr)
-        resolve()
-      }
-    })
 
-    await main(api, async () => async () => {
+    const lifecycle = main(api, async () => async () => {
       throw err
     })
-    await failureReported
 
     expect(globalThis.BLDR_PLUGIN_START_INFO).toBe(
       btoa(PluginStartInfo.toJsonString(api.startInfo)),
     )
-    expect(reportedFailures).toEqual([err])
+    await expect(Promise.resolve(lifecycle.startup)).rejects.toBe(err)
+    await expect(Promise.resolve(lifecycle.done)).rejects.toBe(err)
+  })
+
+  it('publishes startup only after the GoScript runtime accepts streams', async () => {
+    const api = buildBackendAPI()
+    const lifecycle = main(api, async () => async () => {
+      await new Promise<void>(() => {})
+    })
+    let started = false
+    void Promise.resolve(lifecycle.startup).then(() => {
+      started = true
+    })
+
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(started).toBe(false)
+
+    const setAcceptStream = globalThis.BLDR_PLUGIN_SET_ACCEPT_STREAM
+    expect(setAcceptStream).toBeTypeOf('function')
+    if (!setAcceptStream) {
+      throw new Error('missing accept stream setter')
+    }
+    setAcceptStream(vi.fn())
+    await lifecycle.startup
+
+    expect(started).toBe(true)
   })
 
   it('turns accept-stream into a terminal error after the GoScript plugin exits', async () => {
