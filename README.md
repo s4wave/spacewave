@@ -27,25 +27,26 @@ network your devices can reach. A paid account adds managed cloud storage and
 relay, $8/month for 100 GB; the app works without one, and the cloud never
 owns your work.
 
-To go deeper, Spacewave is a full stack for local-first apps and plugins, built
-with Go, TypeScript, React, and WebAssembly: a home for your personal operating
-system.
+Make it your own with the same machinery the app is made of: a Go, TypeScript,
+React, and WebAssembly stack where every app is local-first, multiplayer, and
+encrypted by default.
 
 Features:
 
-- **Spaces**: Shared local-first state for files, apps, devices, and workflows
-- **Peer-to-Peer Sync**: Work offline and sync directly when peers are available
-- **Open-Source Full Stack**: Build apps and plugins with Go, TypeScript, React, and WebAssembly
-- **Pluggable Storage**: Store data in local, browser, cloud, or self-hosted backends
-- **End-to-End Encrypted**: Keep storage, sync, and collaboration private by default
+- **Spaces**: One shared place for your files, notes, apps, devices, and workflows
+- **Multiplayer**: Invite people into a Space and work in it together, live
+- **Peer-to-Peer Sync**: Sync directly between your devices and keep working offline
+- **Any Network**: Connect over WebRTC, WebSocket, LAN, or relay - whatever your devices can reach
+- **Pluggable Storage**: Keep data on your machines, in your browser, or in any backend you choose
+- **End-to-End Encrypted**: Storage, sync, and collaboration are private by default
+- **Open-Source Full Stack**: Build your own apps and plugins with Go, TypeScript, React, and WebAssembly
 
-**Plugin Ecosystem**: Extend workspaces with community plugins:
+**Plugin Ecosystem**: Extend a Space with plugins:
 
-  - File, database, code, and document collaboration
-  - Chat, communications, forums, and messaging
-  - Remote command and control of your devices
-  - [SkiffOS] for running and managing Linux hosts
-  - ...and more!
+  - Files, databases, notes, and document collaboration
+  - Chat and messaging
+  - Terminal access and remote control of your devices
+  - [SkiffOS] for building and managing Linux devices
 
 [in your browser]: https://spacewave.app
 [Spacewave App]: https://spacewave.app
