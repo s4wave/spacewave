@@ -279,7 +279,7 @@ WEB_STARTUP = "app/prerender/startup.tsx"
 
 manifest("web",
     builder="bldr/web/plugin/compiler",
-    rev=5,
+    rev=6,
     config={
         "nativeApp": {
             "appName": "Spacewave",

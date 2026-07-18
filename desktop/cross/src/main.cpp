@@ -53,8 +53,11 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Build pipe path from pipesock conventions: <rootDir>/.pipe-<uuid>
+#ifdef _WIN32
+    std::string pipePath = "\\\\.\\pipe\\aptre\\" + args.pipeId;
+#else
     std::string pipePath = args.pipeRoot + "/.pipe-" + args.pipeId;
+#endif
     PipeClient pipe(pipePath);
     if (!pipe.connect()) {
         fprintf(stderr, "error: failed to connect to pipe at %s\n", pipePath.c_str());
