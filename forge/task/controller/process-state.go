@@ -2,6 +2,7 @@ package task_controller
 
 import (
 	"context"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -140,16 +141,12 @@ func (c *Controller) ProcessState(
 		txInner := txUpdateInputs.TxUpdateInputs
 		txInner.ResetInputs = len(inputSet) == 0
 		txInner.UpdateTarget = targetDirty
-		txInner.ValueSet = forge_target.NewValueSet()
-		txInner.ValueSet.Inputs = append(txInner.ValueSet.Inputs, addedInputs...)
-		txInner.ValueSet.Inputs = append(txInner.ValueSet.Inputs, changedInputs...)
-		for _, input := range removedInputs {
-			txInner.ValueSet.Inputs = append(txInner.ValueSet.Inputs, &forge_value.Value{
-				Name:      input.GetName(),
-				ValueType: 0,
-			})
-		}
-		txInner.ValueSet.SortValues()
+		txInner.ValueSet = buildUpdateInputValueSet(
+			inputSet,
+			addedInputs,
+			changedInputs,
+			removedInputs,
+		)
 		_, _, err = ws.ApplyWorldOp(ctx, txUpdateInputs, c.peerID)
 		if err != nil {
 			return true, errors.Wrap(err, "update inputs")
@@ -213,6 +210,26 @@ func (c *Controller) ProcessState(
 	)
 }
 
+// buildUpdateInputValueSet builds the input delta accepted by TxUpdateInputs.
+func buildUpdateInputValueSet(
+	inputSet, addedInputs, changedInputs, removedInputs forge_value.ValueSlice,
+) *forge_target.ValueSet {
+	valueSet := forge_target.NewValueSet()
+	valueSet.Inputs = append(valueSet.Inputs, addedInputs...)
+	valueSet.Inputs = append(valueSet.Inputs, changedInputs...)
+	for _, input := range removedInputs {
+		valueSet.Inputs = append(valueSet.Inputs, &forge_value.Value{
+			Name:      input.GetName(),
+			ValueType: 0,
+		})
+	}
+	if len(valueSet.Inputs) == 0 && len(inputSet) != 0 {
+		valueSet.Inputs = slices.Clone(inputSet)
+	}
+	valueSet.SortValues()
+	return valueSet
+}
+
 // processCheckTaskResult processes the task in the CHECKING state.
 // in the future, additional checks may be added here.
 func (c *Controller) processCheckTaskResult(ctx context.Context, ws world.WorldState, taskState *forge_task.Task) error {
@@ -221,6 +238,7 @@ func (c *Controller) processCheckTaskResult(ctx context.Context, ws world.WorldS
 	// look up the completed pass
 	taskPass, taskPassTgt, _, err := forge_task.LookupTaskPass(ctx, ws, c.objKey, passNonce)
 	if err == nil {
+
 		if taskPass == nil {
 			err = errors.Wrap(world.ErrObjectNotFound, "task pass")
 		} else {
