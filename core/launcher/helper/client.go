@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/aperturerobotics/util/pipesock"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -24,13 +23,12 @@ const maxMessageSize uint32 = 10 * 1024 * 1024
 
 // Client manages a spacewave-helper subprocess with framed proto IPC.
 type Client struct {
-	le            *logrus.Entry
-	cmd           *exec.Cmd
-	conn          net.Conn
-	listener      net.Listener
-	pipeID        string
-	helperCleanup func() error
-	rootDir       string
+	le       *logrus.Entry
+	cmd      *exec.Cmd
+	conn     net.Conn
+	listener net.Listener
+	pipeID   string
+	rootDir  string
 
 	readMtx  sync.Mutex
 	writeMtx sync.Mutex
@@ -95,24 +93,13 @@ func (c *Client) startHelper(ctx context.Context, helperPath string, args ...str
 
 	// Create listener via pipesock (handles Unix sockets and Windows named pipes).
 	var err error
-	c.listener, err = pipesock.BuildPipeListener(c.le, c.rootDir, c.pipeID)
+	c.listener, err = newHelperPipeListener(c.le, c.rootDir, c.pipeID)
 	if err != nil {
 		return errors.Wrap(err, "listen pipe")
 	}
 
 	// Pass the root dir and pipe ID so the helper can connect via pipesock conventions.
 	args = append(args, "--pipe-root", c.rootDir, "--pipe-id", c.pipeID)
-
-	helperPath, cleanup, err := prepareHelperExecutable(c.rootDir, helperPath)
-	if err != nil {
-		closeErr := c.listener.Close()
-		c.listener = nil
-		return stderrors.Join(
-			errors.Wrap(err, "prepare helper"),
-			errors.Wrap(closeErr, "close helper listener"),
-		)
-	}
-	c.helperCleanup = cleanup
 
 	// Spawn the helper process.
 	c.cmd = exec.CommandContext(ctx, helperPath, args...)
@@ -234,10 +221,6 @@ func (c *Client) Close() error {
 			c.le.WithError(err).Debug("helper process exited")
 		}
 		c.cmd = nil
-	}
-	if c.helperCleanup != nil {
-		closeErr = stderrors.Join(closeErr, c.helperCleanup())
-		c.helperCleanup = nil
 	}
 	return closeErr
 }
