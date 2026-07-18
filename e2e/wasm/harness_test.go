@@ -24,6 +24,7 @@ import (
 	space "github.com/s4wave/spacewave/core/space"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	e2e_wasm_session "github.com/s4wave/spacewave/e2e/wasm/session"
+	forge_job "github.com/s4wave/spacewave/forge/job"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/sirupsen/logrus"
 	exptrace "golang.org/x/exp/trace"
@@ -2427,39 +2428,15 @@ func TestForgeScenarioSequence(t *testing.T) {
 	})
 }
 
-func waitForConsoleMessage(
-	ctx context.Context,
-	t testing.TB,
-	messages <-chan string,
-	substring string,
-) {
-	t.Helper()
-
-	for {
-		select {
-		case msg, ok := <-messages:
-			if !ok {
-				t.Fatalf("console closed before message %q", substring)
-			}
-			if strings.Contains(msg, substring) {
-				return
-			}
-		case <-ctx.Done():
-			t.Fatalf("wait for console message %q: %v", substring, ctx.Err())
-		}
-	}
-}
-
 // TestForgeWorkerExecution verifies binding approval starts the quickstart
-// worker and drives the Forge pass/execution path to completion with logs.
+// worker and drives the Forge pass/execution path to a completed Job.
 func TestForgeWorkerExecution(t *testing.T) {
-	sess := harness(t).NewCleanSession(t)
-	console, stopConsole := sess.WatchConsole()
-	defer stopConsole()
+	h := harness(t)
+	sess := h.NewCleanSession(t)
 
-	scenario := CreateForgeScenario(t, harness(t), sess)
+	scenario := CreateForgeScenario(t, h, sess)
 	page := scenario.GetSession().Page()
-	WaitForForgeReady(t, harness(t), page)
+	WaitForForgeReady(t, h, page)
 
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
 	defer cancel()
@@ -2470,7 +2447,7 @@ func TestForgeWorkerExecution(t *testing.T) {
 	const jobKey = "sample-job"
 	const workerKey = "session-worker"
 
-	assertNoForgePasses(ctx, t, mounted.engine, jobKey)
+	assertNoForgePasses(ctx, t, mounted.eng, jobKey)
 
 	_, err := mounted.contentsSvc.SetProcessBinding(ctx, &s4wave_space.SetProcessBindingRequest{
 		ObjectKey: workerKey,
@@ -2494,7 +2471,16 @@ func TestForgeWorkerExecution(t *testing.T) {
 		t.Fatalf("expected approved worker binding, got %+v", state.GetProcessBindings())
 	}
 
-	waitForConsoleMessage(ctx, t, console, "marking job as complete")
+	job, err := forge_job.WaitJobComplete(ctx, h.le, mounted.engWs, jobKey)
+	if err != nil {
+		t.Fatalf("WaitJobComplete: %v", err)
+	}
+	if err := job.Validate(); err != nil {
+		t.Fatalf("validate completed Job: %v", err)
+	}
+	if failErr := job.GetResult().GetFailError(); failErr != "" {
+		t.Fatalf("completed Job failed: %s", failErr)
+	}
 }
 
 // TestQuickstartForgeTrace writes a trace artifact for the forge quickstart
