@@ -47,7 +47,6 @@ export enum TxType {
    * TxType_UPDATE_WITH_PASS_STATE updates the state of the Task based the Pass.
    * If none or missing: can transition to PENDING.
    * If failed: can transition to COMPLETE or RETRY.
-   * If success or complete: can transition to CHECKING state.
    *
    * @generated from enum value: TxType_UPDATE_WITH_PASS_STATE = 3;
    */
@@ -62,6 +61,14 @@ export enum TxType {
    * @generated from enum value: TxType_COMPLETE = 4;
    */
   TxType_COMPLETE = 4,
+
+  /**
+   * TxType_RETRY authorizes one successor Pass for a failed predecessor.
+   * The expected pass nonce is the idempotency fence.
+   *
+   * @generated from enum value: TxType_RETRY = 5;
+   */
+  TxType_RETRY = 5,
 }
 
 export const TxType_Enum = /* @__PURE__ */ createEnumType('task.tx.TxType', [
@@ -70,6 +77,7 @@ export const TxType_Enum = /* @__PURE__ */ createEnumType('task.tx.TxType', [
   [2, 'TxType_START'],
   [3, 'TxType_UPDATE_WITH_PASS_STATE'],
   [4, 'TxType_COMPLETE'],
+  [5, 'TxType_RETRY'],
 ])
 
 /**
@@ -195,6 +203,42 @@ export const TxComplete: MessageType<TxComplete> =
   })
 
 /**
+ * TxRetry authorizes a successor Pass after a terminal failed Pass.
+ * The scheduler supplies the named inputs for the successor.
+ *
+ * @generated from message task.tx.TxRetry
+ */
+export interface TxRetry {
+  /**
+   * ExpectedPassNonce identifies the failed Pass being retried.
+   *
+   * @generated from field: uint64 expected_pass_nonce = 1;
+   */
+  expectedPassNonce?: bigint
+  /**
+   * NextInputs contains the named inputs for the successor Pass.
+   * Outputs must be empty.
+   *
+   * @generated from field: forge.target.ValueSet next_inputs = 2;
+   */
+  nextInputs?: ValueSet
+}
+
+export const TxRetry: MessageType<TxRetry> = /* @__PURE__ */ createMessageType({
+  typeName: 'task.tx.TxRetry',
+  fields: [
+    {
+      no: 1,
+      name: 'expected_pass_nonce',
+      kind: 'scalar',
+      T: ScalarType.UINT64,
+    },
+    { no: 2, name: 'next_inputs', kind: 'message', T: () => ValueSet },
+  ] satisfies readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * Tx is the on-the-wire representation of a transaction.
  *
  * @generated from message task.tx.Tx
@@ -241,6 +285,13 @@ export interface Tx {
    * @generated from field: task.tx.TxComplete tx_complete = 6;
    */
   txComplete?: TxComplete
+  /**
+   * TxRetry contains the explicit retry transaction.
+   * TxType_RETRY
+   *
+   * @generated from field: task.tx.TxRetry tx_retry = 7;
+   */
+  txRetry?: TxRetry
 }
 
 export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
@@ -262,6 +313,7 @@ export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
       T: () => TxUpdateWithPassState,
     },
     { no: 6, name: 'tx_complete', kind: 'message', T: () => TxComplete },
+    { no: 7, name: 'tx_retry', kind: 'message', T: () => TxRetry },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

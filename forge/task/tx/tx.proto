@@ -24,6 +24,10 @@ message Tx {
   // TxComplete contains the complete tx.
   // TxType_COMPLETE
   TxComplete tx_complete = 6;
+  // TxRetry contains the explicit retry transaction.
+  // TxType_RETRY
+  TxRetry tx_retry = 7;
+
 }
 
 // TxType indicates the kind of transaction.
@@ -39,13 +43,25 @@ enum TxType {
   // TxType_UPDATE_WITH_PASS_STATE updates the state of the Task based the Pass.
   // If none or missing: can transition to PENDING.
   // If failed: can transition to COMPLETE or RETRY.
-  // If success or complete: can transition to CHECKING state.
   TxType_UPDATE_WITH_PASS_STATE = 3;
   // TxType_COMPLETE sets the result of the Task.
   // If failed, can transition from any state.
   // If success, must transition from CHECKING state.
   // If success, all Execution states must be Successful.
   TxType_COMPLETE = 4;
+  // TxType_RETRY authorizes one successor Pass for a failed predecessor.
+  // The expected pass nonce is the idempotency fence.
+  TxType_RETRY = 5;
+}
+
+// TxRetry authorizes a successor Pass after a terminal failed Pass.
+// The scheduler supplies the named inputs for the successor.
+message TxRetry {
+  // ExpectedPassNonce identifies the failed Pass being retried.
+  uint64 expected_pass_nonce = 1;
+  // NextInputs contains the named inputs for the successor Pass.
+  // Outputs must be empty.
+  .forge.target.ValueSet next_inputs = 2;
 }
 
 // TxUpdateInputs updates the Task with the latest Target and Inputs.

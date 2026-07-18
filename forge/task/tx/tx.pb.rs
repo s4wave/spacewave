@@ -26,6 +26,22 @@ pub struct Tx {
     /// TxType_COMPLETE
     #[prost(message, optional, tag="6")]
     pub tx_complete: ::core::option::Option<TxComplete>,
+    /// TxRetry contains the explicit retry transaction.
+    /// TxType_RETRY
+    #[prost(message, optional, tag="7")]
+    pub tx_retry: ::core::option::Option<TxRetry>,
+}
+/// TxRetry authorizes a successor Pass after a terminal failed Pass.
+/// The scheduler supplies the named inputs for the successor.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TxRetry {
+    /// ExpectedPassNonce identifies the failed Pass being retried.
+    #[prost(uint64, tag="1")]
+    pub expected_pass_nonce: u64,
+    /// NextInputs contains the named inputs for the successor Pass.
+    /// Outputs must be empty.
+    #[prost(message, optional, tag="2")]
+    pub next_inputs: ::core::option::Option<super::super::forge::target::ValueSet>,
 }
 /// TxUpdateInputs updates the Task with the latest Target and Inputs.
 /// If the value is identical: does nothing.
@@ -96,13 +112,15 @@ pub enum TxType {
     /// TxType_UPDATE_WITH_PASS_STATE updates the state of the Task based the Pass.
     /// If none or missing: can transition to PENDING.
     /// If failed: can transition to COMPLETE or RETRY.
-    /// If success or complete: can transition to CHECKING state.
     UpdateWithPassState = 3,
     /// TxType_COMPLETE sets the result of the Task.
     /// If failed, can transition from any state.
     /// If success, must transition from CHECKING state.
     /// If success, all Execution states must be Successful.
     Complete = 4,
+    /// TxType_RETRY authorizes one successor Pass for a failed predecessor.
+    /// The expected pass nonce is the idempotency fence.
+    Retry = 5,
 }
 impl TxType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -116,6 +134,7 @@ impl TxType {
             Self::Start => "TxType_START",
             Self::UpdateWithPassState => "TxType_UPDATE_WITH_PASS_STATE",
             Self::Complete => "TxType_COMPLETE",
+            Self::Retry => "TxType_RETRY",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -126,6 +145,7 @@ impl TxType {
             "TxType_START" => Some(Self::Start),
             "TxType_UPDATE_WITH_PASS_STATE" => Some(Self::UpdateWithPassState),
             "TxType_COMPLETE" => Some(Self::Complete),
+            "TxType_RETRY" => Some(Self::Retry),
             _ => None,
         }
     }

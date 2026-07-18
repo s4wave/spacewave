@@ -24,7 +24,20 @@ const (
 
 	// PredPassToExecution is the predicate linking Pass to a Execution.
 	PredPassToExecution = quad.IRI("forge/pass-execution")
+
+	// PredPassToPrevious is the predicate linking a successor Pass to its predecessor.
+	PredPassToPrevious = quad.IRI("forge/pass-previous")
 )
+
+// NewPassToPreviousQuad creates a quad linking a successor Pass to its predecessor.
+func NewPassToPreviousQuad(passObjKey, previousPassObjKey string) world.GraphQuad {
+	return world.NewGraphQuadWithKeys(
+		passObjKey,
+		PredPassToPrevious.String(),
+		previousPassObjKey,
+		"",
+	)
+}
 
 // NewPassBlock constructs a new Pass block.
 func NewPassBlock() block.Block {
@@ -56,6 +69,13 @@ func CreatePassWithTarget(
 	passPeerID string,
 	ts *timestamp.Timestamp,
 ) (world.ObjectState, *bucket.ObjectRef, error) {
+	if valueSet == nil {
+		valueSet = forge_target.NewValueSet()
+	} else {
+		valueSet = valueSet.Clone()
+	}
+	valueSet.Outputs = nil
+
 	ps := &Pass{
 		PassState: State_PassState_PENDING,
 		PeerId:    passPeerID,

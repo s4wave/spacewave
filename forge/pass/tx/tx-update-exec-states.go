@@ -7,6 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	forge_pass "github.com/s4wave/spacewave/forge/pass"
+	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -102,8 +103,35 @@ func (t *TxUpdateExecStates) ExecuteTx(
 		}
 		failErr = errors.Wrap(failErr, "execution failed")
 
+		// A failed pass may publish declared outputs only when all executions
+		// agree. Divergent values remain on their ExecState snapshots.
+		if bcs != nil {
+			tgt, _, err := root.FollowTargetRef(ctx, bcs)
+			if err != nil {
+				return err
+			}
+			outputs, outputErr := forge_pass.ComputeOutputsWithStates(
+				tgt.GetOutputs(),
+				execStates,
+				int(root.GetReplicas()),
+			)
+			if outputErr == nil {
+				valueSet := root.GetValueSet()
+				if valueSet == nil {
+					valueSet = forge_target.NewValueSet()
+				} else {
+					valueSet = valueSet.Clone()
+				}
+				valueSet.Outputs = outputs
+				root.ValueSet = valueSet
+			}
+		}
+
 		root.PassState = forge_pass.State_PassState_COMPLETE
 		root.Result = forge_value.NewResultWithError(failErr)
+		if bcs != nil {
+			bcs.SetBlock(root, true)
+		}
 		return nil
 	}
 

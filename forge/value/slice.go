@@ -151,7 +151,7 @@ func (v ValueSlice) Equals(ot ValueSlice) bool {
 		return len(added)+len(removed)+len(changed) == 0
 	}
 	for i := range ot {
-		if !v[i].Equals(v[i]) {
+		if !v[i].Equals(ot[i]) {
 			return false
 		}
 	}

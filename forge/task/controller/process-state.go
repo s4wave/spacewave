@@ -77,11 +77,17 @@ func (c *Controller) ProcessState(
 	// compare (note: existingTgt and tgt both might be nil)
 	targetDirty := !taskTarget.EqualVT(tgt)
 
-	// compute any changes in the inputs as well.
-	defWorld := forge_target.NewInputValueWorld(nil, ws)
-	inputMap, unsetInputs, inputMapRel, err := forge_target.ResolveInputMap(ctx, c.bus, defWorld, tgt, nil)
+	// Seed target resolution with stored inputs so scheduler-supplied names
+	// survive reconciliation; target resolvers may overwrite their own names.
+	storedInputs, err := forge_value.ValueSlice(taskState.GetValueSet().GetInputs()).
+		BuildValueMap(true, true)
 	if err != nil {
-		return true, err
+		return true, errors.Wrap(err, "stored inputs")
+	}
+	defWorld := forge_target.NewInputValueWorld(nil, ws)
+	inputMap, unsetInputs, inputMapRel, err := forge_target.ResolveInputMap(ctx, c.bus, defWorld, tgt, storedInputs)
+	if err != nil {
+		return true, errors.Wrap(err, "resolve inputs")
 	}
 
 	// build the value set

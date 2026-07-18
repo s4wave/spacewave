@@ -31,13 +31,15 @@ const (
 	// TxType_UPDATE_WITH_PASS_STATE updates the state of the Task based the Pass.
 	// If none or missing: can transition to PENDING.
 	// If failed: can transition to COMPLETE or RETRY.
-	// If success or complete: can transition to CHECKING state.
 	TxType_TxType_UPDATE_WITH_PASS_STATE TxType = 3
 	// TxType_COMPLETE sets the result of the Task.
 	// If failed, can transition from any state.
 	// If success, must transition from CHECKING state.
 	// If success, all Execution states must be Successful.
 	TxType_TxType_COMPLETE TxType = 4
+	// TxType_RETRY authorizes one successor Pass for a failed predecessor.
+	// The expected pass nonce is the idempotency fence.
+	TxType_TxType_RETRY TxType = 5
 )
 
 // Enum value maps for TxType.
@@ -48,6 +50,7 @@ var (
 		2: "TxType_START",
 		3: "TxType_UPDATE_WITH_PASS_STATE",
 		4: "TxType_COMPLETE",
+		5: "TxType_RETRY",
 	}
 	TxType_value = map[string]int32{
 		"TxType_INVALID":                0,
@@ -55,6 +58,7 @@ var (
 		"TxType_START":                  2,
 		"TxType_UPDATE_WITH_PASS_STATE": 3,
 		"TxType_COMPLETE":               4,
+		"TxType_RETRY":                  5,
 	}
 )
 
@@ -92,6 +96,9 @@ type Tx struct {
 	// TxComplete contains the complete tx.
 	// TxType_COMPLETE
 	TxComplete *TxComplete `protobuf:"bytes,6,opt,name=tx_complete,json=txComplete,proto3" json:"txComplete,omitempty"`
+	// TxRetry contains the explicit retry transaction.
+	// TxType_RETRY
+	TxRetry *TxRetry `protobuf:"bytes,7,opt,name=tx_retry,json=txRetry,proto3" json:"txRetry,omitempty"`
 }
 
 func (x *Tx) Reset() {
@@ -138,6 +145,44 @@ func (x *Tx) GetTxUpdateWithPassState() *TxUpdateWithPassState {
 func (x *Tx) GetTxComplete() *TxComplete {
 	if x != nil {
 		return x.TxComplete
+	}
+	return nil
+}
+
+func (x *Tx) GetTxRetry() *TxRetry {
+	if x != nil {
+		return x.TxRetry
+	}
+	return nil
+}
+
+// TxRetry authorizes a successor Pass after a terminal failed Pass.
+// The scheduler supplies the named inputs for the successor.
+type TxRetry struct {
+	unknownFields []byte
+	// ExpectedPassNonce identifies the failed Pass being retried.
+	ExpectedPassNonce uint64 `protobuf:"varint,1,opt,name=expected_pass_nonce,json=expectedPassNonce,proto3" json:"expectedPassNonce,omitempty"`
+	// NextInputs contains the named inputs for the successor Pass.
+	// Outputs must be empty.
+	NextInputs *target.ValueSet `protobuf:"bytes,2,opt,name=next_inputs,json=nextInputs,proto3" json:"nextInputs,omitempty"`
+}
+
+func (x *TxRetry) Reset() {
+	*x = TxRetry{}
+}
+
+func (*TxRetry) ProtoMessage() {}
+
+func (x *TxRetry) GetExpectedPassNonce() uint64 {
+	if x != nil {
+		return x.ExpectedPassNonce
+	}
+	return 0
+}
+
+func (x *TxRetry) GetNextInputs() *target.ValueSet {
+	if x != nil {
+		return x.NextInputs
 	}
 	return nil
 }
@@ -271,6 +316,7 @@ func (m *Tx) CloneVT() *Tx {
 	r.TxStart = protobuf_go_lite.CloneVTValue(m.TxStart)
 	r.TxUpdateWithPassState = protobuf_go_lite.CloneVTValue(m.TxUpdateWithPassState)
 	r.TxComplete = protobuf_go_lite.CloneVTValue(m.TxComplete)
+	r.TxRetry = protobuf_go_lite.CloneVTValue(m.TxRetry)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -278,6 +324,23 @@ func (m *Tx) CloneVT() *Tx {
 }
 
 func (m *Tx) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *TxRetry) CloneVT() *TxRetry {
+	if m == nil {
+		return (*TxRetry)(nil)
+	}
+	r := new(TxRetry)
+	r.ExpectedPassNonce = m.ExpectedPassNonce
+	r.NextInputs = protobuf_go_lite.CloneVTValue(m.NextInputs)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TxRetry) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -371,11 +434,37 @@ func (this *Tx) EqualVT(that *Tx) bool {
 	if !protobuf_go_lite.IsEqualVT(this.TxComplete, that.TxComplete) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.TxRetry, that.TxRetry) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *Tx) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Tx)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *TxRetry) EqualVT(that *TxRetry) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ExpectedPassNonce != that.ExpectedPassNonce {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.NextInputs, that.NextInputs) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TxRetry) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TxRetry)
 	if !ok {
 		return false
 	}
@@ -546,6 +635,11 @@ func (x *Tx) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("txComplete")
 		x.TxComplete.MarshalProtoJSON(s.WithField("txComplete"))
 	}
+	if x.TxRetry != nil || s.HasField("txRetry") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("txRetry")
+		x.TxRetry.MarshalProtoJSON(s.WithField("txRetry"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -597,12 +691,73 @@ func (x *Tx) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.TxComplete = &TxComplete{}
 			x.TxComplete.UnmarshalProtoJSON(s.WithField("tx_complete", true))
+		case "tx_retry", "txRetry":
+			if s.ReadNil() {
+				x.TxRetry = nil
+				return
+			}
+			x.TxRetry = &TxRetry{}
+			x.TxRetry.UnmarshalProtoJSON(s.WithField("tx_retry", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the Tx from JSON.
 func (x *Tx) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the TxRetry message to JSON.
+func (x *TxRetry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ExpectedPassNonce != 0 || s.HasField("expectedPassNonce") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expectedPassNonce")
+		s.WriteUint64(x.ExpectedPassNonce)
+	}
+	if x.NextInputs != nil || s.HasField("nextInputs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nextInputs")
+		x.NextInputs.MarshalProtoJSON(s.WithField("nextInputs"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TxRetry to JSON.
+func (x *TxRetry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TxRetry message from JSON.
+func (x *TxRetry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "expected_pass_nonce", "expectedPassNonce":
+			s.AddField("expected_pass_nonce")
+			x.ExpectedPassNonce = s.ReadUint64()
+		case "next_inputs", "nextInputs":
+			if s.ReadNil() {
+				x.NextInputs = nil
+				return
+			}
+			x.NextInputs = &target.ValueSet{}
+			x.NextInputs.UnmarshalProtoJSON(s.WithField("next_inputs", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TxRetry from JSON.
+func (x *TxRetry) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -827,6 +982,16 @@ func (m *Tx) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.TxRetry != nil {
+		size, err := m.TxRetry.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	}
 	if m.TxComplete != nil {
 		size, err := m.TxComplete.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -874,6 +1039,53 @@ func (m *Tx) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	}
 	if m.TxType != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.TxType))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *TxRetry) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TxRetry) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TxRetry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.NextInputs != nil {
+		size, err := m.NextInputs.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.ExpectedPassNonce != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpectedPassNonce))
 		i--
 		dAtA[i] = 0x8
 	}
@@ -1077,6 +1289,25 @@ func (m *Tx) SizeVT() (n int) {
 		l = m.TxComplete.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.TxRetry != nil {
+		l = m.TxRetry.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *TxRetry) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExpectedPassNonce)
+	if m.NextInputs != nil {
+		l = m.NextInputs.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1167,10 +1398,32 @@ func (x *Tx) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tx_complete")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TxComplete)
 	}
+	if x.TxRetry != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tx_retry")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TxRetry)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *Tx) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TxRetry) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "TxRetry")
+	if x.ExpectedPassNonce != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expected_pass_nonce")
+		protobuf_go_lite.TextWriteUint(&sb, x.ExpectedPassNonce)
+	}
+	if x.NextInputs != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "next_inputs")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.NextInputs)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *TxRetry) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1336,6 +1589,88 @@ func (m *Tx) UnmarshalVT(dAtA []byte) error {
 				m.TxComplete = &TxComplete{}
 			}
 			if err := m.TxComplete.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TxRetry", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.TxRetry == nil {
+				m.TxRetry = &TxRetry{}
+			}
+			if err := m.TxRetry.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TxRetry) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TxRetry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TxRetry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpectedPassNonce", wireType)
+			}
+			m.ExpectedPassNonce = 0
+			m.ExpectedPassNonce, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NextInputs", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.NextInputs == nil {
+				m.NextInputs = &target.ValueSet{}
+			}
+			if err := m.NextInputs.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

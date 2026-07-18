@@ -83,8 +83,17 @@ func (t *TxStart) ExecuteTx(
 		return err
 	}
 	highestNonce := root.GetPassNonce()
+	previousPassKey := ""
+	var previousPassNonce uint64
 	for i, pass := range passes {
 		passKey := passKeys[i]
+		if previousPassKey == "" || pass.GetPassNonce() > previousPassNonce {
+			previousPassNonce = pass.GetPassNonce()
+			previousPassKey = passKey
+		}
+		if pass.GetPassNonce() > highestNonce {
+			highestNonce = pass.GetPassNonce()
+		}
 		if pass.GetPassState() != forge_pass.State_PassState_COMPLETE {
 			passCompleteTx := pass_tx.NewTxComplete(
 				passKey,
@@ -94,9 +103,6 @@ func (t *TxStart) ExecuteTx(
 			if err != nil {
 				return err
 			}
-		}
-		if pn := pass.GetPassNonce(); pn > highestNonce {
-			highestNonce = pn
 		}
 	}
 
@@ -136,6 +142,12 @@ func (t *TxStart) ExecuteTx(
 	err = world_parent.SetObjectParent(ctx, worldState, passKey, objKey, false)
 	if err != nil {
 		return err
+	}
+	if previousPassKey != "" {
+		err = worldState.SetGraphQuad(ctx, forge_pass.NewPassToPreviousQuad(passKey, previousPassKey))
+		if err != nil {
+			return err
+		}
 	}
 
 	// link the pass to the task
