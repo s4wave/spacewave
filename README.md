@@ -6,23 +6,26 @@
   <h3>Effortless self-hosted cloud with peer-to-peer sync</h3>
 
   <p>
-    Private workspace that runs on your computers, syncs peer-to-peer, and keeps working offline.
+    Open it in your browser: no account, no server, working offline in one click.
   </p>
 </div>
 
 --------
 
-**Spacewave** turns your computers into a local-first cloud you control. Start
-with a private workspace, use it from the browser or desktop app, sync it
-peer-to-peer, and keep working offline.
+**Spacewave** is a cloud with no landlord. Open it in your browser and you have
+a private, encrypted workspace running entirely on your own machine: no
+account, no setup, no server to run. Sync it peer-to-peer between your devices
+and keep working offline.
 
 As your work grows, the workspace becomes a Space: shared encrypted state for
-files, notes, apps, layouts, devices, workflows, and plugin data, without
-putting everything inside someone else's database.
+files, notes, apps, layouts, devices, and workflows. Spaces are multiplayer:
+invite people into one and work in it together, live.
 
-Spacewave combines the convenience of cloud apps with the freedom of
-open-source software. The cloud can help with accounts, relay, backup, storage,
-and networking, but it never owns your work.
+You choose where your data lives and how it moves. Store it on your machines,
+in your browser, on your own server, or in a cloud you pick, and sync over any
+network your devices can reach. A paid account adds managed cloud storage and
+relay, $8/month for 100 GB; the app works without one, and the cloud never
+owns your work.
 
 To go deeper, Spacewave is a full stack for local-first apps and plugins, built
 with Go, TypeScript, React, and WebAssembly: a home for your personal operating
