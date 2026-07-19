@@ -179,16 +179,47 @@ func (c *Controller) serveOnce(
 	}
 }
 
-// acceptCountingListener is a drop-in replacement for
-// srpc.AcceptMuxedListener that also reports accept/close transitions
-// to the status broker. Each accepted client increments the connected
-// count; on close (local or remote) the count decrements.
+// acceptCountingListener serves accepted clients independently while reporting
+// accept/close transitions to the status broker. One client must not gate
+// admission or teardown of another client.
 func acceptCountingListener(
 	ctx context.Context,
 	lis net.Listener,
 	srv *srpc.Server,
 	status *StatusBroker,
 ) error {
+	var clients sync.WaitGroup
+	var connectionsMtx sync.Mutex
+	connections := make(map[*countingConn]struct{})
+	closeConnections := func() {
+		connectionsMtx.Lock()
+		active := make([]*countingConn, 0, len(connections))
+		for conn := range connections {
+			active = append(active, conn)
+		}
+		connectionsMtx.Unlock()
+		for _, conn := range active {
+			_ = conn.Close()
+		}
+	}
+
+	stopContextWatch := make(chan struct{})
+	contextWatchDone := make(chan struct{})
+	go func() {
+		defer close(contextWatchDone)
+		select {
+		case <-ctx.Done():
+			closeConnections()
+		case <-stopContextWatch:
+		}
+	}()
+	defer func() {
+		close(stopContextWatch)
+		closeConnections()
+		clients.Wait()
+		<-contextWatchDone
+	}()
+
 	for {
 		nc, err := lis.Accept()
 		if err != nil {
@@ -201,10 +232,21 @@ func acceptCountingListener(
 			_ = tracked.Close()
 			continue
 		}
-		if err := srv.AcceptMuxedConn(ctx, mc); err != nil {
-			_ = tracked.Close()
-			continue
-		}
+
+		connectionsMtx.Lock()
+		connections[tracked] = struct{}{}
+		clients.Add(1)
+		connectionsMtx.Unlock()
+		go func() {
+			defer clients.Done()
+			defer func() {
+				connectionsMtx.Lock()
+				delete(connections, tracked)
+				connectionsMtx.Unlock()
+				_ = tracked.Close()
+			}()
+			_ = srv.AcceptMuxedConn(ctx, mc)
+		}()
 	}
 }
 
