@@ -332,7 +332,7 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 
 	settings, _, err := space_world.LookupSpaceSettings(ctx, ws)
 	if err != nil {
-		le.WithError(err).Warn("failed to lookup SpaceSettings")
+		warnOnErrorUnlessCanceled(ctx, le, err, "failed to lookup SpaceSettings")
 		return
 	}
 
@@ -375,7 +375,7 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 			nil,
 		)
 		if err != nil {
-			le.WithError(err).Warn("failed to add LoadPlugin directive")
+			warnOnErrorUnlessCanceled(ctx, le, err, "failed to add LoadPlugin directive")
 			c.loadedPlugins.SetPluginState(pid, false, true)
 			continue
 		}
@@ -424,12 +424,14 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 		nil,
 	)
 	if err != nil {
-		le.WithError(err).Warn("failed to get object store for process bindings")
+		warnOnErrorUnlessCanceled(ctx, le, err, "failed to get object store for process bindings")
 		c.reconcileProcessConfigs(le, nil)
 		return
 	}
 	if handle == nil || ref == nil {
-		le.Warn("process binding object store unavailable")
+		if ctx.Err() == nil {
+			le.Warn("process binding object store unavailable")
+		}
 		c.reconcileProcessConfigs(le, nil)
 		return
 	}
@@ -438,7 +440,7 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 	spaceID := conf.GetSpaceId()
 	bindings, err := process_binding.ListProcessBindings(ctx, handle.GetObjectStore(), spaceID)
 	if err != nil {
-		le.WithError(err).Warn("failed to list process bindings")
+		warnOnErrorUnlessCanceled(ctx, le, err, "failed to list process bindings")
 		return
 	}
 
