@@ -89,7 +89,11 @@ func ExecuteBusWatchLoop(
 ) error {
 	busEngine := world.NewBusEngine(ctx, b, engineID)
 	ws := world.NewEngineWorldState(busEngine, true)
-	return objLoop.Execute(ctx, ws)
+	err := objLoop.Execute(ctx, ws)
+	if ctx.Err() != nil && errors.Is(err, context.Canceled) {
+		return context.Canceled
+	}
+	return err
 }
 
 // Wake forces the control loop to re-process the latest object state.
@@ -184,7 +188,8 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 			}
 			waitForChanges = true
 			err = nil
-		} else if err != nil && c.le != nil && err != context.Canceled {
+		} else if err != nil && c.le != nil &&
+			(ctx.Err() == nil || !errors.Is(err, context.Canceled)) {
 			le := c.le.WithError(err)
 			if c.objectKey != "" {
 				le = le.WithField("object-key", c.objectKey)

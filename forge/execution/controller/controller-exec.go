@@ -221,18 +221,27 @@ func (c *Controller) processExec(
 		return errors.Wrap(err, "init exec controller")
 	}
 
-	// wait for the execution controller to complete
-	le.
+	return c.executeTargetController(ctx, tgtBus, ctrl)
+}
+
+// executeTargetController runs a resolved target controller through its local
+// lifecycle.
+func (c *Controller) executeTargetController(
+	ctx context.Context,
+	tgtBus bus.Bus,
+	ctrl controller.Controller,
+) error {
+	c.le.
 		WithField("controller-id", ctrl.GetControllerInfo().Id).
 		Info("starting exec controller")
 	t1 := time.Now()
-	err = tgtBus.ExecuteController(ctx, ctrl)
+	err := tgtBus.ExecuteController(ctx, ctrl)
 	_ = ctrl.Close()
-	t2 := time.Now()
-	durLe := le.WithField("exec-dur", t2.Sub(t1))
+	durLe := c.le.WithField("exec-dur", time.Since(t1))
 	if err != nil {
-		// this is an error returned by the exec controller itself.
-		durLe.WithError(err).Warn("exec controller failed")
+		if ctx.Err() == nil || !errors.Is(err, context.Canceled) {
+			durLe.WithError(err).Warn("exec controller failed")
+		}
 		return err
 	}
 

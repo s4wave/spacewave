@@ -126,7 +126,11 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 func (c *Controller) Execute(ctx context.Context) error {
 	c.execRoutine.SetContext(ctx, true)
 	c.busEngine.SetContext(ctx)
-	return c.objLoop.Execute(ctx, c.ws)
+	err := c.objLoop.Execute(ctx, c.ws)
+	if ctx.Err() != nil && errors.Is(err, context.Canceled) {
+		return context.Canceled
+	}
+	return err
 }
 
 // ProcessState implements the state reconciliation loop.

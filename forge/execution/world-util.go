@@ -41,7 +41,8 @@ func WaitExecutionComplete(
 				if nextState != lastState {
 					lastState = nextState
 					le.Debugf("execution is in state: %s", nextState.String())
-					if ferr := exec.GetResult().GetFailError(); ferr != "" {
+					result := exec.GetResult()
+					if ferr := result.GetFailError(); ferr != "" && !result.GetCanceled() {
 						le.WithError(errors.New(ferr)).Warn("execution failed")
 					}
 				}

@@ -145,7 +145,8 @@ func WaitJobComplete(
 				if nextState != lastState {
 					lastState = nextState
 					le.Debugf("job is in state: %s", nextState.String())
-					if ferr := job.GetResult().GetFailError(); ferr != "" {
+					result := job.GetResult()
+					if ferr := result.GetFailError(); ferr != "" && !result.GetCanceled() {
 						le.WithError(errors.New(ferr)).Warn("job failed")
 					}
 				}

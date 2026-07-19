@@ -151,7 +151,7 @@ func (c *Controller) updateWithPassState(ctx context.Context) error {
 	} else {
 		err = wtx.Commit(ctx)
 	}
-	if err != nil && err != context.Canceled {
+	if err != nil && (ctx.Err() == nil || !errors.Is(err, context.Canceled)) {
 		if !errors.Is(err, forge_task.ErrUnknownState) {
 			c.le.WithError(err).Warn("unable to update execution states")
 		}

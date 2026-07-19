@@ -269,7 +269,9 @@ func (c *Controller) processCheckTaskResult(ctx context.Context, ws world.WorldS
 		}
 	}
 	if err != nil {
-		c.le.WithError(err).Warn("marking task as failed w/ error")
+		if ctx.Err() == nil || !errors.Is(err, context.Canceled) {
+			c.le.WithError(err).Warn("marking task as failed w/ error")
+		}
 		tx := task_tx.NewTxComplete(c.objKey, forge_value.NewResultWithError(err))
 		_, _, err = ws.ApplyWorldOp(ctx, tx, c.peerID)
 		return err

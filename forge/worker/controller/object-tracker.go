@@ -88,7 +88,9 @@ func (t *objectTracker) execute(ctx context.Context) error {
 
 		// Sync object type to the controller if needed
 		if err := t.applyObjectType(ctx, objType); err != nil {
-			t.c.le.WithError(err).Warn("unable to start object controller")
+			if ctx.Err() == nil || !errors.Is(err, context.Canceled) {
+				t.c.le.WithError(err).Warn("unable to start object controller")
+			}
 		}
 	}
 }
@@ -160,7 +162,7 @@ func (t *objectTracker) executeController(ctx context.Context, objType string, c
 		Debugf("starting controller for object: %s", t.objKey)
 	_, diRef, err := t.c.bus.AddDirective(resolver.NewLoadControllerWithConfig(ctrlConf), nil)
 	if err != nil {
-		if err != context.Canceled {
+		if ctx.Err() == nil || !errors.Is(err, context.Canceled) {
 			t.c.le.WithError(err).Warn("unable to start object controller")
 		}
 		return

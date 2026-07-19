@@ -65,7 +65,8 @@ func WaitPassComplete(
 				if nextState != lastState {
 					lastState = nextState
 					le.Debugf("pass is in state: %s", nextState.String())
-					if ferr := pass.GetResult().GetFailError(); ferr != "" {
+					result := pass.GetResult()
+					if ferr := result.GetFailError(); ferr != "" && !result.GetCanceled() {
 						le.WithError(errors.New(ferr)).Warn("pass failed")
 					}
 				}

@@ -15,6 +15,7 @@ import (
 	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
 	sdk_world_engine "github.com/s4wave/spacewave/sdk/world/engine"
 	"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
 )
 
 // TestWatchLoop tests the control loop and WaitForObjectRev.
@@ -289,6 +290,39 @@ func TestWatchLoopCancellationDuringWait(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("watch loop did not exit")
+	}
+}
+
+func TestWatchLoopSkipsCanceledShutdownWarning(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+
+	logger, hook := test.NewNullLogger()
+	logger.SetLevel(logrus.WarnLevel)
+	loop := world_control.NewWatchLoop(
+		logrus.NewEntry(logger),
+		"",
+		world_control.NewWaitForStateHandler(func(
+			_ context.Context,
+			_ world.WorldState,
+			_ world.ObjectState,
+			_ *block.Cursor,
+			_ uint64,
+		) (bool, error) {
+			cancel()
+			return false, errors.Join(context.Canceled, errors.New("handler exit"))
+		}),
+	)
+
+	if err := loop.Execute(ctx, tb.WorldState); !errors.Is(err, context.Canceled) {
+		t.Fatalf("Execute err = %v, want context.Canceled", err)
+	}
+	if entries := hook.AllEntries(); len(entries) != 0 {
+		t.Fatalf("warning count = %d, want 0", len(entries))
 	}
 }
 func TestWatchLoopSkipsUnhandledOperation(t *testing.T) {
