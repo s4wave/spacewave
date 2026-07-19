@@ -1047,6 +1047,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         this.webRuntimeId,
         this.webDocumentUuid,
       )
+      // Every dedicated document participates in plugin singleton ownership.
+      // Attached documents must wait for the elected runtime host's workers
+      // instead of starting a private plugin host that cannot join the runtime.
+      this.enablePluginSingletonLock()
     }
 
     const startWebRuntimeWorker = () => {
@@ -1148,14 +1152,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           runtimeId: this.webRuntimeId,
           mode: 'shared-worker',
         })
-      }
-
-      // In DedicatedWorker runtime mode, only the elected host document reaches
-      // plugin worker creation. It still holds the plugin singleton lock so the
-      // fallback preserves SharedWorker's one active plugin-host owner shape.
-      const usePluginSingletonLock = useDedicatedRuntime && !this.isElectron
-      if (usePluginSingletonLock) {
-        this.enablePluginSingletonLock()
       }
 
       // we don't expect any messages directly from the main worker port.

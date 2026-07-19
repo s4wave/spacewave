@@ -189,12 +189,19 @@ func watchFallbackConsole(t testing.TB, sess *TestSession, label string) func() 
 	console, stopConsole := sess.WatchConsole()
 	return func() {
 		stopConsole()
-		report := DrainCrashReport(console)
+		messages := drainConsoleMessages(console)
+		report := crashReportFromMessages(messages)
 		if report.HasCrash() {
 			t.Errorf("unexpected browser/WASM crash report during %s: %+v", label, report)
 		}
 		if report.HasExitedGoLoop() {
 			t.Errorf("unexpected exited-Go loop during %s: %+v", label, report)
+		}
+		for _, message := range messages {
+			if strings.Contains(message, "dedicated runtime host role is attached") {
+				t.Errorf("attached document started a private runtime client during %s: %s", label, message)
+				break
+			}
 		}
 	}
 }

@@ -562,17 +562,23 @@ export class WebDocumentTracker {
       )
     }
     const init = WebRuntimeClientInit.toBinary(initMsg)
-    const usePreferredOrder = !!(
-      this.preferredRuntimeWebDocumentId &&
-      this.preferredRuntimeWebDocumentId !== excludedWebDocumentId &&
-      this.webDocuments[this.preferredRuntimeWebDocumentId]
+    const usePriorityOrder = [
+      this.activeRuntimeHostGeneration
+        ? this.activeRuntimeWebDocumentId
+        : undefined,
+      this.preferredRuntimeWebDocumentId,
+    ].some(
+      (webDocumentId) =>
+        webDocumentId &&
+        webDocumentId !== excludedWebDocumentId &&
+        this.webDocuments[webDocumentId],
     )
     const webDocumentIds = this.orderRuntimeOpenWebDocuments(
       Object.keys(this.webDocuments),
     ).filter((webDocumentId) => webDocumentId !== excludedWebDocumentId)
     const attemptedWebDocumentIds = new Set<string>()
     for (const i of webDocumentIds.keys()) {
-      const x = usePreferredOrder
+      const x = usePriorityOrder
         ? i
         : (i + this.lastWebDocumentIdx + 1) % webDocumentIds.length
       const webDocumentId = webDocumentIds[x]
@@ -868,13 +874,22 @@ export class WebDocumentTracker {
   }
 
   private orderRuntimeOpenWebDocuments(webDocumentIds: string[]): string[] {
-    const preferred = this.preferredRuntimeWebDocumentId
-    if (!preferred || !this.webDocuments[preferred]) {
-      return webDocumentIds
-    }
+    const prioritized = [
+      this.activeRuntimeHostGeneration
+        ? this.activeRuntimeWebDocumentId
+        : undefined,
+      this.preferredRuntimeWebDocumentId,
+    ].filter(
+      (webDocumentId, index, ids): webDocumentId is string =>
+        !!webDocumentId &&
+        !!this.webDocuments[webDocumentId] &&
+        ids.indexOf(webDocumentId) === index,
+    )
     return [
-      preferred,
-      ...webDocumentIds.filter((webDocumentId) => webDocumentId !== preferred),
+      ...prioritized,
+      ...webDocumentIds.filter(
+        (webDocumentId) => !prioritized.includes(webDocumentId),
+      ),
     ]
   }
 
