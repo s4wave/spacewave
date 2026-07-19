@@ -11,6 +11,25 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
+// ConfirmPairingError identifies why a pairing exchange cannot authorize a grant.
+type ConfirmPairingError string
+
+const (
+	// ErrPairingExchangeMissing means no pairing exchange exists.
+	ErrPairingExchangeMissing ConfirmPairingError = "pairing exchange is missing"
+	// ErrPairingExchangeUnconfirmed means the pairing exchange has not reached BothConfirmed.
+	ErrPairingExchangeUnconfirmed ConfirmPairingError = "pairing exchange is not confirmed"
+	// ErrPairingExchangeConsumed means the pairing exchange already authorized a confirmation.
+	ErrPairingExchangeConsumed ConfirmPairingError = "pairing exchange is already consumed"
+	// ErrPairingExchangePeerMismatch means the confirmed exchange belongs to another peer.
+	ErrPairingExchangePeerMismatch ConfirmPairingError = "pairing exchange peer does not match"
+)
+
+// Error returns the pairing exchange authorization failure.
+func (e ConfirmPairingError) Error() string {
+	return string(e)
+}
+
 // ConfirmPairing confirms a verified pairing by adding the remote peer as
 // OWNER on all SharedObjects in the account, persisting the paired device
 // to the account settings SO, and optionally starting P2P sync.
@@ -19,6 +38,9 @@ func (a *ProviderAccount) ConfirmPairing(
 	remotePeerID peer.ID,
 	displayName string,
 ) error {
+	if err := a.consumePairingExchange(remotePeerID); err != nil {
+		return err
+	}
 	remotePeerIDStr := remotePeerID.String()
 
 	remotePub, err := remotePeerID.ExtractPublicKey()
@@ -80,6 +102,25 @@ func (a *ProviderAccount) ConfirmPairing(
 	}
 
 	return nil
+}
+
+func (a *ProviderAccount) consumePairingExchange(remotePeerID peer.ID) error {
+	var err error
+	a.pairingBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		switch {
+		case a.pairing == nil:
+			err = ErrPairingExchangeMissing
+		case a.pairing.remotePeerID != remotePeerID:
+			err = ErrPairingExchangePeerMismatch
+		case a.pairing.status != PairingStatusBothConfirmed:
+			err = ErrPairingExchangeUnconfirmed
+		case a.pairing.confirmationConsumed:
+			err = ErrPairingExchangeConsumed
+		default:
+			a.pairing.confirmationConsumed = true
+		}
+	})
+	return err
 }
 
 // queueAddPairedDevice queues an AddPairedDevice operation on the given

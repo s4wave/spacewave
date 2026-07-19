@@ -61,6 +61,8 @@ type pairingState struct {
 	localConfirmed bool
 	// confirmCh receives the local user's confirmation decision (true = confirmed, false = rejected).
 	confirmCh chan bool
+	// confirmationConsumed records whether the BothConfirmed exchange authorized a pairing.
+	confirmationConsumed bool
 	// direct is true when the active pairing flow uses a direct manual-signal link.
 	direct bool
 }
@@ -275,6 +277,22 @@ func (a *ProviderAccount) setPairingStatus(status PairingStatus) {
 		a.pairing.status = status
 		bcast()
 	})
+}
+
+func (a *ProviderAccount) setPairingBothConfirmed(remotePeerID peer.ID, confirmCh <-chan bool) bool {
+	var recorded bool
+	a.pairingBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if a.pairing == nil ||
+			a.pairing.remotePeerID != remotePeerID ||
+			a.pairing.confirmCh != confirmCh {
+			return
+		}
+		a.pairing.status = PairingStatusBothConfirmed
+		a.pairing.confirmationConsumed = false
+		recorded = true
+		bcast()
+	})
+	return recorded
 }
 
 // SetPairingFailed marks the pairing as failed with an error message.
