@@ -142,20 +142,16 @@ func runServeCommand(
 		if err := takeoverDaemonSocket(ctx, le, sockPath); err != nil {
 			return err
 		}
-		_ = os.Remove(sockPath)
 	}
 	if err := os.MkdirAll(resolved, 0o755); err != nil {
 		return err
 	}
 
-	lis, err := net.Listen("unix", sockPath)
+	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sockPath, Net: "unix"})
 	if err != nil {
 		return errors.Wrapf(err, "listen on daemon socket %s; use --takeover only if you intend to ask another runtime to yield", sockPath)
 	}
-	defer func() {
-		lis.Close()
-		_ = os.Remove(sockPath)
-	}()
+	defer lis.Close()
 
 	if err := os.Chmod(sockPath, 0o600); err != nil {
 		le.WithError(err).Warn("failed to chmod socket")

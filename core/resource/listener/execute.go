@@ -119,19 +119,15 @@ func (c *Controller) serveOnce(
 	if err := listener_control.TakeoverSocket(parentCtx, le, absPath); err != nil {
 		return false, errors.Wrap(err, "takeover socket")
 	}
-	_ = os.Remove(absPath)
 	if err := os.MkdirAll(filepath.Dir(absPath), 0o755); err != nil {
 		return false, err
 	}
 
-	lis, err := net.Listen("unix", absPath)
+	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: absPath, Net: "unix"})
 	if err != nil {
 		return false, err
 	}
-	defer func() {
-		lis.Close()
-		_ = os.Remove(absPath)
-	}()
+	defer lis.Close()
 
 	if err := os.Chmod(absPath, 0o600); err != nil {
 		le.WithError(err).Warn("failed to chmod socket")
