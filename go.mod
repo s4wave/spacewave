@@ -2,7 +2,7 @@ module github.com/s4wave/spacewave
 
 go 1.26.4
 
-require github.com/s4wave/goscript v0.2.22-0.20260717232158-0657ae5f8eac // master
+require github.com/s4wave/goscript v0.2.23-0.20260718110009-63482b4c3b15 // master
 
 replace (
 	// aperture: use compatibility forks
@@ -51,7 +51,7 @@ require (
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.15.1-0.20260716085036-961b1f806634 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
-	github.com/aperturerobotics/starpc v0.49.18 // latest
+	github.com/aperturerobotics/starpc v0.49.19 // latest
 	github.com/aperturerobotics/util v1.34.10-0.20260705010935-dceeac6053fb // master
 )
 
