@@ -106,6 +106,31 @@ export const GraphPathDirection_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * WorldErrorCode identifies a typed error returned in a World RPC response.
+ *
+ * @generated from enum s4wave.world.WorldErrorCode
+ */
+export enum WorldErrorCode {
+  /**
+   * @generated from enum value: WORLD_ERROR_CODE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: WORLD_ERROR_CODE_UNHANDLED_OP = 1;
+   */
+  UNHANDLED_OP = 1,
+}
+
+export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.world.WorldErrorCode',
+  [
+    [0, 'WORLD_ERROR_CODE_UNSPECIFIED'],
+    [1, 'WORLD_ERROR_CODE_UNHANDLED_OP'],
+  ],
+)
+
+/**
  * SyncRequest is the request type for Sync.
  *
  * @generated from message s4wave.world.SyncRequest
@@ -1723,6 +1748,12 @@ export interface ApplyWorldOpResponse {
    * @generated from field: bool sys_err = 2;
    */
   sysErr?: boolean
+  /**
+   * ErrorCode identifies a typed operation error when the RPC succeeds.
+   *
+   * @generated from field: s4wave.world.WorldErrorCode error_code = 3;
+   */
+  errorCode?: WorldErrorCode
 }
 
 export const ApplyWorldOpResponse: MessageType<ApplyWorldOpResponse> =
@@ -1731,6 +1762,7 @@ export const ApplyWorldOpResponse: MessageType<ApplyWorldOpResponse> =
     fields: [
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'sys_err', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'error_code', kind: 'enum', T: WorldErrorCode_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -2314,6 +2346,12 @@ export interface ApplyObjectOpResponse {
    * @generated from field: bool sys_err = 2;
    */
   sysErr?: boolean
+  /**
+   * ErrorCode identifies a typed operation error when the RPC succeeds.
+   *
+   * @generated from field: s4wave.world.WorldErrorCode error_code = 3;
+   */
+  errorCode?: WorldErrorCode
 }
 
 export const ApplyObjectOpResponse: MessageType<ApplyObjectOpResponse> =
@@ -2322,6 +2360,7 @@ export const ApplyObjectOpResponse: MessageType<ApplyObjectOpResponse> =
     fields: [
       { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'sys_err', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'error_code', kind: 'enum', T: WorldErrorCode_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

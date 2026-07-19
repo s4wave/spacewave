@@ -64,6 +64,8 @@ enum GraphEdgeBucketDirection : int;
 extern const uint32_t GraphEdgeBucketDirection_internal_data_[];
 enum GraphPathDirection : int;
 extern const uint32_t GraphPathDirection_internal_data_[];
+enum WorldErrorCode : int;
+extern const uint32_t WorldErrorCode_internal_data_[];
 class AccessTypedObjectRequest;
 struct AccessTypedObjectRequestDefaultTypeInternal;
 extern AccessTypedObjectRequestDefaultTypeInternal _AccessTypedObjectRequest_default_instance_;
@@ -454,6 +456,9 @@ internal::EnumTraitsT<::s4wave::world::GraphEdgeBucketDirection_internal_data_>
 template <>
 internal::EnumTraitsT<::s4wave::world::GraphPathDirection_internal_data_>
     internal::EnumTraitsImpl::value<::s4wave::world::GraphPathDirection>;
+template <>
+internal::EnumTraitsT<::s4wave::world::WorldErrorCode_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::world::WorldErrorCode>;
 }  // namespace protobuf
 }  // namespace google
 
@@ -533,6 +538,42 @@ inline const ::std::string& GraphPathDirection_Name(GraphPathDirection value) {
 inline bool GraphPathDirection_Parse(
     ::absl::string_view name, GraphPathDirection* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<GraphPathDirection>(GraphPathDirection_descriptor(), name,
+                                           value);
+}
+enum WorldErrorCode : int {
+  WORLD_ERROR_CODE_UNSPECIFIED = 0,
+  WORLD_ERROR_CODE_UNHANDLED_OP = 1,
+  WorldErrorCode_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  WorldErrorCode_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t WorldErrorCode_internal_data_[];
+inline constexpr WorldErrorCode WorldErrorCode_MIN =
+    static_cast<WorldErrorCode>(0);
+inline constexpr WorldErrorCode WorldErrorCode_MAX =
+    static_cast<WorldErrorCode>(1);
+inline bool WorldErrorCode_IsValid(int value) {
+  return 0 <= value && value <= 1;
+}
+inline constexpr int WorldErrorCode_ARRAYSIZE = 1 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL WorldErrorCode_descriptor();
+template <typename T>
+const ::std::string& WorldErrorCode_Name(T value) {
+  static_assert(::std::is_same<T, WorldErrorCode>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to WorldErrorCode_Name().");
+  return WorldErrorCode_Name(static_cast<WorldErrorCode>(value));
+}
+template <>
+inline const ::std::string& WorldErrorCode_Name(WorldErrorCode value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<WorldErrorCode_descriptor, 0, 1>(
+      static_cast<int>(value));
+}
+inline bool WorldErrorCode_Parse(
+    ::absl::string_view name, WorldErrorCode* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<WorldErrorCode>(WorldErrorCode_descriptor(), name,
                                            value);
 }
 
@@ -12221,6 +12262,7 @@ class ApplyWorldOpResponse final : public ::google::protobuf::Message
   enum : int {
     kSeqnoFieldNumber = 1,
     kSysErrFieldNumber = 2,
+    kErrorCodeFieldNumber = 3,
   };
   // uint64 seqno = 1;
   void clear_seqno() ;
@@ -12242,11 +12284,21 @@ class ApplyWorldOpResponse final : public ::google::protobuf::Message
   void _internal_set_sys_err(bool value);
 
   public:
+  // .s4wave.world.WorldErrorCode error_code = 3;
+  void clear_error_code() ;
+  ::s4wave::world::WorldErrorCode error_code() const;
+  void set_error_code(::s4wave::world::WorldErrorCode value);
+
+  private:
+  ::s4wave::world::WorldErrorCode _internal_error_code() const;
+  void _internal_set_error_code(::s4wave::world::WorldErrorCode value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.world.ApplyWorldOpResponse)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
                                    0, 0,
                                    2>
       _table_;
@@ -12270,6 +12322,7 @@ class ApplyWorldOpResponse final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::uint64_t seqno_;
     bool sys_err_;
+    int error_code_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -12652,6 +12705,7 @@ class ApplyObjectOpResponse final : public ::google::protobuf::Message
   enum : int {
     kRevFieldNumber = 1,
     kSysErrFieldNumber = 2,
+    kErrorCodeFieldNumber = 3,
   };
   // uint64 rev = 1;
   void clear_rev() ;
@@ -12673,11 +12727,21 @@ class ApplyObjectOpResponse final : public ::google::protobuf::Message
   void _internal_set_sys_err(bool value);
 
   public:
+  // .s4wave.world.WorldErrorCode error_code = 3;
+  void clear_error_code() ;
+  ::s4wave::world::WorldErrorCode error_code() const;
+  void set_error_code(::s4wave::world::WorldErrorCode value);
+
+  private:
+  ::s4wave::world::WorldErrorCode _internal_error_code() const;
+  void _internal_set_error_code(::s4wave::world::WorldErrorCode value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.world.ApplyObjectOpResponse)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
                                    0, 0,
                                    2>
       _table_;
@@ -12701,6 +12765,7 @@ class ApplyObjectOpResponse final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::uint64_t rev_;
     bool sys_err_;
+    int error_code_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -22398,6 +22463,31 @@ inline void ApplyWorldOpResponse::_internal_set_sys_err(bool value) {
   _impl_.sys_err_ = value;
 }
 
+// .s4wave.world.WorldErrorCode error_code = 3;
+inline void ApplyWorldOpResponse::clear_error_code() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_code_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::s4wave::world::WorldErrorCode ApplyWorldOpResponse::error_code() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.ApplyWorldOpResponse.error_code)
+  return _internal_error_code();
+}
+inline void ApplyWorldOpResponse::set_error_code(::s4wave::world::WorldErrorCode value) {
+  _internal_set_error_code(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.world.ApplyWorldOpResponse.error_code)
+}
+inline ::s4wave::world::WorldErrorCode ApplyWorldOpResponse::_internal_error_code() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::world::WorldErrorCode>(_impl_.error_code_);
+}
+inline void ApplyWorldOpResponse::_internal_set_error_code(::s4wave::world::WorldErrorCode value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_code_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // WatchWorldStateRequest
@@ -23669,6 +23759,31 @@ inline void ApplyObjectOpResponse::_internal_set_sys_err(bool value) {
   _impl_.sys_err_ = value;
 }
 
+// .s4wave.world.WorldErrorCode error_code = 3;
+inline void ApplyObjectOpResponse::clear_error_code() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_code_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::s4wave::world::WorldErrorCode ApplyObjectOpResponse::error_code() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.ApplyObjectOpResponse.error_code)
+  return _internal_error_code();
+}
+inline void ApplyObjectOpResponse::set_error_code(::s4wave::world::WorldErrorCode value) {
+  _internal_set_error_code(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.world.ApplyObjectOpResponse.error_code)
+}
+inline ::s4wave::world::WorldErrorCode ApplyObjectOpResponse::_internal_error_code() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::world::WorldErrorCode>(_impl_.error_code_);
+}
+inline void ApplyObjectOpResponse::_internal_set_error_code(::s4wave::world::WorldErrorCode value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_code_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // IncrementRevRequest
@@ -23971,6 +24086,12 @@ struct is_proto_enum<::s4wave::world::GraphPathDirection> : std::true_type {};
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::world::GraphPathDirection>() {
   return ::s4wave::world::GraphPathDirection_descriptor();
+}
+template <>
+struct is_proto_enum<::s4wave::world::WorldErrorCode> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::world::WorldErrorCode>() {
+  return ::s4wave::world::WorldErrorCode_descriptor();
 }
 
 }  // namespace protobuf

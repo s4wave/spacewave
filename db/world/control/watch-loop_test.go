@@ -2,13 +2,19 @@ package world_control_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
+	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_control "github.com/s4wave/spacewave/db/world/control"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	"github.com/s4wave/spacewave/net/peer"
+	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
+	sdk_world_engine "github.com/s4wave/spacewave/sdk/world/engine"
+	"github.com/sirupsen/logrus"
 )
 
 // TestWatchLoop tests the control loop and WaitForObjectRev.
@@ -287,20 +293,16 @@ func TestWatchLoopCancellationDuringWait(t *testing.T) {
 }
 func TestWatchLoopSkipsUnhandledOperation(t *testing.T) {
 	ctx := t.Context()
-	tb, err := world_testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	t.Cleanup(tb.Release)
+	ws := setupRemoteWorldState(ctx, t)
 
 	calls := make(chan int, 2)
 	count := 0
 	loop := world_control.NewWatchLoop(
-		tb.Logger,
+		logrus.NewEntry(logrus.New()),
 		"",
 		world_control.NewWaitForStateHandler(func(
-			_ context.Context,
-			_ world.WorldState,
+			ctx context.Context,
+			state world.WorldState,
 			_ world.ObjectState,
 			_ *block.Cursor,
 			_ uint64,
@@ -308,14 +310,18 @@ func TestWatchLoopSkipsUnhandledOperation(t *testing.T) {
 			count++
 			calls <- count
 			if count == 1 {
-				return false, world.ErrUnhandledOp
+				_, _, err := state.ApplyWorldOp(ctx, &unhandledWorldOp{}, peer.ID(""))
+				if !errors.Is(err, world.ErrUnhandledOp) {
+					t.Errorf("remote ApplyWorldOp error = %v, want world.ErrUnhandledOp", err)
+				}
+				return false, err
 			}
 			return false, nil
 		}),
 	)
 	done := make(chan error, 1)
 	go func() {
-		done <- loop.Execute(ctx, tb.WorldState)
+		done <- loop.Execute(ctx, ws)
 	}()
 
 	recvWatchLoopValue(t, calls, "initial handler")
@@ -328,6 +334,75 @@ func TestWatchLoopSkipsUnhandledOperation(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("watch loop did not continue after unhandled operation")
 	}
+}
+
+func setupRemoteWorldState(ctx context.Context, t *testing.T) world.WorldState {
+	t.Helper()
+
+	_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
+	t.Cleanup(cleanup)
+
+	rootRef := resClient.AccessRootResource()
+	t.Cleanup(rootRef.Release)
+	srpcClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
+	createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	engineRef := resClient.CreateResourceReference(createResp.ResourceId)
+	t.Cleanup(engineRef.Release)
+	engine, err := sdk_world_engine.NewSDKEngine(resClient, engineRef)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(engine.Release)
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tx.Discard)
+	return tx
+}
+
+type unhandledWorldOp struct{}
+
+func (*unhandledWorldOp) MarshalBlock() ([]byte, error) {
+	return nil, nil
+}
+
+func (*unhandledWorldOp) UnmarshalBlock([]byte) error {
+	return nil
+}
+
+func (*unhandledWorldOp) Validate() error {
+	return nil
+}
+
+func (*unhandledWorldOp) GetOperationTypeId() string {
+	return "test/unhandled-world-op"
+}
+
+func (*unhandledWorldOp) ApplyWorldOp(
+	context.Context,
+	*logrus.Entry,
+	world.WorldState,
+	peer.ID,
+) (bool, error) {
+	return false, world.ErrUnhandledOp
+}
+
+func (*unhandledWorldOp) ApplyWorldObjectOp(
+	context.Context,
+	*logrus.Entry,
+	world.ObjectState,
+	peer.ID,
+) (bool, error) {
+	return false, world.ErrUnhandledOp
 }
 
 func recvWatchLoopEvent(t *testing.T, ch <-chan struct{}, name string) {

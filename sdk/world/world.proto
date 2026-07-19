@@ -510,12 +510,20 @@ message ApplyWorldOpRequest {
   string op_sender = 3;
 }
 
+// WorldErrorCode identifies a typed error returned in a World RPC response.
+enum WorldErrorCode {
+  WORLD_ERROR_CODE_UNSPECIFIED = 0;
+  WORLD_ERROR_CODE_UNHANDLED_OP = 1;
+}
+
 // ApplyWorldOpResponse is the response type for ApplyWorldOp.
 message ApplyWorldOpResponse {
   // Seqno is the sequence number following the operation execution.
   uint64 seqno = 1;
   // SysErr indicates if the error is a transient system error.
   bool sys_err = 2;
+  // ErrorCode identifies a typed operation error when the RPC succeeds.
+  WorldErrorCode error_code = 3;
 }
 
 // WatchWorldStateRequest is the request type for WatchWorldState.
@@ -703,6 +711,8 @@ message ApplyObjectOpResponse {
   uint64 rev = 1;
   // SysErr indicates if the error is a transient system error.
   bool sys_err = 2;
+  // ErrorCode identifies a typed operation error when the RPC succeeds.
+  WorldErrorCode error_code = 3;
 }
 
 // IncrementRevRequest is the request type for IncrementRev.

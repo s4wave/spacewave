@@ -415,6 +415,9 @@ func (ws *SDKWorldState) ApplyWorldOp(ctx context.Context, op world.Operation, s
 	if err != nil {
 		return 0, false, err
 	}
+	if err := s4wave_world.ErrorFromCode(resp.GetErrorCode()); err != nil {
+		return 0, false, err
+	}
 	return resp.Seqno, resp.SysErr, nil
 }
 

@@ -530,7 +530,9 @@ func (r *WorldStateResource) DeleteGraphObject(ctx context.Context, req *s4wave_
 // ApplyWorldOp applies a batch operation at the world level.
 func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world.ApplyWorldOpRequest) (*s4wave_world.ApplyWorldOpResponse, error) {
 	if r.lookupOp == nil {
-		return nil, world.ErrUnhandledOp
+		return &s4wave_world.ApplyWorldOpResponse{
+			ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
+		}, nil
 	}
 
 	opTypeID := req.GetOpTypeId()
@@ -539,6 +541,11 @@ func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world
 		err = world.ErrUnhandledOp
 	}
 	if err != nil {
+		if errors.Is(err, world.ErrUnhandledOp) {
+			return &s4wave_world.ApplyWorldOpResponse{
+				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
+			}, nil
+		}
 		return nil, err
 	}
 
@@ -554,6 +561,11 @@ func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world
 
 	seqno, sysErr, err := r.ws.ApplyWorldOp(ctx, op, opSender)
 	if err != nil {
+		if errors.Is(err, world.ErrUnhandledOp) {
+			return &s4wave_world.ApplyWorldOpResponse{
+				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
+			}, nil
+		}
 		return nil, err
 	}
 
