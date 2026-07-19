@@ -1,4 +1,4 @@
-import { useCallback, type ReactNode } from 'react'
+import { useCallback, useEffect, type ReactNode } from 'react'
 
 import { useHistory } from '@s4wave/web/router/HistoryRouter.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
@@ -20,10 +20,13 @@ export function SessionFlowFrame({
 }: SessionFlowFrameProps) {
   const history = useHistory()
   const navigate = useNavigate()
+  useEffect(() => {
+    history?.enterFlow(fallbackPath)
+  }, [fallbackPath, history])
 
   const handleBack = useCallback(() => {
-    if (history?.canGoBack) {
-      history.goBack()
+    if (history) {
+      history.exitFlow(fallbackPath)
       return
     }
     navigate({ path: fallbackPath })

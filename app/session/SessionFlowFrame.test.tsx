@@ -42,9 +42,10 @@ describe('SessionFlowFrame', () => {
     expect(screen.getByRole('button', { name: 'Back' })).toBeDefined()
   })
 
-  it('uses history back when the session tab has previous navigation', () => {
-    const goBack = vi.fn()
-    mockUseHistory.mockReturnValue({ canGoBack: true, goBack })
+  it('records and exits the flow through the history owner', () => {
+    const enterFlow = vi.fn()
+    const exitFlow = vi.fn()
+    mockUseHistory.mockReturnValue({ enterFlow, exitFlow })
 
     render(
       <SessionFlowFrame fallbackPath="/u/7">
@@ -52,14 +53,15 @@ describe('SessionFlowFrame', () => {
       </SessionFlowFrame>,
     )
 
+    expect(enterFlow).toHaveBeenCalledWith('/u/7')
     fireEvent.click(screen.getByRole('button', { name: 'Back' }))
 
-    expect(goBack).toHaveBeenCalledTimes(1)
+    expect(exitFlow).toHaveBeenCalledWith('/u/7')
     expect(mockNavigate).not.toHaveBeenCalled()
   })
 
-  it('falls back to the session path without history', () => {
-    mockUseHistory.mockReturnValue({ canGoBack: false, goBack: vi.fn() })
+  it('navigates to the fallback without a history owner', () => {
+    mockUseHistory.mockReturnValue(null)
 
     render(
       <SessionFlowFrame fallbackPath="/u/7">
