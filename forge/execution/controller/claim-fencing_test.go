@@ -2,10 +2,13 @@ package execution_controller
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 
+	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	space_exec "github.com/s4wave/spacewave/core/forge/exec"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
@@ -14,6 +17,7 @@ import (
 	forge_lib_kvtx "github.com/s4wave/spacewave/forge/lib/kvtx"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	target_mock "github.com/s4wave/spacewave/forge/target/mock"
+	"github.com/sirupsen/logrus"
 )
 
 func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
@@ -26,9 +30,29 @@ func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
 	tb.StaticResolver.AddFactory(boilerplate_controller.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(forge_lib_kvtx.NewFactory(tb.Bus))
 
-	target, err := target_mock.ResolveMockTarget(ctx, tb.Bus)
-	if err != nil {
-		t.Fatal(err)
+	const configID = "test/count-bridge-invocations"
+	var invocations atomic.Int32
+	registry := space_exec.NewRegistry()
+	registry.Register(configID, func(
+		context.Context,
+		*logrus.Entry,
+		world.WorldState,
+		forge_target.ExecControllerHandle,
+		forge_target.InputMap,
+		[]byte,
+	) (space_exec.Handler, error) {
+		return &claimCountingHandler{invocations: &invocations}, nil
+	})
+	for _, factory := range space_exec.BridgeFactories(registry) {
+		tb.StaticResolver.AddFactory(factory)
+	}
+	target := &forge_target.Target{
+		Exec: &forge_target.Exec{
+			Controller: &configset_proto.ControllerConfig{
+				Id:  configID,
+				Rev: 1,
+			},
+		},
 	}
 	peerID := tb.Volume.GetPeerID()
 	objKey := "test/execution/controller-claim"
@@ -110,6 +134,33 @@ func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
 	if observer.execRoutine.GetState() != nil {
 		t.Fatal("restart left more than one runnable controller")
 	}
+
+	restartedOwner.busEngine.SetContext(ctx)
+	restartedOwner.execRoutine.SetContext(ctx, true)
+	finalState, err := forge_execution.WaitExecutionComplete(
+		ctx,
+		tb.Logger.WithField("control-loop", "bridge-claim-invocation"),
+		tb.WorldState,
+		objKey,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !finalState.GetResult().IsSuccessful() {
+		t.Fatalf("execution failed: %s", finalState.GetResult().GetFailError())
+	}
+	if got := invocations.Load(); got != 1 {
+		t.Fatalf("handler invocation count = %d, want 1", got)
+	}
+}
+
+type claimCountingHandler struct {
+	invocations *atomic.Int32
+}
+
+func (h *claimCountingHandler) Execute(context.Context) error {
+	h.invocations.Add(1)
+	return nil
 }
 
 type laggingObjectState struct {
