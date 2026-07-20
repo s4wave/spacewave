@@ -74,7 +74,13 @@ func (f *custodyFixture) createRunningPass(t *testing.T, passKey string, nonce u
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _, err = f.tb.WorldState.ApplyWorldOp(
+	return f.startPassExecution(t, passKey)
+}
+
+func (f *custodyFixture) startPassExecution(t *testing.T, passKey string) string {
+	t.Helper()
+
+	_, _, err := f.tb.WorldState.ApplyWorldOp(
 		f.ctx,
 		pass_tx.NewTxStart(passKey, []*pass_tx.ExecSpec{{PeerId: f.peerID.String()}}, true),
 		f.peerID,
@@ -253,6 +259,129 @@ func TestTaskStartDoesNotCreateSuccessorOverLivePass(t *testing.T) {
 	}
 	if state := passes[0].GetPassState(); state != forge_pass.State_PassState_CANCELING {
 		t.Fatalf("predecessor state = %s, want CANCELING", state)
+	}
+}
+
+func TestTaskInputChangeRestartsOnlyAfterDrain(t *testing.T) {
+	f := newCustodyFixture(t)
+	taskKey := "test/task/input-change-drain"
+	_, _, err := forge_task.CreateTaskWithTarget(
+		f.ctx,
+		f.tb.WorldState,
+		f.peerID,
+		taskKey,
+		"input-change-drain",
+		f.target.CloneVT(),
+		f.peerID,
+		1,
+		f.ts,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	updateTarget := task_tx.NewTxUpdateInputs(taskKey)
+	updateTarget.TxUpdateInputs.UpdateTarget = true
+	updateTarget.TxUpdateInputs.ResetInputs = true
+	if _, _, err := f.tb.WorldState.ApplyWorldOp(
+		f.ctx,
+		updateTarget,
+		f.peerID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := f.tb.WorldState.ApplyWorldOp(
+		f.ctx,
+		task_tx.NewTxStart(taskKey, true),
+		f.peerID,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	firstPassKey := forge_task.NewPassKey(taskKey, 1)
+	executionKey := f.startPassExecution(t, firstPassKey)
+	updateInputs := task_tx.NewTxUpdateInputs(taskKey)
+	updateInputs.TxUpdateInputs.ResetInputs = true
+	if _, _, err := f.tb.WorldState.ApplyWorldOp(
+		f.ctx,
+		updateInputs,
+		f.peerID,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	task, _, err := forge_task.LookupTask(f.ctx, f.tb.WorldState, taskKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state := task.GetTaskState(); state != forge_task.State_TaskState_RUNNING {
+		t.Fatalf("task state = %s, want RUNNING while pass drains", state)
+	}
+	passes, _, passKeys, err := forge_task.CollectTaskPasses(f.ctx, f.tb.WorldState, taskKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(passes) != 1 || len(passKeys) != 1 || passKeys[0] != firstPassKey {
+		t.Fatalf("passes = %v, want only draining predecessor %q", passKeys, firstPassKey)
+	}
+	if state := passes[0].GetPassState(); state != forge_pass.State_PassState_CANCELING {
+		t.Fatalf("predecessor state = %s, want CANCELING", state)
+	}
+
+	executionObject := f.cancelExecution(t, executionKey)
+	if _, _, err := executionObject.ApplyObjectOp(
+		f.ctx,
+		execution_tx.NewTxComplete(forge_value.NewResultWithCanceled(errors.New("drained"))),
+		f.peerID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := f.tb.WorldState.ApplyWorldOp(
+		f.ctx,
+		pass_tx.NewTxUpdateExecStates(firstPassKey),
+		f.peerID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := f.tb.WorldState.ApplyWorldOp(
+		f.ctx,
+		task_tx.NewTxUpdateWithPassState(taskKey),
+		f.peerID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := f.tb.WorldState.ApplyWorldOp(
+		f.ctx,
+		task_tx.NewTxStart(taskKey, true),
+		f.peerID,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	task, _, err = forge_task.LookupTask(f.ctx, f.tb.WorldState, taskKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state := task.GetTaskState(); state != forge_task.State_TaskState_RUNNING {
+		t.Fatalf("task state = %s, want RUNNING after successor start", state)
+	}
+	if nonce := task.GetPassNonce(); nonce != 2 {
+		t.Fatalf("pass nonce = %d, want 2", nonce)
+	}
+	_, _, passKeys, err = forge_task.CollectTaskPasses(f.ctx, f.tb.WorldState, taskKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondPassKey := forge_task.NewPassKey(taskKey, 2)
+	if len(passKeys) != 2 {
+		t.Fatalf("passes = %v, want predecessor and successor", passKeys)
+	}
+	foundFirst, foundSecond := false, false
+	for _, passKey := range passKeys {
+		foundFirst = foundFirst || passKey == firstPassKey
+		foundSecond = foundSecond || passKey == secondPassKey
+	}
+	if !foundFirst || !foundSecond {
+		t.Fatalf("passes = %v, want %q and %q", passKeys, firstPassKey, secondPassKey)
 	}
 }
 
