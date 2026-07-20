@@ -102,6 +102,24 @@ func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
 	}
 }
 
+func TestAcquireStatePathLeaseFailsClosedOnUnknownStoreLock(t *testing.T) {
+	statePath := makeShortTakeoverDir(t, "takeover-lease-version")
+	storePath, err := storage_native.BoltDBPath(statePath, "unknown")
+	if err != nil {
+		t.Fatalf("resolve provider store: %v", err)
+	}
+	if err := os.WriteFile(storePath, nil, 0o600); err != nil {
+		t.Fatalf("write provider store: %v", err)
+	}
+	if err := os.WriteFile(storePath+"-lock", make([]byte, bboltReaderTableOffset), 0o600); err != nil {
+		t.Fatalf("write provider lock: %v", err)
+	}
+	if _, err := acquireStatePathLease(statePath); err == nil ||
+		!strings.Contains(err.Error(), "unsupported bbolt lock file") {
+		t.Fatalf("expected unsupported lock-file error, got %v", err)
+	}
+}
+
 func TestStatePathLeaseHolderProcess(t *testing.T) {
 	statePath := os.Getenv(statePathLeaseHolderEnv)
 	if statePath == "" {

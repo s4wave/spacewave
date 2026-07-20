@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/pkg/errors"
 	storage_native "github.com/s4wave/spacewave/bldr/storage/native"
 )
 
@@ -54,10 +55,20 @@ func findWritableStoreLeaseHolderAt(storePath string, excludePID int) (int, erro
 	if err != nil {
 		return 0, err
 	}
-	if len(lockData) < bboltReaderTableOffset ||
-		binary.LittleEndian.Uint32(lockData[0:4]) != bboltLockFileMagic ||
-		binary.LittleEndian.Uint32(lockData[4:8]) != bboltLockFileVersion ||
-		binary.LittleEndian.Uint32(lockData[bboltWriterCountOffset:bboltWriterCountOffset+4]) == 0 {
+	if len(lockData) < bboltReaderTableOffset {
+		return 0, errors.Errorf("bbolt lock file is truncated: %s", storePath)
+	}
+	magic := binary.LittleEndian.Uint32(lockData[0:4])
+	version := binary.LittleEndian.Uint32(lockData[4:8])
+	if magic != bboltLockFileMagic || version != bboltLockFileVersion {
+		return 0, errors.Errorf(
+			"unsupported bbolt lock file for %s: magic %#x version %d",
+			storePath,
+			magic,
+			version,
+		)
+	}
+	if binary.LittleEndian.Uint32(lockData[bboltWriterCountOffset:bboltWriterCountOffset+4]) == 0 {
 		return 0, nil
 	}
 
