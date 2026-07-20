@@ -54,8 +54,10 @@ type Handler struct {
 	policy   YieldPolicy
 	shutdown func()
 
-	mtx     sync.Mutex
-	claimed bool
+	mtx              sync.Mutex
+	claimed          bool
+	shutdownComplete chan struct{}
+	completeOnce     sync.Once
 }
 
 // NewHandler constructs a daemon control handler. policy decides
@@ -72,7 +74,17 @@ func NewHandler(policy YieldPolicy, shutdown func()) *Handler {
 	if shutdown == nil {
 		shutdown = func() {}
 	}
-	return &Handler{policy: policy, shutdown: shutdown}
+	return &Handler{
+		policy:           policy,
+		shutdown:         shutdown,
+		shutdownComplete: make(chan struct{}),
+	}
+}
+
+// ShutdownComplete closes after the granted shutdown invocation finishes
+// writing its acknowledgement, including the final stream close attempt.
+func (h *Handler) ShutdownComplete() <-chan struct{} {
+	return h.shutdownComplete
 }
 
 // GetServiceID returns the service identifier.
@@ -87,9 +99,9 @@ func (h *Handler) GetMethodIDs() []string {
 
 // InvokeMethod handles the Shutdown RPC. The handler consults its
 // YieldPolicy and grants at most one caller. On approval it releases
-// the listener before acknowledging the peer, making the response the
-// handoff-completion event. On policy error or an already-claimed
-// handoff, it returns a wrapped denial to the peer.
+// the listener before acknowledging the peer, then signals
+// ShutdownComplete after response-stream completion. On policy error
+// or an already-claimed handoff, it returns a wrapped denial to the peer.
 func (h *Handler) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
 	if serviceID != ServiceID || methodID != ShutdownMethodID {
 		return false, nil
@@ -118,28 +130,51 @@ func (h *Handler) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bo
 	// requester verifies that no listener remains and reclaims the stale
 	// path.
 	h.shutdown()
+	defer h.completeOnce.Do(func() {
+		close(h.shutdownComplete)
+	})
 	if err := strm.MsgSend(&emptypb.Empty{}); err != nil {
 		return true, err
 	}
 	return true, strm.CloseSend()
 }
 
-// RequestShutdown issues the Shutdown RPC over conn and waits for the
-// peer's acknowledgement. If the peer denies the takeover, the
-// returned error is a DenyError describing the denial reason.
+// RequestShutdown issues the Shutdown RPC over conn and waits for both the
+// peer's acknowledgement and its stream-completion event. If the peer denies
+// the takeover, the returned error is a DenyError describing the denial reason.
 // Callers are responsible for closing conn.
 func RequestShutdown(ctx context.Context, conn net.Conn) error {
 	client, err := srpc.NewClientWithConn(conn, true, nil)
 	if err != nil {
 		return errors.Wrap(err, "create daemon control client")
 	}
-	if err := client.ExecCall(ctx, ServiceID, ShutdownMethodID, &emptypb.Empty{}, &emptypb.Empty{}); err != nil {
-		if denyReason, ok := extractDenyReason(err); ok {
-			return &DenyError{Reason: denyReason}
+	strm, err := client.NewStream(
+		ctx,
+		ServiceID,
+		ShutdownMethodID,
+		&emptypb.Empty{},
+	)
+	if err != nil {
+		return wrapRequestShutdownError(err)
+	}
+	defer strm.Close()
+	if err := strm.MsgRecv(&emptypb.Empty{}); err != nil {
+		return wrapRequestShutdownError(err)
+	}
+	if err := strm.MsgRecv(&emptypb.Empty{}); err != io.EOF {
+		if err == nil {
+			return errors.New("request daemon shutdown: unexpected response after acknowledgement")
 		}
-		return errors.Wrap(err, "request daemon shutdown")
+		return wrapRequestShutdownError(err)
 	}
 	return nil
+}
+
+func wrapRequestShutdownError(err error) error {
+	if denyReason, ok := extractDenyReason(err); ok {
+		return &DenyError{Reason: denyReason}
+	}
+	return errors.Wrap(err, "request daemon shutdown")
 }
 
 // DenyError indicates that the peer explicitly denied the takeover.

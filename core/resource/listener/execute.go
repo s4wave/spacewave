@@ -144,14 +144,14 @@ func (c *Controller) serveOnce(
 	var yieldOnce sync.Once
 	mux := srpc.NewMux(invoker)
 	policy := broker.MakePolicy(RequesterNameDefault, absPath)
-	if err := mux.Register(listener_control.NewHandler(policy, func() {
+	controlHandler := listener_control.NewHandler(policy, func() {
 		le.Info("daemon control shutdown approved, yielding socket")
 		yieldOnce.Do(func() {
 			close(yieldCh)
 		})
-		serveCancel()
-		lis.Close()
-	})); err != nil {
+		_ = lis.Close()
+	})
+	if err := mux.Register(controlHandler); err != nil {
 		return false, errors.Wrap(err, "register daemon control handler")
 	}
 	if err := s4wave_trace.SRPCRegisterTraceService(mux, trace_service.NewService()); err != nil {
@@ -164,30 +164,39 @@ func (c *Controller) serveOnce(
 	}()
 
 	srv := srpc.NewServer(mux)
-	err = acceptCountingListener(serveCtx, lis, srv, status)
-	if err != nil && (serveCtx.Err() != nil || stderrors.Is(err, net.ErrClosed)) {
+	drainClients, err := acceptCountingListener(serveCtx, lis, srv, status)
+	yielded := false
+	select {
+	case <-yieldCh:
+		yielded = true
+		select {
+		case <-controlHandler.ShutdownComplete():
+		case <-parentCtx.Done():
+		}
+	default:
+	}
+	serveCanceled := serveCtx.Err() != nil
+	serveCancel()
+	drainClients()
+	if err != nil && (serveCanceled || yielded || stderrors.Is(err, net.ErrClosed)) {
 		err = nil
 	}
 	if err != nil {
 		return false, err
 	}
-	select {
-	case <-yieldCh:
-		return true, nil
-	default:
-		return false, nil
-	}
+	return yielded, nil
 }
 
 // acceptCountingListener serves accepted clients independently while reporting
-// accept/close transitions to the status broker. One client must not gate
-// admission or teardown of another client.
+// accept/close transitions to the status broker. It returns a drain function
+// after accepting stops so the owner can release the listener synchronously,
+// finish a takeover acknowledgement, and only then close active clients.
 func acceptCountingListener(
 	ctx context.Context,
 	lis net.Listener,
 	srv *srpc.Server,
 	status *StatusBroker,
-) error {
+) (func(), error) {
 	var clients sync.WaitGroup
 	var connectionsMtx sync.Mutex
 	connections := make(map[*countingConn]struct{})
@@ -203,27 +212,18 @@ func acceptCountingListener(
 		}
 	}
 
-	stopContextWatch := make(chan struct{})
-	contextWatchDone := make(chan struct{})
-	go func() {
-		defer close(contextWatchDone)
-		select {
-		case <-ctx.Done():
+	drainOnce := sync.Once{}
+	drainClients := func() {
+		drainOnce.Do(func() {
 			closeConnections()
-		case <-stopContextWatch:
-		}
-	}()
-	defer func() {
-		close(stopContextWatch)
-		closeConnections()
-		clients.Wait()
-		<-contextWatchDone
-	}()
+			clients.Wait()
+		})
+	}
 
 	for {
 		nc, err := lis.Accept()
 		if err != nil {
-			return err
+			return drainClients, err
 		}
 		status.AddClient()
 		tracked := &countingConn{Conn: nc, status: status}

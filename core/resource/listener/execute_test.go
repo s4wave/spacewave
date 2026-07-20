@@ -5,12 +5,16 @@ package resource_listener
 import (
 	"context"
 	"net"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	resource "github.com/s4wave/spacewave/bldr/resource"
+	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -102,7 +106,9 @@ func TestAcceptCountingListenerKeepsExistingClientAfterPeerDeparts(t *testing.T)
 	}))
 	serverErr := make(chan error, 1)
 	go func() {
-		serverErr <- acceptCountingListener(ctx, listener, srpc.NewServer(mux), status)
+		drainClients, err := acceptCountingListener(ctx, listener, srpc.NewServer(mux), status)
+		drainClients()
+		serverErr <- err
 	}()
 	defer func() {
 		cancel()
@@ -141,6 +147,119 @@ func TestAcceptCountingListenerKeepsExistingClientAfterPeerDeparts(t *testing.T)
 
 	closeA()
 	waitListenerClientCount(t, status, 0)
+}
+
+func TestServeOnceReleasesSocketBeforeDrainingConcurrentClients(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	if err := os.MkdirAll(".tmp", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	dir, err := os.MkdirTemp(".tmp", "handoff-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = os.RemoveAll(dir)
+	})
+	sock := filepath.Join(dir, "d.sock")
+
+	status := NewStatusBroker()
+	broker := yield_policy.NewBrokerWithTimeout(5 * time.Second)
+	type serveResult struct {
+		yielded bool
+		err     error
+	}
+	serveResultCh := make(chan serveResult, 1)
+	go func() {
+		yielded, err := (&Controller{}).serveOnce(
+			ctx,
+			logrus.NewEntry(logrus.New()),
+			srpc.InvokerFunc(func(string, string, srpc.Stream) (bool, error) {
+				return false, nil
+			}),
+			sock,
+			broker,
+			status,
+		)
+		serveResultCh <- serveResult{yielded: yielded, err: err}
+	}()
+
+	waitListenerListening(t, status)
+	watchingClient, err := net.Dial("unix", sock)
+	if err != nil {
+		t.Fatalf("dial persistent client: %v", err)
+	}
+	defer watchingClient.Close()
+	waitListenerClientCount(t, status, 1)
+
+	takeoverResult := make(chan error, 1)
+	go func() {
+		takeoverResult <- listener_control.TakeoverSocket(
+			ctx,
+			logrus.NewEntry(logrus.New()),
+			sock,
+		)
+	}()
+	allowListenerTakeover(t, broker)
+
+	select {
+	case err := <-takeoverResult:
+		if err != nil {
+			t.Fatalf("takeover: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("takeover did not observe socket release")
+	}
+	select {
+	case result := <-serveResultCh:
+		if result.err != nil {
+			t.Fatalf("serve once: %v", result.err)
+		}
+		if !result.yielded {
+			t.Fatal("serve once did not report a granted yield")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("listener did not drain clients after takeover acknowledgement")
+	}
+}
+
+func allowListenerTakeover(t *testing.T, broker *yield_policy.Broker) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	for {
+		prompts, waitCh := broker.SnapshotPrompts()
+		if len(prompts) != 0 {
+			if err := broker.ResolvePrompt(prompts[0].ID, true); err != nil {
+				t.Fatalf("allow takeover: %v", err)
+			}
+			return
+		}
+		select {
+		case <-waitCh:
+		case <-ctx.Done():
+			t.Fatal("takeover prompt did not arrive")
+		}
+	}
+}
+
+func waitListenerListening(t *testing.T, status *StatusBroker) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	for {
+		snapshot, waitCh := status.Snapshot()
+		if snapshot.Listening {
+			return
+		}
+		select {
+		case <-waitCh:
+		case <-ctx.Done():
+			t.Fatal("listener did not start")
+		}
+	}
 }
 
 func dialListenerTestClient(t *testing.T, address string) (srpc.Client, func()) {
