@@ -29,6 +29,8 @@ type CliBus interface {
 	GetWorldState() world.WorldState
 	// GetPluginHostObjectKey returns the plugin host object key.
 	GetPluginHostObjectKey() string
+	// AddRelease registers cleanup to run after the bus-owned resources.
+	AddRelease(func())
 	// Release releases all resources held by the bus.
 	Release()
 }

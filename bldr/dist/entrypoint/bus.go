@@ -74,6 +74,8 @@ type DistBus struct {
 	worldState world.WorldState
 	// rel is the release func
 	rel func()
+	// addRelease appends cleanup after bus-owned resources.
+	addRelease func(func())
 }
 
 // BuildDistBus builds the storage and bus for the distribution entrypoint.
@@ -103,6 +105,11 @@ func BuildDistBus(
 			}
 		}
 	}
+	addRelease := func(release func()) {
+		if release != nil {
+			rels = append(rels, release)
+		}
+	}
 
 	b, sr, err := NewCoreBus(ctx, le)
 	if err != nil {
@@ -120,6 +127,7 @@ func BuildDistBus(
 		platformID: platformID,
 		stateRoot:  stateRoot,
 		rel:        rel,
+		addRelease: addRelease,
 	}
 
 	// add the configset controller
@@ -516,6 +524,12 @@ func (d *DistBus) GetWorldState() world.WorldState {
 // GetPluginHostObjectKey returns the object key for the plugin host.
 func (d *DistBus) GetPluginHostObjectKey() string {
 	return d.pluginHostObjectKey
+}
+
+// AddRelease registers cleanup to run after the bus-owned resources.
+// Callers register cleanup before Release begins.
+func (d *DistBus) AddRelease(release func()) {
+	d.addRelease(release)
 }
 
 // Release releases the devtool bus.

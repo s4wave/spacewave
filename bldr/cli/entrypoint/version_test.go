@@ -2,11 +2,11 @@ package cli_entrypoint
 
 import (
 	"bytes"
-	"encoding/json"
 	"runtime"
 	"testing"
 
 	"github.com/aperturerobotics/cli"
+	"github.com/aperturerobotics/fastjson"
 )
 
 func TestStandaloneVersionCommandReportsUnmanagedIdentity(t *testing.T) {
@@ -18,21 +18,25 @@ func TestStandaloneVersionCommandReportsUnmanagedIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var got standaloneVersionIdentity
-	if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+	var parser fastjson.Parser
+	got, err := parser.ParseBytes(buf.Bytes())
+	if err != nil {
 		t.Fatal(err)
 	}
-	if got.ProjectID != "spacewave" {
-		t.Fatalf("project = %q, want spacewave", got.ProjectID)
+	if projectID := string(got.GetStringBytes("projectId")); projectID != "spacewave" {
+		t.Fatalf("project = %q, want spacewave", projectID)
 	}
-	if got.EntrypointRole != "standalone" {
-		t.Fatalf("entrypoint role = %q, want standalone", got.EntrypointRole)
+	if role := string(got.GetStringBytes("entrypointRole")); role != "standalone" {
+		t.Fatalf("entrypoint role = %q, want standalone", role)
 	}
 	wantPlatform := "desktop/" + runtime.GOOS + "/" + runtime.GOARCH
-	if got.PlatformID != wantPlatform {
-		t.Fatalf("platform = %q, want %q", got.PlatformID, wantPlatform)
+	if platformID := string(got.GetStringBytes("platformId")); platformID != wantPlatform {
+		t.Fatalf("platform = %q, want %q", platformID, wantPlatform)
 	}
-	if got.Manifest.ManifestID != "" || got.Manifest.Rev != 0 {
-		t.Fatalf("manifest identity = %#v, want empty", got.Manifest)
+	if manifestID := string(got.GetStringBytes("manifest", "manifestId")); manifestID != "" {
+		t.Fatalf("manifest ID = %q, want empty", manifestID)
+	}
+	if manifestRev := got.GetUint64("manifest", "rev"); manifestRev != 0 {
+		t.Fatalf("manifest rev = %d, want 0", manifestRev)
 	}
 }

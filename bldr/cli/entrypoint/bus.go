@@ -4,6 +4,7 @@ package cli_entrypoint
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -46,6 +47,7 @@ type CliBusImpl struct {
 	worldEngine   world.Engine
 	worldState    world.WorldState
 	rels          []func()
+	releaseOnce   sync.Once
 }
 
 // _ is a type assertion
@@ -244,9 +246,19 @@ func (c *CliBusImpl) GetPluginHostObjectKey() string {
 	return ""
 }
 
+// AddRelease registers cleanup to run after the bus-owned resources.
+// Callers register cleanup before Release begins.
+func (c *CliBusImpl) AddRelease(release func()) {
+	if release != nil {
+		c.rels = append(c.rels, release)
+	}
+}
+
 // Release releases all resources held by the bus.
 func (c *CliBusImpl) Release() {
-	for _, rel := range c.rels {
-		rel()
-	}
+	c.releaseOnce.Do(func() {
+		for _, rel := range c.rels {
+			rel()
+		}
+	})
 }

@@ -96,18 +96,36 @@ func runServeCommand(
 	}()
 
 	sockPath := filepath.Join(resolved, socketName)
+	handoffBroker := resource_listener.GetProcessYieldBroker()
+	handoffBroker.BeginHandoff("spacewave serve", sockPath)
+	defer handoffBroker.Reclaim()
+
+	statePathLease, err := prepareDaemonRuntime(ctx, nil, resolved, takeover)
+	if err != nil {
+		return err
+	}
+	leaseOwned := true
+	defer func() {
+		if leaseOwned {
+			if err := statePathLease.release(); err != nil && retErr == nil {
+				retErr = errors.Wrap(err, "release writable state path lease")
+			}
+		}
+	}()
+
 	cliBus := getBus()
 	if cliBus == nil {
 		return errors.New("bus not initialized")
 	}
 	le := cliBus.GetLogger()
+	cliBus.AddRelease(func() {
+		if err := statePathLease.release(); err != nil {
+			le.WithError(err).Error("failed to release writable state path lease")
+		}
+	})
+	leaseOwned = false
 	serveCtx, serveCancel := context.WithCancel(ctx)
-	handoffBroker := resource_listener.GetProcessYieldBroker()
-	handoffBroker.BeginHandoff("spacewave serve", sockPath)
-	defer func() {
-		serveCancel()
-		handoffBroker.Reclaim()
-	}()
+	defer serveCancel()
 	releasePluginRuntime, err := startDaemonPluginRuntime(serveCtx, resolved, cliBus)
 	if err != nil {
 		return err
@@ -137,15 +155,6 @@ func runServeCommand(
 	startDevicePolicyCapabilityProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker, devicePolicy)
 	releaseDeviceRemoteShell := terminal_remoteshell.StartHandler(serveCtx, le, cliBus.GetBus(), devicePolicy)
 	defer releaseDeviceRemoteShell()
-
-	if takeover {
-		if err := takeoverDaemonSocket(ctx, le, sockPath); err != nil {
-			return err
-		}
-	}
-	if err := os.MkdirAll(resolved, 0o755); err != nil {
-		return err
-	}
 
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sockPath, Net: "unix"})
 	if err != nil {

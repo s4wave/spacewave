@@ -114,6 +114,16 @@ type desktopLikeListener struct {
 // its socket file (matching the controller's defer cleanup).
 func startDesktopLikeListener(t *testing.T, ctx context.Context, sock string) *desktopLikeListener {
 	t.Helper()
+	return startDesktopLikeListenerWithShutdown(t, ctx, sock, nil)
+}
+
+func startDesktopLikeListenerWithShutdown(
+	t *testing.T,
+	ctx context.Context,
+	sock string,
+	beforeShutdown func(),
+) *desktopLikeListener {
+	t.Helper()
 
 	lis, err := net.Listen("unix", sock)
 	if err != nil {
@@ -123,6 +133,9 @@ func startDesktopLikeListener(t *testing.T, ctx context.Context, sock string) *d
 	serveCtx, serveCancel := context.WithCancel(ctx)
 	mux := srpc.NewMux()
 	if err := mux.Register(newDaemonControlHandler(func() {
+		if beforeShutdown != nil {
+			beforeShutdown()
+		}
 		serveCancel()
 		lis.Close()
 	})); err != nil {
