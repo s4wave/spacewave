@@ -52,7 +52,6 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 		res = forge_value.NewResultWithSuccess()
 	}
 
-	// COMPLETE w/ success=true
 	completeTx, err := c.busEngine.NewTransaction(ctx, true)
 	if err != nil {
 		return err
