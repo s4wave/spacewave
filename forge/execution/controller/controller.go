@@ -162,20 +162,9 @@ func (c *Controller) ProcessState(
 		return true, nil
 	}
 
-	// get latest root ref
-	objRef, _, err := obj.GetRootRef(ctx)
-	if err != nil {
-		if err == world.ErrObjectNotFound {
-			le.Debug("object does not exist, waiting")
-			c.execRoutine.SetState(nil)
-			return true, nil
-		}
-		return false, err
-	}
-
 	// unmarshal Execution state + build read cursor
 	var exState *forge_execution.Execution
-	_, err = world.AccessObject(ctx, ws.AccessWorldState, objRef, func(bcs *block.Cursor) error {
+	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
 		exState, berr = forge_execution.UnmarshalExecution(ctx, bcs)
 		return berr
