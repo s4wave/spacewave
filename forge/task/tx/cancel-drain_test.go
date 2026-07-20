@@ -256,6 +256,37 @@ func TestTaskStartDoesNotCreateSuccessorOverLivePass(t *testing.T) {
 	}
 }
 
+func TestCreateExecSpecsPreservesCancelingExecution(t *testing.T) {
+	f := newCustodyFixture(t)
+	passKey := "test/pass/preserve-canceling"
+	executionKey := f.createRunningPass(t, passKey, 1)
+	f.cancelExecution(t, executionKey)
+
+	createTx := pass_tx.NewTxCreateExecSpecs(passKey)
+	createTx.TxCreateExecSpecs.ExecSpecs = []*pass_tx.ExecSpec{{
+		PeerId: f.peerID.String(),
+	}}
+	if _, _, err := f.tb.WorldState.ApplyWorldOp(
+		f.ctx,
+		createTx,
+		f.peerID,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	execution, _, err := forge_execution.LookupExecution(
+		f.ctx,
+		f.tb.WorldState,
+		executionKey,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state := execution.GetExecutionState(); state != forge_execution.State_ExecutionState_CANCELING {
+		t.Fatalf("execution state = %s, want preserved CANCELING", state)
+	}
+}
+
 func TestCancelReplayRecoversAfterRestart(t *testing.T) {
 	f := newCustodyFixture(t)
 	passKey := "test/pass/restart-cancel"
