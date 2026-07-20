@@ -56,6 +56,7 @@ func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
 		peerID,
 		&forge_target.InputWorld{EngineId: tb.EngineID},
 	)
+	observerConfig.ClaimId = "different-owner"
 	obj, err := world.MustGetObject(ctx, tb.WorldState, objKey)
 	if err != nil {
 		t.Fatal(err)

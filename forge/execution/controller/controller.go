@@ -73,7 +73,7 @@ func NewController(
 	uniqueID := conf.BuildUniqueID()
 	claimID := conf.GetClaimId()
 	if claimID == "" {
-		claimID = newClaimID()
+		claimID = uniqueID
 	}
 	c := &Controller{
 		le:       le,

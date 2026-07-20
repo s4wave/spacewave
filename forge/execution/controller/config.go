@@ -22,14 +22,15 @@ func NewConfig(engineID, objectKey string, peerID peer.ID, inpWorld *forge_targe
 	if peerID != "" {
 		peerIDStr = peerID.String()
 	}
-	return &Config{
+	conf := &Config{
 		EngineId:  engineID,
 		ObjectKey: objectKey,
 		PeerId:    peerIDStr,
-		ClaimId:   newClaimID(),
 
 		InputWorld: inpWorld,
 	}
+	conf.ClaimId = conf.BuildUniqueID()
+	return conf
 }
 
 // Validate validates the configuration.
@@ -50,10 +51,13 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// BuildUniqueID builds the unique id for the execution instance.
+// BuildUniqueID builds the durable execution owner ID.
 func (c *Config) BuildUniqueID() string {
 	h := blake3.NewDeriveKey("forge/execution/controller: config: unique id")
+	_, _ = h.WriteString(c.GetEngineId())
+	_, _ = h.WriteString("\x00")
 	_, _ = h.WriteString(c.GetPeerId())
+	_, _ = h.WriteString("\x00")
 	_, _ = h.WriteString(c.GetObjectKey())
 	hsum := h.Sum(nil)
 	var id uuid.UUID
@@ -85,10 +89,6 @@ func (c *Config) GetConfigID() string {
 // EqualsConfig checks if the other config is equal.
 func (c *Config) EqualsConfig(other config.Config) bool {
 	return config.EqualsConfig(c, other)
-}
-
-func newClaimID() string {
-	return uuid.NewV4().String()
 }
 
 // _ is a type assertion

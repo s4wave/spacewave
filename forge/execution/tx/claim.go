@@ -5,6 +5,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// implicitClaim fences legacy transaction callers to the current process. It
+// must not become a durable controller owner ID that survives reconstruction.
 var implicitClaim = &forge_execution.Claim{
 	ClaimId: uuid.NewV4().String(),
 	Epoch:   1,
