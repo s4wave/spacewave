@@ -147,7 +147,8 @@ export interface Task {
    * ValueSet is the set of inputs and outputs for the Task.
    * The output set is updated when transitioning from CHECKING -> COMPLETE.
    * Can be initially empty.
-   * Task transitions to PENDING when inputs are changed.
+   * If inputs change while a Pass is live, the Task remains RUNNING until the
+   * Pass completes canceled, then transitions to PENDING.
    *
    * @generated from field: forge.target.ValueSet value_set = 8;
    */

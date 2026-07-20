@@ -57,7 +57,6 @@ func (t *TxUpdateWithPassState) ExecuteTx(
 		return err
 	}
 
-	// If complete: transitions to CHECKING state.
 	currPassState := currPass.GetPassState()
 	switch currPassState {
 	case forge_pass.State_PassState_UNKNOWN:

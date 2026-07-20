@@ -44,8 +44,8 @@ pub struct TxRetry {
     pub next_inputs: ::core::option::Option<super::super::forge::target::ValueSet>,
 }
 /// TxUpdateInputs updates the Task with the latest Target and Inputs.
-/// If the value is identical: does nothing.
-/// If changed: transitions to PENDING state and cancels any ongoing Pass.
+/// If changed outside a live Pass, transitions to PENDING.
+/// If a Pass is live, requests cancellation and stays RUNNING until drain.
 ///
 /// TxType: TxType_UPDATE_INPUTS
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -62,9 +62,9 @@ pub struct TxUpdateInputs {
     #[prost(message, optional, tag="3")]
     pub value_set: ::core::option::Option<super::super::forge::target::ValueSet>,
 }
-/// TxStart starts the execution of the Task by creating a Pass.
-/// Transitions from PENDING, RETRY, or COMPLETE to RUNNING.
-/// Cancels any existing Pass.
+/// TxStart starts a Task by creating a Pass.
+/// Transitions PENDING to RUNNING only after every predecessor Pass is complete.
+/// Requests cancellation without creating a successor while a predecessor lives.
 ///
 /// TxType: TxType_START
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -73,9 +73,9 @@ pub struct TxStart {
     #[prost(bool, tag="1")]
     pub assign_self: bool,
 }
-/// TxUpdateWithPassState updates the state of the Task based on the current Pass.
-/// If none or not found: transitions to PENDING.
-/// If complete or failed: transitions to CHECKING state.
+/// TxUpdateWithPassState updates the Task from the current Pass.
+/// Canceled completion transitions to PENDING; other completion to CHECKING.
+/// A nonterminal Pass leaves the Task state unchanged.
 /// TxType: TxType_UPDATE_WITH_PASS_STATE
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct TxUpdateWithPassState {
@@ -103,15 +103,15 @@ pub struct TxComplete {
 pub enum TxType {
     Invalid = 0,
     /// TxType_UPDATE_INPUTS updates the ValueSet inputs and target.
-    /// If the values are identical: does nothing.
-    /// If changed: transitions to PENDING state and cancels any ongoing Pass.
+    /// If changed outside a live Pass, transitions to PENDING.
+    /// If a Pass is live, requests cancellation and stays RUNNING until drain.
     UpdateInputs = 1,
-    /// TxType_START marks the pass as running.
-    /// Transitions to state RUNNING from PENDING.
+    /// TxType_START starts the Task when every predecessor Pass is complete.
+    /// Transitions PENDING to RUNNING and creates the next Pass.
     Start = 2,
-    /// TxType_UPDATE_WITH_PASS_STATE updates the state of the Task based the Pass.
-    /// If none or missing: can transition to PENDING.
-    /// If failed: can transition to COMPLETE or RETRY.
+    /// TxType_UPDATE_WITH_PASS_STATE updates the Task from the current Pass.
+    /// Canceled completion transitions to PENDING; other completion to CHECKING.
+    /// A nonterminal Pass leaves the Task state unchanged.
     UpdateWithPassState = 3,
     /// TxType_COMPLETE sets the result of the Task.
     /// If failed, can transition from any state.
