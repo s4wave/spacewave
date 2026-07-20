@@ -13,7 +13,12 @@ import (
 
 // NewTxSetOutputs constructs a new SET_OUTPUTS transaction.
 // clones the ValueSet when building the Tx object.
-func NewTxSetOutputs(outputs forge_value.ValueSlice, clearOld bool) (*Tx, error) {
+func NewTxSetOutputs(
+	outputs forge_value.ValueSlice,
+	clearOld bool,
+	claims ...*forge_execution.Claim,
+) (*Tx, error) {
+	claim := claimOrImplicit(claims)
 	outSet := make(forge_value.ValueSlice, len(outputs))
 	for i, outp := range outputs {
 		if outp == nil {
@@ -28,8 +33,10 @@ func NewTxSetOutputs(outputs forge_value.ValueSlice, clearOld bool) (*Tx, error)
 	return &Tx{
 		TxType: TxType_TxType_SET_OUTPUTS,
 		TxSetOutputs: &TxSetOutputs{
-			ClearOld: clearOld,
-			Outputs:  outSet,
+			ClearOld:   clearOld,
+			Outputs:    outSet,
+			ClaimId:    claim.GetClaimId(),
+			ClaimEpoch: claim.GetEpoch(),
 		},
 	}, nil
 }
@@ -51,6 +58,12 @@ func (t *TxSetOutputs) Validate() error {
 	if err := outputs.Validate(false, true, true); err != nil {
 		return err
 	}
+	if t.GetClaimId() == "" {
+		return errors.New("claim_id cannot be empty")
+	}
+	if t.GetClaimEpoch() == 0 {
+		return &StaleClaimEpochError{}
+	}
 	return nil
 }
 
@@ -66,6 +79,9 @@ func (t *TxSetOutputs) ExecuteTx(
 		if err := root.CheckPeerID(sender); err != nil {
 			return err
 		}
+	}
+	if err := checkClaim(root.GetClaim(), t.GetClaimId(), t.GetClaimEpoch()); err != nil {
+		return err
 	}
 
 	// The executor may persist final custody or continuation output while

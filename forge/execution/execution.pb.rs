@@ -30,6 +30,19 @@ pub struct Execution {
     /// Appended while the execution is RUNNING or CANCELING.
     #[prost(message, repeated, tag="7")]
     pub log_entries: ::prost::alloc::vec::Vec<LogEntry>,
+    /// Claim identifies the controller instance authorized to run and write back.
+    #[prost(message, optional, tag="8")]
+    pub claim: ::core::option::Option<Claim>,
+}
+/// Claim fences side effects and write-back for one execution owner.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Claim {
+    /// ClaimId is the opaque identifier of the controller instance.
+    #[prost(string, tag="1")]
+    pub claim_id: ::prost::alloc::string::String,
+    /// Epoch is the monotonic fencing token for this claim.
+    #[prost(uint64, tag="2")]
+    pub epoch: u64,
 }
 /// LogEntry is a single log line from an execution.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

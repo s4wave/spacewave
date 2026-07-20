@@ -10,7 +10,7 @@ message Tx {
   TxType tx_type = 1;
 
   // TxStart contains the start transaction tx.
-  // TxType_INVALID
+  // TxType_START
   TxStart tx_start = 2;
   // TxSetOutputs contains the set outputs tx.
   // TxType_SET_OUTPUTS
@@ -24,6 +24,9 @@ message Tx {
   // TxCancel contains the cancel tx.
   // TxType_CANCEL
   TxCancel tx_cancel = 6;
+  // TxReclaim transfers a running execution after owner liveness is resolved.
+  // TxType_RECLAIM
+  TxReclaim tx_reclaim = 7;
 }
 
 // TxType indicates the kind of transaction.
@@ -39,16 +42,20 @@ enum TxType {
   TxType_APPEND_LOG = 4;
   // TxType_CANCEL requests cancellation and custody drain.
   TxType_CANCEL = 5;
+  // TxType_RECLAIM transfers a running execution to a new claim owner.
+  TxType_RECLAIM = 6;
 }
 
 // TxStart starts the execution with a peer id.
-// Execution must be in the PENDING state.
+// Execution must be PENDING, or active with the same claim.
 // TxType: TxType_START
 message TxStart {
   // PeerId is the peer identifier to set as the executor.
   // Must be the same as the sender of the transaction.
   // Must match peer_id on the Execution if it's not empty.
   string peer_id = 1;
+  // ClaimId is the opaque identifier of the claiming controller instance.
+  string claim_id = 2;
 }
 
 // TxSetOutputs updates the value of one or more execution outputs.
@@ -60,20 +67,41 @@ message TxSetOutputs {
   repeated .forge.value.Value outputs = 1;
   // ClearOld indicates to clear all old output values before setting.
   bool clear_old = 2;
+  // ClaimEpoch is the fencing token authorizing this write.
+  uint64 claim_epoch = 3;
+  // ClaimId identifies the controller instance carrying the epoch.
+  string claim_id = 4;
 }
 
 // TxComplete completes the execution by setting the result.
-// Execution must be RUNNING, or CANCELING with a canceled result.
+// Execution must be RUNNING, CANCELING with a canceled result, or COMPLETE
+// with the same claim.
 // Sender must be the peer_id specified on the Execution.
 // TxType: TxType_COMPLETE
 message TxComplete {
   // Result is information about the outcome of a completed execution.
   .forge.value.Result result = 1;
+  // ClaimEpoch is the fencing token authorizing this completion.
+  uint64 claim_epoch = 2;
+  // ClaimId identifies the controller instance carrying the epoch.
+  string claim_id = 3;
 }
 
 // TxCancel requests cancellation of a running execution.
 // TxType: TxType_CANCEL
 message TxCancel {
+}
+
+// TxReclaim transfers a RUNNING execution to a new controller instance.
+// The current owner must already be known unavailable by the caller.
+// TxType: TxType_RECLAIM
+message TxReclaim {
+  // PeerId is the peer identifier to set as the executor.
+  string peer_id = 1;
+  // ClaimId is the opaque identifier of the new controller instance.
+  string claim_id = 2;
+  // ExpectedClaimEpoch prevents racing transfers from both succeeding.
+  uint64 expected_claim_epoch = 3;
 }
 
 // TxAppendLog appends log entries to the execution.
@@ -83,4 +111,8 @@ message TxCancel {
 message TxAppendLog {
   // Entries is the set of log entries to append.
   repeated .forge.execution.LogEntry entries = 1;
+  // ClaimEpoch is the fencing token authorizing this write.
+  uint64 claim_epoch = 2;
+  // ClaimId identifies the controller instance carrying the epoch.
+  string claim_id = 3;
 }

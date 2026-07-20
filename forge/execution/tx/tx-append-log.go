@@ -11,7 +11,11 @@ import (
 
 // NewTxAppendLog constructs an APPEND_LOG transaction.
 // Clones the entries when building the Tx object.
-func NewTxAppendLog(entries []*forge_execution.LogEntry) (*Tx, error) {
+func NewTxAppendLog(
+	entries []*forge_execution.LogEntry,
+	claims ...*forge_execution.Claim,
+) (*Tx, error) {
+	claim := claimOrImplicit(claims)
 	if len(entries) == 0 {
 		return nil, errors.New("entries cannot be empty")
 	}
@@ -25,7 +29,9 @@ func NewTxAppendLog(entries []*forge_execution.LogEntry) (*Tx, error) {
 	return &Tx{
 		TxType: TxType_TxType_APPEND_LOG,
 		TxAppendLog: &TxAppendLog{
-			Entries: cloned,
+			Entries:    cloned,
+			ClaimId:    claim.GetClaimId(),
+			ClaimEpoch: claim.GetEpoch(),
 		},
 	}, nil
 }
@@ -39,6 +45,12 @@ func (t *TxAppendLog) GetTxType() TxType {
 func (t *TxAppendLog) Validate() error {
 	if len(t.GetEntries()) == 0 {
 		return errors.New("entries cannot be empty")
+	}
+	if t.GetClaimId() == "" {
+		return errors.New("claim_id cannot be empty")
+	}
+	if t.GetClaimEpoch() == 0 {
+		return &StaleClaimEpochError{}
 	}
 	return nil
 }
@@ -55,6 +67,9 @@ func (t *TxAppendLog) ExecuteTx(
 		if err := root.CheckPeerID(sender); err != nil {
 			return err
 		}
+	}
+	if err := checkClaim(root.GetClaim(), t.GetClaimId(), t.GetClaimEpoch()); err != nil {
+		return err
 	}
 
 	// The executor may record cleanup progress while draining.

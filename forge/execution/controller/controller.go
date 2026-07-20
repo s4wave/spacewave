@@ -44,6 +44,8 @@ type Controller struct {
 	conf *Config
 	// uniqueID is the derived unique id
 	uniqueID string
+	// claimID identifies this controller instance across Execute retries
+	claimID string
 	// peerID is the parsed peer id
 	peerID peer.ID
 	// busEngine is the bus world engine handle
@@ -69,12 +71,17 @@ func NewController(
 ) *Controller {
 	peerID, _ := conf.ParsePeerID()
 	uniqueID := conf.BuildUniqueID()
+	claimID := conf.GetClaimId()
+	if claimID == "" {
+		claimID = newClaimID()
+	}
 	c := &Controller{
 		le:       le,
 		bus:      bus,
 		conf:     conf,
 		uniqueID: uniqueID,
 		peerID:   peerID,
+		claimID:  claimID,
 		cancelCh: make(chan struct{}),
 	}
 	c.busEngine = world.NewBusEngine(nil, bus, conf.GetEngineId())
@@ -222,19 +229,28 @@ func (c *Controller) ProcessState(
 	}
 	defer peerRef.Release()
 
-	// promote pending -> running
-	if currState == forge_execution.State_ExecutionState_PENDING {
+	// Claim pending executions and adopt active pre-claim executions without
+	// starting side effects until this controller observes its durable claim.
+	if currState == forge_execution.State_ExecutionState_PENDING ||
+		exState.GetClaim() == nil {
 		c.execRoutine.SetState(nil)
-		le.Debugf(
-			"marking execution as running with peer id: %s",
-			peerID.String(),
-		)
-		txd := execution_transaction.NewTxStart(peerID)
+		le.Debugf("claiming execution with peer id: %s", peerID.String())
+		txd := execution_transaction.NewTxStart(peerID, c.claimID)
 		_, _, err = obj.ApplyObjectOp(ctx, txd, peerID)
 		if err != nil {
+			var heldErr *execution_transaction.ClaimHeldError
+			if errors.As(err, &heldErr) {
+				return true, nil
+			}
 			return false, err
 		}
-		// the control loop will see the change & run ProcessState again
+		// The control loop observes the durable claim before starting work.
+		return true, nil
+	}
+
+	if exState.GetClaim().GetClaimId() != c.claimID {
+		le.Debug("observing execution owned by another controller")
+		c.execRoutine.SetState(nil)
 		return true, nil
 	}
 

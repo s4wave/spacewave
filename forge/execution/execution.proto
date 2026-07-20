@@ -28,6 +28,16 @@ message Execution {
   // LogEntries contains log output from the execution.
   // Appended while the execution is RUNNING or CANCELING.
   repeated LogEntry log_entries = 7;
+  // Claim identifies the controller instance authorized to run and write back.
+  Claim claim = 8;
+}
+
+// Claim fences side effects and write-back for one execution owner.
+message Claim {
+  // ClaimId is the opaque identifier of the controller instance.
+  string claim_id = 1;
+  // Epoch is the monotonic fencing token for this claim.
+  uint64 epoch = 2;
 }
 
 // LogEntry is a single log line from an execution.

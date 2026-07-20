@@ -11,11 +11,16 @@ import (
 
 func TestTxStartAdoptsRunningExecution(t *testing.T) {
 	peerID := peer.ID("12D3KooWGVhTGboSk5zPHWcnuw66ysJ29F8r9RYu75qUTxZ83JL8")
+	claimID := "claim-1"
 	root := &forge_execution.Execution{
 		ExecutionState: forge_execution.State_ExecutionState_RUNNING,
+		Claim: &forge_execution.Claim{
+			ClaimId: claimID,
+			Epoch:   1,
+		},
 	}
 
-	err := NewTxStart(peerID).GetTxStart().ExecuteTx(
+	err := NewTxStart(peerID, claimID).GetTxStart().ExecuteTx(
 		context.Background(), peerID, nil, root,
 	)
 	if err != nil {
@@ -30,9 +35,16 @@ func TestTxCompleteAdoptsCompleteExecution(t *testing.T) {
 	root := &forge_execution.Execution{
 		ExecutionState: forge_execution.State_ExecutionState_COMPLETE,
 		Result:         forge_value.NewResultWithSuccess(),
+		Claim: &forge_execution.Claim{
+			ClaimId: "claim-1",
+			Epoch:   1,
+		},
 	}
 
-	err := NewTxComplete(forge_value.NewResultWithSuccess()).GetTxComplete().ExecuteTx(
+	err := NewTxComplete(
+		forge_value.NewResultWithSuccess(),
+		&forge_execution.Claim{ClaimId: "claim-1", Epoch: 1},
+	).GetTxComplete().ExecuteTx(
 		context.Background(), peer.ID("12D3KooWGVhTGboSk5zPHWcnuw66ysJ29F8r9RYu75qUTxZ83JL8"), nil, root,
 	)
 	if err != nil {

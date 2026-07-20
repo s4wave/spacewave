@@ -11,34 +11,30 @@ import (
 	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
-// NewTxStart constructs a new START transaction.
-func NewTxStart(peerID peer.ID, claimIDs ...string) *Tx {
-	claimID := implicitClaim.GetClaimId()
-	if len(claimIDs) != 0 {
-		claimID = claimIDs[0]
-	}
+// NewTxReclaim constructs a RECLAIM transaction.
+func NewTxReclaim(peerID peer.ID, claimID string, expectedClaimEpoch uint64) *Tx {
 	return &Tx{
-		TxType: TxType_TxType_START,
-		TxStart: &TxStart{
-			PeerId:  peerID.String(),
-			ClaimId: claimID,
+		TxType: TxType_TxType_RECLAIM,
+		TxReclaim: &TxReclaim{
+			PeerId:             peerID.String(),
+			ClaimId:            claimID,
+			ExpectedClaimEpoch: expectedClaimEpoch,
 		},
 	}
 }
 
-// NewTxStartTxn constructs a new START transaction.
-func NewTxStartTxn() Transaction {
-	return &TxStart{}
+// NewTxReclaimTxn constructs a new RECLAIM transaction.
+func NewTxReclaimTxn() Transaction {
+	return &TxReclaim{}
 }
 
 // GetTxType returns the type of transaction this is.
-func (t *TxStart) GetTxType() TxType {
-	return TxType_TxType_START
+func (t *TxReclaim) GetTxType() TxType {
+	return TxType_TxType_RECLAIM
 }
 
 // Validate performs a cursory check of the transaction.
-// Note: this should not fetch network data.
-func (t *TxStart) Validate() error {
+func (t *TxReclaim) Validate() error {
 	if len(t.GetPeerId()) == 0 {
 		return peer.ErrEmptyPeerID
 	}
@@ -48,11 +44,14 @@ func (t *TxStart) Validate() error {
 	if t.GetClaimId() == "" {
 		return errors.New("claim_id cannot be empty")
 	}
+	if t.GetExpectedClaimEpoch() == 0 {
+		return errors.New("expected claim epoch cannot be zero")
+	}
 	return nil
 }
 
 // ExecuteTx executes the transaction against the execution instance.
-func (t *TxStart) ExecuteTx(
+func (t *TxReclaim) ExecuteTx(
 	ctx context.Context,
 	sender peer.ID,
 	exCursor *block.Cursor,
@@ -74,30 +73,17 @@ func (t *TxStart) ExecuteTx(
 	if err := root.CheckPeerID(txPeerID); err != nil {
 		return err
 	}
-	if t.GetClaimId() == "" {
-		return errors.New("claim_id cannot be empty")
-	}
-
-	execState := root.GetExecutionState()
-	switch execState {
-	case forge_execution.State_ExecutionState_PENDING:
-	case forge_execution.State_ExecutionState_RUNNING,
-		forge_execution.State_ExecutionState_CANCELING:
-		claim := root.GetClaim()
-		if claim != nil {
-			if claim.GetClaimId() != t.GetClaimId() {
-				return &ClaimHeldError{
-					ClaimID: claim.GetClaimId(),
-					Epoch:   claim.GetEpoch(),
-				}
-			}
-			return nil
-		}
-	default:
+	if root.GetExecutionState() != forge_execution.State_ExecutionState_RUNNING {
 		return errors.Wrapf(
 			forge_value.ErrUnknownState,
-			"%s", execState.String(),
+			"%s", root.GetExecutionState().String(),
 		)
+	}
+	if err := checkClaimEpoch(root.GetClaim().GetEpoch(), t.GetExpectedClaimEpoch()); err != nil {
+		return err
+	}
+	if root.GetClaim().GetClaimId() == t.GetClaimId() {
+		return errors.New("reclaim requires a new claim_id")
 	}
 
 	claimEpoch := root.GetClaim().GetEpoch() + 1
@@ -108,18 +94,14 @@ func (t *TxStart) ExecuteTx(
 		ClaimId: t.GetClaimId(),
 		Epoch:   claimEpoch,
 	}
-	if execState == forge_execution.State_ExecutionState_PENDING {
-		root.ExecutionState = forge_execution.State_ExecutionState_RUNNING
-	}
 	exCursor.SetBlock(root, true)
-
 	return root.Validate()
 }
 
 // ParsePeerID parses the peer ID field.
-func (t *TxStart) ParsePeerID() (peer.ID, error) {
+func (t *TxReclaim) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(t.GetPeerId())
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxStart)(nil))
+var _ Transaction = ((*TxReclaim)(nil))

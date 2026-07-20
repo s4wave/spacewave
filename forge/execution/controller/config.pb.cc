@@ -44,6 +44,9 @@ inline constexpr Config::Impl_::Impl_(
         resolve_controller_config_timeout_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        claim_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         input_world_{nullptr},
         allow_non_exec_controller_{false} {}
 
@@ -103,17 +106,19 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::execution::controller::Config, _impl_._has_bits_),
-        9, // hasbit index offset
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::execution::controller::Config, _impl_.engine_id_),
         PROTOBUF_FIELD_OFFSET(::execution::controller::Config, _impl_.object_key_),
         PROTOBUF_FIELD_OFFSET(::execution::controller::Config, _impl_.peer_id_),
         PROTOBUF_FIELD_OFFSET(::execution::controller::Config, _impl_.resolve_controller_config_timeout_),
         PROTOBUF_FIELD_OFFSET(::execution::controller::Config, _impl_.allow_non_exec_controller_),
         PROTOBUF_FIELD_OFFSET(::execution::controller::Config, _impl_.input_world_),
+        PROTOBUF_FIELD_OFFSET(::execution::controller::Config, _impl_.claim_id_),
         0,
         1,
         2,
         3,
+        6,
         5,
         4,
         0x081, // bitmap
@@ -128,7 +133,7 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::execution::controller::Config)},
-        {15, sizeof(::execution::controller::ExecConfig)},
+        {17, sizeof(::execution::controller::ExecConfig)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::execution::controller::_Config_default_instance_._instance,
@@ -141,14 +146,15 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2
     ".controller\032;github.com/s4wave/spacewave"
     "/forge/execution/execution.proto\0325github"
     ".com/s4wave/spacewave/forge/target/targe"
-    "t.proto\"\275\001\n\006Config\022\021\n\tengine_id\030\001 \001(\t\022\022\n"
+    "t.proto\"\317\001\n\006Config\022\021\n\tengine_id\030\001 \001(\t\022\022\n"
     "\nobject_key\030\002 \001(\t\022\017\n\007peer_id\030\003 \001(\t\022)\n!re"
     "solve_controller_config_timeout\030\004 \001(\t\022!\n"
     "\031allow_non_exec_controller\030\005 \001(\010\022-\n\013inpu"
-    "t_world\030\006 \001(\0132\030.forge.target.InputWorld\""
-    "a\n\nExecConfig\022-\n\texecution\030\001 \001(\0132\032.forge"
-    ".execution.Execution\022$\n\006target\030\002 \001(\0132\024.f"
-    "orge.target.Targetb\006proto3"
+    "t_world\030\006 \001(\0132\030.forge.target.InputWorld\022"
+    "\020\n\010claim_id\030\007 \001(\t\"a\n\nExecConfig\022-\n\texecu"
+    "tion\030\001 \001(\0132\032.forge.execution.Execution\022$"
+    "\n\006target\030\002 \001(\0132\024.forge.target.Targetb\006pr"
+    "oto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2fcontroller_2fconfig_2eproto_deps[2] = {
@@ -159,7 +165,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2ffo
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2fcontroller_2fconfig_2eproto = {
     false,
     false,
-    506,
+    524,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2fcontroller_2fconfig_2eproto,
     "github.com/s4wave/spacewave/forge/execution/controller/config.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2fcontroller_2fconfig_2eproto_once,
@@ -188,7 +194,7 @@ void Config::clear_input_world() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.input_world_ != nullptr) _impl_.input_world_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000020U);
 }
 Config::Config(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -208,7 +214,8 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         engine_id_(arena, from.engine_id_),
         object_key_(arena, from.object_key_),
         peer_id_(arena, from.peer_id_),
-        resolve_controller_config_timeout_(arena, from.resolve_controller_config_timeout_) {}
+        resolve_controller_config_timeout_(arena, from.resolve_controller_config_timeout_),
+        claim_id_(arena, from.claim_id_) {}
 
 Config::Config(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -224,7 +231,7 @@ Config::Config(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.input_world_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+  _impl_.input_world_ = (CheckHasBit(cached_has_bits, 0x00000020U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.input_world_)
                 : nullptr;
   _impl_.allow_non_exec_controller_ = from._impl_.allow_non_exec_controller_;
@@ -238,7 +245,8 @@ PROTOBUF_NDEBUG_INLINE Config::Impl_::Impl_(
         engine_id_(arena),
         object_key_(arena),
         peer_id_(arena),
-        resolve_controller_config_timeout_(arena) {}
+        resolve_controller_config_timeout_(arena),
+        claim_id_(arena) {}
 
 inline void Config::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -264,6 +272,7 @@ inline void Config::SharedDtor(MessageLite& self) {
   this_._impl_.object_key_.Destroy();
   this_._impl_.peer_id_.Destroy();
   this_._impl_.resolve_controller_config_timeout_.Destroy();
+  this_._impl_.claim_id_.Destroy();
   delete this_._impl_.input_world_;
   this_._impl_.~Impl_();
 }
@@ -311,16 +320,16 @@ Config::GetClassData() const {
   return Config_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 6, 1, 95, 2>
+const ::_pbi::TcParseTable<3, 7, 1, 103, 2>
 Config::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Config, _impl_._has_bits_),
     0, // no _extensions_
-    6, 56,  // max_field_number, fast_idx_mask
+    7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967232,  // skipmap
+    4294967168,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    6,  // num_field_entries
+    7,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Config_class_data_.base(),
@@ -348,14 +357,17 @@ Config::_table_ = {
      {34, 3, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.resolve_controller_config_timeout_)}},
     // bool allow_non_exec_controller = 5;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.allow_non_exec_controller_), 5>(),
-     {40, 5, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(Config, _impl_.allow_non_exec_controller_), 6>(),
+     {40, 6, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.allow_non_exec_controller_)}},
     // .forge.target.InputWorld input_world = 6;
     {::_pbi::TcParser::FastMtS1,
-     {50, 4, 0,
+     {50, 5, 0,
       PROTOBUF_FIELD_OFFSET(Config, _impl_.input_world_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // string claim_id = 7;
+    {::_pbi::TcParser::FastUS1,
+     {58, 4, 0,
+      PROTOBUF_FIELD_OFFSET(Config, _impl_.claim_id_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -368,20 +380,23 @@ Config::_table_ = {
     // string resolve_controller_config_timeout = 4;
     {PROTOBUF_FIELD_OFFSET(Config, _impl_.resolve_controller_config_timeout_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // bool allow_non_exec_controller = 5;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.allow_non_exec_controller_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.allow_non_exec_controller_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // .forge.target.InputWorld input_world = 6;
-    {PROTOBUF_FIELD_OFFSET(Config, _impl_.input_world_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.input_world_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // string claim_id = 7;
+    {PROTOBUF_FIELD_OFFSET(Config, _impl_.claim_id_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::forge::target::InputWorld>()},
   }},
   {{
-    "\33\11\12\7\41\0\0\0"
+    "\33\11\12\7\41\0\0\10"
     "execution.controller.Config"
     "engine_id"
     "object_key"
     "peer_id"
     "resolve_controller_config_timeout"
+    "claim_id"
   }},
 };
 PROTOBUF_NOINLINE void Config::Clear() {
@@ -392,7 +407,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.engine_id_.ClearNonDefaultToEmpty();
     }
@@ -406,6 +421,9 @@ PROTOBUF_NOINLINE void Config::Clear() {
       _impl_.resolve_controller_config_timeout_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.claim_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       ABSL_DCHECK(_impl_.input_world_ != nullptr);
       _impl_.input_world_->Clear();
     }
@@ -475,7 +493,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // bool allow_non_exec_controller = 5;
-  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (this_._internal_allow_non_exec_controller() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
@@ -484,10 +502,20 @@ PROTOBUF_NOINLINE void Config::Clear() {
   }
 
   // .forge.target.InputWorld input_world = 6;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         6, *this_._impl_.input_world_, this_._impl_.input_world_->GetCachedSize(), target,
         stream);
+  }
+
+  // string claim_id = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_claim_id().empty()) {
+      const ::std::string& _s = this_._internal_claim_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "execution.controller.Config.claim_id");
+      target = stream->WriteStringMaybeAliased(7, _s, target);
+    }
   }
 
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
@@ -515,7 +543,7 @@ PROTOBUF_NOINLINE void Config::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     // string engine_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_engine_id().empty()) {
@@ -544,13 +572,20 @@ PROTOBUF_NOINLINE void Config::Clear() {
                                         this_._internal_resolve_controller_config_timeout());
       }
     }
-    // .forge.target.InputWorld input_world = 6;
+    // string claim_id = 7;
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_claim_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_claim_id());
+      }
+    }
+    // .forge.target.InputWorld input_world = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.input_world_);
     }
     // bool allow_non_exec_controller = 5;
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (this_._internal_allow_non_exec_controller() != 0) {
         total_size += 2;
       }
@@ -575,7 +610,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_engine_id().empty()) {
         _this->_internal_set_engine_id(from._internal_engine_id());
@@ -613,6 +648,15 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_claim_id().empty()) {
+        _this->_internal_set_claim_id(from._internal_claim_id());
+      } else {
+        if (_this->_impl_.claim_id_.IsDefault()) {
+          _this->_internal_set_claim_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
       ABSL_DCHECK(from._impl_.input_world_ != nullptr);
       if (_this->_impl_.input_world_ == nullptr) {
         _this->_impl_.input_world_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.input_world_);
@@ -620,7 +664,7 @@ void Config::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.input_world_->MergeFrom(*from._impl_.input_world_);
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (from._internal_allow_non_exec_controller() != 0) {
         _this->_impl_.allow_non_exec_controller_ = from._impl_.allow_non_exec_controller_;
       }
@@ -649,6 +693,7 @@ void Config::InternalSwap(Config* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.peer_id_, &other->_impl_.peer_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.resolve_controller_config_timeout_, &other->_impl_.resolve_controller_config_timeout_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.claim_id_, &other->_impl_.claim_id_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(Config, _impl_.allow_non_exec_controller_)
       + sizeof(Config::_impl_.allow_non_exec_controller_)

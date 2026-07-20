@@ -23,11 +23,12 @@ import (
 )
 
 type custodyFixture struct {
-	ctx    context.Context
-	tb     *world_testbed.Testbed
-	peerID peer.ID
-	target *forge_target.Target
-	ts     *timestamp.Timestamp
+	ctx     context.Context
+	tb      *world_testbed.Testbed
+	peerID  peer.ID
+	claimID string
+	target  *forge_target.Target
+	ts      *timestamp.Timestamp
 }
 
 func newCustodyFixture(t *testing.T) *custodyFixture {
@@ -48,11 +49,12 @@ func newCustodyFixture(t *testing.T) *custodyFixture {
 		t.Fatal(err)
 	}
 	return &custodyFixture{
-		ctx:    ctx,
-		tb:     tb,
-		peerID: tb.Volume.GetPeerID(),
-		target: target,
-		ts:     timestamp.Now(),
+		ctx:     ctx,
+		tb:      tb,
+		peerID:  tb.Volume.GetPeerID(),
+		claimID: "task-custody-test",
+		target:  target,
+		ts:      timestamp.Now(),
 	}
 }
 
@@ -96,7 +98,7 @@ func (f *custodyFixture) startPassExecution(t *testing.T, passKey string) string
 	}
 	_, _, err = executionObject.ApplyObjectOp(
 		f.ctx,
-		execution_tx.NewTxStart(f.peerID),
+		execution_tx.NewTxStart(f.peerID, f.claimID),
 		f.peerID,
 	)
 	if err != nil {
@@ -166,14 +168,20 @@ func TestPassCancelWaitsForExecutionDrain(t *testing.T) {
 
 	if _, _, err := executionObject.ApplyObjectOp(
 		f.ctx,
-		execution_tx.NewTxComplete(forge_value.NewResultWithSuccess()),
+		execution_tx.NewTxComplete(
+			forge_value.NewResultWithSuccess(),
+			&forge_execution.Claim{ClaimId: f.claimID, Epoch: 1},
+		),
 		f.peerID,
 	); err == nil {
 		t.Fatal("canceling execution accepted a successful terminal result")
 	}
 	if _, _, err := executionObject.ApplyObjectOp(
 		f.ctx,
-		execution_tx.NewTxComplete(forge_value.NewResultWithCanceled(errors.New("drained"))),
+		execution_tx.NewTxComplete(
+			forge_value.NewResultWithCanceled(errors.New("drained")),
+			&forge_execution.Claim{ClaimId: f.claimID, Epoch: 1},
+		),
 		f.peerID,
 	); err != nil {
 		t.Fatal(err)
@@ -330,7 +338,10 @@ func TestTaskInputChangeRestartsOnlyAfterDrain(t *testing.T) {
 	executionObject := f.cancelExecution(t, executionKey)
 	if _, _, err := executionObject.ApplyObjectOp(
 		f.ctx,
-		execution_tx.NewTxComplete(forge_value.NewResultWithCanceled(errors.New("drained"))),
+		execution_tx.NewTxComplete(
+			forge_value.NewResultWithCanceled(errors.New("drained")),
+			&forge_execution.Claim{ClaimId: f.claimID, Epoch: 1},
+		),
 		f.peerID,
 	); err != nil {
 		t.Fatal(err)
@@ -436,7 +447,10 @@ func TestCancelReplayRecoversAfterRestart(t *testing.T) {
 	}
 	if _, _, err := executionObject.ApplyObjectOp(
 		f.ctx,
-		execution_tx.NewTxComplete(forge_value.NewResultWithCanceled(errors.New("drained after restart"))),
+		execution_tx.NewTxComplete(
+			forge_value.NewResultWithCanceled(errors.New("drained after restart")),
+			&forge_execution.Claim{ClaimId: f.claimID, Epoch: 1},
+		),
 		f.peerID,
 	); err != nil {
 		t.Fatal(err)

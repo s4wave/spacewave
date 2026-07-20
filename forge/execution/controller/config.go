@@ -26,6 +26,7 @@ func NewConfig(engineID, objectKey string, peerID peer.ID, inpWorld *forge_targe
 		EngineId:  engineID,
 		ObjectKey: objectKey,
 		PeerId:    peerIDStr,
+		ClaimId:   newClaimID(),
 
 		InputWorld: inpWorld,
 	}
@@ -84,6 +85,10 @@ func (c *Config) GetConfigID() string {
 // EqualsConfig checks if the other config is equal.
 func (c *Config) EqualsConfig(other config.Config) bool {
 	return config.EqualsConfig(c, other)
+}
+
+func newClaimID() string {
+	return uuid.NewV4().String()
 }
 
 // _ is a type assertion

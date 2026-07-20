@@ -91,6 +91,8 @@ type Execution struct {
 	// LogEntries contains log output from the execution.
 	// Appended while the execution is RUNNING or CANCELING.
 	LogEntries []*LogEntry `protobuf:"bytes,7,rep,name=log_entries,json=logEntries,proto3" json:"logEntries,omitempty"`
+	// Claim identifies the controller instance authorized to run and write back.
+	Claim *Claim `protobuf:"bytes,8,opt,name=claim,proto3" json:"claim,omitempty"`
 }
 
 func (x *Execution) Reset() {
@@ -146,6 +148,42 @@ func (x *Execution) GetLogEntries() []*LogEntry {
 		return x.LogEntries
 	}
 	return nil
+}
+
+func (x *Execution) GetClaim() *Claim {
+	if x != nil {
+		return x.Claim
+	}
+	return nil
+}
+
+// Claim fences side effects and write-back for one execution owner.
+type Claim struct {
+	unknownFields []byte
+	// ClaimId is the opaque identifier of the controller instance.
+	ClaimId string `protobuf:"bytes,1,opt,name=claim_id,json=claimId,proto3" json:"claimId,omitempty"`
+	// Epoch is the monotonic fencing token for this claim.
+	Epoch uint64 `protobuf:"varint,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
+}
+
+func (x *Claim) Reset() {
+	*x = Claim{}
+}
+
+func (*Claim) ProtoMessage() {}
+
+func (x *Claim) GetClaimId() string {
+	if x != nil {
+		return x.ClaimId
+	}
+	return ""
+}
+
+func (x *Claim) GetEpoch() uint64 {
+	if x != nil {
+		return x.Epoch
+	}
+	return 0
 }
 
 // LogEntry is a single log line from an execution.
@@ -239,6 +277,7 @@ func (m *Execution) CloneVT() *Execution {
 	r.TargetRef = protobuf_go_lite.CloneVTValue(m.TargetRef)
 	r.Result = protobuf_go_lite.CloneVTValue(m.Result)
 	r.LogEntries = protobuf_go_lite.CloneVTSlice(m.LogEntries)
+	r.Claim = protobuf_go_lite.CloneVTValue(m.Claim)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -246,6 +285,23 @@ func (m *Execution) CloneVT() *Execution {
 }
 
 func (m *Execution) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *Claim) CloneVT() *Claim {
+	if m == nil {
+		return (*Claim)(nil)
+	}
+	r := new(Claim)
+	r.ClaimId = m.ClaimId
+	r.Epoch = m.Epoch
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *Claim) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -312,11 +368,37 @@ func (this *Execution) EqualVT(that *Execution) bool {
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.LogEntries, that.LogEntries, func() *LogEntry { return &LogEntry{} }) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Claim, that.Claim) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *Execution) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Execution)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *Claim) EqualVT(that *Claim) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ClaimId != that.ClaimId {
+		return false
+	}
+	if this.Epoch != that.Epoch {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *Claim) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*Claim)
 	if !ok {
 		return false
 	}
@@ -464,6 +546,11 @@ func (x *Execution) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.Claim != nil || s.HasField("claim") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claim")
+		x.Claim.MarshalProtoJSON(s.WithField("claim"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -533,12 +620,69 @@ func (x *Execution) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.LogEntries = append(x.LogEntries, v)
 			})
+		case "claim":
+			if s.ReadNil() {
+				x.Claim = nil
+				return
+			}
+			x.Claim = &Claim{}
+			x.Claim.UnmarshalProtoJSON(s.WithField("claim", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the Execution from JSON.
 func (x *Execution) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the Claim message to JSON.
+func (x *Claim) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ClaimId != "" || s.HasField("claimId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claimId")
+		s.WriteString(x.ClaimId)
+	}
+	if x.Epoch != 0 || s.HasField("epoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("epoch")
+		s.WriteUint64(x.Epoch)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the Claim to JSON.
+func (x *Claim) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the Claim message from JSON.
+func (x *Claim) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "claim_id", "claimId":
+			s.AddField("claim_id")
+			x.ClaimId = s.ReadString()
+		case "epoch":
+			s.AddField("epoch")
+			x.Epoch = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the Claim from JSON.
+func (x *Claim) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -699,6 +843,16 @@ func (m *Execution) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Claim != nil {
+		size, err := m.Claim.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x42
+	}
 	if len(m.LogEntries) > 0 {
 		for iNdEx := len(m.LogEntries) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.LogEntries[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -760,6 +914,48 @@ func (m *Execution) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExecutionState))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Claim) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Claim) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *Claim) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Epoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Epoch))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.ClaimId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ClaimId)
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -901,6 +1097,22 @@ func (m *Execution) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.Claim != nil {
+		l = m.Claim.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *Claim) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ClaimId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Epoch)
 	n += len(m.unknownFields)
 	return n
 }
@@ -983,10 +1195,32 @@ func (x *Execution) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
+	if x.Claim != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Claim)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *Execution) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *Claim) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "Claim")
+	if x.ClaimId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ClaimId)
+	}
+	if x.Epoch != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "epoch")
+		protobuf_go_lite.TextWriteUint(&sb, x.Epoch)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *Claim) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1148,6 +1382,83 @@ func (m *Execution) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Claim", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Claim == nil {
+				m.Claim = &Claim{}
+			}
+			if err := m.Claim.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *Claim) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Claim: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Claim: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClaimId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ClaimId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
+			}
+			m.Epoch = 0
+			m.Epoch, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

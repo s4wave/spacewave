@@ -60,6 +60,13 @@ export enum TxType {
    * @generated from enum value: TxType_CANCEL = 5;
    */
   TxType_CANCEL = 5,
+
+  /**
+   * TxType_RECLAIM transfers a running execution to a new claim owner.
+   *
+   * @generated from enum value: TxType_RECLAIM = 6;
+   */
+  TxType_RECLAIM = 6,
 }
 
 export const TxType_Enum = /* @__PURE__ */ createEnumType(
@@ -71,12 +78,13 @@ export const TxType_Enum = /* @__PURE__ */ createEnumType(
     [3, 'TxType_COMPLETE'],
     [4, 'TxType_APPEND_LOG'],
     [5, 'TxType_CANCEL'],
+    [6, 'TxType_RECLAIM'],
   ],
 )
 
 /**
  * TxStart starts the execution with a peer id.
- * Execution must be in the PENDING state.
+ * Execution must be PENDING, or active with the same claim.
  * TxType: TxType_START
  *
  * @generated from message execution.tx.TxStart
@@ -90,12 +98,19 @@ export interface TxStart {
    * @generated from field: string peer_id = 1;
    */
   peerId?: string
+  /**
+   * ClaimId is the opaque identifier of the claiming controller instance.
+   *
+   * @generated from field: string claim_id = 2;
+   */
+  claimId?: string
 }
 
 export const TxStart: MessageType<TxStart> = /* @__PURE__ */ createMessageType({
   typeName: 'execution.tx.TxStart',
   fields: [
     { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -121,6 +136,18 @@ export interface TxSetOutputs {
    * @generated from field: bool clear_old = 2;
    */
   clearOld?: boolean
+  /**
+   * ClaimEpoch is the fencing token authorizing this write.
+   *
+   * @generated from field: uint64 claim_epoch = 3;
+   */
+  claimEpoch?: bigint
+  /**
+   * ClaimId identifies the controller instance carrying the epoch.
+   *
+   * @generated from field: string claim_id = 4;
+   */
+  claimId?: string
 }
 
 export const TxSetOutputs: MessageType<TxSetOutputs> =
@@ -135,13 +162,16 @@ export const TxSetOutputs: MessageType<TxSetOutputs> =
         repeated: true,
       },
       { no: 2, name: 'clear_old', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'claim_epoch', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 4, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
 /**
  * TxComplete completes the execution by setting the result.
- * Execution must be RUNNING, or CANCELING with a canceled result.
+ * Execution must be RUNNING, CANCELING with a canceled result, or COMPLETE
+ * with the same claim.
  * Sender must be the peer_id specified on the Execution.
  * TxType: TxType_COMPLETE
  *
@@ -154,6 +184,18 @@ export interface TxComplete {
    * @generated from field: forge.value.Result result = 1;
    */
   result?: Result
+  /**
+   * ClaimEpoch is the fencing token authorizing this completion.
+   *
+   * @generated from field: uint64 claim_epoch = 2;
+   */
+  claimEpoch?: bigint
+  /**
+   * ClaimId identifies the controller instance carrying the epoch.
+   *
+   * @generated from field: string claim_id = 3;
+   */
+  claimId?: string
 }
 
 export const TxComplete: MessageType<TxComplete> =
@@ -161,6 +203,8 @@ export const TxComplete: MessageType<TxComplete> =
     typeName: 'execution.tx.TxComplete',
     fields: [
       { no: 1, name: 'result', kind: 'message', T: () => Result },
+      { no: 2, name: 'claim_epoch', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -180,6 +224,18 @@ export interface TxAppendLog {
    * @generated from field: repeated forge.execution.LogEntry entries = 1;
    */
   entries?: LogEntry[]
+  /**
+   * ClaimEpoch is the fencing token authorizing this write.
+   *
+   * @generated from field: uint64 claim_epoch = 2;
+   */
+  claimEpoch?: bigint
+  /**
+   * ClaimId identifies the controller instance carrying the epoch.
+   *
+   * @generated from field: string claim_id = 3;
+   */
+  claimId?: string
 }
 
 export const TxAppendLog: MessageType<TxAppendLog> =
@@ -193,6 +249,8 @@ export const TxAppendLog: MessageType<TxAppendLog> =
         T: () => LogEntry,
         repeated: true,
       },
+      { no: 2, name: 'claim_epoch', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -212,6 +270,50 @@ export const TxCancel: MessageType<TxCancel> =
   )
 
 /**
+ * TxReclaim transfers a RUNNING execution to a new controller instance.
+ * The current owner must already be known unavailable by the caller.
+ * TxType: TxType_RECLAIM
+ *
+ * @generated from message execution.tx.TxReclaim
+ */
+export interface TxReclaim {
+  /**
+   * PeerId is the peer identifier to set as the executor.
+   *
+   * @generated from field: string peer_id = 1;
+   */
+  peerId?: string
+  /**
+   * ClaimId is the opaque identifier of the new controller instance.
+   *
+   * @generated from field: string claim_id = 2;
+   */
+  claimId?: string
+  /**
+   * ExpectedClaimEpoch prevents racing transfers from both succeeding.
+   *
+   * @generated from field: uint64 expected_claim_epoch = 3;
+   */
+  expectedClaimEpoch?: bigint
+}
+
+export const TxReclaim: MessageType<TxReclaim> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'execution.tx.TxReclaim',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'expected_claim_epoch',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * Tx is the on-the-wire representation of a transaction.
  *
  * @generated from message execution.tx.Tx
@@ -225,7 +327,7 @@ export interface Tx {
   txType?: TxType
   /**
    * TxStart contains the start transaction tx.
-   * TxType_INVALID
+   * TxType_START
    *
    * @generated from field: execution.tx.TxStart tx_start = 2;
    */
@@ -258,6 +360,13 @@ export interface Tx {
    * @generated from field: execution.tx.TxCancel tx_cancel = 6;
    */
   txCancel?: TxCancel
+  /**
+   * TxReclaim transfers a running execution after owner liveness is resolved.
+   * TxType_RECLAIM
+   *
+   * @generated from field: execution.tx.TxReclaim tx_reclaim = 7;
+   */
+  txReclaim?: TxReclaim
 }
 
 export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
@@ -269,6 +378,7 @@ export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
     { no: 4, name: 'tx_complete', kind: 'message', T: () => TxComplete },
     { no: 5, name: 'tx_append_log', kind: 'message', T: () => TxAppendLog },
     { no: 6, name: 'tx_cancel', kind: 'message', T: () => TxCancel },
+    { no: 7, name: 'tx_reclaim', kind: 'message', T: () => TxReclaim },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

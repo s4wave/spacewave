@@ -78,6 +78,10 @@ class TxComplete;
 struct TxCompleteDefaultTypeInternal;
 extern TxCompleteDefaultTypeInternal _TxComplete_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull TxComplete_class_data_;
+class TxReclaim;
+struct TxReclaimDefaultTypeInternal;
+extern TxReclaimDefaultTypeInternal _TxReclaim_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull TxReclaim_class_data_;
 class TxSetOutputs;
 struct TxSetOutputsDefaultTypeInternal;
 extern TxSetOutputsDefaultTypeInternal _TxSetOutputs_default_instance_;
@@ -105,6 +109,7 @@ enum TxType : int {
   TxType_COMPLETE = 3,
   TxType_APPEND_LOG = 4,
   TxType_CANCEL = 5,
+  TxType_RECLAIM = 6,
   TxType_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   TxType_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -115,11 +120,11 @@ extern const uint32_t TxType_internal_data_[];
 inline constexpr TxType TxType_MIN =
     static_cast<TxType>(0);
 inline constexpr TxType TxType_MAX =
-    static_cast<TxType>(5);
+    static_cast<TxType>(6);
 inline bool TxType_IsValid(int value) {
-  return 0 <= value && value <= 5;
+  return 0 <= value && value <= 6;
 }
-inline constexpr int TxType_ARRAYSIZE = 5 + 1;
+inline constexpr int TxType_ARRAYSIZE = 6 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TxType_descriptor();
 template <typename T>
 const ::std::string& TxType_Name(T value) {
@@ -130,7 +135,7 @@ const ::std::string& TxType_Name(T value) {
 }
 template <>
 inline const ::std::string& TxType_Name(TxType value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<TxType_descriptor, 0, 5>(
+  return ::google::protobuf::internal::NameOfDenseEnum<TxType_descriptor, 0, 6>(
       static_cast<int>(value));
 }
 inline bool TxType_Parse(
@@ -287,6 +292,7 @@ class TxStart final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kPeerIdFieldNumber = 1,
+    kClaimIdFieldNumber = 2,
   };
   // string peer_id = 1;
   void clear_peer_id() ;
@@ -303,12 +309,27 @@ class TxStart final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_peer_id();
 
   public:
+  // string claim_id = 2;
+  void clear_claim_id() ;
+  const ::std::string& claim_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_claim_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_claim_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_claim_id();
+  void set_allocated_claim_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_claim_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_claim_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_claim_id();
+
+  public:
   // @@protoc_insertion_point(class_scope:execution.tx.TxStart)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
-                                   0, 36,
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 44,
                                    2>
       _table_;
 
@@ -330,6 +351,7 @@ class TxStart final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr peer_id_;
+    ::google::protobuf::internal::ArenaStringPtr claim_id_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -337,6 +359,230 @@ class TxStart final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull TxStart_class_data_;
+// -------------------------------------------------------------------
+
+class TxReclaim final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:execution.tx.TxReclaim) */ {
+ public:
+  inline TxReclaim() : TxReclaim(nullptr) {}
+  ~TxReclaim() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(TxReclaim* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(TxReclaim));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR TxReclaim(::google::protobuf::internal::ConstantInitialized);
+
+  inline TxReclaim(const TxReclaim& from) : TxReclaim(nullptr, from) {}
+  inline TxReclaim(TxReclaim&& from) noexcept
+      : TxReclaim(nullptr, ::std::move(from)) {}
+  inline TxReclaim& operator=(const TxReclaim& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline TxReclaim& operator=(TxReclaim&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const TxReclaim& default_instance() {
+    return *reinterpret_cast<const TxReclaim*>(
+        &_TxReclaim_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 5;
+  friend void swap(TxReclaim& a, TxReclaim& b) { a.Swap(&b); }
+  inline void Swap(TxReclaim* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(TxReclaim* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  TxReclaim* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<TxReclaim>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const TxReclaim& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const TxReclaim& from) { TxReclaim::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(TxReclaim* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "execution.tx.TxReclaim"; }
+
+  explicit TxReclaim(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  TxReclaim(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const TxReclaim& from);
+  TxReclaim(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, TxReclaim&& from) noexcept
+      : TxReclaim(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPeerIdFieldNumber = 1,
+    kClaimIdFieldNumber = 2,
+    kExpectedClaimEpochFieldNumber = 3,
+  };
+  // string peer_id = 1;
+  void clear_peer_id() ;
+  const ::std::string& peer_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_peer_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_peer_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_peer_id();
+  void set_allocated_peer_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_peer_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_peer_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_peer_id();
+
+  public:
+  // string claim_id = 2;
+  void clear_claim_id() ;
+  const ::std::string& claim_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_claim_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_claim_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_claim_id();
+  void set_allocated_claim_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_claim_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_claim_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_claim_id();
+
+  public:
+  // uint64 expected_claim_epoch = 3;
+  void clear_expected_claim_epoch() ;
+  ::uint64_t expected_claim_epoch() const;
+  void set_expected_claim_epoch(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_expected_claim_epoch() const;
+  void _internal_set_expected_claim_epoch(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:execution.tx.TxReclaim)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 46,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const TxReclaim& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr peer_id_;
+    ::google::protobuf::internal::ArenaStringPtr claim_id_;
+    ::uint64_t expected_claim_epoch_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2ftx_2ftx_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull TxReclaim_class_data_;
 // -------------------------------------------------------------------
 
 class TxCancel final : public ::google::protobuf::internal::ZeroFieldsBase
@@ -615,8 +861,25 @@ class TxComplete final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
+    kClaimIdFieldNumber = 3,
     kResultFieldNumber = 1,
+    kClaimEpochFieldNumber = 2,
   };
+  // string claim_id = 3;
+  void clear_claim_id() ;
+  const ::std::string& claim_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_claim_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_claim_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_claim_id();
+  void set_allocated_claim_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_claim_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_claim_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_claim_id();
+
+  public:
   // .forge.value.Result result = 1;
   bool has_result() const;
   void clear_result() ;
@@ -632,12 +895,22 @@ class TxComplete final : public ::google::protobuf::Message
   ::forge::value::Result* PROTOBUF_NONNULL _internal_mutable_result();
 
   public:
+  // uint64 claim_epoch = 2;
+  void clear_claim_epoch() ;
+  ::uint64_t claim_epoch() const;
+  void set_claim_epoch(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_claim_epoch() const;
+  void _internal_set_claim_epoch(::uint64_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:execution.tx.TxComplete)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
-                                   1, 0,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   1, 40,
                                    2>
       _table_;
 
@@ -658,7 +931,9 @@ class TxComplete final : public ::google::protobuf::Message
         const TxComplete& from_msg);
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr claim_id_;
     ::forge::value::Result* PROTOBUF_NULLABLE result_;
+    ::uint64_t claim_epoch_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -723,7 +998,7 @@ class TxAppendLog final : public ::google::protobuf::Message
     return *reinterpret_cast<const TxAppendLog*>(
         &_TxAppendLog_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(TxAppendLog& a, TxAppendLog& b) { a.Swap(&b); }
   inline void Swap(TxAppendLog* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -811,6 +1086,8 @@ class TxAppendLog final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kEntriesFieldNumber = 1,
+    kClaimIdFieldNumber = 3,
+    kClaimEpochFieldNumber = 2,
   };
   // repeated .forge.execution.LogEntry entries = 1;
   int entries_size() const;
@@ -829,12 +1106,37 @@ class TxAppendLog final : public ::google::protobuf::Message
   const ::forge::execution::LogEntry& entries(int index) const;
   ::forge::execution::LogEntry* PROTOBUF_NONNULL add_entries();
   const ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>& entries() const;
+  // string claim_id = 3;
+  void clear_claim_id() ;
+  const ::std::string& claim_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_claim_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_claim_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_claim_id();
+  void set_allocated_claim_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_claim_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_claim_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_claim_id();
+
+  public:
+  // uint64 claim_epoch = 2;
+  void clear_claim_epoch() ;
+  ::uint64_t claim_epoch() const;
+  void set_claim_epoch(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_claim_epoch() const;
+  void _internal_set_claim_epoch(::uint64_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:execution.tx.TxAppendLog)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 1,
-                                   1, 0,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   1, 41,
                                    2>
       _table_;
 
@@ -856,6 +1158,8 @@ class TxAppendLog final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::RepeatedPtrField< ::forge::execution::LogEntry > entries_;
+    ::google::protobuf::internal::ArenaStringPtr claim_id_;
+    ::uint64_t claim_epoch_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1008,6 +1312,8 @@ class TxSetOutputs final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kOutputsFieldNumber = 1,
+    kClaimIdFieldNumber = 4,
+    kClaimEpochFieldNumber = 3,
     kClearOldFieldNumber = 2,
   };
   // repeated .forge.value.Value outputs = 1;
@@ -1027,6 +1333,31 @@ class TxSetOutputs final : public ::google::protobuf::Message
   const ::forge::value::Value& outputs(int index) const;
   ::forge::value::Value* PROTOBUF_NONNULL add_outputs();
   const ::google::protobuf::RepeatedPtrField<::forge::value::Value>& outputs() const;
+  // string claim_id = 4;
+  void clear_claim_id() ;
+  const ::std::string& claim_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_claim_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_claim_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_claim_id();
+  void set_allocated_claim_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_claim_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_claim_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_claim_id();
+
+  public:
+  // uint64 claim_epoch = 3;
+  void clear_claim_epoch() ;
+  ::uint64_t claim_epoch() const;
+  void set_claim_epoch(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_claim_epoch() const;
+  void _internal_set_claim_epoch(::uint64_t value);
+
+  public:
   // bool clear_old = 2;
   void clear_clear_old() ;
   bool clear_old() const;
@@ -1041,8 +1372,8 @@ class TxSetOutputs final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
-                                   1, 0,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   1, 42,
                                    2>
       _table_;
 
@@ -1064,6 +1395,8 @@ class TxSetOutputs final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::RepeatedPtrField< ::forge::value::Value > outputs_;
+    ::google::protobuf::internal::ArenaStringPtr claim_id_;
+    ::uint64_t claim_epoch_;
     bool clear_old_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -1221,6 +1554,7 @@ class Tx final : public ::google::protobuf::Message
     kTxCompleteFieldNumber = 4,
     kTxAppendLogFieldNumber = 5,
     kTxCancelFieldNumber = 6,
+    kTxReclaimFieldNumber = 7,
     kTxTypeFieldNumber = 1,
   };
   // .execution.tx.TxStart tx_start = 2;
@@ -1298,6 +1632,21 @@ class Tx final : public ::google::protobuf::Message
   ::execution::tx::TxCancel* PROTOBUF_NONNULL _internal_mutable_tx_cancel();
 
   public:
+  // .execution.tx.TxReclaim tx_reclaim = 7;
+  bool has_tx_reclaim() const;
+  void clear_tx_reclaim() ;
+  const ::execution::tx::TxReclaim& tx_reclaim() const;
+  [[nodiscard]] ::execution::tx::TxReclaim* PROTOBUF_NULLABLE release_tx_reclaim();
+  ::execution::tx::TxReclaim* PROTOBUF_NONNULL mutable_tx_reclaim();
+  void set_allocated_tx_reclaim(::execution::tx::TxReclaim* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_tx_reclaim(::execution::tx::TxReclaim* PROTOBUF_NULLABLE value);
+  ::execution::tx::TxReclaim* PROTOBUF_NULLABLE unsafe_arena_release_tx_reclaim();
+
+  private:
+  const ::execution::tx::TxReclaim& _internal_tx_reclaim() const;
+  ::execution::tx::TxReclaim* PROTOBUF_NONNULL _internal_mutable_tx_reclaim();
+
+  public:
   // .execution.tx.TxType tx_type = 1;
   void clear_tx_type() ;
   ::execution::tx::TxType tx_type() const;
@@ -1312,8 +1661,8 @@ class Tx final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
-                                   5, 0,
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   6, 0,
                                    2>
       _table_;
 
@@ -1339,6 +1688,7 @@ class Tx final : public ::google::protobuf::Message
     ::execution::tx::TxComplete* PROTOBUF_NULLABLE tx_complete_;
     ::execution::tx::TxAppendLog* PROTOBUF_NULLABLE tx_append_log_;
     ::execution::tx::TxCancel* PROTOBUF_NULLABLE tx_cancel_;
+    ::execution::tx::TxReclaim* PROTOBUF_NULLABLE tx_reclaim_;
     int tx_type_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -1369,7 +1719,7 @@ inline void Tx::clear_tx_type() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.tx_type_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline ::execution::tx::TxType Tx::tx_type() const {
   // @@protoc_insertion_point(field_get:execution.tx.Tx.tx_type)
@@ -1377,7 +1727,7 @@ inline ::execution::tx::TxType Tx::tx_type() const {
 }
 inline void Tx::set_tx_type(::execution::tx::TxType value) {
   _internal_set_tx_type(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:execution.tx.Tx.tx_type)
 }
 inline ::execution::tx::TxType Tx::_internal_tx_type() const {
@@ -1884,6 +2234,105 @@ inline void Tx::set_allocated_tx_cancel(::execution::tx::TxCancel* PROTOBUF_NULL
   // @@protoc_insertion_point(field_set_allocated:execution.tx.Tx.tx_cancel)
 }
 
+// .execution.tx.TxReclaim tx_reclaim = 7;
+inline bool Tx::has_tx_reclaim() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
+  PROTOBUF_ASSUME(!value || _impl_.tx_reclaim_ != nullptr);
+  return value;
+}
+inline void Tx::clear_tx_reclaim() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.tx_reclaim_ != nullptr) _impl_.tx_reclaim_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::execution::tx::TxReclaim& Tx::_internal_tx_reclaim() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::execution::tx::TxReclaim* p = _impl_.tx_reclaim_;
+  return p != nullptr ? *p : reinterpret_cast<const ::execution::tx::TxReclaim&>(::execution::tx::_TxReclaim_default_instance_);
+}
+inline const ::execution::tx::TxReclaim& Tx::tx_reclaim() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:execution.tx.Tx.tx_reclaim)
+  return _internal_tx_reclaim();
+}
+inline void Tx::unsafe_arena_set_allocated_tx_reclaim(
+    ::execution::tx::TxReclaim* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.tx_reclaim_);
+  }
+  _impl_.tx_reclaim_ = reinterpret_cast<::execution::tx::TxReclaim*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:execution.tx.Tx.tx_reclaim)
+}
+inline ::execution::tx::TxReclaim* PROTOBUF_NULLABLE Tx::release_tx_reclaim() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::execution::tx::TxReclaim* released = _impl_.tx_reclaim_;
+  _impl_.tx_reclaim_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::execution::tx::TxReclaim* PROTOBUF_NULLABLE Tx::unsafe_arena_release_tx_reclaim() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:execution.tx.Tx.tx_reclaim)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::execution::tx::TxReclaim* temp = _impl_.tx_reclaim_;
+  _impl_.tx_reclaim_ = nullptr;
+  return temp;
+}
+inline ::execution::tx::TxReclaim* PROTOBUF_NONNULL Tx::_internal_mutable_tx_reclaim() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.tx_reclaim_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::execution::tx::TxReclaim>(GetArena());
+    _impl_.tx_reclaim_ = reinterpret_cast<::execution::tx::TxReclaim*>(p);
+  }
+  return _impl_.tx_reclaim_;
+}
+inline ::execution::tx::TxReclaim* PROTOBUF_NONNULL Tx::mutable_tx_reclaim()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::execution::tx::TxReclaim* _msg = _internal_mutable_tx_reclaim();
+  // @@protoc_insertion_point(field_mutable:execution.tx.Tx.tx_reclaim)
+  return _msg;
+}
+inline void Tx::set_allocated_tx_reclaim(::execution::tx::TxReclaim* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.tx_reclaim_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+
+  _impl_.tx_reclaim_ = reinterpret_cast<::execution::tx::TxReclaim*>(value);
+  // @@protoc_insertion_point(field_set_allocated:execution.tx.Tx.tx_reclaim)
+}
+
 // -------------------------------------------------------------------
 
 // TxStart
@@ -1953,6 +2402,71 @@ inline void TxStart::set_allocated_peer_id(::std::string* PROTOBUF_NULLABLE valu
   // @@protoc_insertion_point(field_set_allocated:execution.tx.TxStart.peer_id)
 }
 
+// string claim_id = 2;
+inline void TxStart::clear_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& TxStart::claim_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:execution.tx.TxStart.claim_id)
+  return _internal_claim_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TxStart::set_claim_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.claim_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:execution.tx.TxStart.claim_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TxStart::mutable_claim_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_claim_id();
+  // @@protoc_insertion_point(field_mutable:execution.tx.TxStart.claim_id)
+  return _s;
+}
+inline const ::std::string& TxStart::_internal_claim_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.claim_id_.Get();
+}
+inline void TxStart::_internal_set_claim_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TxStart::_internal_mutable_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.claim_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TxStart::release_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:execution.tx.TxStart.claim_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.claim_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.claim_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TxStart::set_allocated_claim_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.claim_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.claim_id_.IsDefault()) {
+    _impl_.claim_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:execution.tx.TxStart.claim_id)
+}
+
 // -------------------------------------------------------------------
 
 // TxSetOutputs
@@ -2012,7 +2526,7 @@ inline void TxSetOutputs::clear_clear_old() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.clear_old_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000008U);
 }
 inline bool TxSetOutputs::clear_old() const {
   // @@protoc_insertion_point(field_get:execution.tx.TxSetOutputs.clear_old)
@@ -2020,7 +2534,7 @@ inline bool TxSetOutputs::clear_old() const {
 }
 inline void TxSetOutputs::set_clear_old(bool value) {
   _internal_set_clear_old(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   // @@protoc_insertion_point(field_set:execution.tx.TxSetOutputs.clear_old)
 }
 inline bool TxSetOutputs::_internal_clear_old() const {
@@ -2032,13 +2546,103 @@ inline void TxSetOutputs::_internal_set_clear_old(bool value) {
   _impl_.clear_old_ = value;
 }
 
+// uint64 claim_epoch = 3;
+inline void TxSetOutputs::clear_claim_epoch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_epoch_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t TxSetOutputs::claim_epoch() const {
+  // @@protoc_insertion_point(field_get:execution.tx.TxSetOutputs.claim_epoch)
+  return _internal_claim_epoch();
+}
+inline void TxSetOutputs::set_claim_epoch(::uint64_t value) {
+  _internal_set_claim_epoch(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:execution.tx.TxSetOutputs.claim_epoch)
+}
+inline ::uint64_t TxSetOutputs::_internal_claim_epoch() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.claim_epoch_;
+}
+inline void TxSetOutputs::_internal_set_claim_epoch(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_epoch_ = value;
+}
+
+// string claim_id = 4;
+inline void TxSetOutputs::clear_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& TxSetOutputs::claim_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:execution.tx.TxSetOutputs.claim_id)
+  return _internal_claim_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TxSetOutputs::set_claim_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.claim_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:execution.tx.TxSetOutputs.claim_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TxSetOutputs::mutable_claim_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_claim_id();
+  // @@protoc_insertion_point(field_mutable:execution.tx.TxSetOutputs.claim_id)
+  return _s;
+}
+inline const ::std::string& TxSetOutputs::_internal_claim_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.claim_id_.Get();
+}
+inline void TxSetOutputs::_internal_set_claim_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TxSetOutputs::_internal_mutable_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.claim_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TxSetOutputs::release_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:execution.tx.TxSetOutputs.claim_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.claim_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.claim_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TxSetOutputs::set_allocated_claim_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.claim_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.claim_id_.IsDefault()) {
+    _impl_.claim_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:execution.tx.TxSetOutputs.claim_id)
+}
+
 // -------------------------------------------------------------------
 
 // TxComplete
 
 // .forge.value.Result result = 1;
 inline bool TxComplete::has_result() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
   PROTOBUF_ASSUME(!value || _impl_.result_ != nullptr);
   return value;
 }
@@ -2059,16 +2663,16 @@ inline void TxComplete::unsafe_arena_set_allocated_result(
   }
   _impl_.result_ = reinterpret_cast<::forge::value::Result*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:execution.tx.TxComplete.result)
 }
 inline ::forge::value::Result* PROTOBUF_NULLABLE TxComplete::release_result() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::forge::value::Result* released = _impl_.result_;
   _impl_.result_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -2088,7 +2692,7 @@ inline ::forge::value::Result* PROTOBUF_NULLABLE TxComplete::unsafe_arena_releas
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:execution.tx.TxComplete.result)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::forge::value::Result* temp = _impl_.result_;
   _impl_.result_ = nullptr;
   return temp;
@@ -2103,7 +2707,7 @@ inline ::forge::value::Result* PROTOBUF_NONNULL TxComplete::_internal_mutable_re
 }
 inline ::forge::value::Result* PROTOBUF_NONNULL TxComplete::mutable_result()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   ::forge::value::Result* _msg = _internal_mutable_result();
   // @@protoc_insertion_point(field_mutable:execution.tx.TxComplete.result)
   return _msg;
@@ -2120,18 +2724,267 @@ inline void TxComplete::set_allocated_result(::forge::value::Result* PROTOBUF_NU
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
   }
 
   _impl_.result_ = reinterpret_cast<::forge::value::Result*>(value);
   // @@protoc_insertion_point(field_set_allocated:execution.tx.TxComplete.result)
 }
 
+// uint64 claim_epoch = 2;
+inline void TxComplete::clear_claim_epoch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_epoch_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t TxComplete::claim_epoch() const {
+  // @@protoc_insertion_point(field_get:execution.tx.TxComplete.claim_epoch)
+  return _internal_claim_epoch();
+}
+inline void TxComplete::set_claim_epoch(::uint64_t value) {
+  _internal_set_claim_epoch(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:execution.tx.TxComplete.claim_epoch)
+}
+inline ::uint64_t TxComplete::_internal_claim_epoch() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.claim_epoch_;
+}
+inline void TxComplete::_internal_set_claim_epoch(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_epoch_ = value;
+}
+
+// string claim_id = 3;
+inline void TxComplete::clear_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& TxComplete::claim_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:execution.tx.TxComplete.claim_id)
+  return _internal_claim_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TxComplete::set_claim_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.claim_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:execution.tx.TxComplete.claim_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TxComplete::mutable_claim_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_claim_id();
+  // @@protoc_insertion_point(field_mutable:execution.tx.TxComplete.claim_id)
+  return _s;
+}
+inline const ::std::string& TxComplete::_internal_claim_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.claim_id_.Get();
+}
+inline void TxComplete::_internal_set_claim_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TxComplete::_internal_mutable_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.claim_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TxComplete::release_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:execution.tx.TxComplete.claim_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.claim_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.claim_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TxComplete::set_allocated_claim_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.claim_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.claim_id_.IsDefault()) {
+    _impl_.claim_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:execution.tx.TxComplete.claim_id)
+}
+
 // -------------------------------------------------------------------
 
 // TxCancel
+
+// -------------------------------------------------------------------
+
+// TxReclaim
+
+// string peer_id = 1;
+inline void TxReclaim::clear_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.peer_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& TxReclaim::peer_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:execution.tx.TxReclaim.peer_id)
+  return _internal_peer_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TxReclaim::set_peer_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.peer_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:execution.tx.TxReclaim.peer_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TxReclaim::mutable_peer_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_peer_id();
+  // @@protoc_insertion_point(field_mutable:execution.tx.TxReclaim.peer_id)
+  return _s;
+}
+inline const ::std::string& TxReclaim::_internal_peer_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.peer_id_.Get();
+}
+inline void TxReclaim::_internal_set_peer_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.peer_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TxReclaim::_internal_mutable_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.peer_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TxReclaim::release_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:execution.tx.TxReclaim.peer_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.peer_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.peer_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TxReclaim::set_allocated_peer_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.peer_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.peer_id_.IsDefault()) {
+    _impl_.peer_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:execution.tx.TxReclaim.peer_id)
+}
+
+// string claim_id = 2;
+inline void TxReclaim::clear_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& TxReclaim::claim_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:execution.tx.TxReclaim.claim_id)
+  return _internal_claim_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TxReclaim::set_claim_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.claim_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:execution.tx.TxReclaim.claim_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TxReclaim::mutable_claim_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_claim_id();
+  // @@protoc_insertion_point(field_mutable:execution.tx.TxReclaim.claim_id)
+  return _s;
+}
+inline const ::std::string& TxReclaim::_internal_claim_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.claim_id_.Get();
+}
+inline void TxReclaim::_internal_set_claim_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TxReclaim::_internal_mutable_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.claim_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TxReclaim::release_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:execution.tx.TxReclaim.claim_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.claim_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.claim_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TxReclaim::set_allocated_claim_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.claim_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.claim_id_.IsDefault()) {
+    _impl_.claim_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:execution.tx.TxReclaim.claim_id)
+}
+
+// uint64 expected_claim_epoch = 3;
+inline void TxReclaim::clear_expected_claim_epoch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expected_claim_epoch_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t TxReclaim::expected_claim_epoch() const {
+  // @@protoc_insertion_point(field_get:execution.tx.TxReclaim.expected_claim_epoch)
+  return _internal_expected_claim_epoch();
+}
+inline void TxReclaim::set_expected_claim_epoch(::uint64_t value) {
+  _internal_set_expected_claim_epoch(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:execution.tx.TxReclaim.expected_claim_epoch)
+}
+inline ::uint64_t TxReclaim::_internal_expected_claim_epoch() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.expected_claim_epoch_;
+}
+inline void TxReclaim::_internal_set_expected_claim_epoch(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expected_claim_epoch_ = value;
+}
 
 // -------------------------------------------------------------------
 
@@ -2185,6 +3038,96 @@ inline ::google::protobuf::RepeatedPtrField<::forge::execution::LogEntry>* PROTO
 TxAppendLog::_internal_mutable_entries() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.entries_;
+}
+
+// uint64 claim_epoch = 2;
+inline void TxAppendLog::clear_claim_epoch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_epoch_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t TxAppendLog::claim_epoch() const {
+  // @@protoc_insertion_point(field_get:execution.tx.TxAppendLog.claim_epoch)
+  return _internal_claim_epoch();
+}
+inline void TxAppendLog::set_claim_epoch(::uint64_t value) {
+  _internal_set_claim_epoch(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:execution.tx.TxAppendLog.claim_epoch)
+}
+inline ::uint64_t TxAppendLog::_internal_claim_epoch() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.claim_epoch_;
+}
+inline void TxAppendLog::_internal_set_claim_epoch(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_epoch_ = value;
+}
+
+// string claim_id = 3;
+inline void TxAppendLog::clear_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& TxAppendLog::claim_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:execution.tx.TxAppendLog.claim_id)
+  return _internal_claim_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TxAppendLog::set_claim_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.claim_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:execution.tx.TxAppendLog.claim_id)
+}
+inline ::std::string* PROTOBUF_NONNULL TxAppendLog::mutable_claim_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_claim_id();
+  // @@protoc_insertion_point(field_mutable:execution.tx.TxAppendLog.claim_id)
+  return _s;
+}
+inline const ::std::string& TxAppendLog::_internal_claim_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.claim_id_.Get();
+}
+inline void TxAppendLog::_internal_set_claim_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TxAppendLog::_internal_mutable_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.claim_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TxAppendLog::release_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:execution.tx.TxAppendLog.claim_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.claim_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.claim_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TxAppendLog::set_allocated_claim_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.claim_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.claim_id_.IsDefault()) {
+    _impl_.claim_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:execution.tx.TxAppendLog.claim_id)
 }
 
 #ifdef __GNUC__

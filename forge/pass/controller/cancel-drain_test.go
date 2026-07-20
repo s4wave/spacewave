@@ -34,6 +34,7 @@ func TestProcessStateReplaysCancelAndWaitsForDrain(t *testing.T) {
 	}
 
 	peerID := tb.Volume.GetPeerID()
+	claimID := "pass-controller-test"
 	passKey := "test/pass/controller-cancel-drain"
 	_, _, err = forge_pass.CreatePassWithTarget(
 		ctx,
@@ -65,7 +66,7 @@ func TestProcessStateReplaysCancelAndWaitsForDrain(t *testing.T) {
 	}
 	if _, _, err := executionObject.ApplyObjectOp(
 		ctx,
-		execution_tx.NewTxStart(peerID),
+		execution_tx.NewTxStart(peerID, claimID),
 		peerID,
 	); err != nil {
 		t.Fatal(err)
@@ -124,7 +125,10 @@ func TestProcessStateReplaysCancelAndWaitsForDrain(t *testing.T) {
 
 	if _, _, err := executionObject.ApplyObjectOp(
 		ctx,
-		execution_tx.NewTxComplete(forge_value.NewResultWithCanceled(errors.New("drained"))),
+		execution_tx.NewTxComplete(
+			forge_value.NewResultWithCanceled(errors.New("drained")),
+			&forge_execution.Claim{ClaimId: claimID, Epoch: 1},
+		),
 		peerID,
 	); err != nil {
 		t.Fatal(err)

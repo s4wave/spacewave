@@ -11,11 +11,14 @@ import (
 )
 
 // NewTxComplete constructs the COMPLETE transaction.
-func NewTxComplete(result *forge_value.Result) *Tx {
+func NewTxComplete(result *forge_value.Result, claims ...*forge_execution.Claim) *Tx {
+	claim := claimOrImplicit(claims)
 	return &Tx{
 		TxType: TxType_TxType_COMPLETE,
 		TxComplete: &TxComplete{
-			Result: result,
+			Result:     result,
+			ClaimId:    claim.GetClaimId(),
+			ClaimEpoch: claim.GetEpoch(),
 		},
 	}
 }
@@ -36,6 +39,12 @@ func (t *TxComplete) Validate() error {
 	if err := t.GetResult().Validate(); err != nil {
 		return err
 	}
+	if t.GetClaimId() == "" {
+		return errors.New("claim_id cannot be empty")
+	}
+	if t.GetClaimEpoch() == 0 {
+		return &StaleClaimEpochError{}
+	}
 	return nil
 }
 
@@ -46,8 +55,16 @@ func (t *TxComplete) ExecuteTx(
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
 ) error {
-	// A restarted or concurrent execution controller may finish after another
-	// owner has already persisted the terminal state. Preserve that result.
+	if len(sender) != 0 {
+		if err := root.CheckPeerID(sender); err != nil {
+			return err
+		}
+	}
+	if err := checkClaim(root.GetClaim(), t.GetClaimId(), t.GetClaimEpoch()); err != nil {
+		return err
+	}
+	// The same claim may finish after its result has already been persisted.
+	// Preserve that authoritative result.
 	execState := root.GetExecutionState()
 	if execState == forge_execution.State_ExecutionState_COMPLETE {
 		return nil

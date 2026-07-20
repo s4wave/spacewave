@@ -63,7 +63,10 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 		return err
 	}
 
-	txd := execution_transaction.NewTxComplete(res)
+	txd := execution_transaction.NewTxComplete(
+		res,
+		execConf.GetExecution().GetClaim(),
+	)
 	_, _, err = execObjState.ApplyObjectOp(ctx, txd, c.peerID)
 	if err != nil {
 		return err
@@ -209,7 +212,13 @@ func (c *Controller) processExec(
 
 	// pass handles to the exec controller
 	execCtx := forge_target.WithExecCancelSignal(ctx, c.cancelCh)
-	execCtrlHandle := newExecControllerHandle(execCtx, c, c.ws, exState.GetTimestamp())
+	execCtrlHandle := newExecControllerHandle(
+		execCtx,
+		c,
+		c.ws,
+		exState.GetTimestamp(),
+		exState.GetClaim().GetEpoch(),
+	)
 	if execCtrl, execCtrlOk := ctrl.(forge_target.ExecController); execCtrlOk {
 		err = execCtrl.InitForgeExecController(
 			execCtx,

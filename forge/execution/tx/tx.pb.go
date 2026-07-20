@@ -31,6 +31,8 @@ const (
 	TxType_TxType_APPEND_LOG TxType = 4
 	// TxType_CANCEL requests cancellation and custody drain.
 	TxType_TxType_CANCEL TxType = 5
+	// TxType_RECLAIM transfers a running execution to a new claim owner.
+	TxType_TxType_RECLAIM TxType = 6
 )
 
 // Enum value maps for TxType.
@@ -42,6 +44,7 @@ var (
 		3: "TxType_COMPLETE",
 		4: "TxType_APPEND_LOG",
 		5: "TxType_CANCEL",
+		6: "TxType_RECLAIM",
 	}
 	TxType_value = map[string]int32{
 		"TxType_INVALID":     0,
@@ -50,6 +53,7 @@ var (
 		"TxType_COMPLETE":    3,
 		"TxType_APPEND_LOG":  4,
 		"TxType_CANCEL":      5,
+		"TxType_RECLAIM":     6,
 	}
 )
 
@@ -73,7 +77,7 @@ type Tx struct {
 	// TxType is the kind of transaction this is.
 	TxType TxType `protobuf:"varint,1,opt,name=tx_type,json=txType,proto3" json:"txType,omitempty"`
 	// TxStart contains the start transaction tx.
-	// TxType_INVALID
+	// TxType_START
 	TxStart *TxStart `protobuf:"bytes,2,opt,name=tx_start,json=txStart,proto3" json:"txStart,omitempty"`
 	// TxSetOutputs contains the set outputs tx.
 	// TxType_SET_OUTPUTS
@@ -87,6 +91,9 @@ type Tx struct {
 	// TxCancel contains the cancel tx.
 	// TxType_CANCEL
 	TxCancel *TxCancel `protobuf:"bytes,6,opt,name=tx_cancel,json=txCancel,proto3" json:"txCancel,omitempty"`
+	// TxReclaim transfers a running execution after owner liveness is resolved.
+	// TxType_RECLAIM
+	TxReclaim *TxReclaim `protobuf:"bytes,7,opt,name=tx_reclaim,json=txReclaim,proto3" json:"txReclaim,omitempty"`
 }
 
 func (x *Tx) Reset() {
@@ -137,8 +144,15 @@ func (x *Tx) GetTxCancel() *TxCancel {
 	return nil
 }
 
+func (x *Tx) GetTxReclaim() *TxReclaim {
+	if x != nil {
+		return x.TxReclaim
+	}
+	return nil
+}
+
 // TxStart starts the execution with a peer id.
-// Execution must be in the PENDING state.
+// Execution must be PENDING, or active with the same claim.
 // TxType: TxType_START
 type TxStart struct {
 	unknownFields []byte
@@ -146,6 +160,8 @@ type TxStart struct {
 	// Must be the same as the sender of the transaction.
 	// Must match peer_id on the Execution if it's not empty.
 	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
+	// ClaimId is the opaque identifier of the claiming controller instance.
+	ClaimId string `protobuf:"bytes,2,opt,name=claim_id,json=claimId,proto3" json:"claimId,omitempty"`
 }
 
 func (x *TxStart) Reset() {
@@ -161,6 +177,13 @@ func (x *TxStart) GetPeerId() string {
 	return ""
 }
 
+func (x *TxStart) GetClaimId() string {
+	if x != nil {
+		return x.ClaimId
+	}
+	return ""
+}
+
 // TxSetOutputs updates the value of one or more execution outputs.
 // Execution must be RUNNING or CANCELING.
 // Sender must be the peer_id specified on the Execution.
@@ -171,6 +194,10 @@ type TxSetOutputs struct {
 	Outputs []*value.Value `protobuf:"bytes,1,rep,name=outputs,proto3" json:"outputs,omitempty"`
 	// ClearOld indicates to clear all old output values before setting.
 	ClearOld bool `protobuf:"varint,2,opt,name=clear_old,json=clearOld,proto3" json:"clearOld,omitempty"`
+	// ClaimEpoch is the fencing token authorizing this write.
+	ClaimEpoch uint64 `protobuf:"varint,3,opt,name=claim_epoch,json=claimEpoch,proto3" json:"claimEpoch,omitempty"`
+	// ClaimId identifies the controller instance carrying the epoch.
+	ClaimId string `protobuf:"bytes,4,opt,name=claim_id,json=claimId,proto3" json:"claimId,omitempty"`
 }
 
 func (x *TxSetOutputs) Reset() {
@@ -193,14 +220,33 @@ func (x *TxSetOutputs) GetClearOld() bool {
 	return false
 }
 
+func (x *TxSetOutputs) GetClaimEpoch() uint64 {
+	if x != nil {
+		return x.ClaimEpoch
+	}
+	return 0
+}
+
+func (x *TxSetOutputs) GetClaimId() string {
+	if x != nil {
+		return x.ClaimId
+	}
+	return ""
+}
+
 // TxComplete completes the execution by setting the result.
-// Execution must be RUNNING, or CANCELING with a canceled result.
+// Execution must be RUNNING, CANCELING with a canceled result, or COMPLETE
+// with the same claim.
 // Sender must be the peer_id specified on the Execution.
 // TxType: TxType_COMPLETE
 type TxComplete struct {
 	unknownFields []byte
 	// Result is information about the outcome of a completed execution.
 	Result *value.Result `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	// ClaimEpoch is the fencing token authorizing this completion.
+	ClaimEpoch uint64 `protobuf:"varint,2,opt,name=claim_epoch,json=claimEpoch,proto3" json:"claimEpoch,omitempty"`
+	// ClaimId identifies the controller instance carrying the epoch.
+	ClaimId string `protobuf:"bytes,3,opt,name=claim_id,json=claimId,proto3" json:"claimId,omitempty"`
 }
 
 func (x *TxComplete) Reset() {
@@ -216,6 +262,20 @@ func (x *TxComplete) GetResult() *value.Result {
 	return nil
 }
 
+func (x *TxComplete) GetClaimEpoch() uint64 {
+	if x != nil {
+		return x.ClaimEpoch
+	}
+	return 0
+}
+
+func (x *TxComplete) GetClaimId() string {
+	if x != nil {
+		return x.ClaimId
+	}
+	return ""
+}
+
 // TxCancel requests cancellation of a running execution.
 // TxType: TxType_CANCEL
 type TxCancel struct {
@@ -228,6 +288,46 @@ func (x *TxCancel) Reset() {
 
 func (*TxCancel) ProtoMessage() {}
 
+// TxReclaim transfers a RUNNING execution to a new controller instance.
+// The current owner must already be known unavailable by the caller.
+// TxType: TxType_RECLAIM
+type TxReclaim struct {
+	unknownFields []byte
+	// PeerId is the peer identifier to set as the executor.
+	PeerId string `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
+	// ClaimId is the opaque identifier of the new controller instance.
+	ClaimId string `protobuf:"bytes,2,opt,name=claim_id,json=claimId,proto3" json:"claimId,omitempty"`
+	// ExpectedClaimEpoch prevents racing transfers from both succeeding.
+	ExpectedClaimEpoch uint64 `protobuf:"varint,3,opt,name=expected_claim_epoch,json=expectedClaimEpoch,proto3" json:"expectedClaimEpoch,omitempty"`
+}
+
+func (x *TxReclaim) Reset() {
+	*x = TxReclaim{}
+}
+
+func (*TxReclaim) ProtoMessage() {}
+
+func (x *TxReclaim) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
+}
+
+func (x *TxReclaim) GetClaimId() string {
+	if x != nil {
+		return x.ClaimId
+	}
+	return ""
+}
+
+func (x *TxReclaim) GetExpectedClaimEpoch() uint64 {
+	if x != nil {
+		return x.ExpectedClaimEpoch
+	}
+	return 0
+}
+
 // TxAppendLog appends log entries to the execution.
 // Execution must be RUNNING or CANCELING.
 // Sender must be the peer_id specified on the Execution.
@@ -236,6 +336,10 @@ type TxAppendLog struct {
 	unknownFields []byte
 	// Entries is the set of log entries to append.
 	Entries []*execution.LogEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// ClaimEpoch is the fencing token authorizing this write.
+	ClaimEpoch uint64 `protobuf:"varint,2,opt,name=claim_epoch,json=claimEpoch,proto3" json:"claimEpoch,omitempty"`
+	// ClaimId identifies the controller instance carrying the epoch.
+	ClaimId string `protobuf:"bytes,3,opt,name=claim_id,json=claimId,proto3" json:"claimId,omitempty"`
 }
 
 func (x *TxAppendLog) Reset() {
@@ -251,6 +355,20 @@ func (x *TxAppendLog) GetEntries() []*execution.LogEntry {
 	return nil
 }
 
+func (x *TxAppendLog) GetClaimEpoch() uint64 {
+	if x != nil {
+		return x.ClaimEpoch
+	}
+	return 0
+}
+
+func (x *TxAppendLog) GetClaimId() string {
+	if x != nil {
+		return x.ClaimId
+	}
+	return ""
+}
+
 func (m *Tx) CloneVT() *Tx {
 	if m == nil {
 		return (*Tx)(nil)
@@ -262,6 +380,7 @@ func (m *Tx) CloneVT() *Tx {
 	r.TxComplete = protobuf_go_lite.CloneVTValue(m.TxComplete)
 	r.TxAppendLog = protobuf_go_lite.CloneVTValue(m.TxAppendLog)
 	r.TxCancel = protobuf_go_lite.CloneVTValue(m.TxCancel)
+	r.TxReclaim = protobuf_go_lite.CloneVTValue(m.TxReclaim)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -278,6 +397,7 @@ func (m *TxStart) CloneVT() *TxStart {
 	}
 	r := new(TxStart)
 	r.PeerId = m.PeerId
+	r.ClaimId = m.ClaimId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -294,6 +414,8 @@ func (m *TxSetOutputs) CloneVT() *TxSetOutputs {
 	}
 	r := new(TxSetOutputs)
 	r.ClearOld = m.ClearOld
+	r.ClaimEpoch = m.ClaimEpoch
+	r.ClaimId = m.ClaimId
 	r.Outputs = protobuf_go_lite.CloneVTSlice(m.Outputs)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -310,6 +432,8 @@ func (m *TxComplete) CloneVT() *TxComplete {
 		return (*TxComplete)(nil)
 	}
 	r := new(TxComplete)
+	r.ClaimEpoch = m.ClaimEpoch
+	r.ClaimId = m.ClaimId
 	r.Result = protobuf_go_lite.CloneVTValue(m.Result)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -336,11 +460,31 @@ func (m *TxCancel) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *TxReclaim) CloneVT() *TxReclaim {
+	if m == nil {
+		return (*TxReclaim)(nil)
+	}
+	r := new(TxReclaim)
+	r.PeerId = m.PeerId
+	r.ClaimId = m.ClaimId
+	r.ExpectedClaimEpoch = m.ExpectedClaimEpoch
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TxReclaim) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *TxAppendLog) CloneVT() *TxAppendLog {
 	if m == nil {
 		return (*TxAppendLog)(nil)
 	}
 	r := new(TxAppendLog)
+	r.ClaimEpoch = m.ClaimEpoch
+	r.ClaimId = m.ClaimId
 	r.Entries = protobuf_go_lite.CloneVTSlice(m.Entries)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -376,6 +520,9 @@ func (this *Tx) EqualVT(that *Tx) bool {
 	if !protobuf_go_lite.IsEqualVT(this.TxCancel, that.TxCancel) {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.TxReclaim, that.TxReclaim) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -394,6 +541,9 @@ func (this *TxStart) EqualVT(that *TxStart) bool {
 		return false
 	}
 	if this.PeerId != that.PeerId {
+		return false
+	}
+	if this.ClaimId != that.ClaimId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -419,6 +569,12 @@ func (this *TxSetOutputs) EqualVT(that *TxSetOutputs) bool {
 	if this.ClearOld != that.ClearOld {
 		return false
 	}
+	if this.ClaimEpoch != that.ClaimEpoch {
+		return false
+	}
+	if this.ClaimId != that.ClaimId {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -437,6 +593,12 @@ func (this *TxComplete) EqualVT(that *TxComplete) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Result, that.Result) {
+		return false
+	}
+	if this.ClaimEpoch != that.ClaimEpoch {
+		return false
+	}
+	if this.ClaimId != that.ClaimId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -467,6 +629,32 @@ func (this *TxCancel) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *TxReclaim) EqualVT(that *TxReclaim) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.PeerId != that.PeerId {
+		return false
+	}
+	if this.ClaimId != that.ClaimId {
+		return false
+	}
+	if this.ExpectedClaimEpoch != that.ExpectedClaimEpoch {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TxReclaim) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TxReclaim)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *TxAppendLog) EqualVT(that *TxAppendLog) bool {
 	if this == that {
 		return true
@@ -474,6 +662,12 @@ func (this *TxAppendLog) EqualVT(that *TxAppendLog) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.Entries, that.Entries, func() *execution.LogEntry { return &execution.LogEntry{} }) {
+		return false
+	}
+	if this.ClaimEpoch != that.ClaimEpoch {
+		return false
+	}
+	if this.ClaimId != that.ClaimId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -565,6 +759,11 @@ func (x *Tx) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("txCancel")
 		x.TxCancel.MarshalProtoJSON(s.WithField("txCancel"))
 	}
+	if x.TxReclaim != nil || s.HasField("txReclaim") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("txReclaim")
+		x.TxReclaim.MarshalProtoJSON(s.WithField("txReclaim"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -620,6 +819,13 @@ func (x *Tx) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.TxCancel = &TxCancel{}
 			x.TxCancel.UnmarshalProtoJSON(s.WithField("tx_cancel", true))
+		case "tx_reclaim", "txReclaim":
+			if s.ReadNil() {
+				x.TxReclaim = nil
+				return
+			}
+			x.TxReclaim = &TxReclaim{}
+			x.TxReclaim.UnmarshalProtoJSON(s.WithField("tx_reclaim", true))
 		}
 	})
 }
@@ -642,6 +848,11 @@ func (x *TxStart) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("peerId")
 		s.WriteString(x.PeerId)
 	}
+	if x.ClaimId != "" || s.HasField("claimId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claimId")
+		s.WriteString(x.ClaimId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -662,6 +873,9 @@ func (x *TxStart) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "peer_id", "peerId":
 			s.AddField("peer_id")
 			x.PeerId = s.ReadString()
+		case "claim_id", "claimId":
+			s.AddField("claim_id")
+			x.ClaimId = s.ReadString()
 		}
 	})
 }
@@ -694,6 +908,16 @@ func (x *TxSetOutputs) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("clearOld")
 		s.WriteBool(x.ClearOld)
+	}
+	if x.ClaimEpoch != 0 || s.HasField("claimEpoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claimEpoch")
+		s.WriteUint64(x.ClaimEpoch)
+	}
+	if x.ClaimId != "" || s.HasField("claimId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claimId")
+		s.WriteString(x.ClaimId)
 	}
 	s.WriteObjectEnd()
 }
@@ -733,6 +957,12 @@ func (x *TxSetOutputs) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "clear_old", "clearOld":
 			s.AddField("clear_old")
 			x.ClearOld = s.ReadBool()
+		case "claim_epoch", "claimEpoch":
+			s.AddField("claim_epoch")
+			x.ClaimEpoch = s.ReadUint64()
+		case "claim_id", "claimId":
+			s.AddField("claim_id")
+			x.ClaimId = s.ReadString()
 		}
 	})
 }
@@ -754,6 +984,16 @@ func (x *TxComplete) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("result")
 		x.Result.MarshalProtoJSON(s.WithField("result"))
+	}
+	if x.ClaimEpoch != 0 || s.HasField("claimEpoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claimEpoch")
+		s.WriteUint64(x.ClaimEpoch)
+	}
+	if x.ClaimId != "" || s.HasField("claimId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claimId")
+		s.WriteString(x.ClaimId)
 	}
 	s.WriteObjectEnd()
 }
@@ -779,6 +1019,12 @@ func (x *TxComplete) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Result = &value.Result{}
 			x.Result.UnmarshalProtoJSON(s.WithField("result", true))
+		case "claim_epoch", "claimEpoch":
+			s.AddField("claim_epoch")
+			x.ClaimEpoch = s.ReadUint64()
+		case "claim_id", "claimId":
+			s.AddField("claim_id")
+			x.ClaimId = s.ReadString()
 		}
 	})
 }
@@ -818,6 +1064,64 @@ func (x *TxCancel) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the TxReclaim message to JSON.
+func (x *TxReclaim) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.PeerId != "" || s.HasField("peerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerId")
+		s.WriteString(x.PeerId)
+	}
+	if x.ClaimId != "" || s.HasField("claimId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claimId")
+		s.WriteString(x.ClaimId)
+	}
+	if x.ExpectedClaimEpoch != 0 || s.HasField("expectedClaimEpoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expectedClaimEpoch")
+		s.WriteUint64(x.ExpectedClaimEpoch)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TxReclaim to JSON.
+func (x *TxReclaim) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TxReclaim message from JSON.
+func (x *TxReclaim) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "peer_id", "peerId":
+			s.AddField("peer_id")
+			x.PeerId = s.ReadString()
+		case "claim_id", "claimId":
+			s.AddField("claim_id")
+			x.ClaimId = s.ReadString()
+		case "expected_claim_epoch", "expectedClaimEpoch":
+			s.AddField("expected_claim_epoch")
+			x.ExpectedClaimEpoch = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TxReclaim from JSON.
+func (x *TxReclaim) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the TxAppendLog message to JSON.
 func (x *TxAppendLog) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -836,6 +1140,16 @@ func (x *TxAppendLog) MarshalProtoJSON(s *json.MarshalState) {
 			element.MarshalProtoJSON(s.WithField("entries"))
 		}
 		s.WriteArrayEnd()
+	}
+	if x.ClaimEpoch != 0 || s.HasField("claimEpoch") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claimEpoch")
+		s.WriteUint64(x.ClaimEpoch)
+	}
+	if x.ClaimId != "" || s.HasField("claimId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("claimId")
+		s.WriteString(x.ClaimId)
 	}
 	s.WriteObjectEnd()
 }
@@ -872,6 +1186,12 @@ func (x *TxAppendLog) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.Entries = append(x.Entries, v)
 			})
+		case "claim_epoch", "claimEpoch":
+			s.AddField("claim_epoch")
+			x.ClaimEpoch = s.ReadUint64()
+		case "claim_id", "claimId":
+			s.AddField("claim_id")
+			x.ClaimId = s.ReadString()
 		}
 	})
 }
@@ -909,6 +1229,16 @@ func (m *Tx) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.TxReclaim != nil {
+		size, err := m.TxReclaim.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
 	}
 	if m.TxCancel != nil {
 		size, err := m.TxCancel.MarshalToSizedBufferVT(dAtA[:i])
@@ -997,6 +1327,11 @@ func (m *TxStart) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.ClaimId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ClaimId)
+		i--
+		dAtA[i] = 0x12
+	}
 	if len(m.PeerId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
 		i--
@@ -1033,6 +1368,16 @@ func (m *TxSetOutputs) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ClaimId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ClaimId)
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.ClaimEpoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ClaimEpoch))
+		i--
+		dAtA[i] = 0x18
 	}
 	if m.ClearOld {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.ClearOld)
@@ -1083,6 +1428,16 @@ func (m *TxComplete) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.ClaimId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ClaimId)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.ClaimEpoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ClaimEpoch))
+		i--
+		dAtA[i] = 0x10
+	}
 	if m.Result != nil {
 		size, err := m.Result.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1128,6 +1483,53 @@ func (m *TxCancel) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *TxReclaim) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TxReclaim) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TxReclaim) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ExpectedClaimEpoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpectedClaimEpoch))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.ClaimId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ClaimId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.PeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *TxAppendLog) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1156,6 +1558,16 @@ func (m *TxAppendLog) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ClaimId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ClaimId)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.ClaimEpoch != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ClaimEpoch))
+		i--
+		dAtA[i] = 0x10
 	}
 	if len(m.Entries) > 0 {
 		for iNdEx := len(m.Entries) - 1; iNdEx >= 0; iNdEx-- {
@@ -1199,6 +1611,10 @@ func (m *Tx) SizeVT() (n int) {
 		l = m.TxCancel.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.TxReclaim != nil {
+		l = m.TxReclaim.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1210,6 +1626,7 @@ func (m *TxStart) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ClaimId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1225,6 +1642,8 @@ func (m *TxSetOutputs) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.ClearOld)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ClaimEpoch)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ClaimId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1239,6 +1658,8 @@ func (m *TxComplete) SizeVT() (n int) {
 		l = m.Result.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ClaimEpoch)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ClaimId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1253,6 +1674,19 @@ func (m *TxCancel) SizeVT() (n int) {
 	return n
 }
 
+func (m *TxReclaim) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ClaimId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExpectedClaimEpoch)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *TxAppendLog) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1263,6 +1697,8 @@ func (m *TxAppendLog) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ClaimEpoch)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ClaimId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1298,6 +1734,10 @@ func (x *Tx) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tx_cancel")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TxCancel)
 	}
+	if x.TxReclaim != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tx_reclaim")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TxReclaim)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -1311,6 +1751,10 @@ func (x *TxStart) MarshalProtoText() string {
 	if x.PeerId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
 		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
+	}
+	if x.ClaimId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ClaimId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1338,6 +1782,14 @@ func (x *TxSetOutputs) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "clear_old")
 		protobuf_go_lite.TextWriteBool(&sb, x.ClearOld)
 	}
+	if x.ClaimEpoch != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_epoch")
+		protobuf_go_lite.TextWriteUint(&sb, x.ClaimEpoch)
+	}
+	if x.ClaimId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ClaimId)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -1351,6 +1803,14 @@ func (x *TxComplete) MarshalProtoText() string {
 	if x.Result != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "result")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Result)
+	}
+	if x.ClaimEpoch != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_epoch")
+		protobuf_go_lite.TextWriteUint(&sb, x.ClaimEpoch)
+	}
+	if x.ClaimId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ClaimId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1369,6 +1829,28 @@ func (x *TxCancel) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *TxReclaim) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "TxReclaim")
+	if x.PeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
+	}
+	if x.ClaimId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ClaimId)
+	}
+	if x.ExpectedClaimEpoch != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expected_claim_epoch")
+		protobuf_go_lite.TextWriteUint(&sb, x.ExpectedClaimEpoch)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *TxReclaim) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *TxAppendLog) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "TxAppendLog")
@@ -1383,6 +1865,14 @@ func (x *TxAppendLog) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.ClaimEpoch != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_epoch")
+		protobuf_go_lite.TextWriteUint(&sb, x.ClaimEpoch)
+	}
+	if x.ClaimId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "claim_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ClaimId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1497,6 +1987,21 @@ func (m *Tx) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TxReclaim", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.TxReclaim == nil {
+				m.TxReclaim = &TxReclaim{}
+			}
+			if err := m.TxReclaim.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1550,6 +2055,16 @@ func (m *TxStart) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PeerId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClaimId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ClaimId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1616,6 +2131,25 @@ func (m *TxSetOutputs) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ClearOld = bool(v)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClaimEpoch", wireType)
+			}
+			m.ClaimEpoch = 0
+			m.ClaimEpoch, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClaimId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ClaimId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1674,6 +2208,25 @@ func (m *TxComplete) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClaimEpoch", wireType)
+			}
+			m.ClaimEpoch = 0
+			m.ClaimEpoch, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClaimId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ClaimId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1740,6 +2293,78 @@ func (m *TxCancel) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
+func (m *TxReclaim) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TxReclaim: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TxReclaim: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PeerId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClaimId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ClaimId = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpectedClaimEpoch", wireType)
+			}
+			m.ExpectedClaimEpoch = 0
+			m.ExpectedClaimEpoch, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *TxAppendLog) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1773,6 +2398,25 @@ func (m *TxAppendLog) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClaimEpoch", wireType)
+			}
+			m.ClaimEpoch = 0
+			m.ClaimEpoch, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClaimId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ClaimId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

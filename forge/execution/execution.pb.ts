@@ -107,6 +107,35 @@ export const LogEntry: MessageType<LogEntry> =
   })
 
 /**
+ * Claim fences side effects and write-back for one execution owner.
+ *
+ * @generated from message forge.execution.Claim
+ */
+export interface Claim {
+  /**
+   * ClaimId is the opaque identifier of the controller instance.
+   *
+   * @generated from field: string claim_id = 1;
+   */
+  claimId?: string
+  /**
+   * Epoch is the monotonic fencing token for this claim.
+   *
+   * @generated from field: uint64 epoch = 2;
+   */
+  epoch?: bigint
+}
+
+export const Claim: MessageType<Claim> = /* @__PURE__ */ createMessageType({
+  typeName: 'forge.execution.Claim',
+  fields: [
+    { no: 1, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'epoch', kind: 'scalar', T: ScalarType.UINT64 },
+  ] satisfies readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * World graph links:
  *  - <parent> -> usually a Pass which created the Execution
  *
@@ -160,6 +189,12 @@ export interface Execution {
    * @generated from field: repeated forge.execution.LogEntry log_entries = 7;
    */
   logEntries?: LogEntry[]
+  /**
+   * Claim identifies the controller instance authorized to run and write back.
+   *
+   * @generated from field: forge.execution.Claim claim = 8;
+   */
+  claim?: Claim
 }
 
 export const Execution: MessageType<Execution> =
@@ -179,6 +214,7 @@ export const Execution: MessageType<Execution> =
         T: () => LogEntry,
         repeated: true,
       },
+      { no: 8, name: 'claim', kind: 'message', T: () => Claim },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
