@@ -17,6 +17,7 @@ func (s State) Validate(allowUnknown bool) error {
 	case State_ExecutionState_PENDING:
 	case State_ExecutionState_RUNNING:
 	case State_ExecutionState_COMPLETE:
+	case State_ExecutionState_CANCELING:
 	default:
 		return errors.Wrap(ErrUnknownState, s.String())
 	}

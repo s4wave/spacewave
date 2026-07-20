@@ -49,6 +49,13 @@ export enum State {
    * @generated from enum value: ExecutionState_COMPLETE = 3;
    */
   ExecutionState_COMPLETE = 3,
+
+  /**
+   * ExecutionState_CANCELING is the state while the executor drains custody.
+   *
+   * @generated from enum value: ExecutionState_CANCELING = 4;
+   */
+  ExecutionState_CANCELING = 4,
 }
 
 export const State_Enum = /* @__PURE__ */ createEnumType(
@@ -58,6 +65,7 @@ export const State_Enum = /* @__PURE__ */ createEnumType(
     [1, 'ExecutionState_PENDING'],
     [2, 'ExecutionState_RUNNING'],
     [3, 'ExecutionState_COMPLETE'],
+    [4, 'ExecutionState_CANCELING'],
   ],
 )
 
@@ -128,7 +136,7 @@ export interface Execution {
   timestamp?: Date
   /**
    * ValueSet is the set of inputs and outputs used in the execution.
-   * Outputs are updated while the execution is in RUNNING state.
+   * Outputs are updated while the execution is RUNNING or CANCELING.
    *
    * @generated from field: forge.target.ValueSet value_set = 4;
    */
@@ -147,7 +155,7 @@ export interface Execution {
   result?: Result
   /**
    * LogEntries contains log output from the execution.
-   * Appended while the execution is in RUNNING state.
+   * Appended while the execution is RUNNING or CANCELING.
    *
    * @generated from field: repeated forge.execution.LogEntry log_entries = 7;
    */

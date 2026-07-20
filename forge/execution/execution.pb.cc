@@ -198,11 +198,11 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2
     "e.protobuf.Timestamp\022\r\n\005level\030\002 \001(\t\022\017\n\007m"
     "essage\030\003 \001(\t\"g\n\004Spec\022\017\n\007peer_id\030\001 \001(\t\022)\n"
     "\tvalue_set\030\002 \001(\0132\026.forge.target.ValueSet"
-    "\022#\n\ntarget_ref\030\003 \001(\0132\017.block.BlockRef*x\n"
-    "\005State\022\032\n\026ExecutionState_UNKNOWN\020\000\022\032\n\026Ex"
-    "ecutionState_PENDING\020\001\022\032\n\026ExecutionState"
-    "_RUNNING\020\002\022\033\n\027ExecutionState_COMPLETE\020\003b"
-    "\006proto3"
+    "\022#\n\ntarget_ref\030\003 \001(\0132\017.block.BlockRef*\226\001"
+    "\n\005State\022\032\n\026ExecutionState_UNKNOWN\020\000\022\032\n\026E"
+    "xecutionState_PENDING\020\001\022\032\n\026ExecutionStat"
+    "e_RUNNING\020\002\022\033\n\027ExecutionState_COMPLETE\020\003"
+    "\022\034\n\030ExecutionState_CANCELING\020\004b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2fexecution_2eproto_deps[4] = {
@@ -215,7 +215,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2ffo
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2fexecution_2eproto = {
     false,
     false,
-    887,
+    918,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2fexecution_2eproto,
     "github.com/s4wave/spacewave/forge/execution/execution.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2fexecution_2eproto_once,
@@ -235,7 +235,7 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL State_descriptor() {
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2fexecution_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t State_internal_data_[] = {
-    262144u, 0u, };
+    327680u, 0u, };
 // ===================================================================
 
 class Execution::_Internal {

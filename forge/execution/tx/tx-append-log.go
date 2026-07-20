@@ -6,7 +6,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
-	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -58,12 +57,12 @@ func (t *TxAppendLog) ExecuteTx(
 		}
 	}
 
-	// ensure RUNNING state
-	if state := root.GetExecutionState(); state != forge_execution.State_ExecutionState_RUNNING {
-		return errors.Wrapf(
-			forge_value.ErrUnknownState,
-			"%s", state.String(),
-		)
+	// The executor may record cleanup progress while draining.
+	if err := root.GetExecutionState().EnsureMatches(
+		forge_execution.State_ExecutionState_RUNNING,
+		forge_execution.State_ExecutionState_CANCELING,
+	); err != nil {
+		return err
 	}
 
 	root.LogEntries = append(root.LogEntries, t.GetEntries()...)

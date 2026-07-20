@@ -63,7 +63,11 @@ func (t *TxUpdateWithPassState) ExecuteTx(
 	case forge_pass.State_PassState_UNKNOWN:
 		root.TaskState = forge_task.State_TaskState_PENDING
 	case forge_pass.State_PassState_COMPLETE:
-		root.TaskState = forge_task.State_TaskState_CHECKING
+		if currPass.GetResult().GetCanceled() {
+			root.TaskState = forge_task.State_TaskState_PENDING
+		} else {
+			root.TaskState = forge_task.State_TaskState_CHECKING
+		}
 	default:
 		return nil
 	}

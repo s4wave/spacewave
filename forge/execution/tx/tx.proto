@@ -21,6 +21,9 @@ message Tx {
   // TxAppendLog contains the append log tx.
   // TxType_APPEND_LOG
   TxAppendLog tx_append_log = 5;
+  // TxCancel contains the cancel tx.
+  // TxType_CANCEL
+  TxCancel tx_cancel = 6;
 }
 
 // TxType indicates the kind of transaction.
@@ -34,6 +37,8 @@ enum TxType {
   TxType_COMPLETE = 3;
   // TxType_APPEND_LOG appends log entries to the execution.
   TxType_APPEND_LOG = 4;
+  // TxType_CANCEL requests cancellation and custody drain.
+  TxType_CANCEL = 5;
 }
 
 // TxStart starts the execution with a peer id.
@@ -47,7 +52,7 @@ message TxStart {
 }
 
 // TxSetOutputs updates the value of one or more execution outputs.
-// Execution must be in the RUNNING state.
+// Execution must be RUNNING or CANCELING.
 // Sender must be the peer_id specified on the Execution.
 // TxType: TxType_SET_OUTPUTS
 message TxSetOutputs {
@@ -58,7 +63,7 @@ message TxSetOutputs {
 }
 
 // TxComplete completes the execution by setting the result.
-// Execution must be in the RUNNING state.
+// Execution must be RUNNING, or CANCELING with a canceled result.
 // Sender must be the peer_id specified on the Execution.
 // TxType: TxType_COMPLETE
 message TxComplete {
@@ -66,8 +71,13 @@ message TxComplete {
   .forge.value.Result result = 1;
 }
 
+// TxCancel requests cancellation of a running execution.
+// TxType: TxType_CANCEL
+message TxCancel {
+}
+
 // TxAppendLog appends log entries to the execution.
-// Execution must be in the RUNNING state.
+// Execution must be RUNNING or CANCELING.
 // Sender must be the peer_id specified on the Execution.
 // TxType: TxType_APPEND_LOG
 message TxAppendLog {

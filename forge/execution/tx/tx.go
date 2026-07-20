@@ -72,6 +72,8 @@ func (t TxType) Validate() error {
 		return nil
 	case TxType_TxType_APPEND_LOG:
 		return nil
+	case TxType_TxType_CANCEL:
+		return nil
 	default:
 		return errors.Wrap(world.ErrUnhandledOp, t.String())
 	}
@@ -88,6 +90,8 @@ func (t *Tx) LocateTx() (Transaction, error) {
 		return t.GetTxComplete(), nil
 	case TxType_TxType_APPEND_LOG:
 		return t.GetTxAppendLog(), nil
+	case TxType_TxType_CANCEL:
+		return t.GetTxCancel(), nil
 	default:
 		return nil, errors.Wrap(world.ErrUnhandledOp, t.String())
 	}

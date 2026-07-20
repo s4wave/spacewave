@@ -22,6 +22,10 @@ pub struct Tx {
     /// TxType_APPEND_LOG
     #[prost(message, optional, tag="5")]
     pub tx_append_log: ::core::option::Option<TxAppendLog>,
+    /// TxCancel contains the cancel tx.
+    /// TxType_CANCEL
+    #[prost(message, optional, tag="6")]
+    pub tx_cancel: ::core::option::Option<TxCancel>,
 }
 /// TxStart starts the execution with a peer id.
 /// Execution must be in the PENDING state.
@@ -35,7 +39,7 @@ pub struct TxStart {
     pub peer_id: ::prost::alloc::string::String,
 }
 /// TxSetOutputs updates the value of one or more execution outputs.
-/// Execution must be in the RUNNING state.
+/// Execution must be RUNNING or CANCELING.
 /// Sender must be the peer_id specified on the Execution.
 /// TxType: TxType_SET_OUTPUTS
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -48,7 +52,7 @@ pub struct TxSetOutputs {
     pub clear_old: bool,
 }
 /// TxComplete completes the execution by setting the result.
-/// Execution must be in the RUNNING state.
+/// Execution must be RUNNING, or CANCELING with a canceled result.
 /// Sender must be the peer_id specified on the Execution.
 /// TxType: TxType_COMPLETE
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -57,8 +61,13 @@ pub struct TxComplete {
     #[prost(message, optional, tag="1")]
     pub result: ::core::option::Option<super::super::forge::value::Result>,
 }
+/// TxCancel requests cancellation of a running execution.
+/// TxType: TxType_CANCEL
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TxCancel {
+}
 /// TxAppendLog appends log entries to the execution.
-/// Execution must be in the RUNNING state.
+/// Execution must be RUNNING or CANCELING.
 /// Sender must be the peer_id specified on the Execution.
 /// TxType: TxType_APPEND_LOG
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -80,6 +89,8 @@ pub enum TxType {
     Complete = 3,
     /// TxType_APPEND_LOG appends log entries to the execution.
     AppendLog = 4,
+    /// TxType_CANCEL requests cancellation and custody drain.
+    Cancel = 5,
 }
 impl TxType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -93,6 +104,7 @@ impl TxType {
             Self::SetOutputs => "TxType_SET_OUTPUTS",
             Self::Complete => "TxType_COMPLETE",
             Self::AppendLog => "TxType_APPEND_LOG",
+            Self::Cancel => "TxType_CANCEL",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -103,6 +115,7 @@ impl TxType {
             "TxType_SET_OUTPUTS" => Some(Self::SetOutputs),
             "TxType_COMPLETE" => Some(Self::Complete),
             "TxType_APPEND_LOG" => Some(Self::AppendLog),
+            "TxType_CANCEL" => Some(Self::Cancel),
             _ => None,
         }
     }

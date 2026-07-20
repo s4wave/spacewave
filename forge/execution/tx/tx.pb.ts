@@ -4,7 +4,10 @@
 
 import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
-import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Result, Value } from '../../value/value.pb.js'
@@ -50,6 +53,13 @@ export enum TxType {
    * @generated from enum value: TxType_APPEND_LOG = 4;
    */
   TxType_APPEND_LOG = 4,
+
+  /**
+   * TxType_CANCEL requests cancellation and custody drain.
+   *
+   * @generated from enum value: TxType_CANCEL = 5;
+   */
+  TxType_CANCEL = 5,
 }
 
 export const TxType_Enum = /* @__PURE__ */ createEnumType(
@@ -60,6 +70,7 @@ export const TxType_Enum = /* @__PURE__ */ createEnumType(
     [2, 'TxType_SET_OUTPUTS'],
     [3, 'TxType_COMPLETE'],
     [4, 'TxType_APPEND_LOG'],
+    [5, 'TxType_CANCEL'],
   ],
 )
 
@@ -91,7 +102,7 @@ export const TxStart: MessageType<TxStart> = /* @__PURE__ */ createMessageType({
 
 /**
  * TxSetOutputs updates the value of one or more execution outputs.
- * Execution must be in the RUNNING state.
+ * Execution must be RUNNING or CANCELING.
  * Sender must be the peer_id specified on the Execution.
  * TxType: TxType_SET_OUTPUTS
  *
@@ -130,7 +141,7 @@ export const TxSetOutputs: MessageType<TxSetOutputs> =
 
 /**
  * TxComplete completes the execution by setting the result.
- * Execution must be in the RUNNING state.
+ * Execution must be RUNNING, or CANCELING with a canceled result.
  * Sender must be the peer_id specified on the Execution.
  * TxType: TxType_COMPLETE
  *
@@ -156,7 +167,7 @@ export const TxComplete: MessageType<TxComplete> =
 
 /**
  * TxAppendLog appends log entries to the execution.
- * Execution must be in the RUNNING state.
+ * Execution must be RUNNING or CANCELING.
  * Sender must be the peer_id specified on the Execution.
  * TxType: TxType_APPEND_LOG
  *
@@ -185,6 +196,20 @@ export const TxAppendLog: MessageType<TxAppendLog> =
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * TxCancel requests cancellation of a running execution.
+ * TxType: TxType_CANCEL
+ *
+ * @generated from message execution.tx.TxCancel
+ */
+export interface TxCancel {}
+
+export const TxCancel: MessageType<TxCancel> =
+  /* @__PURE__ */ createEmptyMessageType<TxCancel>(
+    'execution.tx.TxCancel',
+    true,
+  )
 
 /**
  * Tx is the on-the-wire representation of a transaction.
@@ -226,6 +251,13 @@ export interface Tx {
    * @generated from field: execution.tx.TxAppendLog tx_append_log = 5;
    */
   txAppendLog?: TxAppendLog
+  /**
+   * TxCancel contains the cancel tx.
+   * TxType_CANCEL
+   *
+   * @generated from field: execution.tx.TxCancel tx_cancel = 6;
+   */
+  txCancel?: TxCancel
 }
 
 export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
@@ -236,6 +268,7 @@ export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
     { no: 3, name: 'tx_set_outputs', kind: 'message', T: () => TxSetOutputs },
     { no: 4, name: 'tx_complete', kind: 'message', T: () => TxComplete },
     { no: 5, name: 'tx_append_log', kind: 'message', T: () => TxAppendLog },
+    { no: 6, name: 'tx_cancel', kind: 'message', T: () => TxCancel },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -17,7 +17,7 @@ pub struct Execution {
     #[prost(message, optional, tag="3")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
     /// ValueSet is the set of inputs and outputs used in the execution.
-    /// Outputs are updated while the execution is in RUNNING state.
+    /// Outputs are updated while the execution is RUNNING or CANCELING.
     #[prost(message, optional, tag="4")]
     pub value_set: ::core::option::Option<super::target::ValueSet>,
     /// TargetRef is the block ref to the Target block.
@@ -27,7 +27,7 @@ pub struct Execution {
     #[prost(message, optional, tag="6")]
     pub result: ::core::option::Option<super::value::Result>,
     /// LogEntries contains log output from the execution.
-    /// Appended while the execution is in RUNNING state.
+    /// Appended while the execution is RUNNING or CANCELING.
     #[prost(message, repeated, tag="7")]
     pub log_entries: ::prost::alloc::vec::Vec<LogEntry>,
 }
@@ -74,6 +74,8 @@ pub enum State {
     /// ExecutionState_COMPLETE is the terminal state of the execution.
     /// This includes both success and failure termination states.
     ExecutionStateComplete = 3,
+    /// ExecutionState_CANCELING is the state while the executor drains custody.
+    ExecutionStateCanceling = 4,
 }
 impl State {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -86,6 +88,7 @@ impl State {
             Self::ExecutionStatePending => "ExecutionState_PENDING",
             Self::ExecutionStateRunning => "ExecutionState_RUNNING",
             Self::ExecutionStateComplete => "ExecutionState_COMPLETE",
+            Self::ExecutionStateCanceling => "ExecutionState_CANCELING",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -95,6 +98,7 @@ impl State {
             "ExecutionState_PENDING" => Some(Self::ExecutionStatePending),
             "ExecutionState_RUNNING" => Some(Self::ExecutionStateRunning),
             "ExecutionState_COMPLETE" => Some(Self::ExecutionStateComplete),
+            "ExecutionState_CANCELING" => Some(Self::ExecutionStateCanceling),
             _ => None,
         }
     }

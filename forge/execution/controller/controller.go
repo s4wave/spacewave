@@ -2,6 +2,7 @@ package execution_controller
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -54,6 +55,9 @@ type Controller struct {
 	// execRoutine is the execution routine resolving execResult
 	// note: value_set and result are set to nil
 	execRoutine *routine.StateRoutineContainer[*ExecConfig]
+	// cancelCh closes after durable cancellation is observed.
+	cancelCh   chan struct{}
+	cancelOnce sync.Once
 }
 
 // NewController constructs a new Execution controller.
@@ -71,6 +75,7 @@ func NewController(
 		conf:     conf,
 		uniqueID: uniqueID,
 		peerID:   peerID,
+		cancelCh: make(chan struct{}),
 	}
 	c.busEngine = world.NewBusEngine(nil, bus, conf.GetEngineId())
 	c.ws = world.NewEngineWorldState(c.busEngine, true)
@@ -192,6 +197,11 @@ func (c *Controller) ProcessState(
 
 	// check if completed
 	currState := exState.GetExecutionState()
+	if currState == forge_execution.State_ExecutionState_CANCELING {
+		c.cancelOnce.Do(func() {
+			close(c.cancelCh)
+		})
+	}
 	if currState == forge_execution.State_ExecutionState_COMPLETE {
 		le.Debug("execution is marked as complete")
 		c.execRoutine.SetState(nil)
@@ -228,8 +238,10 @@ func (c *Controller) ProcessState(
 		return true, nil
 	}
 
-	// check if running, otherwise, this is some unknown state
-	if currState != forge_execution.State_ExecutionState_RUNNING {
+	// RUNNING and CANCELING both retain adapter custody. Cancellation is
+	// delivered without tearing down the routine context.
+	if currState != forge_execution.State_ExecutionState_RUNNING &&
+		currState != forge_execution.State_ExecutionState_CANCELING {
 		c.execRoutine.SetState(nil)
 		return true, errors.Wrapf(
 			forge_value.ErrUnknownState,
@@ -240,6 +252,7 @@ func (c *Controller) ProcessState(
 	// check if equivalent to the current
 	execConfigState := exState.CloneVT()
 	execConfigState.Result = nil
+	execConfigState.ExecutionState = forge_execution.State_ExecutionState_RUNNING
 	execConfigState.LogEntries = nil
 	if execConfigState.ValueSet == nil {
 		execConfigState.ValueSet = &forge_target.ValueSet{}

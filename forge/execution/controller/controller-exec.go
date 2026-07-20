@@ -30,9 +30,21 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 		return context.Canceled
 	}
 
-	// mark the execution as complete
+	canceling := false
+	select {
+	case <-c.cancelCh:
+		canceling = true
+	default:
+	}
+
 	var res *forge_value.Result
-	if execErr != nil {
+	if canceling {
+		if execErr != nil {
+			return errors.Wrap(execErr, "drain canceled execution")
+		}
+		c.le.Info("marking execution as canceled after drain")
+		res = forge_value.NewResultWithCanceled(errors.New("execution canceled"))
+	} else if execErr != nil {
 		c.le.WithError(execErr).Warn("marking execution as failed w/ error")
 		res = forge_value.NewResultWithError(execErr)
 	} else {
@@ -197,10 +209,11 @@ func (c *Controller) processExec(
 	}
 
 	// pass handles to the exec controller
-	execCtrlHandle := newExecControllerHandle(ctx, c, c.ws, exState.GetTimestamp())
+	execCtx := forge_target.WithExecCancelSignal(ctx, c.cancelCh)
+	execCtrlHandle := newExecControllerHandle(execCtx, c, c.ws, exState.GetTimestamp())
 	if execCtrl, execCtrlOk := ctrl.(forge_target.ExecController); execCtrlOk {
 		err = execCtrl.InitForgeExecController(
-			ctx,
+			execCtx,
 			inputsMap,
 			execCtrlHandle,
 		)
@@ -221,7 +234,7 @@ func (c *Controller) processExec(
 		return errors.Wrap(err, "init exec controller")
 	}
 
-	return c.executeTargetController(ctx, tgtBus, ctrl)
+	return c.executeTargetController(execCtx, tgtBus, ctrl)
 }
 
 // executeTargetController runs a resolved target controller through its local

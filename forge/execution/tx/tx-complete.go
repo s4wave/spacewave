@@ -52,15 +52,23 @@ func (t *TxComplete) ExecuteTx(
 	if execState == forge_execution.State_ExecutionState_COMPLETE {
 		return nil
 	}
-	// ensure RUNNING
-	if execState != forge_execution.State_ExecutionState_RUNNING {
+	result := t.GetResult()
+	switch execState {
+	case forge_execution.State_ExecutionState_RUNNING:
+		if result.GetCanceled() {
+			return errors.New("canceled completion requires CANCELING state")
+		}
+	case forge_execution.State_ExecutionState_CANCELING:
+		if !result.GetCanceled() {
+			return errors.New("CANCELING execution requires a canceled result")
+		}
+	default:
 		return errors.Errorf(
 			"cannot complete execution in state: %s",
 			execState.String(),
 		)
 	}
 
-	result := t.GetResult()
 	if result == nil {
 		result = &forge_value.Result{}
 	}

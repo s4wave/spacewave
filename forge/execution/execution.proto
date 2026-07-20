@@ -19,14 +19,14 @@ message Execution {
   // Must be set & is not updated.
   google.protobuf.Timestamp timestamp = 3;
   // ValueSet is the set of inputs and outputs used in the execution.
-  // Outputs are updated while the execution is in RUNNING state.
+  // Outputs are updated while the execution is RUNNING or CANCELING.
   .forge.target.ValueSet value_set = 4;
   // TargetRef is the block ref to the Target block.
   .block.BlockRef target_ref = 5;
   // Result is information about the outcome of a completed execution.
   .forge.value.Result result = 6;
   // LogEntries contains log output from the execution.
-  // Appended while the execution is in RUNNING state.
+  // Appended while the execution is RUNNING or CANCELING.
   repeated LogEntry log_entries = 7;
 }
 
@@ -65,4 +65,6 @@ enum State {
   // ExecutionState_COMPLETE is the terminal state of the execution.
   // This includes both success and failure termination states.
   ExecutionState_COMPLETE = 3;
+  // ExecutionState_CANCELING is the state while the executor drains custody.
+  ExecutionState_CANCELING = 4;
 }

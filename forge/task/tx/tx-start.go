@@ -85,6 +85,7 @@ func (t *TxStart) ExecuteTx(
 	highestNonce := root.GetPassNonce()
 	previousPassKey := ""
 	var previousPassNonce uint64
+	var canceling bool
 	for i, pass := range passes {
 		passKey := passKeys[i]
 		if previousPassKey == "" || pass.GetPassNonce() > previousPassNonce {
@@ -95,15 +96,19 @@ func (t *TxStart) ExecuteTx(
 			highestNonce = pass.GetPassNonce()
 		}
 		if pass.GetPassState() != forge_pass.State_PassState_COMPLETE {
-			passCompleteTx := pass_tx.NewTxComplete(
+			passCancelTx := pass_tx.NewTxCancel(
 				passKey,
 				forge_value.NewResultWithCanceled(errors.New("starting new pass")),
 			)
-			_, _, err = worldState.ApplyWorldOp(ctx, passCompleteTx, sender)
+			_, _, err = worldState.ApplyWorldOp(ctx, passCancelTx, sender)
 			if err != nil {
 				return err
 			}
+			canceling = true
 		}
+	}
+	if canceling {
+		return nil
 	}
 
 	// promote to RUNNING

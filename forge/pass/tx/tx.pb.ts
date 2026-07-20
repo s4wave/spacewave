@@ -45,25 +45,30 @@ export enum TxType {
   TxType_CREATE_EXEC_SPECS = 2,
 
   /**
-   * TxType_UPDATE_EXEC_STATES updates the execution states.
-   * Searches for valid Execution objects linked to the Pass.
-   * Updates the list with the found objects.
-   * Transitions to CHECKING if terminal conditions are found.
-   * If any assigned executions fail, the Pass will also fail.
+   * TxType_UPDATE_EXEC_STATES updates linked Execution snapshots.
+   * Transitions RUNNING to CHECKING when every linked Execution is terminal.
+   * Transitions CANCELING to COMPLETE after every linked Execution is terminal.
+   * If all assigned Executions fail, the Pass also fails.
    *
    * @generated from enum value: TxType_UPDATE_EXEC_STATES = 3;
    */
   TxType_UPDATE_EXEC_STATES = 3,
 
   /**
-   * TxType_COMPLETE sets the result of the execution.
-   * If failed, can transition from any state.
-   * If success, must transition from CHECKING state.
-   * If success, all Execution states must be Successful.
+   * TxType_COMPLETE sets the terminal result after every linked Execution is
+   * terminal. Canceled completion requires CANCELING; other completion
+   * requires CHECKING.
    *
    * @generated from enum value: TxType_COMPLETE = 4;
    */
   TxType_COMPLETE = 4,
+
+  /**
+   * TxType_CANCEL requests cancellation and custody drain.
+   *
+   * @generated from enum value: TxType_CANCEL = 5;
+   */
+  TxType_CANCEL = 5,
 }
 
 export const TxType_Enum = /* @__PURE__ */ createEnumType('pass.tx.TxType', [
@@ -72,6 +77,7 @@ export const TxType_Enum = /* @__PURE__ */ createEnumType('pass.tx.TxType', [
   [2, 'TxType_CREATE_EXEC_SPECS'],
   [3, 'TxType_UPDATE_EXEC_STATES'],
   [4, 'TxType_COMPLETE'],
+  [5, 'TxType_CANCEL'],
 ])
 
 /**
@@ -170,9 +176,9 @@ export const TxStart: MessageType<TxStart> = /* @__PURE__ */ createMessageType({
 
 /**
  * TxUpdateExecStates updates the list of execution states for the Pass.
- * Updates the list with objects found via graph quad lookup.
- * Transitions to CHECKING if terminal conditions are found.
- * If any assigned executions fail, the Pass will also fail.
+ * Transitions RUNNING to CHECKING when every linked Execution is terminal.
+ * Transitions CANCELING to COMPLETE after every linked Execution is terminal.
+ * If all assigned Executions fail, the Pass also fails.
  * TxType: TxType_UPDATE_EXEC_STATES
  *
  * @generated from message pass.tx.TxUpdateExecStates
@@ -186,10 +192,9 @@ export const TxUpdateExecStates: MessageType<TxUpdateExecStates> =
   )
 
 /**
- * TxComplete completes the execution by setting the result.
- * If failed, may transition from any state.
- * If success, must be in the CHECKING state.
- * If success, all Exections must be in COMPLETE state and not failed.
+ * TxComplete sets the terminal result after every linked Execution is terminal.
+ * Canceled completion requires CANCELING.
+ * Successful or failed completion requires CHECKING.
  * TxType: TxType_COMPLETE
  *
  * @generated from message pass.tx.TxComplete
@@ -218,6 +223,30 @@ export const TxComplete: MessageType<TxComplete> =
     fields: [
       { no: 1, name: 'result', kind: 'message', T: () => Result },
       { no: 2, name: 'value_set', kind: 'message', T: () => ValueSet },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * TxCancel requests cancellation and records the terminal canceled result.
+ * TxType: TxType_CANCEL
+ *
+ * @generated from message pass.tx.TxCancel
+ */
+export interface TxCancel {
+  /**
+   * Result is the canceled result recorded when the drain completes.
+   *
+   * @generated from field: forge.value.Result result = 1;
+   */
+  result?: Result
+}
+
+export const TxCancel: MessageType<TxCancel> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'pass.tx.TxCancel',
+    fields: [
+      { no: 1, name: 'result', kind: 'message', T: () => Result },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -269,6 +298,13 @@ export interface Tx {
    * @generated from field: pass.tx.TxComplete tx_complete = 6;
    */
   txComplete?: TxComplete
+  /**
+   * TxCancel contains the cancel tx.
+   * TxType_CANCEL
+   *
+   * @generated from field: pass.tx.TxCancel tx_cancel = 7;
+   */
+  txCancel?: TxCancel
 }
 
 export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
@@ -290,6 +326,7 @@ export const Tx: MessageType<Tx> = /* @__PURE__ */ createMessageType({
       T: () => TxUpdateExecStates,
     },
     { no: 6, name: 'tx_complete', kind: 'message', T: () => TxComplete },
+    { no: 7, name: 'tx_cancel', kind: 'message', T: () => TxCancel },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -68,12 +68,13 @@ func (t *TxSetOutputs) ExecuteTx(
 		}
 	}
 
-	// ensure RUNNING state
-	if state := root.GetExecutionState(); state != forge_execution.State_ExecutionState_RUNNING {
-		return errors.Wrapf(
-			forge_value.ErrUnknownState,
-			"%s", state.String(),
-		)
+	// The executor may persist final custody or continuation output while
+	// draining.
+	if err := root.GetExecutionState().EnsureMatches(
+		forge_execution.State_ExecutionState_RUNNING,
+		forge_execution.State_ExecutionState_CANCELING,
+	); err != nil {
+		return err
 	}
 
 	// TODO: validate to ensure ObjectRefs point to valid locations

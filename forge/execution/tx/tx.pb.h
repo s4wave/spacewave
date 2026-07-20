@@ -22,6 +22,7 @@
 #include "google/protobuf/io/coded_stream.h"
 #include "google/protobuf/arena.h"
 #include "google/protobuf/arenastring.h"
+#include "google/protobuf/generated_message_bases.h"
 #include "google/protobuf/generated_message_tctable_decl.h"
 #include "google/protobuf/generated_message_util.h"
 #include "google/protobuf/metadata_lite.h"
@@ -69,6 +70,10 @@ class TxAppendLog;
 struct TxAppendLogDefaultTypeInternal;
 extern TxAppendLogDefaultTypeInternal _TxAppendLog_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull TxAppendLog_class_data_;
+class TxCancel;
+struct TxCancelDefaultTypeInternal;
+extern TxCancelDefaultTypeInternal _TxCancel_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull TxCancel_class_data_;
 class TxComplete;
 struct TxCompleteDefaultTypeInternal;
 extern TxCompleteDefaultTypeInternal _TxComplete_default_instance_;
@@ -99,6 +104,7 @@ enum TxType : int {
   TxType_SET_OUTPUTS = 2,
   TxType_COMPLETE = 3,
   TxType_APPEND_LOG = 4,
+  TxType_CANCEL = 5,
   TxType_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   TxType_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -109,11 +115,11 @@ extern const uint32_t TxType_internal_data_[];
 inline constexpr TxType TxType_MIN =
     static_cast<TxType>(0);
 inline constexpr TxType TxType_MAX =
-    static_cast<TxType>(4);
+    static_cast<TxType>(5);
 inline bool TxType_IsValid(int value) {
-  return 0 <= value && value <= 4;
+  return 0 <= value && value <= 5;
 }
-inline constexpr int TxType_ARRAYSIZE = 4 + 1;
+inline constexpr int TxType_ARRAYSIZE = 5 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TxType_descriptor();
 template <typename T>
 const ::std::string& TxType_Name(T value) {
@@ -124,7 +130,7 @@ const ::std::string& TxType_Name(T value) {
 }
 template <>
 inline const ::std::string& TxType_Name(TxType value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<TxType_descriptor, 0, 4>(
+  return ::google::protobuf::internal::NameOfDenseEnum<TxType_descriptor, 0, 5>(
       static_cast<int>(value));
 }
 inline bool TxType_Parse(
@@ -331,6 +337,140 @@ class TxStart final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull TxStart_class_data_;
+// -------------------------------------------------------------------
+
+class TxCancel final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:execution.tx.TxCancel) */ {
+ public:
+  inline TxCancel() : TxCancel(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(TxCancel* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(TxCancel));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR TxCancel(::google::protobuf::internal::ConstantInitialized);
+
+  inline TxCancel(const TxCancel& from) : TxCancel(nullptr, from) {}
+  inline TxCancel(TxCancel&& from) noexcept
+      : TxCancel(nullptr, ::std::move(from)) {}
+  inline TxCancel& operator=(const TxCancel& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline TxCancel& operator=(TxCancel&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const TxCancel& default_instance() {
+    return *reinterpret_cast<const TxCancel*>(
+        &_TxCancel_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 4;
+  friend void swap(TxCancel& a, TxCancel& b) { a.Swap(&b); }
+  inline void Swap(TxCancel* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(TxCancel* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  TxCancel* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<TxCancel>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const TxCancel& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const TxCancel& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "execution.tx.TxCancel"; }
+
+  explicit TxCancel(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  TxCancel(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const TxCancel& from);
+  TxCancel(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, TxCancel&& from) noexcept
+      : TxCancel(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:execution.tx.TxCancel)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2ftx_2ftx_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull TxCancel_class_data_;
 // -------------------------------------------------------------------
 
 class TxComplete final : public ::google::protobuf::Message
@@ -583,7 +723,7 @@ class TxAppendLog final : public ::google::protobuf::Message
     return *reinterpret_cast<const TxAppendLog*>(
         &_TxAppendLog_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(TxAppendLog& a, TxAppendLog& b) { a.Swap(&b); }
   inline void Swap(TxAppendLog* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1080,6 +1220,7 @@ class Tx final : public ::google::protobuf::Message
     kTxSetOutputsFieldNumber = 3,
     kTxCompleteFieldNumber = 4,
     kTxAppendLogFieldNumber = 5,
+    kTxCancelFieldNumber = 6,
     kTxTypeFieldNumber = 1,
   };
   // .execution.tx.TxStart tx_start = 2;
@@ -1142,6 +1283,21 @@ class Tx final : public ::google::protobuf::Message
   ::execution::tx::TxAppendLog* PROTOBUF_NONNULL _internal_mutable_tx_append_log();
 
   public:
+  // .execution.tx.TxCancel tx_cancel = 6;
+  bool has_tx_cancel() const;
+  void clear_tx_cancel() ;
+  const ::execution::tx::TxCancel& tx_cancel() const;
+  [[nodiscard]] ::execution::tx::TxCancel* PROTOBUF_NULLABLE release_tx_cancel();
+  ::execution::tx::TxCancel* PROTOBUF_NONNULL mutable_tx_cancel();
+  void set_allocated_tx_cancel(::execution::tx::TxCancel* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_tx_cancel(::execution::tx::TxCancel* PROTOBUF_NULLABLE value);
+  ::execution::tx::TxCancel* PROTOBUF_NULLABLE unsafe_arena_release_tx_cancel();
+
+  private:
+  const ::execution::tx::TxCancel& _internal_tx_cancel() const;
+  ::execution::tx::TxCancel* PROTOBUF_NONNULL _internal_mutable_tx_cancel();
+
+  public:
   // .execution.tx.TxType tx_type = 1;
   void clear_tx_type() ;
   ::execution::tx::TxType tx_type() const;
@@ -1156,8 +1312,8 @@ class Tx final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 5,
-                                   4, 0,
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   5, 0,
                                    2>
       _table_;
 
@@ -1182,6 +1338,7 @@ class Tx final : public ::google::protobuf::Message
     ::execution::tx::TxSetOutputs* PROTOBUF_NULLABLE tx_set_outputs_;
     ::execution::tx::TxComplete* PROTOBUF_NULLABLE tx_complete_;
     ::execution::tx::TxAppendLog* PROTOBUF_NULLABLE tx_append_log_;
+    ::execution::tx::TxCancel* PROTOBUF_NULLABLE tx_cancel_;
     int tx_type_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -1212,7 +1369,7 @@ inline void Tx::clear_tx_type() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.tx_type_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000020U);
 }
 inline ::execution::tx::TxType Tx::tx_type() const {
   // @@protoc_insertion_point(field_get:execution.tx.Tx.tx_type)
@@ -1220,7 +1377,7 @@ inline ::execution::tx::TxType Tx::tx_type() const {
 }
 inline void Tx::set_tx_type(::execution::tx::TxType value) {
   _internal_set_tx_type(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   // @@protoc_insertion_point(field_set:execution.tx.Tx.tx_type)
 }
 inline ::execution::tx::TxType Tx::_internal_tx_type() const {
@@ -1628,6 +1785,105 @@ inline void Tx::set_allocated_tx_append_log(::execution::tx::TxAppendLog* PROTOB
   // @@protoc_insertion_point(field_set_allocated:execution.tx.Tx.tx_append_log)
 }
 
+// .execution.tx.TxCancel tx_cancel = 6;
+inline bool Tx::has_tx_cancel() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  PROTOBUF_ASSUME(!value || _impl_.tx_cancel_ != nullptr);
+  return value;
+}
+inline void Tx::clear_tx_cancel() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.tx_cancel_ != nullptr) _impl_.tx_cancel_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::execution::tx::TxCancel& Tx::_internal_tx_cancel() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::execution::tx::TxCancel* p = _impl_.tx_cancel_;
+  return p != nullptr ? *p : reinterpret_cast<const ::execution::tx::TxCancel&>(::execution::tx::_TxCancel_default_instance_);
+}
+inline const ::execution::tx::TxCancel& Tx::tx_cancel() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:execution.tx.Tx.tx_cancel)
+  return _internal_tx_cancel();
+}
+inline void Tx::unsafe_arena_set_allocated_tx_cancel(
+    ::execution::tx::TxCancel* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.tx_cancel_);
+  }
+  _impl_.tx_cancel_ = reinterpret_cast<::execution::tx::TxCancel*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:execution.tx.Tx.tx_cancel)
+}
+inline ::execution::tx::TxCancel* PROTOBUF_NULLABLE Tx::release_tx_cancel() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::execution::tx::TxCancel* released = _impl_.tx_cancel_;
+  _impl_.tx_cancel_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::execution::tx::TxCancel* PROTOBUF_NULLABLE Tx::unsafe_arena_release_tx_cancel() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:execution.tx.Tx.tx_cancel)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::execution::tx::TxCancel* temp = _impl_.tx_cancel_;
+  _impl_.tx_cancel_ = nullptr;
+  return temp;
+}
+inline ::execution::tx::TxCancel* PROTOBUF_NONNULL Tx::_internal_mutable_tx_cancel() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.tx_cancel_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::execution::tx::TxCancel>(GetArena());
+    _impl_.tx_cancel_ = reinterpret_cast<::execution::tx::TxCancel*>(p);
+  }
+  return _impl_.tx_cancel_;
+}
+inline ::execution::tx::TxCancel* PROTOBUF_NONNULL Tx::mutable_tx_cancel()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::execution::tx::TxCancel* _msg = _internal_mutable_tx_cancel();
+  // @@protoc_insertion_point(field_mutable:execution.tx.Tx.tx_cancel)
+  return _msg;
+}
+inline void Tx::set_allocated_tx_cancel(::execution::tx::TxCancel* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.tx_cancel_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+
+  _impl_.tx_cancel_ = reinterpret_cast<::execution::tx::TxCancel*>(value);
+  // @@protoc_insertion_point(field_set_allocated:execution.tx.Tx.tx_cancel)
+}
+
 // -------------------------------------------------------------------
 
 // TxStart
@@ -1872,6 +2128,10 @@ inline void TxComplete::set_allocated_result(::forge::value::Result* PROTOBUF_NU
   _impl_.result_ = reinterpret_cast<::forge::value::Result*>(value);
   // @@protoc_insertion_point(field_set_allocated:execution.tx.TxComplete.result)
 }
+
+// -------------------------------------------------------------------
+
+// TxCancel
 
 // -------------------------------------------------------------------
 
