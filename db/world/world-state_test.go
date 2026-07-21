@@ -2,6 +2,7 @@ package world_test
 
 import (
 	"context"
+	"errors"
 	"maps"
 	"testing"
 
@@ -83,6 +84,225 @@ func TestLookupObjectBodyReleasesObjectState(t *testing.T) {
 	}
 }
 
+func TestAccessWorldObjectReleasesObjectState(t *testing.T) {
+	ctx := context.Background()
+	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer wtb.Release()
+
+	ws := world.NewEngineWorldState(wtb.Engine, true)
+	const key = "example/access-release"
+	_, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
+		bcs.SetBlock(block_mock.NewExample("access"), true)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wrapped := &releaseCountingWorldState{WorldState: ws}
+	if _, _, err := world.AccessWorldObject(ctx, wrapped, key, false, func(*block.Cursor) error {
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if wrapped.releases != 1 {
+		t.Fatalf("expected existing-object success to release once, got %d", wrapped.releases)
+	}
+
+	wrapped.releases = 0
+	callbackErr := errors.New("callback failed")
+	if _, _, err := world.AccessWorldObject(ctx, wrapped, key, false, func(*block.Cursor) error {
+		return callbackErr
+	}); err != callbackErr {
+		t.Fatalf("expected callback error, got %v", err)
+	}
+	if wrapped.releases != 1 {
+		t.Fatalf("expected existing-object error to release once, got %d", wrapped.releases)
+	}
+
+	wrapped.releases = 0
+	if _, _, err := world.AccessWorldObject(ctx, wrapped, "example/access-missing", false, func(bcs *block.Cursor) error {
+		bcs.SetBlock(block_mock.NewExample("missing"), true)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if wrapped.releases != 0 {
+		t.Fatalf("expected not-found access to release no state, got %d", wrapped.releases)
+	}
+
+	wrapped.releases = 0
+	if _, _, err := world.AccessWorldObject(ctx, wrapped, "example/access-created", true, func(bcs *block.Cursor) error {
+		bcs.SetBlock(block_mock.NewExample("created"), true)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if wrapped.releases != 1 {
+		t.Fatalf("expected created-object state to release once, got %d", wrapped.releases)
+	}
+}
+
+func TestCreateWorldObjectReleasesExistingObjectState(t *testing.T) {
+	ctx := context.Background()
+	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer wtb.Release()
+
+	ws := world.NewEngineWorldState(wtb.Engine, true)
+	const key = "example/create-release"
+	_, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
+		bcs.SetBlock(block_mock.NewExample("create"), true)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wrapped := &releaseCountingWorldState{WorldState: ws}
+	_, _, err = world.CreateWorldObject(ctx, wrapped, key, func(*block.Cursor) error {
+		return nil
+	})
+	if err != world.ErrObjectExists {
+		t.Fatalf("expected object-exists error, got %v", err)
+	}
+	if wrapped.releases != 1 {
+		t.Fatalf("expected existing-object check to release once, got %d", wrapped.releases)
+	}
+
+	wrapped.releases = 0
+	_, _, err = world.CreateWorldObject(ctx, wrapped, "example/create-missing", func(bcs *block.Cursor) error {
+		bcs.SetBlock(block_mock.NewExample("missing"), true)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if wrapped.releases != 0 {
+		t.Fatalf("expected not-found create check to release no state, got %d", wrapped.releases)
+	}
+}
+
+func TestLookupRootRefReleasesObjectState(t *testing.T) {
+	ctx := context.Background()
+	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer wtb.Release()
+
+	ws := world.NewEngineWorldState(wtb.Engine, true)
+	const key = "example/root-ref-release"
+	_, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
+		bcs.SetBlock(block_mock.NewExample("root-ref"), true)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var releases int
+	eng := &releaseCountingEngine{Engine: wtb.Engine, releases: &releases}
+	if _, _, err := world.LookupRootRef(ctx, eng, key); err != nil {
+		t.Fatal(err)
+	}
+	if releases != 1 {
+		t.Fatalf("expected root-ref lookup to release once, got %d", releases)
+	}
+
+	releases = 0
+	if _, _, err := world.LookupRootRef(ctx, eng, "example/root-ref-missing"); err != nil {
+		t.Fatal(err)
+	}
+	if releases != 0 {
+		t.Fatalf("expected not-found root-ref lookup to release no state, got %d", releases)
+	}
+}
+
+func TestLookupObjectReleasesDecodeErrorState(t *testing.T) {
+	ctx := context.Background()
+	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer wtb.Release()
+
+	ws := world.NewEngineWorldState(wtb.Engine, true)
+	const key = "example/decode-release"
+	_, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
+		bcs.SetBlock(&releaseTestBlock{data: "bad"}, true)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wrapped := &releaseCountingWorldState{WorldState: ws}
+	value, obj, err := world.LookupObject[*releaseTestBlock](
+		ctx,
+		wrapped,
+		key,
+		func() block.Block { return &releaseTestBlock{} },
+	)
+	if err == nil {
+		t.Fatal("expected decode error")
+	}
+	if value != nil {
+		t.Fatalf("expected no decoded value, got %#v", value)
+	}
+	if obj != nil {
+		t.Fatal("expected decode-error object state to be unavailable")
+	}
+	if wrapped.releases != 1 {
+		t.Fatalf("expected decode error to release once, got %d", wrapped.releases)
+	}
+}
+
+func TestCollectObjectBodiesReleasesPartialFailureStates(t *testing.T) {
+	ctx := context.Background()
+	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer wtb.Release()
+
+	ws := world.NewEngineWorldState(wtb.Engine, true)
+	for key, data := range map[string]string{
+		"example/collect-good": "good",
+		"example/collect-bad":  "bad",
+	} {
+		_, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
+			bcs.SetBlock(&releaseTestBlock{data: data}, true)
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	wrapped := &releaseCountingWorldState{WorldState: ws}
+	values, states, err := world.CollectObjectBodies[*releaseTestBlock](
+		ctx,
+		wrapped,
+		[]string{"example/collect-good", "example/collect-bad"},
+		func() block.Block { return &releaseTestBlock{} },
+	)
+	if err == nil {
+		t.Fatal("expected partial collection decode error")
+	}
+	if values != nil || states != nil {
+		t.Fatalf("expected fatal collection to return nil slices, got %#v %#v", values, states)
+	}
+	if wrapped.releases != 2 {
+		t.Fatalf("expected partial collection to release both states once, got %d", wrapped.releases)
+	}
+}
+
 func TestEngineWorldStateRetriesStaleGenerationWriteOperation(t *testing.T) {
 	cases := []struct {
 		name      string
@@ -150,6 +370,21 @@ func (ws *releaseCountingWorldState) GetObject(
 	}, true, nil
 }
 
+func (ws *releaseCountingWorldState) CreateObject(
+	ctx context.Context,
+	key string,
+	rootRef *bucket.ObjectRef,
+) (world.ObjectState, error) {
+	obj, err := ws.WorldState.CreateObject(ctx, key, rootRef)
+	if obj == nil {
+		return obj, err
+	}
+	return &releaseCountingObjectState{
+		ObjectState: obj,
+		releases:    &ws.releases,
+	}, err
+}
+
 type releaseCountingObjectState struct {
 	world.ObjectState
 	releases *int
@@ -157,6 +392,54 @@ type releaseCountingObjectState struct {
 
 func (obj *releaseCountingObjectState) Release() {
 	*obj.releases += 1
+}
+
+type releaseCountingEngine struct {
+	world.Engine
+	releases *int
+}
+
+func (eng *releaseCountingEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	tx, err := eng.Engine.NewTransaction(ctx, write)
+	if err != nil {
+		return nil, err
+	}
+	return &releaseCountingTx{Tx: tx, releases: eng.releases}, nil
+}
+
+type releaseCountingTx struct {
+	world.Tx
+	releases *int
+}
+
+func (tx *releaseCountingTx) GetObject(
+	ctx context.Context,
+	key string,
+) (world.ObjectState, bool, error) {
+	obj, found, err := tx.Tx.GetObject(ctx, key)
+	if err != nil || !found {
+		return obj, found, err
+	}
+	return &releaseCountingObjectState{
+		ObjectState: obj,
+		releases:    tx.releases,
+	}, true, nil
+}
+
+type releaseTestBlock struct {
+	data string
+}
+
+func (b *releaseTestBlock) MarshalBlock() ([]byte, error) {
+	return []byte(b.data), nil
+}
+
+func (b *releaseTestBlock) UnmarshalBlock(data []byte) error {
+	b.data = string(data)
+	if b.data == "bad" {
+		return errors.New("decode failed")
+	}
+	return nil
 }
 
 type staleRetryEngine struct {

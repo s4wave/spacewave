@@ -55,6 +55,7 @@ func LookupRootRef(ctx context.Context, eng Engine, key string) (*bucket.ObjectR
 	defer stx.Discard()
 
 	obj, found, err := stx.GetObject(ctx, key)
+	defer ReleaseObjectState(obj)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -74,6 +75,7 @@ func LookupObject[T block.Block](
 ) (out T, objRef ObjectState, err error) {
 	obj, err := MustGetObject(ctx, ws, objKey)
 	if err != nil {
+		ReleaseObjectState(obj)
 		return out, nil, err
 	}
 	_, _, err = AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
@@ -81,6 +83,10 @@ func LookupObject[T block.Block](
 		out, err = block.UnmarshalBlock[T](ctx, bcs, ctor)
 		return err
 	})
+	if err != nil {
+		ReleaseObjectState(obj)
+		obj = nil
+	}
 	return out, obj, err
 }
 
@@ -145,9 +151,13 @@ func CollectObjectBodies[T block.Block](
 	for i, objKey := range objKeys {
 		obj, objState, err := LookupObject[T](ctx, ws, objKey, ctor)
 		if err != nil {
+			ReleaseObjectState(objState)
 			if err == ErrObjectNotFound {
 				retErr = err
 				continue
+			}
+			for _, objState := range objStates {
+				ReleaseObjectState(objState)
 			}
 			return nil, nil, err
 		}
