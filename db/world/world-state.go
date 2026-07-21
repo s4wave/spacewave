@@ -345,7 +345,8 @@ func CreateWorldObject(
 	objKey string,
 	cb AccessObjectCb,
 ) (ObjectState, *bucket.ObjectRef, error) {
-	_, exists, err := ws.GetObject(ctx, objKey)
+	obj, exists, err := ws.GetObject(ctx, objKey)
+	ReleaseObjectState(obj)
 	if err == nil && exists {
 		err = ErrObjectExists
 	}
@@ -378,6 +379,7 @@ func AccessWorldObject(
 	}
 
 	obj, existed, err := ws.GetObject(ctx, objKey)
+	defer ReleaseObjectState(obj)
 	if err != nil {
 		return nil, false, err
 	}
@@ -386,7 +388,9 @@ func AccessWorldObject(
 	if !existed {
 		initRef, err := AccessObject(ctx, ws.AccessWorldState, nil, cb)
 		if err == nil && updateWorld {
-			_, err = ws.CreateObject(ctx, objKey, initRef)
+			created, createErr := ws.CreateObject(ctx, objKey, initRef)
+			ReleaseObjectState(created)
+			err = createErr
 		}
 		return initRef, true, err
 	}
