@@ -13,6 +13,7 @@ func LookupTarget(ctx context.Context, ws world.WorldState, objKey string) (*Tar
 	if err != nil {
 		return nil, err
 	}
+	defer world.ReleaseObjectState(obj)
 	var tgt *Target
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
