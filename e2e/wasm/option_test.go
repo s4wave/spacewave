@@ -744,65 +744,6 @@ func TestApplyE2EWasmTinyGoCompilerEnvCopiesExplicitDebugKnobs(t *testing.T) {
 	}
 }
 
-func TestClearHarnessStateRootPreservesStartupBuildCache(t *testing.T) {
-	root := t.TempDir()
-	mustWriteHarnessStateFile(t, root, "devtool.s4wave")
-	mustWriteHarnessStateFile(t, root, "devtool.s4wave-lock")
-	mustWriteHarnessStateFile(t, root, "devtool.db")
-	mustWriteHarnessStateFile(t, root, "logs/current.log")
-	mustWriteHarnessStateFile(t, root, "src/go.mod")
-	mustWriteHarnessStateFile(t, root, "plugin/state/state.bin")
-	mustWriteHarnessStateFile(t, root, "build/web/js/wasm/spacewave-core/out")
-	mustWriteHarnessStateFile(t, root, "cli/out")
-
-	if err := clearHarnessStateRoot(root, true); err != nil {
-		t.Fatal(err)
-	}
-	for _, rel := range []string{
-		"devtool.s4wave",
-		"devtool.s4wave-lock",
-		"devtool.db",
-		"build/web/js/wasm/spacewave-core/out",
-	} {
-		if _, err := os.Stat(filepath.Join(root, rel)); err != nil {
-			t.Fatalf("expected %s to be preserved: %v", rel, err)
-		}
-	}
-	for _, rel := range []string{"logs", "src", "plugin", "cli"} {
-		if _, err := os.Stat(filepath.Join(root, rel)); !os.IsNotExist(err) {
-			t.Fatalf("expected %s to be removed, err=%v", rel, err)
-		}
-	}
-}
-
-func TestClearHarnessStateRootRemovesStartupBuildCache(t *testing.T) {
-	root := t.TempDir()
-	mustWriteHarnessStateFile(t, root, "devtool.s4wave")
-	mustWriteHarnessStateFile(t, root, "devtool.s4wave-lock")
-	mustWriteHarnessStateFile(t, root, "devtool.db")
-	mustWriteHarnessStateFile(t, root, "src/go.mod")
-
-	if err := clearHarnessStateRoot(root, false); err != nil {
-		t.Fatal(err)
-	}
-	for _, rel := range []string{"devtool.s4wave", "devtool.s4wave-lock", "devtool.db", "src"} {
-		if _, err := os.Stat(filepath.Join(root, rel)); !os.IsNotExist(err) {
-			t.Fatalf("expected %s to be removed, err=%v", rel, err)
-		}
-	}
-}
-
-func mustWriteHarnessStateFile(t *testing.T, root, rel string) {
-	t.Helper()
-	path := filepath.Join(root, rel)
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-}
-
 func clearBldrTinyGoEnv(t *testing.T) {
 	t.Helper()
 	for _, key := range gocompiler.TinyGoStartupCacheEnvKeys() {

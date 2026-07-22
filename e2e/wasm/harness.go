@@ -34,6 +34,7 @@ import (
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	bldr_project_controller "github.com/s4wave/spacewave/bldr/project/controller"
 	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
+	bldr_statepath "github.com/s4wave/spacewave/bldr/statepath"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
@@ -228,7 +229,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 			return nil, err
 		}
 	}
-	if err := clearHarnessStateRoot(stateRoot, preserveStartupBuildCache); err != nil {
+	if err := bldr_statepath.ClearBuildState(stateRoot, preserveStartupBuildCache); err != nil {
 		return nil, err
 	}
 
@@ -1358,39 +1359,4 @@ func buildHarnessStateRoot(repoRoot string, preserveStartupBuildCache bool) (str
 	sum := sha256.Sum256([]byte(tokenInput))
 	token := hex.EncodeToString(sum[:4])
 	return filepath.Join(stateRoot, label+"-"+token), nil
-}
-
-var harnessStartupBuildCacheGlobs = []string{
-	"devtool.db*",
-	"devtool.s4wave*",
-	"build",
-}
-
-var harnessTransientStateCleanupGlobs = []string{
-	"logs",
-	"src",
-	"plugin",
-	"cli",
-}
-
-// clearHarnessStateRoot removes the transient .bldr entries that the harness
-// needs to rebuild from a clean state. This matches the repo clean target more
-// closely than deleting the entire .bldr tree.
-func clearHarnessStateRoot(stateRoot string, preserveStartupBuildCache bool) error {
-	patterns := harnessTransientStateCleanupGlobs
-	if !preserveStartupBuildCache {
-		patterns = append(slices.Clone(harnessStartupBuildCacheGlobs), patterns...)
-	}
-	for _, pattern := range patterns {
-		matches, err := filepath.Glob(filepath.Join(stateRoot, pattern))
-		if err != nil {
-			return errors.Wrapf(err, "expand state cleanup pattern %q", pattern)
-		}
-		for _, path := range matches {
-			if err := os.RemoveAll(path); err != nil {
-				return errors.Wrapf(err, "remove state path %s", path)
-			}
-		}
-	}
-	return nil
 }

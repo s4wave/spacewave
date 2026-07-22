@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	bldr_statepath "github.com/s4wave/spacewave/bldr/statepath"
 )
 
 const harnessStateRootDeadPID = 999999999
@@ -120,7 +122,7 @@ func TestHarnessStateRootSerialOwnersReuseStableRoot(t *testing.T) {
 	closeTestHarnessStateRootLock(t, firstLock)
 
 	secondLock := acquireTestHarnessStateRootLock(t, stableStateRoot)
-	if err := clearHarnessStateRoot(stableStateRoot, true); err != nil {
+	if err := bldr_statepath.ClearBuildState(stableStateRoot, true); err != nil {
 		t.Fatal(err)
 	}
 	assertHarnessStateRootPathExists(t, durable)
