@@ -918,7 +918,7 @@
     },
     {
       "name": "github.com/aperturerobotics/starpc",
-      "version": "v0.49.19",
+      "version": "v0.49.20",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/starpc",
@@ -1511,7 +1511,7 @@
     },
     {
       "name": "github.com/s4wave/goscript",
-      "version": "v0.2.23-0.20260718110009-63482b4c3b15",
+      "version": "v0.2.23",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/s4wave/goscript",
