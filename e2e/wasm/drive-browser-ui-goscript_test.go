@@ -101,8 +101,8 @@ func TestGoScriptDriveBrowserRepeatUploadUIParity(t *testing.T) {
 		Buffer:   []byte("row4 repeat upload after preview and rename\n"),
 	}
 	summaries := uploadDriveFileThroughUIWithObservedSummaries(t, page, repeatFile)
-	if !driveUploadSummariesContain(summaries, "0/1 uploaded") {
-		t.Fatalf("repeat upload never reported 0/1 uploaded; summaries=%v diagnostics=%s", summaries, captureUploadDiagnostics(page))
+	if !driveUploadSummariesContain(summaries, "Uploading 1/1") {
+		t.Fatalf("repeat upload never reported Uploading 1/1; summaries=%v diagnostics=%s", summaries, captureUploadDiagnostics(page))
 	}
 	if !driveUploadSummariesContain(summaries, "1/1 uploaded") {
 		t.Fatalf("repeat upload never reported 1/1 uploaded; summaries=%v diagnostics=%s", summaries, captureUploadDiagnostics(page))
@@ -267,8 +267,9 @@ func uploadDriveFileThroughUIWithObservedSummaries(t testing.TB, page playwright
 			const seen = new Set(window[key])
 			for (const button of document.querySelectorAll('button')) {
 				const text = (button.textContent || '').replace(/\s+/g, ' ').trim()
-				if (/\d+\/\d+ uploaded/.test(text)) {
-					seen.add(text)
+				const summary = text.match(/^(Uploading \d+\/\d+|\d+\/\d+ uploaded)$/)?.[0]
+				if (summary) {
+					seen.add(summary)
 				}
 			}
 			window[key] = Array.from(seen)
