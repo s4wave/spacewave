@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"sync/atomic"
 
 	emptypb "github.com/aperturerobotics/protobuf-go-lite/types/known/emptypb"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -18,12 +19,38 @@ const (
 	devicePolicyReloadMethodID   = "Reload"
 )
 
-// newDaemonControlHandler constructs a daemon control handler that
-// invokes requestShutdown when the peer issues the Shutdown RPC.
-// The CLI daemon always yields when asked; the policy is AutoAllow.
-func newDaemonControlHandler(requestShutdown func()) *listener_control.Handler {
-	return listener_control.NewHandler(listener_control.AutoAllowPolicy, requestShutdown)
+// daemonControlHandler wraps the shared daemon-control handler and records the
+// granted connection so the serve owner can wait for that requester to read its
+// acknowledgement and close before draining.
+type daemonControlHandler struct {
+	*listener_control.Handler
+	shutdownConn atomic.Pointer[trackedConn]
 }
+
+// newDaemonControlHandler constructs a daemon control handler that invokes
+// requestShutdown when the peer issues the Shutdown RPC. The CLI daemon always
+// yields when asked; the policy is AutoAllow.
+func newDaemonControlHandler(requestShutdown func()) *daemonControlHandler {
+	return newDaemonControlHandlerWithPolicy(listener_control.AutoAllowPolicy, requestShutdown)
+}
+
+func newDaemonControlHandlerWithPolicy(
+	policy listener_control.YieldPolicy,
+	requestShutdown func(),
+) *daemonControlHandler {
+	h := &daemonControlHandler{
+		Handler: listener_control.NewHandler(policy, requestShutdown),
+	}
+	h.Handler.SetShutdownGrantedCallback(func(ctx context.Context) {
+		if tc, ok := ctx.Value(daemonConnCtxKey{}).(*trackedConn); ok {
+			h.shutdownConn.Store(tc)
+		}
+	})
+	return h
+}
+
+// _ is a type assertion
+var _ srpc.Handler = (*daemonControlHandler)(nil)
 
 type devicePolicyControlHandler struct {
 	reload func() error
