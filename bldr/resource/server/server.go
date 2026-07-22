@@ -244,7 +244,7 @@ func (c *resourceServerClientInvoker) InvokeMethod(serviceID, methodID string, s
 		return false, errors.New("resource invocation context unavailable")
 	}
 	kind, waitErr := invocation.WaitTerminal(c.client.Context())
-	resourceCtx.finish(kind == srpc.TerminalCommitted && waitErr == nil)
+	resourceCtx.finish(kind == srpc.TerminalKind_TERMINAL_KIND_COMMITTED && waitErr == nil)
 	if waitErr != nil {
 		return ok, waitErr
 	}
