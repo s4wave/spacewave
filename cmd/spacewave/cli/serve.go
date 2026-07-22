@@ -4,12 +4,12 @@ package spacewave_cli
 
 import (
 	"context"
-	stderrors "errors"
 	"net"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -180,10 +180,13 @@ func runServeCommand(
 	defer releaseWebKeepalive()
 
 	mux := srpc.NewMux(invoker)
-	if err := mux.Register(newDaemonControlHandler(func() {
-		serveCancel()
+	shutdownCh := make(chan struct{})
+	var shutdownOnce sync.Once
+	controlHandler := newDaemonControlHandler(func() {
+		shutdownOnce.Do(func() { close(shutdownCh) })
 		lis.Close()
-	})); err != nil {
+	})
+	if err := mux.Register(controlHandler); err != nil {
 		return err
 	}
 	if err := mux.Register(newDevicePolicyControlHandler(devicePolicy.Reload)); err != nil {
@@ -192,20 +195,12 @@ func runServeCommand(
 	if err := s4wave_trace.SRPCRegisterTraceService(mux, trace_service.NewService()); err != nil {
 		return err
 	}
-	go func() {
-		<-serveCtx.Done()
-		lis.Close()
-	}()
 
 	srv := srpc.NewServer(mux)
 	if err := startupNotifier.reportReady(); err != nil {
 		return err
 	}
-	err = acceptDaemonListener(serveCtx, lis, srv, idleTracker)
-	if err != nil && (serveCtx.Err() != nil || stderrors.Is(err, net.ErrClosed)) {
-		return nil
-	}
-	return err
+	return serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, shutdownCh, idleTracker)
 }
 
 func startDaemonPluginRuntime(

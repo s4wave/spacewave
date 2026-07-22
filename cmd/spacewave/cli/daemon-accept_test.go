@@ -40,7 +40,9 @@ func TestAcceptDaemonListenerServesConcurrentResourceClients(t *testing.T) {
 	srv := srpc.NewServer(mux)
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- acceptDaemonListener(ctx, lis, srv, nil)
+		closeClients, err := acceptDaemonListener(ctx, lis, srv, nil)
+		closeClients()
+		errCh <- err
 	}()
 
 	first, firstConn := openDaemonResourceClient(t, ctx, sock)

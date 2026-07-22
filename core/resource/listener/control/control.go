@@ -56,6 +56,7 @@ type Handler struct {
 
 	mtx              sync.Mutex
 	claimed          bool
+	shutdownGranted  func(context.Context)
 	shutdownComplete chan struct{}
 	completeOnce     sync.Once
 }
@@ -87,6 +88,14 @@ func (h *Handler) ShutdownComplete() <-chan struct{} {
 	return h.shutdownComplete
 }
 
+// SetShutdownGrantedCallback sets fn to run after a Shutdown request passes
+// policy and claims the handler. fn receives the granted stream context.
+func (h *Handler) SetShutdownGrantedCallback(fn func(context.Context)) {
+	h.mtx.Lock()
+	h.shutdownGranted = fn
+	h.mtx.Unlock()
+}
+
 // GetServiceID returns the service identifier.
 func (h *Handler) GetServiceID() string {
 	return ServiceID
@@ -98,10 +107,11 @@ func (h *Handler) GetMethodIDs() []string {
 }
 
 // InvokeMethod handles the Shutdown RPC. The handler consults its
-// YieldPolicy and grants at most one caller. On approval it releases
-// the listener before acknowledging the peer, then signals
-// ShutdownComplete after response-stream completion. On policy error
-// or an already-claimed handoff, it returns a wrapped denial to the peer.
+// YieldPolicy and grants at most one caller. On approval it notifies the
+// granted-requester callback, releases the listener before acknowledging the
+// peer, then signals ShutdownComplete after response-stream completion. On
+// policy error or an already-claimed handoff, it returns a wrapped denial to
+// the peer.
 func (h *Handler) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
 	if serviceID != ServiceID || methodID != ShutdownMethodID {
 		return false, nil
@@ -123,7 +133,12 @@ func (h *Handler) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bo
 		return true, errors.Errorf("%s takeover already granted to another requester", DenyErrorMarker)
 	}
 	h.claimed = true
+	shutdownGranted := h.shutdownGranted
 	h.mtx.Unlock()
+
+	if shutdownGranted != nil {
+		shutdownGranted(ctx)
+	}
 
 	// Release the socket before acknowledging the requester. If the
 	// process or connection disappears before the acknowledgement, the
