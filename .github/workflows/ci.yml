@@ -368,7 +368,7 @@ jobs:
             run: '^(TestWasmHarness.*|TestSessionHarnessPeerInfo|TestMultiSessionPeerDiscovery|TestSignalRelayCrossConnect|TestEndToEndLinkEstablishment|TestBrowser(LaunchFromGo|SessionIsolation|HelpersAndRawAccess|RouteNavigation)|TestRetainedState(PageSessionReusesWarmContext|ResourceSessionSupportsSequentialReuse|SessionReleaseCleansPerSessionState)|TestRootResourceMount|TestSessionMount|TestSpaceMountAfterQuickstart|TestResourceSetupHelpers)$'
             timeout_minutes: 40
           - name: drive
-            run: '^(TestQuickstartDrive(Route|DirectRouteStartup|NavigateHomeFromNestedDir|DeleteSpace|Trace|NavigateTrace|UploadCrashRecovery|SingleEntryRowMove|VideoPreview)|TestDriveScenarioSequence|TestDriveNavigationBurstTrace|TestExistingDriveOpenMeasurement)$'
+            run: '^(TestQuickstartDrive(Route|DirectRouteStartup|NavigateHomeFromNestedDir|DeleteSpace|Trace|NavigateTrace|UploadCrashRecovery|SingleEntryRowMove|VideoPreview)|TestDriveScenarioSequence|TestDriveNavigationBurstTrace|TestExistingDriveOpenMeasurement|TestGoScriptDriveBrowser(RepeatUpload|PreviewRename)UIParity)$'
             timeout_minutes: 40
           - name: forge-blog
             run: '^(TestQuickstartForge(Route|Trace)|TestForge(ScenarioSequence|WorkerExecution)|TestBlog(CoexistenceScenario|QuickstartSetupProbe|QuickstartRetainedStateRegistrationProbe))$'
