@@ -76,13 +76,23 @@ func (s *stubShape) Build(context.Context, string) (Generation[string], error) {
 
 type fixedShape struct {
 	generations []Generation[string]
+	lookups     [][]Generation[string]
+	lookup      int
 	builds      int
 }
 
 func (s *fixedShape) ContentKey(context.Context) (string, error) { return "key", nil }
 
 func (s *fixedShape) Lookup(context.Context, string) ([]Generation[string], error) {
-	return s.generations, nil
+	if len(s.lookups) == 0 {
+		return s.generations, nil
+	}
+	lookup := s.lookup
+	if lookup >= len(s.lookups) {
+		lookup = len(s.lookups) - 1
+	}
+	s.lookup++
+	return s.lookups[lookup], nil
 }
 
 func (s *fixedShape) Build(context.Context, string) (Generation[string], error) {
@@ -105,18 +115,66 @@ func TestResolveRejectsEmptyAndDuplicateTokens(t *testing.T) {
 	}
 }
 
-func TestResolveReusesDirectlyDiscoveredGeneration(t *testing.T) {
-	shape := &fixedShape{generations: []Generation[string]{{Token: "committed", Artifact: "artifact"}}}
+func TestResolveUsesLookupPreferenceOrder(t *testing.T) {
+	shape := &fixedShape{generations: []Generation[string]{
+		{Token: "z-current", Artifact: "current"},
+		{Token: "a-older", Artifact: "older"},
+	}}
 	lockDir := filepath.Join(t.TempDir(), "unused-lock")
 	artifact, err := Resolve(context.Background(), nil, ResolveOptions{LockDir: lockDir, LockName: "build"}, shape)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if artifact != "artifact" || shape.builds != 0 {
+	if artifact != "current" || shape.builds != 0 {
 		t.Fatalf("artifact = %q, builds = %d", artifact, shape.builds)
 	}
 	if _, err := os.Stat(lockDir); !os.IsNotExist(err) {
 		t.Fatalf("fast-path acquired lock: %v", err)
+	}
+}
+
+func TestResolveFreshExcludesEveryPreLockGeneration(t *testing.T) {
+	shape := &fixedShape{lookups: [][]Generation[string]{
+		{
+			{Token: "old-current", Artifact: "old-current"},
+			{Token: "old-fallback", Artifact: "old-fallback"},
+		},
+		{
+			{Token: "old-current", Artifact: "old-current"},
+			{Token: "old-fallback", Artifact: "old-fallback"},
+			{Token: "fresh-unpointed", Artifact: "fresh-unpointed"},
+		},
+	}}
+	artifact, err := Resolve(
+		context.Background(),
+		nil,
+		ResolveOptions{LockDir: t.TempDir(), LockName: "build", RequireFresh: true},
+		shape,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if artifact != "fresh-unpointed" || shape.builds != 0 {
+		t.Fatalf("artifact = %q, builds = %d", artifact, shape.builds)
+	}
+}
+
+func TestResolveReusesCrashRecoveredFallback(t *testing.T) {
+	shape := &fixedShape{generations: []Generation[string]{
+		{Token: "a-recovered", Artifact: "recovered"},
+		{Token: "z-older", Artifact: "older"},
+	}}
+	artifact, err := Resolve(
+		context.Background(),
+		nil,
+		ResolveOptions{LockDir: t.TempDir(), LockName: "build"},
+		shape,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if artifact != "recovered" || shape.builds != 0 {
+		t.Fatalf("artifact = %q, builds = %d", artifact, shape.builds)
 	}
 }
 
