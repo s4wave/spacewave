@@ -210,6 +210,7 @@ pub struct GetAllRefsRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAllRefsResponse {
     /// Refs maps reference field IDs to BlockCursor resource IDs.
+    /// @resource-adoption-id
     #[prost(map="uint32, uint32", tag="1")]
     pub refs: ::std::collections::HashMap<u32, u32>,
 }
@@ -266,6 +267,7 @@ pub struct ParentsRequest {
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ParentsResponse {
     /// ParentResourceIds are the resource IDs of parent cursors.
+    /// @resource-adoption-id
     #[prost(uint32, repeated, tag="1")]
     pub parent_resource_ids: ::prost::alloc::vec::Vec<u32>,
 }

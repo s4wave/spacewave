@@ -468,12 +468,14 @@ export const BuildTransactionRequest: MessageType<BuildTransactionRequest> =
 export interface BuildTransactionResponse {
   /**
    * TransactionResourceId is the ID of the BlockTransaction resource.
+   * @resource-adoption-id
    *
    * @generated from field: uint32 transaction_resource_id = 1;
    */
   transactionResourceId?: number
   /**
    * CursorResourceId is the ID of the root BlockCursor resource.
+   * @resource-adoption-id
    *
    * @generated from field: uint32 cursor_resource_id = 2;
    */
@@ -538,12 +540,14 @@ export const BuildTransactionAtRefRequest: MessageType<BuildTransactionAtRefRequ
 export interface BuildTransactionAtRefResponse {
   /**
    * TransactionResourceId is the ID of the BlockTransaction resource.
+   * @resource-adoption-id
    *
    * @generated from field: uint32 transaction_resource_id = 1;
    */
   transactionResourceId?: number
   /**
    * CursorResourceId is the ID of the root BlockCursor resource.
+   * @resource-adoption-id
    *
    * @generated from field: uint32 cursor_resource_id = 2;
    */

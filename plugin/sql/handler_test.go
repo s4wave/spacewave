@@ -233,7 +233,7 @@ func TestRegisterSQLRejectsZeroResourceIDs(t *testing.T) {
 			}}
 			t.Cleanup(func() { sqlViewerRegistrations = oldViewers })
 
-			fake := &zeroResourceRegistry{zeroAt: tc.zeroAt, nextID: 1}
+			fake := &zeroResourceRegistry{zeroAt: tc.zeroAt}
 			client, rootClient, cleanup := newRegisterSQLHarness(t, fake)
 			defer cleanup()
 
@@ -805,23 +805,28 @@ func (*sqlPluginLoadTestController) Close() error {
 
 type zeroResourceRegistry struct {
 	zeroAt string
-	nextID uint32
 }
 
-func (r *zeroResourceRegistry) nextResourceID(kind string) uint32 {
+func (r *zeroResourceRegistry) registrationResourceID(ctx context.Context, kind string) (uint32, error) {
 	if r.zeroAt == kind {
-		return 0
+		return 0, nil
 	}
-	id := r.nextID
-	r.nextID++
-	return id
+	client, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return client.AddResource(srpc.NewMux(), func() {})
 }
 
 func (r *zeroResourceRegistry) RegisterObjectType(
-	context.Context,
-	*s4wave_objecttype_registry.RegisterObjectTypeRequest,
+	ctx context.Context,
+	_ *s4wave_objecttype_registry.RegisterObjectTypeRequest,
 ) (*s4wave_objecttype_registry.RegisterObjectTypeResponse, error) {
-	return &s4wave_objecttype_registry.RegisterObjectTypeResponse{ResourceId: r.nextResourceID("object")}, nil
+	resourceID, err := r.registrationResourceID(ctx, "object")
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_objecttype_registry.RegisterObjectTypeResponse{ResourceId: resourceID}, nil
 }
 
 func (*zeroResourceRegistry) WatchObjectTypes(
@@ -832,10 +837,14 @@ func (*zeroResourceRegistry) WatchObjectTypes(
 }
 
 func (r *zeroResourceRegistry) RegisterWorldOp(
-	context.Context,
-	*s4wave_worldop_registry.RegisterWorldOpRequest,
+	ctx context.Context,
+	_ *s4wave_worldop_registry.RegisterWorldOpRequest,
 ) (*s4wave_worldop_registry.RegisterWorldOpResponse, error) {
-	return &s4wave_worldop_registry.RegisterWorldOpResponse{ResourceId: r.nextResourceID("worldop")}, nil
+	resourceID, err := r.registrationResourceID(ctx, "worldop")
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_worldop_registry.RegisterWorldOpResponse{ResourceId: resourceID}, nil
 }
 
 func (*zeroResourceRegistry) WatchWorldOps(
@@ -846,10 +855,14 @@ func (*zeroResourceRegistry) WatchWorldOps(
 }
 
 func (r *zeroResourceRegistry) RegisterQuickstart(
-	context.Context,
-	*s4wave_quickstart_registry.RegisterQuickstartRequest,
+	ctx context.Context,
+	_ *s4wave_quickstart_registry.RegisterQuickstartRequest,
 ) (*s4wave_quickstart_registry.RegisterQuickstartResponse, error) {
-	return &s4wave_quickstart_registry.RegisterQuickstartResponse{ResourceId: r.nextResourceID("quickstart")}, nil
+	resourceID, err := r.registrationResourceID(ctx, "quickstart")
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_quickstart_registry.RegisterQuickstartResponse{ResourceId: resourceID}, nil
 }
 
 func (*zeroResourceRegistry) ListQuickstarts(
@@ -874,10 +887,14 @@ func (*zeroResourceRegistry) ExecuteQuickstart(
 }
 
 func (r *zeroResourceRegistry) RegisterViewer(
-	context.Context,
-	*s4wave_viewer_registry.RegisterViewerRequest,
+	ctx context.Context,
+	_ *s4wave_viewer_registry.RegisterViewerRequest,
 ) (*s4wave_viewer_registry.RegisterViewerResponse, error) {
-	return &s4wave_viewer_registry.RegisterViewerResponse{ResourceId: r.nextResourceID("viewer")}, nil
+	resourceID, err := r.registrationResourceID(ctx, "viewer")
+	if err != nil {
+		return nil, err
+	}
+	return &s4wave_viewer_registry.RegisterViewerResponse{ResourceId: resourceID}, nil
 }
 
 func (*zeroResourceRegistry) ListViewers(

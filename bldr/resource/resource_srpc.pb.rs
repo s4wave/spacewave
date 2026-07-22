@@ -54,6 +54,8 @@ pub trait ResourceServiceClient: Send + Sync {
     async fn resource_rpc(&self) -> starpc::Result<Box<dyn ResourceServiceResourceRpcStream>>;
     /// ResourceRefRelease.
     async fn resource_ref_release(&self, request: &ResourceRefReleaseRequest) -> starpc::Result<ResourceRefReleaseResponse>;
+    /// ResourceRefAdopt.
+    async fn resource_ref_adopt(&self, request: &ResourceRefAdoptRequest) -> starpc::Result<ResourceRefAdoptResponse>;
     /// ResourceAttach.
     async fn resource_attach(&self) -> starpc::Result<Box<dyn ResourceServiceResourceAttachStream>>;
 }
@@ -85,6 +87,9 @@ impl<C: starpc::Client + 'static> ResourceServiceClient for ResourceServiceClien
     }
     async fn resource_ref_release(&self, request: &ResourceRefReleaseRequest) -> starpc::Result<ResourceRefReleaseResponse> {
         self.client.exec_call("resource.ResourceService", "ResourceRefRelease", request).await
+    }
+    async fn resource_ref_adopt(&self, request: &ResourceRefAdoptRequest) -> starpc::Result<ResourceRefAdoptResponse> {
+        self.client.exec_call("resource.ResourceService", "ResourceRefAdopt", request).await
     }
     async fn resource_attach(&self) -> starpc::Result<Box<dyn ResourceServiceResourceAttachStream>> {
         let stream = self.client.new_stream("resource.ResourceService", "ResourceAttach", None).await?;
@@ -158,6 +163,8 @@ pub trait ResourceServiceServer: Send + Sync {
     async fn resource_rpc(&self, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// ResourceRefRelease.
     async fn resource_ref_release(&self, request: ResourceRefReleaseRequest) -> starpc::Result<ResourceRefReleaseResponse>;
+    /// ResourceRefAdopt.
+    async fn resource_ref_adopt(&self, request: ResourceRefAdoptRequest) -> starpc::Result<ResourceRefAdoptResponse>;
     /// ResourceAttach.
     async fn resource_attach(&self, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
 }
@@ -166,6 +173,7 @@ const RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "ResourceClient",
     "ResourceRpc",
     "ResourceRefRelease",
+    "ResourceRefAdopt",
     "ResourceAttach",
 ];
 
@@ -211,6 +219,21 @@ impl<S: ResourceServiceServer + 'static> starpc::Invoker for ResourceServiceHand
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.resource_ref_release(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "ResourceRefAdopt" => {
+                let request: ResourceRefAdoptRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.resource_ref_adopt(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

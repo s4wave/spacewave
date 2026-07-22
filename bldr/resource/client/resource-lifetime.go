@@ -11,9 +11,10 @@ import (
 )
 
 type resourceLifetime struct {
-	ctx            context.Context
-	service        resource.SRPCResourceServiceClient
-	clientHandleID uint32
+	ctx                context.Context
+	service            resource.SRPCResourceServiceClient
+	clientHandleID     uint32
+	adoptionAckEnabled bool
 
 	// mtx guards below fields
 	mtx sync.Mutex
@@ -36,14 +37,16 @@ func newResourceLifetime(
 	ctx context.Context,
 	service resource.SRPCResourceServiceClient,
 	clientHandleID uint32,
+	adoptionAckEnabled bool,
 ) *resourceLifetime {
 	return &resourceLifetime{
-		ctx:              ctx,
-		service:          service,
-		clientHandleID:   clientHandleID,
-		resources:        make(map[uint32]*resourceRefSet),
-		srpcClients:      make(map[uint32]srpc.Client),
-		resourceContexts: make(map[uint32]context.CancelFunc),
+		ctx:                ctx,
+		service:            service,
+		clientHandleID:     clientHandleID,
+		adoptionAckEnabled: adoptionAckEnabled,
+		resources:          make(map[uint32]*resourceRefSet),
+		srpcClients:        make(map[uint32]srpc.Client),
+		resourceContexts:   make(map[uint32]context.CancelFunc),
 	}
 }
 
@@ -198,6 +201,14 @@ func (l *resourceLifetime) getOrCreateClientLocked(resourceID uint32) (srpc.Clie
 		resourceIDStr,
 		true,
 	)
+	if l.adoptionAckEnabled {
+		client = &adoptingResourceRPCClient{
+			ctx:            l.ctx,
+			client:         client,
+			service:        l.service,
+			clientHandleID: l.clientHandleID,
+		}
+	}
 	l.srpcClients[resourceID] = client
 	return client, nil
 }

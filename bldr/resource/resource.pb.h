@@ -101,6 +101,14 @@ class ResourceClientResponse;
 struct ResourceClientResponseDefaultTypeInternal;
 extern ResourceClientResponseDefaultTypeInternal _ResourceClientResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull ResourceClientResponse_class_data_;
+class ResourceRefAdoptRequest;
+struct ResourceRefAdoptRequestDefaultTypeInternal;
+extern ResourceRefAdoptRequestDefaultTypeInternal _ResourceRefAdoptRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ResourceRefAdoptRequest_class_data_;
+class ResourceRefAdoptResponse;
+struct ResourceRefAdoptResponseDefaultTypeInternal;
+extern ResourceRefAdoptResponseDefaultTypeInternal _ResourceRefAdoptResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ResourceRefAdoptResponse_class_data_;
 class ResourceRefReleaseRequest;
 struct ResourceRefReleaseRequestDefaultTypeInternal;
 extern ResourceRefReleaseRequestDefaultTypeInternal _ResourceRefReleaseRequest_default_instance_;
@@ -652,10 +660,347 @@ class ResourceRefReleaseRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull ResourceRefReleaseRequest_class_data_;
 // -------------------------------------------------------------------
 
-class ResourceClientRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+class ResourceRefAdoptResponse final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:resource.ResourceRefAdoptResponse) */ {
+ public:
+  inline ResourceRefAdoptResponse() : ResourceRefAdoptResponse(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ResourceRefAdoptResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ResourceRefAdoptResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ResourceRefAdoptResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline ResourceRefAdoptResponse(const ResourceRefAdoptResponse& from) : ResourceRefAdoptResponse(nullptr, from) {}
+  inline ResourceRefAdoptResponse(ResourceRefAdoptResponse&& from) noexcept
+      : ResourceRefAdoptResponse(nullptr, ::std::move(from)) {}
+  inline ResourceRefAdoptResponse& operator=(const ResourceRefAdoptResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ResourceRefAdoptResponse& operator=(ResourceRefAdoptResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ResourceRefAdoptResponse& default_instance() {
+    return *reinterpret_cast<const ResourceRefAdoptResponse*>(
+        &_ResourceRefAdoptResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 7;
+  friend void swap(ResourceRefAdoptResponse& a, ResourceRefAdoptResponse& b) { a.Swap(&b); }
+  inline void Swap(ResourceRefAdoptResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ResourceRefAdoptResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ResourceRefAdoptResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<ResourceRefAdoptResponse>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const ResourceRefAdoptResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const ResourceRefAdoptResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "resource.ResourceRefAdoptResponse"; }
+
+  explicit ResourceRefAdoptResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ResourceRefAdoptResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ResourceRefAdoptResponse& from);
+  ResourceRefAdoptResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ResourceRefAdoptResponse&& from) noexcept
+      : ResourceRefAdoptResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:resource.ResourceRefAdoptResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ResourceRefAdoptResponse_class_data_;
+// -------------------------------------------------------------------
+
+class ResourceRefAdoptRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:resource.ResourceRefAdoptRequest) */ {
+ public:
+  inline ResourceRefAdoptRequest() : ResourceRefAdoptRequest(nullptr) {}
+  ~ResourceRefAdoptRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ResourceRefAdoptRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ResourceRefAdoptRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ResourceRefAdoptRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline ResourceRefAdoptRequest(const ResourceRefAdoptRequest& from) : ResourceRefAdoptRequest(nullptr, from) {}
+  inline ResourceRefAdoptRequest(ResourceRefAdoptRequest&& from) noexcept
+      : ResourceRefAdoptRequest(nullptr, ::std::move(from)) {}
+  inline ResourceRefAdoptRequest& operator=(const ResourceRefAdoptRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ResourceRefAdoptRequest& operator=(ResourceRefAdoptRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ResourceRefAdoptRequest& default_instance() {
+    return *reinterpret_cast<const ResourceRefAdoptRequest*>(
+        &_ResourceRefAdoptRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 6;
+  friend void swap(ResourceRefAdoptRequest& a, ResourceRefAdoptRequest& b) { a.Swap(&b); }
+  inline void Swap(ResourceRefAdoptRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ResourceRefAdoptRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ResourceRefAdoptRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ResourceRefAdoptRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ResourceRefAdoptRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ResourceRefAdoptRequest& from) { ResourceRefAdoptRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ResourceRefAdoptRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "resource.ResourceRefAdoptRequest"; }
+
+  explicit ResourceRefAdoptRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ResourceRefAdoptRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ResourceRefAdoptRequest& from);
+  ResourceRefAdoptRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ResourceRefAdoptRequest&& from) noexcept
+      : ResourceRefAdoptRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kClientHandleIdFieldNumber = 1,
+    kResourceIdFieldNumber = 2,
+  };
+  // uint32 client_handle_id = 1;
+  void clear_client_handle_id() ;
+  ::uint32_t client_handle_id() const;
+  void set_client_handle_id(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_client_handle_id() const;
+  void _internal_set_client_handle_id(::uint32_t value);
+
+  public:
+  // uint32 resource_id = 2;
+  void clear_resource_id() ;
+  ::uint32_t resource_id() const;
+  void set_resource_id(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_resource_id() const;
+  void _internal_set_resource_id(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:resource.ResourceRefAdoptRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ResourceRefAdoptRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::uint32_t client_handle_id_;
+    ::uint32_t resource_id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ResourceRefAdoptRequest_class_data_;
+// -------------------------------------------------------------------
+
+class ResourceClientRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:resource.ResourceClientRequest) */ {
  public:
   inline ResourceClientRequest() : ResourceClientRequest(nullptr) {}
+  ~ResourceClientRequest() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
   void operator delete(ResourceClientRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
@@ -725,21 +1070,48 @@ class ResourceClientRequest final : public ::google::protobuf::internal::ZeroFie
   // implements Message ----------------------------------------------
 
   ResourceClientRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<ResourceClientRequest>(arena);
+    return ::google::protobuf::Message::DefaultConstruct<ResourceClientRequest>(arena);
   }
-  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
-  inline void CopyFrom(const ResourceClientRequest& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
-  }
-  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
-  void MergeFrom(const ResourceClientRequest& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
-  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ResourceClientRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ResourceClientRequest& from) { ResourceClientRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
 
   public:
   bool IsInitialized() const {
     return true;
   }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ResourceClientRequest* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
@@ -765,11 +1137,24 @@ class ResourceClientRequest final : public ::google::protobuf::internal::ZeroFie
   // nested types ----------------------------------------------------
 
   // accessors -------------------------------------------------------
+  enum : int {
+    kSupportsResourceAdoptionAckFieldNumber = 1,
+  };
+  // bool supports_resource_adoption_ack = 1;
+  void clear_supports_resource_adoption_ack() ;
+  bool supports_resource_adoption_ack() const;
+  void set_supports_resource_adoption_ack(bool value);
+
+  private:
+  bool _internal_supports_resource_adoption_ack() const;
+  void _internal_set_supports_resource_adoption_ack(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:resource.ResourceClientRequest)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 0,
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
                                    0, 0,
                                    2>
       _table_;
@@ -780,6 +1165,21 @@ class ResourceClientRequest final : public ::google::protobuf::internal::ZeroFie
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ResourceClientRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    bool supports_resource_adoption_ack_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto;
 };
 
@@ -930,6 +1330,7 @@ class ResourceClientInit final : public ::google::protobuf::Message
   enum : int {
     kClientHandleIdFieldNumber = 1,
     kRootResourceIdFieldNumber = 2,
+    kSupportsResourceAdoptionAckFieldNumber = 3,
   };
   // uint32 client_handle_id = 1;
   void clear_client_handle_id() ;
@@ -951,11 +1352,21 @@ class ResourceClientInit final : public ::google::protobuf::Message
   void _internal_set_root_resource_id(::uint32_t value);
 
   public:
+  // bool supports_resource_adoption_ack = 3;
+  void clear_supports_resource_adoption_ack() ;
+  bool supports_resource_adoption_ack() const;
+  void set_supports_resource_adoption_ack(bool value);
+
+  private:
+  bool _internal_supports_resource_adoption_ack() const;
+  void _internal_set_supports_resource_adoption_ack(bool value);
+
+  public:
   // @@protoc_insertion_point(class_scope:resource.ResourceClientInit)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
                                    0, 0,
                                    2>
       _table_;
@@ -979,6 +1390,7 @@ class ResourceClientInit final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::uint32_t client_handle_id_;
     ::uint32_t root_resource_id_;
+    bool supports_resource_adoption_ack_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1043,7 +1455,7 @@ class ResourceAttachInit final : public ::google::protobuf::Message
     return *reinterpret_cast<const ResourceAttachInit*>(
         &_ResourceAttachInit_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 8;
+  static constexpr int kIndexInFileMessages = 10;
   friend void swap(ResourceAttachInit& a, ResourceAttachInit& b) { a.Swap(&b); }
   inline void Swap(ResourceAttachInit* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1233,7 +1645,7 @@ class ResourceAttachDetachAck final : public ::google::protobuf::Message
     return *reinterpret_cast<const ResourceAttachDetachAck*>(
         &_ResourceAttachDetachAck_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 13;
+  static constexpr int kIndexInFileMessages = 15;
   friend void swap(ResourceAttachDetachAck& a, ResourceAttachDetachAck& b) { a.Swap(&b); }
   inline void Swap(ResourceAttachDetachAck* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1423,7 +1835,7 @@ class ResourceAttachDetach final : public ::google::protobuf::Message
     return *reinterpret_cast<const ResourceAttachDetach*>(
         &_ResourceAttachDetach_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 12;
+  static constexpr int kIndexInFileMessages = 14;
   friend void swap(ResourceAttachDetach& a, ResourceAttachDetach& b) { a.Swap(&b); }
   inline void Swap(ResourceAttachDetach* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1613,7 +2025,7 @@ class ResourceAttachAddAck final : public ::google::protobuf::Message
     return *reinterpret_cast<const ResourceAttachAddAck*>(
         &_ResourceAttachAddAck_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 11;
+  static constexpr int kIndexInFileMessages = 13;
   friend void swap(ResourceAttachAddAck& a, ResourceAttachAddAck& b) { a.Swap(&b); }
   inline void Swap(ResourceAttachAddAck* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1832,7 +2244,7 @@ class ResourceAttachAdd final : public ::google::protobuf::Message
     return *reinterpret_cast<const ResourceAttachAdd*>(
         &_ResourceAttachAdd_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 10;
+  static constexpr int kIndexInFileMessages = 12;
   friend void swap(ResourceAttachAdd& a, ResourceAttachAdd& b) { a.Swap(&b); }
   inline void Swap(ResourceAttachAdd* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2039,7 +2451,7 @@ class ResourceAttachAck final : public ::google::protobuf::Message
     return *reinterpret_cast<const ResourceAttachAck*>(
         &_ResourceAttachAck_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 9;
+  static constexpr int kIndexInFileMessages = 11;
   friend void swap(ResourceAttachAck& a, ResourceAttachAck& b) { a.Swap(&b); }
   inline void Swap(ResourceAttachAck* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2496,7 +2908,7 @@ class ResourceAttachResponse final : public ::google::protobuf::Message
     kMuxData = 4,
     BODY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 9;
   friend void swap(ResourceAttachResponse& a, ResourceAttachResponse& b) { a.Swap(&b); }
   inline void Swap(ResourceAttachResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2774,7 +3186,7 @@ class ResourceAttachRequest final : public ::google::protobuf::Message
     kMuxData = 4,
     BODY_NOT_SET = 0,
   };
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(ResourceAttachRequest& a, ResourceAttachRequest& b) { a.Swap(&b); }
   inline void Swap(ResourceAttachRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3004,6 +3416,31 @@ extern const ::google::protobuf::internal::ClassDataFull ResourceAttachRequest_c
 // -------------------------------------------------------------------
 
 // ResourceClientRequest
+
+// bool supports_resource_adoption_ack = 1;
+inline void ResourceClientRequest::clear_supports_resource_adoption_ack() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.supports_resource_adoption_ack_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline bool ResourceClientRequest::supports_resource_adoption_ack() const {
+  // @@protoc_insertion_point(field_get:resource.ResourceClientRequest.supports_resource_adoption_ack)
+  return _internal_supports_resource_adoption_ack();
+}
+inline void ResourceClientRequest::set_supports_resource_adoption_ack(bool value) {
+  _internal_set_supports_resource_adoption_ack(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:resource.ResourceClientRequest.supports_resource_adoption_ack)
+}
+inline bool ResourceClientRequest::_internal_supports_resource_adoption_ack() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.supports_resource_adoption_ack_;
+}
+inline void ResourceClientRequest::_internal_set_supports_resource_adoption_ack(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.supports_resource_adoption_ack_ = value;
+}
 
 // -------------------------------------------------------------------
 
@@ -3344,6 +3781,31 @@ inline void ResourceClientInit::_internal_set_root_resource_id(::uint32_t value)
   _impl_.root_resource_id_ = value;
 }
 
+// bool supports_resource_adoption_ack = 3;
+inline void ResourceClientInit::clear_supports_resource_adoption_ack() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.supports_resource_adoption_ack_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline bool ResourceClientInit::supports_resource_adoption_ack() const {
+  // @@protoc_insertion_point(field_get:resource.ResourceClientInit.supports_resource_adoption_ack)
+  return _internal_supports_resource_adoption_ack();
+}
+inline void ResourceClientInit::set_supports_resource_adoption_ack(bool value) {
+  _internal_set_supports_resource_adoption_ack(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:resource.ResourceClientInit.supports_resource_adoption_ack)
+}
+inline bool ResourceClientInit::_internal_supports_resource_adoption_ack() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.supports_resource_adoption_ack_;
+}
+inline void ResourceClientInit::_internal_set_supports_resource_adoption_ack(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.supports_resource_adoption_ack_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // ResourceRefReleaseRequest
@@ -3401,6 +3863,64 @@ inline void ResourceRefReleaseRequest::_internal_set_resource_id(::uint32_t valu
 // -------------------------------------------------------------------
 
 // ResourceRefReleaseResponse
+
+// -------------------------------------------------------------------
+
+// ResourceRefAdoptRequest
+
+// uint32 client_handle_id = 1;
+inline void ResourceRefAdoptRequest::clear_client_handle_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.client_handle_id_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::uint32_t ResourceRefAdoptRequest::client_handle_id() const {
+  // @@protoc_insertion_point(field_get:resource.ResourceRefAdoptRequest.client_handle_id)
+  return _internal_client_handle_id();
+}
+inline void ResourceRefAdoptRequest::set_client_handle_id(::uint32_t value) {
+  _internal_set_client_handle_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:resource.ResourceRefAdoptRequest.client_handle_id)
+}
+inline ::uint32_t ResourceRefAdoptRequest::_internal_client_handle_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.client_handle_id_;
+}
+inline void ResourceRefAdoptRequest::_internal_set_client_handle_id(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.client_handle_id_ = value;
+}
+
+// uint32 resource_id = 2;
+inline void ResourceRefAdoptRequest::clear_resource_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.resource_id_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::uint32_t ResourceRefAdoptRequest::resource_id() const {
+  // @@protoc_insertion_point(field_get:resource.ResourceRefAdoptRequest.resource_id)
+  return _internal_resource_id();
+}
+inline void ResourceRefAdoptRequest::set_resource_id(::uint32_t value) {
+  _internal_set_resource_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:resource.ResourceRefAdoptRequest.resource_id)
+}
+inline ::uint32_t ResourceRefAdoptRequest::_internal_resource_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.resource_id_;
+}
+inline void ResourceRefAdoptRequest::_internal_set_resource_id(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.resource_id_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// ResourceRefAdoptResponse
 
 // -------------------------------------------------------------------
 

@@ -97,13 +97,64 @@ struct ResourceRefReleaseRequestDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ResourceRefReleaseRequestDefaultTypeInternal _ResourceRefReleaseRequest_default_instance_;
 template <typename>
-PROTOBUF_CONSTEXPR ResourceClientRequest::ResourceClientRequest(::_pbi::ConstantInitialized)
+PROTOBUF_CONSTEXPR ResourceRefAdoptResponse::ResourceRefAdoptResponse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(ResourceClientRequest_class_data_.base()){}
+    : ::google::protobuf::internal::ZeroFieldsBase(ResourceRefAdoptResponse_class_data_.base()){}
 #else   // PROTOBUF_CUSTOM_VTABLE
     : ::google::protobuf::internal::ZeroFieldsBase() {
 }
 #endif  // PROTOBUF_CUSTOM_VTABLE
+struct ResourceRefAdoptResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ResourceRefAdoptResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ResourceRefAdoptResponseDefaultTypeInternal() {}
+  union {
+    ResourceRefAdoptResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ResourceRefAdoptResponseDefaultTypeInternal _ResourceRefAdoptResponse_default_instance_;
+
+inline constexpr ResourceRefAdoptRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        client_handle_id_{0u},
+        resource_id_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ResourceRefAdoptRequest::ResourceRefAdoptRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ResourceRefAdoptRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ResourceRefAdoptRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ResourceRefAdoptRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ResourceRefAdoptRequestDefaultTypeInternal() {}
+  union {
+    ResourceRefAdoptRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ResourceRefAdoptRequestDefaultTypeInternal _ResourceRefAdoptRequest_default_instance_;
+
+inline constexpr ResourceClientRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        supports_resource_adoption_ack_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ResourceClientRequest::ResourceClientRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ResourceClientRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
 struct ResourceClientRequestDefaultTypeInternal {
   PROTOBUF_CONSTEXPR ResourceClientRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
   ~ResourceClientRequestDefaultTypeInternal() {}
@@ -119,7 +170,8 @@ inline constexpr ResourceClientInit::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         client_handle_id_{0u},
-        root_resource_id_{0u} {}
+        root_resource_id_{0u},
+        supports_resource_adoption_ack_{false} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR ResourceClientInit::ResourceClientInit(::_pbi::ConstantInitialized)
@@ -385,7 +437,11 @@ static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULL
 const ::uint32_t
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto::offsets[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
         protodesc_cold) = {
-        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::resource::ResourceClientRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::resource::ResourceClientRequest, _impl_.supports_resource_adoption_ack_),
+        0,
         0x004, // bitmap
         PROTOBUF_FIELD_OFFSET(::resource::ResourceClientResponse, _impl_._oneof_case_[0]),
         PROTOBUF_FIELD_OFFSET(::resource::ResourceClientResponse, _impl_.body_),
@@ -399,16 +455,26 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::resource::ResourceClientInit, _impl_._has_bits_),
-        5, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::resource::ResourceClientInit, _impl_.client_handle_id_),
         PROTOBUF_FIELD_OFFSET(::resource::ResourceClientInit, _impl_.root_resource_id_),
+        PROTOBUF_FIELD_OFFSET(::resource::ResourceClientInit, _impl_.supports_resource_adoption_ack_),
         0,
         1,
+        2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::resource::ResourceRefReleaseRequest, _impl_._has_bits_),
         5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::resource::ResourceRefReleaseRequest, _impl_.client_handle_id_),
         PROTOBUF_FIELD_OFFSET(::resource::ResourceRefReleaseRequest, _impl_.resource_id_),
+        0,
+        1,
+        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::resource::ResourceRefAdoptRequest, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::resource::ResourceRefAdoptRequest, _impl_.client_handle_id_),
+        PROTOBUF_FIELD_OFFSET(::resource::ResourceRefAdoptRequest, _impl_.resource_id_),
         0,
         1,
         0x000, // bitmap
@@ -467,19 +533,21 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::resource::ResourceClientRequest)},
-        {1, sizeof(::resource::ResourceClientResponse)},
-        {7, sizeof(::resource::ResourceReleasedResponse)},
-        {12, sizeof(::resource::ResourceClientInit)},
-        {19, sizeof(::resource::ResourceRefReleaseRequest)},
-        {26, sizeof(::resource::ResourceRefReleaseResponse)},
-        {27, sizeof(::resource::ResourceAttachRequest)},
-        {34, sizeof(::resource::ResourceAttachResponse)},
-        {41, sizeof(::resource::ResourceAttachInit)},
-        {46, sizeof(::resource::ResourceAttachAck)},
-        {51, sizeof(::resource::ResourceAttachAdd)},
-        {58, sizeof(::resource::ResourceAttachAddAck)},
-        {67, sizeof(::resource::ResourceAttachDetach)},
-        {72, sizeof(::resource::ResourceAttachDetachAck)},
+        {5, sizeof(::resource::ResourceClientResponse)},
+        {11, sizeof(::resource::ResourceReleasedResponse)},
+        {16, sizeof(::resource::ResourceClientInit)},
+        {25, sizeof(::resource::ResourceRefReleaseRequest)},
+        {32, sizeof(::resource::ResourceRefReleaseResponse)},
+        {33, sizeof(::resource::ResourceRefAdoptRequest)},
+        {40, sizeof(::resource::ResourceRefAdoptResponse)},
+        {41, sizeof(::resource::ResourceAttachRequest)},
+        {48, sizeof(::resource::ResourceAttachResponse)},
+        {55, sizeof(::resource::ResourceAttachInit)},
+        {60, sizeof(::resource::ResourceAttachAck)},
+        {65, sizeof(::resource::ResourceAttachAdd)},
+        {72, sizeof(::resource::ResourceAttachAddAck)},
+        {81, sizeof(::resource::ResourceAttachDetach)},
+        {86, sizeof(::resource::ResourceAttachDetachAck)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::resource::_ResourceClientRequest_default_instance_._instance,
@@ -488,6 +556,8 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::resource::_ResourceClientInit_default_instance_._instance,
     &::resource::_ResourceRefReleaseRequest_default_instance_._instance,
     &::resource::_ResourceRefReleaseResponse_default_instance_._instance,
+    &::resource::_ResourceRefAdoptRequest_default_instance_._instance,
+    &::resource::_ResourceRefAdoptResponse_default_instance_._instance,
     &::resource::_ResourceAttachRequest_default_instance_._instance,
     &::resource::_ResourceAttachResponse_default_instance_._instance,
     &::resource::_ResourceAttachInit_default_instance_._instance,
@@ -502,46 +572,53 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2f
     "\n8github.com/s4wave/spacewave/bldr/resou"
     "rce/resource.proto\022\010resource\032<github.com"
     "/aperturerobotics/starpc/rpcstream/rpcst"
-    "ream.proto\"\027\n\025ResourceClientRequest\"\247\001\n\026"
+    "ream.proto\"\?\n\025ResourceClientRequest\022&\n\036s"
+    "upports_resource_adoption_ack\030\001 \001(\010\"\247\001\n\026"
     "ResourceClientResponse\022,\n\004init\030\001 \001(\0132\034.r"
     "esource.ResourceClientInitH\000\022\?\n\021resource"
     "_released\030\002 \001(\0132\".resource.ResourceRelea"
     "sedResponseH\000\022\026\n\014client_error\030\003 \001(\tH\000B\006\n"
     "\004body\"/\n\030ResourceReleasedResponse\022\023\n\013res"
-    "ource_id\030\001 \001(\r\"H\n\022ResourceClientInit\022\030\n\020"
+    "ource_id\030\001 \001(\r\"p\n\022ResourceClientInit\022\030\n\020"
     "client_handle_id\030\001 \001(\r\022\030\n\020root_resource_"
-    "id\030\002 \001(\r\"J\n\031ResourceRefReleaseRequest\022\030\n"
+    "id\030\002 \001(\r\022&\n\036supports_resource_adoption_a"
+    "ck\030\003 \001(\010\"J\n\031ResourceRefReleaseRequest\022\030\n"
     "\020client_handle_id\030\001 \001(\r\022\023\n\013resource_id\030\002"
-    " \001(\r\"\034\n\032ResourceRefReleaseResponse\"\277\001\n\025R"
-    "esourceAttachRequest\022,\n\004init\030\001 \001(\0132\034.res"
-    "ource.ResourceAttachInitH\000\022*\n\003add\030\002 \001(\0132"
-    "\033.resource.ResourceAttachAddH\000\0220\n\006detach"
-    "\030\003 \001(\0132\036.resource.ResourceAttachDetachH\000"
-    "\022\022\n\010mux_data\030\004 \001(\014H\000B\006\n\004body\"\314\001\n\026Resourc"
-    "eAttachResponse\022*\n\003ack\030\001 \001(\0132\033.resource."
-    "ResourceAttachAckH\000\0221\n\007add_ack\030\002 \001(\0132\036.r"
-    "esource.ResourceAttachAddAckH\000\0227\n\ndetach"
-    "_ack\030\003 \001(\0132!.resource.ResourceAttachDeta"
-    "chAckH\000\022\022\n\010mux_data\030\004 \001(\014H\000B\006\n\004body\".\n\022R"
-    "esourceAttachInit\022\030\n\020client_handle_id\030\001 "
-    "\001(\r\"\"\n\021ResourceAttachAck\022\r\n\005error\030\001 \001(\t\""
-    "5\n\021ResourceAttachAdd\022\021\n\tattach_id\030\001 \001(\r\022"
-    "\r\n\005label\030\002 \001(\t\"M\n\024ResourceAttachAddAck\022\021"
-    "\n\tattach_id\030\001 \001(\r\022\r\n\005error\030\002 \001(\t\022\023\n\013reso"
-    "urce_id\030\003 \001(\r\"+\n\024ResourceAttachDetach\022\023\n"
-    "\013resource_id\030\001 \001(\r\".\n\027ResourceAttachDeta"
-    "chAck\022\023\n\013resource_id\030\001 \001(\r2\357\002\n\017ResourceS"
-    "ervice\022W\n\016ResourceClient\022\037.resource.Reso"
-    "urceClientRequest\032 .resource.ResourceCli"
-    "entResponse\"\0000\001\022I\n\013ResourceRpc\022\032.rpcstre"
-    "am.RpcStreamPacket\032\032.rpcstream.RpcStream"
-    "Packet(\0010\001\022_\n\022ResourceRefRelease\022#.resou"
-    "rce.ResourceRefReleaseRequest\032$.resource"
-    ".ResourceRefReleaseResponse\022W\n\016ResourceA"
-    "ttach\022\037.resource.ResourceAttachRequest\032 "
-    ".resource.ResourceAttachResponse(\0010\001B+Z)"
-    "github.com/s4wave/spacewave/bldr/resourc"
-    "eb\006proto3"
+    " \001(\r\"\034\n\032ResourceRefReleaseResponse\"H\n\027Re"
+    "sourceRefAdoptRequest\022\030\n\020client_handle_i"
+    "d\030\001 \001(\r\022\023\n\013resource_id\030\002 \001(\r\"\032\n\030Resource"
+    "RefAdoptResponse\"\277\001\n\025ResourceAttachReque"
+    "st\022,\n\004init\030\001 \001(\0132\034.resource.ResourceAtta"
+    "chInitH\000\022*\n\003add\030\002 \001(\0132\033.resource.Resourc"
+    "eAttachAddH\000\0220\n\006detach\030\003 \001(\0132\036.resource."
+    "ResourceAttachDetachH\000\022\022\n\010mux_data\030\004 \001(\014"
+    "H\000B\006\n\004body\"\314\001\n\026ResourceAttachResponse\022*\n"
+    "\003ack\030\001 \001(\0132\033.resource.ResourceAttachAckH"
+    "\000\0221\n\007add_ack\030\002 \001(\0132\036.resource.ResourceAt"
+    "tachAddAckH\000\0227\n\ndetach_ack\030\003 \001(\0132!.resou"
+    "rce.ResourceAttachDetachAckH\000\022\022\n\010mux_dat"
+    "a\030\004 \001(\014H\000B\006\n\004body\".\n\022ResourceAttachInit\022"
+    "\030\n\020client_handle_id\030\001 \001(\r\"\"\n\021ResourceAtt"
+    "achAck\022\r\n\005error\030\001 \001(\t\"5\n\021ResourceAttachA"
+    "dd\022\021\n\tattach_id\030\001 \001(\r\022\r\n\005label\030\002 \001(\t\"M\n\024"
+    "ResourceAttachAddAck\022\021\n\tattach_id\030\001 \001(\r\022"
+    "\r\n\005error\030\002 \001(\t\022\023\n\013resource_id\030\003 \001(\r\"+\n\024R"
+    "esourceAttachDetach\022\023\n\013resource_id\030\001 \001(\r"
+    "\".\n\027ResourceAttachDetachAck\022\023\n\013resource_"
+    "id\030\001 \001(\r2\312\003\n\017ResourceService\022W\n\016Resource"
+    "Client\022\037.resource.ResourceClientRequest\032"
+    " .resource.ResourceClientResponse\"\0000\001\022I\n"
+    "\013ResourceRpc\022\032.rpcstream.RpcStreamPacket"
+    "\032\032.rpcstream.RpcStreamPacket(\0010\001\022_\n\022Reso"
+    "urceRefRelease\022#.resource.ResourceRefRel"
+    "easeRequest\032$.resource.ResourceRefReleas"
+    "eResponse\022Y\n\020ResourceRefAdopt\022!.resource"
+    ".ResourceRefAdoptRequest\032\".resource.Reso"
+    "urceRefAdoptResponse\022W\n\016ResourceAttach\022\037"
+    ".resource.ResourceAttachRequest\032 .resour"
+    "ce.ResourceAttachResponse(\0010\001B+Z)github."
+    "com/s4wave/spacewave/bldr/resourceb\006prot"
+    "o3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto_deps[1] = {
@@ -551,13 +628,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbl
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto = {
     false,
     false,
-    1689,
+    1962,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
     "github.com/s4wave/spacewave/bldr/resource/resource.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto_deps,
     1,
-    14,
+    16,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto::offsets,
@@ -569,30 +646,53 @@ namespace resource {
 
 class ResourceClientRequest::_Internal {
  public:
+  using HasBits =
+      decltype(::std::declval<ResourceClientRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ResourceClientRequest, _impl_._has_bits_);
 };
 
 ResourceClientRequest::ResourceClientRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, ResourceClientRequest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, ResourceClientRequest_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+    : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
   // @@protoc_insertion_point(arena_constructor:resource.ResourceClientRequest)
 }
 ResourceClientRequest::ResourceClientRequest(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const ResourceClientRequest& from)
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ResourceClientRequest& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, ResourceClientRequest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, ResourceClientRequest_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+    : ::google::protobuf::Message(arena),
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  ResourceClientRequest* const _this = this;
-  (void)_this;
+      _impl_(from._impl_) {
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE ResourceClientRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
 
-  // @@protoc_insertion_point(copy_constructor:resource.ResourceClientRequest)
+inline void ResourceClientRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.supports_resource_adoption_ack_ = {};
+}
+ResourceClientRequest::~ResourceClientRequest() {
+  // @@protoc_insertion_point(destructor:resource.ResourceClientRequest)
+  SharedDtor(*this);
+}
+inline void ResourceClientRequest::SharedDtor(MessageLite& self) {
+  ResourceClientRequest& this_ = static_cast<ResourceClientRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
 }
 
 inline void* PROTOBUF_NONNULL ResourceClientRequest::PlacementNew_(
@@ -612,10 +712,10 @@ constexpr auto ResourceClientRequest::InternalGenerateClassData_() {
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
           &ResourceClientRequest::MergeImpl,
-          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<ResourceClientRequest>(),
+          ::google::protobuf::Message::GetNewImpl<ResourceClientRequest>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
           &ResourceClientRequest::SharedDtor,
-          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<ResourceClientRequest>(), &ResourceClientRequest::ByteSizeLong,
+          ::google::protobuf::Message::GetClearImpl<ResourceClientRequest>(), &ResourceClientRequest::ByteSizeLong,
               &ResourceClientRequest::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
           PROTOBUF_FIELD_OFFSET(ResourceClientRequest, _impl_._cached_size_),
@@ -638,16 +738,16 @@ ResourceClientRequest::GetClassData() const {
   return ResourceClientRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
 ResourceClientRequest::_table_ = {
   {
-    0,  // no _has_bits_
+    PROTOBUF_FIELD_OFFSET(ResourceClientRequest, _impl_._has_bits_),
     0, // no _extensions_
-    0, 0,  // max_field_number, fast_idx_mask
+    1, 0,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967295,  // skipmap
-    offsetof(decltype(_table_), field_names),  // no field_entries
-    0,  // num_field_entries
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     ResourceClientRequest_class_data_.base(),
@@ -657,22 +757,137 @@ ResourceClientRequest::_table_ = {
     ::_pbi::TcParser::GetTable<::resource::ResourceClientRequest>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    {::_pbi::TcParser::MiniParse, {}},
+    // bool supports_resource_adoption_ack = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ResourceClientRequest, _impl_.supports_resource_adoption_ack_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ResourceClientRequest, _impl_.supports_resource_adoption_ack_)}},
   }}, {{
     65535, 65535
-  }}, // no field_entries, or aux_entries
+  }}, {{
+    // bool supports_resource_adoption_ack = 1;
+    {PROTOBUF_FIELD_OFFSET(ResourceClientRequest, _impl_.supports_resource_adoption_ack_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+  }},
+  // no aux_entries
   {{
   }},
 };
+PROTOBUF_NOINLINE void ResourceClientRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:resource.ResourceClientRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.supports_resource_adoption_ack_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ResourceClientRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ResourceClientRequest& this_ = static_cast<const ResourceClientRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ResourceClientRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ResourceClientRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:resource.ResourceClientRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bool supports_resource_adoption_ack = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_supports_resource_adoption_ack() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          1, this_._internal_supports_resource_adoption_ack(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:resource.ResourceClientRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ResourceClientRequest::ByteSizeLong(const MessageLite& base) {
+  const ResourceClientRequest& this_ = static_cast<const ResourceClientRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ResourceClientRequest::ByteSizeLong() const {
+  const ResourceClientRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:resource.ResourceClientRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // bool supports_resource_adoption_ack = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_supports_resource_adoption_ack() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ResourceClientRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ResourceClientRequest*>(&to_msg);
+  auto& from = static_cast<const ResourceClientRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:resource.ResourceClientRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_supports_resource_adoption_ack() != 0) {
+      _this->_impl_.supports_resource_adoption_ack_ = from._impl_.supports_resource_adoption_ack_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ResourceClientRequest::CopyFrom(const ResourceClientRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:resource.ResourceClientRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
 
 
-
-
-
-
+void ResourceClientRequest::InternalSwap(ResourceClientRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.supports_resource_adoption_ack_, other->_impl_.supports_resource_adoption_ack_);
+}
 
 ::google::protobuf::Metadata ResourceClientRequest::GetMetadata() const {
-  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 
@@ -1361,9 +1576,9 @@ inline void ResourceClientInit::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, client_handle_id_),
            0,
-           offsetof(Impl_, root_resource_id_) -
+           offsetof(Impl_, supports_resource_adoption_ack_) -
                offsetof(Impl_, client_handle_id_) +
-               sizeof(Impl_::root_resource_id_));
+               sizeof(Impl_::supports_resource_adoption_ack_));
 }
 ResourceClientInit::~ResourceClientInit() {
   // @@protoc_insertion_point(destructor:resource.ResourceClientInit)
@@ -1422,16 +1637,16 @@ ResourceClientInit::GetClassData() const {
   return ResourceClientInit_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 0, 0, 2>
+const ::_pbi::TcParseTable<2, 3, 0, 0, 2>
 ResourceClientInit::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(ResourceClientInit, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
+    3,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     ResourceClientInit_class_data_.base(),
@@ -1441,14 +1656,19 @@ ResourceClientInit::_table_ = {
     ::_pbi::TcParser::GetTable<::resource::ResourceClientInit>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // uint32 root_resource_id = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ResourceClientInit, _impl_.root_resource_id_), 1>(),
-     {16, 1, 0,
-      PROTOBUF_FIELD_OFFSET(ResourceClientInit, _impl_.root_resource_id_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // uint32 client_handle_id = 1;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ResourceClientInit, _impl_.client_handle_id_), 0>(),
      {8, 0, 0,
       PROTOBUF_FIELD_OFFSET(ResourceClientInit, _impl_.client_handle_id_)}},
+    // uint32 root_resource_id = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ResourceClientInit, _impl_.root_resource_id_), 1>(),
+     {16, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ResourceClientInit, _impl_.root_resource_id_)}},
+    // bool supports_resource_adoption_ack = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ResourceClientInit, _impl_.supports_resource_adoption_ack_), 2>(),
+     {24, 2, 0,
+      PROTOBUF_FIELD_OFFSET(ResourceClientInit, _impl_.supports_resource_adoption_ack_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -1456,6 +1676,8 @@ ResourceClientInit::_table_ = {
     {PROTOBUF_FIELD_OFFSET(ResourceClientInit, _impl_.client_handle_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
     // uint32 root_resource_id = 2;
     {PROTOBUF_FIELD_OFFSET(ResourceClientInit, _impl_.root_resource_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // bool supports_resource_adoption_ack = 3;
+    {PROTOBUF_FIELD_OFFSET(ResourceClientInit, _impl_.supports_resource_adoption_ack_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
   }},
   // no aux_entries
   {{
@@ -1469,10 +1691,10 @@ PROTOBUF_NOINLINE void ResourceClientInit::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     ::memset(&_impl_.client_handle_id_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.root_resource_id_) -
-        reinterpret_cast<char*>(&_impl_.client_handle_id_)) + sizeof(_impl_.root_resource_id_));
+        reinterpret_cast<char*>(&_impl_.supports_resource_adoption_ack_) -
+        reinterpret_cast<char*>(&_impl_.client_handle_id_)) + sizeof(_impl_.supports_resource_adoption_ack_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -1515,6 +1737,15 @@ PROTOBUF_NOINLINE void ResourceClientInit::Clear() {
     }
   }
 
+  // bool supports_resource_adoption_ack = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_supports_resource_adoption_ack() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          3, this_._internal_supports_resource_adoption_ack(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1540,7 +1771,7 @@ PROTOBUF_NOINLINE void ResourceClientInit::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     // uint32 client_handle_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (this_._internal_client_handle_id() != 0) {
@@ -1553,6 +1784,12 @@ PROTOBUF_NOINLINE void ResourceClientInit::Clear() {
       if (this_._internal_root_resource_id() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_root_resource_id());
+      }
+    }
+    // bool supports_resource_adoption_ack = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_supports_resource_adoption_ack() != 0) {
+        total_size += 2;
       }
     }
   }
@@ -1574,7 +1811,7 @@ void ResourceClientInit::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (from._internal_client_handle_id() != 0) {
         _this->_impl_.client_handle_id_ = from._impl_.client_handle_id_;
@@ -1583,6 +1820,11 @@ void ResourceClientInit::MergeImpl(::google::protobuf::MessageLite& to_msg,
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (from._internal_root_resource_id() != 0) {
         _this->_impl_.root_resource_id_ = from._impl_.root_resource_id_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_supports_resource_adoption_ack() != 0) {
+        _this->_impl_.supports_resource_adoption_ack_ = from._impl_.supports_resource_adoption_ack_;
       }
     }
   }
@@ -1604,8 +1846,8 @@ void ResourceClientInit::InternalSwap(ResourceClientInit* PROTOBUF_RESTRICT PROT
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ResourceClientInit, _impl_.root_resource_id_)
-      + sizeof(ResourceClientInit::_impl_.root_resource_id_)
+      PROTOBUF_FIELD_OFFSET(ResourceClientInit, _impl_.supports_resource_adoption_ack_)
+      + sizeof(ResourceClientInit::_impl_.supports_resource_adoption_ack_)
       - PROTOBUF_FIELD_OFFSET(ResourceClientInit, _impl_.client_handle_id_)>(
           reinterpret_cast<char*>(&_impl_.client_handle_id_),
           reinterpret_cast<char*>(&other->_impl_.client_handle_id_));
@@ -2014,6 +2256,408 @@ ResourceRefReleaseResponse::_table_ = {
 
 
 ::google::protobuf::Metadata ResourceRefReleaseResponse::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ResourceRefAdoptRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ResourceRefAdoptRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ResourceRefAdoptRequest, _impl_._has_bits_);
+};
+
+ResourceRefAdoptRequest::ResourceRefAdoptRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ResourceRefAdoptRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:resource.ResourceRefAdoptRequest)
+}
+ResourceRefAdoptRequest::ResourceRefAdoptRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ResourceRefAdoptRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ResourceRefAdoptRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(from._impl_) {
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE ResourceRefAdoptRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void ResourceRefAdoptRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, client_handle_id_),
+           0,
+           offsetof(Impl_, resource_id_) -
+               offsetof(Impl_, client_handle_id_) +
+               sizeof(Impl_::resource_id_));
+}
+ResourceRefAdoptRequest::~ResourceRefAdoptRequest() {
+  // @@protoc_insertion_point(destructor:resource.ResourceRefAdoptRequest)
+  SharedDtor(*this);
+}
+inline void ResourceRefAdoptRequest::SharedDtor(MessageLite& self) {
+  ResourceRefAdoptRequest& this_ = static_cast<ResourceRefAdoptRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ResourceRefAdoptRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ResourceRefAdoptRequest(arena);
+}
+constexpr auto ResourceRefAdoptRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(ResourceRefAdoptRequest),
+                                            alignof(ResourceRefAdoptRequest));
+}
+constexpr auto ResourceRefAdoptRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ResourceRefAdoptRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ResourceRefAdoptRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ResourceRefAdoptRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ResourceRefAdoptRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ResourceRefAdoptRequest>(), &ResourceRefAdoptRequest::ByteSizeLong,
+              &ResourceRefAdoptRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ResourceRefAdoptRequest, _impl_._cached_size_),
+          false,
+      },
+      &ResourceRefAdoptRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ResourceRefAdoptRequest_class_data_ =
+        ResourceRefAdoptRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ResourceRefAdoptRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ResourceRefAdoptRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ResourceRefAdoptRequest_class_data_.tc_table);
+  return ResourceRefAdoptRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 0, 2>
+ResourceRefAdoptRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ResourceRefAdoptRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ResourceRefAdoptRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::resource::ResourceRefAdoptRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // uint32 resource_id = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ResourceRefAdoptRequest, _impl_.resource_id_), 1>(),
+     {16, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ResourceRefAdoptRequest, _impl_.resource_id_)}},
+    // uint32 client_handle_id = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ResourceRefAdoptRequest, _impl_.client_handle_id_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ResourceRefAdoptRequest, _impl_.client_handle_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // uint32 client_handle_id = 1;
+    {PROTOBUF_FIELD_OFFSET(ResourceRefAdoptRequest, _impl_.client_handle_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint32 resource_id = 2;
+    {PROTOBUF_FIELD_OFFSET(ResourceRefAdoptRequest, _impl_.resource_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void ResourceRefAdoptRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:resource.ResourceRefAdoptRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    ::memset(&_impl_.client_handle_id_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.resource_id_) -
+        reinterpret_cast<char*>(&_impl_.client_handle_id_)) + sizeof(_impl_.resource_id_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ResourceRefAdoptRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ResourceRefAdoptRequest& this_ = static_cast<const ResourceRefAdoptRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ResourceRefAdoptRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ResourceRefAdoptRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:resource.ResourceRefAdoptRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // uint32 client_handle_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_client_handle_id() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          1, this_._internal_client_handle_id(), target);
+    }
+  }
+
+  // uint32 resource_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_resource_id() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          2, this_._internal_resource_id(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:resource.ResourceRefAdoptRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ResourceRefAdoptRequest::ByteSizeLong(const MessageLite& base) {
+  const ResourceRefAdoptRequest& this_ = static_cast<const ResourceRefAdoptRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ResourceRefAdoptRequest::ByteSizeLong() const {
+  const ResourceRefAdoptRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:resource.ResourceRefAdoptRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // uint32 client_handle_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_client_handle_id() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_client_handle_id());
+      }
+    }
+    // uint32 resource_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_resource_id() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_resource_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ResourceRefAdoptRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ResourceRefAdoptRequest*>(&to_msg);
+  auto& from = static_cast<const ResourceRefAdoptRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:resource.ResourceRefAdoptRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (from._internal_client_handle_id() != 0) {
+        _this->_impl_.client_handle_id_ = from._impl_.client_handle_id_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_resource_id() != 0) {
+        _this->_impl_.resource_id_ = from._impl_.resource_id_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ResourceRefAdoptRequest::CopyFrom(const ResourceRefAdoptRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:resource.ResourceRefAdoptRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ResourceRefAdoptRequest::InternalSwap(ResourceRefAdoptRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ResourceRefAdoptRequest, _impl_.resource_id_)
+      + sizeof(ResourceRefAdoptRequest::_impl_.resource_id_)
+      - PROTOBUF_FIELD_OFFSET(ResourceRefAdoptRequest, _impl_.client_handle_id_)>(
+          reinterpret_cast<char*>(&_impl_.client_handle_id_),
+          reinterpret_cast<char*>(&other->_impl_.client_handle_id_));
+}
+
+::google::protobuf::Metadata ResourceRefAdoptRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ResourceRefAdoptResponse::_Internal {
+ public:
+};
+
+ResourceRefAdoptResponse::ResourceRefAdoptResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, ResourceRefAdoptResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:resource.ResourceRefAdoptResponse)
+}
+ResourceRefAdoptResponse::ResourceRefAdoptResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ResourceRefAdoptResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, ResourceRefAdoptResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ResourceRefAdoptResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:resource.ResourceRefAdoptResponse)
+}
+
+inline void* PROTOBUF_NONNULL ResourceRefAdoptResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ResourceRefAdoptResponse(arena);
+}
+constexpr auto ResourceRefAdoptResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(ResourceRefAdoptResponse),
+                                            alignof(ResourceRefAdoptResponse));
+}
+constexpr auto ResourceRefAdoptResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ResourceRefAdoptResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ResourceRefAdoptResponse::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<ResourceRefAdoptResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ResourceRefAdoptResponse::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<ResourceRefAdoptResponse>(), &ResourceRefAdoptResponse::ByteSizeLong,
+              &ResourceRefAdoptResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ResourceRefAdoptResponse, _impl_._cached_size_),
+          false,
+      },
+      &ResourceRefAdoptResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fresource_2fresource_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ResourceRefAdoptResponse_class_data_ =
+        ResourceRefAdoptResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ResourceRefAdoptResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ResourceRefAdoptResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ResourceRefAdoptResponse_class_data_.tc_table);
+  return ResourceRefAdoptResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+ResourceRefAdoptResponse::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ResourceRefAdoptResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::resource::ResourceRefAdoptResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata ResourceRefAdoptResponse::GetMetadata() const {
   return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

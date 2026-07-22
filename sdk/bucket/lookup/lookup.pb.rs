@@ -143,9 +143,11 @@ pub struct BuildTransactionRequest {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct BuildTransactionResponse {
     /// TransactionResourceId is the ID of the BlockTransaction resource.
+    /// @resource-adoption-id
     #[prost(uint32, tag="1")]
     pub transaction_resource_id: u32,
     /// CursorResourceId is the ID of the root BlockCursor resource.
+    /// @resource-adoption-id
     #[prost(uint32, tag="2")]
     pub cursor_resource_id: u32,
 }
@@ -163,9 +165,11 @@ pub struct BuildTransactionAtRefRequest {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct BuildTransactionAtRefResponse {
     /// TransactionResourceId is the ID of the BlockTransaction resource.
+    /// @resource-adoption-id
     #[prost(uint32, tag="1")]
     pub transaction_resource_id: u32,
     /// CursorResourceId is the ID of the root BlockCursor resource.
+    /// @resource-adoption-id
     #[prost(uint32, tag="2")]
     pub cursor_resource_id: u32,
 }
