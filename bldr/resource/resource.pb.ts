@@ -17,13 +17,28 @@ export const protobufPackage = 'resource'
  *
  * @generated from message resource.ResourceClientRequest
  */
-export interface ResourceClientRequest {}
+export interface ResourceClientRequest {
+  /**
+   * SupportsResourceAdoptionAck requests the held ResourceRpc receipt protocol.
+   *
+   * @generated from field: bool supports_resource_adoption_ack = 1;
+   */
+  supportsResourceAdoptionAck?: boolean
+}
 
 export const ResourceClientRequest: MessageType<ResourceClientRequest> =
-  /* @__PURE__ */ createEmptyMessageType<ResourceClientRequest>(
-    'resource.ResourceClientRequest',
-    true,
-  )
+  /* @__PURE__ */ createMessageType({
+    typeName: 'resource.ResourceClientRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'supports_resource_adoption_ack',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ResourceClientInit is the initialization response to ResourceClient.
@@ -44,6 +59,13 @@ export interface ResourceClientInit {
    * @generated from field: uint32 root_resource_id = 2;
    */
   rootResourceId?: number
+  /**
+   * SupportsResourceAdoptionAck is true when held ResourceRpc receipts and
+   * per-resource adoption acknowledgments are implemented.
+   *
+   * @generated from field: bool supports_resource_adoption_ack = 3;
+   */
+  supportsResourceAdoptionAck?: boolean
 }
 
 export const ResourceClientInit: MessageType<ResourceClientInit> =
@@ -52,6 +74,12 @@ export const ResourceClientInit: MessageType<ResourceClientInit> =
     fields: [
       { no: 1, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'root_resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+      {
+        no: 3,
+        name: 'supports_resource_adoption_ack',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -195,6 +223,50 @@ export interface ResourceRefReleaseResponse {}
 export const ResourceRefReleaseResponse: MessageType<ResourceRefReleaseResponse> =
   /* @__PURE__ */ createEmptyMessageType<ResourceRefReleaseResponse>(
     'resource.ResourceRefReleaseResponse',
+    true,
+  )
+
+/**
+ * ResourceRefAdoptRequest acknowledges adoption of a resource returned by a
+ * held ResourceRpc invocation.
+ *
+ * @generated from message resource.ResourceRefAdoptRequest
+ */
+export interface ResourceRefAdoptRequest {
+  /**
+   * ClientHandleId identifies the persistent ResourceClient session.
+   *
+   * @generated from field: uint32 client_handle_id = 1;
+   */
+  clientHandleId?: number
+  /**
+   * ResourceId identifies the pending resource to adopt.
+   *
+   * @generated from field: uint32 resource_id = 2;
+   */
+  resourceId?: number
+}
+
+export const ResourceRefAdoptRequest: MessageType<ResourceRefAdoptRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'resource.ResourceRefAdoptRequest',
+    fields: [
+      { no: 1, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ResourceRefAdoptResponse confirms a pending resource was adopted.
+ *
+ * @generated from message resource.ResourceRefAdoptResponse
+ */
+export interface ResourceRefAdoptResponse {}
+
+export const ResourceRefAdoptResponse: MessageType<ResourceRefAdoptResponse> =
+  /* @__PURE__ */ createEmptyMessageType<ResourceRefAdoptResponse>(
+    'resource.ResourceRefAdoptResponse',
     true,
   )
 
@@ -407,6 +479,7 @@ export interface ResourceAttachAddAck {
   error?: string
   /**
    * ResourceId is the server-assigned ID for the attached resource.
+   * @resource-adoption-id
    *
    * @generated from field: uint32 resource_id = 3;
    */

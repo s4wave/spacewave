@@ -674,6 +674,7 @@ export const GetAllRefsRequest: MessageType<GetAllRefsRequest> =
 export interface GetAllRefsResponse {
   /**
    * Refs maps reference field IDs to BlockCursor resource IDs.
+   * @resource-adoption-id
    *
    * @generated from field: map<uint32, uint32> refs = 1;
    */
@@ -858,6 +859,7 @@ export const ParentsRequest: MessageType<ParentsRequest> =
 export interface ParentsResponse {
   /**
    * ParentResourceIds are the resource IDs of parent cursors.
+   * @resource-adoption-id
    *
    * @generated from field: repeated uint32 parent_resource_ids = 1;
    */

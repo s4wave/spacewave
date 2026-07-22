@@ -3,6 +3,9 @@ package resource_client
 import (
 	"context"
 	"errors"
+	"io"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -12,7 +15,93 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	block_cursor "github.com/s4wave/spacewave/sdk/block/cursor"
+	block_transaction "github.com/s4wave/spacewave/sdk/block/transaction"
+	bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 )
+
+type commitAckRejectingClient struct {
+	srpc.Client
+	onReject func()
+	reject   atomic.Bool
+}
+
+func newCommitAckRejectingClient(client srpc.Client, onReject func()) *commitAckRejectingClient {
+	c := &commitAckRejectingClient{Client: client, onReject: onReject}
+	c.reject.Store(true)
+	return c
+}
+
+func (c *commitAckRejectingClient) NewStream(
+	ctx context.Context,
+	serviceID string,
+	methodID string,
+	firstMsg srpc.Message,
+) (srpc.Stream, error) {
+	strm, err := c.Client.NewStream(ctx, serviceID, methodID, firstMsg)
+	if err != nil {
+		return nil, err
+	}
+	if c.reject.CompareAndSwap(true, false) {
+		return &commitAckRejectingStream{Stream: strm, onReject: c.onReject}, nil
+	}
+	return strm, nil
+}
+
+type commitAckRejectingStream struct {
+	srpc.Stream
+	onReject func()
+	recvs    int
+}
+
+func (s *commitAckRejectingStream) MsgRecv(msg srpc.Message) error {
+	s.recvs++
+	err := s.Stream.MsgRecv(msg)
+	if s.recvs == 2 && err == io.EOF {
+		s.onReject()
+		return nil
+	}
+	return err
+}
+
+type preAdoptionCancelClient struct {
+	srpc.Client
+	cancel context.CancelFunc
+	wrap   atomic.Bool
+}
+
+func (c *preAdoptionCancelClient) NewStream(
+	ctx context.Context,
+	serviceID string,
+	methodID string,
+	firstMsg srpc.Message,
+) (srpc.Stream, error) {
+	strm, err := c.Client.NewStream(ctx, serviceID, methodID, firstMsg)
+	if err != nil {
+		return nil, err
+	}
+	if c.wrap.CompareAndSwap(false, true) {
+		return &preAdoptionCancelStream{
+			Stream: strm,
+			cancel: c.cancel,
+		}, nil
+	}
+	return strm, nil
+}
+
+type preAdoptionCancelStream struct {
+	srpc.Stream
+	cancel context.CancelFunc
+	once   sync.Once
+}
+
+func (s *preAdoptionCancelStream) MsgRecv(msg srpc.Message) error {
+	err := s.Stream.MsgRecv(msg)
+	if err == nil {
+		s.once.Do(s.cancel)
+	}
+	return err
+}
 
 type mockResourceService struct {
 	mu             sync.Mutex
@@ -42,6 +131,13 @@ func (m *mockResourceService) ResourceRefRelease(ctx context.Context, in *resour
 		return m.onRelease(ctx, in)
 	}
 	return &resource.ResourceRefReleaseResponse{}, nil
+}
+
+func (m *mockResourceService) ResourceRefAdopt(
+	context.Context,
+	*resource.ResourceRefAdoptRequest,
+) (*resource.ResourceRefAdoptResponse, error) {
+	return &resource.ResourceRefAdoptResponse{}, nil
 }
 
 func (m *mockResourceService) ResourceAttach(ctx context.Context) (resource.SRPCResourceService_ResourceAttachClient, error) {
@@ -1203,6 +1299,527 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 	case <-time.After(time.Second):
 		t.Fatal("attached tree child release callback was not called")
 	}
+}
+
+func TestResourceRPCPreAdoptionCancellationReleasesPendingResource(t *testing.T) {
+	exclusive := make(chan struct{}, 1)
+	exclusive <- struct{}{}
+	released := make(chan struct{}, 2)
+	var releaseCalls atomic.Int32
+	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		if serviceID != bucket_lookup.SRPCBucketLookupCursorResourceServiceServiceID ||
+			methodID != "BuildTransaction" {
+			return false, nil
+		}
+		if err := strm.MsgRecv(&bucket_lookup.BuildTransactionRequest{}); err != nil {
+			return true, err
+		}
+		select {
+		case <-exclusive:
+		case <-strm.Context().Done():
+			return true, strm.Context().Err()
+		}
+		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
+		if err != nil {
+			exclusive <- struct{}{}
+			return true, err
+		}
+		transactionID, err := owner.AddResource(srpc.NewMux(), func() {
+			releaseCalls.Add(1)
+			exclusive <- struct{}{}
+			released <- struct{}{}
+		})
+		if err != nil {
+			exclusive <- struct{}{}
+			return true, err
+		}
+		return true, strm.MsgSend(&bucket_lookup.BuildTransactionResponse{
+			TransactionResourceId: transactionID,
+		})
+	}))
+	server := resource_server.NewResourceServer(rootMux)
+	serverMux := srpc.NewMux()
+	if err := server.Register(serverMux); err != nil {
+		t.Fatalf("register resource server: %v", err)
+	}
+	service := resource.NewSRPCResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
+	)
+
+	sessionCtx, cancelSession := context.WithCancel(t.Context())
+	t.Cleanup(cancelSession)
+	session, err := service.ResourceClient(sessionCtx, &resource.ResourceClientRequest{
+		SupportsResourceAdoptionAck: true,
+	})
+	if err != nil {
+		t.Fatalf("start resource client: %v", err)
+	}
+	event, err := session.Recv()
+	if err != nil {
+		t.Fatalf("receive resource client init: %v", err)
+	}
+	init := event.GetInit()
+	if init == nil || !init.GetSupportsResourceAdoptionAck() {
+		t.Fatalf("resource client init did not enable adoption: %#v", init)
+	}
+
+	resourceClient := rpcstream.NewRpcStreamClient(
+		func(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
+			return service.ResourceRpc(ctx)
+		},
+		strconv.FormatUint(uint64(init.GetRootResourceId()), 10),
+		true,
+	)
+	callCtx, cancelCall := context.WithCancel(t.Context())
+	defer cancelCall()
+	client := &adoptingResourceRPCClient{
+		ctx: session.Context(),
+		client: &preAdoptionCancelClient{
+			Client: resourceClient,
+			cancel: cancelCall,
+		},
+		service:        service,
+		clientHandleID: init.GetClientHandleId(),
+	}
+	lookupClient := bucket_lookup.NewSRPCBucketLookupCursorResourceServiceClient(client)
+
+	resp, err := lookupClient.BuildTransaction(callCtx, &bucket_lookup.BuildTransactionRequest{})
+	if err == nil {
+		t.Fatal("BuildTransaction succeeded after pre-adoption cancellation")
+	}
+	if resp != nil {
+		t.Fatalf("BuildTransaction returned a response after cancellation: %#v", resp)
+	}
+	<-released
+	if got := releaseCalls.Load(); got != 1 {
+		t.Fatalf("release callbacks after cancellation: got %d, want 1", got)
+	}
+	if session.Context().Err() != nil {
+		t.Fatalf("persistent resource client context: %v", session.Context().Err())
+	}
+
+	resp, err = lookupClient.BuildTransaction(t.Context(), &bucket_lookup.BuildTransactionRequest{})
+	if err != nil {
+		t.Fatalf("later exclusive owner operation: %v", err)
+	}
+	if resp.GetTransactionResourceId() == 0 {
+		t.Fatal("later exclusive owner operation returned no resource")
+	}
+	if _, err := service.ResourceRefRelease(t.Context(), &resource.ResourceRefReleaseRequest{
+		ClientHandleId: init.GetClientHandleId(),
+		ResourceId:     resp.GetTransactionResourceId(),
+	}); err != nil {
+		t.Fatalf("release later resource: %v", err)
+	}
+	<-released
+	if got := releaseCalls.Load(); got != 2 {
+		t.Fatalf("release callbacks after later operation: got %d, want 2", got)
+	}
+}
+
+func TestResourceRPCUnknownUnmarkedUnaryPreservesLegacyResourceLifetime(t *testing.T) {
+	childReleased := make(chan struct{}, 1)
+	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		if serviceID != "downstream.Root" || methodID != "AccessChild" {
+			return false, nil
+		}
+		if err := strm.MsgRecv(&resource.ResourceRefReleaseRequest{}); err != nil {
+			return true, err
+		}
+		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
+		if err != nil {
+			return true, err
+		}
+		childID, err := owner.AddResource(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+			if serviceID != "downstream.Child" || methodID != "Get" {
+				return false, nil
+			}
+			if err := strm.MsgRecv(&resource.ResourceRefReleaseRequest{}); err != nil {
+				return true, err
+			}
+			return true, strm.MsgSend(&resource.ResourceRefReleaseResponse{})
+		}), func() {
+			childReleased <- struct{}{}
+		})
+		if err != nil {
+			return true, err
+		}
+		return true, strm.MsgSend(&resource.ResourceReleasedResponse{
+			ResourceId: childID,
+		})
+	}))
+	server := resource_server.NewResourceServer(rootMux)
+	serverMux := srpc.NewMux()
+	if err := server.Register(serverMux); err != nil {
+		t.Fatalf("register resource server: %v", err)
+	}
+	service := resource.NewSRPCResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
+	)
+	client, err := NewClient(t.Context(), service)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	defer client.Release()
+
+	rootRef := client.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatalf("root client: %v", err)
+	}
+	resp := new(resource.ResourceReleasedResponse)
+	if err := rootClient.ExecCall(
+		t.Context(),
+		"downstream.Root",
+		"AccessChild",
+		&resource.ResourceRefReleaseRequest{},
+		resp,
+	); err != nil {
+		t.Fatalf("AccessChild: %v", err)
+	}
+	select {
+	case <-childReleased:
+		t.Fatal("unknown unmarked unary child was released after response")
+	default:
+	}
+
+	childRef := client.CreateResourceReference(resp.GetResourceId())
+	childClient, err := childRef.GetClient()
+	if err != nil {
+		t.Fatalf("child client: %v", err)
+	}
+	if err := childClient.ExecCall(
+		t.Context(),
+		"downstream.Child",
+		"Get",
+		&resource.ResourceRefReleaseRequest{},
+		&resource.ResourceRefReleaseResponse{},
+	); err != nil {
+		t.Fatalf("Get child: %v", err)
+	}
+	childRef.Release()
+	<-childReleased
+}
+
+func TestResourceRPCAdoptsGeneratedBuildTransactionResources(t *testing.T) {
+	released := make(chan string, 2)
+	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		if serviceID != bucket_lookup.SRPCBucketLookupCursorResourceServiceServiceID || methodID != "BuildTransaction" {
+			return false, nil
+		}
+		if err := strm.MsgRecv(&bucket_lookup.BuildTransactionRequest{}); err != nil {
+			return true, err
+		}
+		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
+		if err != nil {
+			return true, err
+		}
+		transactionID, err := owner.AddResource(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+			if serviceID != block_transaction.SRPCBlockTransactionResourceServiceServiceID || methodID != "Write" {
+				return false, nil
+			}
+			if err := strm.MsgRecv(&block_transaction.WriteRequest{}); err != nil {
+				return true, err
+			}
+			return true, strm.MsgSend(&block_transaction.WriteResponse{})
+		}), func() {
+			released <- "transaction"
+		})
+		if err != nil {
+			return true, err
+		}
+		cursorID, err := owner.AddResource(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+			if serviceID != block_cursor.SRPCBlockCursorResourceServiceServiceID || methodID != "Fetch" {
+				return false, nil
+			}
+			if err := strm.MsgRecv(&block_cursor.FetchRequest{}); err != nil {
+				return true, err
+			}
+			return true, strm.MsgSend(&block_cursor.FetchResponse{Found: true})
+		}), func() {
+			released <- "cursor"
+		})
+		if err != nil {
+			return true, err
+		}
+		return true, strm.MsgSend(&bucket_lookup.BuildTransactionResponse{
+			TransactionResourceId: transactionID,
+			CursorResourceId:      cursorID,
+		})
+	}))
+	server := resource_server.NewResourceServer(rootMux)
+	serverMux := srpc.NewMux()
+	if err := server.Register(serverMux); err != nil {
+		t.Fatalf("register resource server: %v", err)
+	}
+	service := resource.NewSRPCResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
+	)
+	client, err := NewClient(t.Context(), service)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	defer client.Release()
+
+	rootRef := client.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatalf("root client: %v", err)
+	}
+	resp, err := bucket_lookup.NewSRPCBucketLookupCursorResourceServiceClient(rootClient).BuildTransaction(
+		t.Context(),
+		&bucket_lookup.BuildTransactionRequest{},
+	)
+	if err != nil {
+		t.Fatalf("BuildTransaction: %v", err)
+	}
+
+	transactionRef := client.CreateResourceReference(resp.GetTransactionResourceId())
+	defer transactionRef.Release()
+	transactionClient, err := transactionRef.GetClient()
+	if err != nil {
+		t.Fatalf("transaction client: %v", err)
+	}
+	if _, err := block_transaction.NewSRPCBlockTransactionResourceServiceClient(transactionClient).Write(
+		t.Context(),
+		&block_transaction.WriteRequest{},
+	); err != nil {
+		t.Fatalf("transaction Write: %v", err)
+	}
+
+	cursorRef := client.CreateResourceReference(resp.GetCursorResourceId())
+	defer cursorRef.Release()
+	cursorClient, err := cursorRef.GetClient()
+	if err != nil {
+		t.Fatalf("cursor client: %v", err)
+	}
+	fetch, err := block_cursor.NewSRPCBlockCursorResourceServiceClient(cursorClient).Fetch(
+		t.Context(),
+		&block_cursor.FetchRequest{},
+	)
+	if err != nil {
+		t.Fatalf("cursor Fetch: %v", err)
+	}
+	if !fetch.GetFound() {
+		t.Fatal("cursor Fetch returned not found")
+	}
+
+	select {
+	case name := <-released:
+		t.Fatalf("%s resource released before caller references", name)
+	default:
+	}
+}
+
+func TestResourceRPCCommitAckRejectionReleasesAdoptedResources(t *testing.T) {
+	var transactionReleases atomic.Int32
+	var cursorReleases atomic.Int32
+	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		if serviceID != bucket_lookup.SRPCBucketLookupCursorResourceServiceServiceID {
+			return false, nil
+		}
+		switch methodID {
+		case "BuildTransaction":
+			if err := strm.MsgRecv(&bucket_lookup.BuildTransactionRequest{}); err != nil {
+				return true, err
+			}
+			owner, err := resource_server.MustGetResourceClientContext(strm.Context())
+			if err != nil {
+				return true, err
+			}
+			transactionID, err := owner.AddResource(srpc.NewMux(), func() {
+				transactionReleases.Add(1)
+			})
+			if err != nil {
+				return true, err
+			}
+			cursorID, err := owner.AddResource(srpc.NewMux(), func() {
+				cursorReleases.Add(1)
+			})
+			if err != nil {
+				return true, err
+			}
+			return true, strm.MsgSend(&bucket_lookup.BuildTransactionResponse{
+				TransactionResourceId: transactionID,
+				CursorResourceId:      cursorID,
+			})
+		case "Release":
+			if err := strm.MsgRecv(&bucket_lookup.ReleaseRequest{}); err != nil {
+				return true, err
+			}
+			return true, strm.MsgSend(&bucket_lookup.ReleaseResponse{})
+		default:
+			return false, nil
+		}
+	}))
+	server := resource_server.NewResourceServer(rootMux)
+	serverMux := srpc.NewMux()
+	if err := server.Register(serverMux); err != nil {
+		t.Fatalf("register resource server: %v", err)
+	}
+	service := resource.NewSRPCResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
+	)
+
+	sessionCtx, cancelSession := context.WithCancel(t.Context())
+	t.Cleanup(cancelSession)
+	session, err := service.ResourceClient(sessionCtx, &resource.ResourceClientRequest{
+		SupportsResourceAdoptionAck: true,
+	})
+	if err != nil {
+		t.Fatalf("start resource client: %v", err)
+	}
+	event, err := session.Recv()
+	if err != nil {
+		t.Fatalf("receive resource client init: %v", err)
+	}
+	init := event.GetInit()
+	if init == nil || !init.GetSupportsResourceAdoptionAck() {
+		t.Fatalf("resource client init did not enable adoption: %#v", init)
+	}
+
+	resourceClient := rpcstream.NewRpcStreamClient(
+		func(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
+			return service.ResourceRpc(ctx)
+		},
+		strconv.FormatUint(uint64(init.GetRootResourceId()), 10),
+		true,
+	)
+	callCtx, cancelCall := context.WithCancel(t.Context())
+	defer cancelCall()
+	client := &adoptingResourceRPCClient{
+		ctx:            session.Context(),
+		client:         newCommitAckRejectingClient(resourceClient, cancelCall),
+		service:        service,
+		clientHandleID: init.GetClientHandleId(),
+	}
+	lookupClient := bucket_lookup.NewSRPCBucketLookupCursorResourceServiceClient(client)
+
+	resp, err := lookupClient.BuildTransaction(callCtx, &bucket_lookup.BuildTransactionRequest{})
+	if err == nil || !strings.Contains(err.Error(), "unexpected trailing response data") {
+		t.Fatalf("BuildTransaction error = %v, want trailing response rejection", err)
+	}
+	if resp != nil {
+		t.Fatalf("BuildTransaction returned usable response after commit rejection: %#v", resp)
+	}
+	if got := transactionReleases.Load(); got != 1 {
+		t.Fatalf("transaction releases = %d, want 1", got)
+	}
+	if got := cursorReleases.Load(); got != 1 {
+		t.Fatalf("cursor releases = %d, want 1", got)
+	}
+
+	if _, err := lookupClient.Release(t.Context(), &bucket_lookup.ReleaseRequest{}); err != nil {
+		t.Fatalf("subsequent Resource RPC: %v", err)
+	}
+	if session.Context().Err() != nil {
+		t.Fatalf("persistent resource client context: %v", session.Context().Err())
+	}
+	if got := transactionReleases.Load(); got != 1 {
+		t.Fatalf("transaction releases after subsequent RPC = %d, want 1", got)
+	}
+	if got := cursorReleases.Load(); got != 1 {
+		t.Fatalf("cursor releases after subsequent RPC = %d, want 1", got)
+	}
+}
+
+func TestResourceRPCRejectsUnownedReturnedResource(t *testing.T) {
+	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		if serviceID != bucket_lookup.SRPCBucketLookupCursorResourceServiceServiceID ||
+			methodID != "BuildTransaction" {
+			return false, nil
+		}
+		if err := strm.MsgRecv(&bucket_lookup.BuildTransactionRequest{}); err != nil {
+			return true, err
+		}
+		return true, strm.MsgSend(&bucket_lookup.BuildTransactionResponse{
+			TransactionResourceId: 42,
+		})
+	}))
+	server := resource_server.NewResourceServer(rootMux)
+	serverMux := srpc.NewMux()
+	if err := server.Register(serverMux); err != nil {
+		t.Fatalf("register resource server: %v", err)
+	}
+	service := resource.NewSRPCResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
+	)
+	client, err := NewClient(t.Context(), service)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	defer client.Release()
+
+	rootRef := client.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatalf("root client: %v", err)
+	}
+	_, err = bucket_lookup.NewSRPCBucketLookupCursorResourceServiceClient(rootClient).
+		BuildTransaction(t.Context(), &bucket_lookup.BuildTransactionRequest{})
+	if err == nil {
+		t.Fatal("BuildTransaction with unowned resource succeeded")
+	}
+}
+
+func TestResourceRPCRejectsResponseWithoutAdoptionMetadata(t *testing.T) {
+	released := make(chan struct{}, 1)
+	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		if serviceID != bucket_lookup.SRPCBucketLookupCursorResourceServiceServiceID ||
+			methodID != "BuildTransaction" {
+			return false, nil
+		}
+		if err := strm.MsgRecv(&bucket_lookup.BuildTransactionRequest{}); err != nil {
+			return true, err
+		}
+		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
+		if err != nil {
+			return true, err
+		}
+		transactionID, err := owner.AddResource(srpc.NewMux(), func() {
+			released <- struct{}{}
+		})
+		if err != nil {
+			return true, err
+		}
+		return true, strm.MsgSend(&bucket_lookup.BuildTransactionResponse{
+			TransactionResourceId: transactionID,
+		})
+	}))
+	server := resource_server.NewResourceServer(rootMux)
+	serverMux := srpc.NewMux()
+	if err := server.Register(serverMux); err != nil {
+		t.Fatalf("register resource server: %v", err)
+	}
+	service := resource.NewSRPCResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
+	)
+	client, err := NewClient(t.Context(), service)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	defer client.Release()
+
+	rootRef := client.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatalf("root client: %v", err)
+	}
+	err = rootClient.ExecCall(
+		t.Context(),
+		bucket_lookup.SRPCBucketLookupCursorResourceServiceServiceID,
+		"BuildTransaction",
+		&bucket_lookup.BuildTransactionRequest{},
+		&resource.ResourceRefReleaseResponse{},
+	)
+	if err == nil || !strings.Contains(err.Error(), "response lacks adoption metadata") {
+		t.Fatalf("BuildTransaction metadata error: got %v", err)
+	}
+	<-released
 }
 
 func TestResourceRefReleaseWaitsForServerAck(t *testing.T) {

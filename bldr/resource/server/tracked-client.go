@@ -19,11 +19,145 @@ type RemoteResourceClient struct {
 	txQueue []*resource.ResourceClientResponse
 	// released indicates if the client has been released.
 	released bool
-	// resources contains the map of resources owned by this client
+	// adoptionAckEnabled selects held ResourceRpc receipt finalization.
+	adoptionAckEnabled bool
+	// resources contains the map of resources owned by this client.
 	resources map[uint32]*trackedResource
+	// pendingAdoptions maps invocation-created resources to their owner.
+	pendingAdoptions map[uint32]*resourceRPCContext
+	// adoptedAdoptions maps acknowledged resources to their invocation until commit.
+	adoptedAdoptions map[uint32]*resourceRPCContext
 	// attachedResources are resources provided by the client via
 	// ResourceAttach. Keyed by server-assigned resource ID.
 	attachedResources map[uint32]*attachedResource
+}
+
+func (c *RemoteResourceClient) addInvocationResource(
+	rpcCtx *resourceRPCContext,
+	mux srpc.Invoker,
+	value any,
+	releaseFn func(),
+) (uint32, error) {
+	var resourceID uint32
+	var released bool
+	c.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if c.released || rpcCtx.finished {
+			released = true
+			return
+		}
+		c.server.resourceIDCtr++
+		resourceID = c.server.resourceIDCtr
+		c.resources[resourceID] = &trackedResource{
+			mux:           mux,
+			value:         value,
+			ownerClientID: c.clientID,
+			releaseFn:     releaseFn,
+		}
+		if c.pendingAdoptions == nil {
+			c.pendingAdoptions = make(map[uint32]*resourceRPCContext)
+		}
+		c.pendingAdoptions[resourceID] = rpcCtx
+	})
+	if released {
+		return 0, resource.ErrClientReleased
+	}
+	return resourceID, nil
+}
+
+func (c *RemoteResourceClient) adoptResource(resourceID uint32) bool {
+	var adopted bool
+	c.server.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if !c.adoptionAckEnabled ||
+			c.released ||
+			(c.resources[resourceID] == nil && c.attachedResources[resourceID] == nil) {
+			return
+		}
+		rpcCtx := c.pendingAdoptions[resourceID]
+		if rpcCtx != nil {
+			if rpcCtx.finished {
+				return
+			}
+			delete(c.pendingAdoptions, resourceID)
+			if c.adoptedAdoptions == nil {
+				c.adoptedAdoptions = make(map[uint32]*resourceRPCContext)
+			}
+			c.adoptedAdoptions[resourceID] = rpcCtx
+		}
+		adopted = true
+	})
+	return adopted
+}
+
+func (c *RemoteResourceClient) finishInvocation(
+	rpcCtx *resourceRPCContext,
+	success bool,
+	releasePendingOnSuccess bool,
+) {
+	var releaseFns []func()
+	var queuedRelease bool
+	c.server.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if rpcCtx.finished {
+			return
+		}
+		rpcCtx.finished = true
+		releasePending := !success || releasePendingOnSuccess
+		for resourceID, owner := range c.pendingAdoptions {
+			if owner != rpcCtx {
+				continue
+			}
+			delete(c.pendingAdoptions, resourceID)
+			if !releasePending {
+				continue
+			}
+			res := c.resources[resourceID]
+			if res == nil {
+				continue
+			}
+			delete(c.resources, resourceID)
+			if res.releaseFn != nil {
+				releaseFns = append(releaseFns, res.releaseFn)
+			}
+			queuedRelease = true
+			c.txQueue = append(c.txQueue, &resource.ResourceClientResponse{
+				Body: &resource.ResourceClientResponse_ResourceReleased{
+					ResourceReleased: &resource.ResourceReleasedResponse{
+						ResourceId: resourceID,
+					},
+				},
+			})
+		}
+		for resourceID, owner := range c.adoptedAdoptions {
+			if owner != rpcCtx {
+				continue
+			}
+			delete(c.adoptedAdoptions, resourceID)
+			if success {
+				continue
+			}
+			res := c.resources[resourceID]
+			if res == nil {
+				continue
+			}
+			delete(c.resources, resourceID)
+			if res.releaseFn != nil {
+				releaseFns = append(releaseFns, res.releaseFn)
+			}
+			queuedRelease = true
+			c.txQueue = append(c.txQueue, &resource.ResourceClientResponse{
+				Body: &resource.ResourceClientResponse_ResourceReleased{
+					ResourceReleased: &resource.ResourceReleasedResponse{
+						ResourceId: resourceID,
+					},
+				},
+			})
+		}
+		if queuedRelease {
+			broadcast()
+		}
+	})
+	for _, releaseFn := range releaseFns {
+		releaseFn()
+	}
 }
 
 // Context returns the client session context.
@@ -126,6 +260,8 @@ func (c *RemoteResourceClient) ReleaseResource(resourceID uint32) bool {
 		}
 
 		delete(c.resources, resourceID)
+		delete(c.pendingAdoptions, resourceID)
+		delete(c.adoptedAdoptions, resourceID)
 		releaseFn = res.releaseFn
 		released = true
 

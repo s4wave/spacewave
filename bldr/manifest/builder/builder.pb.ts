@@ -2,16 +2,16 @@
 // @generated from file github.com/s4wave/spacewave/bldr/manifest/builder/builder.proto (package bldr.manifest.builder, syntax proto3)
 /* eslint-disable */
 
-import { createEnumType } from "@aptre/protobuf-es-lite/enum";
-import { Manifest, ManifestMeta, ManifestRef } from "../manifest.pb.js";
-import { BuildPolicy } from "../build/policy.pb.js";
-import type { MessageType } from "@aptre/protobuf-es-lite/message";
-import { createMessageType } from "@aptre/protobuf-es-lite/message";
-import { ScalarType } from "@aptre/protobuf-es-lite/scalar";
-import type { PartialFieldInfo } from "@aptre/protobuf-es-lite/field";
-import { ObjectRef } from "@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js";
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
+import { Manifest, ManifestMeta, ManifestRef } from '../manifest.pb.js'
+import { BuildPolicy } from '../build/policy.pb.js'
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.js'
 
-export const protobufPackage = "bldr.manifest.builder";
+export const protobufPackage = 'bldr.manifest.builder'
 
 /**
  * StartupInputKind describes a reusable startup validation input type.
@@ -42,11 +42,15 @@ export enum InputManifest_StartupInputKind {
   StartupInputKind_CONTROLLER_CONFIG_DIGEST = 2,
 }
 
-export const InputManifest_StartupInputKind_Enum = /* @__PURE__ */ createEnumType("bldr.manifest.builder.InputManifest.StartupInputKind", [
-  [0, "StartupInputKind_UNKNOWN"],
-  [1, "StartupInputKind_ENV_VAR"],
-  [2, "StartupInputKind_CONTROLLER_CONFIG_DIGEST"],
-]);
+export const InputManifest_StartupInputKind_Enum =
+  /* @__PURE__ */ createEnumType(
+    'bldr.manifest.builder.InputManifest.StartupInputKind',
+    [
+      [0, 'StartupInputKind_UNKNOWN'],
+      [1, 'StartupInputKind_ENV_VAR'],
+      [2, 'StartupInputKind_CONTROLLER_CONFIG_DIGEST'],
+    ],
+  )
 
 /**
  * BuilderConfig is common configuration for a manifest builder routine.
@@ -59,50 +63,50 @@ export interface BuilderConfig {
    *
    * @generated from field: bldr.manifest.ManifestMeta manifest_meta = 1;
    */
-  manifestMeta?: ManifestMeta;
+  manifestMeta?: ManifestMeta
   /**
    * SourcePath is the path to the project source root.
    *
    * @generated from field: string source_path = 2;
    */
-  sourcePath?: string;
+  sourcePath?: string
   /**
    * DistSourcePath is the path to the bldr dist source root.
    *
    * @generated from field: string dist_source_path = 3;
    */
-  distSourcePath?: string;
+  distSourcePath?: string
   /**
    * WorkingPath is the path to use for codegen and working state.
    *
    * @generated from field: string working_path = 4;
    */
-  workingPath?: string;
+  workingPath?: string
   /**
    * EngineId is the world engine to store the manifest.
    *
    * @generated from field: string engine_id = 5;
    */
-  engineId?: string;
+  engineId?: string
   /**
    * ObjectKey is the key to store the manifest.
    *
    * @generated from field: string object_key = 6;
    */
-  objectKey?: string;
+  objectKey?: string
   /**
    * LinkObjectKeys is the list of object keys to link to the manifest.
    * NOTE: also used to search for other manifests in the dist compiler.
    *
    * @generated from field: repeated string link_object_keys = 7;
    */
-  linkObjectKeys?: string[];
+  linkObjectKeys?: string[]
   /**
    * PeerId is the peer ID to use for world transactions.
    *
    * @generated from field: string peer_id = 8;
    */
-  peerId?: string;
+  peerId?: string
   /**
    * ProjectId is the project identifier.
    * Must be a valid-dns-label.
@@ -110,7 +114,7 @@ export interface BuilderConfig {
    *
    * @generated from field: string project_id = 9;
    */
-  projectId?: string;
+  projectId?: string
   /**
    * TargetPlatformIds contains all platform IDs from the build target.
    * Used by the dist compiler to collect manifests from all compatible platforms.
@@ -119,33 +123,45 @@ export interface BuilderConfig {
    *
    * @generated from field: repeated string target_platform_ids = 10;
    */
-  targetPlatformIds?: string[];
+  targetPlatformIds?: string[]
   /**
    * BuildPolicy is the effective build-scoped policy for this Manifest build.
    *
    * @generated from field: bldr.manifest.build.BuildPolicy build_policy = 11;
    */
-  buildPolicy?: BuildPolicy;
+  buildPolicy?: BuildPolicy
+}
 
-};
-
-export const BuilderConfig: MessageType<BuilderConfig> = /* @__PURE__ */ createMessageType({
-    typeName: "bldr.manifest.builder.BuilderConfig",
+export const BuilderConfig: MessageType<BuilderConfig> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.manifest.builder.BuilderConfig',
     fields: [
-        { no: 1, name: "manifest_meta", kind: "message", T: () => ManifestMeta },
-        { no: 2, name: "source_path", kind: "scalar", T: ScalarType.STRING },
-        { no: 3, name: "dist_source_path", kind: "scalar", T: ScalarType.STRING },
-        { no: 4, name: "working_path", kind: "scalar", T: ScalarType.STRING },
-        { no: 5, name: "engine_id", kind: "scalar", T: ScalarType.STRING },
-        { no: 6, name: "object_key", kind: "scalar", T: ScalarType.STRING },
-        { no: 7, name: "link_object_keys", kind: "scalar", T: ScalarType.STRING, repeated: true },
-        { no: 8, name: "peer_id", kind: "scalar", T: ScalarType.STRING },
-        { no: 9, name: "project_id", kind: "scalar", T: ScalarType.STRING },
-        { no: 10, name: "target_platform_ids", kind: "scalar", T: ScalarType.STRING, repeated: true },
-        { no: 11, name: "build_policy", kind: "message", T: () => BuildPolicy },
+      { no: 1, name: 'manifest_meta', kind: 'message', T: () => ManifestMeta },
+      { no: 2, name: 'source_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'dist_source_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'working_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 7,
+        name: 'link_object_keys',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 8, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 9, name: 'project_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 10,
+        name: 'target_platform_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 11, name: 'build_policy', kind: 'message', T: () => BuildPolicy },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
-});
+  })
 
 /**
  * FileIdentity captures file identity at publish time for startup reuse.
@@ -158,31 +174,36 @@ export interface InputManifest_FileIdentity {
    *
    * @generated from field: uint64 size_bytes = 1;
    */
-  sizeBytes?: bigint;
+  sizeBytes?: bigint
   /**
    * ModTimeUnixNano is the file modification time.
    *
    * @generated from field: int64 mod_time_unix_nano = 2;
    */
-  modTimeUnixNano?: bigint;
+  modTimeUnixNano?: bigint
   /**
    * Sha256 is the file SHA-256 digest.
    *
    * @generated from field: bytes sha256 = 3;
    */
-  sha256?: Uint8Array;
+  sha256?: Uint8Array
+}
 
-};
-
-export const InputManifest_FileIdentity: MessageType<InputManifest_FileIdentity> = /* @__PURE__ */ createMessageType({
-    typeName: "bldr.manifest.builder.InputManifest.FileIdentity",
+export const InputManifest_FileIdentity: MessageType<InputManifest_FileIdentity> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.manifest.builder.InputManifest.FileIdentity',
     fields: [
-        { no: 1, name: "size_bytes", kind: "scalar", T: ScalarType.UINT64 },
-        { no: 2, name: "mod_time_unix_nano", kind: "scalar", T: ScalarType.INT64 },
-        { no: 3, name: "sha256", kind: "scalar", T: ScalarType.BYTES },
+      { no: 1, name: 'size_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 2,
+        name: 'mod_time_unix_nano',
+        kind: 'scalar',
+        T: ScalarType.INT64,
+      },
+      { no: 3, name: 'sha256', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
-});
+  })
 
 /**
  * File is a file in the source manifest.
@@ -195,41 +216,46 @@ export interface InputManifest_File {
    *
    * @generated from field: string path = 1;
    */
-  path?: string;
+  path?: string
   /**
    * Metadata is additional builder-specific metadata about the file.
    * Optional.
    *
    * @generated from field: bytes metadata = 2;
    */
-  metadata?: Uint8Array;
+  metadata?: Uint8Array
   /**
    * Identity is the publish-time file identity for startup validation.
    * Optional.
    *
    * @generated from field: bldr.manifest.builder.InputManifest.FileIdentity identity = 3;
    */
-  identity?: InputManifest_FileIdentity;
+  identity?: InputManifest_FileIdentity
   /**
    * StartupOnly records files needed only for startup validation.
    * These files are ignored by the live watch loop.
    *
    * @generated from field: bool startup_only = 4;
    */
-  startupOnly?: boolean;
+  startupOnly?: boolean
+}
 
-};
-
-export const InputManifest_File: MessageType<InputManifest_File> = /* @__PURE__ */ createMessageType({
-    typeName: "bldr.manifest.builder.InputManifest.File",
+export const InputManifest_File: MessageType<InputManifest_File> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.manifest.builder.InputManifest.File',
     fields: [
-        { no: 1, name: "path", kind: "scalar", T: ScalarType.STRING },
-        { no: 2, name: "metadata", kind: "scalar", T: ScalarType.BYTES },
-        { no: 3, name: "identity", kind: "message", T: () => InputManifest_FileIdentity },
-        { no: 4, name: "startup_only", kind: "scalar", T: ScalarType.BOOL },
+      { no: 1, name: 'path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'metadata', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 3,
+        name: 'identity',
+        kind: 'message',
+        T: () => InputManifest_FileIdentity,
+      },
+      { no: 4, name: 'startup_only', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
-});
+  })
 
 /**
  * ManifestDep declares a dependency on another manifest.
@@ -244,25 +270,25 @@ export interface InputManifest_ManifestDep {
    *
    * @generated from field: string manifest_id = 1;
    */
-  manifestId?: string;
+  manifestId?: string
   /**
    * ManifestRef is the ref of the manifest at the time of the build.
    * When the world ref differs from this, a rebuild is triggered.
    *
    * @generated from field: bucket.ObjectRef manifest_ref = 2;
    */
-  manifestRef?: ObjectRef;
+  manifestRef?: ObjectRef
+}
 
-};
-
-export const InputManifest_ManifestDep: MessageType<InputManifest_ManifestDep> = /* @__PURE__ */ createMessageType({
-    typeName: "bldr.manifest.builder.InputManifest.ManifestDep",
+export const InputManifest_ManifestDep: MessageType<InputManifest_ManifestDep> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.manifest.builder.InputManifest.ManifestDep',
     fields: [
-        { no: 1, name: "manifest_id", kind: "scalar", T: ScalarType.STRING },
-        { no: 2, name: "manifest_ref", kind: "message", T: () => ObjectRef },
+      { no: 1, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'manifest_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
-});
+  })
 
 /**
  * StartupInput declares a typed non-file startup validation input.
@@ -275,38 +301,43 @@ export interface InputManifest_StartupInput {
    *
    * @generated from field: bldr.manifest.builder.InputManifest.StartupInputKind kind = 1;
    */
-  kind?: InputManifest_StartupInputKind;
+  kind?: InputManifest_StartupInputKind
   /**
    * Key identifies the input within its kind.
    *
    * @generated from field: string key = 2;
    */
-  key?: string;
+  key?: string
   /**
    * StringValue is the expected string value.
    *
    * @generated from field: string string_value = 3;
    */
-  stringValue?: string;
+  stringValue?: string
   /**
    * BytesValue is the expected bytes value.
    *
    * @generated from field: bytes bytes_value = 4;
    */
-  bytesValue?: Uint8Array;
+  bytesValue?: Uint8Array
+}
 
-};
-
-export const InputManifest_StartupInput: MessageType<InputManifest_StartupInput> = /* @__PURE__ */ createMessageType({
-    typeName: "bldr.manifest.builder.InputManifest.StartupInput",
+export const InputManifest_StartupInput: MessageType<InputManifest_StartupInput> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.manifest.builder.InputManifest.StartupInput',
     fields: [
-        { no: 1, name: "kind", kind: "enum", T: InputManifest_StartupInputKind_Enum },
-        { no: 2, name: "key", kind: "scalar", T: ScalarType.STRING },
-        { no: 3, name: "string_value", kind: "scalar", T: ScalarType.STRING },
-        { no: 4, name: "bytes_value", kind: "scalar", T: ScalarType.BYTES },
+      {
+        no: 1,
+        name: 'kind',
+        kind: 'enum',
+        T: InputManifest_StartupInputKind_Enum,
+      },
+      { no: 2, name: 'key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'string_value', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'bytes_value', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
-});
+  })
 
 /**
  * InputManifest is an object describing the consumed source files.
@@ -320,14 +351,14 @@ export interface InputManifest {
    *
    * @generated from field: repeated bldr.manifest.builder.InputManifest.File files = 1;
    */
-  files?: InputManifest_File[];
+  files?: InputManifest_File[]
   /**
    * Metadata is additional builder-specific metadata about the output.
    * Optional.
    *
    * @generated from field: bytes metadata = 2;
    */
-  metadata?: Uint8Array;
+  metadata?: Uint8Array
   /**
    * ManifestDeps are manifests this build depends on.
    * The builder controller watches these for changes and triggers
@@ -336,27 +367,45 @@ export interface InputManifest {
    *
    * @generated from field: repeated bldr.manifest.builder.InputManifest.ManifestDep manifest_deps = 3;
    */
-  manifestDeps?: InputManifest_ManifestDep[];
+  manifestDeps?: InputManifest_ManifestDep[]
   /**
    * StartupInputs are typed non-file inputs used for startup validation.
    * Optional.
    *
    * @generated from field: repeated bldr.manifest.builder.InputManifest.StartupInput startup_inputs = 4;
    */
-  startupInputs?: InputManifest_StartupInput[];
+  startupInputs?: InputManifest_StartupInput[]
+}
 
-};
-
-export const InputManifest: MessageType<InputManifest> = /* @__PURE__ */ createMessageType({
-    typeName: "bldr.manifest.builder.InputManifest",
+export const InputManifest: MessageType<InputManifest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.manifest.builder.InputManifest',
     fields: [
-        { no: 1, name: "files", kind: "message", T: () => InputManifest_File, repeated: true },
-        { no: 2, name: "metadata", kind: "scalar", T: ScalarType.BYTES },
-        { no: 3, name: "manifest_deps", kind: "message", T: () => InputManifest_ManifestDep, repeated: true },
-        { no: 4, name: "startup_inputs", kind: "message", T: () => InputManifest_StartupInput, repeated: true },
+      {
+        no: 1,
+        name: 'files',
+        kind: 'message',
+        T: () => InputManifest_File,
+        repeated: true,
+      },
+      { no: 2, name: 'metadata', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 3,
+        name: 'manifest_deps',
+        kind: 'message',
+        T: () => InputManifest_ManifestDep,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'startup_inputs',
+        kind: 'message',
+        T: () => InputManifest_StartupInput,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
-});
+  })
 
 /**
  * BuilderResult is the result of a builder run.
@@ -371,7 +420,7 @@ export interface BuilderResult {
    *
    * @generated from field: bldr.manifest.Manifest manifest = 1;
    */
-  manifest?: Manifest;
+  manifest?: Manifest
   /**
    * ManifestRef is the manifest object ref.
    *
@@ -379,34 +428,45 @@ export interface BuilderResult {
    *
    * @generated from field: bldr.manifest.ManifestRef manifest_ref = 2;
    */
-  manifestRef?: ManifestRef;
+  manifestRef?: ManifestRef
   /**
    * InputManifest details which files were used to produce Manifest.
    * Used for change detection.
    *
    * @generated from field: bldr.manifest.builder.InputManifest input_manifest = 3;
    */
-  inputManifest?: InputManifest;
+  inputManifest?: InputManifest
   /**
    * SubManifestResults contains child builder results keyed by sub-manifest ID.
    * Persisting child provenance lets startup validation reuse nested builders.
    *
    * @generated from field: map<string, bldr.manifest.builder.BuilderResult> sub_manifest_results = 4;
    */
-  subManifestResults?: { [key: string]: BuilderResult };
+  subManifestResults?: { [key: string]: BuilderResult }
+}
 
-};
-
-export const BuilderResult: MessageType<BuilderResult> = /* @__PURE__ */ createMessageType({
-    typeName: "bldr.manifest.builder.BuilderResult",
+export const BuilderResult: MessageType<BuilderResult> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.manifest.builder.BuilderResult',
     fields: [
-        { no: 1, name: "manifest", kind: "message", T: () => Manifest },
-        { no: 2, name: "manifest_ref", kind: "message", T: () => ManifestRef },
-        { no: 3, name: "input_manifest", kind: "message", T: () => InputManifest },
-        { no: 4, name: "sub_manifest_results", kind: "map", K: ScalarType.STRING, V: {kind: "message", T: () => BuilderResult} },
+      { no: 1, name: 'manifest', kind: 'message', T: () => Manifest },
+      { no: 2, name: 'manifest_ref', kind: 'message', T: () => ManifestRef },
+      {
+        no: 3,
+        name: 'input_manifest',
+        kind: 'message',
+        T: () => InputManifest,
+      },
+      {
+        no: 4,
+        name: 'sub_manifest_results',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: () => BuilderResult },
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
-});
+  })
 
 /**
  * BuildManifestArgs are arguments passed to the BuildManifest function.
@@ -420,7 +480,7 @@ export interface BuildManifestArgs {
    *
    * @generated from field: bldr.manifest.builder.BuilderConfig builder_config = 1;
    */
-  builderConfig?: BuilderConfig;
+  builderConfig?: BuilderConfig
   /**
    * PrevBuilderResult is the previous builder result, if applicable.
    * Set only if we are re-building the manifest after a file changed.
@@ -428,7 +488,7 @@ export interface BuildManifestArgs {
    *
    * @generated from field: bldr.manifest.builder.BuilderResult prev_builder_result = 2;
    */
-  prevBuilderResult?: BuilderResult;
+  prevBuilderResult?: BuilderResult
   /**
    * ChangedFiles is the list of files from PrevBuilderResult InputManifest
    * filtered to contain only files that changed since the previous build. //
@@ -437,16 +497,32 @@ export interface BuildManifestArgs {
    *
    * @generated from field: repeated bldr.manifest.builder.InputManifest.File changed_files = 3;
    */
-  changedFiles?: InputManifest_File[];
+  changedFiles?: InputManifest_File[]
+}
 
-};
-
-export const BuildManifestArgs: MessageType<BuildManifestArgs> = /* @__PURE__ */ createMessageType({
-    typeName: "bldr.manifest.builder.BuildManifestArgs",
+export const BuildManifestArgs: MessageType<BuildManifestArgs> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.manifest.builder.BuildManifestArgs',
     fields: [
-        { no: 1, name: "builder_config", kind: "message", T: () => BuilderConfig },
-        { no: 2, name: "prev_builder_result", kind: "message", T: () => BuilderResult },
-        { no: 3, name: "changed_files", kind: "message", T: () => InputManifest_File, repeated: true },
+      {
+        no: 1,
+        name: 'builder_config',
+        kind: 'message',
+        T: () => BuilderConfig,
+      },
+      {
+        no: 2,
+        name: 'prev_builder_result',
+        kind: 'message',
+        T: () => BuilderResult,
+      },
+      {
+        no: 3,
+        name: 'changed_files',
+        kind: 'message',
+        T: () => InputManifest_File,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
-});
+  })

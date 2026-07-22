@@ -21,6 +21,8 @@ service ResourceService {
   // ResourceRefRelease releases a resource given a handle ID.
   // This is called when no references remain to a resource.
   rpc ResourceRefRelease(ResourceRefReleaseRequest) returns (ResourceRefReleaseResponse);
+  // ResourceRefAdopt acknowledges adoption of a resource created by a held RPC.
+  rpc ResourceRefAdopt(ResourceRefAdoptRequest) returns (ResourceRefAdoptResponse);
 
   // ResourceAttach allows a client to provide resources that server-side
   // RPC handlers can invoke via getAttachedRef(id). Session-only Init/Ack,
@@ -31,7 +33,10 @@ service ResourceService {
 }
 
 // ResourceClientRequest is the request body for ResourceClient.
-message ResourceClientRequest {}
+message ResourceClientRequest {
+  // SupportsResourceAdoptionAck requests the held ResourceRpc receipt protocol.
+  bool supports_resource_adoption_ack = 1;
+}
 
 // ResourceClientResponse contains a server-client message for a ResourceClient request.
 message ResourceClientResponse {
@@ -61,6 +66,9 @@ message ResourceClientInit {
   uint32 client_handle_id = 1;
   // RootResourceId is the ID of the root resource for this client.
   uint32 root_resource_id = 2;
+  // SupportsResourceAdoptionAck is true when held ResourceRpc receipts and
+  // per-resource adoption acknowledgments are implemented.
+  bool supports_resource_adoption_ack = 3;
 }
 
 // ResourceRefReleaseRequest is the request for ResourceRefRelease.
@@ -73,6 +81,18 @@ message ResourceRefReleaseRequest {
 
 // ResourceRefReleaseResponse is the response for ResourceRefRelease.
 message ResourceRefReleaseResponse {}
+
+// ResourceRefAdoptRequest acknowledges adoption of a resource returned by a
+// held ResourceRpc invocation.
+message ResourceRefAdoptRequest {
+  // ClientHandleId identifies the persistent ResourceClient session.
+  uint32 client_handle_id = 1;
+  // ResourceId identifies the pending resource to adopt.
+  uint32 resource_id = 2;
+}
+
+// ResourceRefAdoptResponse confirms a pending resource was adopted.
+message ResourceRefAdoptResponse {}
 
 // ResourceAttachRequest is a client-to-server message on the ResourceAttach stream.
 message ResourceAttachRequest {
@@ -131,6 +151,7 @@ message ResourceAttachAddAck {
   // Error is set if the add was rejected.
   string error = 2;
   // ResourceId is the server-assigned ID for the attached resource.
+  // @resource-adoption-id
   uint32 resource_id = 3;
 }
 

@@ -639,6 +639,7 @@ describe('ResourceClient', () => {
           ),
         )
         .mockResolvedValue({}),
+      ResourceRefAdopt: vi.fn().mockResolvedValue({}),
       ResourceClient() {
         throw new Error('unused')
       },
@@ -679,6 +680,7 @@ describe('ResourceClient', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const service: ResourceService = {
       ResourceRefRelease: vi.fn().mockRejectedValue(new Error('stream reset')),
+      ResourceRefAdopt: vi.fn().mockResolvedValue({}),
       ResourceClient() {
         throw new Error('unused')
       },
@@ -717,6 +719,9 @@ function buildUnusedService(): ResourceService {
       throw new Error('unused')
     },
     ResourceRefRelease() {
+      throw new Error('unused')
+    },
+    ResourceRefAdopt() {
       throw new Error('unused')
     },
     ResourceAttach() {

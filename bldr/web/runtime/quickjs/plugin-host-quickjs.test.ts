@@ -42,6 +42,7 @@ import {
 } from "../../../sdk/resource/server/server.js";
 import { Client as ResourceClient } from "../../../sdk/resource/client.js";
 import { ResourceServiceClient } from "../../../sdk/resource/resource_srpc.pb.js";
+import { PluginHostResourceServiceDefinition } from "../../../sdk/plugin/host/host_srpc.pb.js";
 import {
   buildGoAliases,
   goTsResolver,
@@ -896,21 +897,29 @@ describe("plugin-host-quickjs runner lifecycle", () => {
 
     const webRuntimeResponseSource = pushable<Uint8Array>({ objectMode: true });
     const webRuntimeRequestPackets: Uint8Array[] = [];
+    const pluginHost = buildPluginHostResourceFixture();
+    let openStreamCalls = 0;
     const api = {
       startInfo: { pluginId: "quickjs-open-stream-test" },
-      openStream: vi.fn(async () => ({
-        source: webRuntimeResponseSource,
-        sink: async (packets: AsyncIterable<Uint8Array>) => {
-          for await (const packet of packets) {
-            webRuntimeRequestPackets.push(packet);
-            const response = new Uint8Array(packet.length + 1);
-            response[0] = 42;
-            response.set(packet, 1);
-            webRuntimeResponseSource.push(response);
-          }
-          webRuntimeResponseSource.end();
-        },
-      })),
+      openStream: vi.fn(async () => {
+        openStreamCalls++;
+        if (openStreamCalls > 1) {
+          return pluginHost.openStream();
+        }
+        return {
+          source: webRuntimeResponseSource,
+          sink: async (packets: AsyncIterable<Uint8Array>) => {
+            for await (const packet of packets) {
+              webRuntimeRequestPackets.push(packet);
+              const response = new Uint8Array(packet.length + 1);
+              response[0] = 42;
+              response.set(packet, 1);
+              webRuntimeResponseSource.push(response);
+            }
+            webRuntimeResponseSource.end();
+          },
+        };
+      }),
       handleStreamCtr: new HandleStreamCtr(),
       utils: {
         pluginAssetHttpPath(pluginId: string, path: string): string {
@@ -929,7 +938,13 @@ describe("plugin-host-quickjs runner lifecycle", () => {
 
     try {
       await Promise.race([
-        waitFor(() => ready, "QuickJS runner did not report outbound ready"),
+        waitFor(
+          () =>
+            ready &&
+            pluginHost.completeInitialCapabilityRegistration.mock.calls
+              .length === 1,
+          "QuickJS runner did not complete outbound startup",
+        ),
         runner.then(
           () => {
             throw new Error("QuickJS runner exited before outbound ready");
@@ -940,10 +955,14 @@ describe("plugin-host-quickjs runner lifecycle", () => {
         ),
       ]);
 
-      expect(api.openStream).toHaveBeenCalledTimes(1);
+      expect(api.openStream).toHaveBeenCalledTimes(4);
       expect(webRuntimeRequestPackets.map((packet) => [...packet])).toEqual([
         [7, 8, 9],
       ]);
+      expect(pluginHost.errors).toEqual([]);
+      expect(
+        pluginHost.completeInitialCapabilityRegistration,
+      ).toHaveBeenCalledOnce();
     } finally {
       controller.abort();
       await runner;
@@ -1031,9 +1050,15 @@ describe("plugin-host-quickjs runner lifecycle", () => {
       },
     };
     hostMux.register(createHandler(MockDefinition, hostService));
+    const pluginHost = buildPluginHostResourceFixture();
+    let openStreamCalls = 0;
     const api = {
       startInfo: { pluginId: "quickjs-streamconn-sequential-test" },
       openStream: vi.fn(async () => {
+        openStreamCalls++;
+        if (openStreamCalls > 1) {
+          return pluginHost.openStream();
+        }
         const [quickJSStream, hostStream] = buildPacketStreamPair();
         const hostConn = new StreamConn(
           new Server(hostMux.lookupMethod),
@@ -1073,7 +1098,13 @@ describe("plugin-host-quickjs runner lifecycle", () => {
 
     try {
       await Promise.race([
-        waitFor(() => ready, "QuickJS StreamConn sequential RPCs did not finish"),
+        waitFor(
+          () =>
+            ready &&
+            pluginHost.completeInitialCapabilityRegistration.mock.calls
+              .length === 1,
+          "QuickJS StreamConn sequential RPCs did not finish startup",
+        ),
         runner.then(
           () => {
             throw new Error("QuickJS runner exited before StreamConn ready");
@@ -1084,8 +1115,12 @@ describe("plugin-host-quickjs runner lifecycle", () => {
         ),
       ]);
 
-      expect(api.openStream).toHaveBeenCalledTimes(1);
+      expect(api.openStream).toHaveBeenCalledTimes(4);
       expect(events).toEqual(["one", "two"]);
+      expect(pluginHost.errors).toEqual([]);
+      expect(
+        pluginHost.completeInitialCapabilityRegistration,
+      ).toHaveBeenCalledOnce();
     } finally {
       controller.abort();
       for (const conn of hostConns) {
@@ -1326,12 +1361,8 @@ describe("plugin-host-quickjs runner lifecycle", () => {
     expect(pluginScript).not.toContain("using resource");
 
     const resourceMux = createMux();
-    const resourceServer = new ResourceServer(resourceMux);
-    const releaseSpy = vi.spyOn(resourceServer, "ResourceRefRelease");
-    const srpcMux = createMux();
-    resourceServer.register(srpcMux);
-    const srpcServer = new Server(srpcMux.lookupMethod);
-    const serverErrors: unknown[] = [];
+    const pluginHost = buildPluginHostResourceFixture(resourceMux);
+    const releaseSpy = pluginHost.resourceRefRelease;
 
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
       const url = requestInfoURL(input);
@@ -1364,15 +1395,7 @@ describe("plugin-host-quickjs runner lifecycle", () => {
 
     const api = {
       startInfo: { pluginId: "quickjs-using-resource-test" },
-      openStream: vi.fn(async () => {
-        const [clientStream, serverStream] = buildPacketStreamPair();
-        Promise.resolve(srpcServer.handlePacketStream(serverStream)).catch(
-          (err: unknown) => {
-            serverErrors.push(err);
-          },
-        );
-        return clientStream;
-      }),
+      openStream: vi.fn(pluginHost.openStream),
       handleStreamCtr: new HandleStreamCtr(),
       utils: {
         pluginAssetHttpPath(pluginId: string, path: string): string {
@@ -1392,7 +1415,14 @@ describe("plugin-host-quickjs runner lifecycle", () => {
     try {
       await Promise.race([
         waitFor(
-          () => ready && releaseSpy.mock.calls.length === 1,
+          () =>
+            ready &&
+            pluginHost.completeInitialCapabilityRegistration.mock.calls
+              .length === 1 &&
+            releaseSpy.mock.calls.some(
+              ([request]) =>
+                request.clientHandleId === 1 && request.resourceId === 1,
+            ),
           "QuickJS using resource repro did not release the resource",
           100,
         ),
@@ -1407,8 +1437,16 @@ describe("plugin-host-quickjs runner lifecycle", () => {
       ]);
 
       expect(api.openStream).toHaveBeenCalled();
-      expect(serverErrors).toEqual([]);
-      expect(releaseSpy).toHaveBeenCalledOnce();
+      expect(pluginHost.errors).toEqual([]);
+      expect(
+        releaseSpy.mock.calls.filter(
+          ([request]) =>
+            request.clientHandleId === 1 && request.resourceId === 1,
+        ),
+      ).toHaveLength(1);
+      expect(
+        pluginHost.completeInitialCapabilityRegistration,
+      ).toHaveBeenCalledOnce();
       expect(releaseSpy.mock.calls[0]?.[0]).toEqual({
         clientHandleId: 1,
         resourceId: 1,
@@ -1527,12 +1565,8 @@ describe("plugin-host-quickjs runner lifecycle", () => {
     };
     resourceMux.register(createHandler(MockDefinition, rootService));
 
-    const resourceServer = new ResourceServer(resourceMux);
-    const releaseSpy = vi.spyOn(resourceServer, "ResourceRefRelease");
-    const srpcMux = createMux();
-    resourceServer.register(srpcMux);
-    const srpcServer = new Server(srpcMux.lookupMethod);
-    const serverErrors: unknown[] = [];
+    const pluginHost = buildPluginHostResourceFixture(resourceMux);
+    const releaseSpy = pluginHost.resourceRefRelease;
 
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
       const url = requestInfoURL(input);
@@ -1565,15 +1599,7 @@ describe("plugin-host-quickjs runner lifecycle", () => {
 
     const api = {
       startInfo: { pluginId: "quickjs-using-child-resource-test" },
-      openStream: vi.fn(async () => {
-        const [clientStream, serverStream] = buildPacketStreamPair();
-        Promise.resolve(srpcServer.handlePacketStream(serverStream)).catch(
-          (err: unknown) => {
-            serverErrors.push(err);
-          },
-        );
-        return clientStream;
-      }),
+      openStream: vi.fn(pluginHost.openStream),
       handleStreamCtr: new HandleStreamCtr(),
       utils: {
         pluginAssetHttpPath(pluginId: string, path: string): string {
@@ -1597,6 +1623,8 @@ describe("plugin-host-quickjs runner lifecycle", () => {
             ready &&
             events.includes("after-root") &&
             events.includes("release:2") &&
+            pluginHost.completeInitialCapabilityRegistration.mock.calls
+              .length === 1 &&
             releaseSpy.mock.calls.some(
               ([request]) =>
                 request.clientHandleId === 1 && request.resourceId === 2,
@@ -1617,11 +1645,14 @@ describe("plugin-host-quickjs runner lifecycle", () => {
       ]);
 
       expect(api.openStream).toHaveBeenCalled();
-      expect(serverErrors).toEqual([]);
+      expect(pluginHost.errors).toEqual([]);
       expect(events).toContain("create:2");
       expect(events).toContain("child:child");
       expect(events).toContain("after-root");
       expect(events).toContain("release:2");
+      expect(
+        pluginHost.completeInitialCapabilityRegistration,
+      ).toHaveBeenCalledOnce();
       expect(
         releaseSpy.mock.calls.filter(
           ([request]) =>
@@ -2610,6 +2641,39 @@ function buildPacketStreamPair(): [PacketStream, PacketStream] {
       },
     },
   ];
+}
+
+function buildPluginHostResourceFixture(rootResourceMux = createMux()) {
+  const completeInitialCapabilityRegistration = vi.fn(async () => ({}));
+  rootResourceMux.register(
+    createHandler(PluginHostResourceServiceDefinition, {
+      CompleteInitialCapabilityRegistration:
+        completeInitialCapabilityRegistration,
+    }),
+  );
+
+  const resourceServer = new ResourceServer(rootResourceMux);
+  const resourceRefRelease = vi.spyOn(resourceServer, "ResourceRefRelease");
+  const mux = createMux();
+  resourceServer.register(mux);
+  const server = new Server(mux.lookupMethod);
+  const errors: unknown[] = [];
+  const openStream = async (): Promise<PacketStream> => {
+    const [clientStream, serverStream] = buildPacketStreamPair();
+    Promise.resolve(server.handlePacketStream(serverStream)).catch(
+      (err: unknown) => {
+        errors.push(err);
+      },
+    );
+    return clientStream;
+  };
+
+  return {
+    completeInitialCapabilityRegistration,
+    errors,
+    openStream,
+    resourceRefRelease,
+  };
 }
 
 async function buildQuickJSPluginScript(source: string): Promise<string> {

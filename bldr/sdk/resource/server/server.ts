@@ -16,6 +16,8 @@ import type {
   ResourceAttachResponse,
   ResourceClientRequest,
   ResourceClientResponse,
+  ResourceRefAdoptRequest,
+  ResourceRefAdoptResponse,
   ResourceRefReleaseRequest,
   ResourceRefReleaseResponse,
 } from '../resource.pb.js'
@@ -86,6 +88,7 @@ class ResourceServer implements ResourceService {
           value: {
             clientHandleId: clientID,
             rootResourceId: rootResourceID,
+            supportsResourceAdoptionAck: false,
           },
         },
       }
@@ -188,14 +191,9 @@ class ResourceServer implements ResourceService {
       },
     })
 
-    this.runResourceAttach(
-      request,
-      outgoing,
-      abortSignal,
-      (cleanupFn) => {
-        cleanup = cleanupFn
-      },
-    )
+    this.runResourceAttach(request, outgoing, abortSignal, (cleanupFn) => {
+      cleanup = cleanupFn
+    })
       .catch((err: Error) => {
         outgoing.end(err)
       })
@@ -377,6 +375,13 @@ class ResourceServer implements ResourceService {
       abortSignal?.removeEventListener('abort', cleanup)
       cleanup()
     }
+  }
+  // ResourceRefAdopt rejects adoption while receipt finalization is unavailable.
+  async ResourceRefAdopt(
+    _request: ResourceRefAdoptRequest,
+    _abortSignal?: AbortSignal,
+  ): Promise<ResourceRefAdoptResponse> {
+    throw new Error('resource adoption unsupported')
   }
 
   // ResourceRefRelease handles client-initiated resource release.
