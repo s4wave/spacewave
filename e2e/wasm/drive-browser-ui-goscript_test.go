@@ -388,6 +388,11 @@ func clickDriveToolbarButton(t testing.TB, page playwright.Page, title string) {
 func openDriveEntryContextMenu(t testing.TB, page playwright.Page, name string) {
 	t.Helper()
 
+	row := visibleDriveBrowser(page).Locator("[role='row']:has-text('" + name + "')").First()
+	if err := row.WaitFor(); err != nil {
+		failWithPageBody(t, page, "wait for Drive entry row "+name, err)
+	}
+
 	_, err := page.Evaluate(`({ name }) => {
 		const browser = document.querySelector('[data-testid="unixfs-browser"]')
 		if (!(browser instanceof HTMLElement)) {
@@ -409,7 +414,7 @@ func openDriveEntryContextMenu(t testing.TB, page playwright.Page, name string) 
 		}))
 	}`, map[string]any{"name": name})
 	if err != nil {
-		t.Fatalf("open context menu for %s: %v", name, err)
+		failWithPageBody(t, page, "open context menu for "+name, err)
 	}
 }
 
