@@ -117,7 +117,7 @@ func Current(storeDir string, expected *Identity) (string, string, error) {
 		return "", "", errors.Wrap(err, "read current release artifact generation")
 	}
 	generation := strings.TrimSpace(string(data))
-	if generation == "" || filepath.Base(generation) != generation || generation == "." || generation == ".." {
+	if !validGenerationName(generation) {
 		return "", "", errors.New("invalid current release artifact generation")
 	}
 	generationDir := filepath.Join(storeDir, generationsDir, generation)
@@ -129,11 +129,26 @@ func Current(storeDir string, expected *Identity) (string, string, error) {
 	return releaseDir, prerenderDir, nil
 }
 
+func validGenerationName(generation string) bool {
+	return generation != "" && filepath.Base(generation) == generation && generation != "." && generation != ".."
+}
+
 // ValidGenerations returns every valid immutable generation matching the
-// expected content identity.
+// expected content identity, with the current generation first when valid.
 func ValidGenerations(storeDir string, expected *Identity) ([]Generation, error) {
 	if expected == nil {
 		return nil, errors.New("missing expected release artifact identity")
+	}
+	current := ""
+	data, err := os.ReadFile(filepath.Join(storeDir, currentFilename))
+	if err != nil && !os.IsNotExist(err) {
+		return nil, errors.Wrap(err, "read current release artifact generation")
+	}
+	if err == nil {
+		generation := strings.TrimSpace(string(data))
+		if validGenerationName(generation) {
+			current = generation
+		}
 	}
 	root := filepath.Join(storeDir, generationsDir)
 	entries, err := os.ReadDir(root)
@@ -144,6 +159,7 @@ func ValidGenerations(storeDir string, expected *Identity) ([]Generation, error)
 		return nil, errors.Wrap(err, "read release artifact generations")
 	}
 	var generations []Generation
+	var preferred Generation
 	for _, entry := range entries {
 		name := entry.Name()
 		parts := strings.SplitN(name, "-", 2)
@@ -169,11 +185,19 @@ func ValidGenerations(storeDir string, expected *Identity) ([]Generation, error)
 		if err := Validate(releaseDir, prerenderDir, expected); err != nil {
 			return nil, err
 		}
-		generations = append(generations, Generation{
+		generation := Generation{
 			ID:           name,
 			ReleaseDir:   releaseDir,
 			PrerenderDir: prerenderDir,
-		})
+		}
+		if name == current {
+			preferred = generation
+			continue
+		}
+		generations = append(generations, generation)
+	}
+	if preferred.ID != "" {
+		generations = append([]Generation{preferred}, generations...)
 	}
 	return generations, nil
 }

@@ -188,6 +188,44 @@ func TestPublishGenerationAndValidGenerationsTokenParity(t *testing.T) {
 	}
 }
 
+func TestValidGenerationsOrdersNonLexicalCurrentFirst(t *testing.T) {
+	repoRoot := newIdentityTestRepo(t)
+	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
+	storeDir := filepath.Join(t.TempDir(), "store")
+
+	releaseA, prerenderA := newArtifactFixture(t, "first")
+	first, err := PublishGeneration(storeDir, releaseA, prerenderA, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	releaseB, prerenderB := newArtifactFixture(t, "second")
+	second, err := PublishGeneration(storeDir, releaseB, prerenderB, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	firstID := identity.Digest + "-a"
+	secondID := identity.Digest + "-z"
+	root := filepath.Join(storeDir, generationsDir)
+	if err := os.Rename(filepath.Dir(first.ReleaseDir), filepath.Join(root, firstID)); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(filepath.Dir(second.ReleaseDir), filepath.Join(root, secondID)); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeCurrent(storeDir, secondID); err != nil {
+		t.Fatal(err)
+	}
+
+	generations, err := ValidGenerations(storeDir, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(generations) != 2 || generations[0].ID != secondID || generations[1].ID != firstID {
+		t.Fatalf("generations = %#v, want current %q before lexical-first %q", generations, secondID, firstID)
+	}
+}
+
 func TestValidGenerationsCandidatePredicate(t *testing.T) {
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
