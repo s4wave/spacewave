@@ -15,80 +15,13 @@ on:
       - 'CHANGELOG.org'
   workflow_dispatch:
 
-# Queue CI by branch/PR instead of canceling older runs. Canceling makes older
-# commits show failed/canceled CI even when the newer HEAD is the only commit we
-# care about. The head-check job below lets a queued run skip the expensive test
-# matrix when it finally starts and discovers that it is no longer branch or PR
-# HEAD. If this policy does not work out, drop this concurrency block, delete
-# head-check, and remove the head-check needs/if gates below; the fallback should
-# be GitHub's default behavior, where every CI run starts and all CI executes for
-# every commit.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
-  queue: max
-
 permissions:
   contents: read
 
 jobs:
-  head-check:
-    name: Check current HEAD
-    runs-on: ubuntu-latest
-    outputs:
-      should_run: ${{ steps.head.outputs.should_run }}
-    steps:
-      - name: Check whether this CI run is still current
-        id: head
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          GITHUB_SHA_VALUE: ${{ github.sha }}
-          GITHUB_REF_VALUE: ${{ github.ref }}
-          GITHUB_API_URL_VALUE: ${{ github.api_url }}
-          GITHUB_REPOSITORY_VALUE: ${{ github.repository }}
-          GITHUB_TOKEN_VALUE: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          set -euo pipefail
-
-          github_api() {
-            curl -fsSL \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer $GITHUB_TOKEN_VALUE" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              "$GITHUB_API_URL_VALUE$1"
-          }
-
-          case "$EVENT_NAME" in
-          pull_request)
-            latest="$(github_api "/repos/$GITHUB_REPOSITORY_VALUE/pulls/$PR_NUMBER" | jq -r '.head.sha')"
-            expected="$PR_HEAD_SHA"
-            ;;
-          push)
-            latest="$(github_api "/repos/$GITHUB_REPOSITORY_VALUE/git/ref/${GITHUB_REF_VALUE#refs/}" | jq -r '.object.sha')"
-            expected="$GITHUB_SHA_VALUE"
-            ;;
-          *)
-            latest="$GITHUB_SHA_VALUE"
-            expected="$GITHUB_SHA_VALUE"
-            ;;
-          esac
-
-          if [ "$latest" = "$expected" ]; then
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "CI run is current at $expected."
-            exit 0
-          fi
-
-          echo "should_run=false" >> "$GITHUB_OUTPUT"
-          echo "Skipping stale CI run for $expected; latest HEAD is ${latest:-unknown}."
-
   member-ci:
     name: CI (${{ matrix.member.name }})
     runs-on: ubuntu-latest
-    needs: head-check
-    if: ${{ needs.head-check.outputs.should_run == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -209,8 +142,6 @@ jobs:
   licenses:
     name: Licenses
     runs-on: ubuntu-latest
-    needs: head-check
-    if: ${{ needs.head-check.outputs.should_run == 'true' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -281,8 +212,6 @@ jobs:
   e2e-go:
     name: E2E (${{ matrix.suite.name }})
     runs-on: ubuntu-latest
-    needs: head-check
-    if: ${{ needs.head-check.outputs.should_run == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -355,8 +284,6 @@ jobs:
   e2e-wasm:
     name: E2E (wasm / ${{ matrix.slice.name }})
     runs-on: ubuntu-latest
-    needs: head-check
-    if: ${{ needs.head-check.outputs.should_run == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -432,10 +359,8 @@ jobs:
   e2e-wasm-complete:
     name: E2E (wasm)
     runs-on: ubuntu-latest
-    needs:
-      - head-check
-      - e2e-wasm
-    if: ${{ always() && needs.head-check.outputs.should_run == 'true' }}
+    needs: e2e-wasm
+    if: ${{ always() }}
     timeout-minutes: 5
     steps:
       - name: Check wasm E2E slices
@@ -449,8 +374,6 @@ jobs:
   e2e-playwright:
     name: E2E (${{ matrix.suite.name }})
     runs-on: ubuntu-latest
-    needs: head-check
-    if: ${{ needs.head-check.outputs.should_run == 'true' }}
     strategy:
       fail-fast: false
       matrix:
