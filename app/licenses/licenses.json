@@ -497,13 +497,6 @@
     },
     {
       "name": "@shikijs/themes",
-      "version": "4.2.0",
-      "spdx": "MIT",
-      "source": "js",
-      "copyrightNotice": "Copyright (c) 2021 Pine Wu\nCopyright (c) 2023 Anthony Fu <https://github.com/antfu>"
-    },
-    {
-      "name": "@shikijs/themes",
       "version": "4.3.1",
       "spdx": "MIT",
       "source": "js",
@@ -918,7 +911,7 @@
     },
     {
       "name": "github.com/aperturerobotics/starpc",
-      "version": "v0.49.20",
+      "version": "v0.49.21",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/starpc",
@@ -1192,7 +1185,7 @@
     },
     {
       "name": "github.com/klauspost/compress",
-      "version": "v1.19.0",
+      "version": "v1.19.1",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/klauspost/compress",
@@ -1247,7 +1240,7 @@
     },
     {
       "name": "github.com/mattn/go-isatty",
-      "version": "v0.0.22",
+      "version": "v0.0.23",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/mattn/go-isatty",
@@ -1677,7 +1670,7 @@
     },
     {
       "name": "golang.org/x/exp",
-      "version": "v0.0.0-20260709172345-9ea1abe57597",
+      "version": "v0.0.0-20260718201538-764159d718ef",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/exp",
@@ -2054,7 +2047,7 @@
     },
     {
       "name": "starpc",
-      "version": "0.49.18",
+      "version": "0.49.20",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2022-2025 Aperture Robotics, LLC.\nCopyright (c) 2022-2025 Christian Stewart <christian@cjs.zip>"
@@ -2090,12 +2083,6 @@
     {
       "name": "uint8arraylist",
       "version": "2.4.9",
-      "spdx": "Apache-2.0 OR MIT",
-      "source": "js"
-    },
-    {
-      "name": "uint8arraylist",
-      "version": "3.0.1",
       "spdx": "Apache-2.0 OR MIT",
       "source": "js"
     },
