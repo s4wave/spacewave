@@ -92,6 +92,7 @@ type Harness struct {
 	stateRoot                 string
 	preserveStartupBuildCache bool
 	stateRootOwner            harnessStateRootOwner
+	stateRootLock             *os.File
 }
 
 // resolveHeadless determines whether the browser should run headless.
@@ -162,14 +163,40 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	if err != nil {
 		return nil, err
 	}
-	if preserveStartupBuildCache {
-		le.WithField("state-root", stateRoot).Info("preserving e2e wasm startup build cache")
-	}
-	if err := clearHarnessStateRoot(stateRoot, preserveStartupBuildCache); err != nil {
-		return nil, err
-	}
 	if err := os.MkdirAll(stateRoot, 0o755); err != nil {
 		return nil, errors.Wrap(err, "create state root")
+	}
+	stateRootLock, acquired, err := acquireHarnessStateRootLock(stateRoot)
+	if err != nil {
+		return nil, err
+	}
+	if !acquired {
+		if !preserveStartupBuildCache {
+			return nil, errors.Errorf("e2e wasm state root is already owned: %s", stateRoot)
+		}
+		sharedStateRoot := stateRoot
+		stateRoot, err = buildHarnessStateRoot(repoRoot, false)
+		if err != nil {
+			return nil, err
+		}
+		preserveStartupBuildCache = false
+		if err := os.MkdirAll(stateRoot, 0o755); err != nil {
+			return nil, errors.Wrap(err, "create isolated state root")
+		}
+		stateRootLock, acquired, err = acquireHarnessStateRootLock(stateRoot)
+		if err != nil {
+			return nil, err
+		}
+		if !acquired {
+			return nil, errors.Errorf("isolated e2e wasm state root is already owned: %s", stateRoot)
+		}
+		le.WithFields(logrus.Fields{
+			"state-root":          sharedStateRoot,
+			"isolated-state-root": stateRoot,
+		}).Info("isolating concurrent e2e wasm startup build cache")
+	}
+	if preserveStartupBuildCache {
+		le.WithField("state-root", stateRoot).Info("preserving e2e wasm startup build cache")
 	}
 
 	hctx, cancel := context.WithCancel(ctx)
@@ -189,6 +216,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		stateRoot:                 stateRoot,
 		preserveStartupBuildCache: preserveStartupBuildCache,
 		stateRootOwner:            stateRootOwner,
+		stateRootLock:             stateRootLock,
 	}
 	defer func() {
 		if retErr != nil {
@@ -199,6 +227,9 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		if err := writeHarnessStateRootOwner(stateRoot, stateRootOwner); err != nil {
 			return nil, err
 		}
+	}
+	if err := clearHarnessStateRoot(stateRoot, preserveStartupBuildCache); err != nil {
+		return nil, err
 	}
 
 	d, err := devtool.BuildDevtoolBus(hctx, le, repoRoot, stateRoot, false)
@@ -530,6 +561,12 @@ func (h *Harness) Release() {
 	h.releaseManifestFetches()
 	if h.devtool != nil {
 		h.devtool.Release()
+	}
+	if h.stateRootLock != nil {
+		if err := h.stateRootLock.Close(); err != nil && h.le != nil {
+			h.le.WithError(err).WithField("state-root", h.stateRoot).Error("release e2e wasm state root lock")
+		}
+		h.stateRootLock = nil
 	}
 	if h.stateRoot != "" && !h.preserveStartupBuildCache {
 		if err := os.RemoveAll(h.stateRoot); err != nil && h.le != nil {
@@ -1116,6 +1153,7 @@ func resolveLocalModulePath(repoRoot, path string) (string, bool) {
 }
 
 const (
+	harnessStateRootLockName           = ".e2e-lock"
 	harnessStateRootOwnerName          = ".e2e-owner"
 	harnessMarkerlessStateRootMaxAge   = 24 * time.Hour
 	harnessStateRootTokenBytes         = 16
@@ -1126,6 +1164,23 @@ type harnessStateRootOwner struct {
 	pid             int
 	createdUnixNano int64
 	token           string
+}
+
+func acquireHarnessStateRootLock(stateRoot string) (*os.File, bool, error) {
+	lock, err := os.OpenFile(filepath.Join(stateRoot, harnessStateRootLockName), os.O_CREATE|os.O_RDWR, 0o644)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "open state root lock")
+	}
+	if err := unix.Flock(int(lock.Fd()), unix.LOCK_EX|unix.LOCK_NB); err != nil {
+		if closeErr := lock.Close(); closeErr != nil {
+			return nil, false, errors.Wrapf(err, "close state root lock after claim failure: %v", closeErr)
+		}
+		if err == unix.EWOULDBLOCK || err == unix.EAGAIN {
+			return nil, false, nil
+		}
+		return nil, false, errors.Wrap(err, "claim state root lock")
+	}
+	return lock, true, nil
 }
 
 func newHarnessStateRootOwner() (harnessStateRootOwner, error) {
