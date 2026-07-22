@@ -51,7 +51,7 @@ require (
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.15.1-0.20260716085036-961b1f806634 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
-	github.com/aperturerobotics/starpc v0.49.20 // latest
+	github.com/aperturerobotics/starpc v0.49.21 // latest
 	github.com/aperturerobotics/util v1.34.10-0.20260705010935-dceeac6053fb // master
 )
 
@@ -75,12 +75,12 @@ require (
 	github.com/pion/logging v0.2.4
 	github.com/pion/transport/v4 v4.0.2
 	go.starlark.net v0.0.0-20260708150628-5395d018f003
-	golang.org/x/exp v0.0.0-20260709172345-9ea1abe57597
+	golang.org/x/exp v0.0.0-20260718201538-764159d718ef
 	gonum.org/v1/gonum v0.17.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.31.2
 	gotest.tools/v3 v3.5.2
-	modernc.org/sqlite v1.53.0
+	modernc.org/sqlite v1.54.0
 )
 
 require (
@@ -95,15 +95,15 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-alpha.1.0.20260713095715-f9d937148de5 // main
-	github.com/go-git/go-git/v6 v6.0.0-alpha.4.0.20260716142645-5f90b841aef2 // main
+	github.com/go-git/go-git/v6 v6.0.0-alpha.4.0.20260720134024-6a082fae5965 // main
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/hack-pad/safejs v0.1.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/klauspost/compress v1.19.0
+	github.com/klauspost/compress v1.19.1
 	github.com/manifoldco/promptui v0.9.0
-	github.com/mattn/go-isatty v0.0.22
+	github.com/mattn/go-isatty v0.0.23
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mr-tron/base58 v1.3.0
 	github.com/ncruces/go-sqlite3 v0.35.2
@@ -111,7 +111,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.27
 	github.com/pion/datachannel v1.6.2
 	github.com/pion/sdp/v3 v3.0.19
-	github.com/pion/webrtc/v4 v4.2.16
+	github.com/pion/webrtc/v4 v4.2.17
 	github.com/pkg/errors v0.9.1
 	github.com/quic-go/quic-go v0.60.0
 	github.com/restic/chunker v0.5.0
@@ -196,7 +196,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
-	modernc.org/libc v1.73.4 // indirect
+	modernc.org/libc v1.74.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
