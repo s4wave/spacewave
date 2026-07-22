@@ -36,8 +36,10 @@ export type ResourceRPCMethod = {
 
 const resourceIDMarker = '// @resource-adoption-id'
 const resourceIDsMarker = '// @resource-adoption-ids'
-const generatedSuffix = '_resource_ids.pb.go'
-const resourceRPCMethodsOutput = 'bldr/resource/resource-rpc-methods.pb.go'
+const generatedSuffix = '-resource-ids.go'
+const legacyGeneratedSuffix = '_resource_ids.pb.go'
+const resourceRPCMethodsOutput = 'bldr/resource/resource-rpc-methods.go'
+const legacyResourceRPCMethodsOutput = 'resource-rpc-methods.pb.go'
 
 function goName(name: string): string {
   return name
@@ -328,7 +330,7 @@ export async function generateResourceIDExtractors(repoRoot = root) {
   }
 
   const resourceRPCMethodsGlob = new Bun.Glob(
-    '{bldr,sdk}/**/resource-rpc-methods.pb.go',
+    `{bldr,sdk}/**/{${basename(resourceRPCMethodsOutput)},${legacyResourceRPCMethodsOutput}}`,
   )
   for await (const path of resourceRPCMethodsGlob.scan({ cwd: repoRoot })) {
     const fullPath = resolve(repoRoot, path)
@@ -337,16 +339,18 @@ export async function generateResourceIDExtractors(repoRoot = root) {
     }
   }
 
-  const generatedGlob = new Bun.Glob(`{bldr,sdk}/**/*${generatedSuffix}`)
-  const generated: string[] = []
-  for await (const path of generatedGlob.scan({ cwd: repoRoot })) {
-    generated.push(path)
-  }
-  generated.sort()
-  for (const path of generated) {
-    const fullPath = resolve(repoRoot, path)
-    if (!expected.has(fullPath)) {
-      await unlink(fullPath)
+  for (const suffix of [generatedSuffix, legacyGeneratedSuffix]) {
+    const generatedGlob = new Bun.Glob(`{bldr,sdk}/**/*${suffix}`)
+    const generated: string[] = []
+    for await (const path of generatedGlob.scan({ cwd: repoRoot })) {
+      generated.push(path)
+    }
+    generated.sort()
+    for (const path of generated) {
+      const fullPath = resolve(repoRoot, path)
+      if (!expected.has(fullPath)) {
+        await unlink(fullPath)
+      }
     }
   }
 }

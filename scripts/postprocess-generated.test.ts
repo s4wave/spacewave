@@ -171,19 +171,22 @@ message Result {
 }\n`,
     )
     await writeFile(resolve(fixture, 'fixture.pb.go'), 'package fixture\n')
-    const stale = resolve(fixture, 'stale_resource_ids.pb.go')
+    const stale = resolve(fixture, 'stale-resource-ids.go')
     await writeFile(stale, 'package fixture\n')
+    const legacy = resolve(fixture, 'stale_resource_ids.pb.go')
+    await writeFile(legacy, 'package fixture\n')
     const staleMethods = resolve(fixture, 'resource-rpc-methods.pb.go')
     await writeFile(staleMethods, 'package fixture\n')
 
     await generateResourceIDExtractors(root)
-    const outputPath = resolve(fixture, 'fixture_resource_ids.pb.go')
+    const outputPath = resolve(fixture, 'fixture-resource-ids.go')
     const first = await readFile(outputPath, 'utf-8')
     await expect(readFile(stale, 'utf-8')).rejects.toThrow()
+    await expect(readFile(legacy, 'utf-8')).rejects.toThrow()
     await expect(readFile(staleMethods, 'utf-8')).rejects.toThrow()
     expect(first).toContain('resourceIDs := make([]uint32, 0, 1)')
     const resourceRPCMethods = await readFile(
-      resolve(root, 'bldr', 'resource', 'resource-rpc-methods.pb.go'),
+      resolve(root, 'bldr', 'resource', 'resource-rpc-methods.go'),
       'utf-8',
     )
     expect(resourceRPCMethods).toContain(
