@@ -1,10 +1,13 @@
 package artifact
 
 import (
+	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestPublishLastCompleteWinsAndIgnoresPartialGeneration(t *testing.T) {
@@ -146,4 +149,199 @@ func assertArtifactMarker(t *testing.T, releaseDir, prerenderDir, want string) {
 			t.Fatalf("artifact marker = %q, want %q", data, want)
 		}
 	}
+}
+
+const (
+	publishCrashRoleEnv       = "SPACEWAVE_ARTIFACT_PUBLISH_CRASH_ROLE"
+	publishCrashStoreEnv      = "SPACEWAVE_ARTIFACT_PUBLISH_CRASH_STORE"
+	publishCrashReleaseEnv    = "SPACEWAVE_ARTIFACT_PUBLISH_CRASH_RELEASE"
+	publishCrashPrerenderEnv  = "SPACEWAVE_ARTIFACT_PUBLISH_CRASH_PRERENDER"
+	publishCrashRepositoryEnv = "SPACEWAVE_ARTIFACT_PUBLISH_CRASH_REPOSITORY"
+)
+
+func TestPublishGenerationAndValidGenerationsTokenParity(t *testing.T) {
+	repoRoot := newIdentityTestRepo(t)
+	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
+	storeDir := filepath.Join(t.TempDir(), "store")
+	releaseDir, prerenderDir := newArtifactFixture(t, "generation")
+
+	generation, err := PublishGeneration(storeDir, releaseDir, prerenderDir, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if generation.ID == "" {
+		t.Fatal("published generation has an empty ID")
+	}
+	generations, err := ValidGenerations(storeDir, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(generations) != 1 || generations[0] != generation {
+		t.Fatalf("listed generations = %#v, want %#v", generations, generation)
+	}
+	currentRelease, currentPrerender, err := Current(storeDir, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if currentRelease != generation.ReleaseDir || currentPrerender != generation.PrerenderDir {
+		t.Fatalf("current = (%q, %q), want (%q, %q)", currentRelease, currentPrerender, generation.ReleaseDir, generation.PrerenderDir)
+	}
+}
+
+func TestValidGenerationsCandidatePredicate(t *testing.T) {
+	repoRoot := newIdentityTestRepo(t)
+	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
+
+	t.Run("absent store is empty", func(t *testing.T) {
+		generations, err := ValidGenerations(filepath.Join(t.TempDir(), "absent"), identity)
+		if err != nil || len(generations) != 0 {
+			t.Fatalf("generations = %#v, err = %v", generations, err)
+		}
+	})
+	t.Run("other digest entry is ignored", func(t *testing.T) {
+		storeDir := t.TempDir()
+		writeTestFile(t, filepath.Join(storeDir, generationsDir, "other-entry"), "not a directory")
+		generations, err := ValidGenerations(storeDir, identity)
+		if err != nil || len(generations) != 0 {
+			t.Fatalf("generations = %#v, err = %v", generations, err)
+		}
+	})
+	for _, name := range []string{identity.Digest, identity.Digest + "-"} {
+		t.Run("malformed matching "+filepath.Base(name), func(t *testing.T) {
+			storeDir := t.TempDir()
+			writeTestFile(t, filepath.Join(storeDir, generationsDir, name), "malformed")
+			if generations, err := ValidGenerations(storeDir, identity); err == nil || len(generations) != 0 {
+				t.Fatalf("generations = %#v, err = %v", generations, err)
+			}
+		})
+	}
+	t.Run("matching validation error propagates", func(t *testing.T) {
+		storeDir := t.TempDir()
+		if err := os.MkdirAll(filepath.Join(storeDir, generationsDir, identity.Digest+"-invalid"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if generations, err := ValidGenerations(storeDir, identity); err == nil || len(generations) != 0 {
+			t.Fatalf("generations = %#v, err = %v", generations, err)
+		}
+	})
+}
+
+func TestValidGenerationsRejectsExternalValidFixtureSymlink(t *testing.T) {
+	repoRoot := newIdentityTestRepo(t)
+	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
+	externalStore := filepath.Join(t.TempDir(), "external-store")
+	releaseDir, prerenderDir := newArtifactFixture(t, "external")
+	external, err := PublishGeneration(externalStore, releaseDir, prerenderDir, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	externalDir := filepath.Dir(external.ReleaseDir)
+
+	storeDir := t.TempDir()
+	root := filepath.Join(storeDir, generationsDir)
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(externalDir, filepath.Join(root, identity.Digest+"-external")); err != nil {
+		t.Fatal(err)
+	}
+	if generations, err := ValidGenerations(storeDir, identity); err == nil || len(generations) != 0 {
+		t.Fatalf("generations = %#v, err = %v", generations, err)
+	}
+}
+
+func TestValidGenerationsRejectsMatchingNonDirectory(t *testing.T) {
+	repoRoot := newIdentityTestRepo(t)
+	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
+	storeDir := t.TempDir()
+	writeTestFile(t, filepath.Join(storeDir, generationsDir, identity.Digest+"-file"), "not a directory")
+	if generations, err := ValidGenerations(storeDir, identity); err == nil || len(generations) != 0 {
+		t.Fatalf("generations = %#v, err = %v", generations, err)
+	}
+}
+
+func TestPublishCrashRecovery(t *testing.T) {
+	if role := os.Getenv(publishCrashRoleEnv); role != "" {
+		runPublishCrashRole(t, role)
+		return
+	}
+	repoRoot := newIdentityTestRepo(t)
+	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
+	releaseDir, prerenderDir := newArtifactFixture(t, "crash")
+
+	t.Run("before rename leaves no generation", func(t *testing.T) {
+		storeDir := filepath.Join(t.TempDir(), "store")
+		runPublishCrashChild(t, "before-rename", storeDir, releaseDir, prerenderDir, repoRoot)
+		generations, err := ValidGenerations(storeDir, identity)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(generations) != 0 {
+			t.Fatalf("generations = %#v", generations)
+		}
+	})
+	t.Run("after rename recovers unpointed generation", func(t *testing.T) {
+		storeDir := filepath.Join(t.TempDir(), "store")
+		runPublishCrashChild(t, "after-rename", storeDir, releaseDir, prerenderDir, repoRoot)
+		generations, err := ValidGenerations(storeDir, identity)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(generations) != 1 || generations[0].ID == "" {
+			t.Fatalf("generations = %#v", generations)
+		}
+		if _, _, err := Current(storeDir, identity); err == nil {
+			t.Fatal("crashed publication unexpectedly wrote current pointer")
+		}
+	})
+}
+
+func runPublishCrashChild(t *testing.T, role, storeDir, releaseDir, prerenderDir, repoRoot string) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+	cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestPublishCrashRecovery$") //nolint:gosec
+	cmd.Env = append(os.Environ(),
+		publishCrashRoleEnv+"="+role,
+		publishCrashStoreEnv+"="+storeDir,
+		publishCrashReleaseEnv+"="+releaseDir,
+		publishCrashPrerenderEnv+"="+prerenderDir,
+		publishCrashRepositoryEnv+"="+repoRoot,
+	)
+	err := cmd.Run()
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("crash child error = %v", err)
+	}
+	wantCode := 73
+	if role == "after-rename" {
+		wantCode = 74
+	}
+	if exitErr.ExitCode() != wantCode {
+		t.Fatalf("crash child exit code = %d, want %d", exitErr.ExitCode(), wantCode)
+	}
+}
+
+func runPublishCrashRole(t *testing.T, role string) {
+	t.Helper()
+	identity := computeTestIdentity(t, os.Getenv(publishCrashRepositoryEnv), testBuildInputs())
+	hooks := publishHooks{}
+	switch role {
+	case "before-rename":
+		hooks.beforeRename = func() { os.Exit(73) }
+	case "after-rename":
+		hooks.afterRenameBeforeCurrent = func() { os.Exit(74) }
+	default:
+		t.Fatalf("unknown crash role %q", role)
+	}
+	if _, err := publish(
+		os.Getenv(publishCrashStoreEnv),
+		os.Getenv(publishCrashReleaseEnv),
+		os.Getenv(publishCrashPrerenderEnv),
+		identity,
+		hooks,
+	); err != nil {
+		t.Fatal(err)
+	}
+	t.Fatal("publish crash hook did not exit")
 }

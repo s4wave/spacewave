@@ -23,6 +23,7 @@ import (
 	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	e2eharness "github.com/s4wave/spacewave/e2e/harness"
 	"github.com/s4wave/spacewave/e2e/releasewasm/artifact"
 	"github.com/sirupsen/logrus"
 )
@@ -205,12 +206,13 @@ func prepareReleaseWasmDist(ctx context.Context, le *logrus.Entry, repoRoot stri
 	if err != nil {
 		return releaseWasmDistDirs{}, errors.Wrap(err, "compute release artifact identity")
 	}
+	storeDir := releaseWasmArtifactStoreDir(repoRoot)
 
 	prebuiltDirs, prebuilt, err := prebuiltReleaseWasmDistDirs(repoRoot)
 	if err != nil {
 		return releaseWasmDistDirs{}, err
 	}
-	forceBuild := false
+	requireFresh := false
 	if prebuilt {
 		validationErr := artifact.Validate(prebuiltDirs.releaseDist, prebuiltDirs.prerender, identity)
 		if validationErr == nil {
@@ -221,57 +223,22 @@ func prepareReleaseWasmDist(ctx context.Context, le *logrus.Entry, repoRoot stri
 			}).Info("release artifact cache hit")
 			return prebuiltDirs, nil
 		}
-		forceBuild = true
+		requireFresh = true
 		le.WithError(validationErr).WithField("identity", identity.Digest).Info("prebuilt release artifact rejected; rebuilding")
 	}
 
-	if !forceBuild {
-		releaseDir, prerenderDir, err := artifact.Current(releaseWasmArtifactStoreDir(repoRoot), identity)
-		if err == nil {
-			le.WithField("identity", identity.Digest).Info("release artifact cache hit")
-			return releaseWasmDistDirs{releaseDist: releaseDir, prerender: prerenderDir}, nil
-		}
-		le.WithError(err).WithField("identity", identity.Digest).Info("release artifact cache miss; rebuilding")
-	}
-
-	if err := os.RemoveAll(filepath.Join(repoRoot, prerenderDistRelPath)); err != nil {
-		return releaseWasmDistDirs{}, errors.Wrap(err, "clean prerender dist")
-	}
-	if err := os.RemoveAll(filepath.Join(repoRoot, ".bldr-dist")); err != nil {
-		return releaseWasmDistDirs{}, errors.Wrap(err, "clean release dist state")
-	}
-
-	le.Info("building release web bundle")
-	if err := buildReleaseWeb(ctx, repoRoot); err != nil {
-		return releaseWasmDistDirs{}, errors.Wrap(err, "build release web bundle")
-	}
-
-	distDir := filepath.Join(repoRoot, releaseDistRelPath)
-	le.Info("building prerender hydrate bundle")
-	if err := runBun(ctx, repoRoot, "run", "vite", "build", "--config", "app/prerender/vite.hydrate.config.ts"); err != nil {
-		return releaseWasmDistDirs{}, errors.Wrap(err, "build prerender hydrate bundle")
-	}
-	le.Info("building prerender ssr bundle")
-	if err := runBun(ctx, repoRoot, "run", "vite", "build", "--config", "app/prerender/vite.ssr.config.ts"); err != nil {
-		return releaseWasmDistDirs{}, errors.Wrap(err, "build prerender ssr bundle")
-	}
-	le.Info("running prerender build")
-	if err := runBun(ctx, repoRoot, "./app/prerender/ssr-dist/build.js", "--dist-dir", distDir); err != nil {
-		return releaseWasmDistDirs{}, errors.Wrap(err, "run prerender build")
-	}
-
-	staticDir := filepath.Join(repoRoot, prerenderDistRelPath)
-	releaseDir, prerenderDir, err := artifact.Publish(
-		releaseWasmArtifactStoreDir(repoRoot),
-		distDir,
-		staticDir,
-		identity,
-	)
+	resolved, err := e2eharness.Resolve(ctx, le, e2eharness.ResolveOptions{
+		LockDir:      storeDir,
+		LockName:     "build",
+		RequireFresh: requireFresh,
+	}, newReleaseShape(le, repoRoot, storeDir, identity))
 	if err != nil {
-		return releaseWasmDistDirs{}, errors.Wrap(err, "publish release artifact")
+		return releaseWasmDistDirs{}, err
 	}
-	le.WithField("identity", identity.Digest).Info("release artifact rebuilt and published")
-	return releaseWasmDistDirs{releaseDist: releaseDir, prerender: prerenderDir}, nil
+	return releaseWasmDistDirs{
+		releaseDist: resolved.releaseDir,
+		prerender:   resolved.prerenderDir,
+	}, nil
 }
 
 func prebuiltReleaseWasmDistDirs(repoRoot string) (releaseWasmDistDirs, bool, error) {

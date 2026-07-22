@@ -19,22 +19,38 @@ const (
 	generationsDir   = "generations"
 )
 
+type publishHooks struct {
+	beforeRename             func()
+	afterRenameBeforeCurrent func()
+}
+
 // Publish copies a complete release and prerender output pair into an immutable
 // generation, then atomically makes that generation current.
 func Publish(storeDir, releaseDir, prerenderDir string, identity *Identity) (string, string, error) {
+	generation, err := PublishGeneration(storeDir, releaseDir, prerenderDir, identity)
+	return generation.ReleaseDir, generation.PrerenderDir, err
+}
+
+// PublishGeneration copies, validates, and atomically publishes one immutable
+// release artifact generation.
+func PublishGeneration(storeDir, releaseDir, prerenderDir string, identity *Identity) (Generation, error) {
+	return publish(storeDir, releaseDir, prerenderDir, identity, publishHooks{})
+}
+
+func publish(storeDir, releaseDir, prerenderDir string, identity *Identity, hooks publishHooks) (Generation, error) {
 	if identity == nil || identity.Digest == "" || identity.Digest != identity.contentDigest() {
-		return "", "", errors.New("invalid release artifact identity")
+		return Generation{}, errors.New("invalid release artifact identity")
 	}
 	if err := validateRequiredFiles(releaseDir, prerenderDir); err != nil {
-		return "", "", err
+		return Generation{}, err
 	}
 	if err := os.MkdirAll(filepath.Join(storeDir, generationsDir), 0o755); err != nil {
-		return "", "", errors.Wrap(err, "create release artifact store")
+		return Generation{}, errors.Wrap(err, "create release artifact store")
 	}
 
 	stageDir, err := os.MkdirTemp(storeDir, ".publish-")
 	if err != nil {
-		return "", "", errors.Wrap(err, "create release artifact staging directory")
+		return Generation{}, errors.Wrap(err, "create release artifact staging directory")
 	}
 	removeStage := true
 	defer func() {
@@ -46,41 +62,51 @@ func Publish(storeDir, releaseDir, prerenderDir string, identity *Identity) (str
 	stagedRelease := filepath.Join(stageDir, "release")
 	stagedPrerender := filepath.Join(stageDir, "prerender")
 	if err := copyTree(releaseDir, stagedRelease); err != nil {
-		return "", "", errors.Wrap(err, "stage release output")
+		return Generation{}, errors.Wrap(err, "stage release output")
 	}
 	if err := copyTree(prerenderDir, stagedPrerender); err != nil {
-		return "", "", errors.Wrap(err, "stage prerender output")
+		return Generation{}, errors.Wrap(err, "stage prerender output")
 	}
 
 	releaseDigest, err := treeDigest(stagedRelease)
 	if err != nil {
-		return "", "", errors.Wrap(err, "digest staged release output")
+		return Generation{}, errors.Wrap(err, "digest staged release output")
 	}
 	prerenderDigest, err := treeDigest(stagedPrerender)
 	if err != nil {
-		return "", "", errors.Wrap(err, "digest staged prerender output")
+		return Generation{}, errors.Wrap(err, "digest staged prerender output")
 	}
 	if err := os.WriteFile(
 		filepath.Join(stagedRelease, identityFilename),
 		marshalManifest(identity, releaseDigest, prerenderDigest),
 		0o644,
 	); err != nil {
-		return "", "", errors.Wrap(err, "write staged release artifact identity")
+		return Generation{}, errors.Wrap(err, "write staged release artifact identity")
 	}
 	if err := Validate(stagedRelease, stagedPrerender, identity); err != nil {
-		return "", "", errors.Wrap(err, "validate staged release artifact")
+		return Generation{}, errors.Wrap(err, "validate staged release artifact")
 	}
 
 	generation := identity.Digest + "-" + strings.TrimPrefix(filepath.Base(stageDir), ".publish-")
 	generationDir := filepath.Join(storeDir, generationsDir, generation)
+	if hooks.beforeRename != nil {
+		hooks.beforeRename()
+	}
 	if err := os.Rename(stageDir, generationDir); err != nil {
-		return "", "", errors.Wrap(err, "commit release artifact generation")
+		return Generation{}, errors.Wrap(err, "commit release artifact generation")
 	}
 	removeStage = false
-	if err := writeCurrent(storeDir, generation); err != nil {
-		return "", "", err
+	if hooks.afterRenameBeforeCurrent != nil {
+		hooks.afterRenameBeforeCurrent()
 	}
-	return filepath.Join(generationDir, "release"), filepath.Join(generationDir, "prerender"), nil
+	if err := writeCurrent(storeDir, generation); err != nil {
+		return Generation{}, err
+	}
+	return Generation{
+		ID:           generation,
+		ReleaseDir:   filepath.Join(generationDir, "release"),
+		PrerenderDir: filepath.Join(generationDir, "prerender"),
+	}, nil
 }
 
 // Current returns the atomically published generation when it is complete and
@@ -101,6 +127,55 @@ func Current(storeDir string, expected *Identity) (string, string, error) {
 		return "", "", err
 	}
 	return releaseDir, prerenderDir, nil
+}
+
+// ValidGenerations returns every valid immutable generation matching the
+// expected content identity.
+func ValidGenerations(storeDir string, expected *Identity) ([]Generation, error) {
+	if expected == nil {
+		return nil, errors.New("missing expected release artifact identity")
+	}
+	root := filepath.Join(storeDir, generationsDir)
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, "read release artifact generations")
+	}
+	var generations []Generation
+	for _, entry := range entries {
+		name := entry.Name()
+		parts := strings.SplitN(name, "-", 2)
+		if parts[0] != expected.Digest {
+			continue
+		}
+		if len(parts) != 2 || parts[1] == "" {
+			return nil, errors.Errorf("invalid release artifact generation %q", name)
+		}
+		if entry.Type()&os.ModeSymlink != 0 {
+			return nil, errors.Errorf("release artifact generation %q is a symbolic link", name)
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return nil, errors.Wrapf(err, "inspect release artifact generation %q", name)
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return nil, errors.Errorf("release artifact generation %q is not a directory", name)
+		}
+		generationDir := filepath.Join(root, name)
+		releaseDir := filepath.Join(generationDir, "release")
+		prerenderDir := filepath.Join(generationDir, "prerender")
+		if err := Validate(releaseDir, prerenderDir, expected); err != nil {
+			return nil, err
+		}
+		generations = append(generations, Generation{
+			ID:           name,
+			ReleaseDir:   releaseDir,
+			PrerenderDir: prerenderDir,
+		})
+	}
+	return generations, nil
 }
 
 // Validate rejects incomplete, modified, or stale artifact directory pairs.
