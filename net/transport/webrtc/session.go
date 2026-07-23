@@ -42,14 +42,8 @@ type sessionTracker struct {
 	// offerer indicates if we are offering or answering
 	offerer bool
 
-	// errCh is pushed if a fatal error failed the session or signaling
-	errCh chan error
 	// rxSignal receives an incoming signaling message and its acceptance fence
 	rxSignal chan *incomingSignal
-	// xmitRoutine is the routine that manages transmitting a signaling message
-	xmitRoutine *routine.StateRoutineContainer[*outgoingSignal]
-	// linkRoutine is the routine that manages the Quic link when the session dcOpen.
-	linkRoutine *routine.StateRoutineContainer[datachannel.ReadWriteCloser]
 	// link contains the current link, if any
 	// w.bcast is broadcasted when this changes
 	link *transport_quic.Link
@@ -83,40 +77,9 @@ func (w *WebRTC) newSessionTracker(peerIDStr string) (keyed.Routine, *sessionTra
 		offerer: offerer,
 	}
 
-	sess.errCh = make(chan error, 1)
-
-	sess.linkRoutine = routine.NewStateRoutineContainer(
-		func(t1, t2 datachannel.ReadWriteCloser) bool { return t1 == t2 },
-		routine.WithExitCb(func(err error) {
-			if err != nil {
-				sess.failWithErr(pkgerrors.Wrap(err, "link routine"))
-			}
-		}),
-	)
-	_, _, _ = sess.linkRoutine.SetStateRoutine(sess.executeLink)
-
 	sess.rxSignal = make(chan *incomingSignal)
-	sess.xmitRoutine = routine.NewStateRoutineContainer[*outgoingSignal](
-		nil,
-		routine.WithExitCb(func(err error) {
-			if err != nil {
-				sess.failWithErr(pkgerrors.Wrap(err, "signal transmit routine"))
-			}
-		}),
-	)
-	_, _, _ = sess.xmitRoutine.SetStateRoutine(sess.executeXmitSignal)
 
 	return sess.execute, sess
-}
-
-// failWithErr pushes to errCh
-func (s *sessionTracker) failWithErr(err error) {
-	if err != nil && err != context.Canceled {
-		select {
-		case s.errCh <- err:
-		default:
-		}
-	}
 }
 
 // outgoingSignal contains a signal to transmit
@@ -454,6 +417,30 @@ func (s *session) acceptIncomingSignalLocked(sig *incomingSignal) {
 	sig.accept()
 }
 
+// failWithErr fences signal acceptance before exposing a routine error.
+func (s *session) failWithErr(errCh chan<- error, err error) {
+	if err == nil || err == context.Canceled {
+		return
+	}
+
+	var recorded bool
+	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if s.fatalErr == nil {
+			s.fatalErr = err
+			recorded = true
+			broadcast()
+		}
+	})
+	if !recorded {
+		return
+	}
+
+	select {
+	case errCh <- err:
+	default:
+	}
+}
+
 func (s *session) onIceCandidate(c *webrtc.ICECandidate) {
 	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		if c == nil {
@@ -581,17 +568,38 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	}
 	defer sess.close()
 
+	errCh := make(chan error, 1)
+	linkRoutine := routine.NewStateRoutineContainer(
+		func(t1, t2 datachannel.ReadWriteCloser) bool { return t1 == t2 },
+		routine.WithExitCb(func(err error) {
+			if err != nil {
+				sess.failWithErr(errCh, pkgerrors.Wrap(err, "link routine"))
+			}
+		}),
+	)
+	_, _, _ = linkRoutine.SetStateRoutine(s.executeLink)
+
+	xmitRoutine := routine.NewStateRoutineContainer[*outgoingSignal](
+		nil,
+		routine.WithExitCb(func(err error) {
+			if err != nil {
+				sess.failWithErr(errCh, pkgerrors.Wrap(err, "signal transmit routine"))
+			}
+		}),
+	)
+	_, _, _ = xmitRoutine.SetStateRoutine(s.executeXmitSignal)
+
 	// Set the context for the link routine.
 	phase = "bind routines"
-	s.linkRoutine.SetContext(ctx, true)
-	s.xmitRoutine.SetContext(ctx, true)
+	linkRoutine.SetContext(ctx, true)
+	xmitRoutine.SetContext(ctx, true)
 
 	// When exiting, clear any references to this tracker from incoming signaling.
 	// The incoming signaling will trigger re-adding a reference if any new messages arrive.
 	defer func() {
 		peerIDStr := s.peerID.String()
-		s.linkRoutine.SetState(nil)
-		s.xmitRoutine.SetState(nil)
+		linkRoutine.SetState(nil)
+		xmitRoutine.SetState(nil)
 		s.w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			if ref := s.w.incomingSessions[peerIDStr]; ref != nil {
 				ref.Release()
@@ -622,7 +630,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	var signalSent <-chan struct{}
 	xmitSignal := func(msg *WebRtcSignal) {
 		sentCh := make(chan struct{})
-		_, _, _, _ = s.xmitRoutine.SetState(&outgoingSignal{
+		_, _, _, _ = xmitRoutine.SetState(&outgoingSignal{
 			sess:   signal,
 			sig:    msg,
 			sentCh: sentCh,
@@ -679,7 +687,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 			select {
 			case <-ctx.Done():
 				return context.Canceled
-			case err := <-s.errCh:
+			case err := <-errCh:
 				return err
 			case currIncomingSignal = <-s.rxSignal:
 			case <-signalSent:
@@ -766,7 +774,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 		if currDcRwc != currLinkRwc {
 			phase = "update link routine"
 			// Update the link routine and wait for the old link to exit.
-			waitReturn, changed, _, _ := s.linkRoutine.SetState(currDcRwc)
+			waitReturn, changed, _, _ := linkRoutine.SetState(currDcRwc)
 			if changed && waitReturn != nil {
 				select {
 				case <-ctx.Done():
