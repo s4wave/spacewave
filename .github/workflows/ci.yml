@@ -301,8 +301,14 @@ jobs:
             run: '^(TestQuickstartForge(Route|Trace)|TestForge(ScenarioSequence|WorkerExecution)|TestBlog(CoexistenceScenario|QuickstartSetupProbe|QuickstartRetainedStateRegistrationProbe))$'
             timeout_minutes: 20
           - name: session-sync
-            run: '^(TestLocalOnboardingScenario|TestMultiSessionScenario|TestNoCloud(AnonymousParticipantSync|PairingDirect)|TestBackgroundThrottledLifecycle|TestRecreatedPageSharedObjectHealthGuard|TestRetainedStatePagePeerProbe)$'
+            run: '^(TestLocalOnboardingScenario|TestMultiSessionScenario|TestNoCloud(AnonymousParticipantSync|PairingDirect)|TestRecreatedPageSharedObjectHealthGuard|TestRetainedStatePagePeerProbe)$'
             timeout_minutes: 30
+          - name: web-lifecycle-host
+            run: '^(TestDedicatedWorkerHostMultiTab|TestWebDocumentLivenessLockReleaseNoDeletion)$'
+            timeout_minutes: 40
+          - name: web-lifecycle-session
+            run: '^(TestBackgroundThrottledLifecycle|TestNeverFocusedBackgroundTabLoads|TestServiceWorkerRestartRecoversBldrWebHarness)$'
+            timeout_minutes: 40
     timeout-minutes: ${{ matrix.slice.timeout_minutes }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
