@@ -44,8 +44,8 @@ type sessionTracker struct {
 
 	// errCh is pushed if a fatal error failed the session or signaling
 	errCh chan error
-	// rxSignal receives an incoming signaling message
-	rxSignal chan *WebRtcSignal
+	// rxSignal receives an incoming signaling message and its acceptance fence
+	rxSignal chan *incomingSignal
 	// xmitRoutine is the routine that manages transmitting a signaling message
 	xmitRoutine *routine.StateRoutineContainer[*outgoingSignal]
 	// linkRoutine is the routine that manages the Quic link when the session dcOpen.
@@ -53,6 +53,17 @@ type sessionTracker struct {
 	// link contains the current link, if any
 	// w.bcast is broadcasted when this changes
 	link *transport_quic.Link
+}
+
+// incomingSignal holds a decoded signal until a live tracker accepts it.
+type incomingSignal struct {
+	sig      *WebRtcSignal
+	accepted chan struct{}
+}
+
+// accept records that the current live tracker owns the signal.
+func (s *incomingSignal) accept() {
+	close(s.accepted)
 }
 
 // newSessionTracker constructs a new sessionTracker.
@@ -84,7 +95,7 @@ func (w *WebRTC) newSessionTracker(peerIDStr string) (keyed.Routine, *sessionTra
 	)
 	_, _, _ = sess.linkRoutine.SetStateRoutine(sess.executeLink)
 
-	sess.rxSignal = make(chan *WebRtcSignal)
+	sess.rxSignal = make(chan *incomingSignal)
 	sess.xmitRoutine = routine.NewStateRoutineContainer[*outgoingSignal](
 		nil,
 		routine.WithExitCb(func(err error) {
@@ -335,30 +346,29 @@ func (s *sessionTracker) newSession() (*session, <-chan struct{}, error) {
 		return nil, nil, pkgerrors.Wrap(err, "create peer connection")
 	}
 
-	// Create the data channel in advance.
-	negotiated := true
-	protocol := dataChannelID
-	ordered := false // Allow unordered data since Quic can handle it.
-	var channelID uint16 = 1
-	dc, err := pc.CreateDataChannel(dataChannelID, &webrtc.DataChannelInit{
-		// We use the same channel label on both sides and set Negotiated: true.
-		// This avoids sending redundant info via the OnDataChannel callback.
-		Negotiated: &negotiated,
-		Protocol:   &protocol,
-		ID:         &channelID,
-		Ordered:    &ordered,
-	})
-	if err != nil {
-		_ = pc.Close()
-		return nil, nil, pkgerrors.Wrap(err, "create data channel")
-	}
-
-	sess := &session{t: s, pc: pc, dc: dc}
+	sess := &session{t: s, pc: pc}
 
 	var waitCh <-chan struct{}
 	sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		waitCh = getWaitCh()
 	})
+
+	var dc *webrtc.DataChannel
+	var createErr error
+	if err := setCallback("initialize negotiated data channel", func() {
+		dc, createErr = sess.createDataChannel(
+			pc.OnNegotiationNeeded,
+			pc.CreateDataChannel,
+		)
+	}); err != nil {
+		_ = pc.Close()
+		return nil, nil, err
+	}
+	if createErr != nil {
+		_ = pc.Close()
+		return nil, nil, pkgerrors.Wrap(createErr, "create data channel")
+	}
+	sess.dc = dc
 
 	// DataChannel callbacks
 	if err := setCallback("register data channel onopen", func() {
@@ -387,13 +397,6 @@ func (s *sessionTracker) newSession() (*session, <-chan struct{}, error) {
 		_ = pc.Close()
 		return nil, nil, err
 	}
-	if err := setCallback("register peer connection onnegotiationneeded", func() {
-		pc.OnNegotiationNeeded(sess.onNegotiationNeeded)
-	}); err != nil {
-		_ = dc.Close()
-		_ = pc.Close()
-		return nil, nil, err
-	}
 	if err := setCallback("register peer connection onicecandidate", func() {
 		pc.OnICECandidate(sess.onIceCandidate)
 	}); err != nil {
@@ -409,6 +412,27 @@ func (s *sessionTracker) newSession() (*session, <-chan struct{}, error) {
 	return sess, waitCh, nil
 }
 
+// createDataChannel installs negotiation ownership before creating the channel.
+func (s *session) createDataChannel(
+	onNegotiationNeeded func(func()),
+	createDataChannel func(string, *webrtc.DataChannelInit) (*webrtc.DataChannel, error),
+) (*webrtc.DataChannel, error) {
+	onNegotiationNeeded(s.onNegotiationNeeded)
+
+	negotiated := true
+	protocol := dataChannelID
+	ordered := false // Allow unordered data since Quic can handle it.
+	var channelID uint16 = 1
+	return createDataChannel(dataChannelID, &webrtc.DataChannelInit{
+		// We use the same channel label on both sides and set Negotiated: true.
+		// This avoids sending redundant info via the OnDataChannel callback.
+		Negotiated: &negotiated,
+		Protocol:   &protocol,
+		ID:         &channelID,
+		Ordered:    &ordered,
+	})
+}
+
 func (s *session) onNegotiationNeeded() {
 	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		s.localSeqno++
@@ -419,6 +443,15 @@ func (s *session) onNegotiationNeeded() {
 				Debug("negotiation is needed")
 		}
 	})
+}
+
+// acceptIncomingSignalLocked accepts sig only while this session is live.
+// The caller must hold s.bcast.
+func (s *session) acceptIncomingSignalLocked(sig *incomingSignal) {
+	if sig == nil || s.fatalErr != nil || s.connState == webrtc.PeerConnectionStateFailed {
+		return
+	}
+	sig.accept()
 }
 
 func (s *session) onIceCandidate(c *webrtc.ICECandidate) {
@@ -486,6 +519,47 @@ func (s *session) onDataChannelClose() {
 // close closes the session.
 func (s *session) close() {
 	_ = s.pc.Close()
+}
+
+// transmitLocalNegotiation emits one offer or request for each local sequence.
+func (s *sessionTracker) transmitLocalNegotiation(
+	sess *session,
+	le *logrus.Entry,
+	currLocalSeqno uint64,
+	lastLocalSeqno uint64,
+	xmitSignal func(*WebRtcSignal),
+) (uint64, bool, error) {
+	if currLocalSeqno == lastLocalSeqno {
+		return lastLocalSeqno, false, nil
+	}
+
+	var xmit *WebRtcSignal
+	if s.offerer {
+		if s.w.GetVerbose() {
+			le.Debug("signal tx: offer sdp")
+		}
+		localDesc, err := sess.pc.CreateOffer(nil)
+		if err != nil {
+			return lastLocalSeqno, false, pkgerrors.Wrap(err, "create offer")
+		}
+		if err := sess.pc.SetLocalDescription(localDesc); err != nil {
+			return lastLocalSeqno, false, pkgerrors.Wrap(err, "set local description(offer)")
+		}
+		xmit = &WebRtcSignal{
+			Body: &WebRtcSignal_Sdp{Sdp: NewWebRtcSdp(
+				currLocalSeqno,
+				&localDesc,
+			)},
+		}
+	} else {
+		if s.w.GetVerbose() {
+			le.Debug("signal tx: offer request")
+		}
+		xmit = &WebRtcSignal{Body: &WebRtcSignal_RequestOffer{RequestOffer: currLocalSeqno}}
+	}
+
+	xmitSignal(xmit)
+	return currLocalSeqno, true, nil
 }
 
 // execute executes the sessionTracker.
@@ -590,24 +664,24 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	for {
 		phase = "wait for session change"
 		// Wait for something to change or for an incoming signal.
-		var currRxSignal *WebRtcSignal
+		var currIncomingSignal *incomingSignal
 
 		// Prioritize receiving an incoming signal first.
 		select {
 		case <-ctx.Done():
 			return context.Canceled
-		case currRxSignal = <-s.rxSignal:
+		case currIncomingSignal = <-s.rxSignal:
 		default:
 		}
 
 		// Then allow also re-checking in case we need to transmit ice candidates.
-		if currRxSignal == nil {
+		if currIncomingSignal == nil {
 			select {
 			case <-ctx.Done():
 				return context.Canceled
 			case err := <-s.errCh:
 				return err
-			case currRxSignal = <-s.rxSignal:
+			case currIncomingSignal = <-s.rxSignal:
 			case <-signalSent:
 				signalSent = nil
 			case <-waitCh:
@@ -615,12 +689,20 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 			}
 		}
 
+		// A channel receive is not acceptance. The terminal-state transition
+		// and this acceptance fence are serialized by the session owner.
+		if currIncomingSignal != nil {
+			sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+				sess.acceptIncomingSignalLocked(currIncomingSignal)
+			})
+		}
+
 		// Process the incoming signal, if any.
 		var currRxSdp *WebRtcSdp
 		var currRxIce *WebRtcIce
-		if currRxSignal != nil {
+		if currIncomingSignal != nil {
 			phase = "process incoming signal"
-			switch b := currRxSignal.GetBody().(type) {
+			switch b := currIncomingSignal.sig.GetBody().(type) {
 			case *WebRtcSignal_RequestOffer:
 				if !s.offerer {
 					return errors.New("remote peer requested offer but we are not the offerer")
@@ -796,37 +878,19 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 		// Transmit an offer or a request for one when local seqno changes.
 		if currLocalSeqno != lastLocalSeqno {
 			phase = "transmit local negotiation"
-			var xmit *WebRtcSignal
-
-			if s.offerer {
-				if s.w.GetVerbose() {
-					le.Debug("signal tx: offer sdp")
-				}
-				localDesc, err := sess.pc.CreateOffer(nil)
-				if err != nil {
-					return pkgerrors.Wrap(err, "create offer")
-				}
-				if err := sess.pc.SetLocalDescription(localDesc); err != nil {
-					return pkgerrors.Wrap(err, "set local description(offer)")
-				}
-				xmit = &WebRtcSignal{
-					Body: &WebRtcSignal_Sdp{Sdp: NewWebRtcSdp(
-						currLocalSeqno,
-						&localDesc,
-					)},
-				}
-			} else {
-				if s.w.GetVerbose() {
-					le.Debug("signal tx: offer request")
-				}
-				xmit = &WebRtcSignal{Body: &WebRtcSignal_RequestOffer{RequestOffer: currLocalSeqno}}
-			}
-
-			// Encrypt and transmit the message.
-			xmitSignal(xmit)
-
-			// Mark as sent
-			lastLocalSeqno = currLocalSeqno
+		}
+		nextLocalSeqno, transmitted, err := s.transmitLocalNegotiation(
+			sess,
+			le,
+			currLocalSeqno,
+			lastLocalSeqno,
+			xmitSignal,
+		)
+		if err != nil {
+			return err
+		}
+		if transmitted {
+			lastLocalSeqno = nextLocalSeqno
 
 			// Restart sending ice candidates & recheck
 			lastSentICE = 0
