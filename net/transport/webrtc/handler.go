@@ -63,8 +63,33 @@ func (c *WebRTCSignalHandler) Close() error {
 
 // handleSignalPeerResolver resolves HandleSignalPeer.
 type handleSignalPeerResolver struct {
-	t    *WebRTC
-	sess signaling.SignalPeerSession
+	t          *WebRTC
+	sess       signaling.SignalPeerSession
+	releaseRef func(*keyed.KeyedRef[string, *sessionTracker])
+	refStored  func(*keyed.KeyedRef[string, *sessionTracker], *keyed.KeyedRef[string, *sessionTracker])
+}
+
+func (r *handleSignalPeerResolver) releaseIncomingRef(ref *keyed.KeyedRef[string, *sessionTracker]) {
+	if r.releaseRef != nil {
+		r.releaseRef(ref)
+		return
+	}
+	ref.Release()
+}
+
+// storeIncomingRef replaces the map-held reference while r.t.bcast is locked.
+func (r *handleSignalPeerResolver) storeIncomingRef(
+	remotePeerIDStr string,
+	ref *keyed.KeyedRef[string, *sessionTracker],
+) {
+	prev := r.t.incomingSessions[remotePeerIDStr]
+	if prev != nil {
+		r.releaseIncomingRef(prev)
+	}
+	r.t.incomingSessions[remotePeerIDStr] = ref
+	if r.refStored != nil {
+		r.refStored(prev, ref)
+	}
 }
 
 // Resolve resolves the directive.
@@ -79,14 +104,20 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 	var tkr *sessionTracker
 	var ref *keyed.KeyedRef[string, *sessionTracker]
 	defer func() {
-		if ref != nil {
-			r.t.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-				if r.t.incomingSessions[remotePeerIDStr] == ref {
-					delete(r.t.incomingSessions, remotePeerIDStr)
-					broadcast()
-				}
-			})
-			ref.Release()
+		if ref == nil {
+			return
+		}
+
+		var release bool
+		r.t.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			if r.t.incomingSessions[remotePeerIDStr] == ref {
+				delete(r.t.incomingSessions, remotePeerIDStr)
+				release = true
+				broadcast()
+			}
+		})
+		if release {
+			r.releaseIncomingRef(ref)
 		}
 	}()
 
@@ -135,9 +166,9 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 			var execution *sessionTrackerExecution
 			var waitCh <-chan struct{}
 			r.t.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-				// Check if ref is still valid if it's set.
 				if ref != nil {
-					// Reference was released due to a link closing.
+					// The registry transition that replaced or removed this
+					// reference already released it.
 					if currRef := r.t.incomingSessions[remotePeerIDStr]; currRef != ref {
 						ref = nil
 						tkr = nil
@@ -148,7 +179,7 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 				if ref == nil {
 					ref, tkr, _, err = r.t.addSessionTrackerRef(remotePeerIDStr)
 					if err == nil && ref != nil {
-						r.t.incomingSessions[remotePeerIDStr] = ref
+						r.storeIncomingRef(remotePeerIDStr, ref)
 						broadcast()
 					}
 				}
