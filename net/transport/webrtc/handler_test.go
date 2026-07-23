@@ -43,6 +43,14 @@ func (s *testSignalPeerSession) Recv(ctx context.Context) ([]byte, error) {
 }
 
 func TestHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T) {
+	testHandleSignalPeerRetriesRetiredTrackerSignal(t, false)
+}
+
+func TestHandleSignalPeerRetriesSignalAfterRoutineFailure(t *testing.T) {
+	testHandleSignalPeerRetriesRetiredTrackerSignal(t, true)
+}
+
+func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailure bool) {
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 
@@ -91,6 +99,8 @@ func TestHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T) {
 	oldReceived := make(chan *incomingSignal, 1)
 	retireOld := make(chan struct{})
 	replacementDone := make(chan replacementResult, 1)
+	oldRetired := make(chan error, 1)
+	acceptReplacement := make(chan struct{})
 	var generations atomic.Int32
 
 	tpt.sessionTrackers = keyed.NewKeyedRefCount(
@@ -105,73 +115,108 @@ func TestHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T) {
 				rxSignal: make(chan *incomingSignal),
 			}
 			return func(ctx context.Context) error {
+				var oldSession *session
+				var routineErr error
+				var routineErrCh chan error
+				if generation == 1 {
+					oldSession = &session{t: tkr}
+					if routineFailure {
+						// Make the routine error observable before rxSignal. The receive
+						// below deliberately takes the hazardous signal-first branch.
+						routineErrCh = make(chan error, 1)
+						routineErr = pkgerrors.New("controlled routine failure")
+						oldSession.failWithErr(routineErrCh, routineErr)
+					}
+				}
+
+				var incoming *incomingSignal
 				select {
 				case <-ctx.Done():
 					return context.Canceled
-				case incoming := <-tkr.rxSignal:
-					if generation == 1 {
-						oldReceived <- incoming
-						<-retireOld
+				case incoming = <-tkr.rxSignal:
+				}
 
-						oldSession := &session{t: tkr}
-						oldSession.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+				if generation == 1 {
+					oldReceived <- incoming
+					<-retireOld
+
+					oldSession.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+						if !routineFailure {
 							oldSession.connState = pion_webrtc.PeerConnectionStateFailed
-							oldSession.acceptIncomingSignalLocked(incoming)
-						})
-
-						tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-							if ref := tpt.incomingSessions[key]; ref != nil {
-								ref.Release()
-								delete(tpt.incomingSessions, key)
-								broadcast()
-							}
-						})
-						return nil
-					}
-
-					replacementSession := &session{t: tkr}
-					replacementSession.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-						replacementSession.localSeqno = 1
-						replacementSession.acceptIncomingSignalLocked(incoming)
+						}
+						oldSession.acceptIncomingSignalLocked(incoming)
 					})
 
-					pc, err := pion_webrtc.NewPeerConnection(pion_webrtc.Configuration{})
-					if err != nil {
-						replacementDone <- replacementResult{incoming: incoming, err: err}
-						return err
-					}
-					if _, err := pc.CreateDataChannel(dataChannelID, nil); err != nil {
-						if closeErr := pc.Close(); closeErr != nil {
-							err = pkgerrors.Wrapf(err, "close peer connection: %v", closeErr)
+					var retireErr error
+					if routineFailure {
+						if err := <-routineErrCh; err != routineErr {
+							retireErr = pkgerrors.Errorf(
+								"terminal error %v, want %v",
+								err,
+								routineErr,
+							)
 						}
-						replacementDone <- replacementResult{incoming: incoming, err: err}
-						return err
 					}
-					replacementSession.pc = pc
 
-					var offers []*WebRtcSignal
-					_, transmitted, err := tkr.transmitLocalNegotiation(
-						replacementSession,
-						tkr.le,
-						1,
-						0,
-						func(sig *WebRtcSignal) {
-							offers = append(offers, sig)
-						},
-					)
-					if err == nil && !transmitted {
-						err = pkgerrors.New("replacement did not transmit an offer")
-					}
-					if closeErr := pc.Close(); err == nil && closeErr != nil {
-						err = closeErr
-					}
-					replacementDone <- replacementResult{
-						incoming: incoming,
-						offers:   offers,
-						err:      err,
-					}
+					tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+						if ref := tpt.incomingSessions[key]; ref != nil {
+							ref.Release()
+							delete(tpt.incomingSessions, key)
+							broadcast()
+						}
+					})
+					oldRetired <- retireErr
+					return nil
+				}
+
+				select {
+				case <-ctx.Done():
+					return context.Canceled
+				case <-acceptReplacement:
+				}
+
+				replacementSession := &session{t: tkr}
+				replacementSession.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+					replacementSession.localSeqno = 1
+					replacementSession.acceptIncomingSignalLocked(incoming)
+				})
+
+				pc, err := pion_webrtc.NewPeerConnection(pion_webrtc.Configuration{})
+				if err != nil {
+					replacementDone <- replacementResult{incoming: incoming, err: err}
 					return err
 				}
+				if _, err := pc.CreateDataChannel(dataChannelID, nil); err != nil {
+					if closeErr := pc.Close(); closeErr != nil {
+						err = pkgerrors.Wrapf(err, "close peer connection: %v", closeErr)
+					}
+					replacementDone <- replacementResult{incoming: incoming, err: err}
+					return err
+				}
+				replacementSession.pc = pc
+
+				var offers []*WebRtcSignal
+				_, transmitted, err := tkr.transmitLocalNegotiation(
+					replacementSession,
+					tkr.le,
+					1,
+					0,
+					func(sig *WebRtcSignal) {
+						offers = append(offers, sig)
+					},
+				)
+				if err == nil && !transmitted {
+					err = pkgerrors.New("replacement did not transmit an offer")
+				}
+				if closeErr := pc.Close(); err == nil && closeErr != nil {
+					err = closeErr
+				}
+				replacementDone <- replacementResult{
+					incoming: incoming,
+					offers:   offers,
+					err:      err,
+				}
+				return err
 			}, tkr
 		},
 	)
@@ -187,10 +232,19 @@ func TestHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T) {
 	oldIncoming := <-oldReceived
 	select {
 	case <-oldIncoming.accepted:
-		t.Fatal("retiring tracker accepted the signal before terminal state")
+		t.Fatal("retiring tracker accepted the signal before retirement was released")
 	default:
 	}
 	close(retireOld)
+	if err := <-oldRetired; err != nil {
+		t.Fatal(err.Error())
+	}
+	select {
+	case <-oldIncoming.accepted:
+		t.Fatal("failed tracker accepted the signal")
+	default:
+	}
+	close(acceptReplacement)
 
 	replacement := <-replacementDone
 	if replacement.err != nil {
