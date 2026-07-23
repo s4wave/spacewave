@@ -119,7 +119,7 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 		}
 
 		// Loop until the current tracker accepts this message.
-		var deliveredRef *keyed.KeyedRef[string, *sessionTracker]
+		var delivered *sessionTracker
 	ProcessLoop:
 		for {
 			// Acceptance wins over an unrelated transport broadcast. Once accepted,
@@ -158,17 +158,17 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 				return err
 			}
 
-			if deliveredRef != ref {
-				deliveredRef = nil
+			if delivered != tkr {
+				delivered = nil
 			}
-			if deliveredRef == nil {
+			if delivered == nil {
 				select {
 				case <-ctx.Done():
 					return context.Canceled
 				case <-waitCh:
 					continue ProcessLoop
 				case tkr.rxSignal <- incoming:
-					deliveredRef = ref
+					delivered = tkr
 				}
 				continue ProcessLoop
 			}
