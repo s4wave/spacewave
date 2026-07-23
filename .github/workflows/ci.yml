@@ -360,7 +360,7 @@ jobs:
           E2E_WASM_STARTUP_BUILD_CACHE: 'false'
           GO_TEST_REPORT_TITLE: E2E (wasm / ${{ matrix.slice.name }})
           WASM_TEST_RUN: ${{ matrix.slice.run }}
-        run: bun scripts/go-test-report.ts -- go test -json -count=1 -timeout=30m -run "$WASM_TEST_RUN" ./e2e/wasm
+        run: bun scripts/go-test-report.ts -- go test -json -count=1 -timeout=${{ matrix.slice.timeout_minutes }}m -run "$WASM_TEST_RUN" ./e2e/wasm
 
   e2e-wasm-complete:
     name: E2E (wasm)
