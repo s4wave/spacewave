@@ -119,7 +119,8 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 		}
 
 		// Loop until the current tracker accepts this message.
-		var delivered *sessionTracker
+		var deliveredTracker *sessionTracker
+		var deliveredGeneration uint64
 	ProcessLoop:
 		for {
 			// Acceptance wins over an unrelated transport broadcast. Once accepted,
@@ -130,7 +131,8 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 			default:
 			}
 
-			// Ensure our reference is still valid or create one if not.
+			// Read the tracker execution and its transition wait channel together.
+			var execution *sessionTrackerExecution
 			var waitCh <-chan struct{}
 			r.t.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 				// Check if ref is still valid if it's set.
@@ -142,7 +144,7 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 					}
 				}
 
-				// Add the reference if it doesn't exist anymore
+				// Add the reference if it doesn't exist anymore.
 				if ref == nil {
 					ref, tkr, _, err = r.t.addSessionTrackerRef(remotePeerIDStr)
 					if err == nil && ref != nil {
@@ -151,24 +153,37 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 					}
 				}
 
-				// Get next wait channel
+				if tkr != nil {
+					execution = tkr.execution
+				}
 				waitCh = getWaitCh()
 			})
 			if err != nil {
 				return err
 			}
 
-			if delivered != tkr {
-				delivered = nil
-			}
-			if delivered == nil {
+			if execution == nil {
 				select {
 				case <-ctx.Done():
 					return context.Canceled
+				case <-incoming.accepted:
+					break ProcessLoop
 				case <-waitCh:
 					continue ProcessLoop
-				case tkr.rxSignal <- incoming:
-					delivered = tkr
+				}
+			}
+
+			if deliveredTracker != tkr || deliveredGeneration != execution.generation {
+				select {
+				case <-ctx.Done():
+					return context.Canceled
+				case <-incoming.accepted:
+					break ProcessLoop
+				case <-waitCh:
+					continue ProcessLoop
+				case execution.rxSignal <- incoming:
+					deliveredTracker = tkr
+					deliveredGeneration = execution.generation
 				}
 				continue ProcessLoop
 			}

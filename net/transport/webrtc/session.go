@@ -42,11 +42,49 @@ type sessionTracker struct {
 	// offerer indicates if we are offering or answering
 	offerer bool
 
-	// rxSignal receives an incoming signaling message and its acceptance fence
-	rxSignal chan *incomingSignal
+	// executionGeneration identifies each execute invocation on this tracker.
+	// execution is non-nil only while that invocation is live.
+	// w.bcast guards executionGeneration, execution, and link.
+	executionGeneration uint64
+	execution           *sessionTrackerExecution
 	// link contains the current link, if any
-	// w.bcast is broadcasted when this changes
 	link *transport_quic.Link
+}
+
+// sessionTrackerExecution is one live invocation of sessionTracker.execute.
+type sessionTrackerExecution struct {
+	generation uint64
+	rxSignal   chan *incomingSignal
+}
+
+// beginExecution publishes a new execution generation.
+func (s *sessionTracker) beginExecution() *sessionTrackerExecution {
+	var execution *sessionTrackerExecution
+	s.w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		s.executionGeneration++
+		execution = &sessionTrackerExecution{
+			generation: s.executionGeneration,
+			rxSignal:   make(chan *incomingSignal),
+		}
+		s.execution = execution
+		broadcast()
+	})
+	return execution
+}
+
+// retireExecution clears a generation and its incoming-session reference.
+func (s *sessionTracker) retireExecution(execution *sessionTrackerExecution) {
+	s.w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if s.execution != execution {
+			return
+		}
+		s.execution = nil
+		if ref := s.w.incomingSessions[s.key]; ref != nil {
+			ref.Release()
+			delete(s.w.incomingSessions, s.key)
+		}
+		broadcast()
+	})
 }
 
 // incomingSignal holds a decoded signal until a live tracker accepts it.
@@ -76,8 +114,6 @@ func (w *WebRTC) newSessionTracker(peerIDStr string) (keyed.Routine, *sessionTra
 		peerPub: peerPub,
 		offerer: offerer,
 	}
-
-	sess.rxSignal = make(chan *incomingSignal)
 
 	return sess.execute, sess
 }
@@ -559,6 +595,8 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 		}
 	}()
 	s.le.Info("session tracker starting")
+	execution := s.beginExecution()
+	defer s.retireExecution(execution)
 
 	// Construct the PeerConnection and attach the callbacks.
 	phase = "construct session"
@@ -594,19 +632,10 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	linkRoutine.SetContext(ctx, true)
 	xmitRoutine.SetContext(ctx, true)
 
-	// When exiting, clear any references to this tracker from incoming signaling.
-	// The incoming signaling will trigger re-adding a reference if any new messages arrive.
+	// Stop child routines before retiring this execution generation.
 	defer func() {
-		peerIDStr := s.peerID.String()
 		linkRoutine.SetState(nil)
 		xmitRoutine.SetState(nil)
-		s.w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			if ref := s.w.incomingSessions[peerIDStr]; ref != nil {
-				ref.Release()
-				broadcast()
-				delete(s.w.incomingSessions, peerIDStr)
-			}
-		})
 	}()
 
 	// Open the signaling session with the remote peer.
@@ -678,7 +707,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 		select {
 		case <-ctx.Done():
 			return context.Canceled
-		case currIncomingSignal = <-s.rxSignal:
+		case currIncomingSignal = <-execution.rxSignal:
 		default:
 		}
 
@@ -689,7 +718,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 				return context.Canceled
 			case err := <-errCh:
 				return err
-			case currIncomingSignal = <-s.rxSignal:
+			case currIncomingSignal = <-execution.rxSignal:
 			case <-signalSent:
 				signalSent = nil
 			case <-waitCh:

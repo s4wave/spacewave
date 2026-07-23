@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/keyed"
 	pion_webrtc "github.com/pion/webrtc/v4"
 	pkgerrors "github.com/pkg/errors"
@@ -53,6 +54,228 @@ func TestHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T) {
 
 func TestHandleSignalPeerRetriesSignalAfterRoutineFailure(t *testing.T) {
 	testHandleSignalPeerRetriesRetiredTrackerSignal(t, true)
+}
+
+func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	localPriv, localPub, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	localPeerID, err := peer.IDFromPrivateKey(localPriv)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	remotePeerID, err := peer.IDFromPrivateKey(remotePriv)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	remotePeerIDStr := remotePeerID.String()
+
+	sig := &WebRtcSignal{Body: &WebRtcSignal_RequestOffer{RequestOffer: 1}}
+	msg, err := EncodeWebRtcSignal(sig, localPub)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	recvStarted := make(chan struct{}, 2)
+	signalSession := &testSignalPeerSession{
+		localPeerID:  localPeerID,
+		remotePeerID: remotePeerID,
+		recvCh:       make(chan []byte, 1),
+		recvStarted:  recvStarted,
+	}
+	signalSession.recvCh <- msg
+
+	tpt := &WebRTC{
+		le:               logrus.NewEntry(logrus.New()),
+		conf:             &Config{},
+		peerID:           localPeerID,
+		privKey:          localPriv,
+		incomingSessions: make(map[string]*keyed.KeyedRef[string, *sessionTracker]),
+	}
+
+	type executionDelivery struct {
+		tracker   *sessionTracker
+		execution *sessionTrackerExecution
+		incoming  *incomingSignal
+	}
+	type executionResult struct {
+		invocation int32
+		err        error
+	}
+
+	firstReceived := make(chan executionDelivery, 1)
+	secondReceived := make(chan executionDelivery, 1)
+	secondStable := make(chan struct{})
+	failFirst := make(chan struct{})
+	unexpectedInvocation := make(chan int32, 1)
+	routineDone := make(chan executionResult, 3)
+	controlledErr := pkgerrors.New("controlled execution failure")
+	var constructions atomic.Int32
+	var invocations atomic.Int32
+	var deliveries atomic.Int32
+
+	tpt.sessionTrackers = keyed.NewKeyedRefCount(
+		func(key string) (keyed.Routine, *sessionTracker) {
+			constructions.Add(1)
+			tkr := &sessionTracker{
+				w:       tpt,
+				le:      tpt.le,
+				key:     key,
+				peerID:  remotePeerID,
+				offerer: true,
+			}
+			return func(ctx context.Context) (err error) {
+				execution := tkr.beginExecution()
+				invocation := invocations.Add(1)
+				defer func() {
+					tkr.retireExecution(execution)
+					routineDone <- executionResult{invocation: invocation, err: err}
+				}()
+
+				var incoming *incomingSignal
+				select {
+				case <-ctx.Done():
+					return context.Canceled
+				case incoming = <-execution.rxSignal:
+				}
+				deliveries.Add(1)
+				delivery := executionDelivery{
+					tracker:   tkr,
+					execution: execution,
+					incoming:  incoming,
+				}
+
+				switch invocation {
+				case 1:
+					firstReceived <- delivery
+					select {
+					case <-ctx.Done():
+						return context.Canceled
+					case <-failFirst:
+						return controlledErr
+					}
+				case 2:
+					sess := &session{t: tkr}
+					sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+						sess.acceptIncomingSignalLocked(incoming)
+					})
+					secondReceived <- delivery
+
+					select {
+					case <-ctx.Done():
+						return context.Canceled
+					case <-recvStarted:
+						close(secondStable)
+					case <-execution.rxSignal:
+						deliveries.Add(1)
+						return pkgerrors.New("received duplicate signal in one execution")
+					}
+					<-ctx.Done()
+					return context.Canceled
+				default:
+					unexpectedInvocation <- invocation
+					<-ctx.Done()
+					return context.Canceled
+				}
+			}, tkr
+		},
+		keyed.WithBackoff[string, *sessionTracker](func(string) cbackoff.BackOff {
+			return new(cbackoff.ZeroBackOff)
+		}),
+	)
+	tpt.sessionTrackers.SetContext(ctx, true)
+	t.Cleanup(tpt.sessionTrackers.ClearContext)
+
+	dialRef, dialTracker, existed := tpt.sessionTrackers.AddKeyRef(remotePeerIDStr)
+	t.Cleanup(dialRef.Release)
+	if existed {
+		t.Fatal("dial reference unexpectedly found an existing tracker")
+	}
+
+	resolverErr := make(chan error, 1)
+	resolver := &handleSignalPeerResolver{t: tpt, sess: signalSession}
+	go func() {
+		resolverErr <- resolver.Resolve(ctx, nil)
+	}()
+
+	<-recvStarted
+	first := <-firstReceived
+	if first.tracker != dialTracker {
+		t.Fatal("first execution did not use the dial-held tracker")
+	}
+	close(failFirst)
+
+	second := <-secondReceived
+	<-secondStable
+	if second.tracker != first.tracker {
+		t.Fatal("WithBackoff replaced the sessionTracker pointer")
+	}
+	if second.execution.generation != first.execution.generation+1 {
+		t.Fatalf(
+			"execution generation advanced from %d to %d, want exactly one",
+			first.execution.generation,
+			second.execution.generation,
+		)
+	}
+	if second.incoming != first.incoming {
+		t.Fatal("resolver decoded or replaced the retained signal across restart")
+	}
+	select {
+	case <-second.incoming.accepted:
+	default:
+		t.Fatal("restarted execution did not accept the retained signal")
+	}
+	if constructions.Load() != 1 {
+		t.Fatalf("tracker constructions %d, want 1", constructions.Load())
+	}
+	if invocations.Load() != 2 {
+		t.Fatalf("tracker executions %d, want 2", invocations.Load())
+	}
+	if deliveries.Load() != 2 {
+		t.Fatalf("signal deliveries %d, want one per execution", deliveries.Load())
+	}
+	select {
+	case invocation := <-unexpectedInvocation:
+		t.Fatalf("unexpected tracker execution %d", invocation)
+	default:
+	}
+
+	cancel()
+	if err := <-resolverErr; err != context.Canceled {
+		t.Fatalf("resolver returned %v, want context canceled", err)
+	}
+
+	results := make(map[int32]error, 2)
+	for range 2 {
+		result := <-routineDone
+		results[result.invocation] = result.err
+	}
+	if results[1] != controlledErr {
+		t.Fatalf("first execution returned %v, want %v", results[1], controlledErr)
+	}
+	if results[2] != context.Canceled {
+		t.Fatalf("second execution returned %v, want context canceled", results[2])
+	}
+
+	dialRef.Release()
+	if keys := tpt.sessionTrackers.GetKeys(); len(keys) != 0 {
+		t.Fatalf("session trackers still registered after cancellation: %v", keys)
+	}
+	tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if dialTracker.execution != nil {
+			t.Error("tracker execution remained published after cancellation")
+		}
+		if ref := tpt.incomingSessions[remotePeerIDStr]; ref != nil {
+			t.Error("incoming session reference remained after cancellation")
+		}
+	})
 }
 
 func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
@@ -117,15 +340,16 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 		func(key string) (keyed.Routine, *sessionTracker) {
 			generations.Add(1)
 			tkr := &sessionTracker{
-				w:        tpt,
-				le:       tpt.le,
-				key:      key,
-				peerID:   remotePeerID,
-				offerer:  true,
-				rxSignal: make(chan *incomingSignal),
+				w:       tpt,
+				le:      tpt.le,
+				key:     key,
+				peerID:  remotePeerID,
+				offerer: true,
 			}
 			generation = tkr
 			return func(ctx context.Context) (err error) {
+				execution := tkr.beginExecution()
+				defer tkr.retireExecution(execution)
 				defer func() {
 					if rec := recover(); rec != nil {
 						err = pkgerrors.Errorf("tracker panicked: %v", rec)
@@ -137,7 +361,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 				select {
 				case <-ctx.Done():
 					return context.Canceled
-				case incoming = <-tkr.rxSignal:
+				case incoming = <-execution.rxSignal:
 				}
 				deliveries.Add(1)
 				firstReceived <- incoming
@@ -153,7 +377,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 				})
 
 				select {
-				case duplicate := <-tkr.rxSignal:
+				case duplicate := <-execution.rxSignal:
 					deliveries.Add(1)
 					sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 						sess.acceptIncomingSignalLocked(duplicate)
@@ -328,14 +552,15 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 		func(key string) (keyed.Routine, *sessionTracker) {
 			generation := generations.Add(1)
 			tkr := &sessionTracker{
-				w:        tpt,
-				le:       tpt.le,
-				key:      key,
-				peerID:   remotePeerID,
-				offerer:  true,
-				rxSignal: make(chan *incomingSignal),
+				w:       tpt,
+				le:      tpt.le,
+				key:     key,
+				peerID:  remotePeerID,
+				offerer: true,
 			}
 			return func(ctx context.Context) error {
+				execution := tkr.beginExecution()
+				defer tkr.retireExecution(execution)
 				var oldSession *session
 				var routineErr error
 				var routineErrCh chan error
@@ -354,7 +579,7 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 				select {
 				case <-ctx.Done():
 					return context.Canceled
-				case incoming = <-tkr.rxSignal:
+				case incoming = <-execution.rxSignal:
 				}
 
 				if generation == 1 {
@@ -379,13 +604,7 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 						}
 					}
 
-					tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-						if ref := tpt.incomingSessions[key]; ref != nil {
-							ref.Release()
-							delete(tpt.incomingSessions, key)
-							broadcast()
-						}
-					})
+					tkr.retireExecution(execution)
 					oldRetired <- retireErr
 					return nil
 				}
