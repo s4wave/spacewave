@@ -113,9 +113,23 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 			}
 		*/
 
-		// Loop until we manage to process this message.
+		incoming := &incomingSignal{
+			sig:      sig,
+			accepted: make(chan struct{}),
+		}
+
+		// Loop until the current tracker accepts this message.
+		var deliveredRef *keyed.KeyedRef[string, *sessionTracker]
 	ProcessLoop:
 		for {
+			// Acceptance wins over an unrelated transport broadcast. Once accepted,
+			// this signal must never be delivered to another tracker generation.
+			select {
+			case <-incoming.accepted:
+				break ProcessLoop
+			default:
+			}
+
 			// Ensure our reference is still valid or create one if not.
 			var waitCh <-chan struct{}
 			r.t.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
@@ -124,6 +138,7 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 					// Reference was released due to a link closing.
 					if currRef := r.t.incomingSessions[remotePeerIDStr]; currRef != ref {
 						ref = nil
+						tkr = nil
 					}
 				}
 
@@ -143,16 +158,28 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 				return err
 			}
 
-			// Push the message to the tracker
+			if deliveredRef != ref {
+				deliveredRef = nil
+			}
+			if deliveredRef == nil {
+				select {
+				case <-ctx.Done():
+					return context.Canceled
+				case <-waitCh:
+					continue ProcessLoop
+				case tkr.rxSignal <- incoming:
+					deliveredRef = ref
+				}
+				continue ProcessLoop
+			}
+
 			select {
 			case <-ctx.Done():
 				return context.Canceled
-			case <-waitCh:
-				// recheck
-				continue ProcessLoop
-			case tkr.rxSignal <- sig:
-				// Received
+			case <-incoming.accepted:
 				break ProcessLoop
+			case <-waitCh:
+				continue ProcessLoop
 			}
 		}
 	}
