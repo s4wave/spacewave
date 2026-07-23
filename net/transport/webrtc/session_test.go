@@ -7,6 +7,42 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func TestCompleteExecutionWaitsForChildCompletion(t *testing.T) {
+	tpt := &WebRTC{}
+	execution := &sessionTrackerExecution{}
+	tkr := &sessionTracker{w: tpt, execution: execution}
+	linkDone := make(chan struct{})
+	xmitDone := make(chan struct{})
+	completed := make(chan struct{})
+
+	go func() {
+		tkr.completeExecution(execution, linkDone, xmitDone)
+		close(completed)
+	}()
+
+	linkDone <- struct{}{}
+	var retired bool
+	tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		retired = tkr.execution != execution
+	})
+	if retired {
+		t.Fatal("execution retired before transmit child completed")
+	}
+	select {
+	case <-completed:
+		t.Fatal("execution completion returned before transmit child completed")
+	default:
+	}
+
+	xmitDone <- struct{}{}
+	<-completed
+	tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if tkr.execution != nil {
+			t.Error("execution remained published after both children completed")
+		}
+	})
+}
+
 func TestCreateDataChannelRegistersNegotiationCallbackFirst(t *testing.T) {
 	tpt := &WebRTC{
 		conf: &Config{},

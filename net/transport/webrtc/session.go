@@ -87,6 +87,20 @@ func (s *sessionTracker) retireExecution(execution *sessionTrackerExecution) {
 	})
 }
 
+// completeExecution waits for both child routines before retiring the execution.
+func (s *sessionTracker) completeExecution(
+	execution *sessionTrackerExecution,
+	linkDone, xmitDone <-chan struct{},
+) {
+	if linkDone != nil {
+		<-linkDone
+	}
+	if xmitDone != nil {
+		<-xmitDone
+	}
+	s.retireExecution(execution)
+}
+
 // incomingSignal holds a decoded signal until a live tracker accepts it.
 type incomingSignal struct {
 	sig      *WebRtcSignal
@@ -596,7 +610,10 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	}()
 	s.le.Info("session tracker starting")
 	execution := s.beginExecution()
-	defer s.retireExecution(execution)
+	var linkDone, xmitDone <-chan struct{}
+	defer func() {
+		s.completeExecution(execution, linkDone, xmitDone)
+	}()
 
 	// Construct the PeerConnection and attach the callbacks.
 	phase = "construct session"
@@ -634,8 +651,8 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 
 	// Stop child routines before retiring this execution generation.
 	defer func() {
-		linkRoutine.SetState(nil)
-		xmitRoutine.SetState(nil)
+		linkDone, _, _, _ = linkRoutine.SetState(nil)
+		xmitDone, _, _, _ = xmitRoutine.SetState(nil)
 	}()
 
 	// Open the signaling session with the remote peer.
