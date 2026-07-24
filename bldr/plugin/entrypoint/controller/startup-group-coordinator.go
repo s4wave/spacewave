@@ -3,7 +3,6 @@ package plugin_entrypoint_controller
 import (
 	"context"
 	"slices"
-	"sync"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
@@ -29,9 +28,6 @@ type StartupGroupCoordinator struct {
 	// bcast guards terminalByPluginID.
 	bcast              broadcast.Broadcast
 	terminalByPluginID map[string]bool
-
-	startOnce sync.Once
-	startErr  error
 }
 
 // NewStartupGroupCoordinator constructs a startup group coordinator.
@@ -63,21 +59,21 @@ func (c *StartupGroupCoordinator) IsReady() bool {
 }
 
 // Start begins watching the configured startup plugins.
+//
+// Start is idempotent: the readiness container and keyed watcher set both
+// diff internally, so repeated calls are no-ops.
 func (c *StartupGroupCoordinator) Start(ctx context.Context) error {
-	c.startOnce.Do(func() {
-		if len(c.pluginIDs) == 0 {
-			c.readyCtr.SetValue(true)
-			return
-		}
-		if c.source == nil {
-			c.startErr = errors.New("startup plugin reference source is required")
-			return
-		}
+	if len(c.pluginIDs) == 0 {
+		c.readyCtr.SetValue(true)
+		return nil
+	}
+	if c.source == nil {
+		return errors.New("startup plugin reference source is required")
+	}
 
-		c.watchers.SetContext(ctx, true)
-		c.watchers.SyncKeys(c.pluginIDs, false)
-	})
-	return c.startErr
+	c.watchers.SetContext(ctx, true)
+	c.watchers.SyncKeys(c.pluginIDs, false)
+	return nil
 }
 
 // WaitReady waits for the startup group or context cancellation.
