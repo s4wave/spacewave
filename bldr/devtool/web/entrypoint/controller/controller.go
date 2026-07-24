@@ -19,6 +19,7 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	plugin_host_web "github.com/s4wave/spacewave/bldr/plugin/host/web"
@@ -304,6 +305,11 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		return err
 	}
 	defer pluginSchecCtrlRel()
+	startupGroup := plugin_entrypoint_controller.NewStartupGroupCoordinator(
+		devtoolInfo.GetStartPlugins(),
+		pluginSchedCtrl,
+	)
+	pluginSchedCtrl.SetManifestCopyGate(startupGroup)
 
 	// run the web browser plugin loader implementation (for "web/js/wasm" platform)
 	webPluginHostCtrl, webPluginHost, err := plugin_host_web.NewWebHostController(le, b, &plugin_host_web.Config{
@@ -354,6 +360,9 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 			return err
 		}
 		defer plugRef.Release()
+	}
+	if err := startupGroup.Start(ctx); err != nil {
+		return err
 	}
 
 	le.Debug("browser RPC server ready for BrowserProtocolID streams")

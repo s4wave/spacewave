@@ -68,6 +68,8 @@ type Controller struct {
 	hostVolumeCtr *ccontainer.CContainer[*hostVol]
 	// pluginHostsCtr is a container with the set of available plugin hosts.
 	pluginHostsCtr *ccontainer.CContainer[*pluginHostSet]
+	// manifestCopyGate delays startup copies until runtime readiness.
+	manifestCopyGateCtr *ccontainer.CContainer[ManifestCopyGate]
 
 	// pluginInstances manages the list of running plugins by plugin ID.
 	// key: plugin ID
@@ -150,15 +152,16 @@ func NewController(
 ) *Controller {
 	peerID, _ := conf.ParsePeerID()
 	c := &Controller{
-		le:             le,
-		bus:            bus,
-		conf:           conf,
-		objKey:         conf.GetObjectKey(),
-		peerID:         peerID,
-		peerIDStr:      peerID.String(),
-		worldStateCtr:  ccontainer.NewCContainer[world.WorldState](nil),
-		hostVolumeCtr:  ccontainer.NewCContainer[*hostVol](nil),
-		pluginHostsCtr: ccontainer.NewCContainerWithEqual(nil, pluginHostSetEqual),
+		le:                  le,
+		bus:                 bus,
+		conf:                conf,
+		objKey:              conf.GetObjectKey(),
+		peerID:              peerID,
+		peerIDStr:           peerID.String(),
+		worldStateCtr:       ccontainer.NewCContainer[world.WorldState](nil),
+		hostVolumeCtr:       ccontainer.NewCContainer[*hostVol](nil),
+		pluginHostsCtr:      ccontainer.NewCContainerWithEqual(nil, pluginHostSetEqual),
+		manifestCopyGateCtr: ccontainer.NewCContainer[ManifestCopyGate](nil),
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
 			&PluginStatusSnapshot{},
 			pluginStatusSnapshotEqual,
@@ -169,6 +172,19 @@ func NewController(
 	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newPluginInstance, le.WithField("tracker", "running-plugin"))
 	c.hostClient = srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(bifrost_rpc.NewInvoker(bus, "plugin-host", true))))
 	return c
+}
+
+// SetManifestCopyGate sets the runtime readiness gate for startup manifest copies.
+// A nil gate preserves immediate copy behavior.
+func (c *Controller) SetManifestCopyGate(gate ManifestCopyGate) {
+	c.manifestCopyGateCtr.SetValue(gate)
+}
+
+func (c *Controller) getManifestCopyGate() ManifestCopyGate {
+	if c == nil || c.manifestCopyGateCtr == nil {
+		return nil
+	}
+	return c.manifestCopyGateCtr.GetValue()
 }
 
 // GetControllerInfo returns information about the controller.

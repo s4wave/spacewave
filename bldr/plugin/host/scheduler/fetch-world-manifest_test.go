@@ -109,10 +109,11 @@ func TestDirectFetchHandlerSuppressesConfiguredBucketOnly(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	const noCopyBucketID = "dist/project"
+	const worldBucketID = "plugin-host-world"
 	host := &testPluginHost{id: "desktop/linux/amd64"}
 	pi := &pluginInstance{
 		c: &Controller{
-			conf: &Config{NoCopyBucketIds: []string{noCopyBucketID}},
+			conf: &Config{EngineId: worldBucketID, NoCopyBucketIds: []string{noCopyBucketID}},
 		},
 		le:                      le,
 		manifestCopyStatus:      ccontainer.NewCContainer[*manifestCopyStatus](nil),
@@ -139,7 +140,8 @@ func TestDirectFetchHandlerSuppressesConfiguredBucketOnly(t *testing.T) {
 	if status == nil ||
 		status.phase != manifestCopyPhaseSuppressed ||
 		status.class != manifestCopyClassSuppressed ||
-		status.sourceBucketID != noCopyBucketID {
+		status.sourceBucketID != noCopyBucketID ||
+		status.destinationBucketID != worldBucketID {
 		t.Fatalf("suppressed copy status = %#v", status)
 	}
 
@@ -2741,7 +2743,7 @@ func TestDownloadManifestCopiesExternalVolumeDAGAndCachesSourceReads(t *testing.
 	}
 }
 
-func TestDownloadManifestYieldsColdStartCopyUntilPluginRunning(t *testing.T) {
+func TestDownloadManifestYieldsColdStartCopyUntilStartupGroupReady(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 
@@ -2796,14 +2798,16 @@ func TestDownloadManifestYieldsColdStartCopyUntilPluginRunning(t *testing.T) {
 	}
 
 	var wsv world.WorldState = ws
+	gate := newTestManifestCopyGate(false)
 	pi := &pluginInstance{
 		c: &Controller{
-			conf:            &Config{},
-			objKey:          objKey,
-			peerID:          peer.ID("test"),
-			worldStateCtr:   ccontainer.NewCContainer(wsv),
-			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
-			pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+			conf:                &Config{},
+			objKey:              objKey,
+			peerID:              peer.ID("test"),
+			worldStateCtr:       ccontainer.NewCContainer(wsv),
+			manifestCopyGateCtr: ccontainer.NewCContainer[ManifestCopyGate](gate),
+			pluginStatus:        make(map[string]*bldr_plugin.PluginStatus),
+			pluginStatusCtr:     ccontainer.NewCContainer(&PluginStatusSnapshot{}),
 		},
 		le:                      le,
 		pluginID:                "spacewave-core",
@@ -2827,17 +2831,17 @@ func TestDownloadManifestYieldsColdStartCopyUntilPluginRunning(t *testing.T) {
 	waitCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	status, err := pi.manifestCopyStatus.WaitValueWithValidator(waitCtx, func(status *manifestCopyStatus) (bool, error) {
-		return status != nil && status.phase == manifestCopyPhaseWaiting, nil
+		return status != nil && status.phase == manifestCopyPhaseWaitingForStartupGroup, nil
 	}, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if status.class != manifestCopyClassAfterExecuteReady {
-		t.Fatalf("copy class = %q, want %q", status.class, manifestCopyClassAfterExecuteReady)
+	if status.class != manifestCopyClassAfterStartupGroupReady {
+		t.Fatalf("copy class = %q, want %q", status.class, manifestCopyClassAfterStartupGroupReady)
 	}
 	select {
 	case err := <-copyErrCh:
-		t.Fatalf("copy completed before plugin was running: %v", err)
+		t.Fatalf("copy completed before startup group readiness: %v", err)
 	default:
 	}
 
@@ -2855,10 +2859,10 @@ func TestDownloadManifestYieldsColdStartCopyUntilPluginRunning(t *testing.T) {
 		t.Fatalf("manifest errors = %v", errs)
 	}
 	if len(got) != 0 {
-		t.Fatalf("manifest count before running = %d, want 0", len(got))
+		t.Fatalf("manifest count before startup group readiness = %d, want 0", len(got))
 	}
 
-	pi.runningPluginCtr.SetValue(bldr_plugin.NewRunningPlugin(nil))
+	gate.readyCtr.SetValue(true)
 	select {
 	case err := <-copyErrCh:
 		if err != nil {

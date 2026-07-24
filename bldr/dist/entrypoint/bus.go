@@ -20,6 +20,7 @@ import (
 	manifest_fetch_world "github.com/s4wave/spacewave/bldr/manifest/fetch/world"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
@@ -411,6 +412,11 @@ func BuildDistBus(
 		return nil, err
 	}
 	rels = append(rels, pluginSchedCtrlRef.Release)
+	startupGroup := plugin_entrypoint_controller.NewStartupGroupCoordinator(
+		distMeta.GetStartupPlugins(),
+		pluginSchedCtrl,
+	)
+	pluginSchedCtrl.SetManifestCopyGate(startupGroup)
 
 	// build the plugin host controller
 	pluginHostCtrl, pluginHostRel, err := plugin_host_default.StartPluginHost(
@@ -434,6 +440,10 @@ func BuildDistBus(
 			continue
 		}
 		rels = append(rels, pluginRef.Release)
+	}
+	if err := startupGroup.Start(ctx); err != nil {
+		rel()
+		return nil, err
 	}
 
 	distBus.worldEngineID = engineID
