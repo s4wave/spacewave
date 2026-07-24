@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   act,
@@ -10,6 +10,7 @@ import {
 } from '@testing-library/react'
 
 import { getAppPath } from '@s4wave/web/router/app-path.js'
+import { APP_DRAG_MIME } from '@s4wave/web/dnd/app-drag.js'
 import type * as WebState from '@s4wave/web/state/index.js'
 import {
   getBrowserShellTabsStore,
@@ -24,13 +25,39 @@ import {
 } from './ShellTabTestHarness.js'
 import { ShellTabStrip } from './ShellFlexLayout.js'
 import type { ShellDocumentEntry } from './ShellDocumentEntry.js'
+import { buildUnixFSEntryAppDragEnvelope } from './unixfs/unixfs-app-drag.js'
 
 const mockOptimizedLayoutProps = vi.hoisted(() => vi.fn())
+const mockCreateSpace = vi.hoisted(() => vi.fn())
 const continuationEntry: ShellDocumentEntry = {
   kind: 'continuation',
   path: '/',
   params: {},
   incarnation: 'test-document',
+}
+
+function createUnixFSRowDragEvent() {
+  const envelope = buildUnixFSEntryAppDragEnvelope({
+    entry: {
+      id: 'report',
+      name: 'report.md',
+      isDir: false,
+    },
+    currentPath: '/docs',
+    sessionIndex: 7,
+    spaceId: 'space-1',
+    unixfsId: 'files',
+  })
+  if (!envelope) {
+    throw new Error('failed to build UnixFS row drag envelope')
+  }
+  return {
+    dataTransfer: {
+      types: [APP_DRAG_MIME],
+      getData: (format: string) =>
+        format === APP_DRAG_MIME ? JSON.stringify(envelope) : '',
+    },
+  }
 }
 
 vi.mock('@s4wave/web/state/index.js', async () => {
@@ -45,11 +72,15 @@ vi.mock('@s4wave/web/state/index.js', async () => {
   }
 })
 
-vi.mock('./ShellTabContent.js', () => ({
-  ShellTabContent: ({ tabId, path }: { tabId: string; path: string }) => (
-    <div data-testid={`tab-content-${tabId}`}>{path}</div>
-  ),
-}))
+vi.mock('./ShellTabContent.js', () => {
+  function ShellTabContent({ tabId, path }: { tabId: string; path: string }) {
+    useEffect(() => {
+      if (path === '/quickstart/drive') mockCreateSpace()
+    }, [path])
+    return <div data-testid={`tab-content-${tabId}`}>{path}</div>
+  }
+  return { ShellTabContent }
+})
 
 vi.mock('./ShellTabLabel.js', () => ({
   ShellTabLabel: ({ tab }: { tab: { name: string } }) => (
@@ -63,7 +94,9 @@ vi.mock('./ShellTabContextMenu.js', () => ({
 
 vi.mock('./shell-grid-utils.js', () => ({
   encodeGridLayout: () => 'grid-layout',
-  hasGridLayout: () => false,
+  getTabIdsFromModel: (model: { tabs: Array<{ id: string }> }) =>
+    model.tabs.map((tab) => tab.id),
+  hasGridLayout: (model: { isGrid?: boolean }) => model.isGrid === true,
 }))
 
 vi.mock('@aptre/flex-layout', () => {
@@ -124,6 +157,7 @@ vi.mock('@aptre/flex-layout', () => {
     tabset: MockTabSetNode
     tabsetDeleted = false
     tabSetEnableDeleteWhenEmpty = true
+    isGrid = false
     tabs: MockTabNode[]
     actions: Array<{
       type: string
@@ -167,6 +201,16 @@ vi.mock('@aptre/flex-layout', () => {
       }
     }) {
       return new MockModel(json)
+    }
+
+    addExternalSplit(node: { id: string; name: string }) {
+      const tabset = new MockTabSetNode('shell-split', node.id)
+      const tab = new MockTabNode(node.id, node.name, tabset)
+      tabset.children.push(tab)
+      this.tabs.push(tab)
+      this.isGrid = true
+      this.onModelChange?.(this)
+      return tab
     }
 
     visitNodes(callback: (node: MockTabSetNode | MockTabNode) => void) {
@@ -264,14 +308,30 @@ vi.mock('@aptre/flex-layout', () => {
 
   function OptimizedLayout({
     model,
+    onExternalDrag,
     onModelChange,
+    renderTab,
   }: {
     model: MockModel
+    onExternalDrag?: (event: unknown) => unknown
     onModelChange?: (model: MockModel) => void
+    renderTab?: (node: MockTabNode) => React.ReactNode
   }) {
     model.onModelChange = onModelChange
-    mockOptimizedLayoutProps({ model, onModelChange })
-    return <div data-testid="layout-tab-count">{model.tabs.length}</div>
+    mockOptimizedLayoutProps({
+      model,
+      onExternalDrag,
+      onModelChange,
+      renderTab,
+    })
+    return (
+      <>
+        <div data-testid="layout-tab-count">{model.tabs.length}</div>
+        {model.tabs.map((tab) => (
+          <div key={tab.id}>{renderTab?.(tab)}</div>
+        ))}
+      </>
+    )
   }
 
   return {
@@ -702,5 +762,76 @@ describe('ShellTabStrip', () => {
         { id: 'home', name: 'Home', path: '/', creationSequence: 1 },
       ])
     })
+  })
+  it('commits one file drop before publishing its right-side split', async () => {
+    window.location.hash = '#/quickstart/drive'
+    seedShellTabs([
+      {
+        id: 'quickstart',
+        name: 'Drive',
+        path: '/quickstart/drive',
+      },
+    ])
+    const navigations: string[] = []
+    const onHashChange = () => {
+      navigations.push(getAppPath())
+    }
+    window.addEventListener('hashchange', onHashChange)
+
+    render(<ShellTabStrip entry={continuationEntry} />)
+    await waitFor(() => expect(mockCreateSpace).toHaveBeenCalledTimes(1))
+    const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0] as
+      | {
+          model: {
+            isGrid: boolean
+            tabs: Array<{ id: string }>
+            actions: Array<{ type: string; tabId?: string }>
+            addExternalSplit: (node: { id: string; name: string }) => {
+              getId: () => string
+            }
+          }
+          onExternalDrag?: (event: unknown) => unknown
+        }
+      | undefined
+    if (typeof props?.onExternalDrag !== 'function') {
+      throw new Error('shell layout did not provide onExternalDrag')
+    }
+
+    const externalDrag = props.onExternalDrag(createUnixFSRowDragEvent()) as {
+      json: { id: string; name: string }
+      onDrop?: (node?: { getId: () => string }) => void
+    }
+    navigations.length = 0
+    mockCreateSpace.mockClear()
+    act(() => {
+      const droppedNode = props.model.addExternalSplit(externalDrag.json)
+      externalDrag.onDrop?.(droppedNode)
+    })
+
+    await waitFor(() => {
+      const stored = readShellTabsSnapshot()
+      expect(props.model.isGrid).toBe(true)
+      expect(props.model.tabs).toHaveLength(2)
+      expect(stored.records).toHaveLength(2)
+      expect(
+        stored.records.filter((tab) => tab.path === '/quickstart/drive'),
+      ).toHaveLength(1)
+      expect(
+        stored.records.filter(
+          (tab) => tab.path === '/u/7/so/space-1/-/files/-/docs/report.md',
+        ),
+      ).toHaveLength(1)
+      expect(
+        props.model.actions.some(
+          (action) =>
+            action.type === 'selectTab' &&
+            action.tabId === externalDrag.json.id,
+        ),
+      ).toBe(true)
+    })
+    expect(getAppPath()).toBe('/g/grid-layout')
+    window.removeEventListener('hashchange', onHashChange)
+    expect(navigations).not.toContain('/quickstart/drive')
+    expect(mockCreateSpace).not.toHaveBeenCalled()
   })
 })

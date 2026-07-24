@@ -56,7 +56,11 @@ import {
 } from './ShellTabContextMenu.js'
 import { ShellTabContent } from './ShellTabContent.js'
 import { ShellTabLabel } from './ShellTabLabel.js'
-import { hasGridLayout, encodeGridLayout } from './shell-grid-utils.js'
+import {
+  encodeGridLayout,
+  getTabIdsFromModel,
+  hasGridLayout,
+} from './shell-grid-utils.js'
 import { buildShellExternalDrag } from './shell-app-drag.js'
 import { openShellTabInNewTab } from './shell-popout.js'
 
@@ -546,11 +550,16 @@ function ShellTabStripInner({
       // default first selection is not authoritative during that window.
       if (!activeTabId) return
 
-      // Check for transition to grid mode (splits detected)
+      // A grid route is valid only after every model tab has a committed
+      // Shell Tab record. External drops add the model node before their
+      // serialized store mutation commits.
       if (hasGridLayout(newModel)) {
-        const layoutData = encodeGridLayout(newModel)
-        // Navigate to grid mode URL
-        setAppPath(`/g/${layoutData}`)
+        const committedTabIds = new Set(tabsRef.current.map((tab) => tab.id))
+        if (
+          getTabIdsFromModel(newModel).every((id) => committedTabIds.has(id))
+        ) {
+          setAppPath(`/g/${encodeGridLayout(newModel)}`)
+        }
         return
       }
 
@@ -725,8 +734,8 @@ function ShellTabStripInner({
               'shell-content',
             )
           }
-          model.doAction(Actions.selectTab(activeTab.id))
           setAppPath(activeTab.path)
+          model.doAction(Actions.selectTab(activeTab.id))
           markShellEngaged()
         }
         addShellTab(activeTab, { select: true, onCommitted: commitFirst })
