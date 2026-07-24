@@ -13,8 +13,8 @@
 --------
 
 **Spacewave** runs [in your browser] with no servers: a private, encrypted workspace 
-running entirely on your own machine: no account, no setup, no server to run. Sync it
-peer-to-peer between your devices and keep working offline.
+running entirely on your own machine: no account, no setup, no server to run. Syncs 
+peer-to-peer between your devices and works offline.
 
 As your work grows, the workspace becomes a Space: shared encrypted state for
 files, notes, apps, layouts, devices, and workflows. Spaces are multiplayer:
