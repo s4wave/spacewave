@@ -2,6 +2,7 @@ package plugin_host_scheduler
 
 import (
 	"context"
+	"slices"
 
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -15,16 +16,18 @@ type manifestCopyClass string
 const (
 	manifestCopyClassImmediate         manifestCopyClass = "immediate"
 	manifestCopyClassAfterExecuteReady manifestCopyClass = "after-execute-ready"
+	manifestCopyClassSuppressed        manifestCopyClass = "suppressed"
 )
 
 type manifestCopyPhase string
 
 const (
-	manifestCopyPhaseSelected manifestCopyPhase = "selected"
-	manifestCopyPhaseWaiting  manifestCopyPhase = "waiting-for-running"
-	manifestCopyPhaseCopying  manifestCopyPhase = "copying"
-	manifestCopyPhaseDone     manifestCopyPhase = "done"
-	manifestCopyPhaseFailed   manifestCopyPhase = "failed"
+	manifestCopyPhaseSelected   manifestCopyPhase = "selected"
+	manifestCopyPhaseWaiting    manifestCopyPhase = "waiting-for-running"
+	manifestCopyPhaseCopying    manifestCopyPhase = "copying"
+	manifestCopyPhaseDone       manifestCopyPhase = "done"
+	manifestCopyPhaseFailed     manifestCopyPhase = "failed"
+	manifestCopyPhaseSuppressed manifestCopyPhase = "suppressed"
 )
 
 type manifestCopyStatus struct {
@@ -39,7 +42,18 @@ type manifestCopyStatus struct {
 }
 
 func (t *pluginInstance) classifyManifestCopy(manifestSnapshot *bldr_manifest.ManifestSnapshot) manifestCopyClass {
-	if t == nil || t.executePluginRoutine == nil || t.runningPluginCtr == nil || manifestSnapshot == nil {
+	if t == nil || manifestSnapshot == nil {
+		return manifestCopyClassImmediate
+	}
+	if t.c != nil && t.c.conf != nil {
+		ref := manifestSnapshot.GetManifestRef()
+		if ref != nil &&
+			ref.GetBucketId() != "" &&
+			slices.Contains(t.c.conf.GetNoCopyBucketIds(), ref.GetBucketId()) {
+			return manifestCopyClassSuppressed
+		}
+	}
+	if t.executePluginRoutine == nil || t.runningPluginCtr == nil {
 		return manifestCopyClassImmediate
 	}
 	execState := t.executePluginRoutine.GetState()
@@ -85,6 +99,40 @@ func (t *pluginInstance) setManifestCopyStatus(
 	t.manifestCopyStatus.SetValue(status)
 }
 
+func (t *pluginInstance) setDownloadManifestState(
+	ctx context.Context,
+	manifestSnapshot *bldr_manifest.ManifestSnapshot,
+	destinationBucketID string,
+) bool {
+	if t.c.conf.GetDisableCopyManifest() {
+		return false
+	}
+	if t.classifyManifestCopy(manifestSnapshot) != manifestCopyClassSuppressed {
+		_, changed, _, _ := t.downloadManifestRoutine.SetState(manifestSnapshot)
+		return changed
+	}
+
+	_, changed, _, _ := t.downloadManifestRoutine.SetState(nil)
+	ref := manifestSnapshot.GetManifestRef()
+	accounting := t.setManifestCopySelection(
+		ctx,
+		manifestSnapshot,
+		ref.GetBucketId(),
+		destinationBucketID,
+	)
+	trace.Log(ctx, "manifest-copy-phase", string(manifestCopyPhaseSuppressed))
+	trace.Log(ctx, "manifest-copy-class", string(manifestCopyClassSuppressed))
+	t.setManifestCopyStatus(
+		manifestCopyPhaseSuppressed,
+		manifestCopyClassSuppressed,
+		manifestSnapshot,
+		accounting,
+		bucket_lookup.ObjectCopyStats{},
+	)
+	t.emitManifestCopyStartupMark(manifestCopyPhaseSuppressed, bucket_lookup.ObjectCopyStats{}, accounting)
+	return changed
+}
+
 func (t *pluginInstance) waitForStartupExecuteReady(
 	ctx context.Context,
 	class manifestCopyClass,
@@ -117,7 +165,10 @@ func (t *pluginInstance) execDownloadManifest(
 		t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "download plugin manifest", rerr)
 	}()
 
-	if t.c.conf.GetDisableCopyManifest() || manifestSnapshot == nil || manifestSnapshot.GetManifestRef() == nil {
+	if t.c.conf.GetDisableCopyManifest() ||
+		manifestSnapshot == nil ||
+		manifestSnapshot.GetManifestRef() == nil ||
+		t.classifyManifestCopy(manifestSnapshot) == manifestCopyClassSuppressed {
 		return nil
 	}
 

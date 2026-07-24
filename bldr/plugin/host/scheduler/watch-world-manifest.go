@@ -269,11 +269,9 @@ func (t *pluginInstance) processManifestWorldState(
 
 			// Schedule the full-DAG local copy after the execute path so startup
 			// demand fetches get the first chance at worker and shell blocks.
-			// If downloadManifest is nil this stops that routine.
-			if !t.c.conf.GetDisableCopyManifest() {
-				_, changed, _, _ := t.downloadManifestRoutine.SetState(downloadManifest)
-				anyChanged = anyChanged || changed
-			}
+			// A nil or source-suppressed manifest clears the copy routine.
+			changed := t.setDownloadManifestState(ctx, downloadManifest, worldBucketID)
+			anyChanged = anyChanged || changed
 
 			if anyChanged {
 				fields := logrus.Fields{}

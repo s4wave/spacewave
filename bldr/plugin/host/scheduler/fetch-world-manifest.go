@@ -244,9 +244,7 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 				manifestSnapshot: snapshot,
 				pluginHost:       best.host,
 			})
-			if !t.c.conf.GetDisableCopyManifest() {
-				t.downloadManifestRoutine.SetState(snapshot)
-			}
+			t.setDownloadManifestState(ctx, snapshot, "")
 			t.loggedNotFound.Store(false)
 			return
 		}
@@ -258,9 +256,7 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 		}
 
 		t.executePluginRoutine.SetState(nil)
-		if !t.c.conf.GetDisableCopyManifest() {
-			t.downloadManifestRoutine.SetState(nil)
-		}
+		t.setDownloadManifestState(ctx, nil, "")
 	}
 
 	return directive.NewTypedCallbackHandler(

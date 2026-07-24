@@ -105,6 +105,55 @@ func TestDirectFetchHandlerPreservesCurrentStateAcrossEmptyGap(t *testing.T) {
 	}
 }
 
+func TestDirectFetchHandlerSuppressesConfiguredBucketOnly(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	const noCopyBucketID = "dist/project"
+	host := &testPluginHost{id: "desktop/linux/amd64"}
+	pi := &pluginInstance{
+		c: &Controller{
+			conf: &Config{NoCopyBucketIds: []string{noCopyBucketID}},
+		},
+		le:                      le,
+		manifestCopyStatus:      ccontainer.NewCContainer[*manifestCopyStatus](nil),
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+	handler := pi.newDirectFetchHandler(ctx, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	})
+
+	suppressed := bldr_manifest.NewFetchManifestValue([]*bldr_manifest.ManifestRef{
+		newTestManifestRef("spacewave-app", "desktop/linux/amd64", 1, noCopyBucketID),
+	})
+	handler.HandleValueAdded(nil, directive.NewAttachedValue(1, suppressed))
+
+	execState := pi.executePluginRoutine.GetState()
+	if execState == nil || execState.manifestSnapshot == nil {
+		t.Fatal("expected configured no-copy manifest to remain executable")
+	}
+	if pi.downloadManifestRoutine.GetState() != nil {
+		t.Fatal("configured no-copy manifest set download state")
+	}
+	status := pi.manifestCopyStatus.GetValue()
+	if status == nil ||
+		status.phase != manifestCopyPhaseSuppressed ||
+		status.class != manifestCopyClassSuppressed ||
+		status.sourceBucketID != noCopyBucketID {
+		t.Fatalf("suppressed copy status = %#v", status)
+	}
+
+	dynamic := bldr_manifest.NewFetchManifestValue([]*bldr_manifest.ManifestRef{
+		newTestManifestRef("spacewave-app", "desktop/linux/amd64", 2, "dynamic-provider"),
+	})
+	handler.HandleValueAdded(nil, directive.NewAttachedValue(2, dynamic))
+
+	downloadState := pi.downloadManifestRoutine.GetState()
+	if downloadState == nil || downloadState.GetManifestRef().GetBucketId() != "dynamic-provider" {
+		t.Fatalf("dynamic download state = %#v, want dynamic provider", downloadState)
+	}
+}
+
 func TestDirectFetchHandlerPrefersCurrentStateAcrossEqualRevOverlap(t *testing.T) {
 	le := logrus.NewEntry(logrus.New())
 	host := &testPluginHost{id: "desktop/linux/amd64"}
@@ -1752,6 +1801,210 @@ func TestProcessManifestWorldStateRunsDownloadAndExecuteForRemoteManifest(t *tes
 	if execState.manifestSnapshot.GetManifest() == nil ||
 		!execState.manifestSnapshot.GetManifest().GetMeta().EqualVT(ref.GetMeta()) {
 		t.Fatal("execute manifest metadata changed")
+	}
+}
+
+func TestProcessManifestWorldStateSuppressesNoCopyBucketWhileDynamicManifestCopies(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(ocs.Release)
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const (
+		objKey          = "plugin-host"
+		noCopyBucketID  = "dist/project"
+		dynamicBucketID = "dynamic-provider"
+		platformID      = "desktop/darwin/arm64"
+		suppressedID    = "embedded-plugin"
+		dynamicID       = "dynamic-plugin"
+	)
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+	for _, bucketID := range []string{noCopyBucketID, dynamicBucketID} {
+		if _, _, _, err := tb.Volume.ApplyBucketConfig(ctx, &bucket.Config{
+			Id:  bucketID,
+			Rev: 1,
+		}); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	suppressedRef := newTestStoredManifestRefWithDistInBucket(
+		t,
+		ctx,
+		tb,
+		noCopyBucketID,
+		suppressedID,
+		platformID,
+		2,
+	)
+	dynamicRef := newTestStoredManifestRefWithDistInBucket(
+		t,
+		ctx,
+		tb,
+		dynamicBucketID,
+		dynamicID,
+		platformID,
+		2,
+	)
+	for _, ref := range []*bldr_manifest.ManifestRef{suppressedRef, dynamicRef} {
+		manifestKey := bldr_manifest.NewManifestKey(objKey, ref.GetMeta())
+		if err := bldr_manifest_world.ExStoreManifestOp(
+			ctx,
+			ws,
+			peer.ID("test"),
+			manifestKey,
+			[]string{objKey},
+			ref,
+		); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	obj, ok, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatal("expected plugin host manifest store object")
+	}
+	var worldBucketID string
+	if err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		worldBucketID = cursor.GetOpArgs().GetBucketId()
+		return nil
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	var wsv world.WorldState = ws
+	c := &Controller{
+		conf: &Config{
+			NoCopyBucketIds: []string{noCopyBucketID},
+		},
+		objKey:          objKey,
+		peerID:          peer.ID("test"),
+		worldStateCtr:   ccontainer.NewCContainer(wsv),
+		pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
+		pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+	}
+	host := &testPluginHost{id: platformID}
+	newInstance := func(pluginID string) *pluginInstance {
+		return &pluginInstance{
+			c:                       c,
+			le:                      le,
+			pluginID:                pluginID,
+			instanceKey:             pluginID,
+			runningPluginCtr:        ccontainer.NewCContainer(bldr_plugin.NewRunningPlugin(nil)),
+			manifestCopyStatus:      ccontainer.NewCContainer[*manifestCopyStatus](nil),
+			downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+			executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+		}
+	}
+	process := func(pi *pluginInstance) {
+		t.Helper()
+		wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+			pluginHosts: []bldr_plugin_host.PluginHost{host},
+		}, ws, obj)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if !wait {
+			t.Fatal("expected world manifest watch to continue")
+		}
+	}
+
+	suppressed := newInstance(suppressedID)
+	process(suppressed)
+	if suppressed.downloadManifestRoutine.GetState() != nil {
+		t.Fatal("configured no-copy manifest set download state")
+	}
+	suppressedExec := suppressed.executePluginRoutine.GetState()
+	if suppressedExec == nil || suppressedExec.manifestSnapshot == nil {
+		t.Fatal("configured no-copy manifest was not executable")
+	}
+	status := suppressed.manifestCopyStatus.GetValue()
+	if status == nil ||
+		status.phase != manifestCopyPhaseSuppressed ||
+		status.class != manifestCopyClassSuppressed ||
+		status.sourceBucketID != noCopyBucketID ||
+		status.destinationBucketID != worldBucketID {
+		t.Fatalf("suppressed copy status = %#v", status)
+	}
+	if err := suppressed.execDownloadManifest(ctx, suppressedExec.manifestSnapshot); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	dynamic := newInstance(dynamicID)
+	process(dynamic)
+	dynamicDownload := dynamic.downloadManifestRoutine.GetState()
+	if dynamicDownload == nil {
+		t.Fatal("dynamic manifest did not set download state")
+	}
+	if dynamicDownload.GetManifestRef().GetBucketId() != dynamicBucketID {
+		t.Fatalf("dynamic source bucket = %q, want %q", dynamicDownload.GetManifestRef().GetBucketId(), dynamicBucketID)
+	}
+	if err := dynamic.execDownloadManifest(ctx, dynamicDownload); err != nil {
+		t.Fatal(err.Error())
+	}
+	dynamicStatus := dynamic.manifestCopyStatus.GetValue()
+	if dynamicStatus == nil || dynamicStatus.phase != manifestCopyPhaseDone {
+		t.Fatalf("dynamic copy status = %#v, want done", dynamicStatus)
+	}
+
+	suppressedManifests, suppressedErrs, err := bldr_manifest_world.CollectManifestsForManifestID(
+		ctx,
+		ws,
+		suppressedID,
+		[]string{platformID},
+		objKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(suppressedErrs) != 0 {
+		t.Fatalf("suppressed manifest errors = %v", suppressedErrs)
+	}
+	if len(suppressedManifests) != 1 {
+		t.Fatalf("suppressed manifest count = %d, want 1", len(suppressedManifests))
+	}
+	if got := suppressedManifests[0].ManifestRef.GetBucketId(); got != noCopyBucketID {
+		t.Fatalf("suppressed manifest bucket = %q, want authoritative external bucket %q", got, noCopyBucketID)
+	}
+
+	dynamicManifests, dynamicErrs, err := bldr_manifest_world.CollectManifestsForManifestID(
+		ctx,
+		ws,
+		dynamicID,
+		[]string{platformID},
+		objKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(dynamicErrs) != 0 {
+		t.Fatalf("dynamic manifest errors = %v", dynamicErrs)
+	}
+	if len(dynamicManifests) != 1 {
+		t.Fatalf("dynamic manifest count = %d, want 1", len(dynamicManifests))
+	}
+	if got := dynamicManifests[0].ManifestRef.GetBucketId(); got != worldBucketID {
+		t.Fatalf("dynamic manifest bucket = %q, want local world bucket %q", got, worldBucketID)
 	}
 }
 
