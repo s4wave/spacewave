@@ -14,20 +14,22 @@ import (
 type manifestCopyClass string
 
 const (
-	manifestCopyClassImmediate         manifestCopyClass = "immediate"
-	manifestCopyClassAfterExecuteReady manifestCopyClass = "after-execute-ready"
-	manifestCopyClassSuppressed        manifestCopyClass = "suppressed"
+	manifestCopyClassImmediate              manifestCopyClass = "immediate"
+	manifestCopyClassAfterExecuteReady      manifestCopyClass = "after-execute-ready"
+	manifestCopyClassAfterStartupGroupReady manifestCopyClass = "after-startup-group-ready"
+	manifestCopyClassSuppressed             manifestCopyClass = "suppressed"
 )
 
 type manifestCopyPhase string
 
 const (
-	manifestCopyPhaseSelected   manifestCopyPhase = "selected"
-	manifestCopyPhaseWaiting    manifestCopyPhase = "waiting-for-running"
-	manifestCopyPhaseCopying    manifestCopyPhase = "copying"
-	manifestCopyPhaseDone       manifestCopyPhase = "done"
-	manifestCopyPhaseFailed     manifestCopyPhase = "failed"
-	manifestCopyPhaseSuppressed manifestCopyPhase = "suppressed"
+	manifestCopyPhaseSelected               manifestCopyPhase = "selected"
+	manifestCopyPhaseWaiting                manifestCopyPhase = "waiting-for-running"
+	manifestCopyPhaseWaitingForStartupGroup manifestCopyPhase = "waiting-for-startup-group"
+	manifestCopyPhaseCopying                manifestCopyPhase = "copying"
+	manifestCopyPhaseDone                   manifestCopyPhase = "done"
+	manifestCopyPhaseFailed                 manifestCopyPhase = "failed"
+	manifestCopyPhaseSuppressed             manifestCopyPhase = "suppressed"
 )
 
 type manifestCopyStatus struct {
@@ -52,6 +54,10 @@ func (t *pluginInstance) classifyManifestCopy(manifestSnapshot *bldr_manifest.Ma
 			slices.Contains(t.c.conf.GetNoCopyBucketIds(), ref.GetBucketId()) {
 			return manifestCopyClassSuppressed
 		}
+	}
+	gate := t.c.getManifestCopyGate()
+	if gate != nil && !gate.IsReady() {
+		return manifestCopyClassAfterStartupGroupReady
 	}
 	if t.executePluginRoutine == nil || t.runningPluginCtr == nil {
 		return manifestCopyClassImmediate
@@ -133,24 +139,41 @@ func (t *pluginInstance) setDownloadManifestState(
 	return changed
 }
 
-func (t *pluginInstance) waitForStartupExecuteReady(
+func (t *pluginInstance) waitForManifestCopyReady(
 	ctx context.Context,
 	class manifestCopyClass,
 	manifestSnapshot *bldr_manifest.ManifestSnapshot,
 	accounting *manifestCopyAccounting,
 ) error {
-	if class != manifestCopyClassAfterExecuteReady {
+	switch class {
+	case manifestCopyClassImmediate, manifestCopyClassSuppressed:
 		return nil
-	}
-	ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/wait-for-startup-execute-ready")
-	defer task.End()
-	t.logPluginAccountingFields(ctx)
-	logManifestSnapshotAccountingFields(ctx, "download", manifestSnapshot)
+	case manifestCopyClassAfterExecuteReady:
+		ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/wait-for-startup-execute-ready")
+		defer task.End()
+		t.logPluginAccountingFields(ctx)
+		logManifestSnapshotAccountingFields(ctx, "download", manifestSnapshot)
 
-	t.setManifestCopyStatus(manifestCopyPhaseWaiting, class, manifestSnapshot, accounting, bucket_lookup.ObjectCopyStats{})
-	t.emitManifestCopyStartupMark(manifestCopyPhaseWaiting, bucket_lookup.ObjectCopyStats{}, accounting)
-	_, err := t.runningPluginCtr.WaitValue(ctx, nil)
-	return err
+		t.setManifestCopyStatus(manifestCopyPhaseWaiting, class, manifestSnapshot, accounting, bucket_lookup.ObjectCopyStats{})
+		t.emitManifestCopyStartupMark(manifestCopyPhaseWaiting, bucket_lookup.ObjectCopyStats{}, accounting)
+		_, err := t.runningPluginCtr.WaitValue(ctx, nil)
+		return err
+	case manifestCopyClassAfterStartupGroupReady:
+		ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/wait-for-startup-group-ready")
+		defer task.End()
+		t.logPluginAccountingFields(ctx)
+		logManifestSnapshotAccountingFields(ctx, "download", manifestSnapshot)
+
+		t.setManifestCopyStatus(manifestCopyPhaseWaitingForStartupGroup, class, manifestSnapshot, accounting, bucket_lookup.ObjectCopyStats{})
+		t.emitManifestCopyStartupMark(manifestCopyPhaseWaitingForStartupGroup, bucket_lookup.ObjectCopyStats{}, accounting)
+		gate := t.c.getManifestCopyGate()
+		if gate == nil {
+			return nil
+		}
+		return gate.WaitReady(ctx)
+	default:
+		return errors.Errorf("unknown manifest copy class: %q", class)
+	}
 }
 
 // execDownloadManifest copies manifest blocks from the source bucket to the world bucket.
@@ -202,7 +225,7 @@ func (t *pluginInstance) execDownloadManifest(
 	trace.Log(ctx, "startup-fetch-kind", "background-manifest-dag-copy")
 	trace.Log(ctx, "manifest-copy-class", string(class))
 
-	if err := t.waitForStartupExecuteReady(ctx, class, manifestSnapshot, accounting); err != nil {
+	if err := t.waitForManifestCopyReady(ctx, class, manifestSnapshot, accounting); err != nil {
 		return err
 	}
 	materializerCtx, materializerTask := trace.NewTask(ctx, "bldr/plugin-host-scheduler/materializer")

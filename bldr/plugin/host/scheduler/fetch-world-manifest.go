@@ -244,7 +244,7 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 				manifestSnapshot: snapshot,
 				pluginHost:       best.host,
 			})
-			t.setDownloadManifestState(ctx, snapshot, "")
+			t.setDownloadManifestState(ctx, snapshot, t.c.conf.GetEngineId())
 			t.loggedNotFound.Store(false)
 			return
 		}
@@ -256,7 +256,7 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 		}
 
 		t.executePluginRoutine.SetState(nil)
-		t.setDownloadManifestState(ctx, nil, "")
+		t.setDownloadManifestState(ctx, nil, t.c.conf.GetEngineId())
 	}
 
 	return directive.NewTypedCallbackHandler(
