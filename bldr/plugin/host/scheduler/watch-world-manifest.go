@@ -207,8 +207,9 @@ func (t *pluginInstance) processManifestWorldState(
 				if !needsDownload || noCopy {
 					executeManifest = manifestSnapshot
 					executeManifestHost = manifestPluginHost
-					if noCopy {
+					if noCopy && downloadManifest == nil {
 						downloadManifest = manifestSnapshot
+						downloadManifestHost = manifestPluginHost
 					}
 					break
 				}

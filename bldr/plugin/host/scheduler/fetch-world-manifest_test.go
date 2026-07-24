@@ -1514,111 +1514,58 @@ func TestWatchWorldManifestRecordsCompactSkippedRefStatusWhenNoCandidate(t *test
 	}
 }
 
-func TestWatchWorldManifestPrefersLocalExecutableOverNewerDownload(t *testing.T) {
-	ctx := context.Background()
-	le := logrus.NewEntry(logrus.New())
-
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer tb.Release()
-
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer ocs.Release()
-
-	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	const objKey = "plugin-host"
-	if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	remoteRef := newTestStoredManifestRefInBucket(t, ctx, tb, "remote-bucket", "spacewave-core", "desktop/darwin/arm64", 9)
-	const remoteRefKey = "plugin-host/ref/remote-newer"
-	storeTestManifestRefObject(t, ctx, ws, remoteRefKey, remoteRef)
-	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, remoteRefKey, "spacewave-core")); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	localRef, localRefKey := storeTestWorldManifest(t, ctx, ws, "spacewave-core", "desktop/darwin/arm64", 7)
-	if err := ws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objKey, localRefKey, "spacewave-core")); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	host := &testPluginHost{id: "desktop/darwin/arm64"}
-	pi := &pluginInstance{
-		c: &Controller{
-			conf:   &Config{},
-			objKey: objKey,
-		},
-		le:                      le,
-		pluginID:                "spacewave-core",
-		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
-		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
-	}
-
-	obj, ok, err := ws.GetObject(ctx, objKey)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if !ok {
-		t.Fatal("expected plugin host object")
-	}
-
-	wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
-		pluginHosts: []bldr_plugin_host.PluginHost{host},
-	}, ws, obj)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if !wait {
-		t.Fatal("expected watch loop to wait for changes")
-	}
-
-	downloadState := pi.downloadManifestRoutine.GetState()
-	if downloadState == nil {
-		t.Fatal("expected newer remote manifest to be queued for download")
-	}
-	if !downloadState.GetManifestRef().EqualVT(remoteRef.GetManifestRef()) {
-		t.Fatal("expected download state to use newest remote manifest")
-	}
-
-	execState := pi.executePluginRoutine.GetState()
-	if execState == nil || execState.manifestSnapshot == nil {
-		t.Fatal("expected execute state from local manifest")
-	}
-	if execState.pluginHost != host {
-		t.Fatal("expected execute state to use matching plugin host")
-	}
-	if !execState.manifestSnapshot.GetManifestRef().EqualVT(localRef.GetManifestRef()) {
-		t.Fatal("expected local executable manifest to remain selected while newer remote downloads")
-	}
-}
-
-func TestWatchWorldManifestSelectsBestNoCopyOrLocalExecutable(t *testing.T) {
+func TestWatchWorldManifestSelectsManifestClassPairsByRevision(t *testing.T) {
+	const (
+		manifestClassLocal   = "local"
+		manifestClassNoCopy  = "no-copy"
+		manifestClassDynamic = "dynamic-external"
+	)
 	tests := []struct {
-		name       string
-		localRev   uint64
-		noCopyRev  uint64
-		wantNoCopy bool
+		name              string
+		newerClass        string
+		olderClass        string
+		wantExecuteClass  string
+		wantDownloadClass string
 	}{
 		{
-			name:       "newer no-copy wins",
-			localRev:   7,
-			noCopyRev:  9,
-			wantNoCopy: true,
+			name:             "newer local over older no-copy",
+			newerClass:       manifestClassLocal,
+			olderClass:       manifestClassNoCopy,
+			wantExecuteClass: manifestClassLocal,
 		},
 		{
-			name:      "newer local wins",
-			localRev:  9,
-			noCopyRev: 7,
+			name:              "newer no-copy over older local",
+			newerClass:        manifestClassNoCopy,
+			olderClass:        manifestClassLocal,
+			wantExecuteClass:  manifestClassNoCopy,
+			wantDownloadClass: manifestClassNoCopy,
+		},
+		{
+			name:             "newer local over older dynamic",
+			newerClass:       manifestClassLocal,
+			olderClass:       manifestClassDynamic,
+			wantExecuteClass: manifestClassLocal,
+		},
+		{
+			name:              "newer dynamic over older local",
+			newerClass:        manifestClassDynamic,
+			olderClass:        manifestClassLocal,
+			wantExecuteClass:  manifestClassLocal,
+			wantDownloadClass: manifestClassDynamic,
+		},
+		{
+			name:              "newer no-copy over older dynamic",
+			newerClass:        manifestClassNoCopy,
+			olderClass:        manifestClassDynamic,
+			wantExecuteClass:  manifestClassNoCopy,
+			wantDownloadClass: manifestClassNoCopy,
+		},
+		{
+			name:              "newer dynamic over older no-copy",
+			newerClass:        manifestClassDynamic,
+			olderClass:        manifestClassNoCopy,
+			wantExecuteClass:  manifestClassNoCopy,
+			wantDownloadClass: manifestClassDynamic,
 		},
 	}
 
@@ -1645,56 +1592,72 @@ func TestWatchWorldManifestSelectsBestNoCopyOrLocalExecutable(t *testing.T) {
 			}
 
 			const (
-				objKey         = "plugin-host"
-				noCopyBucketID = "dist/project"
+				objKey          = "plugin-host"
+				noCopyBucketID  = "dist/project"
+				dynamicBucketID = "dynamic-provider"
+				manifestID      = "spacewave-core"
+				platformID      = "desktop/darwin/arm64"
 			)
 			if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
 				t.Fatal(err.Error())
 			}
 
-			noCopyRef := newTestStoredManifestRefInBucket(
-				t,
-				ctx,
-				tb,
-				noCopyBucketID,
-				"spacewave-core",
-				"desktop/darwin/arm64",
-				tt.noCopyRev,
-			)
-			const noCopyRefKey = "plugin-host/ref/no-copy"
-			storeTestManifestRefObject(t, ctx, ws, noCopyRefKey, noCopyRef)
-			if err := ws.SetGraphQuad(
-				ctx,
-				bldr_manifest_world.NewManifestQuad(objKey, noCopyRefKey, "spacewave-core"),
-			); err != nil {
-				t.Fatal(err.Error())
+			storeCandidate := func(class string, rev uint64) *bldr_manifest.ManifestRef {
+				var ref *bldr_manifest.ManifestRef
+				var refKey string
+				switch class {
+				case manifestClassLocal:
+					ref, refKey = storeTestWorldManifest(
+						t,
+						ctx,
+						ws,
+						manifestID,
+						platformID,
+						rev,
+					)
+				case manifestClassNoCopy, manifestClassDynamic:
+					bucketID := dynamicBucketID
+					if class == manifestClassNoCopy {
+						bucketID = noCopyBucketID
+					}
+					ref = newTestStoredManifestRefInBucket(
+						t,
+						ctx,
+						tb,
+						bucketID,
+						manifestID,
+						platformID,
+						rev,
+					)
+					refKey = "plugin-host/ref/" + class
+					storeTestManifestRefObject(t, ctx, ws, refKey, ref)
+				default:
+					t.Fatalf("unknown manifest class %q", class)
+				}
+				if err := ws.SetGraphQuad(
+					ctx,
+					bldr_manifest_world.NewManifestQuad(objKey, refKey, manifestID),
+				); err != nil {
+					t.Fatal(err.Error())
+				}
+				return ref
 			}
 
-			localRef, localRefKey := storeTestWorldManifest(
-				t,
-				ctx,
-				ws,
-				"spacewave-core",
-				"desktop/darwin/arm64",
-				tt.localRev,
-			)
-			if err := ws.SetGraphQuad(
-				ctx,
-				bldr_manifest_world.NewManifestQuad(objKey, localRefKey, "spacewave-core"),
-			); err != nil {
-				t.Fatal(err.Error())
+			refs := map[string]*bldr_manifest.ManifestRef{
+				tt.newerClass: storeCandidate(tt.newerClass, 9),
+				tt.olderClass: storeCandidate(tt.olderClass, 7),
 			}
-
-			host := &testPluginHost{id: "desktop/darwin/arm64"}
-			pi := &pluginInstance{
-				c: &Controller{
-					conf: &Config{
-						NoCopyBucketIds: []string{noCopyBucketID},
-					},
-					objKey: objKey,
+			host := &testPluginHost{id: platformID}
+			ctrl := &Controller{
+				conf: &Config{
+					NoCopyBucketIds: []string{noCopyBucketID},
 				},
+				objKey: objKey,
+			}
+			pi := &pluginInstance{
+				c:                       ctrl,
 				le:                      le,
-				pluginID:                "spacewave-core",
+				pluginID:                manifestID,
 				manifestCopyStatus:      ccontainer.NewCContainer[*manifestCopyStatus](nil),
 				downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
 				executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
@@ -1707,7 +1670,6 @@ func TestWatchWorldManifestSelectsBestNoCopyOrLocalExecutable(t *testing.T) {
 			if !ok {
 				t.Fatal("expected plugin host object")
 			}
-
 			wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
 				pluginHosts: []bldr_plugin_host.PluginHost{host},
 			}, ws, obj)
@@ -1722,22 +1684,45 @@ func TestWatchWorldManifestSelectsBestNoCopyOrLocalExecutable(t *testing.T) {
 			if execState == nil || execState.manifestSnapshot == nil {
 				t.Fatal("expected executable manifest selection")
 			}
-			wantRef := localRef.GetManifestRef()
-			if tt.wantNoCopy {
-				wantRef = noCopyRef.GetManifestRef()
-			}
-			if !execState.manifestSnapshot.GetManifestRef().EqualVT(wantRef) {
+			wantExecuteRef := refs[tt.wantExecuteClass].GetManifestRef()
+			if !execState.manifestSnapshot.GetManifestRef().EqualVT(wantExecuteRef) {
 				t.Fatalf(
-					"execute ref = %s, want %s",
+					"execute ref = %s, want %s class ref %s",
 					execState.manifestSnapshot.GetManifestRef().MarshalString(),
-					wantRef.MarshalString(),
+					tt.wantExecuteClass,
+					wantExecuteRef.MarshalString(),
 				)
 			}
-			if pi.downloadManifestRoutine.GetState() != nil {
-				t.Fatal("execute-eligible manifest unexpectedly scheduled a copy")
+
+			recovery := ctrl.pluginManifestRecoveryStatus[pluginInstanceKey(manifestID, "")]
+			if recovery == nil {
+				t.Fatal("expected retained manifest selection status")
+			}
+			wantDownloadRef := ""
+			if tt.wantDownloadClass != "" {
+				wantDownloadRef = refs[tt.wantDownloadClass].GetManifestRef().MarshalB58()
+			}
+			if recovery.DownloadManifestRef != wantDownloadRef {
+				t.Fatalf(
+					"download candidate = %q, want %s class ref %q",
+					recovery.DownloadManifestRef,
+					tt.wantDownloadClass,
+					wantDownloadRef,
+				)
 			}
 
-			if tt.wantNoCopy {
+			downloadState := pi.downloadManifestRoutine.GetState()
+			if tt.wantDownloadClass == manifestClassDynamic {
+				wantDynamicRef := refs[manifestClassDynamic].GetManifestRef()
+				if downloadState == nil ||
+					!downloadState.GetManifestRef().EqualVT(wantDynamicRef) {
+					t.Fatalf("download state = %#v, want dynamic manifest", downloadState)
+				}
+			} else if downloadState != nil {
+				t.Fatalf("non-dynamic candidate unexpectedly scheduled a copy: %#v", downloadState)
+			}
+
+			if tt.wantDownloadClass == manifestClassNoCopy {
 				status := pi.manifestCopyStatus.GetValue()
 				if status == nil ||
 					status.phase != manifestCopyPhaseSuppressed ||
