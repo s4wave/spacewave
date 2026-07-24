@@ -1,2 +1,4 @@
 *.pb.* linguist-generated
 *.pb.* -diff
+.protoc-manifest.json linguist-generated
+.protoc-manifest.json -diff
