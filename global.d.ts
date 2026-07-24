@@ -1,5 +1,5 @@
 import 'csstype'
-import 'react'
+import './web/react-css.d.ts'
 
 // CSS
 declare module '*.css'
@@ -35,15 +35,6 @@ declare module '*.svg' {
 declare module 'csstype' {
   interface StandardLonghandProperties<TLength = (string & {}) | 0, TTime = string & {}> {
     WebkitAppRegion?: 'drag' | 'no-drag' | string
-  }
-}
-
-// React's CSSProperties uses closed csstype typing with no index signature, so
-// inline CSS custom properties (--foo) are rejected. Re-admit only --prefixed
-// keys; standard property typos still fail.
-declare module 'react' {
-  interface CSSProperties {
-    [customProperty: `--${string}`]: string | number | undefined
   }
 }
 
