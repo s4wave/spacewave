@@ -4,9 +4,10 @@ import (
 	"context"
 	"slices"
 	"sync"
-	"sync/atomic"
 
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 )
@@ -23,9 +24,13 @@ type StartupGroupCoordinator struct {
 	pluginIDs []string
 	source    StartupPluginReferenceSource
 	readyCtr  *ccontainer.CContainer[bool]
-	remaining atomic.Int64
+	watchers  *keyed.Keyed[string, struct{}]
+
+	// bcast guards terminalByPluginID.
+	bcast              broadcast.Broadcast
+	terminalByPluginID map[string]bool
+
 	startOnce sync.Once
-	readyOnce sync.Once
 	startErr  error
 }
 
@@ -37,11 +42,14 @@ func NewStartupGroupCoordinator(
 	pluginIDs = slices.Clone(pluginIDs)
 	slices.Sort(pluginIDs)
 	pluginIDs = slices.Compact(pluginIDs)
-	return &StartupGroupCoordinator{
-		pluginIDs: pluginIDs,
-		source:    source,
-		readyCtr:  ccontainer.NewCContainer(false),
+	c := &StartupGroupCoordinator{
+		pluginIDs:          pluginIDs,
+		source:             source,
+		readyCtr:           ccontainer.NewCContainer(false),
+		terminalByPluginID: make(map[string]bool, len(pluginIDs)),
 	}
+	c.watchers = keyed.NewKeyed(c.newPluginWatcher)
+	return c
 }
 
 // GetReadyCtr returns the watchable startup-group readiness state.
@@ -58,7 +66,7 @@ func (c *StartupGroupCoordinator) IsReady() bool {
 func (c *StartupGroupCoordinator) Start(ctx context.Context) error {
 	c.startOnce.Do(func() {
 		if len(c.pluginIDs) == 0 {
-			c.markReady()
+			c.readyCtr.SetValue(true)
 			return
 		}
 		if c.source == nil {
@@ -66,11 +74,8 @@ func (c *StartupGroupCoordinator) Start(ctx context.Context) error {
 			return
 		}
 
-		c.remaining.Store(int64(len(c.pluginIDs)))
-		for _, pluginID := range c.pluginIDs {
-			ref, release := c.source.AddPluginReference(pluginID, "")
-			go c.watchPlugin(ctx, ref, release)
-		}
+		c.watchers.SetContext(ctx, true)
+		c.watchers.SyncKeys(c.pluginIDs, false)
 	})
 	return c.startErr
 }
@@ -81,39 +86,55 @@ func (c *StartupGroupCoordinator) WaitReady(ctx context.Context) error {
 	return err
 }
 
-func (c *StartupGroupCoordinator) watchPlugin(
-	ctx context.Context,
-	ref bldr_plugin.RunningPluginRef,
-	release func(),
-) {
-	if release != nil {
-		defer release()
-	}
-	if ref == nil {
-		return
-	}
+func (c *StartupGroupCoordinator) newPluginWatcher(
+	pluginID string,
+) (keyed.Routine, struct{}) {
+	return func(ctx context.Context) error {
+		ref, release := c.source.AddPluginReference(pluginID, "")
+		if release != nil {
+			defer release()
+		}
+		if ref == nil {
+			return nil
+		}
 
-	stateCtr := ref.GetPluginLoadStateCtr()
-	var current bldr_plugin.PluginLoadState
-	for {
-		next, err := stateCtr.WaitValueChange(ctx, current, nil)
-		if err != nil {
-			return
-		}
-		current = next
-		switch next.GetInitialCapabilityRegistrationState() {
-		case bldr_plugin.InitialCapabilityRegistrationComplete,
-			bldr_plugin.InitialCapabilityRegistrationFailed:
-			if c.remaining.Add(-1) == 0 {
-				c.markReady()
+		stateCtr := ref.GetPluginLoadStateCtr()
+		var current bldr_plugin.PluginLoadState
+		for {
+			next, err := stateCtr.WaitValueChange(ctx, current, nil)
+			if err != nil {
+				return nil
 			}
-			return
+			current = next
+			switch next.GetInitialCapabilityRegistrationState() {
+			case bldr_plugin.InitialCapabilityRegistrationComplete,
+				bldr_plugin.InitialCapabilityRegistrationFailed:
+				c.setPluginTerminal(pluginID)
+				return nil
+			}
 		}
-	}
+	}, struct{}{}
 }
 
-func (c *StartupGroupCoordinator) markReady() {
-	c.readyOnce.Do(func() {
-		c.readyCtr.SetValue(true)
+func (c *StartupGroupCoordinator) setPluginTerminal(pluginID string) {
+	var ready bool
+	var changed bool
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if c.terminalByPluginID[pluginID] {
+			return
+		}
+		c.terminalByPluginID[pluginID] = true
+		changed = true
+		ready = true
+		for _, id := range c.pluginIDs {
+			if !c.terminalByPluginID[id] {
+				ready = false
+				break
+			}
+		}
+		broadcast()
 	})
+	if changed {
+		c.readyCtr.SetValue(ready)
+	}
 }
