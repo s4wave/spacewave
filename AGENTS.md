@@ -252,6 +252,35 @@ a subdirectory.
   404.
 - When adding TypeScript that must be bundled for Electron or browser
   entrypoints, update the relevant `//go:embed` `DistSources` in `dist.go`.
+- `DistSources` may also grow so a downstream Bldr app can resolve a Spacewave
+  TypeScript subpath from `.bldr/src` instead of a sibling checkout. This serves
+  the `web/` plugin-importable surface named under Package Boundaries; it does
+  not widen that surface. Embed only the subpaths that app imports plus their
+  transitive TypeScript imports.
+  Downstream apps consume leaf modules, so the transitive set is usually larger
+  than the import list and must be walked, not guessed. Never embed a whole
+  domain tree or the app surface to save that walk.
+- Match the existing entry style and prefer the narrowest form that covers the
+  need: an exact file list (`sdk/resource/client.ts sdk/resource/resource.ts`)
+  or a single-directory extension glob (`web/fetch/*.ts`). Whole-directory
+  entries such as `web/electron` exist for entrypoint trees and are not the
+  default for new downstream additions.
+- Embed TypeScript and TSX only. Go reaches downstream projects through
+  `vendor/`, so domain `.go` never belongs in `DistSources`. The handful of
+  embedded `deps.go` and `web.go` entries are `deps_only` build-tag stubs that
+  let the dist module resolve packages referenced by `.proto` files; they are
+  not precedent for embedding Go logic.
+- `//go:embed` patterns cannot contain `..`, so `bldr/dist.go` reaches only
+  paths under `bldr/`. A downstream `@s4wave/web/...` import resolves against
+  the repository-root `web/` tree, which `bldr/dist.go` cannot embed. Exporting
+  that tree needs an embed rooted inside it, not a wider pattern in
+  `bldr/dist.go`. Note also that `.bldr/src/web` is `bldr/web`, a different tree
+  from `web/`, so mapping a downstream alias at `.bldr/src/web` silently
+  resolves the wrong sources.
+- `go mod vendor` keeps a directory's full contents once any Go file makes it a
+  package, so a TypeScript-only directory under `web/` vendors as empty while a
+  sibling with generated Go vendors completely. Do not infer downstream
+  TypeScript availability from a populated `vendor/` path.
 - Treat Bldr config as the build graph. Change it only when the task truly
   changes build inputs, manifests, platform targets, or generated exports.
 
