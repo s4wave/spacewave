@@ -166,14 +166,14 @@ func (t *pluginInstance) processManifestWorldState(
 			worldBucketID := bls.GetOpArgs().GetBucketId()
 			trace.Log(ctx, "world-bucket-id", worldBucketID)
 
-			// decide the "download manifest" and the "execute manifest" based on which is fully downloaded
-			// we consider a manifest to be fully downloaded if its ref bucket matches the world bucket
-			// this way we will fully download the manifest(s) before swapping in a new version
+			// Select an execute manifest that is local or backed by an
+			// authoritative no-copy bucket. Other external manifests must be
+			// copied into the world bucket before execution switches to them.
 			var downloadManifest, executeManifest *bldr_manifest.ManifestSnapshot
 			var downloadManifestHost, executeManifestHost plugin_host.PluginHost
 
-			// Prefer candidates in descending revision order, but keep looking
-			// for an already-local manifest after recording the best download.
+			// Prefer candidates in sorted order, but keep looking past external
+			// copy candidates for an execute-eligible manifest.
 			for _, manifest := range manifests {
 				// find the corresponding plugin host
 				manifestPlatformID := manifest.Manifest.GetMeta().GetPlatformId()
@@ -193,7 +193,9 @@ func (t *pluginInstance) processManifestWorldState(
 					manifest.ManifestRef.BucketId = worldBucketID
 				}
 
-				// needs download if bucket id differs
+				// Configured no-copy buckets remain authoritative without a
+				// local DAG copy and are therefore execute-eligible.
+				noCopy := slices.Contains(t.c.conf.GetNoCopyBucketIds(), manifestBucketID)
 				needsDownload := manifestBucketID != worldBucketID
 
 				// create the snapshot
@@ -202,10 +204,12 @@ func (t *pluginInstance) processManifestWorldState(
 					Manifest:    manifest.Manifest,
 				}
 
-				if !needsDownload {
-					// we have our downloaded manifest to execute.
+				if !needsDownload || noCopy {
 					executeManifest = manifestSnapshot
 					executeManifestHost = manifestPluginHost
+					if noCopy {
+						downloadManifest = manifestSnapshot
+					}
 					break
 				}
 
