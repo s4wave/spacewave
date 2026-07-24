@@ -25,6 +25,7 @@ func NewConfig(
 	watchFetchManifest,
 	disableStoreManifest,
 	disableCopyManifest bool,
+	noCopyBucketIDs ...string,
 ) *Config {
 	return &Config{
 		EngineId:  engineID,
@@ -35,6 +36,7 @@ func NewConfig(
 		WatchFetchManifest:   watchFetchManifest,
 		DisableStoreManifest: disableStoreManifest,
 		DisableCopyManifest:  disableCopyManifest,
+		NoCopyBucketIds:      slices.Clone(noCopyBucketIDs),
 	}
 }
 

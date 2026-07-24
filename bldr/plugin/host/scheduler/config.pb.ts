@@ -107,6 +107,13 @@ export interface Config {
    */
   disableCopyManifest?: boolean
   /**
+   * NoCopyBucketIds lists source buckets that remain authoritative without a
+   * full-DAG copy.
+   *
+   * @generated from field: repeated string no_copy_bucket_ids = 13;
+   */
+  noCopyBucketIds?: string[]
+  /**
    * FetchConcurrency limits the number of blocks fetched concurrently per-manifest.
    * If zero, uses no limit to the number of concurrent fetches.
    *
@@ -166,6 +173,13 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       name: 'disable_copy_manifest',
       kind: 'scalar',
       T: ScalarType.BOOL,
+    },
+    {
+      no: 13,
+      name: 'no_copy_bucket_ids',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
     },
     { no: 7, name: 'fetch_concurrency', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 8, name: 'fetch_backoff', kind: 'message', T: () => Backoff },

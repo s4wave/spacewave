@@ -385,29 +385,32 @@ func BuildDistBus(
 	}
 
 	// build the plugin scheduler
-	pluginSchedCtrl, pluginSchedCtrlRel, err := plugin_host_default.StartPluginScheduler(
-		ctx,
-		b,
+	pluginSchedConf := plugin_host_default.NewSchedulerConfig(
 		engineID,
 		pluginHostObjectKey,
 		vol.GetID(),
 		vol.GetPeerID().String(),
 		true,  // Watch FetchManifest on the bus so we can do auto-update via plugins.
-		false, // Enable copying the manifest root to the plugin host storage.
+		false, // Enable storing the manifest root in the plugin host world.
 
-		// Enable copying the manifest contents to the plugin host storage.
-		//
-		// This is particularly necessary since the plugin that provided the
-		// manifest might exit before being restarted, thereby creating a
-		// situation where we depend on that plugin for the data to start it,
-		// but that plugin is not running, so nothing happens (stuck).
+		// Dynamic providers can exit before a dependent plugin restarts, so
+		// their manifest contents still need a complete local copy.
 		false,
+	)
+	// The embedded distribution bucket remains mounted for the entrypoint
+	// lifetime and stays authoritative without a complete local copy.
+	pluginSchedConf.NoCopyBucketIds = []string{bldr_dist.GetDistBucketID(projectID)}
+	pluginSchedCtrl, _, pluginSchedCtrlRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_scheduler.Controller](
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(pluginSchedConf),
+		nil,
 	)
 	if err != nil {
 		rel()
 		return nil, err
 	}
-	rels = append(rels, pluginSchedCtrlRel)
+	rels = append(rels, pluginSchedCtrlRef.Release)
 
 	// build the plugin host controller
 	pluginHostCtrl, pluginHostRel, err := plugin_host_default.StartPluginHost(
