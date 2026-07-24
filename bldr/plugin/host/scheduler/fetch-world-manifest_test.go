@@ -1602,6 +1602,154 @@ func TestWatchWorldManifestPrefersLocalExecutableOverNewerDownload(t *testing.T)
 	}
 }
 
+func TestWatchWorldManifestSelectsBestNoCopyOrLocalExecutable(t *testing.T) {
+	tests := []struct {
+		name       string
+		localRev   uint64
+		noCopyRev  uint64
+		wantNoCopy bool
+	}{
+		{
+			name:       "newer no-copy wins",
+			localRev:   7,
+			noCopyRev:  9,
+			wantNoCopy: true,
+		},
+		{
+			name:      "newer local wins",
+			localRev:  9,
+			noCopyRev: 7,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			le := logrus.NewEntry(logrus.New())
+
+			tb, err := testbed.NewTestbed(ctx, le)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			defer tb.Release()
+
+			ocs, err := tb.BuildEmptyCursor(ctx)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			defer ocs.Release()
+
+			ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+
+			const (
+				objKey         = "plugin-host"
+				noCopyBucketID = "dist/project"
+			)
+			if _, err := bldr_manifest_world.CreateManifestStore(ctx, ws, objKey); err != nil {
+				t.Fatal(err.Error())
+			}
+
+			noCopyRef := newTestStoredManifestRefInBucket(
+				t,
+				ctx,
+				tb,
+				noCopyBucketID,
+				"spacewave-core",
+				"desktop/darwin/arm64",
+				tt.noCopyRev,
+			)
+			const noCopyRefKey = "plugin-host/ref/no-copy"
+			storeTestManifestRefObject(t, ctx, ws, noCopyRefKey, noCopyRef)
+			if err := ws.SetGraphQuad(
+				ctx,
+				bldr_manifest_world.NewManifestQuad(objKey, noCopyRefKey, "spacewave-core"),
+			); err != nil {
+				t.Fatal(err.Error())
+			}
+
+			localRef, localRefKey := storeTestWorldManifest(
+				t,
+				ctx,
+				ws,
+				"spacewave-core",
+				"desktop/darwin/arm64",
+				tt.localRev,
+			)
+			if err := ws.SetGraphQuad(
+				ctx,
+				bldr_manifest_world.NewManifestQuad(objKey, localRefKey, "spacewave-core"),
+			); err != nil {
+				t.Fatal(err.Error())
+			}
+
+			host := &testPluginHost{id: "desktop/darwin/arm64"}
+			pi := &pluginInstance{
+				c: &Controller{
+					conf: &Config{
+						NoCopyBucketIds: []string{noCopyBucketID},
+					},
+					objKey: objKey,
+				},
+				le:                      le,
+				pluginID:                "spacewave-core",
+				manifestCopyStatus:      ccontainer.NewCContainer[*manifestCopyStatus](nil),
+				downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+				executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+			}
+
+			obj, ok, err := ws.GetObject(ctx, objKey)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			if !ok {
+				t.Fatal("expected plugin host object")
+			}
+
+			wait, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+				pluginHosts: []bldr_plugin_host.PluginHost{host},
+			}, ws, obj)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			if !wait {
+				t.Fatal("expected watch loop to wait for changes")
+			}
+
+			execState := pi.executePluginRoutine.GetState()
+			if execState == nil || execState.manifestSnapshot == nil {
+				t.Fatal("expected executable manifest selection")
+			}
+			wantRef := localRef.GetManifestRef()
+			if tt.wantNoCopy {
+				wantRef = noCopyRef.GetManifestRef()
+			}
+			if !execState.manifestSnapshot.GetManifestRef().EqualVT(wantRef) {
+				t.Fatalf(
+					"execute ref = %s, want %s",
+					execState.manifestSnapshot.GetManifestRef().MarshalString(),
+					wantRef.MarshalString(),
+				)
+			}
+			if pi.downloadManifestRoutine.GetState() != nil {
+				t.Fatal("execute-eligible manifest unexpectedly scheduled a copy")
+			}
+
+			if tt.wantNoCopy {
+				status := pi.manifestCopyStatus.GetValue()
+				if status == nil ||
+					status.phase != manifestCopyPhaseSuppressed ||
+					status.class != manifestCopyClassSuppressed ||
+					status.sourceBucketID != noCopyBucketID {
+					t.Fatalf("suppressed copy status = %#v", status)
+				}
+			}
+		})
+	}
+}
+
 func TestWatchWorldManifestFallsBackToBestDownloadWhenNoLocalExecutable(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
