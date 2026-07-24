@@ -903,7 +903,7 @@
     },
     {
       "name": "github.com/aperturerobotics/protobuf-go-lite",
-      "version": "v0.15.1-0.20260716085036-961b1f806634",
+      "version": "v0.15.1-0.20260724082201-6c49f1fd432b",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/protobuf-go-lite",
@@ -1060,7 +1060,7 @@
     },
     {
       "name": "github.com/go-git/go-billy/v6",
-      "version": "v6.0.0-alpha.1.0.20260713095715-f9d937148de5",
+      "version": "v6.0.0-alpha.2",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/go-git/go-billy",
@@ -1240,7 +1240,7 @@
     },
     {
       "name": "github.com/mattn/go-isatty",
-      "version": "v0.0.23",
+      "version": "v0.0.24",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/mattn/go-isatty",
@@ -1488,7 +1488,7 @@
     },
     {
       "name": "github.com/quic-go/quic-go",
-      "version": "v0.60.0",
+      "version": "v0.61.0",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/quic-go/quic-go",
