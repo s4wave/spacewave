@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	spacewave "github.com/s4wave/spacewave"
 )
 
 func TestDistSourcesCoverManifestEntrypoints(t *testing.T) {
@@ -50,18 +52,6 @@ func TestDistSourcesCoverManifestEntrypoints(t *testing.T) {
 		}
 	}
 
-	err = fs.WalkDir(DistSources, ".", func(name string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if !entry.IsDir() && isWebTestSource(name) {
-			t.Errorf("DistSources includes test source %s", name)
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestDistSourcesAreClosed(t *testing.T) {
@@ -70,53 +60,61 @@ func TestDistSourcesAreClosed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = fs.WalkDir(DistSources, ".", func(name string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.IsDir() {
-			if name == "test" {
-				t.Error("DistSources includes the web/test helper directory")
+	sources := []struct {
+		prefix string
+		fsys   fs.FS
+	}{
+		{fsys: spacewave.DistSources},
+		{prefix: "web", fsys: DistSources},
+	}
+	for _, sourceFS := range sources {
+		err = fs.WalkDir(sourceFS.fsys, ".", func(name string, entry fs.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
 			}
-			return nil
-		}
-		if !isWebSource(name) {
-			return nil
-		}
-
-		source, err := fs.ReadFile(DistSources, name)
-		if err != nil {
-			return err
-		}
-		for _, match := range importPattern.FindAllSubmatch(source, -1) {
-			target, local := embeddedImportTarget(name, string(match[1]))
-			if !local {
-				continue
+			if entry.IsDir() {
+				return nil
+			}
+			if isDistTestSource(name) {
+				t.Errorf("DistSources includes test source %s", name)
+			}
+			if !isDistSource(name) {
+				return nil
 			}
 
-			exists, err := embeddedSourceExists(target)
+			source, err := fs.ReadFile(sourceFS.fsys, name)
 			if err != nil {
 				return err
 			}
-			if !exists {
-				t.Errorf("%s imports source %s, which is not embedded", name, match[1])
+			sourceName := path.Join(sourceFS.prefix, name)
+			for _, match := range importPattern.FindAllSubmatch(source, -1) {
+				target, local := embeddedImportTarget(sourceName, string(match[1]))
+				if !local {
+					continue
+				}
+
+				exists, err := embeddedSourceExists(target)
+				if err != nil {
+					return err
+				}
+				if !exists {
+					t.Errorf("%s imports source %s, which is not embedded", sourceName, match[1])
+				}
 			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
 		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
 	}
 }
 
 func embeddedImportTarget(source, importPath string) (string, bool) {
-	const webPrefix = "@s4wave/web/"
+	const prefix = "@s4wave/"
 
 	switch {
-	case importPath == "@s4wave/web":
-		return ".", true
-	case strings.HasPrefix(importPath, webPrefix):
-		return strings.TrimPrefix(importPath, webPrefix), true
+	case strings.HasPrefix(importPath, prefix):
+		return strings.TrimPrefix(importPath, prefix), true
 	case strings.HasPrefix(importPath, "."):
 		return path.Clean(path.Join(path.Dir(source), importPath)), true
 	default:
@@ -125,6 +123,15 @@ func embeddedImportTarget(source, importPath string) (string, bool) {
 }
 
 func embeddedSourceExists(target string) (bool, error) {
+	fsys := spacewave.DistSources
+	if target == "web" {
+		fsys = DistSources
+		target = "."
+	} else if strings.HasPrefix(target, "web/") {
+		fsys = DistSources
+		target = strings.TrimPrefix(target, "web/")
+	}
+
 	var candidates []string
 	switch path.Ext(target) {
 	case ".js":
@@ -144,7 +151,7 @@ func embeddedSourceExists(target string) (bool, error) {
 	}
 
 	for _, candidate := range candidates {
-		entry, err := fs.Stat(DistSources, candidate)
+		entry, err := fs.Stat(fsys, candidate)
 		if err == nil {
 			return !entry.IsDir(), nil
 		}
@@ -175,17 +182,17 @@ func embeddedEntrypointSource(entrypoint string) (bool, error) {
 	}
 	for _, entry := range entries {
 		name := entry.Name()
-		if !entry.IsDir() && isWebSource(name) && !isWebTestSource(name) {
+		if !entry.IsDir() && isDistSource(name) && !isDistTestSource(name) {
 			return true, nil
 		}
 	}
 	return false, nil
 }
 
-func isWebSource(name string) bool {
+func isDistSource(name string) bool {
 	return strings.HasSuffix(name, ".ts") || strings.HasSuffix(name, ".tsx") || strings.HasSuffix(name, ".css")
 }
 
-func isWebTestSource(name string) bool {
+func isDistTestSource(name string) bool {
 	return strings.HasSuffix(name, ".test.ts") || strings.HasSuffix(name, ".test.tsx")
 }
