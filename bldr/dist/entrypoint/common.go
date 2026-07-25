@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/pkg/errors"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	entrypoint_fatal "github.com/s4wave/spacewave/bldr/entrypoint/fatal"
 	"github.com/s4wave/spacewave/db/block"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	"github.com/sirupsen/logrus"
@@ -87,9 +88,17 @@ func Run(
 		}
 	}
 
-	// wait for context to be canceled
-	<-ctx.Done()
-	return context.Canceled
+	// wait for context cancellation or a process-fatal condition
+	select {
+	case <-ctx.Done():
+		return context.Canceled
+	case <-entrypoint_fatal.Chan():
+		// A controller reported a condition under which the daemon
+		// cannot serve, such as another live daemon owning the
+		// front-door socket. Exit with the error instead of running
+		// without the reporting controller.
+		return entrypoint_fatal.Err()
+	}
 }
 
 func validateStaticBlockStoreRoot(rdr *kvfile.Reader, rootRef *block.BlockRef) error {
