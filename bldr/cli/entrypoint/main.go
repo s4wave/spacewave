@@ -36,6 +36,8 @@ func Main(
 
 	var dtBus *CliBusImpl
 	var statePath string
+	var socketPath string
+	var startSocketPath string
 	var logLevel string
 	var logFiles cli.StringSlice
 	var logFileCleanup func()
@@ -58,6 +60,16 @@ func Main(
 			if err := os.MkdirAll(root, 0o755); err != nil {
 				busInitErr = err
 				return
+			}
+			if err := os.Setenv(storagepath.StatePathEnvVar(projectID), root); err != nil {
+				busInitErr = err
+				return
+			}
+			if socketPath != "" {
+				if err := os.Setenv(storagepath.SocketPathEnvVar(projectID), socketPath); err != nil {
+					busInitErr = err
+					return
+				}
 			}
 
 			b, err := BuildCliBus(ctx, le, root)
@@ -130,6 +142,12 @@ func Main(
 			EnvVars:     statePathEnvVars,
 			Value:       defaultStatePath,
 			Destination: &statePath,
+		},
+		&cli.StringFlag{
+			Name:        "socket-path",
+			Usage:       "listen on this exact Unix socket path",
+			EnvVars:     []string{envPrefix + "_SOCKET_PATH"},
+			Destination: &socketPath,
 		},
 		&cli.StringFlag{
 			Name:        "log-level",
@@ -238,9 +256,18 @@ func Main(
 				EnvVars:     []string{envPrefix + "_TRACE"},
 				Destination: &runtimeTracePath,
 			},
+			&cli.StringFlag{
+				Name:        "socket-path",
+				Usage:       "listen on this exact Unix socket path",
+				EnvVars:     []string{envPrefix + "_SOCKET_PATH"},
+				Destination: &startSocketPath,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			return runWithRuntimeTrace(runtimeTracePath, func() error {
+				if startSocketPath != "" {
+					socketPath = startSocketPath
+				}
 				if err := ensureBus(); err != nil {
 					return err
 				}

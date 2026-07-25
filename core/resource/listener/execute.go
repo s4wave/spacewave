@@ -116,8 +116,8 @@ func (c *Controller) serveOnce(
 	broker *yield_policy.Broker,
 	status *StatusBroker,
 ) (bool, error) {
-	if err := listener_control.TakeoverSocket(parentCtx, le, absPath); err != nil {
-		return false, errors.Wrap(err, "takeover socket")
+	if err := listener_control.EnsureSocketAvailable(parentCtx, le, absPath); err != nil {
+		return false, errors.Wrap(err, "ensure socket available")
 	}
 	if err := os.MkdirAll(filepath.Dir(absPath), 0o755); err != nil {
 		return false, err

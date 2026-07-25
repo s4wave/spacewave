@@ -17,6 +17,18 @@ func LogLevelEnvVar(projectID string) string {
 	return projectIDPrefix(projectID) + "_LOG_LEVEL"
 }
 
+// StatePathEnvVar returns the environment variable that carries the resolved
+// project state path (e.g. "spacewave" -> "SPACEWAVE_STATE_PATH").
+func StatePathEnvVar(projectID string) string {
+	return projectIDPrefix(projectID) + "_STATE_PATH"
+}
+
+// SocketPathEnvVar returns the environment variable that overrides the
+// daemon socket path (e.g. "spacewave" -> "SPACEWAVE_SOCKET_PATH").
+func SocketPathEnvVar(projectID string) string {
+	return projectIDPrefix(projectID) + "_SOCKET_PATH"
+}
+
 // LogRetentionDaysEnvVar returns the environment variable that overrides
 // the on-disk log retention duration (in days) for the given project.
 func LogRetentionDaysEnvVar(projectID string) string {

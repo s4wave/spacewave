@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -63,6 +64,45 @@ func TestHandoffBlocksActiveListener(t *testing.T) {
 				t.Fatalf("handoffBlocksListener() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestServeOnceRefusesConnectableSocket(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
+	defer cancel()
+
+	if err := os.MkdirAll(".tmp", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	dir, err := os.MkdirTemp(".tmp", "refuse-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = os.RemoveAll(dir)
+	})
+	sock := filepath.Join(dir, "spacewave.sock")
+	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lis.Close()
+
+	_, err = (&Controller{}).serveOnce(
+		ctx,
+		logrus.NewEntry(logrus.New()),
+		srpc.InvokerFunc(func(string, string, srpc.Stream) (bool, error) {
+			return false, nil
+		}),
+		sock,
+		yield_policy.NewBroker(),
+		NewStatusBroker(),
+	)
+	if err == nil {
+		t.Fatal("expected startup refusal")
+	}
+	if !strings.Contains(err.Error(), "already in use") {
+		t.Fatalf("unexpected startup refusal: %v", err)
 	}
 }
 
