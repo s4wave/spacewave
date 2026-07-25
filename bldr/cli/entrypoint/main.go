@@ -62,15 +62,9 @@ func Main(
 				busInitErr = err
 				return
 			}
-			if err := os.Setenv(storagepath.StatePathEnvVar(projectID), root); err != nil {
+			if err := storagepath.PublishResolvedPaths(projectID, root, socketPath); err != nil {
 				busInitErr = err
 				return
-			}
-			if socketPath != "" {
-				if err := os.Setenv(storagepath.SocketPathEnvVar(projectID), socketPath); err != nil {
-					busInitErr = err
-					return
-				}
 			}
 
 			b, err := BuildCliBus(ctx, le, root)
