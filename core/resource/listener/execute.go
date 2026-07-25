@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/gitroot"
@@ -151,6 +152,13 @@ func (c *Controller) serveOnce(
 
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: absPath, Net: "unix"})
 	if err != nil {
+		if stderrors.Is(err, syscall.EADDRINUSE) {
+			// Two daemons can both pass the availability check before
+			// either binds. The bind loser is the same live-owner
+			// conflict as the pre-bind refusal, so classify it the
+			// same way and let the caller surface it fatally.
+			return false, &listener_control.SocketInUseError{Path: absPath}
+		}
 		return false, err
 	}
 	defer lis.Close()
