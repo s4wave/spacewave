@@ -18,6 +18,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
+	entrypoint_fatal "github.com/s4wave/spacewave/bldr/entrypoint/fatal"
 	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/sirupsen/logrus"
@@ -275,8 +276,17 @@ func Main(
 					return errors.New("bus not initialized")
 				}
 				dtBus.GetLogger().Info("started, press ctrl+c to stop")
-				<-dtBus.GetContext().Done()
-				return nil
+				select {
+				case <-dtBus.GetContext().Done():
+					return nil
+				case <-entrypoint_fatal.Chan():
+					// A controller reported a condition under which the
+					// daemon cannot serve, such as another live daemon
+					// owning the front-door socket. Exit with the error
+					// instead of blocking as a daemon without its
+					// front door.
+					return entrypoint_fatal.Err()
+				}
 			})
 		},
 	})

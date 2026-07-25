@@ -13,6 +13,26 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// SocketInUseError reports that a live listener already owns the
+// daemon socket and takeover was not requested. The condition is
+// permanent for the refusing process: retrying without takeover
+// cannot succeed while the owner lives.
+type SocketInUseError struct {
+	// Path is the contended socket path.
+	Path string
+}
+
+// Error implements error.
+func (e *SocketInUseError) Error() string {
+	return "daemon socket " + e.Path + " is already in use"
+}
+
+// IsSocketInUse reports whether err wraps a SocketInUseError.
+func IsSocketInUse(err error) bool {
+	var inUse *SocketInUseError
+	return errors.As(err, &inUse)
+}
+
 // TakeoverSocket ensures that the Unix socket at sockPath is free to be
 // bound by requesting a live daemon to yield it or removing a stale file.
 func TakeoverSocket(ctx context.Context, le *logrus.Entry, sockPath string) error {
@@ -58,7 +78,7 @@ func prepareSocket(
 	defer conn.Close()
 
 	if !allowTakeover {
-		return errors.Errorf("daemon socket %s is already in use", sockPath)
+		return &SocketInUseError{Path: sockPath}
 	}
 
 	if err := RequestShutdown(ctx, conn); err != nil {

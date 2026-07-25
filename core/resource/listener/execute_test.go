@@ -97,6 +97,7 @@ func TestServeOnceRefusesConnectableSocket(t *testing.T) {
 		sock,
 		yield_policy.NewBroker(),
 		NewStatusBroker(),
+		false,
 	)
 	if err == nil {
 		t.Fatal("expected startup refusal")
@@ -222,6 +223,7 @@ func TestServeOnceReleasesSocketBeforeDrainingConcurrentClients(t *testing.T) {
 			sock,
 			broker,
 			status,
+			false,
 		)
 		serveResultCh <- serveResult{yielded: yielded, err: err}
 	}()
