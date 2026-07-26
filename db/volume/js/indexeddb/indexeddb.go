@@ -76,7 +76,7 @@ func NewIndexedDB(
 	}
 
 	dbName := conf.GetDatabaseName()
-	return kvtx.NewVolume(
+	return kvtx.NewVolumeWithWorldEngineLeaseProvider(
 		ctx,
 		ControllerID,
 		kvkey,
@@ -85,6 +85,7 @@ func NewIndexedDB(
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
 		statsFn,
+		volume.NewFileWorldEngineLeaseProvider("", dbName+"\x00"+storeName),
 		istore.Close,
 		func() error {
 			req, err := idb.Global().DeleteDatabase(dbName)

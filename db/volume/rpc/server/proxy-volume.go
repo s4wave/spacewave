@@ -2,8 +2,10 @@ package volume_rpc_server
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aperturerobotics/starpc/srpc"
+
 	rpc_gc "github.com/s4wave/spacewave/db/block/gc/rpc"
 	rpc_gc_server "github.com/s4wave/spacewave/db/block/gc/rpc/server"
 	rpc_block "github.com/s4wave/spacewave/db/block/rpc"
@@ -29,6 +31,8 @@ type ProxyVolume struct {
 	vol volume.Volume
 	// coordinatorLeases owns remote write leases acquired through this service.
 	coordinatorLeases *coordinatorLeases
+	// worldEngineLeases owns remote World Engine leases acquired through this service.
+	worldEngineLeases *worldEngineLeases
 	// exposePrivKey controls if we allow exposing the private key
 	exposePrivKey bool
 }
@@ -43,6 +47,7 @@ func NewProxyVolume(ctx context.Context, vol volume.Volume, exposePrivKey bool) 
 
 		vol:               vol,
 		coordinatorLeases: newCoordinatorLeases(),
+		worldEngineLeases: newWorldEngineLeases(),
 		exposePrivKey:     exposePrivKey,
 	}
 }
@@ -260,6 +265,53 @@ func (v *ProxyVolume) WaitAcquireCoordinatorWriteLease(
 	}
 	<-ctx.Done()
 	return ctx.Err()
+}
+
+// TryAcquireWorldEngineLease attempts to acquire a keyed World Engine lease.
+func (v *ProxyVolume) TryAcquireWorldEngineLease(
+	req *volume_rpc.TryAcquireWorldEngineLeaseRequest,
+	strm volume_rpc.SRPCProxyVolume_TryAcquireWorldEngineLeaseStream,
+) error {
+	ctx := strm.Context()
+	lease, err := v.vol.AcquireWorldEngineLease(ctx, req.GetKey())
+	if err != nil {
+		var heldErr *volume.WorldEngineLeaseHeldError
+		if errors.As(err, &heldErr) {
+			return strm.SendAndClose(&volume_rpc.AcquireWorldEngineLeaseResponse{
+				Acquired: false,
+			})
+		}
+		return err
+	}
+	leaseID := v.worldEngineLeases.add(lease)
+	defer v.worldEngineLeases.release(leaseID)
+
+	if err := strm.Send(&volume_rpc.AcquireWorldEngineLeaseResponse{
+		LeaseId:  leaseID,
+		Acquired: true,
+	}); err != nil {
+		return err
+	}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-lease.Done():
+		if err := lease.Err(); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+// ReleaseWorldEngineLease releases a remote World Engine lease.
+func (v *ProxyVolume) ReleaseWorldEngineLease(
+	ctx context.Context,
+	req *volume_rpc.ReleaseWorldEngineLeaseRequest,
+) (*volume_rpc.ReleaseWorldEngineLeaseResponse, error) {
+	if err := v.worldEngineLeases.release(req.GetLeaseId()); err != nil {
+		return nil, err
+	}
+	return &volume_rpc.ReleaseWorldEngineLeaseResponse{}, nil
 }
 
 // RefreshCoordinatorWriteLease refreshes a remote write lease.

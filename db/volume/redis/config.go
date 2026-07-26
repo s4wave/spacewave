@@ -12,7 +12,11 @@ const redisClientName = "bifrost"
 
 // BuildRedisOptions builds redis options from the config.
 func (c *Config) BuildRedisOptions() ([]redis.DialOption, error) {
-	return nil, nil
+	return []redis.DialOption{
+		redis.DialConnectTimeout(redisWorldEngineLeaseRenew),
+		redis.DialReadTimeout(redisWorldEngineLeaseRenew),
+		redis.DialWriteTimeout(redisWorldEngineLeaseRenew),
+	}, nil
 }
 
 // Validate validates the configuration.

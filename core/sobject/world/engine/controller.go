@@ -153,14 +153,26 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// Mount the shared object.
 	le.Debug("mounting shared object")
-	so, soRef, err := sobject.ExMountSharedObject(ctx, c.bus, c.conf.GetRef(), false, rctxCancel)
+	so, soRef, err := sobject.ExMountSharedObject(rctx, c.bus, c.conf.GetRef(), false, rctxCancel)
 	if err != nil {
 		return err
 	}
 	defer soRef.Release()
+	worldEngineLease, err := c.acquireWorldEngineLease(rctx, so)
+	if err != nil {
+		return err
+	}
+	if worldEngineLease != nil {
+		watchWorldEngineLease(rctx, worldEngineLease, rctxCancel)
+		defer func() {
+			if err := worldEngineLease.Release(); err != nil {
+				le.WithError(err).Warn("failed to release World Engine lease")
+			}
+		}()
+	}
 
 	// access the shared object state
-	soStateCtr, soStateCtrRel, err := so.AccessSharedObjectState(ctx, rctxCancel)
+	soStateCtr, soStateCtrRel, err := so.AccessSharedObjectState(rctx, rctxCancel)
 	if err != nil {
 		return err
 	}
@@ -170,11 +182,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 	_, _ = c.processOpsAsValidator.SetRoutine(func(ctx context.Context) error {
 		return c.executeProcessOpsAsValidator(ctx, so)
 	})
-	_ = c.processOpsAsValidator.SetContext(ctx, true)
+	_ = c.processOpsAsValidator.SetContext(rctx, true)
 	defer c.processOpsAsValidator.ClearContext()
 
 	// init the shared object if necessary
-	headState, err := c.loadOrInitHeadFromSharedObject(ctx, so, soStateCtr)
+	headState, err := c.loadOrInitHeadFromSharedObject(rctx, so, soStateCtr)
 	if err != nil {
 		return err
 	}
@@ -195,7 +207,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// Build world state with engine
-	blkEngine, err := c.buildBlkEngine(ctx, le, so, headState.HeadRef, transformConf)
+	blkEngine, err := c.buildBlkEngine(rctx, le, so, headState.HeadRef, transformConf)
 	if err != nil {
 		return err
 	}
@@ -209,7 +221,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 
 	// get initial seqno
-	seqno, err := blkEngine.bengine.GetSeqno(ctx)
+	seqno, err := blkEngine.bengine.GetSeqno(rctx)
 	if err != nil {
 		return err
 	}
@@ -230,7 +242,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	_, _ = c.gcSweepMaintenance.SetRoutine(func(ctx context.Context) error {
 		return c.executeGCSweepMaintenance(ctx, so, blkEngine.bengine)
 	})
-	_ = c.gcSweepMaintenance.SetContext(ctx, true)
+	_ = c.gcSweepMaintenance.SetContext(rctx, true)
 	defer c.gcSweepMaintenance.ClearContext()
 
 	// Watch the SOState for changes.
