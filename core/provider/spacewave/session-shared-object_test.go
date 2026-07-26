@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	bus_inmem "github.com/aperturerobotics/controllerbus/bus/inmem"
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
@@ -16,11 +17,12 @@ import (
 )
 
 type sessionLookupTestLower struct {
-	data     []byte
-	blocks   map[string][]byte
-	getCalls atomic.Int32
-	putCalls atomic.Int32
-	writable bool
+	data      []byte
+	blocks    map[string][]byte
+	getCalls  atomic.Int32
+	putCalls  atomic.Int32
+	writable  bool
+	beforeGet func()
 }
 
 func (s *sessionLookupTestLower) GetHashType() hash.HashType {
@@ -53,6 +55,9 @@ func (s *sessionLookupTestLower) RmBlock(context.Context, *block.BlockRef) error
 }
 func (s *sessionLookupTestLower) Sync(context.Context) (bool, error) { return true, nil }
 func (s *sessionLookupTestLower) GetBlock(_ context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	if s.beforeGet != nil {
+		s.beforeGet()
+	}
 	s.getCalls.Add(1)
 	var data []byte
 	if s.blocks != nil {
@@ -103,10 +108,12 @@ func newProductionSessionStore(
 		upperCache: true,
 	}
 	directOwner := &sourceTrackingStore{
-		StoreOps: direct,
-		account:  account,
-		bstoreID: id,
-		source:   SyncTelemetryBlockSourceDirect,
+		StoreOps:       direct,
+		account:        account,
+		bstoreID:       id,
+		source:         SyncTelemetryBlockSourceDirect,
+		demandStarted:  func() { account.directDemandStarted(id) },
+		demandFinished: func() { account.directDemandFinished(id) },
 	}
 	cloudOwner := &sourceTrackingStore{
 		StoreOps: cloud,
@@ -236,6 +243,84 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		t.Fatalf("session two telemetry = %+v, want direct=1 cloud=0 cache=1", two)
 	}
 }
+
+func TestSessionDirectLookupTracksActiveDemand(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+
+	account := &ProviderAccount{}
+	owner := &account.transportComposition
+	owner.init(account)
+	state := newTransportCompositionSession()
+	state.snapshot = TransportCompositionSnapshot{
+		DirectP2PEnabled: true,
+		P2PState:         TransportCompositionP2PStateIdle,
+		ActivePeerCount:  1,
+	}
+	owner.mtx.Lock()
+	owner.sessions["session"] = state
+	owner.mtx.Unlock()
+
+	data := []byte("active direct")
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	started := make(chan struct{})
+	release := make(chan struct{})
+	direct := &sessionLookupTestLower{
+		blocks: map[string][]byte{ref.MarshalString(): data},
+		beforeGet: func() {
+			close(started)
+			<-release
+		},
+	}
+	cache := &sessionLookupTestLower{writable: true}
+	cloud := &sessionLookupTestLower{}
+	store, err := newProductionSessionStore(account, "session", direct, cache, cloud)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resultCh := make(chan struct {
+		data  []byte
+		found bool
+		err   error
+	}, 1)
+	go func() {
+		got, found, getErr := store.GetBlock(ctx, ref)
+		resultCh <- struct {
+			data  []byte
+			found bool
+			err   error
+		}{data: got, found: found, err: getErr}
+	}()
+
+	select {
+	case <-started:
+	case <-ctx.Done():
+		t.Fatal("direct lookup did not start")
+	}
+	snapshot, _ := account.GetTransportCompositionSnapshotWithWait("session")
+	if snapshot.P2PState != TransportCompositionP2PStateActive {
+		t.Fatalf("demand state while reading = %v, want active", snapshot.P2PState)
+	}
+	close(release)
+
+	select {
+	case result := <-resultCh:
+		if result.err != nil || !result.found || string(result.data) != string(data) {
+			t.Fatalf("direct lookup = %q/%v/%v", result.data, result.found, result.err)
+		}
+	case <-ctx.Done():
+		t.Fatal("direct lookup did not finish")
+	}
+	snapshot, _ = account.GetTransportCompositionSnapshotWithWait("session")
+	if snapshot.P2PState != TransportCompositionP2PStateIdle {
+		t.Fatalf("demand state after reading = %v, want idle", snapshot.P2PState)
+	}
+}
+
 func TestSessionFacadeMountDisabledThenEnablesDirectRoute(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()

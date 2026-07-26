@@ -2,6 +2,7 @@ package block_store_test
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -11,6 +12,73 @@ import (
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	hash "github.com/s4wave/spacewave/net/hash"
 )
+
+type readScopeTestStore struct {
+	block.StoreOps
+	beginCalls  *atomic.Int32
+	scopedCalls *atomic.Int32
+	scoped      bool
+}
+
+func (s *readScopeTestStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+	s.beginCalls.Add(1)
+	return &readScopeTestStore{
+		StoreOps:    s.StoreOps,
+		beginCalls:  s.beginCalls,
+		scopedCalls: s.scopedCalls,
+		scoped:      true,
+	}, func() {}, nil
+}
+
+func (s *readScopeTestStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	if s.scoped {
+		s.scopedCalls.Add(1)
+	}
+	return s.StoreOps.GetBlock(ctx, ref)
+}
+
+func TestStoreReadThroughScopesLowerWhenPrimaryUnavailable(t *testing.T) {
+	ctx := context.Background()
+	inner := block_store_inmem.NewInmemBlock(
+		store_kvkey.NewDefaultKVKey(),
+		store_kvtx_inmem.NewStore(),
+		hash.HashType_HashType_BLAKE3,
+		false,
+	)
+	beginCalls := &atomic.Int32{}
+	scopedCalls := &atomic.Int32{}
+	lower := &readScopeTestStore{
+		StoreOps:    inner,
+		beginCalls:  beginCalls,
+		scopedCalls: scopedCalls,
+	}
+	data := []byte("scoped lower")
+	ref, _, err := lower.PutBlock(ctx, data, &block.PutOpts{HashType: hash.HashType_HashType_BLAKE3})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	store := block_store.NewStoreReadThrough(
+		func() block.StoreOps { return nil },
+		func() block.StoreOps { return lower },
+		false,
+	)
+	scoped, release, err := store.BeginReadOperation(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	if beginCalls.Load() != 1 {
+		t.Fatalf("lower BeginReadOperation calls = %d, want 1", beginCalls.Load())
+	}
+	got, found, err := scoped.GetBlock(ctx, ref)
+	if err != nil || !found || string(got) != string(data) {
+		t.Fatalf("scoped lower read = %q/%v/%v", got, found, err)
+	}
+	if scopedCalls.Load() != 1 {
+		t.Fatalf("scoped lower GetBlock calls = %d, want 1", scopedCalls.Load())
+	}
+}
 
 type wrapperBatchTestStore struct {
 	block.StoreOps

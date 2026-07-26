@@ -61,38 +61,51 @@ func (s *StoreReadThrough) BeginReadOperation(ctx context.Context) (block.StoreO
 	if s.primary != nil {
 		primary = s.primary()
 	}
-	if primary == nil {
-		return &StoreReadThrough{primary: s.primary, lower: s.lower, writeback: s.writeback}, func() {}, nil
-	}
-	primary, releasePrimary, err := primary.BeginReadOperation(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	lower := block.StoreOps(nil)
 	if s.lower != nil {
 		lower = s.lower()
 	}
-	if lower == nil {
-		return &StoreReadThrough{
-			primary:   func() block.StoreOps { return primary },
-			lower:     s.lower,
-			writeback: s.writeback,
-		}, releasePrimary, nil
+
+	var releasePrimary, releaseLower func()
+	if primary != nil {
+		scoped, release, err := primary.BeginReadOperation(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		primary = scoped
+		releasePrimary = release
 	}
-	lower, releaseLower, err := lower.BeginReadOperation(ctx)
-	if err != nil {
-		releasePrimary()
-		return nil, nil, err
+	if lower != nil {
+		scoped, release, err := lower.BeginReadOperation(ctx)
+		if err != nil {
+			if releasePrimary != nil {
+				releasePrimary()
+			}
+			return nil, nil, err
+		}
+		lower = scoped
+		releaseLower = release
 	}
-	return &StoreReadThrough{
-			primary:   func() block.StoreOps { return primary },
-			lower:     func() block.StoreOps { return lower },
-			writeback: s.writeback,
-		}, func() {
+
+	scoped := &StoreReadThrough{
+		primary:   s.primary,
+		lower:     s.lower,
+		writeback: s.writeback,
+	}
+	if primary != nil {
+		scoped.primary = func() block.StoreOps { return primary }
+	}
+	if lower != nil {
+		scoped.lower = func() block.StoreOps { return lower }
+	}
+	return scoped, func() {
+		if releaseLower != nil {
 			releaseLower()
+		}
+		if releasePrimary != nil {
 			releasePrimary()
-		}, nil
+		}
+	}, nil
 }
 
 // PutBlock is unsupported because this store is read-only.

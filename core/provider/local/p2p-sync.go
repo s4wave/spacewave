@@ -77,7 +77,6 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 				return ctx.Err()
 			}
 			a.le.WithError(err).WithField("bucket-id", bucketID).Warn("failed to start dex solicit")
-			continue
 		}
 
 		if err := a.startSOSync(syncCtx, childBus, ref, soID, state); err != nil {

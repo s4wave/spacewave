@@ -158,6 +158,18 @@ func (a *ProviderAccount) GetTransportCompositionSnapshotWithWait(sessionID stri
 	return o.snapshotWithWait(sessionID)
 }
 
+func (a *ProviderAccount) directDemandStarted(sessionID string) {
+	o := &a.transportComposition
+	o.init(a)
+	o.demandStarted(sessionID)
+}
+
+func (a *ProviderAccount) directDemandFinished(sessionID string) {
+	o := &a.transportComposition
+	o.init(a)
+	o.demandFinished(sessionID)
+}
+
 func (o *transportCompositionOwner) configure(config *transportCompositionConfig) error {
 	state := o.sessionForConfigure(config.sessionID)
 	state.mtx.Lock()

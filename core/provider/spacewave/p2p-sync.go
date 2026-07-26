@@ -128,7 +128,6 @@ func (a *ProviderAccount) startP2PSyncForSession(
 			bucketID := BlockStoreBucketID(a.accountID, blockStoreID)
 			if err := a.startDEXSolicit(syncCtx, childBus, bucketID, state); err != nil {
 				a.le.WithError(err).WithField("bucket-id", bucketID).Warn("failed to start dex solicit")
-				continue
 			}
 
 			if err := a.startSOSync(syncCtx, childBus, ref, soID, state); err != nil {

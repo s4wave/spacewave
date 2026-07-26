@@ -104,10 +104,12 @@ func (a *ProviderAccount) newSessionSharedObject(
 			return nil
 		}
 		return &sourceTrackingStore{
-			StoreOps: store,
-			account:  a,
-			bstoreID: ref.GetBlockStoreId(),
-			source:   SyncTelemetryBlockSourceDirect,
+			StoreOps:       store,
+			account:        a,
+			bstoreID:       ref.GetBlockStoreId(),
+			source:         SyncTelemetryBlockSourceDirect,
+			demandStarted:  func() { a.directDemandStarted(sessionID) },
+			demandFinished: func() { a.directDemandFinished(sessionID) },
 		}
 	}
 	facadeStore, err := base.newSessionBlockStore(direct)
