@@ -93,6 +93,7 @@ import {
 import { markStartupBoundary } from './startup-marks.js'
 import {
   StorageDurabilityOwner,
+  type PersistenceStatus,
   type StorageManagerLike,
 } from './storage-durability-owner.js'
 
@@ -820,6 +821,18 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // isHidden checks if the web document is hidden
   public get isHidden(): boolean {
     return this.hidden
+  }
+
+  // readStoragePersistenceStatus refreshes browser cleanup protection through
+  // the document-owned durability owner.
+  public readStoragePersistenceStatus(): Promise<PersistenceStatus> {
+    return this.storageDurabilityOwner.readStatus()
+  }
+
+  // requestStoragePersistence requests browser cleanup protection through the
+  // document-owned durability owner.
+  public requestStoragePersistence(): Promise<void> {
+    return this.storageDurabilityOwner.requestProtection()
   }
 
   public getResumeReadyState(): WebDocumentResumeReadyState | null {

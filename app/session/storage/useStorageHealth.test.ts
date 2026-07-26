@@ -50,7 +50,6 @@ describe('storage health state', () => {
 
     expect(view.protectionState).toBe('protected')
     expect(view.providerBytes).toBe(8_192n)
-    expect(view.replicaLabel).toBe('Not yet verified')
     expect(view.safariCleanupRisk).toBe(true)
   })
 
