@@ -1229,7 +1229,7 @@ func (c *Controller) BuildPlugin(
 
 func newGoScriptBuildFlags(buildType bldr_manifest.BuildType, enableCgo bool) []string {
 	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
-	buildTags = append(buildTags, gocompiler.GoScriptBuildTag)
+	buildTags = append(buildTags, gocompiler.GoScriptBuildTag, gocompiler.SQLLiteBuildTag)
 	return []string{"-tags=" + strings.Join(buildTags, ",")}
 }
 
@@ -1342,6 +1342,9 @@ func newBuildTagsForAnalyze(
 	}
 	if goCompiler.IsGoScript() {
 		buildTags = append(buildTags, gocompiler.GoScriptBuildTag)
+	}
+	if goCompiler.IsTinyGo() || goCompiler.IsGoScript() {
+		buildTags = append(buildTags, gocompiler.SQLLiteBuildTag)
 	}
 	return buildTags
 }
