@@ -9,6 +9,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/testbed"
+	dbtx "github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
@@ -175,4 +176,38 @@ func TestWorldState(t *testing.T) {
 
 	// wait a moment before finishing the test
 	<-time.After(time.Millisecond * 100)
+}
+
+// TestWorldStateGetObjectBodiesBatchPageAfterDiscard verifies that discarded
+// transaction wrappers reject batched body reads.
+func TestWorldStateGetObjectBodiesBatchPageAfterDiscard(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(log)
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	txState, err := ForkWorldState(ctx, ws, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	txState.Discard()
+
+	_, _, err = txState.GetObjectBodiesBatchPage(ctx, []string{"discarded"}, world.ObjectBodiesBatchByteBudget)
+	if err != dbtx.ErrDiscarded {
+		t.Fatalf("GetObjectBodiesBatchPage error = %v, want %v", err, dbtx.ErrDiscarded)
+	}
 }

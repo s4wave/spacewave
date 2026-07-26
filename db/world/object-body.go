@@ -7,6 +7,9 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
+// ObjectBodiesBatchByteBudget is the encoded-size budget shared by body batch requests and responses.
+const ObjectBodiesBatchByteBudget = block.MaxBlockSize - 64*1024
+
 // ObjectBody contains the serialized root body for one object key.
 type ObjectBody struct {
 	// ObjectKey is the requested object key.

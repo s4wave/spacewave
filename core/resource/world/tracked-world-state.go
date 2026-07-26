@@ -120,6 +120,27 @@ func (t *TrackedWorldState) trackObjectAccess(key string, rev uint64) {
 	t.stateRoutine.SetState(newSnapshot)
 }
 
+func (t *TrackedWorldState) trackObjectBodyAccesses(ctx context.Context, bodies []*world.ObjectBody) error {
+	if len(bodies) == 0 {
+		return nil
+	}
+	keys := make([]string, len(bodies))
+	for i, body := range bodies {
+		keys[i] = body.ObjectKey
+	}
+	refs, err := world.GetObjectRootRefsBatch(ctx, t.ws, keys)
+	if err != nil {
+		return err
+	}
+	if len(refs) != len(keys) {
+		return errors.New("object root ref batch returned a mismatched result count")
+	}
+	for i, key := range keys {
+		t.trackObjectAccess(key, refs[i].Rev)
+	}
+	return nil
+}
+
 // trackQuadQuery records a quad query access.
 func (t *TrackedWorldState) trackQuadQuery() {
 	// Clone snapshot and set quad flag
@@ -150,6 +171,52 @@ func (t *TrackedWorldState) Sync(ctx context.Context) (bool, error) {
 
 func (t *TrackedWorldState) GetSeqno(ctx context.Context) (uint64, error) {
 	return t.ws.GetSeqno(ctx)
+}
+
+// GetObjectBodiesBatchPage forwards budgeted body paging to the wrapped state.
+func (t *TrackedWorldState) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, error) {
+	var (
+		bodies   []*world.ObjectBody
+		consumed uint32
+		err      error
+	)
+	if pager, ok := t.ws.(world.ObjectBodyPageBatcher); ok {
+		bodies, consumed, err = pager.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
+	} else {
+		bodies, consumed, err = world.GetObjectBodiesBatchPage(ctx, t.ws, keys, byteBudget)
+	}
+	if err != nil {
+		return nil, 0, err
+	}
+	if err := t.trackObjectBodyAccesses(ctx, bodies); err != nil {
+		return nil, 0, err
+	}
+	return bodies, consumed, nil
+}
+
+// GetObjectBodiesBatchPageWithSeqno forwards body paging and the wrapped transaction seqno.
+func (t *TrackedWorldState) GetObjectBodiesBatchPageWithSeqno(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
+	var (
+		bodies   []*world.ObjectBody
+		consumed uint32
+		seqno    uint64
+		err      error
+	)
+	if pager, ok := t.ws.(world.ObjectBodyPageSeqnoBatcher); ok {
+		bodies, consumed, seqno, err = pager.GetObjectBodiesBatchPageWithSeqno(ctx, keys, byteBudget)
+	} else {
+		seqno, err = t.ws.GetSeqno(ctx)
+		if err == nil {
+			bodies, consumed, err = world.GetObjectBodiesBatchPage(ctx, t.ws, keys, byteBudget)
+		}
+	}
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	if err := t.trackObjectBodyAccesses(ctx, bodies); err != nil {
+		return nil, 0, 0, err
+	}
+	return bodies, consumed, seqno, nil
 }
 
 func (t *TrackedWorldState) WaitSeqno(ctx context.Context, seqno uint64) (uint64, error) {
