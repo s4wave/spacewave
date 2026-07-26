@@ -161,26 +161,29 @@ func GetObjectBodiesBatchPageWithSeqno(
 }
 
 // objectBodyEncodedSize matches the generated protobuf size of one repeated
-// ObjectBody response entry, including its key, body, exists flag, and the
-// enclosing repeated-message tag and length.
+// ObjectBody response entry, including its key, body, exists flag, revision,
+// and the enclosing repeated-message tag and length.
 func objectBodyEncodedSize(body *ObjectBody) int {
 	if body == nil {
 		return 0
 	}
 	bodySize := 0
 	if len(body.ObjectKey) > 0 {
-		bodySize += 1 + protoVarintSize(len(body.ObjectKey)) + len(body.ObjectKey)
+		bodySize += 1 + protoVarintSize(uint64(len(body.ObjectKey))) + len(body.ObjectKey)
 	}
 	if len(body.Body) > 0 {
-		bodySize += 1 + protoVarintSize(len(body.Body)) + len(body.Body)
+		bodySize += 1 + protoVarintSize(uint64(len(body.Body))) + len(body.Body)
 	}
 	if body.Exists {
 		bodySize += 2
 	}
-	return 1 + protoVarintSize(bodySize) + bodySize
+	if body.Rev != 0 {
+		bodySize += 1 + protoVarintSize(body.Rev)
+	}
+	return 1 + protoVarintSize(uint64(bodySize)) + bodySize
 }
 
-func protoVarintSize(value int) int {
+func protoVarintSize(value uint64) int {
 	size := 1
 	for value >= 128 {
 		value >>= 7
