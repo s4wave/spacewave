@@ -124,18 +124,34 @@ func LookupObjectBodyBytes(
 	ws WorldState,
 	objKey string,
 ) ([]byte, bool, error) {
+	body, _, exists, err := LookupObjectBodyBytesWithRev(ctx, ws, objKey)
+	return body, exists, err
+}
+
+// LookupObjectBodyBytesWithRev looks up the transformed root body and revision
+// for an object. It returns nil, 0, false, nil when the object does not exist.
+func LookupObjectBodyBytesWithRev(
+	ctx context.Context,
+	ws WorldState,
+	objKey string,
+) ([]byte, uint64, bool, error) {
 	obj, found, err := ws.GetObject(ctx, objKey)
 	if err != nil {
 		ReleaseObjectState(obj)
-		return nil, false, err
+		return nil, 0, false, err
 	}
 	if !found {
-		return nil, false, nil
+		return nil, 0, false, nil
 	}
 	defer ReleaseObjectState(obj)
 
+	rootRef, rev, err := obj.GetRootRef(ctx)
+	if err != nil {
+		return nil, 0, false, err
+	}
+
 	var body []byte
-	_, _, err = AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+	_, err = AccessObject(ctx, obj.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var found bool
 		body, found, err = bcs.Fetch(ctx)
 		if err == nil && !found {
@@ -143,7 +159,7 @@ func LookupObjectBodyBytes(
 		}
 		return err
 	})
-	return body, true, err
+	return body, rev, true, err
 }
 
 func decodeObjectBody[T block.Block](data []byte, ctor func() block.Block) (out T, err error) {

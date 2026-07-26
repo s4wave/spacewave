@@ -16,6 +16,8 @@ type ObjectBody struct {
 	ObjectKey string
 	// Body is the transformed root block data when the object exists.
 	Body []byte
+	// Rev is the object revision observed with Body.
+	Rev uint64
 	// Exists reports whether the object key exists.
 	Exists bool
 }
@@ -72,13 +74,14 @@ func GetObjectBodiesBatch(ctx context.Context, ws WorldState, keys []string) ([]
 
 	out := make([]*ObjectBody, len(keys))
 	for i, key := range keys {
-		body, exists, err := LookupObjectBodyBytes(ctx, ws, key)
+		body, rev, exists, err := LookupObjectBodyBytesWithRev(ctx, ws, key)
 		if err != nil {
 			return nil, err
 		}
 		out[i] = &ObjectBody{
 			ObjectKey: key,
 			Body:      body,
+			Rev:       rev,
 			Exists:    exists,
 		}
 	}
@@ -99,8 +102,8 @@ func GetObjectBodiesBatchPage(
 		return pager.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
 	}
 
-	return getObjectBodiesBatchPage(ctx, keys, byteBudget, func(ctx context.Context, key string) ([]byte, bool, error) {
-		return LookupObjectBodyBytes(ctx, ws, key)
+	return getObjectBodiesBatchPage(ctx, keys, byteBudget, func(ctx context.Context, key string) ([]byte, uint64, bool, error) {
+		return LookupObjectBodyBytesWithRev(ctx, ws, key)
 	})
 }
 
@@ -108,7 +111,7 @@ func getObjectBodiesBatchPage(
 	ctx context.Context,
 	keys []string,
 	byteBudget int,
-	lookup func(context.Context, string) ([]byte, bool, error),
+	lookup func(context.Context, string) ([]byte, uint64, bool, error),
 ) ([]*ObjectBody, uint32, error) {
 	out := make([]*ObjectBody, 0, len(keys))
 	encodedSize := 0
@@ -116,13 +119,14 @@ func getObjectBodiesBatchPage(
 		if len(out) > 0 && encodedSize >= byteBudget {
 			return out, uint32(i), nil
 		}
-		body, exists, err := lookup(ctx, key)
+		body, rev, exists, err := lookup(ctx, key)
 		if err != nil {
 			return nil, 0, err
 		}
 		result := &ObjectBody{
 			ObjectKey: key,
 			Body:      body,
+			Rev:       rev,
 			Exists:    exists,
 		}
 		resultSize := objectBodyEncodedSize(result)

@@ -120,25 +120,10 @@ func (t *TrackedWorldState) trackObjectAccess(key string, rev uint64) {
 	t.stateRoutine.SetState(newSnapshot)
 }
 
-func (t *TrackedWorldState) trackObjectBodyAccesses(ctx context.Context, bodies []*world.ObjectBody) error {
-	if len(bodies) == 0 {
-		return nil
+func (t *TrackedWorldState) trackObjectBodyAccesses(bodies []*world.ObjectBody) {
+	for _, body := range bodies {
+		t.trackObjectAccess(body.ObjectKey, body.Rev)
 	}
-	keys := make([]string, len(bodies))
-	for i, body := range bodies {
-		keys[i] = body.ObjectKey
-	}
-	refs, err := world.GetObjectRootRefsBatch(ctx, t.ws, keys)
-	if err != nil {
-		return err
-	}
-	if len(refs) != len(keys) {
-		return errors.New("object root ref batch returned a mismatched result count")
-	}
-	for i, key := range keys {
-		t.trackObjectAccess(key, refs[i].Rev)
-	}
-	return nil
 }
 
 // trackQuadQuery records a quad query access.
@@ -188,9 +173,7 @@ func (t *TrackedWorldState) GetObjectBodiesBatchPage(ctx context.Context, keys [
 	if err != nil {
 		return nil, 0, err
 	}
-	if err := t.trackObjectBodyAccesses(ctx, bodies); err != nil {
-		return nil, 0, err
-	}
+	t.trackObjectBodyAccesses(bodies)
 	return bodies, consumed, nil
 }
 
@@ -213,9 +196,7 @@ func (t *TrackedWorldState) GetObjectBodiesBatchPageWithSeqno(ctx context.Contex
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	if err := t.trackObjectBodyAccesses(ctx, bodies); err != nil {
-		return nil, 0, 0, err
-	}
+	t.trackObjectBodyAccesses(bodies)
 	return bodies, consumed, seqno, nil
 }
 

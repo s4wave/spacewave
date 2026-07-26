@@ -15,8 +15,8 @@ func TestGetObjectBodiesBatchPageRejectsOversizedFirstBody(t *testing.T) {
 		context.Background(),
 		[]string{key},
 		byteBudget,
-		func(context.Context, string) ([]byte, bool, error) {
-			return body, true, nil
+		func(context.Context, string) ([]byte, uint64, bool, error) {
+			return body, 1, true, nil
 		},
 	)
 	var tooLargeErr *ObjectBodyTooLargeError
