@@ -83,6 +83,71 @@ func TestLookupObjectBodyReleasesObjectState(t *testing.T) {
 		t.Fatalf("expected lookup to release object state once, got %d", wrapped.releases)
 	}
 }
+func TestLookupObjectBodiesPreservesKeysAndMissingMarkers(t *testing.T) {
+	ctx := context.Background()
+	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer wtb.Release()
+
+	ws := world.NewEngineWorldState(wtb.Engine, true)
+	for _, entry := range []struct {
+		key string
+		msg string
+	}{
+		{key: "example/batch-alpha", msg: "alpha"},
+		{key: "example/batch-beta", msg: "beta"},
+		{key: "example/batch-gamma", msg: "gamma"},
+	} {
+		_, _, err = world.CreateWorldObject(ctx, ws, entry.key, func(bcs *block.Cursor) error {
+			bcs.SetBlock(block_mock.NewExample(entry.msg), true)
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	results, err := world.LookupObjectBodies[*block_mock.Example](
+		ctx,
+		ws,
+		[]string{
+			"example/batch-gamma",
+			"example/batch-missing",
+			"example/batch-alpha",
+			"example/batch-alpha",
+		},
+		block_mock.NewExampleBlock,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 4 {
+		t.Fatalf("expected 4 results, got %d", len(results))
+	}
+
+	check := func(index int, key string, msg string, exists bool) {
+		t.Helper()
+		result := results[index]
+		if result.ObjectKey != key || result.Exists != exists {
+			t.Fatalf("result %d = key %q exists %v, want key %q exists %v", index, result.ObjectKey, result.Exists, key, exists)
+		}
+		if !exists {
+			if result.Body != nil {
+				t.Fatalf("result %d has body for missing key", index)
+			}
+			return
+		}
+		if result.Body == nil || result.Body.GetMsg() != msg {
+			t.Fatalf("result %d body = %v, want %q", index, result.Body, msg)
+		}
+	}
+	check(0, "example/batch-gamma", "gamma", true)
+	check(1, "example/batch-missing", "", false)
+	check(2, "example/batch-alpha", "alpha", true)
+	check(3, "example/batch-alpha", "alpha", true)
+}
 
 func TestAccessWorldObjectReleasesObjectState(t *testing.T) {
 	ctx := context.Background()

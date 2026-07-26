@@ -198,6 +198,14 @@ class GetKeyResponse;
 struct GetKeyResponseDefaultTypeInternal;
 extern GetKeyResponseDefaultTypeInternal _GetKeyResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull GetKeyResponse_class_data_;
+class GetObjectBodiesBatchRequest;
+struct GetObjectBodiesBatchRequestDefaultTypeInternal;
+extern GetObjectBodiesBatchRequestDefaultTypeInternal _GetObjectBodiesBatchRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetObjectBodiesBatchRequest_class_data_;
+class GetObjectBodiesBatchResponse;
+struct GetObjectBodiesBatchResponseDefaultTypeInternal;
+extern GetObjectBodiesBatchResponseDefaultTypeInternal _GetObjectBodiesBatchResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull GetObjectBodiesBatchResponse_class_data_;
 class GetObjectMetadataBatchRequest;
 struct GetObjectMetadataBatchRequestDefaultTypeInternal;
 extern GetObjectMetadataBatchRequestDefaultTypeInternal _GetObjectMetadataBatchRequest_default_instance_;
@@ -342,6 +350,10 @@ class NextResponse;
 struct NextResponseDefaultTypeInternal;
 extern NextResponseDefaultTypeInternal _NextResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull NextResponse_class_data_;
+class ObjectBody;
+struct ObjectBodyDefaultTypeInternal;
+extern ObjectBodyDefaultTypeInternal _ObjectBody_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ObjectBody_class_data_;
 class ObjectMetadata;
 struct ObjectMetadataDefaultTypeInternal;
 extern ObjectMetadataDefaultTypeInternal _ObjectMetadata_default_instance_;
@@ -637,7 +649,7 @@ class WatchWorldStateResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WatchWorldStateResponse*>(
         &_WatchWorldStateResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 62;
+  static constexpr int kIndexInFileMessages = 65;
   friend void swap(WatchWorldStateResponse& a, WatchWorldStateResponse& b) { a.Swap(&b); }
   inline void Swap(WatchWorldStateResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -826,7 +838,7 @@ class WatchWorldStateRequest final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const WatchWorldStateRequest*>(
         &_WatchWorldStateRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 61;
+  static constexpr int kIndexInFileMessages = 64;
   friend void swap(WatchWorldStateRequest& a, WatchWorldStateRequest& b) { a.Swap(&b); }
   inline void Swap(WatchWorldStateRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1475,7 +1487,7 @@ class WaitRevResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const WaitRevResponse*>(
         &_WaitRevResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 92;
+  static constexpr int kIndexInFileMessages = 95;
   friend void swap(WaitRevResponse& a, WaitRevResponse& b) { a.Swap(&b); }
   inline void Swap(WaitRevResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1665,7 +1677,7 @@ class WaitRevRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const WaitRevRequest*>(
         &_WaitRevRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 91;
+  static constexpr int kIndexInFileMessages = 94;
   friend void swap(WaitRevRequest& a, WaitRevRequest& b) { a.Swap(&b); }
   inline void Swap(WaitRevRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1867,7 +1879,7 @@ class ValidResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ValidResponse*>(
         &_ValidResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 68;
+  static constexpr int kIndexInFileMessages = 71;
   friend void swap(ValidResponse& a, ValidResponse& b) { a.Swap(&b); }
   inline void Swap(ValidResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2056,7 +2068,7 @@ class ValidRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const ValidRequest*>(
         &_ValidRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 67;
+  static constexpr int kIndexInFileMessages = 70;
   friend void swap(ValidRequest& a, ValidRequest& b) { a.Swap(&b); }
   inline void Swap(ValidRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2191,7 +2203,7 @@ class TrackedWorldStateSnapshot_ObjectAccess final : public ::google::protobuf::
     return *reinterpret_cast<const TrackedWorldStateSnapshot_ObjectAccess*>(
         &_TrackedWorldStateSnapshot_ObjectAccess_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 63;
+  static constexpr int kIndexInFileMessages = 66;
   friend void swap(TrackedWorldStateSnapshot_ObjectAccess& a, TrackedWorldStateSnapshot_ObjectAccess& b) { a.Swap(&b); }
   inline void Swap(TrackedWorldStateSnapshot_ObjectAccess* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2722,7 +2734,7 @@ class SetRootRefResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetRootRefResponse*>(
         &_SetRootRefResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 86;
+  static constexpr int kIndexInFileMessages = 89;
   friend void swap(SetRootRefResponse& a, SetRootRefResponse& b) { a.Swap(&b); }
   inline void Swap(SetRootRefResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3045,7 +3057,7 @@ class SeekResponse final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const SeekResponse*>(
         &_SeekResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 74;
+  static constexpr int kIndexInFileMessages = 77;
   friend void swap(SeekResponse& a, SeekResponse& b) { a.Swap(&b); }
   inline void Swap(SeekResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3180,7 +3192,7 @@ class SeekRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SeekRequest*>(
         &_SeekRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 73;
+  static constexpr int kIndexInFileMessages = 76;
   friend void swap(SeekRequest& a, SeekRequest& b) { a.Swap(&b); }
   inline void Swap(SeekRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -3806,7 +3818,7 @@ class QueryGraphPathResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const QueryGraphPathResponse*>(
         &_QueryGraphPathResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 56;
+  static constexpr int kIndexInFileMessages = 59;
   friend void swap(QueryGraphPathResponse& a, QueryGraphPathResponse& b) { a.Swap(&b); }
   inline void Swap(QueryGraphPathResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4170,6 +4182,230 @@ class ObjectMetadata final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull ObjectMetadata_class_data_;
 // -------------------------------------------------------------------
 
+class ObjectBody final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.ObjectBody) */ {
+ public:
+  inline ObjectBody() : ObjectBody(nullptr) {}
+  ~ObjectBody() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ObjectBody* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ObjectBody));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ObjectBody(::google::protobuf::internal::ConstantInitialized);
+
+  inline ObjectBody(const ObjectBody& from) : ObjectBody(nullptr, from) {}
+  inline ObjectBody(ObjectBody&& from) noexcept
+      : ObjectBody(nullptr, ::std::move(from)) {}
+  inline ObjectBody& operator=(const ObjectBody& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ObjectBody& operator=(ObjectBody&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ObjectBody& default_instance() {
+    return *reinterpret_cast<const ObjectBody*>(
+        &_ObjectBody_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 54;
+  friend void swap(ObjectBody& a, ObjectBody& b) { a.Swap(&b); }
+  inline void Swap(ObjectBody* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ObjectBody* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ObjectBody* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ObjectBody>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ObjectBody& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ObjectBody& from) { ObjectBody::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ObjectBody* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.ObjectBody"; }
+
+  explicit ObjectBody(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ObjectBody(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ObjectBody& from);
+  ObjectBody(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ObjectBody&& from) noexcept
+      : ObjectBody(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kObjectKeyFieldNumber = 1,
+    kBodyFieldNumber = 2,
+    kExistsFieldNumber = 3,
+  };
+  // string object_key = 1;
+  void clear_object_key() ;
+  const ::std::string& object_key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_object_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_object_key();
+  void set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_object_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_object_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_object_key();
+
+  public:
+  // bytes body = 2;
+  void clear_body() ;
+  const ::std::string& body() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_body(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_body();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_body();
+  void set_allocated_body(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_body() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_body(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_body();
+
+  public:
+  // bool exists = 3;
+  void clear_exists() ;
+  bool exists() const;
+  void set_exists(bool value);
+
+  private:
+  bool _internal_exists() const;
+  void _internal_set_exists(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.world.ObjectBody)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   0, 42,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ObjectBody& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr object_key_;
+    ::google::protobuf::internal::ArenaStringPtr body_;
+    bool exists_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ObjectBody_class_data_;
+// -------------------------------------------------------------------
+
 class NextResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.world.NextResponse) */ {
  public:
@@ -4225,7 +4461,7 @@ class NextResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const NextResponse*>(
         &_NextResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 72;
+  static constexpr int kIndexInFileMessages = 75;
   friend void swap(NextResponse& a, NextResponse& b) { a.Swap(&b); }
   inline void Swap(NextResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4414,7 +4650,7 @@ class NextRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const NextRequest*>(
         &_NextRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 71;
+  static constexpr int kIndexInFileMessages = 74;
   friend void swap(NextRequest& a, NextRequest& b) { a.Swap(&b); }
   inline void Swap(NextRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4548,7 +4784,7 @@ class NextGraphPathQueryRequest final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const NextGraphPathQueryRequest*>(
         &_NextGraphPathQueryRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 77;
+  static constexpr int kIndexInFileMessages = 80;
   friend void swap(NextGraphPathQueryRequest& a, NextGraphPathQueryRequest& b) { a.Swap(&b); }
   inline void Swap(NextGraphPathQueryRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5715,7 +5951,7 @@ class KeyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const KeyResponse*>(
         &_KeyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 70;
+  static constexpr int kIndexInFileMessages = 73;
   friend void swap(KeyResponse& a, KeyResponse& b) { a.Swap(&b); }
   inline void Swap(KeyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -5909,7 +6145,7 @@ class KeyRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const KeyRequest*>(
         &_KeyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 69;
+  static constexpr int kIndexInFileMessages = 72;
   friend void swap(KeyRequest& a, KeyRequest& b) { a.Swap(&b); }
   inline void Swap(KeyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6441,7 +6677,7 @@ class IncrementRevResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const IncrementRevResponse*>(
         &_IncrementRevResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 90;
+  static constexpr int kIndexInFileMessages = 93;
   friend void swap(IncrementRevResponse& a, IncrementRevResponse& b) { a.Swap(&b); }
   inline void Swap(IncrementRevResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6630,7 +6866,7 @@ class IncrementRevRequest final : public ::google::protobuf::internal::ZeroField
     return *reinterpret_cast<const IncrementRevRequest*>(
         &_IncrementRevRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 89;
+  static constexpr int kIndexInFileMessages = 92;
   friend void swap(IncrementRevRequest& a, IncrementRevRequest& b) { a.Swap(&b); }
   inline void Swap(IncrementRevRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -6765,7 +7001,7 @@ class GraphPathStep final : public ::google::protobuf::Message
     return *reinterpret_cast<const GraphPathStep*>(
         &_GraphPathStep_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 54;
+  static constexpr int kIndexInFileMessages = 57;
   friend void swap(GraphPathStep& a, GraphPathStep& b) { a.Swap(&b); }
   inline void Swap(GraphPathStep* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7441,7 +7677,7 @@ class GetRootRefRequest final : public ::google::protobuf::internal::ZeroFieldsB
     return *reinterpret_cast<const GetRootRefRequest*>(
         &_GetRootRefRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 83;
+  static constexpr int kIndexInFileMessages = 86;
   friend void swap(GetRootRefRequest& a, GetRootRefRequest& b) { a.Swap(&b); }
   inline void Swap(GetRootRefRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8663,6 +8899,220 @@ class GetObjectMetadataBatchRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull GetObjectMetadataBatchRequest_class_data_;
 // -------------------------------------------------------------------
 
+class GetObjectBodiesBatchRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.GetObjectBodiesBatchRequest) */ {
+ public:
+  inline GetObjectBodiesBatchRequest() : GetObjectBodiesBatchRequest(nullptr) {}
+  ~GetObjectBodiesBatchRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetObjectBodiesBatchRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetObjectBodiesBatchRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetObjectBodiesBatchRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetObjectBodiesBatchRequest(const GetObjectBodiesBatchRequest& from) : GetObjectBodiesBatchRequest(nullptr, from) {}
+  inline GetObjectBodiesBatchRequest(GetObjectBodiesBatchRequest&& from) noexcept
+      : GetObjectBodiesBatchRequest(nullptr, ::std::move(from)) {}
+  inline GetObjectBodiesBatchRequest& operator=(const GetObjectBodiesBatchRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetObjectBodiesBatchRequest& operator=(GetObjectBodiesBatchRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetObjectBodiesBatchRequest& default_instance() {
+    return *reinterpret_cast<const GetObjectBodiesBatchRequest*>(
+        &_GetObjectBodiesBatchRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 55;
+  friend void swap(GetObjectBodiesBatchRequest& a, GetObjectBodiesBatchRequest& b) { a.Swap(&b); }
+  inline void Swap(GetObjectBodiesBatchRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetObjectBodiesBatchRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetObjectBodiesBatchRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetObjectBodiesBatchRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetObjectBodiesBatchRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetObjectBodiesBatchRequest& from) { GetObjectBodiesBatchRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetObjectBodiesBatchRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.GetObjectBodiesBatchRequest"; }
+
+  explicit GetObjectBodiesBatchRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetObjectBodiesBatchRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetObjectBodiesBatchRequest& from);
+  GetObjectBodiesBatchRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetObjectBodiesBatchRequest&& from) noexcept
+      : GetObjectBodiesBatchRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kObjectKeysFieldNumber = 1,
+    kStartKeyIndexFieldNumber = 2,
+  };
+  // repeated string object_keys = 1;
+  int object_keys_size() const;
+  private:
+  int _internal_object_keys_size() const;
+
+  public:
+  void clear_object_keys() ;
+  const ::std::string& object_keys(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_object_keys(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_object_keys(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_object_keys();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_object_keys(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& object_keys() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_object_keys();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_object_keys() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_object_keys();
+
+  public:
+  // uint32 start_key_index = 2;
+  void clear_start_key_index() ;
+  ::uint32_t start_key_index() const;
+  void set_start_key_index(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_start_key_index() const;
+  void _internal_set_start_key_index(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.world.GetObjectBodiesBatchRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 60,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetObjectBodiesBatchRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField<::std::string> object_keys_;
+    ::uint32_t start_key_index_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetObjectBodiesBatchRequest_class_data_;
+// -------------------------------------------------------------------
+
 class GetKeyResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.world.GetKeyResponse) */ {
  public:
@@ -8718,7 +9168,7 @@ class GetKeyResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetKeyResponse*>(
         &_GetKeyResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 82;
+  static constexpr int kIndexInFileMessages = 85;
   friend void swap(GetKeyResponse& a, GetKeyResponse& b) { a.Swap(&b); }
   inline void Swap(GetKeyResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -8912,7 +9362,7 @@ class GetKeyRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const GetKeyRequest*>(
         &_GetKeyRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 81;
+  static constexpr int kIndexInFileMessages = 84;
   friend void swap(GetKeyRequest& a, GetKeyRequest& b) { a.Swap(&b); }
   inline void Swap(GetKeyRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9181,7 +9631,7 @@ class ErrResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ErrResponse*>(
         &_ErrResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 66;
+  static constexpr int kIndexInFileMessages = 69;
   friend void swap(ErrResponse& a, ErrResponse& b) { a.Swap(&b); }
   inline void Swap(ErrResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -9375,7 +9825,7 @@ class ErrRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const ErrRequest*>(
         &_ErrRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 65;
+  static constexpr int kIndexInFileMessages = 68;
   friend void swap(ErrRequest& a, ErrRequest& b) { a.Swap(&b); }
   inline void Swap(ErrRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10508,7 +10958,7 @@ class DeleteGraphObjectResponse final : public ::google::protobuf::internal::Zer
     return *reinterpret_cast<const DeleteGraphObjectResponse*>(
         &_DeleteGraphObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 58;
+  static constexpr int kIndexInFileMessages = 61;
   friend void swap(DeleteGraphObjectResponse& a, DeleteGraphObjectResponse& b) { a.Swap(&b); }
   inline void Swap(DeleteGraphObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -10643,7 +11093,7 @@ class DeleteGraphObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const DeleteGraphObjectRequest*>(
         &_DeleteGraphObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 57;
+  static constexpr int kIndexInFileMessages = 60;
   friend void swap(DeleteGraphObjectRequest& a, DeleteGraphObjectRequest& b) { a.Swap(&b); }
   inline void Swap(DeleteGraphObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11312,7 +11762,7 @@ class CloseResponse final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const CloseResponse*>(
         &_CloseResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 76;
+  static constexpr int kIndexInFileMessages = 79;
   friend void swap(CloseResponse& a, CloseResponse& b) { a.Swap(&b); }
   inline void Swap(CloseResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11446,7 +11896,7 @@ class CloseRequest final : public ::google::protobuf::internal::ZeroFieldsBase
     return *reinterpret_cast<const CloseRequest*>(
         &_CloseRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 75;
+  static constexpr int kIndexInFileMessages = 78;
   friend void swap(CloseRequest& a, CloseRequest& b) { a.Swap(&b); }
   inline void Swap(CloseRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11580,7 +12030,7 @@ class CloseGraphPathQueryResponse final : public ::google::protobuf::internal::Z
     return *reinterpret_cast<const CloseGraphPathQueryResponse*>(
         &_CloseGraphPathQueryResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 80;
+  static constexpr int kIndexInFileMessages = 83;
   friend void swap(CloseGraphPathQueryResponse& a, CloseGraphPathQueryResponse& b) { a.Swap(&b); }
   inline void Swap(CloseGraphPathQueryResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -11714,7 +12164,7 @@ class CloseGraphPathQueryRequest final : public ::google::protobuf::internal::Ze
     return *reinterpret_cast<const CloseGraphPathQueryRequest*>(
         &_CloseGraphPathQueryRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 79;
+  static constexpr int kIndexInFileMessages = 82;
   friend void swap(CloseGraphPathQueryRequest& a, CloseGraphPathQueryRequest& b) { a.Swap(&b); }
   inline void Swap(CloseGraphPathQueryRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12173,7 +12623,7 @@ class ApplyWorldOpResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyWorldOpResponse*>(
         &_ApplyWorldOpResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 60;
+  static constexpr int kIndexInFileMessages = 63;
   friend void swap(ApplyWorldOpResponse& a, ApplyWorldOpResponse& b) { a.Swap(&b); }
   inline void Swap(ApplyWorldOpResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12387,7 +12837,7 @@ class ApplyWorldOpRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyWorldOpRequest*>(
         &_ApplyWorldOpRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 59;
+  static constexpr int kIndexInFileMessages = 62;
   friend void swap(ApplyWorldOpRequest& a, ApplyWorldOpRequest& b) { a.Swap(&b); }
   inline void Swap(ApplyWorldOpRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12616,7 +13066,7 @@ class ApplyObjectOpResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyObjectOpResponse*>(
         &_ApplyObjectOpResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 88;
+  static constexpr int kIndexInFileMessages = 91;
   friend void swap(ApplyObjectOpResponse& a, ApplyObjectOpResponse& b) { a.Swap(&b); }
   inline void Swap(ApplyObjectOpResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -12830,7 +13280,7 @@ class ApplyObjectOpRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const ApplyObjectOpRequest*>(
         &_ApplyObjectOpRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 87;
+  static constexpr int kIndexInFileMessages = 90;
   friend void swap(ApplyObjectOpRequest& a, ApplyObjectOpRequest& b) { a.Swap(&b); }
   inline void Swap(ApplyObjectOpRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13249,7 +13699,7 @@ class AccessTypedObjectResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessTypedObjectResponse*>(
         &_AccessTypedObjectResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 94;
+  static constexpr int kIndexInFileMessages = 97;
   friend void swap(AccessTypedObjectResponse& a, AccessTypedObjectResponse& b) { a.Swap(&b); }
   inline void Swap(AccessTypedObjectResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13456,7 +13906,7 @@ class AccessTypedObjectRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const AccessTypedObjectRequest*>(
         &_AccessTypedObjectRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 93;
+  static constexpr int kIndexInFileMessages = 96;
   friend void swap(AccessTypedObjectRequest& a, AccessTypedObjectRequest& b) { a.Swap(&b); }
   inline void Swap(AccessTypedObjectRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -13651,7 +14101,7 @@ class TrackedWorldStateSnapshot final : public ::google::protobuf::Message
     return *reinterpret_cast<const TrackedWorldStateSnapshot*>(
         &_TrackedWorldStateSnapshot_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 64;
+  static constexpr int kIndexInFileMessages = 67;
   friend void swap(TrackedWorldStateSnapshot& a, TrackedWorldStateSnapshot& b) { a.Swap(&b); }
   inline void Swap(TrackedWorldStateSnapshot* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14068,7 +14518,7 @@ class QueryGraphPathRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const QueryGraphPathRequest*>(
         &_QueryGraphPathRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 55;
+  static constexpr int kIndexInFileMessages = 58;
   friend void swap(QueryGraphPathRequest& a, QueryGraphPathRequest& b) { a.Swap(&b); }
   inline void Swap(QueryGraphPathRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -14325,7 +14775,7 @@ class NextGraphPathQueryResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const NextGraphPathQueryResponse*>(
         &_NextGraphPathQueryResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 78;
+  static constexpr int kIndexInFileMessages = 81;
   friend void swap(NextGraphPathQueryResponse& a, NextGraphPathQueryResponse& b) { a.Swap(&b); }
   inline void Swap(NextGraphPathQueryResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -15767,6 +16217,227 @@ class GetObjectMetadataBatchResponse final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull GetObjectMetadataBatchResponse_class_data_;
 // -------------------------------------------------------------------
 
+class GetObjectBodiesBatchResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:s4wave.world.GetObjectBodiesBatchResponse) */ {
+ public:
+  inline GetObjectBodiesBatchResponse() : GetObjectBodiesBatchResponse(nullptr) {}
+  ~GetObjectBodiesBatchResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(GetObjectBodiesBatchResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(GetObjectBodiesBatchResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR GetObjectBodiesBatchResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline GetObjectBodiesBatchResponse(const GetObjectBodiesBatchResponse& from) : GetObjectBodiesBatchResponse(nullptr, from) {}
+  inline GetObjectBodiesBatchResponse(GetObjectBodiesBatchResponse&& from) noexcept
+      : GetObjectBodiesBatchResponse(nullptr, ::std::move(from)) {}
+  inline GetObjectBodiesBatchResponse& operator=(const GetObjectBodiesBatchResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline GetObjectBodiesBatchResponse& operator=(GetObjectBodiesBatchResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const GetObjectBodiesBatchResponse& default_instance() {
+    return *reinterpret_cast<const GetObjectBodiesBatchResponse*>(
+        &_GetObjectBodiesBatchResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 56;
+  friend void swap(GetObjectBodiesBatchResponse& a, GetObjectBodiesBatchResponse& b) { a.Swap(&b); }
+  inline void Swap(GetObjectBodiesBatchResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(GetObjectBodiesBatchResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  GetObjectBodiesBatchResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<GetObjectBodiesBatchResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const GetObjectBodiesBatchResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const GetObjectBodiesBatchResponse& from) { GetObjectBodiesBatchResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(GetObjectBodiesBatchResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "s4wave.world.GetObjectBodiesBatchResponse"; }
+
+  explicit GetObjectBodiesBatchResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  GetObjectBodiesBatchResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const GetObjectBodiesBatchResponse& from);
+  GetObjectBodiesBatchResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, GetObjectBodiesBatchResponse&& from) noexcept
+      : GetObjectBodiesBatchResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kBodiesFieldNumber = 1,
+    kWorldSeqnoFieldNumber = 3,
+    kNextKeyIndexFieldNumber = 2,
+  };
+  // repeated .s4wave.world.ObjectBody bodies = 1;
+  int bodies_size() const;
+  private:
+  int _internal_bodies_size() const;
+
+  public:
+  void clear_bodies() ;
+  ::s4wave::world::ObjectBody* PROTOBUF_NONNULL mutable_bodies(int index);
+  ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectBody>* PROTOBUF_NONNULL mutable_bodies();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectBody>& _internal_bodies() const;
+  ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectBody>* PROTOBUF_NONNULL _internal_mutable_bodies();
+  public:
+  const ::s4wave::world::ObjectBody& bodies(int index) const;
+  ::s4wave::world::ObjectBody* PROTOBUF_NONNULL add_bodies();
+  const ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectBody>& bodies() const;
+  // uint64 world_seqno = 3;
+  void clear_world_seqno() ;
+  ::uint64_t world_seqno() const;
+  void set_world_seqno(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_world_seqno() const;
+  void _internal_set_world_seqno(::uint64_t value);
+
+  public:
+  // uint32 next_key_index = 2;
+  void clear_next_key_index() ;
+  ::uint32_t next_key_index() const;
+  void set_next_key_index(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_next_key_index() const;
+  void _internal_set_next_key_index(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:s4wave.world.GetObjectBodiesBatchResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const GetObjectBodiesBatchResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::s4wave::world::ObjectBody > bodies_;
+    ::uint64_t world_seqno_;
+    ::uint32_t next_key_index_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull GetObjectBodiesBatchResponse_class_data_;
+// -------------------------------------------------------------------
+
 class GetEngineInfoResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.world.GetEngineInfoResponse) */ {
  public:
@@ -16847,7 +17518,7 @@ class SetRootRefRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const SetRootRefRequest*>(
         &_SetRootRefRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 85;
+  static constexpr int kIndexInFileMessages = 88;
   friend void swap(SetRootRefRequest& a, SetRootRefRequest& b) { a.Swap(&b); }
   inline void Swap(SetRootRefRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -17278,7 +17949,7 @@ class GetRootRefResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetRootRefResponse*>(
         &_GetRootRefResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 84;
+  static constexpr int kIndexInFileMessages = 87;
   friend void swap(GetRootRefResponse& a, GetRootRefResponse& b) { a.Swap(&b); }
   inline void Swap(GetRootRefResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -21780,6 +22451,376 @@ inline ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectMetadata>* PR
 GetObjectMetadataBatchResponse::_internal_mutable_metadata() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.metadata_;
+}
+
+// -------------------------------------------------------------------
+
+// ObjectBody
+
+// string object_key = 1;
+inline void ObjectBody::clear_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ObjectBody::object_key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.ObjectBody.object_key)
+  return _internal_object_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ObjectBody::set_object_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.world.ObjectBody.object_key)
+}
+inline ::std::string* PROTOBUF_NONNULL ObjectBody::mutable_object_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_object_key();
+  // @@protoc_insertion_point(field_mutable:s4wave.world.ObjectBody.object_key)
+  return _s;
+}
+inline const ::std::string& ObjectBody::_internal_object_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_key_.Get();
+}
+inline void ObjectBody::_internal_set_object_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ObjectBody::_internal_mutable_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.object_key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ObjectBody::release_object_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.world.ObjectBody.object_key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.object_key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ObjectBody::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.object_key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_key_.IsDefault()) {
+    _impl_.object_key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.world.ObjectBody.object_key)
+}
+
+// bytes body = 2;
+inline void ObjectBody::clear_body() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.body_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& ObjectBody::body() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.ObjectBody.body)
+  return _internal_body();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ObjectBody::set_body(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.body_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:s4wave.world.ObjectBody.body)
+}
+inline ::std::string* PROTOBUF_NONNULL ObjectBody::mutable_body()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_body();
+  // @@protoc_insertion_point(field_mutable:s4wave.world.ObjectBody.body)
+  return _s;
+}
+inline const ::std::string& ObjectBody::_internal_body() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.body_.Get();
+}
+inline void ObjectBody::_internal_set_body(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.body_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ObjectBody::_internal_mutable_body() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.body_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ObjectBody::release_body() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:s4wave.world.ObjectBody.body)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.body_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.body_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ObjectBody::set_allocated_body(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.body_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.body_.IsDefault()) {
+    _impl_.body_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:s4wave.world.ObjectBody.body)
+}
+
+// bool exists = 3;
+inline void ObjectBody::clear_exists() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.exists_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline bool ObjectBody::exists() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.ObjectBody.exists)
+  return _internal_exists();
+}
+inline void ObjectBody::set_exists(bool value) {
+  _internal_set_exists(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.world.ObjectBody.exists)
+}
+inline bool ObjectBody::_internal_exists() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.exists_;
+}
+inline void ObjectBody::_internal_set_exists(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.exists_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// GetObjectBodiesBatchRequest
+
+// repeated string object_keys = 1;
+inline int GetObjectBodiesBatchRequest::_internal_object_keys_size() const {
+  return _internal_object_keys().size();
+}
+inline int GetObjectBodiesBatchRequest::object_keys_size() const {
+  return _internal_object_keys_size();
+}
+inline void GetObjectBodiesBatchRequest::clear_object_keys() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.object_keys_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::std::string* PROTOBUF_NONNULL GetObjectBodiesBatchRequest::add_object_keys()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_object_keys()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add_mutable:s4wave.world.GetObjectBodiesBatchRequest.object_keys)
+  return _s;
+}
+inline const ::std::string& GetObjectBodiesBatchRequest::object_keys(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.GetObjectBodiesBatchRequest.object_keys)
+  return _internal_object_keys().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL GetObjectBodiesBatchRequest::mutable_object_keys(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.world.GetObjectBodiesBatchRequest.object_keys)
+  return _internal_mutable_object_keys()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void GetObjectBodiesBatchRequest::set_object_keys(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_object_keys()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:s4wave.world.GetObjectBodiesBatchRequest.object_keys)
+}
+template <typename Arg_, typename... Args_>
+inline void GetObjectBodiesBatchRequest::add_object_keys(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_object_keys(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.world.GetObjectBodiesBatchRequest.object_keys)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& GetObjectBodiesBatchRequest::object_keys()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.world.GetObjectBodiesBatchRequest.object_keys)
+  return _internal_object_keys();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+GetObjectBodiesBatchRequest::mutable_object_keys() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.world.GetObjectBodiesBatchRequest.object_keys)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_object_keys();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+GetObjectBodiesBatchRequest::_internal_object_keys() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.object_keys_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+GetObjectBodiesBatchRequest::_internal_mutable_object_keys() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.object_keys_;
+}
+
+// uint32 start_key_index = 2;
+inline void GetObjectBodiesBatchRequest::clear_start_key_index() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.start_key_index_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::uint32_t GetObjectBodiesBatchRequest::start_key_index() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.GetObjectBodiesBatchRequest.start_key_index)
+  return _internal_start_key_index();
+}
+inline void GetObjectBodiesBatchRequest::set_start_key_index(::uint32_t value) {
+  _internal_set_start_key_index(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:s4wave.world.GetObjectBodiesBatchRequest.start_key_index)
+}
+inline ::uint32_t GetObjectBodiesBatchRequest::_internal_start_key_index() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.start_key_index_;
+}
+inline void GetObjectBodiesBatchRequest::_internal_set_start_key_index(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.start_key_index_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// GetObjectBodiesBatchResponse
+
+// repeated .s4wave.world.ObjectBody bodies = 1;
+inline int GetObjectBodiesBatchResponse::_internal_bodies_size() const {
+  return _internal_bodies().size();
+}
+inline int GetObjectBodiesBatchResponse::bodies_size() const {
+  return _internal_bodies_size();
+}
+inline void GetObjectBodiesBatchResponse::clear_bodies() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.bodies_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::s4wave::world::ObjectBody* PROTOBUF_NONNULL GetObjectBodiesBatchResponse::mutable_bodies(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.world.GetObjectBodiesBatchResponse.bodies)
+  return _internal_mutable_bodies()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectBody>* PROTOBUF_NONNULL GetObjectBodiesBatchResponse::mutable_bodies()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.world.GetObjectBodiesBatchResponse.bodies)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_bodies();
+}
+inline const ::s4wave::world::ObjectBody& GetObjectBodiesBatchResponse::bodies(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.world.GetObjectBodiesBatchResponse.bodies)
+  return _internal_bodies().Get(index);
+}
+inline ::s4wave::world::ObjectBody* PROTOBUF_NONNULL GetObjectBodiesBatchResponse::add_bodies()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::s4wave::world::ObjectBody* _add =
+      _internal_mutable_bodies()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:s4wave.world.GetObjectBodiesBatchResponse.bodies)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectBody>& GetObjectBodiesBatchResponse::bodies() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.world.GetObjectBodiesBatchResponse.bodies)
+  return _internal_bodies();
+}
+inline const ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectBody>&
+GetObjectBodiesBatchResponse::_internal_bodies() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.bodies_;
+}
+inline ::google::protobuf::RepeatedPtrField<::s4wave::world::ObjectBody>* PROTOBUF_NONNULL
+GetObjectBodiesBatchResponse::_internal_mutable_bodies() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.bodies_;
+}
+
+// uint32 next_key_index = 2;
+inline void GetObjectBodiesBatchResponse::clear_next_key_index() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.next_key_index_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint32_t GetObjectBodiesBatchResponse::next_key_index() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.GetObjectBodiesBatchResponse.next_key_index)
+  return _internal_next_key_index();
+}
+inline void GetObjectBodiesBatchResponse::set_next_key_index(::uint32_t value) {
+  _internal_set_next_key_index(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.world.GetObjectBodiesBatchResponse.next_key_index)
+}
+inline ::uint32_t GetObjectBodiesBatchResponse::_internal_next_key_index() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.next_key_index_;
+}
+inline void GetObjectBodiesBatchResponse::_internal_set_next_key_index(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.next_key_index_ = value;
+}
+
+// uint64 world_seqno = 3;
+inline void GetObjectBodiesBatchResponse::clear_world_seqno() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.world_seqno_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::uint64_t GetObjectBodiesBatchResponse::world_seqno() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.GetObjectBodiesBatchResponse.world_seqno)
+  return _internal_world_seqno();
+}
+inline void GetObjectBodiesBatchResponse::set_world_seqno(::uint64_t value) {
+  _internal_set_world_seqno(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:s4wave.world.GetObjectBodiesBatchResponse.world_seqno)
+}
+inline ::uint64_t GetObjectBodiesBatchResponse::_internal_world_seqno() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.world_seqno_;
+}
+inline void GetObjectBodiesBatchResponse::_internal_set_world_seqno(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.world_seqno_ = value;
 }
 
 // -------------------------------------------------------------------

@@ -3,6 +3,7 @@ package s4wave_world
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -352,6 +353,63 @@ func (ws *WorldState) GetObjectMetadataBatch(ctx context.Context, keys []string)
 		}
 	}
 	return metadata, nil
+}
+
+// GetObjectBodiesBatch returns serialized object bodies for object keys.
+func (ws *WorldState) GetObjectBodiesBatch(ctx context.Context, keys []string) ([]*world.ObjectBody, error) {
+	const maxObjectBodiesBatchRevisionRetries = 3
+
+	for retry := 0; retry <= maxObjectBodiesBatchRevisionRetries; retry++ {
+		bodies := make([]*world.ObjectBody, 0, len(keys))
+		var worldSeqno uint64
+		var haveWorldSeqno bool
+		consistent := true
+		for startKeyIndex := uint32(0); ; {
+			resp, err := ws.service.GetObjectBodiesBatch(ctx, &GetObjectBodiesBatchRequest{
+				ObjectKeys:    keys,
+				StartKeyIndex: startKeyIndex,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			pageSeqno := resp.GetWorldSeqno()
+			if !haveWorldSeqno {
+				worldSeqno = pageSeqno
+				haveWorldSeqno = true
+			} else if pageSeqno != worldSeqno {
+				consistent = false
+				if retry == maxObjectBodiesBatchRevisionRetries {
+					return nil, &ObjectBodiesBatchRevisionError{
+						Expected: worldSeqno,
+						Got:      pageSeqno,
+						Retries:  retry,
+					}
+				}
+				break
+			}
+
+			for _, body := range resp.GetBodies() {
+				bodies = append(bodies, &world.ObjectBody{
+					ObjectKey: body.GetObjectKey(),
+					Body:      append([]byte(nil), body.GetBody()...),
+					Exists:    body.GetExists(),
+				})
+			}
+			nextKeyIndex := resp.GetNextKeyIndex()
+			if nextKeyIndex == 0 {
+				break
+			}
+			if nextKeyIndex <= startKeyIndex {
+				return nil, errors.Errorf("object bodies batch page did not advance: next key index %d after %d", nextKeyIndex, startKeyIndex)
+			}
+			startKeyIndex = nextKeyIndex
+		}
+		if consistent {
+			return bodies, nil
+		}
+	}
+	return nil, &ObjectBodiesBatchRevisionError{}
 }
 
 // QueryGraphPath executes a bounded server-side graph path query.

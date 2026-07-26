@@ -35,6 +35,8 @@ import {
   GetEngineInfoResponse,
   GetKeyRequest,
   GetKeyResponse,
+  GetObjectBodiesBatchRequest,
+  GetObjectBodiesBatchResponse,
   GetObjectMetadataBatchRequest,
   GetObjectMetadataBatchResponse,
   GetObjectRequest,
@@ -91,7 +93,7 @@ import {
   WatchWorldStateResponse,
   WorldRootSnapshot,
 } from './world.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**
@@ -608,6 +610,15 @@ export const WorldStateResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectBodiesBatch
+     */
+    GetObjectBodiesBatch: {
+      name: 'GetObjectBodiesBatch',
+      I: GetObjectBodiesBatchRequest,
+      O: GetObjectBodiesBatchResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * @generated from rpc s4wave.world.WorldStateResourceService.QueryGraphPath
      */
     QueryGraphPath: {
@@ -791,6 +802,14 @@ export interface WorldStateResourceService {
   ): Promise<GetObjectMetadataBatchResponse>
 
   /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectBodiesBatch
+   */
+  GetObjectBodiesBatch(
+    request: GetObjectBodiesBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetObjectBodiesBatchResponse>
+
+  /**
    * @generated from rpc s4wave.world.WorldStateResourceService.QueryGraphPath
    */
   QueryGraphPath(
@@ -843,6 +862,7 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
     this.ListObjectsWithType = this.ListObjectsWithType.bind(this)
     this.GetObjectRootRefsBatch = this.GetObjectRootRefsBatch.bind(this)
     this.GetObjectMetadataBatch = this.GetObjectMetadataBatch.bind(this)
+    this.GetObjectBodiesBatch = this.GetObjectBodiesBatch.bind(this)
     this.QueryGraphPath = this.QueryGraphPath.bind(this)
     this.DeleteGraphObject = this.DeleteGraphObject.bind(this)
     this.ApplyWorldOp = this.ApplyWorldOp.bind(this)
@@ -1168,6 +1188,23 @@ export class WorldStateResourceServiceClient implements WorldStateResourceServic
       abortSignal || undefined,
     )
     return GetObjectMetadataBatchResponse.fromBinary(result)
+  }
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectBodiesBatch
+   */
+  async GetObjectBodiesBatch(
+    request: GetObjectBodiesBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<GetObjectBodiesBatchResponse> {
+    const requestMsg = GetObjectBodiesBatchRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WorldStateResourceServiceDefinition.methods.GetObjectBodiesBatch.name,
+      GetObjectBodiesBatchRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return GetObjectBodiesBatchResponse.fromBinary(result)
   }
 
   /**
