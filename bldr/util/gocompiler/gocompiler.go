@@ -20,11 +20,6 @@ const BldrTinyGoJSImportBuildTag = "bldr_tinygo_js_imports"
 // GoScriptBuildTag selects source meant for GoScript compilation.
 const GoScriptBuildTag = "goscript"
 
-// SQLLiteBuildTag selects the reduced SQL surface for browser builds: source
-// gated on sql_lite drops the go-mysql-server driver, stdlib database/sql
-// integration, and other native-only SQL paths from the bundle.
-const SQLLiteBuildTag = "sql_lite"
-
 // GoScriptCompilerCacheRootEnv opts Bldr GoScript compiles into the compiler
 // package artifact cache.
 const GoScriptCompilerCacheRootEnv = "BLDR_GOSCRIPT_COMPILER_CACHE_ROOT"

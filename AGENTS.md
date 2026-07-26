@@ -84,8 +84,6 @@ a subdirectory.
 - Run `bun install` before treating generated/module-resolution failures as real.
   Use `bun run setup` only to repair stale `.bldr` exports or module resolution
   after dependencies are installed.
-- Do not edit, copy into, or sync files under `.bldr/src/`; it is generated.
-  Edit source files in their original locations.
 - Keep large command output under `.tmp/` when needed, then inspect a short
   summary or tail. Do not commit `.tmp/`.
 - Do not use sleep loops for readiness, locks, files, ports, pids, or results.
@@ -230,8 +228,8 @@ a subdirectory.
 
 ## Bldr Build And Runtime
 
-- Bldr setup output is generated. Do not edit `.bldr/src/` or hand-copy files
-  there.
+- Bldr setup output is generated. Do not edit, copy into, or sync files under
+  `.bldr/src/`; edit source files in their original locations.
 - Controller factories are normally registered through Bldr `configSet` entries
   and package scans, not production `AddFactory` calls. Direct `AddFactory`
   belongs in tests.
