@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aperturerobotics/cayley/quad"
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -73,21 +72,6 @@ func (t *pluginInstance) processManifestWorldState(
 	platformIDs := slices.Collect(maps.Keys(platformIDsMap))
 	slices.Sort(platformIDs)
 	trace.Log(ctx, "platform-ids", strings.Join(platformIDs, ","))
-	selectionFingerprint, err := t.manifestSelectionInputFingerprint(ctx, ws, platformIDs)
-	if err != nil {
-		return true, err
-	}
-	if t.manifestSelectionInputUnchanged(selectionFingerprint) {
-		trace.Log(ctx, "manifest-selection-phase", "skipped-unchanged-inputs")
-		return true, nil
-	}
-
-	// configure logger
-	le = le.WithFields(logrus.Fields{
-		"platform-ids":    platformIDs,
-		"host-object-key": t.c.objKey,
-	})
-
 	// collect and classify retained startup manifest candidates
 	candidateEligibility, err := bldr_manifest_world.CollectStartupManifestEligibilityForManifestID(
 		ctx,
@@ -98,6 +82,11 @@ func (t *pluginInstance) processManifestWorldState(
 	)
 	if err != nil {
 		return true, err
+	}
+	selectionFingerprint := manifestSelectionInputFingerprint(platformIDs, candidateEligibility)
+	if t.manifestSelectionInputUnchanged(hosts, selectionFingerprint) {
+		trace.Log(ctx, "manifest-selection-phase", "skipped-unchanged-inputs")
+		return true, nil
 	}
 	if ctx.Err() != nil {
 		return true, context.Canceled
@@ -133,7 +122,7 @@ func (t *pluginInstance) processManifestWorldState(
 		t.c.clearPluginStatusErrorStage(t.pluginID, t.instanceKey, "startup manifest refs")
 	}
 	if len(manifests) == 0 {
-		t.storeManifestSelectionInputFingerprint(selectionFingerprint)
+		t.storeManifestSelectionInputFingerprint(hosts, selectionFingerprint)
 		t.c.recordPluginManifestRecoveryStatus(t.pluginID, t.instanceKey, nil, nil, candidateEligibility)
 		// When store is disabled, the fetch handler may drive
 		// execute/download directly from fetched ManifestRefs.
@@ -295,79 +284,87 @@ func (t *pluginInstance) processManifestWorldState(
 				le.WithFields(fields).Debug("selected download and execute manifests for plugin")
 			}
 
-			t.storeManifestSelectionInputFingerprint(selectionFingerprint)
+			t.storeManifestSelectionInputFingerprint(hosts, selectionFingerprint)
 			return nil
 		},
 	)
 }
 
-func (t *pluginInstance) manifestSelectionInputUnchanged(fingerprint string) bool {
+type manifestSelectionInput struct {
+	hostSet     *pluginHostSet
+	fingerprint string
+}
+
+func (t *pluginInstance) manifestSelectionInputUnchanged(hosts *pluginHostSet, fingerprint string) bool {
 	current := t.manifestSelectionFingerprint.Load()
-	return current != nil && *current == fingerprint
+	return current != nil &&
+		current.hostSet == hosts &&
+		current.fingerprint == fingerprint
 }
 
-func (t *pluginInstance) storeManifestSelectionInputFingerprint(fingerprint string) {
-	t.manifestSelectionFingerprint.Store(&fingerprint)
-}
-
-func (t *pluginInstance) manifestSelectionInputFingerprint(
-	ctx context.Context,
-	ws world.WorldState,
-	platformIDs []string,
-) (string, error) {
-	var fingerprint strings.Builder
-	fingerprint.WriteString(t.pluginID)
-	for _, platformID := range platformIDs {
-		fingerprint.WriteByte(0)
-		fingerprint.WriteString(platformID)
-	}
-	exactLabel := quad.IRI(t.pluginID).String()
-	quads, err := ws.LookupGraphQuads(
-		ctx,
-		world.NewGraphQuadWithKeys(t.c.objKey, bldr_manifest_world.PredManifest.String(), "", ""),
-		0,
-	)
-	if err != nil {
-		return "", err
-	}
-	slices.SortFunc(quads, func(a, b world.GraphQuad) int {
-		if cmp := strings.Compare(a.GetLabel(), b.GetLabel()); cmp != 0 {
-			return cmp
-		}
-		return strings.Compare(a.GetObj(), b.GetObj())
+func (t *pluginInstance) storeManifestSelectionInputFingerprint(hosts *pluginHostSet, fingerprint string) {
+	t.manifestSelectionFingerprint.Store(&manifestSelectionInput{
+		hostSet:     hosts,
+		fingerprint: fingerprint,
 	})
-	for _, graphQuad := range quads {
-		if label := graphQuad.GetLabel(); label != exactLabel && label != "" {
+}
+
+func manifestSelectionInputFingerprint(
+	platformIDs []string,
+	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
+) string {
+	var fingerprint strings.Builder
+	writeField := func(value string) {
+		fingerprint.WriteByte(0)
+		fingerprint.WriteString(strconv.Itoa(len(value)))
+		fingerprint.WriteByte(':')
+		fingerprint.WriteString(value)
+	}
+	for _, platformID := range platformIDs {
+		writeField(platformID)
+	}
+	candidates = slices.Clone(candidates)
+	slices.SortStableFunc(candidates, func(a, b *bldr_manifest_world.StartupManifestCandidateEligibility) int {
+		if a == nil || b == nil {
+			if a == nil && b == nil {
+				return 0
+			}
+			if a == nil {
+				return -1
+			}
+			return 1
+		}
+		return strings.Compare(a.ObjectKey, b.ObjectKey)
+	})
+	for _, candidate := range candidates {
+		if candidate == nil {
+			writeField("<nil>")
 			continue
 		}
-		objKey, err := world.GraphValueToKey(graphQuad.GetObj())
-		if err != nil {
-			return "", err
+		writeField(candidate.ObjectKey)
+		writeField(candidate.EdgeLabel)
+		writeField(string(candidate.Eligibility))
+		writeField(candidate.Reason)
+		writeField(candidate.ManifestID)
+		writeField(candidate.PlatformID)
+		writeField(strconv.FormatUint(candidate.Rev, 10))
+		if candidate.ObjectRef != nil {
+			writeField(candidate.ObjectRef.MarshalString())
+		} else {
+			writeField("<nil>")
 		}
-		fingerprint.WriteByte(0)
-		fingerprint.WriteString(graphQuad.GetLabel())
-		fingerprint.WriteByte(0)
-		fingerprint.WriteString(objKey)
-		obj, ok, err := ws.GetObject(ctx, objKey)
-		if err != nil {
-			return "", err
+		if candidate.ManifestRef != nil {
+			writeField(candidate.ManifestRef.String())
+		} else {
+			writeField("<nil>")
 		}
-		if !ok {
-			fingerprint.WriteString("\x00missing")
-			continue
-		}
-		ref, rev, err := obj.GetRootRef(ctx)
-		if err != nil {
-			return "", err
-		}
-		fingerprint.WriteByte(0)
-		fingerprint.WriteString(strconv.FormatUint(rev, 10))
-		if ref != nil && !ref.GetEmpty() {
-			fingerprint.WriteByte(0)
-			fingerprint.WriteString(ref.MarshalString())
+		if candidate.Manifest != nil && candidate.Manifest.GetMeta() != nil {
+			writeField(candidate.Manifest.GetMeta().MarshalB58())
+		} else {
+			writeField("<nil>")
 		}
 	}
-	return fingerprint.String(), nil
+	return fingerprint.String()
 }
 
 const maxStartupManifestSkipSummaryItems = 3

@@ -267,7 +267,7 @@ func (t *pluginInstance) execDownloadManifest(
 		src,
 		bldr_manifest.NewManifestBlock,
 		t.c.conf.manifestCopyConcurrency(),
-		true,
+		false,
 		nil,
 	)
 	copyStats = accounting.apply(stats)
@@ -278,12 +278,12 @@ func (t *pluginInstance) execDownloadManifest(
 	logObjectRefAccountingFields(ctx, "local-manifest", localRef)
 
 	var synced bool
-	releaseCommit, err := t.c.acquireManifestCommit(ctx)
+	releaseManifestCommit, err := t.c.acquireManifestCommit(ctx)
 	if err != nil {
 		return err
 	}
 	if err := func() error {
-		defer releaseCommit()
+		defer releaseManifestCommit()
 		if !t.c.conf.GetDisableStoreManifest() {
 			storeCtx, storeTask := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/store-local-ref")
 			trace.Log(storeCtx, "accounting-phase", "world-op-store-local-manifest-ref")

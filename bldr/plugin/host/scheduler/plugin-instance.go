@@ -35,7 +35,7 @@ type pluginInstance struct {
 	manifestCopyAccounting atomic.Pointer[manifestCopyAccounting]
 	// manifestSelectionFingerprint is the last input set fully processed by
 	// watchWorldManifestRoutine.
-	manifestSelectionFingerprint atomic.Pointer[string]
+	manifestSelectionFingerprint atomic.Pointer[manifestSelectionInput]
 
 	// runningPluginCtr contains the running plugin ref
 	runningPluginCtr *ccontainer.CContainer[bldr_plugin.RunningPlugin]
