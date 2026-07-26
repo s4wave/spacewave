@@ -17,6 +17,7 @@ import (
 	"github.com/s4wave/spacewave/core/space"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/volume"
 	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
@@ -51,6 +52,11 @@ func (s *SharedObject) GetSharedObjectID() string {
 // GetBlockStore returns the block store mounted along with the SharedObject.
 func (s *SharedObject) GetBlockStore() bstore.BlockStore {
 	return s.blkStore
+}
+
+// GetBackingVolume returns the volume that owns this SharedObject's storage.
+func (s *SharedObject) GetBackingVolume() volume.Volume {
+	return s.tkr.a.vol
 }
 
 // AccessLocalStateStore accesses a kvtx ops for a local state store with the given ID.

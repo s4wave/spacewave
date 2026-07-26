@@ -507,6 +507,86 @@ func (x *WaitAcquireCoordinatorWriteLeaseRequest) GetScope() *CoordinatorScope {
 	return nil
 }
 
+// TryAcquireWorldEngineLeaseRequest is a non-blocking keyed lease request.
+type TryAcquireWorldEngineLeaseRequest struct {
+	unknownFields []byte
+	// Key identifies the World Engine lease.
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+}
+
+func (x *TryAcquireWorldEngineLeaseRequest) Reset() {
+	*x = TryAcquireWorldEngineLeaseRequest{}
+}
+
+func (*TryAcquireWorldEngineLeaseRequest) ProtoMessage() {}
+
+func (x *TryAcquireWorldEngineLeaseRequest) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+// AcquireWorldEngineLeaseResponse is returned by a World Engine lease request.
+type AcquireWorldEngineLeaseResponse struct {
+	unknownFields []byte
+	// LeaseId identifies the remote lease for later release.
+	LeaseId string `protobuf:"bytes,1,opt,name=lease_id,json=leaseId,proto3" json:"leaseId,omitempty"`
+	// Acquired is false when the requested lease key is already held.
+	Acquired bool `protobuf:"varint,2,opt,name=acquired,proto3" json:"acquired,omitempty"`
+}
+
+func (x *AcquireWorldEngineLeaseResponse) Reset() {
+	*x = AcquireWorldEngineLeaseResponse{}
+}
+
+func (*AcquireWorldEngineLeaseResponse) ProtoMessage() {}
+
+func (x *AcquireWorldEngineLeaseResponse) GetLeaseId() string {
+	if x != nil {
+		return x.LeaseId
+	}
+	return ""
+}
+
+func (x *AcquireWorldEngineLeaseResponse) GetAcquired() bool {
+	if x != nil {
+		return x.Acquired
+	}
+	return false
+}
+
+// ReleaseWorldEngineLeaseRequest identifies a held remote World Engine lease.
+type ReleaseWorldEngineLeaseRequest struct {
+	unknownFields []byte
+	// LeaseId identifies the remote lease.
+	LeaseId string `protobuf:"bytes,1,opt,name=lease_id,json=leaseId,proto3" json:"leaseId,omitempty"`
+}
+
+func (x *ReleaseWorldEngineLeaseRequest) Reset() {
+	*x = ReleaseWorldEngineLeaseRequest{}
+}
+
+func (*ReleaseWorldEngineLeaseRequest) ProtoMessage() {}
+
+func (x *ReleaseWorldEngineLeaseRequest) GetLeaseId() string {
+	if x != nil {
+		return x.LeaseId
+	}
+	return ""
+}
+
+// ReleaseWorldEngineLeaseResponse is returned after releasing a lease.
+type ReleaseWorldEngineLeaseResponse struct {
+	unknownFields []byte
+}
+
+func (x *ReleaseWorldEngineLeaseResponse) Reset() {
+	*x = ReleaseWorldEngineLeaseResponse{}
+}
+
+func (*ReleaseWorldEngineLeaseResponse) ProtoMessage() {}
+
 // AcquireCoordinatorWriteLeaseResponse is returned by lease acquisition.
 type AcquireCoordinatorWriteLeaseResponse struct {
 	unknownFields []byte
@@ -950,6 +1030,70 @@ func (m *WaitAcquireCoordinatorWriteLeaseRequest) CloneVT() *WaitAcquireCoordina
 }
 
 func (m *WaitAcquireCoordinatorWriteLeaseRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *TryAcquireWorldEngineLeaseRequest) CloneVT() *TryAcquireWorldEngineLeaseRequest {
+	if m == nil {
+		return (*TryAcquireWorldEngineLeaseRequest)(nil)
+	}
+	r := new(TryAcquireWorldEngineLeaseRequest)
+	r.Key = m.Key
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *TryAcquireWorldEngineLeaseRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AcquireWorldEngineLeaseResponse) CloneVT() *AcquireWorldEngineLeaseResponse {
+	if m == nil {
+		return (*AcquireWorldEngineLeaseResponse)(nil)
+	}
+	r := new(AcquireWorldEngineLeaseResponse)
+	r.LeaseId = m.LeaseId
+	r.Acquired = m.Acquired
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AcquireWorldEngineLeaseResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReleaseWorldEngineLeaseRequest) CloneVT() *ReleaseWorldEngineLeaseRequest {
+	if m == nil {
+		return (*ReleaseWorldEngineLeaseRequest)(nil)
+	}
+	r := new(ReleaseWorldEngineLeaseRequest)
+	r.LeaseId = m.LeaseId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReleaseWorldEngineLeaseRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ReleaseWorldEngineLeaseResponse) CloneVT() *ReleaseWorldEngineLeaseResponse {
+	if m == nil {
+		return (*ReleaseWorldEngineLeaseResponse)(nil)
+	}
+	r := new(ReleaseWorldEngineLeaseResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReleaseWorldEngineLeaseResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1467,6 +1611,86 @@ func (this *WaitAcquireCoordinatorWriteLeaseRequest) EqualVT(that *WaitAcquireCo
 
 func (this *WaitAcquireCoordinatorWriteLeaseRequest) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WaitAcquireCoordinatorWriteLeaseRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *TryAcquireWorldEngineLeaseRequest) EqualVT(that *TryAcquireWorldEngineLeaseRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Key != that.Key {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *TryAcquireWorldEngineLeaseRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*TryAcquireWorldEngineLeaseRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AcquireWorldEngineLeaseResponse) EqualVT(that *AcquireWorldEngineLeaseResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.LeaseId != that.LeaseId {
+		return false
+	}
+	if this.Acquired != that.Acquired {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AcquireWorldEngineLeaseResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AcquireWorldEngineLeaseResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReleaseWorldEngineLeaseRequest) EqualVT(that *ReleaseWorldEngineLeaseRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.LeaseId != that.LeaseId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReleaseWorldEngineLeaseRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReleaseWorldEngineLeaseRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ReleaseWorldEngineLeaseResponse) EqualVT(that *ReleaseWorldEngineLeaseResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ReleaseWorldEngineLeaseResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ReleaseWorldEngineLeaseResponse)
 	if !ok {
 		return false
 	}
@@ -2515,6 +2739,170 @@ func (x *WaitAcquireCoordinatorWriteLeaseRequest) UnmarshalProtoJSON(s *json.Unm
 
 // UnmarshalJSON unmarshals the WaitAcquireCoordinatorWriteLeaseRequest from JSON.
 func (x *WaitAcquireCoordinatorWriteLeaseRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the TryAcquireWorldEngineLeaseRequest message to JSON.
+func (x *TryAcquireWorldEngineLeaseRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the TryAcquireWorldEngineLeaseRequest to JSON.
+func (x *TryAcquireWorldEngineLeaseRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the TryAcquireWorldEngineLeaseRequest message from JSON.
+func (x *TryAcquireWorldEngineLeaseRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the TryAcquireWorldEngineLeaseRequest from JSON.
+func (x *TryAcquireWorldEngineLeaseRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AcquireWorldEngineLeaseResponse message to JSON.
+func (x *AcquireWorldEngineLeaseResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.LeaseId != "" || s.HasField("leaseId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("leaseId")
+		s.WriteString(x.LeaseId)
+	}
+	if x.Acquired || s.HasField("acquired") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("acquired")
+		s.WriteBool(x.Acquired)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AcquireWorldEngineLeaseResponse to JSON.
+func (x *AcquireWorldEngineLeaseResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AcquireWorldEngineLeaseResponse message from JSON.
+func (x *AcquireWorldEngineLeaseResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "lease_id", "leaseId":
+			s.AddField("lease_id")
+			x.LeaseId = s.ReadString()
+		case "acquired":
+			s.AddField("acquired")
+			x.Acquired = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AcquireWorldEngineLeaseResponse from JSON.
+func (x *AcquireWorldEngineLeaseResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReleaseWorldEngineLeaseRequest message to JSON.
+func (x *ReleaseWorldEngineLeaseRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.LeaseId != "" || s.HasField("leaseId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("leaseId")
+		s.WriteString(x.LeaseId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReleaseWorldEngineLeaseRequest to JSON.
+func (x *ReleaseWorldEngineLeaseRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReleaseWorldEngineLeaseRequest message from JSON.
+func (x *ReleaseWorldEngineLeaseRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "lease_id", "leaseId":
+			s.AddField("lease_id")
+			x.LeaseId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ReleaseWorldEngineLeaseRequest from JSON.
+func (x *ReleaseWorldEngineLeaseRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ReleaseWorldEngineLeaseResponse message to JSON.
+func (x *ReleaseWorldEngineLeaseResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ReleaseWorldEngineLeaseResponse to JSON.
+func (x *ReleaseWorldEngineLeaseResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ReleaseWorldEngineLeaseResponse message from JSON.
+func (x *ReleaseWorldEngineLeaseResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the ReleaseWorldEngineLeaseResponse from JSON.
+func (x *ReleaseWorldEngineLeaseResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3635,6 +4023,154 @@ func (m *WaitAcquireCoordinatorWriteLeaseRequest) MarshalToSizedBufferVT(dAtA []
 	return len(dAtA) - i, nil
 }
 
+func (m *TryAcquireWorldEngineLeaseRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TryAcquireWorldEngineLeaseRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *TryAcquireWorldEngineLeaseRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Key) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Key)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AcquireWorldEngineLeaseResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AcquireWorldEngineLeaseResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AcquireWorldEngineLeaseResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Acquired {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Acquired)
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.LeaseId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.LeaseId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReleaseWorldEngineLeaseRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReleaseWorldEngineLeaseRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReleaseWorldEngineLeaseRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.LeaseId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.LeaseId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ReleaseWorldEngineLeaseResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ReleaseWorldEngineLeaseResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ReleaseWorldEngineLeaseResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *AcquireCoordinatorWriteLeaseResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4209,6 +4745,50 @@ func (m *WaitAcquireCoordinatorWriteLeaseRequest) SizeVT() (n int) {
 	return n
 }
 
+func (m *TryAcquireWorldEngineLeaseRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Key)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AcquireWorldEngineLeaseResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LeaseId)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Acquired)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReleaseWorldEngineLeaseRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LeaseId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ReleaseWorldEngineLeaseResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *AcquireCoordinatorWriteLeaseResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4613,6 +5193,62 @@ func (x *WaitAcquireCoordinatorWriteLeaseRequest) MarshalProtoText() string {
 }
 
 func (x *WaitAcquireCoordinatorWriteLeaseRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *TryAcquireWorldEngineLeaseRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "TryAcquireWorldEngineLeaseRequest")
+	if x.Key != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteString(&sb, x.Key)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *TryAcquireWorldEngineLeaseRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AcquireWorldEngineLeaseResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AcquireWorldEngineLeaseResponse")
+	if x.LeaseId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "lease_id")
+		protobuf_go_lite.TextWriteString(&sb, x.LeaseId)
+	}
+	if x.Acquired != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "acquired")
+		protobuf_go_lite.TextWriteBool(&sb, x.Acquired)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AcquireWorldEngineLeaseResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReleaseWorldEngineLeaseRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ReleaseWorldEngineLeaseRequest")
+	if x.LeaseId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "lease_id")
+		protobuf_go_lite.TextWriteString(&sb, x.LeaseId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReleaseWorldEngineLeaseRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ReleaseWorldEngineLeaseResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "ReleaseWorldEngineLeaseResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ReleaseWorldEngineLeaseResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -5807,6 +6443,218 @@ func (m *WaitAcquireCoordinatorWriteLeaseRequest) UnmarshalVT(dAtA []byte) error
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *TryAcquireWorldEngineLeaseRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TryAcquireWorldEngineLeaseRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TryAcquireWorldEngineLeaseRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Key = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AcquireWorldEngineLeaseResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AcquireWorldEngineLeaseResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AcquireWorldEngineLeaseResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaseId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.LeaseId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Acquired", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Acquired = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReleaseWorldEngineLeaseRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReleaseWorldEngineLeaseRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReleaseWorldEngineLeaseRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaseId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.LeaseId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ReleaseWorldEngineLeaseResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ReleaseWorldEngineLeaseResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ReleaseWorldEngineLeaseResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

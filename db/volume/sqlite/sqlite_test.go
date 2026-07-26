@@ -68,3 +68,33 @@ func TestSqliteVolume(t *testing.T) {
 	// check volume key
 	t.Log(bvol.GetPeerID().String())
 }
+
+func TestSqliteWorldEngineLeaseNamespacesTables(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	path := filepath.Join(t.TempDir(), "shared.db")
+
+	volumeA, err := volume_sqlite.NewSqlite(ctx, le, volume_sqlite.NewConfig(path, "hydra_a"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = volumeA.Close() })
+
+	volumeB, err := volume_sqlite.NewSqlite(ctx, le, volume_sqlite.NewConfig(path, "hydra_b"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = volumeB.Close() })
+
+	leaseA, err := volumeA.AcquireWorldEngineLease(ctx, "shared-object")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = leaseA.Release() })
+
+	leaseB, err := volumeB.AcquireWorldEngineLease(ctx, "shared-object")
+	if err != nil {
+		t.Fatalf("acquire lease for second SQLite table: %v", err)
+	}
+	t.Cleanup(func() { _ = leaseB.Release() })
+}

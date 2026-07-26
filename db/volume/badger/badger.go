@@ -53,7 +53,7 @@ func NewBadger(
 	}
 
 	db := store.GetDB()
-	return kvtx.NewVolume(
+	return kvtx.NewVolumeWithWorldEngineLeaseProvider(
 		ctx,
 		ControllerID,
 		kvkey,
@@ -80,6 +80,7 @@ func NewBadger(
 				BlockCount: count,
 			}, nil
 		},
+		volume.NewFileWorldEngineLeaseProvider(badgerOpts.Dir, badgerOpts.Dir),
 		db.Close,
 	)
 }

@@ -159,7 +159,7 @@ func NewOpfs(
 	walWriter := block_gc_wal.NewWriter(walDir, lockPrefix+"/gc/wal", orderLockName, stwLockName)
 	walAppender := block_gc_wal.NewAppender(walWriter)
 
-	vol, err := kvtx.NewVolumeWithBlockStoreAndGC(
+	vol, err := kvtx.NewVolumeWithBlockStoreAndGCAndWorldEngineLeaseProvider(
 		ctx,
 		ControllerID,
 		kk,
@@ -170,6 +170,7 @@ func NewOpfs(
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
 		statsFn,
+		volume.NewFileWorldEngineLeaseProvider("", rootPath+"\x00"+lockPrefix),
 		func() error {
 			blkEngine.Close()
 			if err := meta.Close(); err != nil {

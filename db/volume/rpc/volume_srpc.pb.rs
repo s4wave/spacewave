@@ -206,6 +206,17 @@ pub trait ProxyVolumeWaitAcquireCoordinatorWriteLeaseStream: Send + Sync {
     async fn close(&self) -> starpc::Result<()>;
 }
 
+/// Stream trait for ProxyVolume.TryAcquireWorldEngineLease.
+#[starpc::async_trait]
+pub trait ProxyVolumeTryAcquireWorldEngineLeaseStream: Send + Sync {
+    /// Returns the context for this stream.
+    fn context(&self) -> &starpc::Context;
+    /// Receives a message from the stream.
+    async fn recv(&self) -> starpc::Result<AcquireWorldEngineLeaseResponse>;
+    /// Closes the stream.
+    async fn close(&self) -> starpc::Result<()>;
+}
+
 /// Client trait for ProxyVolume.
 #[starpc::async_trait]
 pub trait ProxyVolumeClient: Send + Sync {
@@ -221,6 +232,10 @@ pub trait ProxyVolumeClient: Send + Sync {
     async fn try_acquire_coordinator_write_lease(&self, request: &TryAcquireCoordinatorWriteLeaseRequest) -> starpc::Result<Box<dyn ProxyVolumeTryAcquireCoordinatorWriteLeaseStream>>;
     /// WaitAcquireCoordinatorWriteLease.
     async fn wait_acquire_coordinator_write_lease(&self, request: &WaitAcquireCoordinatorWriteLeaseRequest) -> starpc::Result<Box<dyn ProxyVolumeWaitAcquireCoordinatorWriteLeaseStream>>;
+    /// TryAcquireWorldEngineLease.
+    async fn try_acquire_world_engine_lease(&self, request: &TryAcquireWorldEngineLeaseRequest) -> starpc::Result<Box<dyn ProxyVolumeTryAcquireWorldEngineLeaseStream>>;
+    /// ReleaseWorldEngineLease.
+    async fn release_world_engine_lease(&self, request: &ReleaseWorldEngineLeaseRequest) -> starpc::Result<ReleaseWorldEngineLeaseResponse>;
     /// RefreshCoordinatorWriteLease.
     async fn refresh_coordinator_write_lease(&self, request: &CoordinatorWriteLeaseRequest) -> starpc::Result<CoordinatorWriteLeaseSnapshotResponse>;
     /// PublishCoordinatorWriteLease.
@@ -276,6 +291,16 @@ impl<C: starpc::Client + 'static> ProxyVolumeClient for ProxyVolumeClientImpl<C>
         let stream = self.client.new_stream("volume.rpc.ProxyVolume", "WaitAcquireCoordinatorWriteLease", Some(&data)).await?;
         stream.close_send().await?;
         Ok(Box::new(ProxyVolumeWaitAcquireCoordinatorWriteLeaseStreamImpl { stream }))
+    }
+    async fn try_acquire_world_engine_lease(&self, request: &TryAcquireWorldEngineLeaseRequest) -> starpc::Result<Box<dyn ProxyVolumeTryAcquireWorldEngineLeaseStream>> {
+        use starpc::ProstMessage;
+        let data = request.encode_to_vec();
+        let stream = self.client.new_stream("volume.rpc.ProxyVolume", "TryAcquireWorldEngineLease", Some(&data)).await?;
+        stream.close_send().await?;
+        Ok(Box::new(ProxyVolumeTryAcquireWorldEngineLeaseStreamImpl { stream }))
+    }
+    async fn release_world_engine_lease(&self, request: &ReleaseWorldEngineLeaseRequest) -> starpc::Result<ReleaseWorldEngineLeaseResponse> {
+        self.client.exec_call("volume.rpc.ProxyVolume", "ReleaseWorldEngineLease", request).await
     }
     async fn refresh_coordinator_write_lease(&self, request: &CoordinatorWriteLeaseRequest) -> starpc::Result<CoordinatorWriteLeaseSnapshotResponse> {
         self.client.exec_call("volume.rpc.ProxyVolume", "RefreshCoordinatorWriteLease", request).await
@@ -345,6 +370,23 @@ impl ProxyVolumeWaitAcquireCoordinatorWriteLeaseStream for ProxyVolumeWaitAcquir
     }
 }
 
+struct ProxyVolumeTryAcquireWorldEngineLeaseStreamImpl {
+    stream: Box<dyn starpc::Stream>,
+}
+
+#[starpc::async_trait]
+impl ProxyVolumeTryAcquireWorldEngineLeaseStream for ProxyVolumeTryAcquireWorldEngineLeaseStreamImpl {
+    fn context(&self) -> &starpc::Context {
+        self.stream.context()
+    }
+    async fn recv(&self) -> starpc::Result<AcquireWorldEngineLeaseResponse> {
+        self.stream.msg_recv().await
+    }
+    async fn close(&self) -> starpc::Result<()> {
+        self.stream.close().await
+    }
+}
+
 /// Server trait for ProxyVolume.
 #[starpc::async_trait]
 pub trait ProxyVolumeServer: Send + Sync {
@@ -360,6 +402,10 @@ pub trait ProxyVolumeServer: Send + Sync {
     async fn try_acquire_coordinator_write_lease(&self, request: TryAcquireCoordinatorWriteLeaseRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
     /// WaitAcquireCoordinatorWriteLease.
     async fn wait_acquire_coordinator_write_lease(&self, request: WaitAcquireCoordinatorWriteLeaseRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// TryAcquireWorldEngineLease.
+    async fn try_acquire_world_engine_lease(&self, request: TryAcquireWorldEngineLeaseRequest, stream: Box<dyn starpc::Stream>) -> starpc::Result<()>;
+    /// ReleaseWorldEngineLease.
+    async fn release_world_engine_lease(&self, request: ReleaseWorldEngineLeaseRequest) -> starpc::Result<ReleaseWorldEngineLeaseResponse>;
     /// RefreshCoordinatorWriteLease.
     async fn refresh_coordinator_write_lease(&self, request: CoordinatorWriteLeaseRequest) -> starpc::Result<CoordinatorWriteLeaseSnapshotResponse>;
     /// PublishCoordinatorWriteLease.
@@ -379,6 +425,8 @@ const PROXY_VOLUME_METHOD_IDS: &[&str] = &[
     "GetCoordinatorSnapshot",
     "TryAcquireCoordinatorWriteLease",
     "WaitAcquireCoordinatorWriteLease",
+    "TryAcquireWorldEngineLease",
+    "ReleaseWorldEngineLease",
     "RefreshCoordinatorWriteLease",
     "PublishCoordinatorWriteLease",
     "ReleaseCoordinatorWriteLease",
@@ -477,6 +525,28 @@ impl<S: ProxyVolumeServer + 'static> starpc::Invoker for ProxyVolumeHandler<S> {
                     Err(e) => return (true, Err(e)),
                 };
                 (true, self.server.wait_acquire_coordinator_write_lease(request, stream).await)
+            }
+            "TryAcquireWorldEngineLease" => {
+                let request: TryAcquireWorldEngineLeaseRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                (true, self.server.try_acquire_world_engine_lease(request, stream).await)
+            }
+            "ReleaseWorldEngineLease" => {
+                let request: ReleaseWorldEngineLeaseRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.release_world_engine_lease(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
             }
             "RefreshCoordinatorWriteLease" => {
                 let request: CoordinatorWriteLeaseRequest = match stream.msg_recv().await {

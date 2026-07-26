@@ -169,6 +169,34 @@ pub struct WaitAcquireCoordinatorWriteLeaseRequest {
     #[prost(message, optional, tag="1")]
     pub scope: ::core::option::Option<CoordinatorScope>,
 }
+/// TryAcquireWorldEngineLeaseRequest is a non-blocking keyed lease request.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TryAcquireWorldEngineLeaseRequest {
+    /// Key identifies the World Engine lease.
+    #[prost(string, tag="1")]
+    pub key: ::prost::alloc::string::String,
+}
+/// AcquireWorldEngineLeaseResponse is returned by a World Engine lease request.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AcquireWorldEngineLeaseResponse {
+    /// LeaseId identifies the remote lease for later release.
+    #[prost(string, tag="1")]
+    pub lease_id: ::prost::alloc::string::String,
+    /// Acquired is false when the requested lease key is already held.
+    #[prost(bool, tag="2")]
+    pub acquired: bool,
+}
+/// ReleaseWorldEngineLeaseRequest identifies a held remote World Engine lease.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReleaseWorldEngineLeaseRequest {
+    /// LeaseId identifies the remote lease.
+    #[prost(string, tag="1")]
+    pub lease_id: ::prost::alloc::string::String,
+}
+/// ReleaseWorldEngineLeaseResponse is returned after releasing a lease.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReleaseWorldEngineLeaseResponse {
+}
 /// AcquireCoordinatorWriteLeaseResponse is returned by lease acquisition.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AcquireCoordinatorWriteLeaseResponse {

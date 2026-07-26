@@ -55,6 +55,78 @@ struct WatchVolumeInfoRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WatchVolumeInfoRequestDefaultTypeInternal _WatchVolumeInfoRequest_default_instance_;
+
+inline constexpr TryAcquireWorldEngineLeaseRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR TryAcquireWorldEngineLeaseRequest::TryAcquireWorldEngineLeaseRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(TryAcquireWorldEngineLeaseRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct TryAcquireWorldEngineLeaseRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TryAcquireWorldEngineLeaseRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TryAcquireWorldEngineLeaseRequestDefaultTypeInternal() {}
+  union {
+    TryAcquireWorldEngineLeaseRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TryAcquireWorldEngineLeaseRequestDefaultTypeInternal _TryAcquireWorldEngineLeaseRequest_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR ReleaseWorldEngineLeaseResponse::ReleaseWorldEngineLeaseResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(ReleaseWorldEngineLeaseResponse_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct ReleaseWorldEngineLeaseResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ReleaseWorldEngineLeaseResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ReleaseWorldEngineLeaseResponseDefaultTypeInternal() {}
+  union {
+    ReleaseWorldEngineLeaseResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReleaseWorldEngineLeaseResponseDefaultTypeInternal _ReleaseWorldEngineLeaseResponse_default_instance_;
+
+inline constexpr ReleaseWorldEngineLeaseRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        lease_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ReleaseWorldEngineLeaseRequest::ReleaseWorldEngineLeaseRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ReleaseWorldEngineLeaseRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ReleaseWorldEngineLeaseRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ReleaseWorldEngineLeaseRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ReleaseWorldEngineLeaseRequestDefaultTypeInternal() {}
+  union {
+    ReleaseWorldEngineLeaseRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReleaseWorldEngineLeaseRequestDefaultTypeInternal _ReleaseWorldEngineLeaseRequest_default_instance_;
 template <typename>
 PROTOBUF_CONSTEXPR ReleaseCoordinatorWriteLeaseResponse::ReleaseCoordinatorWriteLeaseResponse(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -252,6 +324,34 @@ struct CoordinatorCapabilityDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CoordinatorCapabilityDefaultTypeInternal _CoordinatorCapability_default_instance_;
+
+inline constexpr AcquireWorldEngineLeaseResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        lease_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        acquired_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR AcquireWorldEngineLeaseResponse::AcquireWorldEngineLeaseResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(AcquireWorldEngineLeaseResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct AcquireWorldEngineLeaseResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR AcquireWorldEngineLeaseResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~AcquireWorldEngineLeaseResponseDefaultTypeInternal() {}
+  union {
+    AcquireWorldEngineLeaseResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AcquireWorldEngineLeaseResponseDefaultTypeInternal _AcquireWorldEngineLeaseResponse_default_instance_;
 
 inline constexpr AcquireCoordinatorWriteLeaseResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -811,6 +911,24 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::volume::rpc::WaitAcquireCoordinatorWriteLeaseRequest, _impl_.scope_),
         0,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::volume::rpc::TryAcquireWorldEngineLeaseRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::volume::rpc::TryAcquireWorldEngineLeaseRequest, _impl_.key_),
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::volume::rpc::AcquireWorldEngineLeaseResponse, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::volume::rpc::AcquireWorldEngineLeaseResponse, _impl_.lease_id_),
+        PROTOBUF_FIELD_OFFSET(::volume::rpc::AcquireWorldEngineLeaseResponse, _impl_.acquired_),
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::volume::rpc::ReleaseWorldEngineLeaseRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::volume::rpc::ReleaseWorldEngineLeaseRequest, _impl_.lease_id_),
+        0,
+        0x000, // bitmap
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::volume::rpc::AcquireCoordinatorWriteLeaseResponse, _impl_._has_bits_),
         5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::volume::rpc::AcquireCoordinatorWriteLeaseResponse, _impl_.lease_id_),
@@ -867,15 +985,19 @@ static const ::_pbi::MigrationSchema
         {101, sizeof(::volume::rpc::GetCoordinatorSnapshotResponse)},
         {106, sizeof(::volume::rpc::TryAcquireCoordinatorWriteLeaseRequest)},
         {111, sizeof(::volume::rpc::WaitAcquireCoordinatorWriteLeaseRequest)},
-        {116, sizeof(::volume::rpc::AcquireCoordinatorWriteLeaseResponse)},
-        {123, sizeof(::volume::rpc::CoordinatorWriteLeaseRequest)},
-        {128, sizeof(::volume::rpc::CoordinatorWriteLeaseSnapshotResponse)},
-        {133, sizeof(::volume::rpc::PublishCoordinatorWriteLeaseRequest)},
-        {140, sizeof(::volume::rpc::ReleaseCoordinatorWriteLeaseResponse)},
-        {141, sizeof(::volume::rpc::GetPeerPrivRequest)},
-        {142, sizeof(::volume::rpc::GetPeerPrivResponse)},
-        {147, sizeof(::volume::rpc::GetStorageStatsRequest)},
-        {148, sizeof(::volume::rpc::GetStorageStatsResponse)},
+        {116, sizeof(::volume::rpc::TryAcquireWorldEngineLeaseRequest)},
+        {121, sizeof(::volume::rpc::AcquireWorldEngineLeaseResponse)},
+        {128, sizeof(::volume::rpc::ReleaseWorldEngineLeaseRequest)},
+        {133, sizeof(::volume::rpc::ReleaseWorldEngineLeaseResponse)},
+        {134, sizeof(::volume::rpc::AcquireCoordinatorWriteLeaseResponse)},
+        {141, sizeof(::volume::rpc::CoordinatorWriteLeaseRequest)},
+        {146, sizeof(::volume::rpc::CoordinatorWriteLeaseSnapshotResponse)},
+        {151, sizeof(::volume::rpc::PublishCoordinatorWriteLeaseRequest)},
+        {158, sizeof(::volume::rpc::ReleaseCoordinatorWriteLeaseResponse)},
+        {159, sizeof(::volume::rpc::GetPeerPrivRequest)},
+        {160, sizeof(::volume::rpc::GetPeerPrivResponse)},
+        {165, sizeof(::volume::rpc::GetStorageStatsRequest)},
+        {166, sizeof(::volume::rpc::GetStorageStatsResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::volume::rpc::_WatchVolumeInfoRequest_default_instance_._instance,
@@ -894,6 +1016,10 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::volume::rpc::_GetCoordinatorSnapshotResponse_default_instance_._instance,
     &::volume::rpc::_TryAcquireCoordinatorWriteLeaseRequest_default_instance_._instance,
     &::volume::rpc::_WaitAcquireCoordinatorWriteLeaseRequest_default_instance_._instance,
+    &::volume::rpc::_TryAcquireWorldEngineLeaseRequest_default_instance_._instance,
+    &::volume::rpc::_AcquireWorldEngineLeaseResponse_default_instance_._instance,
+    &::volume::rpc::_ReleaseWorldEngineLeaseRequest_default_instance_._instance,
+    &::volume::rpc::_ReleaseWorldEngineLeaseResponse_default_instance_._instance,
     &::volume::rpc::_AcquireCoordinatorWriteLeaseResponse_default_instance_._instance,
     &::volume::rpc::_CoordinatorWriteLeaseRequest_default_instance_._instance,
     &::volume::rpc::_CoordinatorWriteLeaseSnapshotResponse_default_instance_._instance,
@@ -949,57 +1075,68 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvo
     "aseRequest\022+\n\005scope\030\001 \001(\0132\034.volume.rpc.C"
     "oordinatorScope\"V\n\'WaitAcquireCoordinato"
     "rWriteLeaseRequest\022+\n\005scope\030\001 \001(\0132\034.volu"
-    "me.rpc.CoordinatorScope\"J\n$AcquireCoordi"
-    "natorWriteLeaseResponse\022\020\n\010lease_id\030\001 \001("
-    "\t\022\020\n\010acquired\030\002 \001(\010\"0\n\034CoordinatorWriteL"
-    "easeRequest\022\020\n\010lease_id\030\001 \001(\t\"Z\n%Coordin"
-    "atorWriteLeaseSnapshotResponse\0221\n\010snapsh"
-    "ot\030\001 \001(\0132\037.volume.rpc.CoordinatorSnapsho"
-    "t\"d\n#PublishCoordinatorWriteLeaseRequest"
-    "\022\020\n\010lease_id\030\001 \001(\t\022+\n\005event\030\002 \001(\0132\034.volu"
-    "me.rpc.CoordinatorEvent\"&\n$ReleaseCoordi"
-    "natorWriteLeaseResponse\"\024\n\022GetPeerPrivRe"
-    "quest\"\'\n\023GetPeerPrivResponse\022\020\n\010priv_key"
-    "\030\001 \001(\t\"\030\n\026GetStorageStatsRequest\"F\n\027GetS"
-    "torageStatsResponse\022+\n\rstorage_stats\030\001 \001"
-    "(\0132\024.volume.StorageStats2\266\001\n\rAccessVolum"
-    "es\022\\\n\017WatchVolumeInfo\022\".volume.rpc.Watch"
-    "VolumeInfoRequest\032#.volume.rpc.WatchVolu"
-    "meInfoResponse0\001\022G\n\tVolumeRpc\022\032.rpcstrea"
-    "m.RpcStreamPacket\032\032.rpcstream.RpcStreamP"
-    "acket(\0010\0012\202\n\n\013ProxyVolume\022T\n\rGetVolumeIn"
-    "fo\022 .volume.rpc.GetVolumeInfoRequest\032!.v"
-    "olume.rpc.GetVolumeInfoResponse\022u\n\030GetCo"
-    "ordinatorCapability\022+.volume.rpc.GetCoor"
-    "dinatorCapabilityRequest\032,.volume.rpc.Ge"
-    "tCoordinatorCapabilityResponse\022q\n\026WatchC"
-    "oordinatorEvents\022).volume.rpc.WatchCoord"
-    "inatorEventsRequest\032*.volume.rpc.WatchCo"
-    "ordinatorEventsResponse0\001\022o\n\026GetCoordina"
-    "torSnapshot\022).volume.rpc.GetCoordinatorS"
-    "napshotRequest\032*.volume.rpc.GetCoordinat"
-    "orSnapshotResponse\022\211\001\n\037TryAcquireCoordin"
-    "atorWriteLease\0222.volume.rpc.TryAcquireCo"
-    "ordinatorWriteLeaseRequest\0320.volume.rpc."
-    "AcquireCoordinatorWriteLeaseResponse0\001\022\213"
-    "\001\n WaitAcquireCoordinatorWriteLease\0223.vo"
-    "lume.rpc.WaitAcquireCoordinatorWriteLeas"
-    "eRequest\0320.volume.rpc.AcquireCoordinator"
-    "WriteLeaseResponse0\001\022{\n\034RefreshCoordinat"
-    "orWriteLease\022(.volume.rpc.CoordinatorWri"
-    "teLeaseRequest\0321.volume.rpc.CoordinatorW"
-    "riteLeaseSnapshotResponse\022\202\001\n\034PublishCoo"
-    "rdinatorWriteLease\022/.volume.rpc.PublishC"
-    "oordinatorWriteLeaseRequest\0321.volume.rpc"
-    ".CoordinatorWriteLeaseSnapshotResponse\022z"
-    "\n\034ReleaseCoordinatorWriteLease\022(.volume."
-    "rpc.CoordinatorWriteLeaseRequest\0320.volum"
-    "e.rpc.ReleaseCoordinatorWriteLeaseRespon"
-    "se\022N\n\013GetPeerPriv\022\036.volume.rpc.GetPeerPr"
-    "ivRequest\032\037.volume.rpc.GetPeerPrivRespon"
-    "se\022Z\n\017GetStorageStats\022\".volume.rpc.GetSt"
-    "orageStatsRequest\032#.volume.rpc.GetStorag"
-    "eStatsResponseb\006proto3"
+    "me.rpc.CoordinatorScope\"0\n!TryAcquireWor"
+    "ldEngineLeaseRequest\022\013\n\003key\030\001 \001(\t\"E\n\037Acq"
+    "uireWorldEngineLeaseResponse\022\020\n\010lease_id"
+    "\030\001 \001(\t\022\020\n\010acquired\030\002 \001(\010\"2\n\036ReleaseWorld"
+    "EngineLeaseRequest\022\020\n\010lease_id\030\001 \001(\t\"!\n\037"
+    "ReleaseWorldEngineLeaseResponse\"J\n$Acqui"
+    "reCoordinatorWriteLeaseResponse\022\020\n\010lease"
+    "_id\030\001 \001(\t\022\020\n\010acquired\030\002 \001(\010\"0\n\034Coordinat"
+    "orWriteLeaseRequest\022\020\n\010lease_id\030\001 \001(\t\"Z\n"
+    "%CoordinatorWriteLeaseSnapshotResponse\0221"
+    "\n\010snapshot\030\001 \001(\0132\037.volume.rpc.Coordinato"
+    "rSnapshot\"d\n#PublishCoordinatorWriteLeas"
+    "eRequest\022\020\n\010lease_id\030\001 \001(\t\022+\n\005event\030\002 \001("
+    "\0132\034.volume.rpc.CoordinatorEvent\"&\n$Relea"
+    "seCoordinatorWriteLeaseResponse\"\024\n\022GetPe"
+    "erPrivRequest\"\'\n\023GetPeerPrivResponse\022\020\n\010"
+    "priv_key\030\001 \001(\t\"\030\n\026GetStorageStatsRequest"
+    "\"F\n\027GetStorageStatsResponse\022+\n\rstorage_s"
+    "tats\030\001 \001(\0132\024.volume.StorageStats2\266\001\n\rAcc"
+    "essVolumes\022\\\n\017WatchVolumeInfo\022\".volume.r"
+    "pc.WatchVolumeInfoRequest\032#.volume.rpc.W"
+    "atchVolumeInfoResponse0\001\022G\n\tVolumeRpc\022\032."
+    "rpcstream.RpcStreamPacket\032\032.rpcstream.Rp"
+    "cStreamPacket(\0010\0012\362\013\n\013ProxyVolume\022T\n\rGet"
+    "VolumeInfo\022 .volume.rpc.GetVolumeInfoReq"
+    "uest\032!.volume.rpc.GetVolumeInfoResponse\022"
+    "u\n\030GetCoordinatorCapability\022+.volume.rpc"
+    ".GetCoordinatorCapabilityRequest\032,.volum"
+    "e.rpc.GetCoordinatorCapabilityResponse\022q"
+    "\n\026WatchCoordinatorEvents\022).volume.rpc.Wa"
+    "tchCoordinatorEventsRequest\032*.volume.rpc"
+    ".WatchCoordinatorEventsResponse0\001\022o\n\026Get"
+    "CoordinatorSnapshot\022).volume.rpc.GetCoor"
+    "dinatorSnapshotRequest\032*.volume.rpc.GetC"
+    "oordinatorSnapshotResponse\022\211\001\n\037TryAcquir"
+    "eCoordinatorWriteLease\0222.volume.rpc.TryA"
+    "cquireCoordinatorWriteLeaseRequest\0320.vol"
+    "ume.rpc.AcquireCoordinatorWriteLeaseResp"
+    "onse0\001\022\213\001\n WaitAcquireCoordinatorWriteLe"
+    "ase\0223.volume.rpc.WaitAcquireCoordinatorW"
+    "riteLeaseRequest\0320.volume.rpc.AcquireCoo"
+    "rdinatorWriteLeaseResponse0\001\022z\n\032TryAcqui"
+    "reWorldEngineLease\022-.volume.rpc.TryAcqui"
+    "reWorldEngineLeaseRequest\032+.volume.rpc.A"
+    "cquireWorldEngineLeaseResponse0\001\022r\n\027Rele"
+    "aseWorldEngineLease\022*.volume.rpc.Release"
+    "WorldEngineLeaseRequest\032+.volume.rpc.Rel"
+    "easeWorldEngineLeaseResponse\022{\n\034RefreshC"
+    "oordinatorWriteLease\022(.volume.rpc.Coordi"
+    "natorWriteLeaseRequest\0321.volume.rpc.Coor"
+    "dinatorWriteLeaseSnapshotResponse\022\202\001\n\034Pu"
+    "blishCoordinatorWriteLease\022/.volume.rpc."
+    "PublishCoordinatorWriteLeaseRequest\0321.vo"
+    "lume.rpc.CoordinatorWriteLeaseSnapshotRe"
+    "sponse\022z\n\034ReleaseCoordinatorWriteLease\022("
+    ".volume.rpc.CoordinatorWriteLeaseRequest"
+    "\0320.volume.rpc.ReleaseCoordinatorWriteLea"
+    "seResponse\022N\n\013GetPeerPriv\022\036.volume.rpc.G"
+    "etPeerPrivRequest\032\037.volume.rpc.GetPeerPr"
+    "ivResponse\022Z\n\017GetStorageStats\022\".volume.r"
+    "pc.GetStorageStatsRequest\032#.volume.rpc.G"
+    "etStorageStatsResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto_deps[3] = {
@@ -1011,13 +1148,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto = {
     false,
     false,
-    3742,
+    4190,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
     "github.com/s4wave/spacewave/db/volume/rpc/volume.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto_deps,
     3,
-    25,
+    29,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto::offsets,
@@ -6053,6 +6190,973 @@ void WaitAcquireCoordinatorWriteLeaseRequest::InternalSwap(WaitAcquireCoordinato
 
 ::google::protobuf::Metadata WaitAcquireCoordinatorWriteLeaseRequest::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class TryAcquireWorldEngineLeaseRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<TryAcquireWorldEngineLeaseRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(TryAcquireWorldEngineLeaseRequest, _impl_._has_bits_);
+};
+
+TryAcquireWorldEngineLeaseRequest::TryAcquireWorldEngineLeaseRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TryAcquireWorldEngineLeaseRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:volume.rpc.TryAcquireWorldEngineLeaseRequest)
+}
+PROTOBUF_NDEBUG_INLINE TryAcquireWorldEngineLeaseRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::volume::rpc::TryAcquireWorldEngineLeaseRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        key_(arena, from.key_) {}
+
+TryAcquireWorldEngineLeaseRequest::TryAcquireWorldEngineLeaseRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const TryAcquireWorldEngineLeaseRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TryAcquireWorldEngineLeaseRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  TryAcquireWorldEngineLeaseRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:volume.rpc.TryAcquireWorldEngineLeaseRequest)
+}
+PROTOBUF_NDEBUG_INLINE TryAcquireWorldEngineLeaseRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        key_(arena) {}
+
+inline void TryAcquireWorldEngineLeaseRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+TryAcquireWorldEngineLeaseRequest::~TryAcquireWorldEngineLeaseRequest() {
+  // @@protoc_insertion_point(destructor:volume.rpc.TryAcquireWorldEngineLeaseRequest)
+  SharedDtor(*this);
+}
+inline void TryAcquireWorldEngineLeaseRequest::SharedDtor(MessageLite& self) {
+  TryAcquireWorldEngineLeaseRequest& this_ = static_cast<TryAcquireWorldEngineLeaseRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.key_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL TryAcquireWorldEngineLeaseRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) TryAcquireWorldEngineLeaseRequest(arena);
+}
+constexpr auto TryAcquireWorldEngineLeaseRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(TryAcquireWorldEngineLeaseRequest),
+                                            alignof(TryAcquireWorldEngineLeaseRequest));
+}
+constexpr auto TryAcquireWorldEngineLeaseRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_TryAcquireWorldEngineLeaseRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &TryAcquireWorldEngineLeaseRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<TryAcquireWorldEngineLeaseRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &TryAcquireWorldEngineLeaseRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<TryAcquireWorldEngineLeaseRequest>(), &TryAcquireWorldEngineLeaseRequest::ByteSizeLong,
+              &TryAcquireWorldEngineLeaseRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(TryAcquireWorldEngineLeaseRequest, _impl_._cached_size_),
+          false,
+      },
+      &TryAcquireWorldEngineLeaseRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull TryAcquireWorldEngineLeaseRequest_class_data_ =
+        TryAcquireWorldEngineLeaseRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+TryAcquireWorldEngineLeaseRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&TryAcquireWorldEngineLeaseRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(TryAcquireWorldEngineLeaseRequest_class_data_.tc_table);
+  return TryAcquireWorldEngineLeaseRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 56, 2>
+TryAcquireWorldEngineLeaseRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(TryAcquireWorldEngineLeaseRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    TryAcquireWorldEngineLeaseRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::volume::rpc::TryAcquireWorldEngineLeaseRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string key = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(TryAcquireWorldEngineLeaseRequest, _impl_.key_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string key = 1;
+    {PROTOBUF_FIELD_OFFSET(TryAcquireWorldEngineLeaseRequest, _impl_.key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\54\3\0\0\0\0\0\0"
+    "volume.rpc.TryAcquireWorldEngineLeaseRequest"
+    "key"
+  }},
+};
+PROTOBUF_NOINLINE void TryAcquireWorldEngineLeaseRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:volume.rpc.TryAcquireWorldEngineLeaseRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.key_.ClearNonDefaultToEmpty();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL TryAcquireWorldEngineLeaseRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const TryAcquireWorldEngineLeaseRequest& this_ = static_cast<const TryAcquireWorldEngineLeaseRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL TryAcquireWorldEngineLeaseRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const TryAcquireWorldEngineLeaseRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:volume.rpc.TryAcquireWorldEngineLeaseRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_key().empty()) {
+      const ::std::string& _s = this_._internal_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "volume.rpc.TryAcquireWorldEngineLeaseRequest.key");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:volume.rpc.TryAcquireWorldEngineLeaseRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t TryAcquireWorldEngineLeaseRequest::ByteSizeLong(const MessageLite& base) {
+  const TryAcquireWorldEngineLeaseRequest& this_ = static_cast<const TryAcquireWorldEngineLeaseRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t TryAcquireWorldEngineLeaseRequest::ByteSizeLong() const {
+  const TryAcquireWorldEngineLeaseRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:volume.rpc.TryAcquireWorldEngineLeaseRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // string key = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_key());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void TryAcquireWorldEngineLeaseRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<TryAcquireWorldEngineLeaseRequest*>(&to_msg);
+  auto& from = static_cast<const TryAcquireWorldEngineLeaseRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:volume.rpc.TryAcquireWorldEngineLeaseRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!from._internal_key().empty()) {
+      _this->_internal_set_key(from._internal_key());
+    } else {
+      if (_this->_impl_.key_.IsDefault()) {
+        _this->_internal_set_key("");
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void TryAcquireWorldEngineLeaseRequest::CopyFrom(const TryAcquireWorldEngineLeaseRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:volume.rpc.TryAcquireWorldEngineLeaseRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void TryAcquireWorldEngineLeaseRequest::InternalSwap(TryAcquireWorldEngineLeaseRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.key_, &other->_impl_.key_, arena);
+}
+
+::google::protobuf::Metadata TryAcquireWorldEngineLeaseRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class AcquireWorldEngineLeaseResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<AcquireWorldEngineLeaseResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(AcquireWorldEngineLeaseResponse, _impl_._has_bits_);
+};
+
+AcquireWorldEngineLeaseResponse::AcquireWorldEngineLeaseResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AcquireWorldEngineLeaseResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:volume.rpc.AcquireWorldEngineLeaseResponse)
+}
+PROTOBUF_NDEBUG_INLINE AcquireWorldEngineLeaseResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::volume::rpc::AcquireWorldEngineLeaseResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        lease_id_(arena, from.lease_id_) {}
+
+AcquireWorldEngineLeaseResponse::AcquireWorldEngineLeaseResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const AcquireWorldEngineLeaseResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, AcquireWorldEngineLeaseResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  AcquireWorldEngineLeaseResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.acquired_ = from._impl_.acquired_;
+
+  // @@protoc_insertion_point(copy_constructor:volume.rpc.AcquireWorldEngineLeaseResponse)
+}
+PROTOBUF_NDEBUG_INLINE AcquireWorldEngineLeaseResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        lease_id_(arena) {}
+
+inline void AcquireWorldEngineLeaseResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.acquired_ = {};
+}
+AcquireWorldEngineLeaseResponse::~AcquireWorldEngineLeaseResponse() {
+  // @@protoc_insertion_point(destructor:volume.rpc.AcquireWorldEngineLeaseResponse)
+  SharedDtor(*this);
+}
+inline void AcquireWorldEngineLeaseResponse::SharedDtor(MessageLite& self) {
+  AcquireWorldEngineLeaseResponse& this_ = static_cast<AcquireWorldEngineLeaseResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.lease_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL AcquireWorldEngineLeaseResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) AcquireWorldEngineLeaseResponse(arena);
+}
+constexpr auto AcquireWorldEngineLeaseResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(AcquireWorldEngineLeaseResponse),
+                                            alignof(AcquireWorldEngineLeaseResponse));
+}
+constexpr auto AcquireWorldEngineLeaseResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_AcquireWorldEngineLeaseResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &AcquireWorldEngineLeaseResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<AcquireWorldEngineLeaseResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &AcquireWorldEngineLeaseResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<AcquireWorldEngineLeaseResponse>(), &AcquireWorldEngineLeaseResponse::ByteSizeLong,
+              &AcquireWorldEngineLeaseResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(AcquireWorldEngineLeaseResponse, _impl_._cached_size_),
+          false,
+      },
+      &AcquireWorldEngineLeaseResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull AcquireWorldEngineLeaseResponse_class_data_ =
+        AcquireWorldEngineLeaseResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+AcquireWorldEngineLeaseResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&AcquireWorldEngineLeaseResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(AcquireWorldEngineLeaseResponse_class_data_.tc_table);
+  return AcquireWorldEngineLeaseResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 59, 2>
+AcquireWorldEngineLeaseResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(AcquireWorldEngineLeaseResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    AcquireWorldEngineLeaseResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::volume::rpc::AcquireWorldEngineLeaseResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // bool acquired = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(AcquireWorldEngineLeaseResponse, _impl_.acquired_), 1>(),
+     {16, 1, 0,
+      PROTOBUF_FIELD_OFFSET(AcquireWorldEngineLeaseResponse, _impl_.acquired_)}},
+    // string lease_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(AcquireWorldEngineLeaseResponse, _impl_.lease_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string lease_id = 1;
+    {PROTOBUF_FIELD_OFFSET(AcquireWorldEngineLeaseResponse, _impl_.lease_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bool acquired = 2;
+    {PROTOBUF_FIELD_OFFSET(AcquireWorldEngineLeaseResponse, _impl_.acquired_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+  }},
+  // no aux_entries
+  {{
+    "\52\10\0\0\0\0\0\0"
+    "volume.rpc.AcquireWorldEngineLeaseResponse"
+    "lease_id"
+  }},
+};
+PROTOBUF_NOINLINE void AcquireWorldEngineLeaseResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:volume.rpc.AcquireWorldEngineLeaseResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.lease_id_.ClearNonDefaultToEmpty();
+  }
+  _impl_.acquired_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL AcquireWorldEngineLeaseResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const AcquireWorldEngineLeaseResponse& this_ = static_cast<const AcquireWorldEngineLeaseResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL AcquireWorldEngineLeaseResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const AcquireWorldEngineLeaseResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:volume.rpc.AcquireWorldEngineLeaseResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string lease_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_lease_id().empty()) {
+      const ::std::string& _s = this_._internal_lease_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "volume.rpc.AcquireWorldEngineLeaseResponse.lease_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // bool acquired = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_acquired() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          2, this_._internal_acquired(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:volume.rpc.AcquireWorldEngineLeaseResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t AcquireWorldEngineLeaseResponse::ByteSizeLong(const MessageLite& base) {
+  const AcquireWorldEngineLeaseResponse& this_ = static_cast<const AcquireWorldEngineLeaseResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t AcquireWorldEngineLeaseResponse::ByteSizeLong() const {
+  const AcquireWorldEngineLeaseResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:volume.rpc.AcquireWorldEngineLeaseResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // string lease_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_lease_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_lease_id());
+      }
+    }
+    // bool acquired = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_acquired() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void AcquireWorldEngineLeaseResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<AcquireWorldEngineLeaseResponse*>(&to_msg);
+  auto& from = static_cast<const AcquireWorldEngineLeaseResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:volume.rpc.AcquireWorldEngineLeaseResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_lease_id().empty()) {
+        _this->_internal_set_lease_id(from._internal_lease_id());
+      } else {
+        if (_this->_impl_.lease_id_.IsDefault()) {
+          _this->_internal_set_lease_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_acquired() != 0) {
+        _this->_impl_.acquired_ = from._impl_.acquired_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void AcquireWorldEngineLeaseResponse::CopyFrom(const AcquireWorldEngineLeaseResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:volume.rpc.AcquireWorldEngineLeaseResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void AcquireWorldEngineLeaseResponse::InternalSwap(AcquireWorldEngineLeaseResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.lease_id_, &other->_impl_.lease_id_, arena);
+  swap(_impl_.acquired_, other->_impl_.acquired_);
+}
+
+::google::protobuf::Metadata AcquireWorldEngineLeaseResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ReleaseWorldEngineLeaseRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ReleaseWorldEngineLeaseRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ReleaseWorldEngineLeaseRequest, _impl_._has_bits_);
+};
+
+ReleaseWorldEngineLeaseRequest::ReleaseWorldEngineLeaseRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReleaseWorldEngineLeaseRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:volume.rpc.ReleaseWorldEngineLeaseRequest)
+}
+PROTOBUF_NDEBUG_INLINE ReleaseWorldEngineLeaseRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::volume::rpc::ReleaseWorldEngineLeaseRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        lease_id_(arena, from.lease_id_) {}
+
+ReleaseWorldEngineLeaseRequest::ReleaseWorldEngineLeaseRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ReleaseWorldEngineLeaseRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ReleaseWorldEngineLeaseRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ReleaseWorldEngineLeaseRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:volume.rpc.ReleaseWorldEngineLeaseRequest)
+}
+PROTOBUF_NDEBUG_INLINE ReleaseWorldEngineLeaseRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        lease_id_(arena) {}
+
+inline void ReleaseWorldEngineLeaseRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+ReleaseWorldEngineLeaseRequest::~ReleaseWorldEngineLeaseRequest() {
+  // @@protoc_insertion_point(destructor:volume.rpc.ReleaseWorldEngineLeaseRequest)
+  SharedDtor(*this);
+}
+inline void ReleaseWorldEngineLeaseRequest::SharedDtor(MessageLite& self) {
+  ReleaseWorldEngineLeaseRequest& this_ = static_cast<ReleaseWorldEngineLeaseRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.lease_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ReleaseWorldEngineLeaseRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ReleaseWorldEngineLeaseRequest(arena);
+}
+constexpr auto ReleaseWorldEngineLeaseRequest::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ReleaseWorldEngineLeaseRequest),
+                                            alignof(ReleaseWorldEngineLeaseRequest));
+}
+constexpr auto ReleaseWorldEngineLeaseRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ReleaseWorldEngineLeaseRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ReleaseWorldEngineLeaseRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ReleaseWorldEngineLeaseRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ReleaseWorldEngineLeaseRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ReleaseWorldEngineLeaseRequest>(), &ReleaseWorldEngineLeaseRequest::ByteSizeLong,
+              &ReleaseWorldEngineLeaseRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ReleaseWorldEngineLeaseRequest, _impl_._cached_size_),
+          false,
+      },
+      &ReleaseWorldEngineLeaseRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ReleaseWorldEngineLeaseRequest_class_data_ =
+        ReleaseWorldEngineLeaseRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ReleaseWorldEngineLeaseRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ReleaseWorldEngineLeaseRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ReleaseWorldEngineLeaseRequest_class_data_.tc_table);
+  return ReleaseWorldEngineLeaseRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 1, 0, 58, 2>
+ReleaseWorldEngineLeaseRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ReleaseWorldEngineLeaseRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    1, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ReleaseWorldEngineLeaseRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::volume::rpc::ReleaseWorldEngineLeaseRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string lease_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ReleaseWorldEngineLeaseRequest, _impl_.lease_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string lease_id = 1;
+    {PROTOBUF_FIELD_OFFSET(ReleaseWorldEngineLeaseRequest, _impl_.lease_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\51\10\0\0\0\0\0\0"
+    "volume.rpc.ReleaseWorldEngineLeaseRequest"
+    "lease_id"
+  }},
+};
+PROTOBUF_NOINLINE void ReleaseWorldEngineLeaseRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:volume.rpc.ReleaseWorldEngineLeaseRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.lease_id_.ClearNonDefaultToEmpty();
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ReleaseWorldEngineLeaseRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ReleaseWorldEngineLeaseRequest& this_ = static_cast<const ReleaseWorldEngineLeaseRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ReleaseWorldEngineLeaseRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ReleaseWorldEngineLeaseRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:volume.rpc.ReleaseWorldEngineLeaseRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string lease_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_lease_id().empty()) {
+      const ::std::string& _s = this_._internal_lease_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "volume.rpc.ReleaseWorldEngineLeaseRequest.lease_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:volume.rpc.ReleaseWorldEngineLeaseRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ReleaseWorldEngineLeaseRequest::ByteSizeLong(const MessageLite& base) {
+  const ReleaseWorldEngineLeaseRequest& this_ = static_cast<const ReleaseWorldEngineLeaseRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ReleaseWorldEngineLeaseRequest::ByteSizeLong() const {
+  const ReleaseWorldEngineLeaseRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:volume.rpc.ReleaseWorldEngineLeaseRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // string lease_id = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_lease_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_lease_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ReleaseWorldEngineLeaseRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ReleaseWorldEngineLeaseRequest*>(&to_msg);
+  auto& from = static_cast<const ReleaseWorldEngineLeaseRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:volume.rpc.ReleaseWorldEngineLeaseRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!from._internal_lease_id().empty()) {
+      _this->_internal_set_lease_id(from._internal_lease_id());
+    } else {
+      if (_this->_impl_.lease_id_.IsDefault()) {
+        _this->_internal_set_lease_id("");
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ReleaseWorldEngineLeaseRequest::CopyFrom(const ReleaseWorldEngineLeaseRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:volume.rpc.ReleaseWorldEngineLeaseRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ReleaseWorldEngineLeaseRequest::InternalSwap(ReleaseWorldEngineLeaseRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.lease_id_, &other->_impl_.lease_id_, arena);
+}
+
+::google::protobuf::Metadata ReleaseWorldEngineLeaseRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ReleaseWorldEngineLeaseResponse::_Internal {
+ public:
+};
+
+ReleaseWorldEngineLeaseResponse::ReleaseWorldEngineLeaseResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, ReleaseWorldEngineLeaseResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:volume.rpc.ReleaseWorldEngineLeaseResponse)
+}
+ReleaseWorldEngineLeaseResponse::ReleaseWorldEngineLeaseResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ReleaseWorldEngineLeaseResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, ReleaseWorldEngineLeaseResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ReleaseWorldEngineLeaseResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:volume.rpc.ReleaseWorldEngineLeaseResponse)
+}
+
+inline void* PROTOBUF_NONNULL ReleaseWorldEngineLeaseResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ReleaseWorldEngineLeaseResponse(arena);
+}
+constexpr auto ReleaseWorldEngineLeaseResponse::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(ReleaseWorldEngineLeaseResponse),
+                                            alignof(ReleaseWorldEngineLeaseResponse));
+}
+constexpr auto ReleaseWorldEngineLeaseResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ReleaseWorldEngineLeaseResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ReleaseWorldEngineLeaseResponse::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<ReleaseWorldEngineLeaseResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ReleaseWorldEngineLeaseResponse::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<ReleaseWorldEngineLeaseResponse>(), &ReleaseWorldEngineLeaseResponse::ByteSizeLong,
+              &ReleaseWorldEngineLeaseResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ReleaseWorldEngineLeaseResponse, _impl_._cached_size_),
+          false,
+      },
+      &ReleaseWorldEngineLeaseResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ReleaseWorldEngineLeaseResponse_class_data_ =
+        ReleaseWorldEngineLeaseResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ReleaseWorldEngineLeaseResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ReleaseWorldEngineLeaseResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ReleaseWorldEngineLeaseResponse_class_data_.tc_table);
+  return ReleaseWorldEngineLeaseResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+ReleaseWorldEngineLeaseResponse::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ReleaseWorldEngineLeaseResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::volume::rpc::ReleaseWorldEngineLeaseResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata ReleaseWorldEngineLeaseResponse::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 

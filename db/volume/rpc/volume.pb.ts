@@ -528,6 +528,95 @@ export const WaitAcquireCoordinatorWriteLeaseRequest: MessageType<WaitAcquireCoo
   })
 
 /**
+ * TryAcquireWorldEngineLeaseRequest is a non-blocking keyed lease request.
+ *
+ * @generated from message volume.rpc.TryAcquireWorldEngineLeaseRequest
+ */
+export interface TryAcquireWorldEngineLeaseRequest {
+  /**
+   * Key identifies the World Engine lease.
+   *
+   * @generated from field: string key = 1;
+   */
+  key?: string
+}
+
+export const TryAcquireWorldEngineLeaseRequest: MessageType<TryAcquireWorldEngineLeaseRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.TryAcquireWorldEngineLeaseRequest',
+    fields: [
+      { no: 1, name: 'key', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AcquireWorldEngineLeaseResponse is returned by a World Engine lease request.
+ *
+ * @generated from message volume.rpc.AcquireWorldEngineLeaseResponse
+ */
+export interface AcquireWorldEngineLeaseResponse {
+  /**
+   * LeaseId identifies the remote lease for later release.
+   *
+   * @generated from field: string lease_id = 1;
+   */
+  leaseId?: string
+  /**
+   * Acquired is false when the requested lease key is already held.
+   *
+   * @generated from field: bool acquired = 2;
+   */
+  acquired?: boolean
+}
+
+export const AcquireWorldEngineLeaseResponse: MessageType<AcquireWorldEngineLeaseResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.AcquireWorldEngineLeaseResponse',
+    fields: [
+      { no: 1, name: 'lease_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'acquired', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ReleaseWorldEngineLeaseRequest identifies a held remote World Engine lease.
+ *
+ * @generated from message volume.rpc.ReleaseWorldEngineLeaseRequest
+ */
+export interface ReleaseWorldEngineLeaseRequest {
+  /**
+   * LeaseId identifies the remote lease.
+   *
+   * @generated from field: string lease_id = 1;
+   */
+  leaseId?: string
+}
+
+export const ReleaseWorldEngineLeaseRequest: MessageType<ReleaseWorldEngineLeaseRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'volume.rpc.ReleaseWorldEngineLeaseRequest',
+    fields: [
+      { no: 1, name: 'lease_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ReleaseWorldEngineLeaseResponse is returned after releasing a lease.
+ *
+ * @generated from message volume.rpc.ReleaseWorldEngineLeaseResponse
+ */
+export interface ReleaseWorldEngineLeaseResponse {}
+
+export const ReleaseWorldEngineLeaseResponse: MessageType<ReleaseWorldEngineLeaseResponse> =
+  /* @__PURE__ */ createEmptyMessageType<ReleaseWorldEngineLeaseResponse>(
+    'volume.rpc.ReleaseWorldEngineLeaseResponse',
+    true,
+  )
+
+/**
  * AcquireCoordinatorWriteLeaseResponse is returned by lease acquisition.
  *
  * @generated from message volume.rpc.AcquireCoordinatorWriteLeaseResponse
