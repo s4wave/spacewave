@@ -1,0 +1,64 @@
+#!/bin/sh
+# Reject commit-message prose lines wider than 80 columns.
+#
+# Wrapped bodies read cleanly in git log, email review, and the GitHub
+# commit view. Trailers and raw URL lines are exempt because wrapping
+# breaks them; comment lines are stripped by git anyway.
+
+set -eu
+
+msg=${1:?commit message path required}
+max_columns=${COMMIT_MSG_MAX_COLUMNS:-80}
+
+case "$max_columns" in
+	*[!0-9]*|"")
+		printf 'commit-msg: COMMIT_MSG_MAX_COLUMNS must be a positive integer\n' >&2
+		exit 1
+		;;
+esac
+
+awk -v max_columns="$max_columns" '
+function ignored_line(line) {
+	if (line ~ /^[ \t]*$/) {
+		return 1
+	}
+	if (line ~ /^#/) {
+		return 1
+	}
+	if (line ~ /^[ \t]*https?:\/\//) {
+		return 1
+	}
+	if (line ~ /^(Acked-by|Cc|Co-authored-by|Fixes|Reported-by|Reviewed-by|Signed-off-by|Suggested-by|Tested-by): /) {
+		return 1
+	}
+	return 0
+}
+
+/^# -+ >8 -+/ {
+	stop = 1
+}
+
+/^diff --git / {
+	stop = 1
+}
+
+stop {
+	next
+}
+
+!ignored_line($0) && length($0) > max_columns {
+	if (!failed) {
+		printf "commit-msg: commit message prose exceeds %d columns\n", max_columns > "/dev/stderr"
+	}
+	printf "  line %d: %d columns\n", NR, length($0) > "/dev/stderr"
+	failed = 1
+}
+
+END {
+	if (failed) {
+		printf "Wrap commit message prose at %d columns.\n", max_columns > "/dev/stderr"
+		printf "Trailer lines and raw URLs are exempt because wrapping breaks them.\n", max_columns > "/dev/stderr"
+		exit 1
+	}
+}
+' "$msg"
