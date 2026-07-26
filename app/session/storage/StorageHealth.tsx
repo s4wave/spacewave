@@ -3,7 +3,6 @@ import type { ReactNode } from 'react'
 import {
   LuArrowRight,
   LuCloud,
-  LuCloudOff,
   LuDatabase,
   LuHardDrive,
   LuLink,
@@ -12,13 +11,17 @@ import {
   LuTriangleAlert,
 } from 'react-icons/lu'
 
-import { useStorageHealth } from '@s4wave/app/session/storage/useStorageHealth.js'
+import {
+  type StorageHealthView,
+  useStorageHealth,
+} from '@s4wave/app/session/storage/useStorageHealth.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 
 interface StorageHealthProps {
   mode: 'settings' | 'recovery'
+  storageIncident?: boolean
   onOpenRecovery?: () => void
   onLinkDevice: () => void
   onUseCloud: () => void
@@ -27,6 +30,7 @@ interface StorageHealthProps {
 // StorageHealth renders the shared settings and systemic-recovery storage facts.
 export function StorageHealth({
   mode,
+  storageIncident = false,
   onOpenRecovery,
   onLinkDevice,
   onUseCloud,
@@ -39,136 +43,153 @@ export function StorageHealth({
 
   return (
     <div className="space-y-4" data-testid={`storage-health-${mode}`}>
-      {mode === 'recovery' && (
-        <div
-          className="border-destructive/30 bg-destructive/8 rounded-lg border p-3.5"
-          role="alert"
-          aria-live="assertive"
-        >
-          <div className="flex items-start gap-3">
-            <div className="bg-destructive/10 text-destructive flex size-8 shrink-0 items-center justify-center rounded-md">
-              <LuTriangleAlert className="size-4" aria-hidden="true" />
-            </div>
-            <div>
-              <h2 className="text-foreground text-sm font-semibold tracking-tight">
-                Spacewave cannot save reliably
-              </h2>
-              <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
-                Browser storage is exhausted or unavailable for app-critical
-                writes. Free storage before continuing work that must be saved.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <InfoCard>
-        <div className="divide-foreground/6 divide-y">
-          <HealthRow
-            icon={<LuDatabase className="size-3.5" />}
-            label="Saved on this browser"
-            value={
-              health.providerLoading
-                ? 'Checking local storage'
-                : health.providerSupported
-                  ? `${formatBytes(health.providerBytes)} in the local provider`
-                  : 'Local provider usage unavailable'
-            }
-            tone="neutral"
-          />
-          <HealthRow
-            icon={<LuHardDrive className="size-3.5" />}
-            label="Approximate browser usage"
-            value={originLabel}
-            tone="neutral"
-          />
-          <HealthRow
-            icon={<LuShieldCheck className="size-3.5" />}
-            label="Protected from browser cleanup"
-            value={protectionLabel(health.protectionState)}
-            tone={
-              health.protectionState === 'protected' ? 'positive' : 'warning'
-            }
-          />
-          <HealthRow
-            icon={<LuRefreshCw className="size-3.5" />}
-            label="Sync activity"
-            value={health.sync.summaryLabel}
-            tone={health.sync.error ? 'warning' : 'neutral'}
-          />
-          <HealthRow
-            icon={<LuCloudOff className="size-3.5" />}
-            label="Backed up / replicated"
-            value={health.replicaLabel}
-            tone="warning"
-          />
-        </div>
-      </InfoCard>
-
-      <details className="border-foreground/6 bg-background-card/30 rounded-lg border">
-        <summary className="text-foreground-alt hover:text-foreground cursor-pointer px-3.5 py-2.5 text-xs font-medium">
-          Why these readings matter
-        </summary>
-        <div className="border-foreground/6 text-foreground-alt/60 space-y-2 border-t px-3.5 py-3 text-[0.6rem] leading-relaxed">
-          <p>
-            <strong className="text-foreground-alt/80">
-              Saved on this browser:
-            </strong>{' '}
-            {health.providerSupported
-              ? `${Number(health.blockCount).toLocaleString()} stored blocks`
-              : 'This browser copy can still be lost through clearing, eviction, profile loss, or device loss.'}
-          </p>
-          <p>
-            <strong className="text-foreground-alt/80">
-              Approximate browser usage:
-            </strong>{' '}
-            {health.browserReadFailed
-              ? 'The browser refused the storage-health query.'
-              : 'Whole-origin estimates are approximate and may exceed real free disk headroom.'}
-          </p>
-          <p>
-            <strong className="text-foreground-alt/80">
-              Protected from browser cleanup:
-            </strong>{' '}
-            {protectionDetail(health.protectionState)}
-          </p>
-          <p>
-            <strong className="text-foreground-alt/80">Sync activity:</strong>{' '}
-            {health.sync.detailLabel}
-          </p>
-          <p>
-            <strong className="text-foreground-alt/80">
-              Backed up / replicated:
-            </strong>{' '}
-            Sync activity, pairing, and an empty queue do not prove that another
-            copy can restore this Space.
-          </p>
-        </div>
-      </details>
-
-      {mode === 'settings' && health.safariCleanupRisk && (
-        <div
-          className="border-warning/20 bg-warning/5 rounded-lg border p-3.5"
-          data-testid="safari-storage-risk"
-        >
-          <div className="flex items-start gap-2.5">
-            <LuTriangleAlert
-              className="text-warning mt-0.5 size-4 shrink-0"
-              aria-hidden="true"
-            />
-            <div>
-              <h3 className="text-foreground text-xs font-medium">
-                Safari storage policy
-              </h3>
-              <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
-                Safari may remove this site&apos;s local data after seven days
-                of Safari use without interaction. Only a verified replica on
-                another device or Spacewave Cloud makes that loss recoverable.
-              </p>
+      {mode === 'recovery' &&
+        (storageIncident ? (
+          <div
+            className="border-warning/20 bg-warning/5 rounded-lg border p-3.5"
+            role="alert"
+          >
+            <div className="flex items-start gap-3">
+              <div className="bg-warning/10 text-warning flex size-8 shrink-0 items-center justify-center rounded-md">
+                <LuTriangleAlert className="size-4" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 className="text-foreground text-sm font-semibold tracking-tight">
+                  A recent save needs attention
+                </h2>
+                <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
+                  Spacewave reported a durable write failure. Free unrelated
+                  storage before retrying the save.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div
+            className="border-success/20 bg-success/5 rounded-lg border p-3.5"
+            role="status"
+          >
+            <div className="flex items-start gap-3">
+              <div className="bg-success/10 text-success flex size-8 shrink-0 items-center justify-center rounded-md">
+                <LuShieldCheck className="size-4" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 className="text-foreground text-sm font-semibold tracking-tight">
+                  Saving works
+                </h2>
+                <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
+                  No durable write failure is reported on this screen. These
+                  actions help protect your Spaces and create another copy.
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+
+      <ScopeSection
+        title="This browser"
+        description="These readings cover all Spacewave data stored by this browser."
+      >
+        <HealthRow
+          icon={<LuHardDrive className="size-3.5" />}
+          label="Browser usage estimate"
+          value={originLabel}
+          detail={
+            health.browserReadFailed
+              ? 'The browser did not provide this estimate.'
+              : 'An approximate whole-origin reading, not a measure of free disk space.'
+          }
+          tone="neutral"
+        />
+        <HealthRow
+          icon={<LuShieldCheck className="size-3.5" />}
+          label="Automatic cleanup protection"
+          value={protectionLabel(health.protectionState)}
+          detail="When on, the browser is less likely to remove this copy automatically. It is not a backup."
+          tone={health.protectionState === 'protected' ? 'positive' : 'neutral'}
+        />
+        {mode === 'settings' && health.safariCleanupRisk && (
+          <div
+            className="border-warning/20 bg-warning/5 mt-3 rounded-lg border p-3.5"
+            data-testid="safari-storage-risk"
+          >
+            <div className="flex items-start gap-2.5">
+              <LuTriangleAlert
+                className="text-warning mt-0.5 size-4 shrink-0"
+                aria-hidden="true"
+              />
+              <div>
+                <h3 className="text-foreground text-xs font-medium">
+                  Safari storage policy
+                </h3>
+                <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
+                  Safari may remove this site&apos;s local data after seven days
+                  without interaction. An exported archive or a verified replica
+                  protects against losing this browser copy.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </ScopeSection>
+
+      <ScopeSection
+        title="This device's store"
+        description="These readings describe Spacewave's local block store on this device."
+      >
+        <HealthRow
+          icon={<LuDatabase className="size-3.5" />}
+          label="Physical storage used"
+          value={
+            health.providerLoading
+              ? 'Checking local store'
+              : health.providerSupported
+                ? `${formatBytes(health.providerBytes)} physical`
+                : 'Local store unavailable'
+          }
+          detail={
+            health.providerSupported
+              ? 'This is the space currently occupied by the local store, not a count of user Spaces.'
+              : 'The local store did not provide a reading.'
+          }
+          tone="neutral"
+        />
+        {health.providerSupported && (
+          <details className="border-foreground/6 mt-3 border-t pt-3">
+            <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs font-medium">
+              Technical details
+            </summary>
+            <p className="text-foreground-alt/60 mt-2 text-[0.6rem] leading-relaxed">
+              {Number(health.blockCount).toLocaleString()} block entries are
+              currently reported by the local store. Entries are a storage
+              measurement, not proof of a complete backup.
+            </p>
+          </details>
+        )}
+      </ScopeSection>
+
+      <ScopeSection
+        title="Sync activity"
+        description="This shows transfer work that Spacewave can currently see."
+      >
+        <HealthRow
+          icon={<LuRefreshCw className="size-3.5" />}
+          label="Transfer activity"
+          value={transferActivityLabel(health.sync)}
+          detail={transferActivityDetail(health.sync)}
+          tone={health.sync.error ? 'warning' : 'neutral'}
+        />
+        <details className="border-foreground/6 mt-3 border-t pt-3">
+          <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs font-medium">
+            Technical details
+          </summary>
+          <div className="text-foreground-alt/60 mt-2 space-y-1 text-[0.6rem] leading-relaxed">
+            <p>{health.sync.detailLabel}</p>
+            <p>Upload waiting: {health.sync.pendingUploadLabel}</p>
+            <p>Download waiting: {health.sync.pendingDownloadLabel}</p>
+          </div>
+        </details>
+      </ScopeSection>
 
       <section aria-labelledby="storage-solutions-title">
         <div className="mb-2 flex items-center justify-between gap-3">
@@ -177,51 +198,54 @@ export function StorageHealth({
               id="storage-solutions-title"
               className="text-foreground text-xs font-medium"
             >
-              Storage and recovery options
+              Protect your Spaces
             </h2>
             <p className="text-foreground-alt/60 mt-0.5 text-xs">
-              Use a non-destructive option first.
+              Choose an action that creates or protects a copy.
             </p>
           </div>
           {mode === 'settings' && onOpenRecovery && (
             <DashboardButton
-              icon={<LuTriangleAlert className="size-3.5" />}
+              icon={<LuShieldCheck className="size-3.5" />}
               onClick={onOpenRecovery}
             >
-              Recovery view
+              Storage recovery
             </DashboardButton>
           )}
         </div>
-
         <div className="space-y-2">
           <SolutionRow
-            icon={<LuHardDrive className="size-3.5" />}
-            title="Free browser or device storage"
-            detail="Remove unrelated downloads, applications, or other site data, then retry the failed operation. Do not clear Spacewave site data unless important Spaces are backed up or exported."
+            icon={<LuShieldCheck className="size-3.5" />}
+            title="Request automatic cleanup protection"
+            detail="Requesting this protects this browser copy from automatic cleanup. This does not create another copy."
+            action="Request protection"
+            onAction={() => {
+              void health.requestProtection()
+            }}
+          />
+          <SolutionRow
+            icon={<LuDatabase className="size-3.5" />}
+            title="Export a backup"
+            detail="Open an important Space and choose File > Export Space. Keep the archive outside this browser."
           />
           <SolutionRow
             icon={<LuLink className="size-3.5" />}
             title="Link another device"
-            detail="Set up another copy. Spacewave will keep reporting Not yet verified until it can prove the current Space is restorable there."
+            detail="Set up another destination for a second copy. Linking alone does not verify that the copy can restore this Space."
             action="Link device"
             onAction={onLinkDevice}
           />
           <SolutionRow
             icon={<LuCloud className="size-3.5" />}
             title="Set up Spacewave Cloud"
-            detail="Move the session toward a remote copy. Account setup alone is not a backup verification."
+            detail="Choose Spacewave Cloud as another destination. Setup alone does not verify a complete copy."
             action="Cloud options"
             onAction={onUseCloud}
           />
           <SolutionRow
-            icon={<LuDatabase className="size-3.5" />}
-            title="Export important Spaces"
-            detail="Open each important Space and choose File → Export Space. Keep the archive outside this browser as a last-resort copy."
-          />
-          <SolutionRow
-            icon={<LuCloudOff className="size-3.5" />}
-            title="Remove a local Space copy"
-            detail="Unavailable until this browser verifies that a current remote replica can restore the Space."
+            icon={<LuHardDrive className="size-3.5" />}
+            title="Make room for future saves"
+            detail="If a save fails, remove unrelated downloads, applications, or site data before retrying. Do not clear Spacewave site data as an ordinary fix."
           />
         </div>
       </section>
@@ -229,15 +253,41 @@ export function StorageHealth({
   )
 }
 
+function ScopeSection({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description: string
+  children: ReactNode
+}) {
+  return (
+    <section aria-labelledby={`${title}-title`}>
+      <h2 id={`${title}-title`} className="text-foreground text-xs font-medium">
+        {title}
+      </h2>
+      <p className="text-foreground-alt/60 mt-0.5 text-xs">{description}</p>
+      <div className="mt-2">
+        <InfoCard>
+          <div>{children}</div>
+        </InfoCard>
+      </div>
+    </section>
+  )
+}
+
 function HealthRow({
   icon,
   label,
   value,
+  detail,
   tone,
 }: {
   icon: ReactNode
   label: string
   value: string
+  detail: string
   tone: 'neutral' | 'positive' | 'warning'
 }) {
   return (
@@ -257,6 +307,9 @@ function HealthRow({
         <div className="text-foreground mt-0.5 text-xs font-medium">
           {value}
         </div>
+        <p className="text-foreground-alt/60 mt-1 text-xs leading-relaxed">
+          {detail}
+        </p>
       </div>
     </div>
   )
@@ -301,24 +354,30 @@ function SolutionRow({
 function protectionLabel(state: string): string {
   switch (state) {
     case 'protected':
-      return 'Protected'
+      return 'On'
     case 'not-protected':
-      return 'Not protected'
+      return 'Not on'
     case 'checking':
-      return 'Checking browser status'
+      return 'Checking'
     default:
-      return 'Status unavailable'
+      return 'Unavailable'
   }
 }
 
-function protectionDetail(state: string): string {
-  if (state === 'protected') {
-    return 'The browser reports persistent storage. This reduces automatic-eviction risk but is not a backup.'
+function transferActivityLabel(sync: StorageHealthView['sync']): string {
+  if (sync.error) return 'Needs attention'
+  if (sync.loading) return 'Checking'
+  if (sync.active) return sync.summaryLabel
+  return 'Idle'
+}
+
+function transferActivityDetail(sync: StorageHealthView['sync']): string {
+  if (sync.error) {
+    return sync.lastError || 'Spacewave reported a transfer problem.'
   }
-  if (state === 'not-protected') {
-    return 'The browser has not granted persistent storage. Spacewave requests it quietly after the first successful durable write.'
-  }
-  return 'Persistence status could not be confirmed. It never changes whether a write is accepted.'
+  if (sync.loading) return 'Waiting for the transfer status.'
+  if (sync.active) return sync.detailLabel
+  return 'No transfer is currently reported. This does not verify another copy.'
 }
 
 function formatOriginUsage(usage: number | null, quota: number | null): string {

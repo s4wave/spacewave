@@ -418,15 +418,18 @@ export function SessionContainer(props: {
                       sessionResource={spacewaveSessionResource}
                     />
                     <Routes>
-                      {spacewaveSessionRoutes(props.metadata, {
-                        fallbackPath: currentLevelPath,
-                      })}
+                      <Route path="/settings/storage/recovery/incident">
+                        <StorageHealthPage recovery storageIncident />
+                      </Route>
                       <Route path="/settings/storage/recovery">
                         <StorageHealthPage recovery />
                       </Route>
                       <Route path="/settings/storage">
                         <StorageHealthPage />
                       </Route>
+                      {spacewaveSessionRoutes(props.metadata, {
+                        fallbackPath: currentLevelPath,
+                      })}
                       <Route path="/settings/cli/terminal">
                         <CliTerminalPage />
                       </Route>

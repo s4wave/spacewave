@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
 
+import { useBldrContext } from '@aptre/bldr-react'
 import { useSessionStorageStats } from '@s4wave/app/session/SessionStorageStatsContext.js'
 import {
   type SessionSyncStatusView,
@@ -35,8 +36,8 @@ export interface StorageHealthView {
   originQuotaBytes: number | null
   protectionState: StorageProtectionState
   sync: SessionSyncStatusView
-  replicaLabel: 'Not yet verified'
   safariCleanupRisk: boolean
+  requestProtection: () => Promise<void>
 }
 
 // useStorageHealth composes provider, browser, and sync facts without inferring
@@ -44,15 +45,25 @@ export interface StorageHealthView {
 export function useStorageHealth(): StorageHealthView {
   const provider = useSessionStorageStats()
   const sync = useSessionSyncStatus()
+  const webDocument = useBldrContext()?.webDocument
   const browser = usePromise(
     useCallback(
       (signal: AbortSignal) =>
         readBrowserStorageHealth(
           typeof navigator === 'undefined' ? null : navigator.storage,
           signal,
+          webDocument
+            ? async () =>
+                (await webDocument.readStoragePersistenceStatus()) ===
+                'persisted'
+            : undefined,
         ),
-      [],
+      [webDocument],
     ),
+  )
+  const requestProtection = useCallback(
+    () => webDocument?.requestStoragePersistence() ?? Promise.resolve(),
+    [webDocument],
   )
 
   return useMemo(
@@ -64,8 +75,16 @@ export function useStorageHealth(): StorageHealthView {
         browser.loading,
         browser.error,
         typeof navigator === 'undefined' ? '' : navigator.userAgent,
+        requestProtection,
       ),
-    [browser.data, browser.error, browser.loading, provider, sync],
+    [
+      browser.data,
+      browser.error,
+      browser.loading,
+      provider,
+      requestProtection,
+      sync,
+    ],
   )
 }
 
@@ -74,6 +93,7 @@ export function useStorageHealth(): StorageHealthView {
 export async function readBrowserStorageHealth(
   storage: BrowserStorageManager | null,
   signal: AbortSignal,
+  readPersisted?: () => Promise<boolean>,
 ): Promise<BrowserStorageSnapshot> {
   if (!storage) {
     return {
@@ -87,9 +107,11 @@ export async function readBrowserStorageHealth(
   const estimate = storage.estimate
     ? storage.estimate()
     : Promise.reject(new Error('Storage estimate is unavailable'))
-  const persisted = storage.persisted
-    ? storage.persisted()
-    : Promise.reject(new Error('Storage persistence status is unavailable'))
+  const persisted = readPersisted
+    ? readPersisted()
+    : storage.persisted
+      ? storage.persisted()
+      : Promise.reject(new Error('Storage persistence status is unavailable'))
   const [estimateResult, persistedResult] = await Promise.allSettled([
     estimate,
     persisted,
@@ -126,6 +148,7 @@ export function buildStorageHealthView(
   browserLoading: boolean,
   browserError: Error | null,
   userAgent: string,
+  requestProtection: () => Promise<void> = () => Promise.resolve(),
 ): StorageHealthView {
   const protectionState: StorageProtectionState = browserLoading
     ? 'checking'
@@ -145,8 +168,8 @@ export function buildStorageHealthView(
     originQuotaBytes: browser?.quotaBytes ?? null,
     protectionState,
     sync,
-    replicaLabel: 'Not yet verified',
     safariCleanupRisk: isSafariUserAgent(userAgent),
+    requestProtection,
   }
 }
 
