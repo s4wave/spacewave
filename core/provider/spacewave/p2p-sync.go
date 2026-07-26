@@ -14,12 +14,14 @@ import (
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
 	sobject_sync "github.com/s4wave/spacewave/core/sobject/sync"
 	"github.com/s4wave/spacewave/core/transport"
+	"github.com/s4wave/spacewave/db/block"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// p2pSyncState holds running P2P sync state for one mounted Session.
+// p2pSyncState holds running P2P sync and read stores for one mounted
+// Session.
 type p2pSyncState struct {
 	sessionID string
 	cancel    context.CancelFunc
@@ -27,6 +29,23 @@ type p2pSyncState struct {
 	mtx       sync.Mutex
 	refs      []directive.Reference
 	relFns    []func()
+	stores    map[string]block.StoreOps
+}
+
+func (s *p2pSyncState) addStore(bucketID string, store block.StoreOps) {
+	s.mtx.Lock()
+	if s.stores == nil {
+		s.stores = make(map[string]block.StoreOps)
+	}
+	s.stores[bucketID] = store
+	s.mtx.Unlock()
+}
+
+func (s *p2pSyncState) getStore(bucketID string) block.StoreOps {
+	s.mtx.Lock()
+	store := s.stores[bucketID]
+	s.mtx.Unlock()
+	return store
 }
 
 func (s *p2pSyncState) addRef(ref directive.Reference) {
@@ -77,10 +96,17 @@ func (a *ProviderAccount) startP2PSyncForSession(
 
 	syncCtx, syncCancel := context.WithCancel(ctx)
 	state := &p2pSyncState{sessionID: sessionID, cancel: syncCancel}
+	a.p2pSyncMtx.Lock()
+	if a.p2pSyncs == nil {
+		a.p2pSyncs = make(map[string]*p2pSyncState)
+	}
+	a.p2pSyncs[sessionID] = state
+	a.p2pSyncMtx.Unlock()
+
 	mountCtrl := &sessionSharedObjectMountController{account: a, sessionID: sessionID}
 	releaseMountCtrl, err := childBus.AddController(syncCtx, mountCtrl, nil)
 	if err != nil {
-		syncCancel()
+		a.stopP2PSyncForSession(sessionID)
 		return errors.Wrap(err, "register session shared object mount")
 	}
 	state.addRelease(releaseMountCtrl)
@@ -99,15 +125,13 @@ func (a *ProviderAccount) startP2PSyncForSession(
 			soID := provRef.GetId()
 			blockStoreID := ref.GetBlockStoreId()
 
-			if err := a.startSOSync(syncCtx, childBus, ref, soID, state); err != nil {
-				a.le.WithError(err).WithField("so-id", soID).Warn("failed to start so sync")
-				continue
-			}
-
 			bucketID := BlockStoreBucketID(a.accountID, blockStoreID)
 			if err := a.startDEXSolicit(syncCtx, childBus, bucketID, state); err != nil {
 				a.le.WithError(err).WithField("bucket-id", bucketID).Warn("failed to start dex solicit")
-				continue
+			}
+
+			if err := a.startSOSync(syncCtx, childBus, ref, soID, state); err != nil {
+				a.le.WithError(err).WithField("so-id", soID).Warn("failed to start so sync")
 			}
 		}
 	}
@@ -116,12 +140,6 @@ func (a *ProviderAccount) startP2PSyncForSession(
 		a.le.WithError(err).Warn("failed to start invite server")
 	}
 
-	a.p2pSyncMtx.Lock()
-	if a.p2pSyncs == nil {
-		a.p2pSyncs = make(map[string]*p2pSyncState)
-	}
-	a.p2pSyncs[sessionID] = state
-	a.p2pSyncMtx.Unlock()
 	return nil
 }
 
@@ -150,6 +168,7 @@ func (a *ProviderAccount) startSOSync(
 	ctx context.Context,
 	childBus bus.Bus,
 	ref *sobject.SharedObjectRef,
+
 	soID string,
 	state *p2pSyncState,
 ) error {
@@ -172,6 +191,16 @@ func (a *ProviderAccount) startSOSync(
 		}
 	})
 	return nil
+}
+
+func (a *ProviderAccount) getSessionDEXStore(sessionID, bucketID string) block.StoreOps {
+	a.p2pSyncMtx.Lock()
+	state := a.p2pSyncs[sessionID]
+	a.p2pSyncMtx.Unlock()
+	if state == nil {
+		return nil
+	}
+	return state.getStore(bucketID)
 }
 
 // startInviteServer registers the SO invite SRPC server on the child bus.
@@ -272,7 +301,7 @@ func (a *ProviderAccount) startDEXSolicit(
 	bucketID string,
 	state *p2pSyncState,
 ) error {
-	_, _, dexRef, err := loader.WaitExecControllerRunning(
+	ctrl, _, dexRef, err := loader.WaitExecControllerRunningTyped[*dex_solicit.Controller](
 		ctx,
 		childBus,
 		resolver.NewLoadControllerWithConfig(&dex_solicit.Config{
@@ -284,5 +313,6 @@ func (a *ProviderAccount) startDEXSolicit(
 		return err
 	}
 	state.addRef(dexRef)
+	state.addStore(bucketID, dex_solicit.NewStore(ctrl))
 	return nil
 }

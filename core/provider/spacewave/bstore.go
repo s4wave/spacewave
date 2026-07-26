@@ -505,10 +505,12 @@ func (t *bstoreTracker) buildBucketConf() (*bucket.Config, error) {
 // sourceTrackingStore records the source that satisfied completed block reads.
 type sourceTrackingStore struct {
 	block.StoreOps
-	account    *ProviderAccount
-	bstoreID   string
-	source     SyncTelemetryBlockSource
-	upperCache bool
+	account        *ProviderAccount
+	bstoreID       string
+	source         SyncTelemetryBlockSource
+	upperCache     bool
+	demandStarted  func()
+	demandFinished func()
 }
 
 // BeginReadOperation preserves source observation inside a scoped read.
@@ -518,11 +520,13 @@ func (s *sourceTrackingStore) BeginReadOperation(ctx context.Context) (block.Sto
 		return nil, nil, err
 	}
 	return &sourceTrackingStore{
-		StoreOps:   scoped,
-		account:    s.account,
-		bstoreID:   s.bstoreID,
-		source:     s.source,
-		upperCache: s.upperCache,
+		StoreOps:       scoped,
+		account:        s.account,
+		bstoreID:       s.bstoreID,
+		source:         s.source,
+		upperCache:     s.upperCache,
+		demandStarted:  s.demandStarted,
+		demandFinished: s.demandFinished,
 	}, release, nil
 }
 
@@ -535,6 +539,14 @@ func (s *sourceTrackingStore) GetBlock(ctx context.Context, ref *block.BlockRef)
 		if err != nil {
 			return nil, false, err
 		}
+	}
+	if s.demandStarted != nil {
+		s.demandStarted()
+		defer func() {
+			if s.demandFinished != nil {
+				s.demandFinished()
+			}
+		}()
 	}
 	data, found, err := s.StoreOps.GetBlock(ctx, ref)
 	if err != nil || !found {

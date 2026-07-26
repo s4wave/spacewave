@@ -6,21 +6,14 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/aperturerobotics/controllerbus/bus"
-	bus_inmem "github.com/aperturerobotics/controllerbus/bus/inmem"
-	bus_controller "github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/controllerbus/directive"
-	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
-	"github.com/s4wave/spacewave/db/dex"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
-	"github.com/sirupsen/logrus"
 )
 
 type batchForwardTestStore struct {
@@ -62,101 +55,60 @@ var (
 	_ block.StoreOps    = ((*batchForwardTestStore)(nil))
 )
 
-type localDEXTestController struct {
-	value    []byte
+type localDEXTestStore struct {
+	block.StoreOps
 	requests atomic.Int32
 }
 
-func (c *localDEXTestController) GetControllerInfo() *bus_controller.Info {
-	return bus_controller.NewInfo(
-		"test/local-dex",
-		bus_controller.MustParseVersion("0.0.1"),
-		"local DEX test controller",
-	)
+func (s *localDEXTestStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	s.requests.Add(1)
+	return s.StoreOps.GetBlock(ctx, ref)
 }
 
-func (c *localDEXTestController) Execute(ctx context.Context) error {
-	<-ctx.Done()
-	return ctx.Err()
-}
-
-func (c *localDEXTestController) HandleDirective(
-	_ context.Context,
-	inst directive.Instance,
-) ([]directive.Resolver, error) {
-	dir, ok := inst.GetDirective().(dex.LookupBlockFromNetwork)
-	if !ok {
-		return nil, nil
-	}
-	return directive.R(directive.NewAccessResolver(func(
-		_ context.Context,
-		released func(),
-	) (dex.LookupBlockFromNetworkValue, func(), error) {
-		c.requests.Add(1)
-		_ = dir
-		return dex.NewLookupBlockFromNetworkValue(c.value, nil), func() {
-			if released != nil {
-				released()
-			}
-		}, nil
-	}), nil)
-}
-
-func (c *localDEXTestController) Close() error { return nil }
-
-var _ bus_controller.Controller = ((*localDEXTestController)(nil))
-
-func newLocalDEXTestBus(
-	ctx context.Context,
-	value []byte,
-) (bus.Bus, *localDEXTestController, func(), error) {
-	dc := directive_controller.NewController(ctx, logrus.NewEntry(logrus.New()))
-	b := bus_inmem.NewBus(dc)
-	ctrl := &localDEXTestController{value: value}
-	release, err := b.AddController(ctx, ctrl, nil)
-	return b, ctrl, release, err
-}
+var _ block.StoreOps = ((*localDEXTestStore)(nil))
 
 func TestLocalBlockStoreMissRoutesToSessionChildDEX(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	ref, err := block.BuildBlockRef([]byte("from-session-dex"), nil)
+	data := []byte("from-session-dex")
+	ref, err := block.BuildBlockRef(data, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	childBus, ctrl, release, err := newLocalDEXTestBus(ctx, []byte("from-session-dex"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer release()
 
-	local := newBatchForwardTestStore()
-	direct := &localDirectLookupStore{
-		busForSession: func() bus.Bus { return childBus },
-		bucketID:      "p/local/account/block-store",
-		hashType:      ref.GetHash().GetHashType(),
+	remote := newBatchForwardTestStore()
+	if _, _, err := remote.PutBlock(ctx, data, nil); err != nil {
+		t.Fatal(err)
 	}
+	dexStore := &localDEXTestStore{StoreOps: remote}
+	local := newBatchForwardTestStore()
+	readOps := block_store.NewStoreReadThrough(
+		func() block.StoreOps { return local },
+		func() block.StoreOps { return dexStore },
+		true,
+	)
 	store := &BlockStore{
 		store:     block_store.NewStore("local-store", local),
-		readStore: block_store.NewStore("local-store", &localReadStore{local: local, direct: direct}),
+		readStore: block_store.NewStore("local-store", readOps),
 	}
-	data, found, err := store.GetBlock(ctx, ref)
-	if err != nil || !found || string(data) != "from-session-dex" {
-		t.Fatalf("local DEX fallback = %q/%v/%v", data, found, err)
+
+	got, found, err := store.GetBlock(ctx, ref)
+	if err != nil || !found || string(got) != string(data) {
+		t.Fatalf("local DEX fallback = %q/%v/%v", got, found, err)
 	}
-	if ctrl.requests.Load() != 1 {
-		t.Fatalf("local DEX requests = %d, want 1", ctrl.requests.Load())
+	if dexStore.requests.Load() != 1 {
+		t.Fatalf("local DEX requests = %d, want 1", dexStore.requests.Load())
 	}
 	if local.putBlockHits != 1 {
 		t.Fatalf("local cache writes = %d, want 1", local.putBlockHits)
 	}
-	direct.busForSession = func() bus.Bus { return nil }
-	data, found, err = store.GetBlock(ctx, ref)
-	if err != nil || !found || string(data) != "from-session-dex" {
-		t.Fatalf("local cache hit after child disable = %q/%v/%v", data, found, err)
+
+	got, found, err = store.GetBlock(ctx, ref)
+	if err != nil || !found || string(got) != string(data) {
+		t.Fatalf("local cache hit = %q/%v/%v", got, found, err)
 	}
-	if ctrl.requests.Load() != 1 {
-		t.Fatalf("local DEX requests after cache hit = %d, want 1", ctrl.requests.Load())
+	if dexStore.requests.Load() != 1 {
+		t.Fatalf("local DEX requests after cache hit = %d, want 1", dexStore.requests.Load())
 	}
 }
 

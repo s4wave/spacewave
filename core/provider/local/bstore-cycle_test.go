@@ -7,7 +7,6 @@ import (
 	"testing"
 	"testing/synctest"
 
-	"github.com/aperturerobotics/controllerbus/bus"
 	bus_bridge "github.com/aperturerobotics/controllerbus/bus/bridge"
 	bus_inmem "github.com/aperturerobotics/controllerbus/bus/inmem"
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
@@ -45,14 +44,14 @@ func TestLocalBlockStoreNetworkLookupUsesLocalOwner(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		direct := &localDirectLookupStore{
-			busForSession: func() bus.Bus { return childBus },
-			bucketID:      storeID,
-			hashType:      ref.GetHash().GetHashType(),
-		}
+		readOps := block_store.NewStoreReadThrough(
+			func() block.StoreOps { return local },
+			nil,
+			true,
+		)
 		store := &BlockStore{
 			store:     local,
-			readStore: block_store.NewStore(storeID, &localReadStore{local: local, direct: direct}),
+			readStore: block_store.NewStore(storeID, readOps),
 		}
 
 		type lookupResult struct {
