@@ -509,6 +509,7 @@ func (r *WorldStateResource) GetObjectBodiesBatch(ctx context.Context, req *s4wa
 			ObjectKey: body.ObjectKey,
 			Body:      body.Body,
 			Exists:    body.Exists,
+			Rev:       body.Rev,
 		}
 	}
 
@@ -519,11 +520,7 @@ func (r *WorldStateResource) GetObjectBodiesBatch(ctx context.Context, req *s4wa
 	}, nil
 }
 
-// The reserve covers the SRPC envelope and transport framing around body
-// entries. The budget remains positive and the owner always returns one body.
-const objectBodiesBatchEnvelopeReserve = 64 * 1024
-
-const objectBodiesBatchBudget = block.MaxBlockSize - objectBodiesBatchEnvelopeReserve
+const objectBodiesBatchBudget = world.ObjectBodiesBatchByteBudget
 
 func getObjectBodiesBatchPage(
 	ctx context.Context,

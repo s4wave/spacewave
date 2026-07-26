@@ -447,6 +447,9 @@ pub struct ObjectBody {
     /// Exists indicates whether the object key exists.
     #[prost(bool, tag="3")]
     pub exists: bool,
+    /// Rev is the object revision observed with body.
+    #[prost(uint64, tag="4")]
+    pub rev: u64,
 }
 /// GetObjectBodiesBatchRequest is the request type for
 /// GetObjectBodiesBatch.

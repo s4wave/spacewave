@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/s4wave/spacewave/db/world"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 )
 
@@ -84,5 +85,27 @@ func TestSDKWorldStateGetObjectBodiesBatchRestartsOnWorldSeqnoChange(t *testing.
 	}
 	if len(bodies) != 2 || bodies[0].ObjectKey != "body/one" || bodies[1].ObjectKey != "body/two" {
 		t.Fatalf("bodies = %+v, want both consistent pages", bodies)
+	}
+}
+
+func TestSDKWorldStateForEachObjectBodyPageYieldsPages(t *testing.T) {
+	service := &objectBodiesBatchService{
+		responses: []*s4wave_world.GetObjectBodiesBatchResponse{
+			{Bodies: []*s4wave_world.ObjectBody{{ObjectKey: "body/one"}}, NextKeyIndex: 1},
+			{Bodies: []*s4wave_world.ObjectBody{{ObjectKey: "body/two"}}},
+		},
+	}
+	ws := &SDKWorldState{service: service}
+
+	var pageLengths []int
+	err := ws.ForEachObjectBodyPage(context.Background(), []string{"body/one", "body/two"}, func(page []*world.ObjectBody) error {
+		pageLengths = append(pageLengths, len(page))
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pageLengths) != 2 || pageLengths[0] != 1 || pageLengths[1] != 1 {
+		t.Fatalf("page lengths = %v, want [1 1]", pageLengths)
 	}
 }

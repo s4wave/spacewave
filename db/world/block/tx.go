@@ -70,6 +70,33 @@ func (t *Tx) GetSeqno(ctx context.Context) (uint64, error) {
 	return t.state.GetSeqno(ctx)
 }
 
+// GetObjectBodiesBatchPage returns one budgeted page from the transaction state.
+func (t *Tx) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, error) {
+	unlock, err := t.rmtx.Lock(ctx, false)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer unlock()
+
+	return t.state.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
+}
+
+// GetObjectBodiesBatchPageWithSeqno returns one budgeted page and its transaction seqno.
+func (t *Tx) GetObjectBodiesBatchPageWithSeqno(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
+	unlock, err := t.rmtx.Lock(ctx, false)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	defer unlock()
+
+	seqno, err := t.state.GetSeqno(ctx)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	bodies, consumed, err := t.state.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
+	return bodies, consumed, seqno, err
+}
+
 // WaitSeqno waits for the seqno of the world state to be >= value.
 // Returns the seqno when the condition is reached.
 // If value == 0, this might return immediately unconditionally.

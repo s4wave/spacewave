@@ -3,7 +3,6 @@ package sdk_world_engine
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -357,61 +356,19 @@ func (ws *SDKWorldState) GetObjectMetadataBatch(ctx context.Context, keys []stri
 	return metadata, nil
 }
 
+// ForEachObjectBodyPage calls cb with each page of serialized object bodies.
+// The callback must finish with the page before the next RPC response is read.
+func (ws *SDKWorldState) ForEachObjectBodyPage(
+	ctx context.Context,
+	keys []string,
+	cb func([]*world.ObjectBody) error,
+) error {
+	return s4wave_world.ForEachObjectBodyPage(ctx, ws.service, keys, cb)
+}
+
 // GetObjectBodiesBatch returns serialized object bodies for object keys.
 func (ws *SDKWorldState) GetObjectBodiesBatch(ctx context.Context, keys []string) ([]*world.ObjectBody, error) {
-	const maxObjectBodiesBatchRevisionRetries = 3
-
-	for retry := 0; retry <= maxObjectBodiesBatchRevisionRetries; retry++ {
-		bodies := make([]*world.ObjectBody, 0, len(keys))
-		var worldSeqno uint64
-		var haveWorldSeqno bool
-		consistent := true
-		for startKeyIndex := uint32(0); ; {
-			resp, err := ws.service.GetObjectBodiesBatch(ctx, &s4wave_world.GetObjectBodiesBatchRequest{
-				ObjectKeys:    keys,
-				StartKeyIndex: startKeyIndex,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			pageSeqno := resp.GetWorldSeqno()
-			if !haveWorldSeqno {
-				worldSeqno = pageSeqno
-				haveWorldSeqno = true
-			} else if pageSeqno != worldSeqno {
-				consistent = false
-				if retry == maxObjectBodiesBatchRevisionRetries {
-					return nil, &s4wave_world.ObjectBodiesBatchRevisionError{
-						Expected: worldSeqno,
-						Got:      pageSeqno,
-						Retries:  retry,
-					}
-				}
-				break
-			}
-
-			for _, body := range resp.GetBodies() {
-				bodies = append(bodies, &world.ObjectBody{
-					ObjectKey: body.GetObjectKey(),
-					Body:      append([]byte(nil), body.GetBody()...),
-					Exists:    body.GetExists(),
-				})
-			}
-			nextKeyIndex := resp.GetNextKeyIndex()
-			if nextKeyIndex == 0 {
-				break
-			}
-			if nextKeyIndex <= startKeyIndex {
-				return nil, errors.Errorf("object bodies batch page did not advance: next key index %d after %d", nextKeyIndex, startKeyIndex)
-			}
-			startKeyIndex = nextKeyIndex
-		}
-		if consistent {
-			return bodies, nil
-		}
-	}
-	return nil, &s4wave_world.ObjectBodiesBatchRevisionError{}
+	return s4wave_world.GetObjectBodiesBatch(ctx, ws.service, keys)
 }
 
 // QueryGraphPath executes a bounded server-side graph path query.

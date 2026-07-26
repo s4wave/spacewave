@@ -7,12 +7,17 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 )
 
+// ObjectBodiesBatchByteBudget is the encoded-size budget shared by body batch requests and responses.
+const ObjectBodiesBatchByteBudget = block.MaxBlockSize - 64*1024
+
 // ObjectBody contains the serialized root body for one object key.
 type ObjectBody struct {
 	// ObjectKey is the requested object key.
 	ObjectKey string
 	// Body is the transformed root block data when the object exists.
 	Body []byte
+	// Rev is the object revision observed with Body.
+	Rev uint64
 	// Exists reports whether the object key exists.
 	Exists bool
 }
@@ -69,13 +74,14 @@ func GetObjectBodiesBatch(ctx context.Context, ws WorldState, keys []string) ([]
 
 	out := make([]*ObjectBody, len(keys))
 	for i, key := range keys {
-		body, exists, err := LookupObjectBodyBytes(ctx, ws, key)
+		body, rev, exists, err := LookupObjectBodyBytesWithRev(ctx, ws, key)
 		if err != nil {
 			return nil, err
 		}
 		out[i] = &ObjectBody{
 			ObjectKey: key,
 			Body:      body,
+			Rev:       rev,
 			Exists:    exists,
 		}
 	}
@@ -96,8 +102,8 @@ func GetObjectBodiesBatchPage(
 		return pager.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
 	}
 
-	return getObjectBodiesBatchPage(ctx, keys, byteBudget, func(ctx context.Context, key string) ([]byte, bool, error) {
-		return LookupObjectBodyBytes(ctx, ws, key)
+	return getObjectBodiesBatchPage(ctx, keys, byteBudget, func(ctx context.Context, key string) ([]byte, uint64, bool, error) {
+		return LookupObjectBodyBytesWithRev(ctx, ws, key)
 	})
 }
 
@@ -105,7 +111,7 @@ func getObjectBodiesBatchPage(
 	ctx context.Context,
 	keys []string,
 	byteBudget int,
-	lookup func(context.Context, string) ([]byte, bool, error),
+	lookup func(context.Context, string) ([]byte, uint64, bool, error),
 ) ([]*ObjectBody, uint32, error) {
 	out := make([]*ObjectBody, 0, len(keys))
 	encodedSize := 0
@@ -113,13 +119,14 @@ func getObjectBodiesBatchPage(
 		if len(out) > 0 && encodedSize >= byteBudget {
 			return out, uint32(i), nil
 		}
-		body, exists, err := lookup(ctx, key)
+		body, rev, exists, err := lookup(ctx, key)
 		if err != nil {
 			return nil, 0, err
 		}
 		result := &ObjectBody{
 			ObjectKey: key,
 			Body:      body,
+			Rev:       rev,
 			Exists:    exists,
 		}
 		resultSize := objectBodyEncodedSize(result)
@@ -154,26 +161,29 @@ func GetObjectBodiesBatchPageWithSeqno(
 }
 
 // objectBodyEncodedSize matches the generated protobuf size of one repeated
-// ObjectBody response entry, including its key, body, exists flag, and the
-// enclosing repeated-message tag and length.
+// ObjectBody response entry, including its key, body, exists flag, revision,
+// and the enclosing repeated-message tag and length.
 func objectBodyEncodedSize(body *ObjectBody) int {
 	if body == nil {
 		return 0
 	}
 	bodySize := 0
 	if len(body.ObjectKey) > 0 {
-		bodySize += 1 + protoVarintSize(len(body.ObjectKey)) + len(body.ObjectKey)
+		bodySize += 1 + protoVarintSize(uint64(len(body.ObjectKey))) + len(body.ObjectKey)
 	}
 	if len(body.Body) > 0 {
-		bodySize += 1 + protoVarintSize(len(body.Body)) + len(body.Body)
+		bodySize += 1 + protoVarintSize(uint64(len(body.Body))) + len(body.Body)
 	}
 	if body.Exists {
 		bodySize += 2
 	}
-	return 1 + protoVarintSize(bodySize) + bodySize
+	if body.Rev != 0 {
+		bodySize += 1 + protoVarintSize(body.Rev)
+	}
+	return 1 + protoVarintSize(uint64(bodySize)) + bodySize
 }
 
-func protoVarintSize(value int) int {
+func protoVarintSize(value uint64) int {
 	size := 1
 	for value >= 128 {
 		value >>= 7

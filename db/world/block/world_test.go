@@ -4,12 +4,14 @@ import (
 	"context"
 	"slices"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/aperturerobotics/cayley/graph"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/byteslice"
 	"github.com/s4wave/spacewave/db/block/filters"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
@@ -23,6 +25,7 @@ import (
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
+	db_world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
@@ -2415,6 +2418,140 @@ func TestEngineDeferredDurabilityCrashRecovery(t *testing.T) {
 	// ...and obj-b, committed after the last Sync, is rolled back.
 	if _, err := world.MustGetObject(ctx, recovered, "obj-b"); err == nil {
 		t.Fatal("post-Sync commit must not survive a crash before the next Sync")
+	}
+}
+
+func TestEngineTxObjectBodyPagePairsSeqnoWithBodies(t *testing.T) {
+	ctx := t.Context()
+	wtb, err := db_world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer wtb.Release()
+
+	tx, err := wtb.Engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+
+	const objectKey = "body/race"
+	initialBody := []byte("version-initial")
+	_, _, err = world.CreateWorldObject(ctx, tx, objectKey, func(bcs *block.Cursor) error {
+		bcs.SetBlock(byteslice.NewByteSlice(&initialBody), true)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	initialSeqno, err := tx.GetSeqno(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	versions := map[uint64]string{initialSeqno: string(initialBody)}
+
+	pager, ok := tx.(world.ObjectBodyPageSeqnoBatcher)
+	if !ok {
+		t.Fatal("transaction does not expose body page seqno batching")
+	}
+
+	const (
+		keyCount = 2048
+		rounds   = 64
+	)
+	keys := make([]string, keyCount)
+	for i := range keys {
+		keys[i] = objectKey
+	}
+
+	type pageResult struct {
+		seqno  uint64
+		bodies []string
+	}
+	start := make(chan struct{})
+	results := make(chan pageResult, rounds)
+	errs := make(chan error, 2)
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		<-start
+		for range rounds {
+			bodies, _, seqno, err := pager.GetObjectBodiesBatchPageWithSeqno(
+				ctx,
+				keys,
+				world.ObjectBodiesBatchByteBudget,
+			)
+			if err != nil {
+				errs <- err
+				return
+			}
+			if len(bodies) != len(keys) {
+				errs <- errors.Errorf("body count = %d, want %d", len(bodies), len(keys))
+				return
+			}
+			page := pageResult{seqno: seqno, bodies: make([]string, len(bodies))}
+			for i, body := range bodies {
+				page.bodies[i] = string(body.Body)
+			}
+			results <- page
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		<-start
+		for range rounds {
+			before, err := tx.GetSeqno(ctx)
+			if err != nil {
+				errs <- err
+				return
+			}
+			body := []byte("version-" + strconv.FormatUint(before+1, 10))
+			_, _, err = world.AccessWorldObject(ctx, tx, objectKey, true, func(bcs *block.Cursor) error {
+				bcs.SetBlock(byteslice.NewByteSlice(&body), true)
+				return nil
+			})
+			if err != nil {
+				errs <- err
+				return
+			}
+			after, err := tx.GetSeqno(ctx)
+			if err != nil {
+				errs <- err
+				return
+			}
+			versions[after] = string(body)
+		}
+	}()
+
+	close(start)
+	wg.Wait()
+	close(results)
+	select {
+	case err := <-errs:
+		t.Fatal(err)
+	default:
+	}
+
+	for page := range results {
+		expected, ok := versions[page.seqno]
+		if !ok {
+			t.Fatalf("page returned unknown seqno %d", page.seqno)
+		}
+		for i, body := range page.bodies {
+			if body != expected {
+				t.Fatalf(
+					"body at index %d paired with seqno %d = %q, want %q",
+					i,
+					page.seqno,
+					body,
+					expected,
+				)
+			}
+		}
 	}
 }
 

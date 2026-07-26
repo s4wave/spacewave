@@ -456,6 +456,8 @@ message ObjectBody {
   bytes body = 2;
   // Exists indicates whether the object key exists.
   bool exists = 3;
+  // Rev is the object revision observed with body.
+  uint64 rev = 4;
 }
 
 // GetObjectBodiesBatchRequest is the request type for
