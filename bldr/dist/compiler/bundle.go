@@ -578,7 +578,7 @@ func resolveDistGoCompiler(
 
 func newDistGoScriptBuildFlags(buildType bldr_manifest.BuildType, enableCgo bool) []string {
 	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
-	buildTags = append(buildTags, gocompiler.GoScriptBuildTag)
+	buildTags = append(buildTags, gocompiler.GoScriptBuildTag, gocompiler.SQLLiteBuildTag)
 	return []string{"-tags=" + strings.Join(buildTags, ",")}
 }
 

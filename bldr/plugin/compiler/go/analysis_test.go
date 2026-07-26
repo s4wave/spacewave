@@ -386,6 +386,7 @@ func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
 		"purego",
 		"tinygo",
 		gocompiler.BldrTinyGoJSImportBuildTag,
+		gocompiler.SQLLiteBuildTag,
 	} {
 		if !slices.Contains(tags, want) {
 			t.Fatalf("TinyGo analysis tags missing %q: %v", want, tags)
@@ -396,6 +397,9 @@ func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
 	if slices.Contains(standardTags, "tinygo") {
 		t.Fatalf("standard Go analysis tags unexpectedly include tinygo: %v", standardTags)
 	}
+	if slices.Contains(standardTags, gocompiler.SQLLiteBuildTag) {
+		t.Fatalf("standard Go analysis tags unexpectedly include sql_lite: %v", standardTags)
+	}
 }
 
 func TestNewBuildTagsForAnalyzeIncludesGoScriptTag(t *testing.T) {
@@ -404,6 +408,7 @@ func TestNewBuildTagsForAnalyzeIncludesGoScriptTag(t *testing.T) {
 		"build_type_release",
 		"purego",
 		gocompiler.GoScriptBuildTag,
+		gocompiler.SQLLiteBuildTag,
 	} {
 		if !slices.Contains(tags, want) {
 			t.Fatalf("GoScript analysis tags missing %q: %v", want, tags)

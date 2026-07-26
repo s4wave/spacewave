@@ -126,7 +126,7 @@ func TestNewGoScriptBuildFlagsIncludesGoScriptTag(t *testing.T) {
 		t.Fatalf("GoScript build flags = %v, want single -tags flag", flags)
 	}
 	tags := strings.Split(strings.TrimPrefix(flags[0], "-tags="), ",")
-	for _, want := range []string{"purego", gocompiler.GoScriptBuildTag} {
+	for _, want := range []string{"purego", gocompiler.GoScriptBuildTag, gocompiler.SQLLiteBuildTag} {
 		if !slices.Contains(tags, want) {
 			t.Fatalf("GoScript build tags missing %q: %v", want, tags)
 		}
