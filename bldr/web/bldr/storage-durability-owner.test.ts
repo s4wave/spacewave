@@ -47,6 +47,25 @@ describe('StorageDurabilityOwner', () => {
     expect(owner.getStatus()).toBe('unknown')
     expect(statuses).toEqual([])
   })
+  test('reads current protection without requesting it', async () => {
+    const storage = mockStorage(true, true)
+    const owner = new StorageDurabilityOwner(storage)
+
+    await expect(owner.readStatus()).resolves.toBe('persisted')
+
+    expect(storage.persisted).toHaveBeenCalledTimes(1)
+    expect(storage.persist).not.toHaveBeenCalled()
+  })
+  test('explicit protection requests use the same owner sequence', async () => {
+    const storage = mockStorage(false, true)
+    const owner = new StorageDurabilityOwner(storage)
+
+    await owner.requestProtection()
+
+    expect(storage.persisted).toHaveBeenCalledTimes(1)
+    expect(storage.persist).toHaveBeenCalledTimes(1)
+    expect(owner.getStatus()).toBe('persisted')
+  })
 
   test('first meaningful write triggers exactly one persisted()/persist() sequence, deduped across concurrent writes', async () => {
     const storage = mockStorage(false, true)

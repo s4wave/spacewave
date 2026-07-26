@@ -22,15 +22,20 @@ const healthView = {
     summaryLabel: 'Sync idle',
     detailLabel: 'No active transfers.',
     error: false,
+    loading: false,
+    active: false,
+    lastError: '',
+    pendingUploadLabel: '0 B',
+    pendingDownloadLabel: '0 B',
   },
-  replicaLabel: 'Not yet verified',
+  requestProtection: vi.fn(),
   safariCleanupRisk: true,
 }
 
 describe('StorageHealth', () => {
   afterEach(() => cleanup())
 
-  it('keeps local, protected, and replica states distinct in settings', () => {
+  it('groups readings by scope and keeps backup claims subordinate', () => {
     mockUseStorageHealth.mockReturnValue(healthView)
     const onOpenRecovery = vi.fn()
     const onLinkDevice = vi.fn()
@@ -45,21 +50,25 @@ describe('StorageHealth', () => {
       />,
     )
 
-    expect(screen.getByText('16 MB in the local provider')).toBeTruthy()
-    expect(screen.getByText('Protected')).toBeTruthy()
-    expect(screen.getByText('Not yet verified')).toBeTruthy()
-    expect(screen.getByTestId('safari-storage-risk')).toBeTruthy()
-    expect(screen.queryByText(/install/i)).toBeNull()
-
-    fireEvent.click(screen.getByText('Recovery view'))
+    expect(screen.getByRole('heading', { name: 'This browser' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', { name: "This device's store" }),
+    ).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Sync activity' })).toBeTruthy()
+    expect(screen.getByText('16 MB physical')).toBeTruthy()
+    expect(screen.getByText('Automatic cleanup protection')).toBeTruthy()
+    fireEvent.click(screen.getByText('Storage recovery'))
+    fireEvent.click(screen.getByText('Request protection'))
     fireEvent.click(screen.getByText('Link device'))
     fireEvent.click(screen.getByText('Cloud options'))
+    expect(healthView.requestProtection).toHaveBeenCalledOnce()
     expect(onOpenRecovery).toHaveBeenCalledOnce()
     expect(onLinkDevice).toHaveBeenCalledOnce()
     expect(onUseCloud).toHaveBeenCalledOnce()
+    expect(screen.queryByText(/install/i)).toBeNull()
   })
 
-  it('uses the same health facts on recovery without Safari-only settings copy', () => {
+  it('presents a calm recovery view when no write failure is reported', () => {
     mockUseStorageHealth.mockReturnValue(healthView)
 
     render(
@@ -70,15 +79,14 @@ describe('StorageHealth', () => {
       />,
     )
 
-    expect(screen.getByText('Spacewave cannot save reliably')).toBeTruthy()
-    expect(screen.getByRole('alert')).toBeTruthy()
-    expect(screen.getByText('Why these readings matter')).toBeTruthy()
-    expect(screen.getByText('Not yet verified')).toBeTruthy()
-    expect(screen.queryByTestId('safari-storage-risk')).toBeNull()
+    expect(screen.getByText('Saving works')).toBeTruthy()
+    expect(screen.queryByText('Spacewave cannot save reliably')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.queryByText('Why these readings matter')).toBeNull()
     expect(
-      screen.getByText(
-        'Unavailable until this browser verifies that a current remote replica can restore the Space.',
-      ),
+      screen.getByText('Request automatic cleanup protection'),
     ).toBeTruthy()
+    expect(screen.getByText('Export a backup')).toBeTruthy()
+    expect(screen.queryByTestId('safari-storage-risk')).toBeNull()
   })
 })

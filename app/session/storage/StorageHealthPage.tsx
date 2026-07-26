@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { LuDatabase, LuTriangleAlert } from 'react-icons/lu'
+import { LuDatabase, LuShieldCheck } from 'react-icons/lu'
 
 import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
@@ -28,7 +28,7 @@ export function StorageHealthPage({
     navigateSession({ path: 'plan' })
   }, [navigateSession])
 
-  const Icon = recovery ? LuTriangleAlert : LuDatabase
+  const Icon = recovery ? LuShieldCheck : LuDatabase
   return (
     <div className="bg-background-primary relative flex h-full w-full items-start justify-center overflow-y-auto pt-16 pb-10">
       <main className="w-full max-w-md px-4">
@@ -46,8 +46,8 @@ export function StorageHealthPage({
             </h1>
             <p className="text-foreground-alt/60 mt-1 text-xs">
               {recovery
-                ? 'Restore enough durable capacity for Spacewave to save safely.'
-                : 'Local usage, cleanup protection, sync activity, and replica safety.'}
+                ? 'Review browser protection and backup options.'
+                : 'See what this browser, this device, and sync activity report.'}
             </p>
           </div>
         </div>
