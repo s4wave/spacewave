@@ -110,10 +110,8 @@ type WebRTC struct {
 	bcast broadcast.Broadcast
 	// relSignalHandler releases the signal handler controller
 	relSignalHandler func()
-	// incomingSessions contains the set of sessions that were started due to
-	// HandleSignalPeer directives. These references are dropped when a link
-	// closes in order to prevent "bouncing" (repeatedly re-connecting).
-	incomingSessions map[string]*keyed.KeyedRef[string, *sessionTracker]
+	// incomingSessions contains the per-peer signal-ingress leases.
+	incomingSessions map[string]*signalIngress
 }
 
 // NewWebRTC builds a new WebRTC transport.
@@ -188,7 +186,7 @@ func NewWebRTC(
 	}
 
 	// The session tracker starts when we want a session with a remote peer.
-	tpt.incomingSessions = make(map[string]*keyed.KeyedRef[string, *sessionTracker])
+	tpt.incomingSessions = make(map[string]*signalIngress)
 	tpt.sessionTrackers = keyed.NewKeyedRefCount[string, *sessionTracker](
 		tpt.newSessionTracker,
 		keyed.WithExitLogger[string, *sessionTracker](le),

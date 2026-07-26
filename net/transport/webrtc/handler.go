@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/s4wave/spacewave/net/signaling"
 )
@@ -63,33 +62,11 @@ func (c *WebRTCSignalHandler) Close() error {
 
 // handleSignalPeerResolver resolves HandleSignalPeer.
 type handleSignalPeerResolver struct {
-	t          *WebRTC
-	sess       signaling.SignalPeerSession
-	releaseRef func(*keyed.KeyedRef[string, *sessionTracker])
-	refStored  func(*keyed.KeyedRef[string, *sessionTracker], *keyed.KeyedRef[string, *sessionTracker])
-}
-
-func (r *handleSignalPeerResolver) releaseIncomingRef(ref *keyed.KeyedRef[string, *sessionTracker]) {
-	if r.releaseRef != nil {
-		r.releaseRef(ref)
-		return
-	}
-	ref.Release()
-}
-
-// storeIncomingRef replaces the map-held reference while r.t.bcast is locked.
-func (r *handleSignalPeerResolver) storeIncomingRef(
-	remotePeerIDStr string,
-	ref *keyed.KeyedRef[string, *sessionTracker],
-) {
-	prev := r.t.incomingSessions[remotePeerIDStr]
-	if prev != nil {
-		r.releaseIncomingRef(prev)
-	}
-	r.t.incomingSessions[remotePeerIDStr] = ref
-	if r.refStored != nil {
-		r.refStored(prev, ref)
-	}
+	t    *WebRTC
+	sess signaling.SignalPeerSession
+	// held indicates this resolver has held the peer's ingress lease.
+	// guarded by t.bcast.
+	held bool
 }
 
 // Resolve resolves the directive.
@@ -97,29 +74,7 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 	remotePeerID := r.sess.GetRemotePeerID()
 	remotePeerIDStr := remotePeerID.String()
 	r.t.le.Debugf("started signaling session with %v", remotePeerIDStr)
-
-	// Wait for the remote peer to indicate they want a session before starting one.
-	// If the link is lost with this nonce, the ref will also be released.
-	// The ref is then added back if the remote peer sends a request to start the session again.
-	var tkr *sessionTracker
-	var ref *keyed.KeyedRef[string, *sessionTracker]
-	defer func() {
-		if ref == nil {
-			return
-		}
-
-		var release bool
-		r.t.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			if r.t.incomingSessions[remotePeerIDStr] == ref {
-				delete(r.t.incomingSessions, remotePeerIDStr)
-				release = true
-				broadcast()
-			}
-		})
-		if release {
-			r.releaseIncomingRef(ref)
-		}
-	}()
+	defer r.t.closeSignalIngress(remotePeerIDStr, r)
 
 	for {
 		// Wait for an incoming message.
@@ -148,85 +103,8 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 			sig:      sig,
 			accepted: make(chan struct{}),
 		}
-
-		// Loop until the current tracker accepts this message.
-		var deliveredTracker *sessionTracker
-		var deliveredGeneration uint64
-	ProcessLoop:
-		for {
-			// Acceptance wins over an unrelated transport broadcast. Once accepted,
-			// this signal must never be delivered to another tracker generation.
-			select {
-			case <-incoming.accepted:
-				break ProcessLoop
-			default:
-			}
-
-			// Read the tracker execution and its transition wait channel together.
-			var execution *sessionTrackerExecution
-			var waitCh <-chan struct{}
-			r.t.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-				if ref != nil {
-					// The registry transition that replaced or removed this
-					// reference already released it.
-					if currRef := r.t.incomingSessions[remotePeerIDStr]; currRef != ref {
-						ref = nil
-						tkr = nil
-					}
-				}
-
-				// Add the reference if it doesn't exist anymore.
-				if ref == nil {
-					ref, tkr, _, err = r.t.addSessionTrackerRef(remotePeerIDStr)
-					if err == nil && ref != nil {
-						r.storeIncomingRef(remotePeerIDStr, ref)
-						broadcast()
-					}
-				}
-
-				if tkr != nil {
-					execution = tkr.execution
-				}
-				waitCh = getWaitCh()
-			})
-			if err != nil {
-				return err
-			}
-
-			if execution == nil {
-				select {
-				case <-ctx.Done():
-					return context.Canceled
-				case <-incoming.accepted:
-					break ProcessLoop
-				case <-waitCh:
-					continue ProcessLoop
-				}
-			}
-
-			if deliveredTracker != tkr || deliveredGeneration != execution.generation {
-				select {
-				case <-ctx.Done():
-					return context.Canceled
-				case <-incoming.accepted:
-					break ProcessLoop
-				case <-waitCh:
-					continue ProcessLoop
-				case execution.rxSignal <- incoming:
-					deliveredTracker = tkr
-					deliveredGeneration = execution.generation
-				}
-				continue ProcessLoop
-			}
-
-			select {
-			case <-ctx.Done():
-				return context.Canceled
-			case <-incoming.accepted:
-				break ProcessLoop
-			case <-waitCh:
-				continue ProcessLoop
-			}
+		if err := r.t.deliverSignal(ctx, remotePeerIDStr, r, incoming); err != nil {
+			return err
 		}
 	}
 }
