@@ -381,31 +381,3 @@ func TestWorld(t *testing.T) {
 ```
 
 You can run the tests with `go test ./...`
-
-## Developing
-
-To re-generate the protobufs:
-
-```
-git add .
-make gengo
-```
-
-To lint the code:
-
-```
-make lint
-```
-
-Re-generating protobufs is only necessary if they were changed.
-
-## Support
-
-Please open a [GitHub issue] with any questions / issues.
-
-[GitHub issue]: https://github.com/s4wave/spacewave/issues/new
-
-... or feel free to reach out via [Email] or [Discord]!
-
-[Email]: mailto:oss@spacewave.app
-[Discord]: https://discord.gg/KJutMESRsT

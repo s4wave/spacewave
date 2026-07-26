@@ -319,45 +319,6 @@ A PubSub is a controller that supports topic-based at-least-once delivery.
 
 Floodsub is currently supported as a PubSub protocol.
 
-## Developing
-
-If using Go only, you don't need `bun` or `Node.JS`.
-
-Bifrost uses [Protobuf](https://protobuf.dev/) for message encoding.
-
-You can re-generate the protobufs after changing any `.proto` file:
-
-```
-# stage the .proto file so bun gen sees it
-git add .
-# install deps
-bun install
-# generate the protobufs
-bun run gen
-```
-
-To run the test suite:
-
-```
-# Go tests only
-go test ./...
-# All tests
-bun run test
-# Lint
-bun run lint
-```
-
-## Support
-
-Please open a [GitHub issue] with any questions / issues.
-
-[GitHub issue]: https://github.com/s4wave/spacewave/net/issues/new
-
-... or feel free to reach out on [Matrix Chat] or [Discord].
-
-[Discord]: https://discord.gg/KJutMESRsT
-[Matrix Chat]: https://matrix.to/#/#aperturerobotics:matrix.org
-
 ## License
 
 Apache 2.0
