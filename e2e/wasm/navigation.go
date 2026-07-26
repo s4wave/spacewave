@@ -640,15 +640,6 @@ func formatOptionalMs(v *int) string {
 	return strconv.Itoa(*v) + "ms"
 }
 
-func containsAll(s string, subs ...string) bool {
-	for _, sub := range subs {
-		if !strings.Contains(s, sub) {
-			return false
-		}
-	}
-	return true
-}
-
 func trimPageText(s string) string {
 	s = strings.Join(strings.Fields(s), " ")
 	if len(s) <= 800 {
