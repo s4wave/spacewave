@@ -106,7 +106,7 @@ func GetObjectBodiesBatch(ctx context.Context, service ObjectBodiesBatchService,
 }
 
 func chunkObjectBodyKeys(keys []string) ([][]string, error) {
-	chunks := make([][]string, 0, len(keys))
+	var chunks [][]string
 	const maxStartKeyIndex = ^uint32(0)
 	startKeyIndexSize := protobuf_go_lite.SizeVarintValue(1, maxStartKeyIndex)
 	for start := 0; start < len(keys); {
