@@ -1359,6 +1359,113 @@ func (x *GetObjectMetadataBatchResponse) GetMetadata() []*ObjectMetadata {
 	return nil
 }
 
+// ObjectBody contains the serialized root body for one object key.
+type ObjectBody struct {
+	unknownFields []byte
+	// ObjectKey is the requested object key.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// Body is the transformed root block data when the object exists.
+	Body []byte `protobuf:"bytes,2,opt,name=body,proto3" json:"body,omitempty"`
+	// Exists indicates whether the object key exists.
+	Exists bool `protobuf:"varint,3,opt,name=exists,proto3" json:"exists,omitempty"`
+}
+
+func (x *ObjectBody) Reset() {
+	*x = ObjectBody{}
+}
+
+func (*ObjectBody) ProtoMessage() {}
+
+func (x *ObjectBody) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *ObjectBody) GetBody() []byte {
+	if x != nil {
+		return x.Body
+	}
+	return nil
+}
+
+func (x *ObjectBody) GetExists() bool {
+	if x != nil {
+		return x.Exists
+	}
+	return false
+}
+
+// GetObjectBodiesBatchRequest is the request type for
+// GetObjectBodiesBatch.
+type GetObjectBodiesBatchRequest struct {
+	unknownFields []byte
+	// ObjectKeys is the list of object keys to inspect.
+	ObjectKeys []string `protobuf:"bytes,1,rep,name=object_keys,json=objectKeys,proto3" json:"objectKeys,omitempty"`
+	// StartKeyIndex is the first object key index to include in this page.
+	StartKeyIndex uint32 `protobuf:"varint,2,opt,name=start_key_index,json=startKeyIndex,proto3" json:"startKeyIndex,omitempty"`
+}
+
+func (x *GetObjectBodiesBatchRequest) Reset() {
+	*x = GetObjectBodiesBatchRequest{}
+}
+
+func (*GetObjectBodiesBatchRequest) ProtoMessage() {}
+
+func (x *GetObjectBodiesBatchRequest) GetObjectKeys() []string {
+	if x != nil {
+		return x.ObjectKeys
+	}
+	return nil
+}
+
+func (x *GetObjectBodiesBatchRequest) GetStartKeyIndex() uint32 {
+	if x != nil {
+		return x.StartKeyIndex
+	}
+	return 0
+}
+
+// GetObjectBodiesBatchResponse is the response type for
+// GetObjectBodiesBatch.
+type GetObjectBodiesBatchResponse struct {
+	unknownFields []byte
+	// Bodies preserves the request object key order.
+	Bodies []*ObjectBody `protobuf:"bytes,1,rep,name=bodies,proto3" json:"bodies,omitempty"`
+	// NextKeyIndex is the next key index to request. Zero means complete.
+	NextKeyIndex uint32 `protobuf:"varint,2,opt,name=next_key_index,json=nextKeyIndex,proto3" json:"nextKeyIndex,omitempty"`
+	// WorldSeqno is the World sequence number observed for this page.
+	WorldSeqno uint64 `protobuf:"varint,3,opt,name=world_seqno,json=worldSeqno,proto3" json:"worldSeqno,omitempty"`
+}
+
+func (x *GetObjectBodiesBatchResponse) Reset() {
+	*x = GetObjectBodiesBatchResponse{}
+}
+
+func (*GetObjectBodiesBatchResponse) ProtoMessage() {}
+
+func (x *GetObjectBodiesBatchResponse) GetBodies() []*ObjectBody {
+	if x != nil {
+		return x.Bodies
+	}
+	return nil
+}
+
+func (x *GetObjectBodiesBatchResponse) GetNextKeyIndex() uint32 {
+	if x != nil {
+		return x.NextKeyIndex
+	}
+	return 0
+}
+
+func (x *GetObjectBodiesBatchResponse) GetWorldSeqno() uint64 {
+	if x != nil {
+		return x.WorldSeqno
+	}
+	return 0
+}
+
 // GraphPathStep is one bounded predicate traversal step.
 type GraphPathStep struct {
 	unknownFields []byte
@@ -3122,6 +3229,59 @@ func (m *GetObjectMetadataBatchResponse) CloneVT() *GetObjectMetadataBatchRespon
 }
 
 func (m *GetObjectMetadataBatchResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ObjectBody) CloneVT() *ObjectBody {
+	if m == nil {
+		return (*ObjectBody)(nil)
+	}
+	r := new(ObjectBody)
+	r.ObjectKey = m.ObjectKey
+	r.Exists = m.Exists
+	r.Body = protobuf_go_lite.CloneBytes(m.Body)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ObjectBody) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetObjectBodiesBatchRequest) CloneVT() *GetObjectBodiesBatchRequest {
+	if m == nil {
+		return (*GetObjectBodiesBatchRequest)(nil)
+	}
+	r := new(GetObjectBodiesBatchRequest)
+	r.StartKeyIndex = m.StartKeyIndex
+	r.ObjectKeys = protobuf_go_lite.CloneSlice(m.ObjectKeys)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetObjectBodiesBatchRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *GetObjectBodiesBatchResponse) CloneVT() *GetObjectBodiesBatchResponse {
+	if m == nil {
+		return (*GetObjectBodiesBatchResponse)(nil)
+	}
+	r := new(GetObjectBodiesBatchResponse)
+	r.NextKeyIndex = m.NextKeyIndex
+	r.WorldSeqno = m.WorldSeqno
+	r.Bodies = protobuf_go_lite.CloneVTSlice(m.Bodies)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *GetObjectBodiesBatchResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -4904,6 +5064,81 @@ func (this *GetObjectMetadataBatchResponse) EqualVT(that *GetObjectMetadataBatch
 
 func (this *GetObjectMetadataBatchResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*GetObjectMetadataBatchResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ObjectBody) EqualVT(that *ObjectBody) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Body, that.Body) {
+		return false
+	}
+	if this.Exists != that.Exists {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ObjectBody) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ObjectBody)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetObjectBodiesBatchRequest) EqualVT(that *GetObjectBodiesBatchRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.ObjectKeys, that.ObjectKeys) {
+		return false
+	}
+	if this.StartKeyIndex != that.StartKeyIndex {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetObjectBodiesBatchRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetObjectBodiesBatchRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *GetObjectBodiesBatchResponse) EqualVT(that *GetObjectBodiesBatchResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Bodies, that.Bodies, func() *ObjectBody { return &ObjectBody{} }) {
+		return false
+	}
+	if this.NextKeyIndex != that.NextKeyIndex {
+		return false
+	}
+	if this.WorldSeqno != that.WorldSeqno {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *GetObjectBodiesBatchResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*GetObjectBodiesBatchResponse)
 	if !ok {
 		return false
 	}
@@ -8437,6 +8672,197 @@ func (x *GetObjectMetadataBatchResponse) UnmarshalProtoJSON(s *json.UnmarshalSta
 
 // UnmarshalJSON unmarshals the GetObjectMetadataBatchResponse from JSON.
 func (x *GetObjectMetadataBatchResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ObjectBody message to JSON.
+func (x *ObjectBody) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if len(x.Body) > 0 || s.HasField("body") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("body")
+		s.WriteBytes(x.Body)
+	}
+	if x.Exists || s.HasField("exists") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("exists")
+		s.WriteBool(x.Exists)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ObjectBody to JSON.
+func (x *ObjectBody) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ObjectBody message from JSON.
+func (x *ObjectBody) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "body":
+			s.AddField("body")
+			x.Body = s.ReadBytes()
+		case "exists":
+			s.AddField("exists")
+			x.Exists = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ObjectBody from JSON.
+func (x *ObjectBody) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetObjectBodiesBatchRequest message to JSON.
+func (x *GetObjectBodiesBatchRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.ObjectKeys) > 0 || s.HasField("objectKeys") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKeys")
+		s.WriteStringArray(x.ObjectKeys)
+	}
+	if x.StartKeyIndex != 0 || s.HasField("startKeyIndex") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("startKeyIndex")
+		s.WriteUint32(x.StartKeyIndex)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetObjectBodiesBatchRequest to JSON.
+func (x *GetObjectBodiesBatchRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetObjectBodiesBatchRequest message from JSON.
+func (x *GetObjectBodiesBatchRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_keys", "objectKeys":
+			s.AddField("object_keys")
+			if s.ReadNil() {
+				x.ObjectKeys = nil
+				return
+			}
+			x.ObjectKeys = s.ReadStringArray()
+		case "start_key_index", "startKeyIndex":
+			s.AddField("start_key_index")
+			x.StartKeyIndex = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetObjectBodiesBatchRequest from JSON.
+func (x *GetObjectBodiesBatchRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the GetObjectBodiesBatchResponse message to JSON.
+func (x *GetObjectBodiesBatchResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Bodies) > 0 || s.HasField("bodies") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bodies")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Bodies {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("bodies"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.NextKeyIndex != 0 || s.HasField("nextKeyIndex") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nextKeyIndex")
+		s.WriteUint32(x.NextKeyIndex)
+	}
+	if x.WorldSeqno != 0 || s.HasField("worldSeqno") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("worldSeqno")
+		s.WriteUint64(x.WorldSeqno)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the GetObjectBodiesBatchResponse to JSON.
+func (x *GetObjectBodiesBatchResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the GetObjectBodiesBatchResponse message from JSON.
+func (x *GetObjectBodiesBatchResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "bodies":
+			s.AddField("bodies")
+			if s.ReadNil() {
+				x.Bodies = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Bodies = append(x.Bodies, nil)
+					return
+				}
+				v := &ObjectBody{}
+				v.UnmarshalProtoJSON(s.WithField("bodies", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Bodies = append(x.Bodies, v)
+			})
+		case "next_key_index", "nextKeyIndex":
+			s.AddField("next_key_index")
+			x.NextKeyIndex = s.ReadUint32()
+		case "world_seqno", "worldSeqno":
+			s.AddField("world_seqno")
+			x.WorldSeqno = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the GetObjectBodiesBatchResponse from JSON.
+func (x *GetObjectBodiesBatchResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -12421,6 +12847,151 @@ func (m *GetObjectMetadataBatchResponse) MarshalToSizedBufferVT(dAtA []byte) (in
 	return len(dAtA) - i, nil
 }
 
+func (m *ObjectBody) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ObjectBody) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ObjectBody) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Exists {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Exists)
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Body) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Body)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetObjectBodiesBatchRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetObjectBodiesBatchRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetObjectBodiesBatchRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.StartKeyIndex != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.StartKeyIndex))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.ObjectKeys) > 0 {
+		for iNdEx := len(m.ObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKeys[iNdEx])
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GetObjectBodiesBatchResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GetObjectBodiesBatchResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *GetObjectBodiesBatchResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.WorldSeqno != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WorldSeqno))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.NextKeyIndex != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NextKeyIndex))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Bodies) > 0 {
+		for iNdEx := len(m.Bodies) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Bodies[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *GraphPathStep) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -14670,6 +15241,47 @@ func (m *GetObjectMetadataBatchResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *ObjectBody) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Body)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Exists)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetObjectBodiesBatchRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringSlice(1, m.ObjectKeys)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.StartKeyIndex)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *GetObjectBodiesBatchResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Bodies {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.NextKeyIndex)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.WorldSeqno)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *GraphPathStep) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -16052,6 +16664,80 @@ func (x *GetObjectMetadataBatchResponse) MarshalProtoText() string {
 }
 
 func (x *GetObjectMetadataBatchResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ObjectBody) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ObjectBody")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	if len(x.Body) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "body")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Body)
+	}
+	if x.Exists != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "exists")
+		protobuf_go_lite.TextWriteBool(&sb, x.Exists)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ObjectBody) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetObjectBodiesBatchRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GetObjectBodiesBatchRequest")
+	if len(x.ObjectKeys) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "object_keys")
+		for i, v := range x.ObjectKeys {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.StartKeyIndex != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "start_key_index")
+		protobuf_go_lite.TextWriteUint(&sb, x.StartKeyIndex)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *GetObjectBodiesBatchRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *GetObjectBodiesBatchResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "GetObjectBodiesBatchResponse")
+	if len(x.Bodies) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "bodies")
+		for i, v := range x.Bodies {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &ObjectBody{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.NextKeyIndex != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "next_key_index")
+		protobuf_go_lite.TextWriteUint(&sb, x.NextKeyIndex)
+	}
+	if x.WorldSeqno != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "world_seqno")
+		protobuf_go_lite.TextWriteUint(&sb, x.WorldSeqno)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *GetObjectBodiesBatchResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -19726,6 +20412,213 @@ func (m *GetObjectMetadataBatchResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ObjectBody) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ObjectBody: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ObjectBody: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Body", wireType)
+			}
+			m.Body, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Body, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Exists", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Exists = bool(v)
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetObjectBodiesBatchRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetObjectBodiesBatchRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetObjectBodiesBatchRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKeys", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKeys = append(m.ObjectKeys, v)
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartKeyIndex", wireType)
+			}
+			m.StartKeyIndex = 0
+			m.StartKeyIndex, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *GetObjectBodiesBatchResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GetObjectBodiesBatchResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GetObjectBodiesBatchResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Bodies", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Bodies = append(m.Bodies, &ObjectBody{})
+			if err := m.Bodies[len(m.Bodies)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NextKeyIndex", wireType)
+			}
+			m.NextKeyIndex = 0
+			m.NextKeyIndex, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WorldSeqno", wireType)
+			}
+			m.WorldSeqno = 0
+			m.WorldSeqno, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

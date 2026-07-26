@@ -510,6 +510,37 @@ struct ObjectMetadataDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ObjectMetadataDefaultTypeInternal _ObjectMetadata_default_instance_;
 
+inline constexpr ObjectBody::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        object_key_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        body_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        exists_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ObjectBody::ObjectBody(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(ObjectBody_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ObjectBodyDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ObjectBodyDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ObjectBodyDefaultTypeInternal() {}
+  union {
+    ObjectBody _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ObjectBodyDefaultTypeInternal _ObjectBody_default_instance_;
+
 inline constexpr NextResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -1101,6 +1132,32 @@ struct GetObjectMetadataBatchRequestDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetObjectMetadataBatchRequestDefaultTypeInternal _GetObjectMetadataBatchRequest_default_instance_;
+
+inline constexpr GetObjectBodiesBatchRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        object_keys_{},
+        start_key_index_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR GetObjectBodiesBatchRequest::GetObjectBodiesBatchRequest(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(GetObjectBodiesBatchRequest_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct GetObjectBodiesBatchRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GetObjectBodiesBatchRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GetObjectBodiesBatchRequestDefaultTypeInternal() {}
+  union {
+    GetObjectBodiesBatchRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetObjectBodiesBatchRequestDefaultTypeInternal _GetObjectBodiesBatchRequest_default_instance_;
 
 inline constexpr GetKeyResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -2036,6 +2093,33 @@ struct GetObjectMetadataBatchResponseDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetObjectMetadataBatchResponseDefaultTypeInternal _GetObjectMetadataBatchResponse_default_instance_;
 
+inline constexpr GetObjectBodiesBatchResponse::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        bodies_{},
+        world_seqno_{::uint64_t{0u}},
+        next_key_index_{0u} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR GetObjectBodiesBatchResponse::GetObjectBodiesBatchResponse(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(GetObjectBodiesBatchResponse_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct GetObjectBodiesBatchResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR GetObjectBodiesBatchResponseDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~GetObjectBodiesBatchResponseDefaultTypeInternal() {}
+  union {
+    GetObjectBodiesBatchResponse _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetObjectBodiesBatchResponseDefaultTypeInternal _GetObjectBodiesBatchResponse_default_instance_;
+
 inline constexpr GetEngineInfoResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -2606,6 +2690,31 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::s4wave::world::GetObjectMetadataBatchResponse, _impl_.metadata_),
         0,
         0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::ObjectBody, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::ObjectBody, _impl_.object_key_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::ObjectBody, _impl_.body_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::ObjectBody, _impl_.exists_),
+        0,
+        1,
+        2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GetObjectBodiesBatchRequest, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GetObjectBodiesBatchRequest, _impl_.object_keys_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GetObjectBodiesBatchRequest, _impl_.start_key_index_),
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GetObjectBodiesBatchResponse, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GetObjectBodiesBatchResponse, _impl_.bodies_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GetObjectBodiesBatchResponse, _impl_.next_key_index_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::world::GetObjectBodiesBatchResponse, _impl_.world_seqno_),
+        0,
+        2,
+        1,
+        0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::world::GraphPathStep, _impl_._has_bits_),
         6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::world::GraphPathStep, _impl_.direction_),
@@ -2852,47 +2961,50 @@ static const ::_pbi::MigrationSchema
         {253, sizeof(::s4wave::world::ObjectMetadata)},
         {262, sizeof(::s4wave::world::GetObjectMetadataBatchRequest)},
         {267, sizeof(::s4wave::world::GetObjectMetadataBatchResponse)},
-        {272, sizeof(::s4wave::world::GraphPathStep)},
-        {281, sizeof(::s4wave::world::QueryGraphPathRequest)},
-        {294, sizeof(::s4wave::world::QueryGraphPathResponse)},
-        {299, sizeof(::s4wave::world::DeleteGraphObjectRequest)},
-        {304, sizeof(::s4wave::world::DeleteGraphObjectResponse)},
-        {305, sizeof(::s4wave::world::ApplyWorldOpRequest)},
-        {314, sizeof(::s4wave::world::ApplyWorldOpResponse)},
-        {323, sizeof(::s4wave::world::WatchWorldStateRequest)},
-        {324, sizeof(::s4wave::world::WatchWorldStateResponse)},
-        {329, sizeof(::s4wave::world::TrackedWorldStateSnapshot_ObjectAccess)},
-        {336, sizeof(::s4wave::world::TrackedWorldStateSnapshot)},
-        {345, sizeof(::s4wave::world::ErrRequest)},
-        {346, sizeof(::s4wave::world::ErrResponse)},
-        {351, sizeof(::s4wave::world::ValidRequest)},
-        {352, sizeof(::s4wave::world::ValidResponse)},
-        {357, sizeof(::s4wave::world::KeyRequest)},
-        {358, sizeof(::s4wave::world::KeyResponse)},
-        {363, sizeof(::s4wave::world::NextRequest)},
-        {364, sizeof(::s4wave::world::NextResponse)},
-        {369, sizeof(::s4wave::world::SeekRequest)},
-        {374, sizeof(::s4wave::world::SeekResponse)},
-        {375, sizeof(::s4wave::world::CloseRequest)},
-        {376, sizeof(::s4wave::world::CloseResponse)},
-        {377, sizeof(::s4wave::world::NextGraphPathQueryRequest)},
-        {378, sizeof(::s4wave::world::NextGraphPathQueryResponse)},
-        {387, sizeof(::s4wave::world::CloseGraphPathQueryRequest)},
-        {388, sizeof(::s4wave::world::CloseGraphPathQueryResponse)},
-        {389, sizeof(::s4wave::world::GetKeyRequest)},
-        {390, sizeof(::s4wave::world::GetKeyResponse)},
-        {395, sizeof(::s4wave::world::GetRootRefRequest)},
-        {396, sizeof(::s4wave::world::GetRootRefResponse)},
-        {403, sizeof(::s4wave::world::SetRootRefRequest)},
-        {408, sizeof(::s4wave::world::SetRootRefResponse)},
-        {413, sizeof(::s4wave::world::ApplyObjectOpRequest)},
-        {422, sizeof(::s4wave::world::ApplyObjectOpResponse)},
-        {431, sizeof(::s4wave::world::IncrementRevRequest)},
-        {432, sizeof(::s4wave::world::IncrementRevResponse)},
-        {437, sizeof(::s4wave::world::WaitRevRequest)},
-        {444, sizeof(::s4wave::world::WaitRevResponse)},
-        {449, sizeof(::s4wave::world::AccessTypedObjectRequest)},
-        {454, sizeof(::s4wave::world::AccessTypedObjectResponse)},
+        {272, sizeof(::s4wave::world::ObjectBody)},
+        {281, sizeof(::s4wave::world::GetObjectBodiesBatchRequest)},
+        {288, sizeof(::s4wave::world::GetObjectBodiesBatchResponse)},
+        {297, sizeof(::s4wave::world::GraphPathStep)},
+        {306, sizeof(::s4wave::world::QueryGraphPathRequest)},
+        {319, sizeof(::s4wave::world::QueryGraphPathResponse)},
+        {324, sizeof(::s4wave::world::DeleteGraphObjectRequest)},
+        {329, sizeof(::s4wave::world::DeleteGraphObjectResponse)},
+        {330, sizeof(::s4wave::world::ApplyWorldOpRequest)},
+        {339, sizeof(::s4wave::world::ApplyWorldOpResponse)},
+        {348, sizeof(::s4wave::world::WatchWorldStateRequest)},
+        {349, sizeof(::s4wave::world::WatchWorldStateResponse)},
+        {354, sizeof(::s4wave::world::TrackedWorldStateSnapshot_ObjectAccess)},
+        {361, sizeof(::s4wave::world::TrackedWorldStateSnapshot)},
+        {370, sizeof(::s4wave::world::ErrRequest)},
+        {371, sizeof(::s4wave::world::ErrResponse)},
+        {376, sizeof(::s4wave::world::ValidRequest)},
+        {377, sizeof(::s4wave::world::ValidResponse)},
+        {382, sizeof(::s4wave::world::KeyRequest)},
+        {383, sizeof(::s4wave::world::KeyResponse)},
+        {388, sizeof(::s4wave::world::NextRequest)},
+        {389, sizeof(::s4wave::world::NextResponse)},
+        {394, sizeof(::s4wave::world::SeekRequest)},
+        {399, sizeof(::s4wave::world::SeekResponse)},
+        {400, sizeof(::s4wave::world::CloseRequest)},
+        {401, sizeof(::s4wave::world::CloseResponse)},
+        {402, sizeof(::s4wave::world::NextGraphPathQueryRequest)},
+        {403, sizeof(::s4wave::world::NextGraphPathQueryResponse)},
+        {412, sizeof(::s4wave::world::CloseGraphPathQueryRequest)},
+        {413, sizeof(::s4wave::world::CloseGraphPathQueryResponse)},
+        {414, sizeof(::s4wave::world::GetKeyRequest)},
+        {415, sizeof(::s4wave::world::GetKeyResponse)},
+        {420, sizeof(::s4wave::world::GetRootRefRequest)},
+        {421, sizeof(::s4wave::world::GetRootRefResponse)},
+        {428, sizeof(::s4wave::world::SetRootRefRequest)},
+        {433, sizeof(::s4wave::world::SetRootRefResponse)},
+        {438, sizeof(::s4wave::world::ApplyObjectOpRequest)},
+        {447, sizeof(::s4wave::world::ApplyObjectOpResponse)},
+        {456, sizeof(::s4wave::world::IncrementRevRequest)},
+        {457, sizeof(::s4wave::world::IncrementRevResponse)},
+        {462, sizeof(::s4wave::world::WaitRevRequest)},
+        {469, sizeof(::s4wave::world::WaitRevResponse)},
+        {474, sizeof(::s4wave::world::AccessTypedObjectRequest)},
+        {479, sizeof(::s4wave::world::AccessTypedObjectResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::world::_SyncRequest_default_instance_._instance,
@@ -2949,6 +3061,9 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::world::_ObjectMetadata_default_instance_._instance,
     &::s4wave::world::_GetObjectMetadataBatchRequest_default_instance_._instance,
     &::s4wave::world::_GetObjectMetadataBatchResponse_default_instance_._instance,
+    &::s4wave::world::_ObjectBody_default_instance_._instance,
+    &::s4wave::world::_GetObjectBodiesBatchRequest_default_instance_._instance,
+    &::s4wave::world::_GetObjectBodiesBatchResponse_default_instance_._instance,
     &::s4wave::world::_GraphPathStep_default_instance_._instance,
     &::s4wave::world::_QueryGraphPathRequest_default_instance_._instance,
     &::s4wave::world::_QueryGraphPathResponse_default_instance_._instance,
@@ -3073,182 +3188,192 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fw
     "\003 \001(\t\"4\n\035GetObjectMetadataBatchRequest\022\023"
     "\n\013object_keys\030\001 \003(\t\"P\n\036GetObjectMetadata"
     "BatchResponse\022.\n\010metadata\030\001 \003(\0132\034.s4wave"
-    ".world.ObjectMetadata\"f\n\rGraphPathStep\0223"
-    "\n\tdirection\030\001 \001(\0162 .s4wave.world.GraphPa"
-    "thDirection\022\021\n\tpredicate\030\002 \001(\t\022\r\n\005limit\030"
-    "\003 \001(\r\"\227\001\n\025QueryGraphPathRequest\022\022\n\nstart"
-    "_keys\030\001 \003(\t\022*\n\005steps\030\002 \003(\0132\033.s4wave.worl"
-    "d.GraphPathStep\022\024\n\014result_limit\030\003 \001(\r\022\025\n"
-    "\rinclude_quads\030\004 \001(\010\022\021\n\tpage_size\030\005 \001(\r\""
-    "-\n\026QueryGraphPathResponse\022\023\n\013resource_id"
-    "\030\001 \001(\r\".\n\030DeleteGraphObjectRequest\022\022\n\nob"
-    "ject_key\030\001 \001(\t\"\033\n\031DeleteGraphObjectRespo"
-    "nse\"M\n\023ApplyWorldOpRequest\022\022\n\nop_type_id"
-    "\030\001 \001(\t\022\017\n\007op_data\030\002 \001(\014\022\021\n\top_sender\030\003 \001"
-    "(\t\"h\n\024ApplyWorldOpResponse\022\r\n\005seqno\030\001 \001("
-    "\004\022\017\n\007sys_err\030\002 \001(\010\0220\n\nerror_code\030\003 \001(\0162\034"
-    ".s4wave.world.WorldErrorCode\"\030\n\026WatchWor"
-    "ldStateRequest\".\n\027WatchWorldStateRespons"
-    "e\022\023\n\013resource_id\030\001 \001(\r\"\304\001\n\031TrackedWorldS"
-    "tateSnapshot\022M\n\017object_accesses\030\001 \003(\01324."
-    "s4wave.world.TrackedWorldStateSnapshot.O"
-    "bjectAccess\022\027\n\017has_quad_access\030\002 \001(\010\022\025\n\r"
-    "initial_seqno\030\003 \001(\004\032(\n\014ObjectAccess\022\013\n\003k"
-    "ey\030\001 \001(\t\022\013\n\003rev\030\002 \001(\004\"\014\n\nErrRequest\"\034\n\013E"
-    "rrResponse\022\r\n\005error\030\001 \001(\t\"\016\n\014ValidReques"
-    "t\"\036\n\rValidResponse\022\r\n\005valid\030\001 \001(\010\"\014\n\nKey"
-    "Request\"!\n\013KeyResponse\022\022\n\nobject_key\030\001 \001"
-    "(\t\"\r\n\013NextRequest\"\035\n\014NextResponse\022\r\n\005val"
-    "id\030\001 \001(\010\"!\n\013SeekRequest\022\022\n\nobject_key\030\001 "
-    "\001(\t\"\016\n\014SeekResponse\"\016\n\014CloseRequest\"\017\n\rC"
-    "loseResponse\"\033\n\031NextGraphPathQueryReques"
-    "t\"Z\n\032NextGraphPathQueryResponse\022\023\n\013objec"
-    "t_keys\030\001 \003(\t\022\031\n\005quads\030\002 \003(\0132\n.quad.Quad\022"
-    "\014\n\004done\030\003 \001(\010\"\034\n\032CloseGraphPathQueryRequ"
-    "est\"\035\n\033CloseGraphPathQueryResponse\"\017\n\rGe"
-    "tKeyRequest\"$\n\016GetKeyResponse\022\022\n\nobject_"
-    "key\030\001 \001(\t\"\023\n\021GetRootRefRequest\"F\n\022GetRoo"
-    "tRefResponse\022#\n\010root_ref\030\001 \001(\0132\021.bucket."
-    "ObjectRef\022\013\n\003rev\030\002 \001(\004\"8\n\021SetRootRefRequ"
-    "est\022#\n\010root_ref\030\001 \001(\0132\021.bucket.ObjectRef"
-    "\"!\n\022SetRootRefResponse\022\013\n\003rev\030\001 \001(\004\"N\n\024A"
-    "pplyObjectOpRequest\022\022\n\nop_type_id\030\001 \001(\t\022"
-    "\017\n\007op_data\030\002 \001(\014\022\021\n\top_sender\030\003 \001(\t\"g\n\025A"
-    "pplyObjectOpResponse\022\013\n\003rev\030\001 \001(\004\022\017\n\007sys"
-    "_err\030\002 \001(\010\0220\n\nerror_code\030\003 \001(\0162\034.s4wave."
-    "world.WorldErrorCode\"\025\n\023IncrementRevRequ"
-    "est\"#\n\024IncrementRevResponse\022\013\n\003rev\030\001 \001(\004"
-    "\"7\n\016WaitRevRequest\022\013\n\003rev\030\001 \001(\004\022\030\n\020ignor"
-    "e_not_found\030\002 \001(\010\"\036\n\017WaitRevResponse\022\013\n\003"
-    "rev\030\001 \001(\004\".\n\030AccessTypedObjectRequest\022\022\n"
-    "\nobject_key\030\001 \001(\t\"A\n\031AccessTypedObjectRe"
-    "sponse\022\023\n\013resource_id\030\001 \001(\r\022\017\n\007type_id\030\002"
-    " \001(\t*\266\001\n\030GraphEdgeBucketDirection\022+\n\'GRA"
-    "PH_EDGE_BUCKET_DIRECTION_UNSPECIFIED\020\000\022#"
-    "\n\037GRAPH_EDGE_BUCKET_DIRECTION_OUT\020\001\022\"\n\036G"
-    "RAPH_EDGE_BUCKET_DIRECTION_IN\020\002\022$\n GRAPH"
-    "_EDGE_BUCKET_DIRECTION_BOTH\020\003*\224\001\n\022GraphP"
-    "athDirection\022$\n GRAPH_PATH_DIRECTION_UNS"
-    "PECIFIED\020\000\022\034\n\030GRAPH_PATH_DIRECTION_OUT\020\001"
-    "\022\033\n\027GRAPH_PATH_DIRECTION_IN\020\002\022\035\n\031GRAPH_P"
-    "ATH_DIRECTION_BOTH\020\003*U\n\016WorldErrorCode\022 "
-    "\n\034WORLD_ERROR_CODE_UNSPECIFIED\020\000\022!\n\035WORL"
-    "D_ERROR_CODE_UNHANDLED_OP\020\0012\302\006\n\025EngineRe"
-    "sourceService\022X\n\rGetEngineInfo\022\".s4wave."
-    "world.GetEngineInfoRequest\032#.s4wave.worl"
-    "d.GetEngineInfoResponse\022b\n\024GetWorldRootS"
-    "napshot\022).s4wave.world.GetWorldRootSnaps"
-    "hotRequest\032\037.s4wave.world.WorldRootSnaps"
-    "hot\022j\n\027WatchWorldRootSnapshots\022,.s4wave."
-    "world.WatchWorldRootSnapshotsRequest\032\037.s"
-    "4wave.world.WorldRootSnapshot0\001\022[\n\016NewTr"
-    "ansaction\022#.s4wave.world.NewTransactionR"
-    "equest\032$.s4wave.world.NewTransactionResp"
-    "onse\022=\n\004Sync\022\031.s4wave.world.SyncRequest\032"
-    "\032.s4wave.world.SyncResponse\022I\n\010GetSeqno\022"
-    "\035.s4wave.world.GetSeqnoRequest\032\036.s4wave."
-    "world.GetSeqnoResponse\022L\n\tWaitSeqno\022\036.s4"
-    "wave.world.WaitSeqnoRequest\032\037.s4wave.wor"
-    "ld.WaitSeqnoResponse\022g\n\022BuildStorageCurs"
-    "or\022\'.s4wave.world.BuildStorageCursorRequ"
-    "est\032(.s4wave.world.BuildStorageCursorRes"
-    "ponse\022a\n\020AccessWorldState\022%.s4wave.world"
-    ".AccessWorldStateRequest\032&.s4wave.world."
-    "AccessWorldStateResponse2\256\020\n\031WorldStateR"
-    "esourceService\022R\n\013GetReadOnly\022 .s4wave.w"
-    "orld.GetReadOnlyRequest\032!.s4wave.world.G"
-    "etReadOnlyResponse\022=\n\004Sync\022\031.s4wave.worl"
-    "d.SyncRequest\032\032.s4wave.world.SyncRespons"
-    "e\022I\n\010GetSeqno\022\035.s4wave.world.GetSeqnoReq"
-    "uest\032\036.s4wave.world.GetSeqnoResponse\022L\n\t"
-    "WaitSeqno\022\036.s4wave.world.WaitSeqnoReques"
-    "t\032\037.s4wave.world.WaitSeqnoResponse\022g\n\022Bu"
-    "ildStorageCursor\022\'.s4wave.world.BuildSto"
-    "rageCursorRequest\032(.s4wave.world.BuildSt"
-    "orageCursorResponse\022a\n\020AccessWorldState\022"
-    "%.s4wave.world.AccessWorldStateRequest\032&"
-    ".s4wave.world.AccessWorldStateResponse\022U"
-    "\n\014CreateObject\022!.s4wave.world.CreateObje"
-    "ctRequest\032\".s4wave.world.CreateObjectRes"
-    "ponse\022L\n\tGetObject\022\036.s4wave.world.GetObj"
-    "ectRequest\032\037.s4wave.world.GetObjectRespo"
-    "nse\022[\n\016IterateObjects\022#.s4wave.world.Ite"
-    "rateObjectsRequest\032$.s4wave.world.Iterat"
-    "eObjectsResponse\022U\n\014RenameObject\022!.s4wav"
-    "e.world.RenameObjectRequest\032\".s4wave.wor"
-    "ld.RenameObjectResponse\022U\n\014DeleteObject\022"
-    "!.s4wave.world.DeleteObjectRequest\032\".s4w"
-    "ave.world.DeleteObjectResponse\022U\n\014SetGra"
-    "phQuad\022!.s4wave.world.SetGraphQuadReques"
-    "t\032\".s4wave.world.SetGraphQuadResponse\022^\n"
-    "\017DeleteGraphQuad\022$.s4wave.world.DeleteGr"
-    "aphQuadRequest\032%.s4wave.world.DeleteGrap"
-    "hQuadResponse\022a\n\020LookupGraphQuads\022%.s4wa"
-    "ve.world.LookupGraphQuadsRequest\032&.s4wav"
-    "e.world.LookupGraphQuadsResponse\022p\n\025Look"
-    "upGraphQuadsBatch\022*.s4wave.world.LookupG"
-    "raphQuadsBatchRequest\032+.s4wave.world.Loo"
-    "kupGraphQuadsBatchResponse\022m\n\024ListGraphE"
-    "dgeBuckets\022).s4wave.world.ListGraphEdgeB"
-    "ucketsRequest\032*.s4wave.world.ListGraphEd"
-    "geBucketsResponse\022j\n\023ListObjectsWithType"
-    "\022(.s4wave.world.ListObjectsWithTypeReque"
-    "st\032).s4wave.world.ListObjectsWithTypeRes"
-    "ponse\022s\n\026GetObjectRootRefsBatch\022+.s4wave"
-    ".world.GetObjectRootRefsBatchRequest\032,.s"
-    "4wave.world.GetObjectRootRefsBatchRespon"
-    "se\022s\n\026GetObjectMetadataBatch\022+.s4wave.wo"
-    "rld.GetObjectMetadataBatchRequest\032,.s4wa"
-    "ve.world.GetObjectMetadataBatchResponse\022"
-    "[\n\016QueryGraphPath\022#.s4wave.world.QueryGr"
-    "aphPathRequest\032$.s4wave.world.QueryGraph"
-    "PathResponse\022d\n\021DeleteGraphObject\022&.s4wa"
-    "ve.world.DeleteGraphObjectRequest\032\'.s4wa"
-    "ve.world.DeleteGraphObjectResponse\022U\n\014Ap"
-    "plyWorldOp\022!.s4wave.world.ApplyWorldOpRe"
-    "quest\032\".s4wave.world.ApplyWorldOpRespons"
-    "e2\202\001\n\036WatchWorldStateResourceService\022`\n\017"
-    "WatchWorldState\022$.s4wave.world.WatchWorl"
-    "dStateRequest\032%.s4wave.world.WatchWorldS"
-    "tateResponse0\0012\240\001\n\021TxResourceService\022C\n\006"
-    "Commit\022\033.s4wave.world.CommitRequest\032\034.s4"
-    "wave.world.CommitResponse\022F\n\007Discard\022\034.s"
-    "4wave.world.DiscardRequest\032\035.s4wave.worl"
-    "d.DiscardResponse2\231\003\n\035ObjectIteratorReso"
-    "urceService\022:\n\003Err\022\030.s4wave.world.ErrReq"
-    "uest\032\031.s4wave.world.ErrResponse\022@\n\005Valid"
-    "\022\032.s4wave.world.ValidRequest\032\033.s4wave.wo"
-    "rld.ValidResponse\022:\n\003Key\022\030.s4wave.world."
-    "KeyRequest\032\031.s4wave.world.KeyResponse\022=\n"
-    "\004Next\022\031.s4wave.world.NextRequest\032\032.s4wav"
-    "e.world.NextResponse\022=\n\004Seek\022\031.s4wave.wo"
-    "rld.SeekRequest\032\032.s4wave.world.SeekRespo"
-    "nse\022@\n\005Close\022\032.s4wave.world.CloseRequest"
-    "\032\033.s4wave.world.CloseResponse2\330\001\n\035GraphP"
-    "athQueryResourceService\022Y\n\004Next\022\'.s4wave"
-    ".world.NextGraphPathQueryRequest\032(.s4wav"
-    "e.world.NextGraphPathQueryResponse\022\\\n\005Cl"
-    "ose\022(.s4wave.world.CloseGraphPathQueryRe"
-    "quest\032).s4wave.world.CloseGraphPathQuery"
-    "Response2\337\004\n\032ObjectStateResourceService\022"
-    "C\n\006GetKey\022\033.s4wave.world.GetKeyRequest\032\034"
-    ".s4wave.world.GetKeyResponse\022O\n\nGetRootR"
-    "ef\022\037.s4wave.world.GetRootRefRequest\032 .s4"
-    "wave.world.GetRootRefResponse\022O\n\nSetRoot"
-    "Ref\022\037.s4wave.world.SetRootRefRequest\032 .s"
-    "4wave.world.SetRootRefResponse\022a\n\020Access"
-    "WorldState\022%.s4wave.world.AccessWorldSta"
-    "teRequest\032&.s4wave.world.AccessWorldStat"
-    "eResponse\022X\n\rApplyObjectOp\022\".s4wave.worl"
-    "d.ApplyObjectOpRequest\032#.s4wave.world.Ap"
-    "plyObjectOpResponse\022U\n\014IncrementRev\022!.s4"
-    "wave.world.IncrementRevRequest\032\".s4wave."
-    "world.IncrementRevResponse\022F\n\007WaitRev\022\034."
-    "s4wave.world.WaitRevRequest\032\035.s4wave.wor"
-    "ld.WaitRevResponse2\202\001\n\032TypedObjectResour"
-    "ceService\022d\n\021AccessTypedObject\022&.s4wave."
-    "world.AccessTypedObjectRequest\032\'.s4wave."
-    "world.AccessTypedObjectResponseb\006proto3"
+    ".world.ObjectMetadata\">\n\nObjectBody\022\022\n\no"
+    "bject_key\030\001 \001(\t\022\014\n\004body\030\002 \001(\014\022\016\n\006exists\030"
+    "\003 \001(\010\"K\n\033GetObjectBodiesBatchRequest\022\023\n\013"
+    "object_keys\030\001 \003(\t\022\027\n\017start_key_index\030\002 \001"
+    "(\r\"u\n\034GetObjectBodiesBatchResponse\022(\n\006bo"
+    "dies\030\001 \003(\0132\030.s4wave.world.ObjectBody\022\026\n\016"
+    "next_key_index\030\002 \001(\r\022\023\n\013world_seqno\030\003 \001("
+    "\004\"f\n\rGraphPathStep\0223\n\tdirection\030\001 \001(\0162 ."
+    "s4wave.world.GraphPathDirection\022\021\n\tpredi"
+    "cate\030\002 \001(\t\022\r\n\005limit\030\003 \001(\r\"\227\001\n\025QueryGraph"
+    "PathRequest\022\022\n\nstart_keys\030\001 \003(\t\022*\n\005steps"
+    "\030\002 \003(\0132\033.s4wave.world.GraphPathStep\022\024\n\014r"
+    "esult_limit\030\003 \001(\r\022\025\n\rinclude_quads\030\004 \001(\010"
+    "\022\021\n\tpage_size\030\005 \001(\r\"-\n\026QueryGraphPathRes"
+    "ponse\022\023\n\013resource_id\030\001 \001(\r\".\n\030DeleteGrap"
+    "hObjectRequest\022\022\n\nobject_key\030\001 \001(\t\"\033\n\031De"
+    "leteGraphObjectResponse\"M\n\023ApplyWorldOpR"
+    "equest\022\022\n\nop_type_id\030\001 \001(\t\022\017\n\007op_data\030\002 "
+    "\001(\014\022\021\n\top_sender\030\003 \001(\t\"h\n\024ApplyWorldOpRe"
+    "sponse\022\r\n\005seqno\030\001 \001(\004\022\017\n\007sys_err\030\002 \001(\010\0220"
+    "\n\nerror_code\030\003 \001(\0162\034.s4wave.world.WorldE"
+    "rrorCode\"\030\n\026WatchWorldStateRequest\".\n\027Wa"
+    "tchWorldStateResponse\022\023\n\013resource_id\030\001 \001"
+    "(\r\"\304\001\n\031TrackedWorldStateSnapshot\022M\n\017obje"
+    "ct_accesses\030\001 \003(\01324.s4wave.world.Tracked"
+    "WorldStateSnapshot.ObjectAccess\022\027\n\017has_q"
+    "uad_access\030\002 \001(\010\022\025\n\rinitial_seqno\030\003 \001(\004\032"
+    "(\n\014ObjectAccess\022\013\n\003key\030\001 \001(\t\022\013\n\003rev\030\002 \001("
+    "\004\"\014\n\nErrRequest\"\034\n\013ErrResponse\022\r\n\005error\030"
+    "\001 \001(\t\"\016\n\014ValidRequest\"\036\n\rValidResponse\022\r"
+    "\n\005valid\030\001 \001(\010\"\014\n\nKeyRequest\"!\n\013KeyRespon"
+    "se\022\022\n\nobject_key\030\001 \001(\t\"\r\n\013NextRequest\"\035\n"
+    "\014NextResponse\022\r\n\005valid\030\001 \001(\010\"!\n\013SeekRequ"
+    "est\022\022\n\nobject_key\030\001 \001(\t\"\016\n\014SeekResponse\""
+    "\016\n\014CloseRequest\"\017\n\rCloseResponse\"\033\n\031Next"
+    "GraphPathQueryRequest\"Z\n\032NextGraphPathQu"
+    "eryResponse\022\023\n\013object_keys\030\001 \003(\t\022\031\n\005quad"
+    "s\030\002 \003(\0132\n.quad.Quad\022\014\n\004done\030\003 \001(\010\"\034\n\032Clo"
+    "seGraphPathQueryRequest\"\035\n\033CloseGraphPat"
+    "hQueryResponse\"\017\n\rGetKeyRequest\"$\n\016GetKe"
+    "yResponse\022\022\n\nobject_key\030\001 \001(\t\"\023\n\021GetRoot"
+    "RefRequest\"F\n\022GetRootRefResponse\022#\n\010root"
+    "_ref\030\001 \001(\0132\021.bucket.ObjectRef\022\013\n\003rev\030\002 \001"
+    "(\004\"8\n\021SetRootRefRequest\022#\n\010root_ref\030\001 \001("
+    "\0132\021.bucket.ObjectRef\"!\n\022SetRootRefRespon"
+    "se\022\013\n\003rev\030\001 \001(\004\"N\n\024ApplyObjectOpRequest\022"
+    "\022\n\nop_type_id\030\001 \001(\t\022\017\n\007op_data\030\002 \001(\014\022\021\n\t"
+    "op_sender\030\003 \001(\t\"g\n\025ApplyObjectOpResponse"
+    "\022\013\n\003rev\030\001 \001(\004\022\017\n\007sys_err\030\002 \001(\010\0220\n\nerror_"
+    "code\030\003 \001(\0162\034.s4wave.world.WorldErrorCode"
+    "\"\025\n\023IncrementRevRequest\"#\n\024IncrementRevR"
+    "esponse\022\013\n\003rev\030\001 \001(\004\"7\n\016WaitRevRequest\022\013"
+    "\n\003rev\030\001 \001(\004\022\030\n\020ignore_not_found\030\002 \001(\010\"\036\n"
+    "\017WaitRevResponse\022\013\n\003rev\030\001 \001(\004\".\n\030AccessT"
+    "ypedObjectRequest\022\022\n\nobject_key\030\001 \001(\t\"A\n"
+    "\031AccessTypedObjectResponse\022\023\n\013resource_i"
+    "d\030\001 \001(\r\022\017\n\007type_id\030\002 \001(\t*\266\001\n\030GraphEdgeBu"
+    "cketDirection\022+\n\'GRAPH_EDGE_BUCKET_DIREC"
+    "TION_UNSPECIFIED\020\000\022#\n\037GRAPH_EDGE_BUCKET_"
+    "DIRECTION_OUT\020\001\022\"\n\036GRAPH_EDGE_BUCKET_DIR"
+    "ECTION_IN\020\002\022$\n GRAPH_EDGE_BUCKET_DIRECTI"
+    "ON_BOTH\020\003*\224\001\n\022GraphPathDirection\022$\n GRAP"
+    "H_PATH_DIRECTION_UNSPECIFIED\020\000\022\034\n\030GRAPH_"
+    "PATH_DIRECTION_OUT\020\001\022\033\n\027GRAPH_PATH_DIREC"
+    "TION_IN\020\002\022\035\n\031GRAPH_PATH_DIRECTION_BOTH\020\003"
+    "*U\n\016WorldErrorCode\022 \n\034WORLD_ERROR_CODE_U"
+    "NSPECIFIED\020\000\022!\n\035WORLD_ERROR_CODE_UNHANDL"
+    "ED_OP\020\0012\302\006\n\025EngineResourceService\022X\n\rGet"
+    "EngineInfo\022\".s4wave.world.GetEngineInfoR"
+    "equest\032#.s4wave.world.GetEngineInfoRespo"
+    "nse\022b\n\024GetWorldRootSnapshot\022).s4wave.wor"
+    "ld.GetWorldRootSnapshotRequest\032\037.s4wave."
+    "world.WorldRootSnapshot\022j\n\027WatchWorldRoo"
+    "tSnapshots\022,.s4wave.world.WatchWorldRoot"
+    "SnapshotsRequest\032\037.s4wave.world.WorldRoo"
+    "tSnapshot0\001\022[\n\016NewTransaction\022#.s4wave.w"
+    "orld.NewTransactionRequest\032$.s4wave.worl"
+    "d.NewTransactionResponse\022=\n\004Sync\022\031.s4wav"
+    "e.world.SyncRequest\032\032.s4wave.world.SyncR"
+    "esponse\022I\n\010GetSeqno\022\035.s4wave.world.GetSe"
+    "qnoRequest\032\036.s4wave.world.GetSeqnoRespon"
+    "se\022L\n\tWaitSeqno\022\036.s4wave.world.WaitSeqno"
+    "Request\032\037.s4wave.world.WaitSeqnoResponse"
+    "\022g\n\022BuildStorageCursor\022\'.s4wave.world.Bu"
+    "ildStorageCursorRequest\032(.s4wave.world.B"
+    "uildStorageCursorResponse\022a\n\020AccessWorld"
+    "State\022%.s4wave.world.AccessWorldStateReq"
+    "uest\032&.s4wave.world.AccessWorldStateResp"
+    "onse2\235\021\n\031WorldStateResourceService\022R\n\013Ge"
+    "tReadOnly\022 .s4wave.world.GetReadOnlyRequ"
+    "est\032!.s4wave.world.GetReadOnlyResponse\022="
+    "\n\004Sync\022\031.s4wave.world.SyncRequest\032\032.s4wa"
+    "ve.world.SyncResponse\022I\n\010GetSeqno\022\035.s4wa"
+    "ve.world.GetSeqnoRequest\032\036.s4wave.world."
+    "GetSeqnoResponse\022L\n\tWaitSeqno\022\036.s4wave.w"
+    "orld.WaitSeqnoRequest\032\037.s4wave.world.Wai"
+    "tSeqnoResponse\022g\n\022BuildStorageCursor\022\'.s"
+    "4wave.world.BuildStorageCursorRequest\032(."
+    "s4wave.world.BuildStorageCursorResponse\022"
+    "a\n\020AccessWorldState\022%.s4wave.world.Acces"
+    "sWorldStateRequest\032&.s4wave.world.Access"
+    "WorldStateResponse\022U\n\014CreateObject\022!.s4w"
+    "ave.world.CreateObjectRequest\032\".s4wave.w"
+    "orld.CreateObjectResponse\022L\n\tGetObject\022\036"
+    ".s4wave.world.GetObjectRequest\032\037.s4wave."
+    "world.GetObjectResponse\022[\n\016IterateObject"
+    "s\022#.s4wave.world.IterateObjectsRequest\032$"
+    ".s4wave.world.IterateObjectsResponse\022U\n\014"
+    "RenameObject\022!.s4wave.world.RenameObject"
+    "Request\032\".s4wave.world.RenameObjectRespo"
+    "nse\022U\n\014DeleteObject\022!.s4wave.world.Delet"
+    "eObjectRequest\032\".s4wave.world.DeleteObje"
+    "ctResponse\022U\n\014SetGraphQuad\022!.s4wave.worl"
+    "d.SetGraphQuadRequest\032\".s4wave.world.Set"
+    "GraphQuadResponse\022^\n\017DeleteGraphQuad\022$.s"
+    "4wave.world.DeleteGraphQuadRequest\032%.s4w"
+    "ave.world.DeleteGraphQuadResponse\022a\n\020Loo"
+    "kupGraphQuads\022%.s4wave.world.LookupGraph"
+    "QuadsRequest\032&.s4wave.world.LookupGraphQ"
+    "uadsResponse\022p\n\025LookupGraphQuadsBatch\022*."
+    "s4wave.world.LookupGraphQuadsBatchReques"
+    "t\032+.s4wave.world.LookupGraphQuadsBatchRe"
+    "sponse\022m\n\024ListGraphEdgeBuckets\022).s4wave."
+    "world.ListGraphEdgeBucketsRequest\032*.s4wa"
+    "ve.world.ListGraphEdgeBucketsResponse\022j\n"
+    "\023ListObjectsWithType\022(.s4wave.world.List"
+    "ObjectsWithTypeRequest\032).s4wave.world.Li"
+    "stObjectsWithTypeResponse\022s\n\026GetObjectRo"
+    "otRefsBatch\022+.s4wave.world.GetObjectRoot"
+    "RefsBatchRequest\032,.s4wave.world.GetObjec"
+    "tRootRefsBatchResponse\022s\n\026GetObjectMetad"
+    "ataBatch\022+.s4wave.world.GetObjectMetadat"
+    "aBatchRequest\032,.s4wave.world.GetObjectMe"
+    "tadataBatchResponse\022m\n\024GetObjectBodiesBa"
+    "tch\022).s4wave.world.GetObjectBodiesBatchR"
+    "equest\032*.s4wave.world.GetObjectBodiesBat"
+    "chResponse\022[\n\016QueryGraphPath\022#.s4wave.wo"
+    "rld.QueryGraphPathRequest\032$.s4wave.world"
+    ".QueryGraphPathResponse\022d\n\021DeleteGraphOb"
+    "ject\022&.s4wave.world.DeleteGraphObjectReq"
+    "uest\032\'.s4wave.world.DeleteGraphObjectRes"
+    "ponse\022U\n\014ApplyWorldOp\022!.s4wave.world.App"
+    "lyWorldOpRequest\032\".s4wave.world.ApplyWor"
+    "ldOpResponse2\202\001\n\036WatchWorldStateResource"
+    "Service\022`\n\017WatchWorldState\022$.s4wave.worl"
+    "d.WatchWorldStateRequest\032%.s4wave.world."
+    "WatchWorldStateResponse0\0012\240\001\n\021TxResource"
+    "Service\022C\n\006Commit\022\033.s4wave.world.CommitR"
+    "equest\032\034.s4wave.world.CommitResponse\022F\n\007"
+    "Discard\022\034.s4wave.world.DiscardRequest\032\035."
+    "s4wave.world.DiscardResponse2\231\003\n\035ObjectI"
+    "teratorResourceService\022:\n\003Err\022\030.s4wave.w"
+    "orld.ErrRequest\032\031.s4wave.world.ErrRespon"
+    "se\022@\n\005Valid\022\032.s4wave.world.ValidRequest\032"
+    "\033.s4wave.world.ValidResponse\022:\n\003Key\022\030.s4"
+    "wave.world.KeyRequest\032\031.s4wave.world.Key"
+    "Response\022=\n\004Next\022\031.s4wave.world.NextRequ"
+    "est\032\032.s4wave.world.NextResponse\022=\n\004Seek\022"
+    "\031.s4wave.world.SeekRequest\032\032.s4wave.worl"
+    "d.SeekResponse\022@\n\005Close\022\032.s4wave.world.C"
+    "loseRequest\032\033.s4wave.world.CloseResponse"
+    "2\330\001\n\035GraphPathQueryResourceService\022Y\n\004Ne"
+    "xt\022\'.s4wave.world.NextGraphPathQueryRequ"
+    "est\032(.s4wave.world.NextGraphPathQueryRes"
+    "ponse\022\\\n\005Close\022(.s4wave.world.CloseGraph"
+    "PathQueryRequest\032).s4wave.world.CloseGra"
+    "phPathQueryResponse2\337\004\n\032ObjectStateResou"
+    "rceService\022C\n\006GetKey\022\033.s4wave.world.GetK"
+    "eyRequest\032\034.s4wave.world.GetKeyResponse\022"
+    "O\n\nGetRootRef\022\037.s4wave.world.GetRootRefR"
+    "equest\032 .s4wave.world.GetRootRefResponse"
+    "\022O\n\nSetRootRef\022\037.s4wave.world.SetRootRef"
+    "Request\032 .s4wave.world.SetRootRefRespons"
+    "e\022a\n\020AccessWorldState\022%.s4wave.world.Acc"
+    "essWorldStateRequest\032&.s4wave.world.Acce"
+    "ssWorldStateResponse\022X\n\rApplyObjectOp\022\"."
+    "s4wave.world.ApplyObjectOpRequest\032#.s4wa"
+    "ve.world.ApplyObjectOpResponse\022U\n\014Increm"
+    "entRev\022!.s4wave.world.IncrementRevReques"
+    "t\032\".s4wave.world.IncrementRevResponse\022F\n"
+    "\007WaitRev\022\034.s4wave.world.WaitRevRequest\032\035"
+    ".s4wave.world.WaitRevResponse2\202\001\n\032TypedO"
+    "bjectResourceService\022d\n\021AccessTypedObjec"
+    "t\022&.s4wave.world.AccessTypedObjectReques"
+    "t\032\'.s4wave.world.AccessTypedObjectRespon"
+    "seb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto_deps[2] = {
@@ -3259,13 +3384,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto = {
     false,
     false,
-    10239,
+    10610,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
     "github.com/s4wave/spacewave/sdk/world/world.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto_deps,
     2,
-    95,
+    98,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto::offsets,
@@ -16924,6 +17049,1036 @@ void GetObjectMetadataBatchResponse::InternalSwap(GetObjectMetadataBatchResponse
 }
 
 ::google::protobuf::Metadata GetObjectMetadataBatchResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ObjectBody::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<ObjectBody>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ObjectBody, _impl_._has_bits_);
+};
+
+ObjectBody::ObjectBody(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ObjectBody_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.ObjectBody)
+}
+PROTOBUF_NDEBUG_INLINE ObjectBody::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::ObjectBody& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        object_key_(arena, from.object_key_),
+        body_(arena, from.body_) {}
+
+ObjectBody::ObjectBody(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const ObjectBody& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, ObjectBody_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ObjectBody* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.exists_ = from._impl_.exists_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.ObjectBody)
+}
+PROTOBUF_NDEBUG_INLINE ObjectBody::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        object_key_(arena),
+        body_(arena) {}
+
+inline void ObjectBody::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.exists_ = {};
+}
+ObjectBody::~ObjectBody() {
+  // @@protoc_insertion_point(destructor:s4wave.world.ObjectBody)
+  SharedDtor(*this);
+}
+inline void ObjectBody::SharedDtor(MessageLite& self) {
+  ObjectBody& this_ = static_cast<ObjectBody&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.object_key_.Destroy();
+  this_._impl_.body_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL ObjectBody::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) ObjectBody(arena);
+}
+constexpr auto ObjectBody::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ObjectBody),
+                                            alignof(ObjectBody));
+}
+constexpr auto ObjectBody::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_ObjectBody_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &ObjectBody::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<ObjectBody>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &ObjectBody::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<ObjectBody>(), &ObjectBody::ByteSizeLong,
+              &ObjectBody::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(ObjectBody, _impl_._cached_size_),
+          false,
+      },
+      &ObjectBody::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull ObjectBody_class_data_ =
+        ObjectBody::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+ObjectBody::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&ObjectBody_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(ObjectBody_class_data_.tc_table);
+  return ObjectBody_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 0, 42, 2>
+ObjectBody::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ObjectBody, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    ObjectBody_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::ObjectBody>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string object_key = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ObjectBody, _impl_.object_key_)}},
+    // bytes body = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(ObjectBody, _impl_.body_)}},
+    // bool exists = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ObjectBody, _impl_.exists_), 2>(),
+     {24, 2, 0,
+      PROTOBUF_FIELD_OFFSET(ObjectBody, _impl_.exists_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string object_key = 1;
+    {PROTOBUF_FIELD_OFFSET(ObjectBody, _impl_.object_key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // bytes body = 2;
+    {PROTOBUF_FIELD_OFFSET(ObjectBody, _impl_.body_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bool exists = 3;
+    {PROTOBUF_FIELD_OFFSET(ObjectBody, _impl_.exists_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+  }},
+  // no aux_entries
+  {{
+    "\27\12\0\0\0\0\0\0"
+    "s4wave.world.ObjectBody"
+    "object_key"
+  }},
+};
+PROTOBUF_NOINLINE void ObjectBody::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.ObjectBody)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.object_key_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.body_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.exists_ = false;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ObjectBody::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ObjectBody& this_ = static_cast<const ObjectBody&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ObjectBody::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ObjectBody& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.ObjectBody)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string object_key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_object_key().empty()) {
+      const ::std::string& _s = this_._internal_object_key();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.ObjectBody.object_key");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // bytes body = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_body().empty()) {
+      const ::std::string& _s = this_._internal_body();
+      target = stream->WriteBytesMaybeAliased(2, _s, target);
+    }
+  }
+
+  // bool exists = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_exists() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          3, this_._internal_exists(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.ObjectBody)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ObjectBody::ByteSizeLong(const MessageLite& base) {
+  const ObjectBody& this_ = static_cast<const ObjectBody&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ObjectBody::ByteSizeLong() const {
+  const ObjectBody& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.ObjectBody)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // string object_key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_object_key().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_object_key());
+      }
+    }
+    // bytes body = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_body().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_body());
+      }
+    }
+    // bool exists = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_exists() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ObjectBody::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ObjectBody*>(&to_msg);
+  auto& from = static_cast<const ObjectBody&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.ObjectBody)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_object_key().empty()) {
+        _this->_internal_set_object_key(from._internal_object_key());
+      } else {
+        if (_this->_impl_.object_key_.IsDefault()) {
+          _this->_internal_set_object_key("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_body().empty()) {
+        _this->_internal_set_body(from._internal_body());
+      } else {
+        if (_this->_impl_.body_.IsDefault()) {
+          _this->_internal_set_body("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_exists() != 0) {
+        _this->_impl_.exists_ = from._impl_.exists_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ObjectBody::CopyFrom(const ObjectBody& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.ObjectBody)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ObjectBody::InternalSwap(ObjectBody* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.object_key_, &other->_impl_.object_key_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.body_, &other->_impl_.body_, arena);
+  swap(_impl_.exists_, other->_impl_.exists_);
+}
+
+::google::protobuf::Metadata ObjectBody::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class GetObjectBodiesBatchRequest::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<GetObjectBodiesBatchRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchRequest, _impl_._has_bits_);
+};
+
+GetObjectBodiesBatchRequest::GetObjectBodiesBatchRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetObjectBodiesBatchRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.GetObjectBodiesBatchRequest)
+}
+PROTOBUF_NDEBUG_INLINE GetObjectBodiesBatchRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::GetObjectBodiesBatchRequest& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        object_keys_{visibility, arena, from.object_keys_} {}
+
+GetObjectBodiesBatchRequest::GetObjectBodiesBatchRequest(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GetObjectBodiesBatchRequest& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetObjectBodiesBatchRequest_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GetObjectBodiesBatchRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.start_key_index_ = from._impl_.start_key_index_;
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.GetObjectBodiesBatchRequest)
+}
+PROTOBUF_NDEBUG_INLINE GetObjectBodiesBatchRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        object_keys_{visibility, arena} {}
+
+inline void GetObjectBodiesBatchRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.start_key_index_ = {};
+}
+GetObjectBodiesBatchRequest::~GetObjectBodiesBatchRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.world.GetObjectBodiesBatchRequest)
+  SharedDtor(*this);
+}
+inline void GetObjectBodiesBatchRequest::SharedDtor(MessageLite& self) {
+  GetObjectBodiesBatchRequest& this_ = static_cast<GetObjectBodiesBatchRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL GetObjectBodiesBatchRequest::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GetObjectBodiesBatchRequest(arena);
+}
+constexpr auto GetObjectBodiesBatchRequest::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchRequest, _impl_.object_keys_) +
+          decltype(GetObjectBodiesBatchRequest::_impl_.object_keys_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(GetObjectBodiesBatchRequest), alignof(GetObjectBodiesBatchRequest), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&GetObjectBodiesBatchRequest::PlacementNew_,
+                                 sizeof(GetObjectBodiesBatchRequest),
+                                 alignof(GetObjectBodiesBatchRequest));
+  }
+}
+constexpr auto GetObjectBodiesBatchRequest::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GetObjectBodiesBatchRequest_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GetObjectBodiesBatchRequest::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<GetObjectBodiesBatchRequest>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GetObjectBodiesBatchRequest::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<GetObjectBodiesBatchRequest>(), &GetObjectBodiesBatchRequest::ByteSizeLong,
+              &GetObjectBodiesBatchRequest::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchRequest, _impl_._cached_size_),
+          false,
+      },
+      &GetObjectBodiesBatchRequest::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GetObjectBodiesBatchRequest_class_data_ =
+        GetObjectBodiesBatchRequest::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GetObjectBodiesBatchRequest::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GetObjectBodiesBatchRequest_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GetObjectBodiesBatchRequest_class_data_.tc_table);
+  return GetObjectBodiesBatchRequest_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 60, 2>
+GetObjectBodiesBatchRequest::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchRequest, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    GetObjectBodiesBatchRequest_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::GetObjectBodiesBatchRequest>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // uint32 start_key_index = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(GetObjectBodiesBatchRequest, _impl_.start_key_index_), 1>(),
+     {16, 1, 0,
+      PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchRequest, _impl_.start_key_index_)}},
+    // repeated string object_keys = 1;
+    {::_pbi::TcParser::FastUR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchRequest, _impl_.object_keys_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated string object_keys = 1;
+    {PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchRequest, _impl_.object_keys_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kUtf8String | ::_fl::kRepSString)},
+    // uint32 start_key_index = 2;
+    {PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchRequest, _impl_.start_key_index_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+  }},
+  // no aux_entries
+  {{
+    "\50\13\0\0\0\0\0\0"
+    "s4wave.world.GetObjectBodiesBatchRequest"
+    "object_keys"
+  }},
+};
+PROTOBUF_NOINLINE void GetObjectBodiesBatchRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.GetObjectBodiesBatchRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.object_keys_.Clear();
+  }
+  _impl_.start_key_index_ = 0u;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL GetObjectBodiesBatchRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const GetObjectBodiesBatchRequest& this_ = static_cast<const GetObjectBodiesBatchRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL GetObjectBodiesBatchRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const GetObjectBodiesBatchRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.GetObjectBodiesBatchRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated string object_keys = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (int i = 0, n = this_._internal_object_keys_size(); i < n; ++i) {
+      const auto& s = this_._internal_object_keys().Get(i);
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          s.data(), static_cast<int>(s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "s4wave.world.GetObjectBodiesBatchRequest.object_keys");
+      target = stream->WriteString(1, s, target);
+    }
+  }
+
+  // uint32 start_key_index = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_start_key_index() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          2, this_._internal_start_key_index(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.GetObjectBodiesBatchRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t GetObjectBodiesBatchRequest::ByteSizeLong(const MessageLite& base) {
+  const GetObjectBodiesBatchRequest& this_ = static_cast<const GetObjectBodiesBatchRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t GetObjectBodiesBatchRequest::ByteSizeLong() const {
+  const GetObjectBodiesBatchRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.GetObjectBodiesBatchRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // repeated string object_keys = 1;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size +=
+          1 * ::google::protobuf::internal::FromIntSize(this_._internal_object_keys().size());
+      for (int i = 0, n = this_._internal_object_keys().size(); i < n; ++i) {
+        total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
+            this_._internal_object_keys().Get(i));
+      }
+    }
+    // uint32 start_key_index = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_start_key_index() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_start_key_index());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void GetObjectBodiesBatchRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<GetObjectBodiesBatchRequest*>(&to_msg);
+  auto& from = static_cast<const GetObjectBodiesBatchRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.GetObjectBodiesBatchRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_object_keys()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_object_keys());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_start_key_index() != 0) {
+        _this->_impl_.start_key_index_ = from._impl_.start_key_index_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void GetObjectBodiesBatchRequest::CopyFrom(const GetObjectBodiesBatchRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.GetObjectBodiesBatchRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void GetObjectBodiesBatchRequest::InternalSwap(GetObjectBodiesBatchRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.object_keys_.InternalSwap(&other->_impl_.object_keys_);
+  swap(_impl_.start_key_index_, other->_impl_.start_key_index_);
+}
+
+::google::protobuf::Metadata GetObjectBodiesBatchRequest::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class GetObjectBodiesBatchResponse::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<GetObjectBodiesBatchResponse>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchResponse, _impl_._has_bits_);
+};
+
+GetObjectBodiesBatchResponse::GetObjectBodiesBatchResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetObjectBodiesBatchResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:s4wave.world.GetObjectBodiesBatchResponse)
+}
+PROTOBUF_NDEBUG_INLINE GetObjectBodiesBatchResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::s4wave::world::GetObjectBodiesBatchResponse& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        bodies_{visibility, arena, from.bodies_} {}
+
+GetObjectBodiesBatchResponse::GetObjectBodiesBatchResponse(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const GetObjectBodiesBatchResponse& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, GetObjectBodiesBatchResponse_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  GetObjectBodiesBatchResponse* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, world_seqno_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, world_seqno_),
+           offsetof(Impl_, next_key_index_) -
+               offsetof(Impl_, world_seqno_) +
+               sizeof(Impl_::next_key_index_));
+
+  // @@protoc_insertion_point(copy_constructor:s4wave.world.GetObjectBodiesBatchResponse)
+}
+PROTOBUF_NDEBUG_INLINE GetObjectBodiesBatchResponse::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        bodies_{visibility, arena} {}
+
+inline void GetObjectBodiesBatchResponse::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, world_seqno_),
+           0,
+           offsetof(Impl_, next_key_index_) -
+               offsetof(Impl_, world_seqno_) +
+               sizeof(Impl_::next_key_index_));
+}
+GetObjectBodiesBatchResponse::~GetObjectBodiesBatchResponse() {
+  // @@protoc_insertion_point(destructor:s4wave.world.GetObjectBodiesBatchResponse)
+  SharedDtor(*this);
+}
+inline void GetObjectBodiesBatchResponse::SharedDtor(MessageLite& self) {
+  GetObjectBodiesBatchResponse& this_ = static_cast<GetObjectBodiesBatchResponse&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL GetObjectBodiesBatchResponse::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) GetObjectBodiesBatchResponse(arena);
+}
+constexpr auto GetObjectBodiesBatchResponse::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchResponse, _impl_.bodies_) +
+          decltype(GetObjectBodiesBatchResponse::_impl_.bodies_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+        sizeof(GetObjectBodiesBatchResponse), alignof(GetObjectBodiesBatchResponse), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&GetObjectBodiesBatchResponse::PlacementNew_,
+                                 sizeof(GetObjectBodiesBatchResponse),
+                                 alignof(GetObjectBodiesBatchResponse));
+  }
+}
+constexpr auto GetObjectBodiesBatchResponse::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_GetObjectBodiesBatchResponse_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &GetObjectBodiesBatchResponse::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<GetObjectBodiesBatchResponse>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &GetObjectBodiesBatchResponse::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<GetObjectBodiesBatchResponse>(), &GetObjectBodiesBatchResponse::ByteSizeLong,
+              &GetObjectBodiesBatchResponse::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchResponse, _impl_._cached_size_),
+          false,
+      },
+      &GetObjectBodiesBatchResponse::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fworld_2fworld_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull GetObjectBodiesBatchResponse_class_data_ =
+        GetObjectBodiesBatchResponse::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+GetObjectBodiesBatchResponse::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&GetObjectBodiesBatchResponse_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(GetObjectBodiesBatchResponse_class_data_.tc_table);
+  return GetObjectBodiesBatchResponse_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 1, 0, 2>
+GetObjectBodiesBatchResponse::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchResponse, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    GetObjectBodiesBatchResponse_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::s4wave::world::GetObjectBodiesBatchResponse>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // repeated .s4wave.world.ObjectBody bodies = 1;
+    {::_pbi::TcParser::FastMtR1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchResponse, _impl_.bodies_)}},
+    // uint32 next_key_index = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(GetObjectBodiesBatchResponse, _impl_.next_key_index_), 2>(),
+     {16, 2, 0,
+      PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchResponse, _impl_.next_key_index_)}},
+    // uint64 world_seqno = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(GetObjectBodiesBatchResponse, _impl_.world_seqno_), 1>(),
+     {24, 1, 0,
+      PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchResponse, _impl_.world_seqno_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // repeated .s4wave.world.ObjectBody bodies = 1;
+    {PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchResponse, _impl_.bodies_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint32 next_key_index = 2;
+    {PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchResponse, _impl_.next_key_index_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint64 world_seqno = 3;
+    {PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchResponse, _impl_.world_seqno_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::s4wave::world::ObjectBody>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void GetObjectBodiesBatchResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.world.GetObjectBodiesBatchResponse)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    _impl_.bodies_.Clear();
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000006U)) {
+    ::memset(&_impl_.world_seqno_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.next_key_index_) -
+        reinterpret_cast<char*>(&_impl_.world_seqno_)) + sizeof(_impl_.next_key_index_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL GetObjectBodiesBatchResponse::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const GetObjectBodiesBatchResponse& this_ = static_cast<const GetObjectBodiesBatchResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL GetObjectBodiesBatchResponse::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const GetObjectBodiesBatchResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.world.GetObjectBodiesBatchResponse)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // repeated .s4wave.world.ObjectBody bodies = 1;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_bodies_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_bodies().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              1, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  // uint32 next_key_index = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_next_key_index() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          2, this_._internal_next_key_index(), target);
+    }
+  }
+
+  // uint64 world_seqno = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_world_seqno() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          3, this_._internal_world_seqno(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.world.GetObjectBodiesBatchResponse)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t GetObjectBodiesBatchResponse::ByteSizeLong(const MessageLite& base) {
+  const GetObjectBodiesBatchResponse& this_ = static_cast<const GetObjectBodiesBatchResponse&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t GetObjectBodiesBatchResponse::ByteSizeLong() const {
+  const GetObjectBodiesBatchResponse& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.world.GetObjectBodiesBatchResponse)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // repeated .s4wave.world.ObjectBody bodies = 1;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_bodies_size();
+      for (const auto& msg : this_._internal_bodies()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // uint64 world_seqno = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_world_seqno() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_world_seqno());
+      }
+    }
+    // uint32 next_key_index = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_next_key_index() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_next_key_index());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void GetObjectBodiesBatchResponse::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<GetObjectBodiesBatchResponse*>(&to_msg);
+  auto& from = static_cast<const GetObjectBodiesBatchResponse&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.world.GetObjectBodiesBatchResponse)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_bodies()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_bodies());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_world_seqno() != 0) {
+        _this->_impl_.world_seqno_ = from._impl_.world_seqno_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_next_key_index() != 0) {
+        _this->_impl_.next_key_index_ = from._impl_.next_key_index_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void GetObjectBodiesBatchResponse::CopyFrom(const GetObjectBodiesBatchResponse& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.world.GetObjectBodiesBatchResponse)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void GetObjectBodiesBatchResponse::InternalSwap(GetObjectBodiesBatchResponse* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.bodies_.InternalSwap(&other->_impl_.bodies_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchResponse, _impl_.next_key_index_)
+      + sizeof(GetObjectBodiesBatchResponse::_impl_.next_key_index_)
+      - PROTOBUF_FIELD_OFFSET(GetObjectBodiesBatchResponse, _impl_.world_seqno_)>(
+          reinterpret_cast<char*>(&_impl_.world_seqno_),
+          reinterpret_cast<char*>(&other->_impl_.world_seqno_));
+}
+
+::google::protobuf::Metadata GetObjectBodiesBatchResponse::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================

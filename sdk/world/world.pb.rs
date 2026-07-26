@@ -435,6 +435,44 @@ pub struct GetObjectMetadataBatchResponse {
     #[prost(message, repeated, tag="1")]
     pub metadata: ::prost::alloc::vec::Vec<ObjectMetadata>,
 }
+/// ObjectBody contains the serialized root body for one object key.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ObjectBody {
+    /// ObjectKey is the requested object key.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// Body is the transformed root block data when the object exists.
+    #[prost(bytes="vec", tag="2")]
+    pub body: ::prost::alloc::vec::Vec<u8>,
+    /// Exists indicates whether the object key exists.
+    #[prost(bool, tag="3")]
+    pub exists: bool,
+}
+/// GetObjectBodiesBatchRequest is the request type for
+/// GetObjectBodiesBatch.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetObjectBodiesBatchRequest {
+    /// ObjectKeys is the list of object keys to inspect.
+    #[prost(string, repeated, tag="1")]
+    pub object_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// StartKeyIndex is the first object key index to include in this page.
+    #[prost(uint32, tag="2")]
+    pub start_key_index: u32,
+}
+/// GetObjectBodiesBatchResponse is the response type for
+/// GetObjectBodiesBatch.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetObjectBodiesBatchResponse {
+    /// Bodies preserves the request object key order.
+    #[prost(message, repeated, tag="1")]
+    pub bodies: ::prost::alloc::vec::Vec<ObjectBody>,
+    /// NextKeyIndex is the next key index to request. Zero means complete.
+    #[prost(uint32, tag="2")]
+    pub next_key_index: u32,
+    /// WorldSeqno is the World sequence number observed for this page.
+    #[prost(uint64, tag="3")]
+    pub world_seqno: u64,
+}
 /// GraphPathStep is one bounded predicate traversal step.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GraphPathStep {

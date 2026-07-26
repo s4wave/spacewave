@@ -79,7 +79,6 @@ func LookupObject[T block.Block](
 		return out, nil, err
 	}
 	_, _, err = AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
-		var err error
 		out, err = block.UnmarshalBlock[T](ctx, bcs, ctor)
 		return err
 	})
@@ -118,6 +117,56 @@ func LookupObjectBody[T block.Block](
 	return out, err
 }
 
+// LookupObjectBodyBytes looks up the transformed root body for an object.
+// It returns nil, false, nil when the object does not exist.
+func LookupObjectBodyBytes(
+	ctx context.Context,
+	ws WorldState,
+	objKey string,
+) ([]byte, bool, error) {
+	obj, found, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		ReleaseObjectState(obj)
+		return nil, false, err
+	}
+	if !found {
+		return nil, false, nil
+	}
+	defer ReleaseObjectState(obj)
+
+	var body []byte
+	_, _, err = AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+		var found bool
+		body, found, err = bcs.Fetch(ctx)
+		if err == nil && !found {
+			body = nil
+		}
+		return err
+	})
+	return body, true, err
+}
+
+func decodeObjectBody[T block.Block](data []byte, ctor func() block.Block) (out T, err error) {
+	if ctor == nil {
+		return out, nil
+	}
+	blk := ctor()
+	if blk == nil {
+		return out, nil
+	}
+	if data != nil {
+		if err := blk.UnmarshalBlock(data); err != nil {
+			return out, err
+		}
+	}
+	var ok bool
+	out, ok = blk.(T)
+	if !ok {
+		return out, block.ErrUnexpectedType
+	}
+	return out, nil
+}
+
 // LookupObjectRef looks up & unmarshals an object ref from the world.
 func LookupObjectRef[T block.Block](
 	ctx context.Context,
@@ -126,7 +175,6 @@ func LookupObjectRef[T block.Block](
 	ctor func() block.Block,
 ) (out T, err error) {
 	_, err = AccessObject(ctx, access, ref, func(bcs *block.Cursor) error {
-		var err error
 		out, err = block.UnmarshalBlock[T](ctx, bcs, ctor)
 		return err
 	})

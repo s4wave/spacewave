@@ -353,6 +353,8 @@ pub trait WorldStateResourceServiceClient: Send + Sync {
     async fn get_object_root_refs_batch(&self, request: &GetObjectRootRefsBatchRequest) -> starpc::Result<GetObjectRootRefsBatchResponse>;
     /// GetObjectMetadataBatch.
     async fn get_object_metadata_batch(&self, request: &GetObjectMetadataBatchRequest) -> starpc::Result<GetObjectMetadataBatchResponse>;
+    /// GetObjectBodiesBatch.
+    async fn get_object_bodies_batch(&self, request: &GetObjectBodiesBatchRequest) -> starpc::Result<GetObjectBodiesBatchResponse>;
     /// QueryGraphPath.
     async fn query_graph_path(&self, request: &QueryGraphPathRequest) -> starpc::Result<QueryGraphPathResponse>;
     /// DeleteGraphObject.
@@ -432,6 +434,9 @@ impl<C: starpc::Client + 'static> WorldStateResourceServiceClient for WorldState
     async fn get_object_metadata_batch(&self, request: &GetObjectMetadataBatchRequest) -> starpc::Result<GetObjectMetadataBatchResponse> {
         self.client.exec_call("s4wave.world.WorldStateResourceService", "GetObjectMetadataBatch", request).await
     }
+    async fn get_object_bodies_batch(&self, request: &GetObjectBodiesBatchRequest) -> starpc::Result<GetObjectBodiesBatchResponse> {
+        self.client.exec_call("s4wave.world.WorldStateResourceService", "GetObjectBodiesBatch", request).await
+    }
     async fn query_graph_path(&self, request: &QueryGraphPathRequest) -> starpc::Result<QueryGraphPathResponse> {
         self.client.exec_call("s4wave.world.WorldStateResourceService", "QueryGraphPath", request).await
     }
@@ -484,6 +489,8 @@ pub trait WorldStateResourceServiceServer: Send + Sync {
     async fn get_object_root_refs_batch(&self, request: GetObjectRootRefsBatchRequest) -> starpc::Result<GetObjectRootRefsBatchResponse>;
     /// GetObjectMetadataBatch.
     async fn get_object_metadata_batch(&self, request: GetObjectMetadataBatchRequest) -> starpc::Result<GetObjectMetadataBatchResponse>;
+    /// GetObjectBodiesBatch.
+    async fn get_object_bodies_batch(&self, request: GetObjectBodiesBatchRequest) -> starpc::Result<GetObjectBodiesBatchResponse>;
     /// QueryGraphPath.
     async fn query_graph_path(&self, request: QueryGraphPathRequest) -> starpc::Result<QueryGraphPathResponse>;
     /// DeleteGraphObject.
@@ -512,6 +519,7 @@ const WORLD_STATE_RESOURCE_SERVICE_METHOD_IDS: &[&str] = &[
     "ListObjectsWithType",
     "GetObjectRootRefsBatch",
     "GetObjectMetadataBatch",
+    "GetObjectBodiesBatch",
     "QueryGraphPath",
     "DeleteGraphObject",
     "ApplyWorldOp",
@@ -819,6 +827,21 @@ impl<S: WorldStateResourceServiceServer + 'static> starpc::Invoker for WorldStat
                     Err(e) => return (true, Err(e)),
                 };
                 match self.server.get_object_metadata_batch(request).await {
+                    Ok(response) => {
+                        if let Err(e) = stream.msg_send(&response).await {
+                            return (true, Err(e));
+                        }
+                        (true, Ok(()))
+                    }
+                    Err(e) => (true, Err(e)),
+                }
+            }
+            "GetObjectBodiesBatch" => {
+                let request: GetObjectBodiesBatchRequest = match stream.msg_recv().await {
+                    Ok(r) => r,
+                    Err(e) => return (true, Err(e)),
+                };
+                match self.server.get_object_bodies_batch(request).await {
                     Ok(response) => {
                         if let Err(e) = stream.msg_send(&response).await {
                             return (true, Err(e));

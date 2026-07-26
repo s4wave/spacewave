@@ -481,6 +481,8 @@ type SRPCWorldStateResourceServiceClient interface {
 
 	GetObjectMetadataBatch(ctx context.Context, in *GetObjectMetadataBatchRequest) (*GetObjectMetadataBatchResponse, error)
 
+	GetObjectBodiesBatch(ctx context.Context, in *GetObjectBodiesBatchRequest) (*GetObjectBodiesBatchResponse, error)
+
 	QueryGraphPath(ctx context.Context, in *QueryGraphPathRequest) (*QueryGraphPathResponse, error)
 
 	DeleteGraphObject(ctx context.Context, in *DeleteGraphObjectRequest) (*DeleteGraphObjectResponse, error)
@@ -677,6 +679,15 @@ func (c *srpcWorldStateResourceServiceClient) GetObjectMetadataBatch(ctx context
 	return out, nil
 }
 
+func (c *srpcWorldStateResourceServiceClient) GetObjectBodiesBatch(ctx context.Context, in *GetObjectBodiesBatchRequest) (*GetObjectBodiesBatchResponse, error) {
+	out := new(GetObjectBodiesBatchResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "GetObjectBodiesBatch", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcWorldStateResourceServiceClient) QueryGraphPath(ctx context.Context, in *QueryGraphPathRequest) (*QueryGraphPathResponse, error) {
 	out := new(QueryGraphPathResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "QueryGraphPath", in, out)
@@ -743,6 +754,8 @@ type SRPCWorldStateResourceServiceServer interface {
 
 	GetObjectMetadataBatch(context.Context, *GetObjectMetadataBatchRequest) (*GetObjectMetadataBatchResponse, error)
 
+	GetObjectBodiesBatch(context.Context, *GetObjectBodiesBatchRequest) (*GetObjectBodiesBatchResponse, error)
+
 	QueryGraphPath(context.Context, *QueryGraphPathRequest) (*QueryGraphPathResponse, error)
 
 	DeleteGraphObject(context.Context, *DeleteGraphObjectRequest) (*DeleteGraphObjectResponse, error)
@@ -795,6 +808,7 @@ func (SRPCWorldStateResourceServiceHandler) GetMethodIDs() []string {
 		"ListObjectsWithType",
 		"GetObjectRootRefsBatch",
 		"GetObjectMetadataBatch",
+		"GetObjectBodiesBatch",
 		"QueryGraphPath",
 		"DeleteGraphObject",
 		"ApplyWorldOp",
@@ -848,6 +862,8 @@ func (d *SRPCWorldStateResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_GetObjectRootRefsBatch(d.impl, strm)
 	case "GetObjectMetadataBatch":
 		return true, d.InvokeMethod_GetObjectMetadataBatch(d.impl, strm)
+	case "GetObjectBodiesBatch":
+		return true, d.InvokeMethod_GetObjectBodiesBatch(d.impl, strm)
 	case "QueryGraphPath":
 		return true, d.InvokeMethod_QueryGraphPath(d.impl, strm)
 	case "DeleteGraphObject":
@@ -1087,6 +1103,18 @@ func (SRPCWorldStateResourceServiceHandler) InvokeMethod_GetObjectMetadataBatch(
 	return strm.MsgSend(out)
 }
 
+func (SRPCWorldStateResourceServiceHandler) InvokeMethod_GetObjectBodiesBatch(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
+	req := new(GetObjectBodiesBatchRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.GetObjectBodiesBatch(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 func (SRPCWorldStateResourceServiceHandler) InvokeMethod_QueryGraphPath(impl SRPCWorldStateResourceServiceServer, strm srpc.Stream) error {
 	req := new(QueryGraphPathRequest)
 	if err := strm.MsgRecv(req); err != nil {
@@ -1272,6 +1300,14 @@ type SRPCWorldStateResourceService_GetObjectMetadataBatchStream interface {
 }
 
 type srpcWorldStateResourceService_GetObjectMetadataBatchStream struct {
+	srpc.Stream
+}
+
+type SRPCWorldStateResourceService_GetObjectBodiesBatchStream interface {
+	srpc.Stream
+}
+
+type srpcWorldStateResourceService_GetObjectBodiesBatchStream struct {
 	srpc.Stream
 }
 

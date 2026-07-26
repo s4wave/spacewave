@@ -1533,6 +1533,124 @@ export const GetObjectMetadataBatchResponse: MessageType<GetObjectMetadataBatchR
   })
 
 /**
+ * ObjectBody contains the serialized root body for one object key.
+ *
+ * @generated from message s4wave.world.ObjectBody
+ */
+export interface ObjectBody {
+  /**
+   * ObjectKey is the requested object key.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * Body is the transformed root block data when the object exists.
+   *
+   * @generated from field: bytes body = 2;
+   */
+  body?: Uint8Array
+  /**
+   * Exists indicates whether the object key exists.
+   *
+   * @generated from field: bool exists = 3;
+   */
+  exists?: boolean
+}
+
+export const ObjectBody: MessageType<ObjectBody> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.ObjectBody',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'body', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetObjectBodiesBatchRequest is the request type for
+ * GetObjectBodiesBatch.
+ *
+ * @generated from message s4wave.world.GetObjectBodiesBatchRequest
+ */
+export interface GetObjectBodiesBatchRequest {
+  /**
+   * ObjectKeys is the list of object keys to inspect.
+   *
+   * @generated from field: repeated string object_keys = 1;
+   */
+  objectKeys?: string[]
+  /**
+   * StartKeyIndex is the first object key index to include in this page.
+   *
+   * @generated from field: uint32 start_key_index = 2;
+   */
+  startKeyIndex?: number
+}
+
+export const GetObjectBodiesBatchRequest: MessageType<GetObjectBodiesBatchRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.GetObjectBodiesBatchRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'object_keys',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 2, name: 'start_key_index', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetObjectBodiesBatchResponse is the response type for
+ * GetObjectBodiesBatch.
+ *
+ * @generated from message s4wave.world.GetObjectBodiesBatchResponse
+ */
+export interface GetObjectBodiesBatchResponse {
+  /**
+   * Bodies preserves the request object key order.
+   *
+   * @generated from field: repeated s4wave.world.ObjectBody bodies = 1;
+   */
+  bodies?: ObjectBody[]
+  /**
+   * NextKeyIndex is the next key index to request. Zero means complete.
+   *
+   * @generated from field: uint32 next_key_index = 2;
+   */
+  nextKeyIndex?: number
+  /**
+   * WorldSeqno is the World sequence number observed for this page.
+   *
+   * @generated from field: uint64 world_seqno = 3;
+   */
+  worldSeqno?: bigint
+}
+
+export const GetObjectBodiesBatchResponse: MessageType<GetObjectBodiesBatchResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.GetObjectBodiesBatchResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'bodies',
+        kind: 'message',
+        T: () => ObjectBody,
+        repeated: true,
+      },
+      { no: 2, name: 'next_key_index', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'world_seqno', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * GraphPathStep is one bounded predicate traversal step.
  *
  * @generated from message s4wave.world.GraphPathStep

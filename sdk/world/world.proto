@@ -154,6 +154,7 @@ service WorldStateResourceService {
   rpc GetObjectRootRefsBatch(GetObjectRootRefsBatchRequest) returns (GetObjectRootRefsBatchResponse);
 
   rpc GetObjectMetadataBatch(GetObjectMetadataBatchRequest) returns (GetObjectMetadataBatchResponse);
+  rpc GetObjectBodiesBatch(GetObjectBodiesBatchRequest) returns (GetObjectBodiesBatchResponse);
 
   rpc QueryGraphPath(QueryGraphPathRequest) returns (QueryGraphPathResponse);
 
@@ -446,6 +447,37 @@ message GetObjectMetadataBatchResponse {
   // Metadata preserves the request object key order.
   repeated ObjectMetadata metadata = 1;
 }
+
+// ObjectBody contains the serialized root body for one object key.
+message ObjectBody {
+  // ObjectKey is the requested object key.
+  string object_key = 1;
+  // Body is the transformed root block data when the object exists.
+  bytes body = 2;
+  // Exists indicates whether the object key exists.
+  bool exists = 3;
+}
+
+// GetObjectBodiesBatchRequest is the request type for
+// GetObjectBodiesBatch.
+message GetObjectBodiesBatchRequest {
+  // ObjectKeys is the list of object keys to inspect.
+  repeated string object_keys = 1;
+  // StartKeyIndex is the first object key index to include in this page.
+  uint32 start_key_index = 2;
+}
+
+// GetObjectBodiesBatchResponse is the response type for
+// GetObjectBodiesBatch.
+message GetObjectBodiesBatchResponse {
+  // Bodies preserves the request object key order.
+  repeated ObjectBody bodies = 1;
+  // NextKeyIndex is the next key index to request. Zero means complete.
+  uint32 next_key_index = 2;
+  // WorldSeqno is the World sequence number observed for this page.
+  uint64 world_seqno = 3;
+}
+
 
 // GraphPathDirection indicates which side of the current object key to follow.
 enum GraphPathDirection {
