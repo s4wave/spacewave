@@ -1556,6 +1556,12 @@ export interface ObjectBody {
    * @generated from field: bool exists = 3;
    */
   exists?: boolean
+  /**
+   * Rev is the object revision observed with body.
+   *
+   * @generated from field: uint64 rev = 4;
+   */
+  rev?: bigint
 }
 
 export const ObjectBody: MessageType<ObjectBody> =
@@ -1565,6 +1571,7 @@ export const ObjectBody: MessageType<ObjectBody> =
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'body', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

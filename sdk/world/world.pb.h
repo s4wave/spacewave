@@ -4326,6 +4326,7 @@ class ObjectBody final : public ::google::protobuf::Message
   enum : int {
     kObjectKeyFieldNumber = 1,
     kBodyFieldNumber = 2,
+    kRevFieldNumber = 4,
     kExistsFieldNumber = 3,
   };
   // string object_key = 1;
@@ -4358,6 +4359,16 @@ class ObjectBody final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_body();
 
   public:
+  // uint64 rev = 4;
+  void clear_rev() ;
+  ::uint64_t rev() const;
+  void set_rev(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_rev() const;
+  void _internal_set_rev(::uint64_t value);
+
+  public:
   // bool exists = 3;
   void clear_exists() ;
   bool exists() const;
@@ -4372,7 +4383,7 @@ class ObjectBody final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
                                    0, 42,
                                    2>
       _table_;
@@ -4396,6 +4407,7 @@ class ObjectBody final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr object_key_;
     ::google::protobuf::internal::ArenaStringPtr body_;
+    ::uint64_t rev_;
     bool exists_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -22592,7 +22604,7 @@ inline void ObjectBody::clear_exists() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.exists_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 inline bool ObjectBody::exists() const {
   // @@protoc_insertion_point(field_get:s4wave.world.ObjectBody.exists)
@@ -22600,7 +22612,7 @@ inline bool ObjectBody::exists() const {
 }
 inline void ObjectBody::set_exists(bool value) {
   _internal_set_exists(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   // @@protoc_insertion_point(field_set:s4wave.world.ObjectBody.exists)
 }
 inline bool ObjectBody::_internal_exists() const {
@@ -22610,6 +22622,31 @@ inline bool ObjectBody::_internal_exists() const {
 inline void ObjectBody::_internal_set_exists(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.exists_ = value;
+}
+
+// uint64 rev = 4;
+inline void ObjectBody::clear_rev() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.rev_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t ObjectBody::rev() const {
+  // @@protoc_insertion_point(field_get:s4wave.world.ObjectBody.rev)
+  return _internal_rev();
+}
+inline void ObjectBody::set_rev(::uint64_t value) {
+  _internal_set_rev(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.world.ObjectBody.rev)
+}
+inline ::uint64_t ObjectBody::_internal_rev() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.rev_;
+}
+inline void ObjectBody::_internal_set_rev(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.rev_ = value;
 }
 
 // -------------------------------------------------------------------

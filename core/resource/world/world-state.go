@@ -509,6 +509,7 @@ func (r *WorldStateResource) GetObjectBodiesBatch(ctx context.Context, req *s4wa
 			ObjectKey: body.ObjectKey,
 			Body:      body.Body,
 			Exists:    body.Exists,
+			Rev:       body.Rev,
 		}
 	}
 

@@ -193,5 +193,31 @@ func TestGetObjectBodiesBatchCarriesWorldSeqno(t *testing.T) {
 	}
 }
 
+func TestGetObjectBodiesBatchCarriesObjectRevisions(t *testing.T) {
+	ws := &objectBodyPageWorld{
+		bodies: []*world.ObjectBody{
+			{ObjectKey: "body/one", Body: []byte("x"), Exists: true, Rev: 7},
+			{ObjectKey: "body/two", Body: []byte("y"), Exists: true, Rev: 9},
+		},
+		seqnos: []uint64{42},
+	}
+	resource := &WorldStateResource{ws: ws}
+
+	resp, err := resource.GetObjectBodiesBatch(context.Background(), &s4wave_world.GetObjectBodiesBatchRequest{
+		ObjectKeys: []string{"body/one", "body/two"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.GetBodies()) != 2 {
+		t.Fatalf("body count = %d, want 2", len(resp.GetBodies()))
+	}
+	for i, want := range []uint64{7, 9} {
+		if got := resp.GetBodies()[i].GetRev(); got != want {
+			t.Fatalf("body %d rev = %d, want %d", i, got, want)
+		}
+	}
+}
+
 var _ world.ObjectBodyPageBatcher = (*objectBodyPageWorld)(nil)
 var _ world.ObjectBodyPageSeqnoBatcher = (*objectBodyPageWorld)(nil)

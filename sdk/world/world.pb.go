@@ -1368,6 +1368,8 @@ type ObjectBody struct {
 	Body []byte `protobuf:"bytes,2,opt,name=body,proto3" json:"body,omitempty"`
 	// Exists indicates whether the object key exists.
 	Exists bool `protobuf:"varint,3,opt,name=exists,proto3" json:"exists,omitempty"`
+	// Rev is the object revision observed with body.
+	Rev uint64 `protobuf:"varint,4,opt,name=rev,proto3" json:"rev,omitempty"`
 }
 
 func (x *ObjectBody) Reset() {
@@ -1395,6 +1397,13 @@ func (x *ObjectBody) GetExists() bool {
 		return x.Exists
 	}
 	return false
+}
+
+func (x *ObjectBody) GetRev() uint64 {
+	if x != nil {
+		return x.Rev
+	}
+	return 0
 }
 
 // GetObjectBodiesBatchRequest is the request type for
@@ -3239,6 +3248,7 @@ func (m *ObjectBody) CloneVT() *ObjectBody {
 	r := new(ObjectBody)
 	r.ObjectKey = m.ObjectKey
 	r.Exists = m.Exists
+	r.Rev = m.Rev
 	r.Body = protobuf_go_lite.CloneBytes(m.Body)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -5083,6 +5093,9 @@ func (this *ObjectBody) EqualVT(that *ObjectBody) bool {
 		return false
 	}
 	if this.Exists != that.Exists {
+		return false
+	}
+	if this.Rev != that.Rev {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -8698,6 +8711,11 @@ func (x *ObjectBody) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("exists")
 		s.WriteBool(x.Exists)
 	}
+	if x.Rev != 0 || s.HasField("rev") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("rev")
+		s.WriteUint64(x.Rev)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -8724,6 +8742,9 @@ func (x *ObjectBody) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "exists":
 			s.AddField("exists")
 			x.Exists = s.ReadBool()
+		case "rev":
+			s.AddField("rev")
+			x.Rev = s.ReadUint64()
 		}
 	})
 }
@@ -12876,6 +12897,11 @@ func (m *ObjectBody) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Rev != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Rev))
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.Exists {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Exists)
 		i--
@@ -15250,6 +15276,7 @@ func (m *ObjectBody) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Body)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Exists)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Rev)
 	n += len(m.unknownFields)
 	return n
 }
@@ -16681,6 +16708,10 @@ func (x *ObjectBody) MarshalProtoText() string {
 	if x.Exists != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "exists")
 		protobuf_go_lite.TextWriteBool(&sb, x.Exists)
+	}
+	if x.Rev != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "rev")
+		protobuf_go_lite.TextWriteUint(&sb, x.Rev)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -20483,6 +20514,15 @@ func (m *ObjectBody) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Exists = bool(v)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Rev", wireType)
+			}
+			m.Rev = 0
+			m.Rev, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

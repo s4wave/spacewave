@@ -60,6 +60,34 @@ func TestWorldStateForEachObjectBodyPageYieldsPages(t *testing.T) {
 	}
 }
 
+func TestWorldStateObjectBodyPagePreservesRevisions(t *testing.T) {
+	service := &objectBodiesBatchService{
+		responses: []*GetObjectBodiesBatchResponse{
+			{
+				Bodies: []*ObjectBody{
+					{ObjectKey: "body/one", Exists: true, Rev: 7},
+					{ObjectKey: "body/two", Exists: true, Rev: 9},
+				},
+			},
+		},
+	}
+	ws := &WorldState{service: service}
+
+	var revs []uint64
+	err := ws.ForEachObjectBodyPage(context.Background(), []string{"body/one", "body/two"}, func(bodies []*world.ObjectBody) error {
+		for _, body := range bodies {
+			revs = append(revs, body.Rev)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := revs, []uint64{7, 9}; !slices.Equal(got, want) {
+		t.Fatalf("revs = %v, want %v", got, want)
+	}
+}
+
 func TestWorldStateGetObjectBodiesBatchChunksRequestKeys(t *testing.T) {
 	service := &objectBodiesBatchService{
 		responses: []*GetObjectBodiesBatchResponse{
