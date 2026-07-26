@@ -866,3 +866,135 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 }
 
 var _ signaling.SignalPeerSession = ((*testSignalPeerSession)(nil))
+
+// TestHandleSignalPeerReacquiresAfterSupersedingIngressRetires pins the
+// reacquisition contract: a resolver whose ingress lease was replaced by a
+// newer resolver must reacquire a lease and redeliver its unaccepted signal
+// after the superseding ingress retires, instead of parking forever with no
+// tracker live.
+func TestHandleSignalPeerReacquiresAfterSupersedingIngressRetires(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	localPriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	localPeerID, err := peer.IDFromPrivateKey(localPriv)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	remotePeerID, err := peer.IDFromPrivateKey(remotePriv)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	peerKey := remotePeerID.String()
+
+	tpt := &WebRTC{
+		le:               logrus.NewEntry(logrus.New()),
+		conf:             &Config{},
+		peerID:           localPeerID,
+		privKey:          localPriv,
+		incomingSessions: make(map[string]*signalIngress),
+	}
+
+	firstDelivered := make(chan *incomingSignal, 1)
+	var constructions atomic.Int32
+	var firstTracker *sessionTracker
+	tpt.sessionTrackers = keyed.NewKeyedRefCount(
+		func(key string) (keyed.Routine, *sessionTracker) {
+			construction := constructions.Add(1)
+			tkr := &sessionTracker{w: tpt, le: tpt.le, key: key}
+			if construction == 1 {
+				firstTracker = tkr
+			}
+			return func(ctx context.Context) error {
+				execution := tkr.beginExecution()
+				defer tkr.retireExecution(execution)
+				select {
+				case <-ctx.Done():
+					return context.Canceled
+				case incoming := <-execution.rxSignal:
+					if construction == 1 {
+						// Receive without accepting; the test retires this
+						// ingress while the signal is still pending.
+						firstDelivered <- incoming
+						<-ctx.Done()
+						return context.Canceled
+					}
+					sess := &session{t: tkr}
+					sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+						sess.acceptIncomingSignalLocked(incoming)
+					})
+					<-ctx.Done()
+					return context.Canceled
+				}
+			}, tkr
+		},
+		keyed.WithBackoff[string, *sessionTracker](func(string) cbackoff.BackOff {
+			return new(cbackoff.ZeroBackOff)
+		}),
+	)
+	tpt.sessionTrackers.SetContext(ctx, true)
+	t.Cleanup(tpt.sessionTrackers.ClearContext)
+
+	resolverA := &handleSignalPeerResolver{t: tpt}
+	resolverB := &handleSignalPeerResolver{t: tpt}
+	incoming := &incomingSignal{accepted: make(chan struct{})}
+
+	deliverErr := make(chan error, 1)
+	go func() {
+		deliverErr <- tpt.deliverSignal(ctx, peerKey, resolverA, incoming)
+	}()
+
+	// Resolver A acquires the first ingress and delivers without acceptance.
+	<-firstDelivered
+
+	// Resolver B supersedes A's lease on the same live tracker.
+	var supersedingTracker *sessionTracker
+	tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		ingress, err := tpt.acquireSignalIngressLocked(peerKey, resolverB, broadcast)
+		if err != nil {
+			t.Errorf("acquire superseding ingress: %v", err)
+			return
+		}
+		supersedingTracker = ingress.tracker
+	})
+	if t.Failed() {
+		return
+	}
+
+	// Force resolver A to observe the superseding ingress before it retires:
+	// publish a fresh execution generation on the shared tracker, then receive
+	// A's redelivery on it. The same locked loop iteration that redelivers
+	// also sees resolver B owning the lease.
+	replacementExecution := firstTracker.beginExecution()
+	redelivered := <-replacementExecution.rxSignal
+	if redelivered != incoming {
+		t.Fatal("redelivery carried a different signal")
+	}
+
+	// The superseding ingress retires before A's signal is accepted, leaving
+	// the peer with no ingress lease at all.
+	tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		tpt.retireSignalIngressLocked(peerKey, supersedingTracker)
+		broadcast()
+	})
+
+	// A must reacquire a fresh tracker and redeliver until acceptance.
+	if err := <-deliverErr; err != nil {
+		t.Fatalf("deliverSignal returned %v, want nil after reacquisition", err)
+	}
+	select {
+	case <-incoming.accepted:
+	default:
+		t.Fatal("signal was not accepted after reacquisition")
+	}
+	if got := constructions.Load(); got != 2 {
+		t.Fatalf("tracker constructions %d, want 2 (original plus reacquired)", got)
+	}
+}

@@ -83,10 +83,9 @@ func (w *WebRTC) deliverSignal(
 	resolver *handleSignalPeerResolver,
 	incoming *incomingSignal,
 ) error {
-	var lease *signalIngress
-	var superseded bool
 	var deliveredTracker *sessionTracker
 	var deliveredGeneration uint64
+	var held bool
 
 	for {
 		select {
@@ -100,24 +99,22 @@ func (w *WebRTC) deliverSignal(
 		var waitCh <-chan struct{}
 		var err error
 		w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			// A resolver that has never held the lease supersedes the
+			// current holder: a fresh inbound signal session replaces the
+			// previous one. A resolver that held the lease and was
+			// superseded reacquires only when the peer has no lease at
+			// all, including after the superseding ingress retires, so it
+			// never steals the lease from a live successor; otherwise
+			// delivery targets the successor's live execution.
 			current := w.incomingSessions[peerID]
-			if lease == nil {
-				lease, err = w.acquireSignalIngressLocked(peerID, resolver, broadcast)
-				if err != nil {
+			if current == nil || (current.resolver != resolver && !held) {
+				if _, err = w.acquireSignalIngressLocked(peerID, resolver, broadcast); err != nil {
 					return
 				}
 				current = w.incomingSessions[peerID]
-			} else {
-				if current != nil && current.resolver != resolver {
-					superseded = true
-				}
-				if current == nil && !superseded {
-					lease, err = w.acquireSignalIngressLocked(peerID, resolver, broadcast)
-					if err != nil {
-						return
-					}
-					current = w.incomingSessions[peerID]
-				}
+			}
+			if current.resolver == resolver {
+				held = true
 			}
 			ingress = current
 			execution = w.snapshotSignalExecutionLocked(ingress)
