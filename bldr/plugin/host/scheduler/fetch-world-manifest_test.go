@@ -3,6 +3,7 @@ package plugin_host_scheduler
 import (
 	"context"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -2876,6 +2877,133 @@ func TestDownloadManifestCopiesExternalVolumeDAGAndCachesSourceReads(t *testing.
 	}
 }
 
+func TestDownloadManifestCopiesSeveralRemoteDAGsOutsideWorldAccess(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	baseWS, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, baseWS, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ws := &accessCountingWorldState{WorldState: baseWS}
+	var wsv world.WorldState = ws
+	pi := &pluginInstance{
+		c: &Controller{
+			conf: &Config{
+				FetchConcurrency: 4,
+			},
+			objKey:          objKey,
+			peerID:          peer.ID("test"),
+			worldStateCtr:   ccontainer.NewCContainer(wsv),
+			pluginStatus:    make(map[string]*bldr_plugin.PluginStatus),
+			pluginStatusCtr: ccontainer.NewCContainer(&PluginStatusSnapshot{}),
+		},
+		le:       le,
+		pluginID: "spacewave-core",
+	}
+
+	observed := make(chan manifestCopyObservation, 3)
+	errCh := make(chan error, 3)
+	releaseCopy := make(chan struct{})
+	for i := range 3 {
+		suffix := string(rune('a' + i))
+		remoteBucketID := "remote-manifest-bucket-" + suffix
+		remote := newTestExternalManifestRefWithDistAssets(
+			t,
+			ctx,
+			remoteBucketID,
+			"spacewave-core-"+suffix,
+			"desktop/darwin/arm64",
+			uint64(20+i),
+		)
+		sourceStore := &blockingLookupBlockStore{
+			StoreOps:     remote.store,
+			activeAccess: &ws.active,
+			observed:     observed,
+			release:      releaseCopy,
+			once:         &sync.Once{},
+			manifestID:   remote.ref.GetMeta().GetManifestId(),
+		}
+		sourceConf, err := bucket.NewConfig(remoteBucketID, 1, nil)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		lookupRel, err := tb.Bus.AddController(ctx, &testSchedulerStaticLookupController{
+			bucketID: remoteBucketID,
+			handle: &testSchedulerStaticLookupHandle{
+				conf: sourceConf,
+				lookup: &testSchedulerStaticLookup{
+					store: sourceStore,
+				},
+			},
+		}, nil)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		defer lookupRel()
+
+		snapshot := &bldr_manifest.ManifestSnapshot{
+			ManifestRef: remote.ref.GetManifestRef(),
+			Manifest:    remote.manifest,
+		}
+		go func() {
+			errCh <- pi.execDownloadManifest(ctx, snapshot)
+		}()
+	}
+
+	seen := make(map[string]bool, 3)
+	for len(seen) < 3 {
+		next := <-observed
+		seen[next.manifestID] = true
+		if next.active != 0 {
+			close(releaseCopy)
+			t.Fatalf("source block read for %s ran with %d active world access(es)", next.manifestID, next.active)
+		}
+	}
+	close(releaseCopy)
+	for range 3 {
+		if err := <-errCh; err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	for manifestID := range seen {
+		got, errs, err := bldr_manifest_world.CollectManifestsForManifestID(
+			ctx,
+			baseWS,
+			manifestID,
+			[]string{"desktop/darwin/arm64"},
+			objKey,
+		)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if len(errs) != 0 {
+			t.Fatalf("manifest errors for %s = %v", manifestID, errs)
+		}
+		if len(got) != 1 {
+			t.Fatalf("manifest count for %s = %d, want 1", manifestID, len(got))
+		}
+	}
+}
+
 func TestDownloadManifestYieldsColdStartCopyUntilStartupGroupReady(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -3484,6 +3612,69 @@ func newTestExternalManifestRefWithDistAssets(
 		manifest: manifest.CloneVT(),
 		store:    store,
 	}
+}
+
+type accessCountingWorldState struct {
+	world.WorldState
+	active atomic.Int32
+}
+
+func (s *accessCountingWorldState) AccessWorldState(
+	ctx context.Context,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	s.active.Add(1)
+	defer s.active.Add(-1)
+	return s.WorldState.AccessWorldState(ctx, ref, cb)
+}
+
+type manifestCopyObservation struct {
+	manifestID string
+	active     int32
+}
+
+type blockingLookupBlockStore struct {
+	block.StoreOps
+	activeAccess *atomic.Int32
+	observed     chan<- manifestCopyObservation
+	release      <-chan struct{}
+	once         *sync.Once
+	manifestID   string
+}
+
+func (s *blockingLookupBlockStore) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
+	store, release, err := s.StoreOps.BeginReadOperation(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	once := s.once
+	if once == nil {
+		once = &sync.Once{}
+	}
+	return &blockingLookupBlockStore{
+		StoreOps:     store,
+		activeAccess: s.activeAccess,
+		observed:     s.observed,
+		release:      s.release,
+		once:         once,
+		manifestID:   s.manifestID,
+	}, release, nil
+}
+
+func (s *blockingLookupBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	s.once.Do(func() {
+		s.observed <- manifestCopyObservation{
+			manifestID: s.manifestID,
+			active:     s.activeAccess.Load(),
+		}
+	})
+	select {
+	case <-ctx.Done():
+		return nil, false, context.Canceled
+	case <-s.release:
+	}
+	return s.StoreOps.GetBlock(ctx, ref)
 }
 
 type startupDemandLookupObserver struct {

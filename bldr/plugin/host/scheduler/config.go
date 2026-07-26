@@ -1,6 +1,7 @@
 package plugin_host_scheduler
 
 import (
+	"runtime"
 	"slices"
 
 	"github.com/aperturerobotics/controllerbus/config"
@@ -146,6 +147,13 @@ func (c *Config) BuildFetchBackoff() *backoff.Backoff {
 		backoffConf.Exponential.MaxInterval = 1200
 	}
 	return backoffConf
+}
+
+func (c *Config) manifestCopyConcurrency() int {
+	if concurrency := c.GetFetchConcurrency(); concurrency > 0 {
+		return int(concurrency)
+	}
+	return runtime.GOMAXPROCS(0)
 }
 
 // _ is a type assertion
