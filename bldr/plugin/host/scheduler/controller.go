@@ -70,6 +70,10 @@ type Controller struct {
 	pluginHostsCtr *ccontainer.CContainer[*pluginHostSet]
 	// manifestCopyGate delays startup copies until runtime readiness.
 	manifestCopyGateCtr *ccontainer.CContainer[ManifestCopyGate]
+	// manifestCommitOnce initializes manifestCommitSlots.
+	manifestCommitOnce sync.Once
+	// manifestCommitSlots serializes world manifest publication and sync.
+	manifestCommitSlots chan struct{}
 
 	// pluginInstances manages the list of running plugins by plugin ID.
 	// key: plugin ID
@@ -185,6 +189,23 @@ func (c *Controller) getManifestCopyGate() ManifestCopyGate {
 		return nil
 	}
 	return c.manifestCopyGateCtr.GetValue()
+}
+
+func (c *Controller) acquireManifestCommit(ctx context.Context) (func(), error) {
+	if c == nil {
+		return func() {}, nil
+	}
+	c.manifestCommitOnce.Do(func() {
+		c.manifestCommitSlots = make(chan struct{}, 1)
+	})
+	select {
+	case c.manifestCommitSlots <- struct{}{}:
+		return func() {
+			<-c.manifestCommitSlots
+		}, nil
+	case <-ctx.Done():
+		return nil, context.Canceled
+	}
 }
 
 // GetControllerInfo returns information about the controller.

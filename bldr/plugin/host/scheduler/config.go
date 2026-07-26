@@ -148,5 +148,9 @@ func (c *Config) BuildFetchBackoff() *backoff.Backoff {
 	return backoffConf
 }
 
+func (c *Config) manifestCopyConcurrency() int {
+	return int(c.GetFetchConcurrency())
+}
+
 // _ is a type assertion
 var _ config.Config = (*Config)(nil)

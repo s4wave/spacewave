@@ -72,13 +72,6 @@ func (t *pluginInstance) processManifestWorldState(
 	platformIDs := slices.Collect(maps.Keys(platformIDsMap))
 	slices.Sort(platformIDs)
 	trace.Log(ctx, "platform-ids", strings.Join(platformIDs, ","))
-
-	// configure logger
-	le = le.WithFields(logrus.Fields{
-		"platform-ids":    platformIDs,
-		"host-object-key": t.c.objKey,
-	})
-
 	// collect and classify retained startup manifest candidates
 	candidateEligibility, err := bldr_manifest_world.CollectStartupManifestEligibilityForManifestID(
 		ctx,
@@ -89,6 +82,11 @@ func (t *pluginInstance) processManifestWorldState(
 	)
 	if err != nil {
 		return true, err
+	}
+	selectionFingerprint := manifestSelectionInputFingerprint(platformIDs, candidateEligibility)
+	if t.manifestSelectionInputUnchanged(hosts, selectionFingerprint) {
+		trace.Log(ctx, "manifest-selection-phase", "skipped-unchanged-inputs")
+		return true, nil
 	}
 	if ctx.Err() != nil {
 		return true, context.Canceled
@@ -124,6 +122,7 @@ func (t *pluginInstance) processManifestWorldState(
 		t.c.clearPluginStatusErrorStage(t.pluginID, t.instanceKey, "startup manifest refs")
 	}
 	if len(manifests) == 0 {
+		t.storeManifestSelectionInputFingerprint(hosts, selectionFingerprint)
 		t.c.recordPluginManifestRecoveryStatus(t.pluginID, t.instanceKey, nil, nil, candidateEligibility)
 		// When store is disabled, the fetch handler may drive
 		// execute/download directly from fetched ManifestRefs.
@@ -285,10 +284,87 @@ func (t *pluginInstance) processManifestWorldState(
 				le.WithFields(fields).Debug("selected download and execute manifests for plugin")
 			}
 
-			// done
+			t.storeManifestSelectionInputFingerprint(hosts, selectionFingerprint)
 			return nil
 		},
 	)
+}
+
+type manifestSelectionInput struct {
+	hostSet     *pluginHostSet
+	fingerprint string
+}
+
+func (t *pluginInstance) manifestSelectionInputUnchanged(hosts *pluginHostSet, fingerprint string) bool {
+	current := t.manifestSelectionFingerprint.Load()
+	return current != nil &&
+		current.hostSet == hosts &&
+		current.fingerprint == fingerprint
+}
+
+func (t *pluginInstance) storeManifestSelectionInputFingerprint(hosts *pluginHostSet, fingerprint string) {
+	t.manifestSelectionFingerprint.Store(&manifestSelectionInput{
+		hostSet:     hosts,
+		fingerprint: fingerprint,
+	})
+}
+
+func manifestSelectionInputFingerprint(
+	platformIDs []string,
+	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
+) string {
+	var fingerprint strings.Builder
+	writeField := func(value string) {
+		fingerprint.WriteByte(0)
+		fingerprint.WriteString(strconv.Itoa(len(value)))
+		fingerprint.WriteByte(':')
+		fingerprint.WriteString(value)
+	}
+	for _, platformID := range platformIDs {
+		writeField(platformID)
+	}
+	candidates = slices.Clone(candidates)
+	slices.SortStableFunc(candidates, func(a, b *bldr_manifest_world.StartupManifestCandidateEligibility) int {
+		if a == nil || b == nil {
+			if a == nil && b == nil {
+				return 0
+			}
+			if a == nil {
+				return -1
+			}
+			return 1
+		}
+		return strings.Compare(a.ObjectKey, b.ObjectKey)
+	})
+	for _, candidate := range candidates {
+		if candidate == nil {
+			writeField("<nil>")
+			continue
+		}
+		writeField(candidate.ObjectKey)
+		writeField(candidate.EdgeLabel)
+		writeField(string(candidate.Eligibility))
+		writeField(candidate.Reason)
+		writeField(candidate.ManifestID)
+		writeField(candidate.PlatformID)
+		writeField(strconv.FormatUint(candidate.Rev, 10))
+		if candidate.ObjectRef != nil {
+			writeField(candidate.ObjectRef.MarshalString())
+		} else {
+			writeField("<nil>")
+		}
+		if candidate.ManifestRef != nil {
+			writeField(candidate.ManifestRef.String())
+		} else {
+			writeField("<nil>")
+		}
+		if candidate.Manifest != nil && candidate.Manifest.GetMeta() != nil {
+			writeField(candidate.Manifest.GetMeta().MarshalB58())
+		} else {
+			writeField("<nil>")
+		}
+	}
+	return fingerprint.String()
 }
 
 const maxStartupManifestSkipSummaryItems = 3
