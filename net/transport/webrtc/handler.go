@@ -64,6 +64,9 @@ func (c *WebRTCSignalHandler) Close() error {
 type handleSignalPeerResolver struct {
 	t    *WebRTC
 	sess signaling.SignalPeerSession
+	// held indicates this resolver has held the peer's ingress lease.
+	// guarded by t.bcast.
+	held bool
 }
 
 // Resolve resolves the directive.
