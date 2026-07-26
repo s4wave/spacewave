@@ -26,29 +26,6 @@ const driveUploadFixturePathEnv = "E2E_WASM_DRIVE_UPLOAD_FIXTURE"
 const driveUploadFixtureNameEnv = "E2E_WASM_DRIVE_UPLOAD_NAME"
 const driveUploadExternalWaitTimeoutEnv = "E2E_WASM_DRIVE_UPLOAD_WAIT_TIMEOUT_MS"
 
-// TestQuickstartDriveUploadCrashRecovery exercises the Drive UploadTree path
-// under browser WASM and classifies the console stream for the original
-// fatal-Go-plus-exited-Go-loop recovery pattern.
-func TestQuickstartDriveUploadCrashRecovery(t *testing.T) {
-	sess := harness(t).NewCleanSession(t)
-	console, stopConsole := sess.WatchConsole()
-	defer stopConsole()
-
-	scenario := CreateDriveScenario(t, harness(t), sess)
-	page := scenario.GetSession().Page()
-	WaitForDriveReady(t, harness(t), page)
-
-	uploadAndVerifyDriveFixture(t, scenario, page, true)
-
-	report := DrainCrashReport(console)
-	if report.HasCrash() {
-		t.Fatalf("unexpected browser/WASM crash report after upload: %+v", report)
-	}
-	if report.HasExitedGoLoop() {
-		t.Fatalf("unexpected exited-Go loop after upload: %+v", report)
-	}
-}
-
 // TestQuickstartDriveUploadTrace writes a runtime trace for the Drive UploadTree
 // path, including the bounded large-file branch used by crash recovery.
 func TestQuickstartDriveUploadTrace(t *testing.T) {

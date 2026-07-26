@@ -2,7 +2,10 @@
 
 package wasm
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestMultiSessionScenario(t *testing.T) {
 	sess := harness(t).NewCleanSession(t)
@@ -29,4 +32,21 @@ func TestMultiSessionScenario(t *testing.T) {
 	scenario.ExitToSessionSelector(t)
 	scenario.SwitchToSession(t, scenario.GetSecondSessionIndex())
 	scenario.WaitForLocalBadge(t)
+}
+
+func TestWaitForCountConsumesOwnerUpdates(t *testing.T) {
+	updates := []int{1, 2}
+	calls := 0
+	err := waitForCount(context.Background(), func(context.Context) (int, error) {
+		calls++
+		count := updates[0]
+		updates = updates[1:]
+		return count, nil
+	}, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if calls != 2 {
+		t.Fatalf("wait calls = %d, want 2", calls)
+	}
 }

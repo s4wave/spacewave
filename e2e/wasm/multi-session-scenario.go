@@ -228,27 +228,41 @@ func WaitForPinUnlockOverlay(t testing.TB, page playwright.Page) {
 	}
 }
 
+func waitForCount(ctx context.Context, next func(context.Context) (int, error), want int) error {
+	for {
+		count, err := next(ctx)
+		if err != nil {
+			return err
+		}
+		if count >= want {
+			return nil
+		}
+	}
+}
+
 func (s *MultiSessionScenario) waitForSessionCount(t testing.TB, want int) {
 	t.Helper()
 
 	ctx, cancel := context.WithTimeout(s.h.Context(), 30*time.Second)
 	defer cancel()
+	watch, err := s.session.Root().WatchSessions(ctx)
+	if err != nil {
+		t.Fatalf("watch sessions: %v", err)
+	}
+	defer func() {
+		if err := watch.Close(); err != nil {
+			t.Logf("close session watch: %v", err)
+		}
+	}()
 
-	tick := time.NewTicker(100 * time.Millisecond)
-	defer tick.Stop()
-	for {
-		sessions, err := s.session.Root().ListSessions(ctx)
+	if err := waitForCount(ctx, func(ctx context.Context) (int, error) {
+		resp, err := watch.Recv()
 		if err != nil {
-			t.Fatalf("list sessions: %v", err)
+			return 0, err
 		}
-		if len(sessions) >= want {
-			return
-		}
-		select {
-		case <-ctx.Done():
-			t.Fatalf("wait for %d sessions: %v", want, ctx.Err())
-		case <-tick.C:
-		}
+		return len(resp.GetSessions()), nil
+	}, want); err != nil {
+		t.Fatalf("wait for %d sessions: %v", want, err)
 	}
 }
 
