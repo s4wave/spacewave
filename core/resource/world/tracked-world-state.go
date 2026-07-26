@@ -120,10 +120,35 @@ func (t *TrackedWorldState) trackObjectAccess(key string, rev uint64) {
 	t.stateRoutine.SetState(newSnapshot)
 }
 
+// trackObjectBodyAccesses records the accesses from one batched body read in a
+// single snapshot update, so a large page publishes one state change instead of
+// one per body.
 func (t *TrackedWorldState) trackObjectBodyAccesses(bodies []*world.ObjectBody) {
-	for _, body := range bodies {
-		t.trackObjectAccess(body.ObjectKey, body.Rev)
+	if len(bodies) == 0 {
+		return
 	}
+
+	newSnapshot := t.cloneAndUpdateSnapshot(func(snap *s4wave_world.TrackedWorldStateSnapshot) {
+		existing := make(map[string]*s4wave_world.TrackedWorldStateSnapshot_ObjectAccess, len(snap.ObjectAccesses))
+		for _, objAccess := range snap.ObjectAccesses {
+			existing[objAccess.Key] = objAccess
+		}
+		for _, body := range bodies {
+			if objAccess, ok := existing[body.ObjectKey]; ok {
+				objAccess.Rev = body.Rev
+				continue
+			}
+			objAccess := &s4wave_world.TrackedWorldStateSnapshot_ObjectAccess{
+				Key: body.ObjectKey,
+				Rev: body.Rev,
+			}
+			snap.ObjectAccesses = append(snap.ObjectAccesses, objAccess)
+			existing[body.ObjectKey] = objAccess
+		}
+	})
+
+	t.currentSnapshot = newSnapshot
+	t.stateRoutine.SetState(newSnapshot)
 }
 
 // trackQuadQuery records a quad query access.
