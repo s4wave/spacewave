@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
+import { act, renderHook, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { buildSessionSyncStatusView } from '@s4wave/app/session/SessionSyncStatusContext.js'
 
@@ -6,7 +7,73 @@ import {
   buildStorageHealthView,
   isSafariUserAgent,
   readBrowserStorageHealth,
+  useStorageHealth,
 } from './useStorageHealth.js'
+
+const mockWebDocument = vi.hoisted(() => ({
+  readStoragePersistenceStatus: vi.fn(),
+  requestStoragePersistence: vi.fn(),
+}))
+
+vi.mock('@aptre/bldr-react', () => ({
+  useBldrContext: () => ({ webDocument: mockWebDocument }),
+}))
+
+vi.mock('@s4wave/app/session/SessionStorageStatsContext.js', () => ({
+  useSessionStorageStats: () => ({
+    loading: false,
+    supported: true,
+    totalBytes: 0n,
+    blockCount: 0n,
+  }),
+}))
+
+vi.mock('@s4wave/app/session/SessionSyncStatusContext.js', async (orig) => {
+  const mod =
+    await orig<
+      typeof import('@s4wave/app/session/SessionSyncStatusContext.js')
+    >()
+  return {
+    ...mod,
+    useSessionSyncStatus: () =>
+      mod.buildSessionSyncStatusView(null, false, null),
+  }
+})
+
+describe('useStorageHealth', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    mockWebDocument.readStoragePersistenceStatus.mockReset()
+    mockWebDocument.requestStoragePersistence.mockReset()
+  })
+
+  it('re-reads protection state after an explicit request', async () => {
+    vi.stubGlobal('navigator', {
+      storage: { estimate: async () => ({ usage: 1_024, quota: 4_096 }) },
+      userAgent: 'Mozilla/5.0 Chrome/136.0.0.0 Safari/537.36',
+    })
+    mockWebDocument.readStoragePersistenceStatus.mockResolvedValue(
+      'not-persisted',
+    )
+    mockWebDocument.requestStoragePersistence.mockImplementation(async () => {
+      mockWebDocument.readStoragePersistenceStatus.mockResolvedValue(
+        'persisted',
+      )
+    })
+
+    const { result } = renderHook(() => useStorageHealth())
+    await waitFor(() =>
+      expect(result.current.protectionState).toBe('not-protected'),
+    )
+
+    await act(() => result.current.requestProtection())
+
+    await waitFor(() =>
+      expect(result.current.protectionState).toBe('protected'),
+    )
+    expect(mockWebDocument.requestStoragePersistence).toHaveBeenCalledTimes(1)
+  })
+})
 
 describe('storage health state', () => {
   it('keeps an available estimate when the persistence query fails', async () => {
