@@ -335,7 +335,7 @@ manifest("spacewave-loader",
 
 manifest("spacewave-core",
     builder="bldr/plugin/compiler/go",
-    rev=12,
+    rev=13,
     config=spacewave_core_config(),
 )
 
