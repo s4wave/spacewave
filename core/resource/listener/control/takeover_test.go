@@ -146,6 +146,37 @@ func TestTakeoverSocketNoop(t *testing.T) {
 	}
 }
 
+func TestEnsureSocketAvailableRefusesLiveListener(t *testing.T) {
+	sock := filepath.Join(makeShortTakeoverDir(t, "ensure-live"), "d.sock")
+	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lis.Close()
+
+	err = EnsureSocketAvailable(t.Context(), logrus.NewEntry(logrus.New()), sock)
+	if err == nil {
+		t.Fatal("expected live socket refusal")
+	}
+	if want := "daemon socket " + sock + " is already in use"; err.Error() != want {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestEnsureSocketAvailableRemovesStaleFile(t *testing.T) {
+	sock := filepath.Join(makeShortTakeoverDir(t, "ensure-stale"), "d.sock")
+	if err := os.WriteFile(sock, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := EnsureSocketAvailable(t.Context(), logrus.NewEntry(logrus.New()), sock); err != nil {
+		t.Fatalf("ensure socket available: %v", err)
+	}
+	if _, err := os.Stat(sock); !os.IsNotExist(err) {
+		t.Fatalf("expected stale socket removed; stat err=%v", err)
+	}
+}
+
 // TestTakeoverSocketReclaimsWhenYieldingPeerExitsBeforeCompletion
 // asserts that connection closure after yield is treated as owner
 // death, not as a permanent handoff wait. The stale path is removed

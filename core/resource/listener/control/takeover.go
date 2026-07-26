@@ -13,18 +13,44 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TakeoverSocket ensures that the Unix socket at sockPath is free to
-// be bound. If a live daemon is already listening there, TakeoverSocket
-// issues the daemon-control Shutdown RPC and waits for its completion
-// acknowledgement. If the peer exits after yielding but before sending
-// that acknowledgement, TakeoverSocket observes the closed connection,
-// verifies that no listener remains, and removes the stale socket.
-//
-// Callers must bind directly after a successful return. They must not
-// remove the path: the completed protocol or stale-owner recovery
-// already released it, and a later remove could unlink a concurrent
-// winner's listener.
+// SocketInUseError reports that a live listener already owns the
+// daemon socket and takeover was not requested. The condition is
+// permanent for the refusing process: retrying without takeover
+// cannot succeed while the owner lives.
+type SocketInUseError struct {
+	// Path is the contended socket path.
+	Path string
+}
+
+// Error implements error.
+func (e *SocketInUseError) Error() string {
+	return "daemon socket " + e.Path + " is already in use"
+}
+
+// IsSocketInUse reports whether err wraps a SocketInUseError.
+func IsSocketInUse(err error) bool {
+	var inUse *SocketInUseError
+	return errors.As(err, &inUse)
+}
+
+// TakeoverSocket ensures that the Unix socket at sockPath is free to be
+// bound by requesting a live daemon to yield it or removing a stale file.
 func TakeoverSocket(ctx context.Context, le *logrus.Entry, sockPath string) error {
+	return prepareSocket(ctx, le, sockPath, true)
+}
+
+// EnsureSocketAvailable verifies that the Unix socket at sockPath is free to
+// be bound. A live listener is an error; a stale socket file is removed.
+func EnsureSocketAvailable(ctx context.Context, le *logrus.Entry, sockPath string) error {
+	return prepareSocket(ctx, le, sockPath, false)
+}
+
+func prepareSocket(
+	ctx context.Context,
+	le *logrus.Entry,
+	sockPath string,
+	allowTakeover bool,
+) error {
 	socketInfo, err := os.Stat(sockPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -50,6 +76,10 @@ func TakeoverSocket(ctx context.Context, le *logrus.Entry, sockPath string) erro
 		return nil
 	}
 	defer conn.Close()
+
+	if !allowTakeover {
+		return &SocketInUseError{Path: sockPath}
+	}
 
 	if err := RequestShutdown(ctx, conn); err != nil {
 		var denyErr *DenyError

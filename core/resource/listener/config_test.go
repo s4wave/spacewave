@@ -105,3 +105,39 @@ func TestExplicitSocketPathsTakePrecedenceAndResolve(t *testing.T) {
 		})
 	}
 }
+
+func TestDetermineSocketPathUsesStatePath(t *testing.T) {
+	home := filepath.Join(t.TempDir(), "home")
+	statePath := filepath.Join(t.TempDir(), "state")
+	t.Setenv("HOME", home)
+	t.Setenv("SPACEWAVE_DATA_DIR", "")
+	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
+	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
+
+	got, err := (&Config{StorageProjectId: "spacewave"}).DetermineSocketPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(statePath, "spacewave.sock")
+	if got != want {
+		t.Fatalf("socket path: got %q, want %q", got, want)
+	}
+}
+
+func TestDetermineSocketPathUsesExplicitSocketPath(t *testing.T) {
+	home := filepath.Join(t.TempDir(), "home")
+	statePath := filepath.Join(t.TempDir(), "state")
+	explicit := filepath.Join(t.TempDir(), "explicit.sock")
+	t.Setenv("HOME", home)
+	t.Setenv("SPACEWAVE_DATA_DIR", "")
+	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
+	t.Setenv("SPACEWAVE_SOCKET_PATH", explicit)
+
+	got, err := (&Config{StorageProjectId: "spacewave"}).DetermineSocketPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != explicit {
+		t.Fatalf("socket path: got %q, want %q", got, explicit)
+	}
+}

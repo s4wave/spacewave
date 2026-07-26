@@ -10,10 +10,12 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/gitroot"
 	"github.com/pkg/errors"
+	entrypoint_fatal "github.com/s4wave/spacewave/bldr/entrypoint/fatal"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
@@ -70,6 +72,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	broker := GetProcessYieldBroker()
 
+	// allowTakeover is false on first entry so a live daemon on the
+	// socket is refused rather than displaced, and true when
+	// re-entering after an explicit reclaim signal: the reclaim is a
+	// deliberate user action that authorizes asking the remote
+	// runtime to yield the socket back.
+	allowTakeover := false
 	for {
 		handoff, handoffWaitCh := broker.SnapshotHandoff()
 		if handoffBlocksListener(handoff) {
@@ -81,10 +89,21 @@ func (c *Controller) Execute(ctx context.Context) error {
 				continue
 			}
 		}
-		yielded, err := c.serveOnce(ctx, le, invokers[0], absPath, broker, status)
+		yielded, err := c.serveOnce(ctx, le, invokers[0], absPath, broker, status, allowTakeover)
 		if err != nil {
+			if listener_control.IsSocketInUse(err) {
+				// Another live daemon owns the socket. Retrying under the
+				// controller backoff loop cannot succeed while the owner
+				// lives and would leave this daemon running without its
+				// front door, so surface the conflict as process-fatal
+				// and stop the restart loop.
+				le.WithError(err).Errorf("another daemon owns %s; stop it or run with takeover", absPath)
+				entrypoint_fatal.Report(err)
+				return nil
+			}
 			return err
 		}
+		allowTakeover = false
 		if !yielded || ctx.Err() != nil {
 			return nil
 		}
@@ -96,6 +115,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			return nil
 		case <-reclaimCh:
 			le.Info("reclaim signal received, re-binding socket")
+			allowTakeover = true
 		}
 	}
 }
@@ -104,10 +124,12 @@ func handoffBlocksListener(handoff yield_policy.HandoffState) bool {
 	return handoff.Active
 }
 
-// serveOnce takes over the socket, listens, serves until either the
+// serveOnce prepares the socket, listens, and serves until either the
 // serve context is canceled externally or a daemon-control Shutdown
-// is honored. The returned bool is true when the listener yielded
-// cleanly so the caller can enter the reclaim-wait loop.
+// is honored. When allowTakeover is true a live socket owner is asked
+// to yield; otherwise a live owner is refused with a typed in-use
+// error. The returned bool is true when the listener yielded cleanly
+// so the caller can enter the reclaim-wait loop.
 func (c *Controller) serveOnce(
 	parentCtx context.Context,
 	le *logrus.Entry,
@@ -115,9 +137,14 @@ func (c *Controller) serveOnce(
 	absPath string,
 	broker *yield_policy.Broker,
 	status *StatusBroker,
+	allowTakeover bool,
 ) (bool, error) {
-	if err := listener_control.TakeoverSocket(parentCtx, le, absPath); err != nil {
-		return false, errors.Wrap(err, "takeover socket")
+	prepare := listener_control.EnsureSocketAvailable
+	if allowTakeover {
+		prepare = listener_control.TakeoverSocket
+	}
+	if err := prepare(parentCtx, le, absPath); err != nil {
+		return false, errors.Wrap(err, "prepare socket")
 	}
 	if err := os.MkdirAll(filepath.Dir(absPath), 0o755); err != nil {
 		return false, err
@@ -125,6 +152,13 @@ func (c *Controller) serveOnce(
 
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: absPath, Net: "unix"})
 	if err != nil {
+		if stderrors.Is(err, syscall.EADDRINUSE) {
+			// Two daemons can both pass the availability check before
+			// either binds. The bind loser is the same live-owner
+			// conflict as the pre-bind refusal, so classify it the
+			// same way and let the caller surface it fatally.
+			return false, &listener_control.SocketInUseError{Path: absPath}
+		}
 		return false, err
 	}
 	defer lis.Close()
