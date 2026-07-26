@@ -3004,6 +3004,110 @@ func TestDownloadManifestCopiesSeveralRemoteDAGsOutsideWorldAccess(t *testing.T)
 	}
 }
 
+func TestWatchWorldManifestSkipsUnchangedSelectionInputs(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	baseWS, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	const objKey = "plugin-host"
+	if _, err := bldr_manifest_world.CreateManifestStore(ctx, baseWS, objKey); err != nil {
+		t.Fatal(err.Error())
+	}
+	var worldBucketID string
+	if err := baseWS.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		worldBucketID = cursor.GetOpArgs().GetBucketId()
+		return nil
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	coreRef := newTestStoredManifestRefWithDistInBucket(
+		t,
+		ctx,
+		tb,
+		worldBucketID,
+		"spacewave-core",
+		"desktop/darwin/arm64",
+		1,
+	)
+	coreKey := bldr_manifest.NewManifestKey(objKey, coreRef.GetMeta())
+	if err := bldr_manifest_world.ExStoreManifestOp(ctx, baseWS, peer.ID("test"), coreKey, []string{objKey}, coreRef); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ws := &accessCountingWorldState{WorldState: baseWS}
+	obj, ok, err := baseWS.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatal("expected plugin host object")
+	}
+	host := &testPluginHost{id: "desktop/darwin/arm64"}
+	pi := &pluginInstance{
+		c: &Controller{
+			conf:   &Config{},
+			objKey: objKey,
+		},
+		le:                      le,
+		pluginID:                "spacewave-core",
+		downloadManifestRoutine: routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](le),
+		executePluginRoutine:    routine.NewStateRoutineContainerWithLogger(executePluginArgsEqual, le),
+	}
+	if _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	}, ws, obj); err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := ws.total.Load(); got != 1 {
+		t.Fatalf("initial selection world accesses = %d, want 1", got)
+	}
+
+	webRef := newTestStoredManifestRefWithDistInBucket(
+		t,
+		ctx,
+		tb,
+		worldBucketID,
+		"spacewave-web",
+		"desktop/darwin/arm64",
+		1,
+	)
+	webKey := bldr_manifest.NewManifestKey(objKey, webRef.GetMeta())
+	if err := bldr_manifest_world.ExStoreManifestOp(ctx, baseWS, peer.ID("test"), webKey, []string{objKey}, webRef); err != nil {
+		t.Fatal(err.Error())
+	}
+	obj, ok, err = baseWS.GetObject(ctx, objKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !ok {
+		t.Fatal("expected plugin host object after unrelated manifest store")
+	}
+	if _, err := pi.processManifestWorldState(ctx, le, &pluginHostSet{
+		pluginHosts: []bldr_plugin_host.PluginHost{host},
+	}, ws, obj); err != nil {
+		t.Fatal(err.Error())
+	}
+	if got := ws.total.Load(); got != 1 {
+		t.Fatalf("unchanged selection world accesses = %d, want 1", got)
+	}
+}
+
 func TestDownloadManifestYieldsColdStartCopyUntilStartupGroupReady(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -3617,6 +3721,7 @@ func newTestExternalManifestRefWithDistAssets(
 type accessCountingWorldState struct {
 	world.WorldState
 	active atomic.Int32
+	total  atomic.Int32
 }
 
 func (s *accessCountingWorldState) AccessWorldState(
@@ -3624,6 +3729,7 @@ func (s *accessCountingWorldState) AccessWorldState(
 	ref *bucket.ObjectRef,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
+	s.total.Add(1)
 	s.active.Add(1)
 	defer s.active.Add(-1)
 	return s.WorldState.AccessWorldState(ctx, ref, cb)

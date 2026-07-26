@@ -33,6 +33,9 @@ type pluginInstance struct {
 	loggedNotFound atomic.Bool
 	// manifestCopyAccounting owns demand and copy counters for the selected candidate.
 	manifestCopyAccounting atomic.Pointer[manifestCopyAccounting]
+	// manifestSelectionFingerprint is the last input set fully processed by
+	// watchWorldManifestRoutine.
+	manifestSelectionFingerprint atomic.Pointer[string]
 
 	// runningPluginCtr contains the running plugin ref
 	runningPluginCtr *ccontainer.CContainer[bldr_plugin.RunningPlugin]

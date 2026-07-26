@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aperturerobotics/cayley/quad"
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -72,6 +73,14 @@ func (t *pluginInstance) processManifestWorldState(
 	platformIDs := slices.Collect(maps.Keys(platformIDsMap))
 	slices.Sort(platformIDs)
 	trace.Log(ctx, "platform-ids", strings.Join(platformIDs, ","))
+	selectionFingerprint, err := t.manifestSelectionInputFingerprint(ctx, ws, platformIDs)
+	if err != nil {
+		return true, err
+	}
+	if t.manifestSelectionInputUnchanged(selectionFingerprint) {
+		trace.Log(ctx, "manifest-selection-phase", "skipped-unchanged-inputs")
+		return true, nil
+	}
 
 	// configure logger
 	le = le.WithFields(logrus.Fields{
@@ -124,6 +133,7 @@ func (t *pluginInstance) processManifestWorldState(
 		t.c.clearPluginStatusErrorStage(t.pluginID, t.instanceKey, "startup manifest refs")
 	}
 	if len(manifests) == 0 {
+		t.storeManifestSelectionInputFingerprint(selectionFingerprint)
 		t.c.recordPluginManifestRecoveryStatus(t.pluginID, t.instanceKey, nil, nil, candidateEligibility)
 		// When store is disabled, the fetch handler may drive
 		// execute/download directly from fetched ManifestRefs.
@@ -285,10 +295,79 @@ func (t *pluginInstance) processManifestWorldState(
 				le.WithFields(fields).Debug("selected download and execute manifests for plugin")
 			}
 
-			// done
+			t.storeManifestSelectionInputFingerprint(selectionFingerprint)
 			return nil
 		},
 	)
+}
+
+func (t *pluginInstance) manifestSelectionInputUnchanged(fingerprint string) bool {
+	current := t.manifestSelectionFingerprint.Load()
+	return current != nil && *current == fingerprint
+}
+
+func (t *pluginInstance) storeManifestSelectionInputFingerprint(fingerprint string) {
+	t.manifestSelectionFingerprint.Store(&fingerprint)
+}
+
+func (t *pluginInstance) manifestSelectionInputFingerprint(
+	ctx context.Context,
+	ws world.WorldState,
+	platformIDs []string,
+) (string, error) {
+	var fingerprint strings.Builder
+	fingerprint.WriteString(t.pluginID)
+	for _, platformID := range platformIDs {
+		fingerprint.WriteByte(0)
+		fingerprint.WriteString(platformID)
+	}
+	exactLabel := quad.IRI(t.pluginID).String()
+	quads, err := ws.LookupGraphQuads(
+		ctx,
+		world.NewGraphQuadWithKeys(t.c.objKey, bldr_manifest_world.PredManifest.String(), "", ""),
+		0,
+	)
+	if err != nil {
+		return "", err
+	}
+	slices.SortFunc(quads, func(a, b world.GraphQuad) int {
+		if cmp := strings.Compare(a.GetLabel(), b.GetLabel()); cmp != 0 {
+			return cmp
+		}
+		return strings.Compare(a.GetObj(), b.GetObj())
+	})
+	for _, graphQuad := range quads {
+		if label := graphQuad.GetLabel(); label != exactLabel && label != "" {
+			continue
+		}
+		objKey, err := world.GraphValueToKey(graphQuad.GetObj())
+		if err != nil {
+			return "", err
+		}
+		fingerprint.WriteByte(0)
+		fingerprint.WriteString(graphQuad.GetLabel())
+		fingerprint.WriteByte(0)
+		fingerprint.WriteString(objKey)
+		obj, ok, err := ws.GetObject(ctx, objKey)
+		if err != nil {
+			return "", err
+		}
+		if !ok {
+			fingerprint.WriteString("\x00missing")
+			continue
+		}
+		ref, rev, err := obj.GetRootRef(ctx)
+		if err != nil {
+			return "", err
+		}
+		fingerprint.WriteByte(0)
+		fingerprint.WriteString(strconv.FormatUint(rev, 10))
+		if ref != nil && !ref.GetEmpty() {
+			fingerprint.WriteByte(0)
+			fingerprint.WriteString(ref.MarshalString())
+		}
+	}
+	return fingerprint.String(), nil
 }
 
 const maxStartupManifestSkipSummaryItems = 3
