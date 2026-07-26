@@ -72,17 +72,14 @@ func (s *sessionTracker) beginExecution() *sessionTrackerExecution {
 	return execution
 }
 
-// retireExecution clears a generation and its incoming-session reference.
+// retireExecution clears a generation and reports its lease retirement.
 func (s *sessionTracker) retireExecution(execution *sessionTrackerExecution) {
 	s.w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		if s.execution != execution {
 			return
 		}
 		s.execution = nil
-		if ref := s.w.incomingSessions[s.key]; ref != nil {
-			ref.Release()
-			delete(s.w.incomingSessions, s.key)
-		}
+		s.w.retireSignalIngressLocked(s.key, s)
 		broadcast()
 	})
 }

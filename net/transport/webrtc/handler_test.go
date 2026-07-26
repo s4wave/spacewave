@@ -48,6 +48,27 @@ func (s *testSignalPeerSession) Recv(ctx context.Context) ([]byte, error) {
 	}
 }
 
+func waitForSignalIngress(
+	t *testing.T,
+	tpt *WebRTC,
+	peerID string,
+	resolver *handleSignalPeerResolver,
+) *signalIngress {
+	t.Helper()
+	for {
+		var ingress *signalIngress
+		var waitCh <-chan struct{}
+		tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			ingress = tpt.incomingSessions[peerID]
+			waitCh = getWaitCh()
+		})
+		if ingress != nil && ingress.resolver == resolver {
+			return ingress
+		}
+		<-waitCh
+	}
+}
+
 func TestHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T) {
 	testHandleSignalPeerRetriesRetiredTrackerSignal(t, false)
 }
@@ -97,7 +118,7 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 		conf:             &Config{},
 		peerID:           localPeerID,
 		privKey:          localPriv,
-		incomingSessions: make(map[string]*keyed.KeyedRef[string, *sessionTracker]),
+		incomingSessions: make(map[string]*signalIngress),
 	}
 
 	type executionDelivery struct {
@@ -272,7 +293,7 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 		if dialTracker.execution != nil {
 			t.Error("tracker execution remained published after cancellation")
 		}
-		if ref := tpt.incomingSessions[remotePeerIDStr]; ref != nil {
+		if ingress := tpt.incomingSessions[remotePeerIDStr]; ingress != nil {
 			t.Error("incoming session reference remained after cancellation")
 		}
 	})
@@ -298,7 +319,6 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	remotePeerIDStr := remotePeerID.String()
 
 	sig := &WebRtcSignal{Body: &WebRtcSignal_RequestOffer{RequestOffer: 1}}
 	msg, err := EncodeWebRtcSignal(sig, localPub)
@@ -306,6 +326,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	firstRecvStarted := make(chan struct{}, 2)
+	secondRecvStarted := make(chan struct{}, 1)
 	firstSession := &testSignalPeerSession{
 		localPeerID:  localPeerID,
 		remotePeerID: remotePeerID,
@@ -317,6 +338,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 		localPeerID:  localPeerID,
 		remotePeerID: remotePeerID,
 		recvCh:       make(chan []byte, 1),
+		recvStarted:  secondRecvStarted,
 	}
 	secondSession.recvCh <- msg
 
@@ -325,7 +347,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 		conf:             &Config{},
 		peerID:           localPeerID,
 		privKey:          localPriv,
-		incomingSessions: make(map[string]*keyed.KeyedRef[string, *sessionTracker]),
+		incomingSessions: make(map[string]*signalIngress),
 	}
 
 	firstReceived := make(chan *incomingSignal, 1)
@@ -408,38 +430,21 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 
 	<-firstRecvStarted
 	firstIncoming := <-firstReceived
-	var firstRef *keyed.KeyedRef[string, *sessionTracker]
-	tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		firstRef = tpt.incomingSessions[remotePeerIDStr]
-	})
-	if firstRef == nil {
-		t.Fatal("first resolver did not install its incoming session reference")
-	}
+	firstRef := waitForSignalIngress(t, tpt, remotePeerID.String(), firstResolver).ref
 
-	replacementReady := make(chan struct{})
-	continueReplacement := make(chan struct{})
 	secondCtx, cancelSecond := context.WithCancel(ctx)
 	secondResolverErr := make(chan error, 1)
-	secondResolver := &handleSignalPeerResolver{
-		t:    tpt,
-		sess: secondSession,
-		refStored: func(
-			prev *keyed.KeyedRef[string, *sessionTracker],
-			next *keyed.KeyedRef[string, *sessionTracker],
-		) {
-			if prev == firstRef {
-				close(replacementReady)
-				<-continueReplacement
-			}
-		},
-	}
+	secondResolver := &handleSignalPeerResolver{t: tpt, sess: secondSession}
 	go func() {
 		secondResolverErr <- secondResolver.Resolve(secondCtx, nil)
 	}()
 
-	<-replacementReady
+	<-secondRecvStarted
+	secondRef := waitForSignalIngress(t, tpt, remotePeerID.String(), secondResolver).ref
+	if secondRef == firstRef {
+		t.Fatal("second resolver retained the first ingress reference")
+	}
 	close(acceptFirst)
-	close(continueReplacement)
 	select {
 	case <-trackerStable:
 	case err := <-trackerDone:
@@ -524,14 +529,13 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 		conf:             &Config{},
 		peerID:           localPeerID,
 		privKey:          localPriv,
-		incomingSessions: make(map[string]*keyed.KeyedRef[string, *sessionTracker]),
+		incomingSessions: make(map[string]*signalIngress),
 	}
 
 	firstReceived := make(chan *incomingSignal, 1)
 	secondReceived := make(chan *incomingSignal, 1)
-	retireTracker := make(chan struct{})
-	trackerRetired := make(chan struct{})
 	trackerDone := make(chan error, 1)
+	trackerContextDone := make(chan struct{})
 	var tracker *sessionTracker
 	tpt.sessionTrackers = keyed.NewKeyedRefCount(
 		func(key string) (keyed.Routine, *sessionTracker) {
@@ -545,10 +549,10 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 			tracker = tkr
 			return func(ctx context.Context) (err error) {
 				execution := tkr.beginExecution()
-				defer tkr.retireExecution(execution)
 				defer func() {
 					trackerDone <- err
 				}()
+				defer tkr.retireExecution(execution)
 
 				var incoming *incomingSignal
 				select {
@@ -565,96 +569,41 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 				}
 				secondReceived <- incoming
 
-				select {
-				case <-ctx.Done():
-					return context.Canceled
-				case <-retireTracker:
-				}
-				tkr.retireExecution(execution)
-				close(trackerRetired)
-				return nil
+				<-ctx.Done()
+				close(trackerContextDone)
+				return context.Canceled
 			}, tkr
 		},
 	)
 	tpt.sessionTrackers.SetContext(ctx, true)
 	t.Cleanup(tpt.sessionTrackers.ClearContext)
 
-	releaseCalls := make(chan *keyed.KeyedRef[string, *sessionTracker], 4)
-	refReplaced := make(chan [2]*keyed.KeyedRef[string, *sessionTracker], 1)
-	continueReplacement := make(chan struct{})
-	releaseRef := func(ref *keyed.KeyedRef[string, *sessionTracker]) {
-		releaseCalls <- ref
-		ref.Release()
-	}
-	refStored := func(
-		prev *keyed.KeyedRef[string, *sessionTracker],
-		next *keyed.KeyedRef[string, *sessionTracker],
-	) {
-		if prev != nil {
-			refReplaced <- [2]*keyed.KeyedRef[string, *sessionTracker]{prev, next}
-			<-continueReplacement
-		}
-	}
-
 	firstCtx, cancelFirst := context.WithCancel(ctx)
 	firstResolverErr := make(chan error, 1)
-	firstResolver := &handleSignalPeerResolver{
-		t:          tpt,
-		sess:       firstSession,
-		releaseRef: releaseRef,
-		refStored:  refStored,
-	}
+	firstResolver := &handleSignalPeerResolver{t: tpt, sess: firstSession}
 	go func() {
 		firstResolverErr <- firstResolver.Resolve(firstCtx, nil)
 	}()
 
 	<-firstRecvStarted
 	firstIncoming := <-firstReceived
-	var firstRef *keyed.KeyedRef[string, *sessionTracker]
-	tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		firstRef = tpt.incomingSessions[remotePeerIDStr]
-	})
-	if firstRef == nil {
-		t.Fatal("first resolver did not install its incoming session reference")
-	}
+	firstRef := waitForSignalIngress(t, tpt, remotePeerIDStr, firstResolver).ref
 
 	secondCtx, cancelSecond := context.WithCancel(ctx)
 	secondResolverErr := make(chan error, 1)
-	secondResolver := &handleSignalPeerResolver{
-		t:          tpt,
-		sess:       secondSession,
-		releaseRef: releaseRef,
-		refStored:  refStored,
-	}
+	secondResolver := &handleSignalPeerResolver{t: tpt, sess: secondSession}
 	go func() {
 		secondResolverErr <- secondResolver.Resolve(secondCtx, nil)
 	}()
 
 	<-secondRecvStarted
-	replaced := <-refReplaced
-	if replaced[0] != firstRef {
-		close(continueReplacement)
-		t.Fatal("overlapping resolver replaced an unexpected reference")
-	}
-	select {
-	case released := <-releaseCalls:
-		if released != firstRef {
-			close(continueReplacement)
-			t.Fatal("overlapping resolver released an unexpected reference")
-		}
-	default:
-		close(continueReplacement)
-		t.Fatal("overlapping resolver did not release the superseded reference")
-	}
-
+	secondRef := waitForSignalIngress(t, tpt, remotePeerIDStr, secondResolver).ref
 	firstLiveSession := &session{t: tracker}
 	firstLiveSession.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		firstLiveSession.acceptIncomingSignalLocked(firstIncoming)
 	})
-	close(continueReplacement)
 
 	secondIncoming := <-secondReceived
-	secondRef := replaced[1]
 	if secondRef == nil || secondRef == firstRef {
 		t.Fatal("second resolver did not install a distinct incoming session reference")
 	}
@@ -663,39 +612,33 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 		secondLiveSession.acceptIncomingSignalLocked(secondIncoming)
 	})
 
-	<-firstRecvStarted
-	<-secondRecvStarted
-	close(retireTracker)
-	<-trackerRetired
-	if err := <-trackerDone; err != nil {
-		t.Fatalf("tracker returned %v, want nil", err)
+	cancelSecond()
+	if err := <-secondResolverErr; err != context.Canceled {
+		t.Fatalf("second resolver returned %v, want context canceled", err)
 	}
-
+	var currentIngress *signalIngress
 	tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		if ref := tpt.incomingSessions[remotePeerIDStr]; ref != nil {
-			t.Errorf("incoming session reference remained after retirement: %p", ref)
-		}
+		currentIngress = tpt.incomingSessions[remotePeerIDStr]
 	})
+	if currentIngress != nil {
+		t.Fatalf(
+			"final resolver release retained ingress owned by %p (first=%t second=%t), want nil",
+			currentIngress.resolver,
+			currentIngress.resolver == firstResolver,
+			currentIngress.resolver == secondResolver,
+		)
+	}
 	if keys := tpt.sessionTrackers.GetKeys(); len(keys) != 0 {
-		t.Fatalf("session trackers still registered after both references released: %v", keys)
+		t.Fatalf("session tracker remained after final resolver release: %v", keys)
+	}
+	<-trackerContextDone
+	if err := <-trackerDone; err != context.Canceled {
+		t.Fatalf("tracker returned %v, want context canceled", err)
 	}
 
 	cancelFirst()
 	if err := <-firstResolverErr; err != context.Canceled {
 		t.Fatalf("first resolver returned %v, want context canceled", err)
-	}
-	cancelSecond()
-	if err := <-secondResolverErr; err != context.Canceled {
-		t.Fatalf("second resolver returned %v, want context canceled", err)
-	}
-
-	select {
-	case released := <-releaseCalls:
-		if released == secondRef {
-			t.Fatal("resolver released the reference already released by tracker retirement")
-		}
-		t.Fatalf("resolver released superseded reference %p more than once", released)
-	default:
 	}
 }
 
@@ -737,7 +680,7 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 		conf:             &Config{},
 		peerID:           localPeerID,
 		privKey:          localPriv,
-		incomingSessions: make(map[string]*keyed.KeyedRef[string, *sessionTracker]),
+		incomingSessions: make(map[string]*signalIngress),
 	}
 
 	type replacementResult struct {
