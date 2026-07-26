@@ -3,11 +3,10 @@ package scenario
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"strings"
-	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/e2e/runtime"
 )
 
@@ -15,9 +14,13 @@ import (
 type Status string
 
 const (
-	StatusPass   Status = "PASS"
-	StatusFail   Status = "FAIL"
-	StatusSkip   Status = "SKIP"
+	// StatusPass marks a selected scenario that completed successfully.
+	StatusPass Status = "PASS"
+	// StatusFail marks a selected scenario that failed in the runtime.
+	StatusFail Status = "FAIL"
+	// StatusSkip marks a selected scenario that the runtime cannot support.
+	StatusSkip Status = "SKIP"
+	// StatusNotRun marks a scenario that was filtered out by tags.
 	StatusNotRun Status = "NOT RUN"
 )
 
@@ -43,7 +46,7 @@ type Row struct {
 	Reason   string
 }
 
-// Report contains one row for every registered scenario on the runtime.
+// Report contains one row for every scenario in the registry.
 type Report struct {
 	Rows []Row
 }
@@ -54,48 +57,54 @@ func (r Report) String() string {
 	var b strings.Builder
 	b.WriteString("SCENARIO\tRUNTIME\tSTATUS\tREASON\n")
 	for _, row := range r.Rows {
-		fmt.Fprintf(&b, "%s\t%s\t%s\t%s\n", row.Scenario, row.Runtime, row.Status, row.Reason)
+		b.WriteString(row.Scenario)
+		b.WriteByte('\t')
+		b.WriteString(row.Runtime)
+		b.WriteByte('\t')
+		b.WriteString(string(row.Status))
+		b.WriteByte('\t')
+		b.WriteString(row.Reason)
+		b.WriteByte('\n')
 	}
 	return b.String()
 }
 
-var (
-	registryMu sync.RWMutex
-	registry   []Scenario
-)
-
-// Register adds a compile-time scenario registration to the catalog.
-func Register(s Scenario) {
-	if s.Name == "" {
-		panic("scenario name is required")
-	}
-	if s.Run == nil {
-		panic("scenario run function is required: " + s.Name)
-	}
-	if !s.Session.Valid() {
-		panic("invalid session requirement for scenario " + s.Name + ": " + string(s.Session))
-	}
-	if len(s.Tags) == 0 {
-		panic("scenario tags are required: " + s.Name)
-	}
-
-	registryMu.Lock()
-	defer registryMu.Unlock()
-	for _, existing := range registry {
-		if existing.Name == s.Name {
-			panic("duplicate scenario registration: " + s.Name)
-		}
-	}
-	s.Tags = slices.Clone(s.Tags)
-	registry = append(registry, s)
+// Registry validates and owns an explicit scenario catalog.
+type Registry struct {
+	scenarios []Scenario
 }
 
-// All returns the registered scenarios in declaration order.
-func All() []Scenario {
-	registryMu.RLock()
-	defer registryMu.RUnlock()
-	out := make([]Scenario, len(registry))
-	copy(out, registry)
+// NewRegistry constructs a scenario registry from an explicit catalog.
+func NewRegistry(scenarios ...Scenario) *Registry {
+	seen := make(map[string]struct{}, len(scenarios))
+	out := make([]Scenario, len(scenarios))
+	for index, s := range scenarios {
+		if s.Name == "" {
+			panic("scenario name is required")
+		}
+		if s.Run == nil {
+			panic("scenario run function is required: " + s.Name)
+		}
+		if !s.Session.Valid() {
+			panic("invalid session requirement for scenario " + s.Name + ": " + string(s.Session))
+		}
+		if len(s.Tags) == 0 {
+			panic("scenario tags are required: " + s.Name)
+		}
+		if _, ok := seen[s.Name]; ok {
+			panic("duplicate scenario registration: " + s.Name)
+		}
+		seen[s.Name] = struct{}{}
+		s.Tags = slices.Clone(s.Tags)
+		out[index] = s
+	}
+	return &Registry{scenarios: out}
+}
+
+// All returns the registry scenarios in declaration order.
+func (r *Registry) All() []Scenario {
+	out := make([]Scenario, len(r.scenarios))
+	copy(out, r.scenarios)
 	for i := range out {
 		out[i].Tags = slices.Clone(out[i].Tags)
 	}
@@ -133,11 +142,11 @@ func selected(s Scenario, tags []string) bool {
 	return false
 }
 
-// Run executes selected registrations and emits NOT RUN rows for the rest.
-// Selected scenarios are stably grouped by session boundary so warm scenarios
-// share one session while declared boundaries remain explicit and ordered.
-func Run(ctx context.Context, rt runtime.Runtime, tags []string) Report {
-	scenarios := All()
+// Run executes selected scenarios in declaration order and emits NOT RUN rows
+// for the rest. Declared session boundaries reset only the scenario that owns
+// them; warm scenarios inherit the current runtime state.
+func (r *Registry) Run(ctx context.Context, rt runtime.Runtime, tags []string) Report {
+	scenarios := r.All()
 	selectedScenarios := make([]Scenario, 0, len(scenarios))
 	report := Report{Rows: make([]Row, len(scenarios))}
 	for index, s := range scenarios {
@@ -151,16 +160,13 @@ func Run(ctx context.Context, rt runtime.Runtime, tags []string) Report {
 			selectedScenarios = append(selectedScenarios, s)
 		}
 	}
-	slices.SortStableFunc(selectedScenarios, func(a, b Scenario) int {
-		return sessionRank(a.Session) - sessionRank(b.Session)
-	})
 
 	for _, s := range selectedScenarios {
 		row := Row{Scenario: s.Name, Runtime: rt.Name()}
 		if s.Session != runtime.SessionAny {
 			if err := rt.ResetSession(s.Session); err != nil {
 				row.Status = StatusFail
-				row.Reason = fmt.Errorf("reset %s: %w", s.Session, err).Error()
+				row.Reason = errors.Wrapf(err, "reset %s", s.Session).Error()
 				report.setRow(row)
 				continue
 			}
@@ -172,23 +178,13 @@ func Run(ctx context.Context, rt runtime.Runtime, tags []string) Report {
 				row.Status = StatusSkip
 				row.Reason = runtime.SkipReason(err)
 			}
-		} else {
-			row.Status = StatusPass
+			report.setRow(row)
+			continue
 		}
+		row.Status = StatusPass
 		report.setRow(row)
 	}
 	return report
-}
-
-func sessionRank(requirement runtime.SessionRequirement) int {
-	switch requirement {
-	case runtime.SessionFreshInstall:
-		return 0
-	case runtime.SessionFresh:
-		return 1
-	default:
-		return 2
-	}
 }
 
 func (r *Report) setRow(row Row) {
@@ -217,24 +213,14 @@ func (r Report) ValidateExpected(expected []Expectation) error {
 	for _, want := range expected {
 		row := r.Row(want.Scenario, want.Runtime)
 		if row.Scenario == "" {
-			return fmt.Errorf("expected scenario row is missing: %s on %s", want.Scenario, want.Runtime)
+			return errors.Errorf("expected scenario row is missing: %s on %s", want.Scenario, want.Runtime)
 		}
 		if row.Status == StatusNotRun {
-			return fmt.Errorf("expected scenario %s on %s was not run: %s", want.Scenario, want.Runtime, row.Reason)
+			return errors.Errorf("expected scenario %s on %s was not run: %s", want.Scenario, want.Runtime, row.Reason)
 		}
 		if row.Status == StatusFail {
-			return fmt.Errorf("expected scenario %s on %s failed: %s", want.Scenario, want.Runtime, row.Reason)
+			return errors.Errorf("expected scenario %s on %s failed: %s", want.Scenario, want.Runtime, row.Reason)
 		}
 	}
 	return nil
-}
-
-func registrySnapshot() []Scenario {
-	return All()
-}
-
-func setRegistryForTest(scenarios []Scenario) {
-	registryMu.Lock()
-	defer registryMu.Unlock()
-	registry = slices.Clone(scenarios)
 }

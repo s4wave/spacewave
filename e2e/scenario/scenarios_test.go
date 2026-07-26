@@ -4,17 +4,25 @@ package scenario
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 
 	"github.com/s4wave/spacewave/e2e/runtime/devwasm"
+	"github.com/s4wave/spacewave/e2e/wasm"
+	"github.com/sirupsen/logrus"
 )
 
-func TestScenarios(t *testing.T) {
-	if os.Getenv("ENABLE_E2E_WASM") != "true" {
-		t.Skip("set ENABLE_E2E_WASM=true to run browser scenarios")
+// TIER: pr
+func TestMain(m *testing.M) {
+	if !wasm.E2EWasmEnabled() {
+		logrus.NewEntry(logrus.New()).Info("skipping e2e/scenario package; set ENABLE_E2E_WASM=true to run")
+		os.Exit(0)
 	}
+	os.Exit(m.Run())
+}
+
+func TestScenarios(t *testing.T) {
+	registry := NewRegistry(DriveScenarios()...)
 	tags := ParseTags(os.Getenv("E2E_SCENARIO_TAGS"))
 	adapter, err := devwasm.New(context.Background(), devwasm.Options{})
 	if err != nil {
@@ -22,10 +30,12 @@ func TestScenarios(t *testing.T) {
 	}
 	defer adapter.Close()
 
-	report := Run(context.Background(), adapter, tags)
-	fmt.Print(report.String())
+	report := registry.Run(context.Background(), adapter, tags)
+	if _, err := os.Stdout.WriteString(report.String()); err != nil {
+		t.Fatal(err)
+	}
 	var expected []Expectation
-	for _, s := range All() {
+	for _, s := range registry.All() {
 		selected := len(tags) == 0
 		for _, tag := range tags {
 			for _, scenarioTag := range s.Tags {

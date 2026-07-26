@@ -23,3 +23,20 @@ func TestNeedsDocumentLoadOnlyForBlankPages(t *testing.T) {
 		t.Fatal("loaded page should use client-side navigation")
 	}
 }
+
+func TestWarmRouteHashUsesAppRoute(t *testing.T) {
+	tests := []struct {
+		route    string
+		expected string
+	}{
+		{route: "/quickstart/drive", expected: "#/quickstart/drive"},
+		{route: "/settings", expected: "#/settings"},
+	}
+	for _, test := range tests {
+		t.Run(test.route, func(t *testing.T) {
+			if got := warmRouteHash(test.route); got != test.expected {
+				t.Fatalf("warmRouteHash(%q) = %q, want %q", test.route, got, test.expected)
+			}
+		})
+	}
+}

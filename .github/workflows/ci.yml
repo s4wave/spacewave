@@ -304,6 +304,9 @@ jobs:
             tags: drive
             run: '^TestScenarios$'
             timeout_minutes: 40
+          - name: drive-retained
+            run: '^(TestQuickstartDriveVideoPreview|TestExistingDriveOpenMeasurement|TestDriveNavigationBurstTrace|TestGoScriptDriveBrowserPreviewRenameUIParity)$'
+            timeout_minutes: 40
           - name: forge-blog
             run: '^(TestQuickstartForge(Route|Trace)|TestForge(ScenarioSequence|WorkerExecution)|TestBlog(CoexistenceScenario|QuickstartSetupProbe|QuickstartRetainedStateRegistrationProbe))$'
             timeout_minutes: 20

@@ -34,39 +34,39 @@ func (r testRuntime) ResetSession(requirement runtime.SessionRequirement) error 
 	return nil
 }
 
-func TestRunnerUsesDeclaredSessionBoundariesAndGroupsWarmScenarios(t *testing.T) {
+func TestRunnerUsesDeclaredOrderAndSessionBoundaries(t *testing.T) {
 	var calls []string
 	reset := func(requirement runtime.SessionRequirement) error {
 		calls = append(calls, "reset:"+string(requirement))
 		return nil
 	}
 	rt := &recordingRuntime{testRuntime: testRuntime{name: "devwasm"}, reset: reset}
-	replaceRegistryForTest(t, []Scenario{
-		{Name: "warm-after-install", Tags: []string{"drive"}, Session: runtime.SessionAny, Run: func(context.Context, runtime.Runtime) error {
+	registry := NewRegistry(
+		Scenario{Name: "warm-after-install", Tags: []string{"drive"}, Session: runtime.SessionAny, Run: func(context.Context, runtime.Runtime) error {
 			calls = append(calls, "warm-after-install")
 			return nil
 		}},
-		{Name: "fresh-page", Tags: []string{"drive"}, Session: runtime.SessionFresh, Run: func(context.Context, runtime.Runtime) error {
+		Scenario{Name: "fresh-page", Tags: []string{"drive"}, Session: runtime.SessionFresh, Run: func(context.Context, runtime.Runtime) error {
 			calls = append(calls, "fresh-page")
 			return nil
 		}},
-		{Name: "fresh-install", Tags: []string{"drive"}, Session: runtime.SessionFreshInstall, Run: func(context.Context, runtime.Runtime) error {
+		Scenario{Name: "fresh-install", Tags: []string{"drive"}, Session: runtime.SessionFreshInstall, Run: func(context.Context, runtime.Runtime) error {
 			calls = append(calls, "fresh-install")
 			return nil
 		}},
-		{Name: "warm-before-install", Tags: []string{"drive"}, Session: runtime.SessionAny, Run: func(context.Context, runtime.Runtime) error {
+		Scenario{Name: "warm-before-install", Tags: []string{"drive"}, Session: runtime.SessionAny, Run: func(context.Context, runtime.Runtime) error {
 			calls = append(calls, "warm-before-install")
 			return nil
 		}},
-	})
+	)
 
-	report := Run(context.Background(), rt, []string{"drive"})
+	report := registry.Run(context.Background(), rt, []string{"drive"})
 	if got, want := calls, []string{
-		"reset:fresh-install",
-		"fresh-install",
+		"warm-after-install",
 		"reset:fresh-session",
 		"fresh-page",
-		"warm-after-install",
+		"reset:fresh-install",
+		"fresh-install",
 		"warm-before-install",
 	}; !slices.Equal(got, want) {
 		t.Fatalf("runner calls = %v, want %v", got, want)
@@ -75,12 +75,14 @@ func TestRunnerUsesDeclaredSessionBoundariesAndGroupsWarmScenarios(t *testing.T)
 		t.Fatalf("report rows = %d, want 4", len(report.Rows))
 	}
 }
+
 func TestDriveScenarioBoundariesCoverFirstUseAndRecovery(t *testing.T) {
-	scenarios := registrySnapshot()
+	scenarios := NewRegistry(DriveScenarios()...).All()
 	want := map[string]runtime.SessionRequirement{
 		"drive.first-use.landing":     runtime.SessionFreshInstall,
 		"drive.first-use.direct":      runtime.SessionFreshInstall,
 		"drive.upload-crash-recovery": runtime.SessionFresh,
+		"drive.row-move":              runtime.SessionFreshInstall,
 	}
 	for name, requirement := range want {
 		var found bool
@@ -110,13 +112,12 @@ func (r *recordingRuntime) ResetSession(requirement runtime.SessionRequirement) 
 }
 
 func TestReportIncludesNotRunRowsAndValidatesExpectedScenarios(t *testing.T) {
-	old := replaceRegistryForTest(t, []Scenario{
-		{Name: "drive.first-use", Tags: []string{"drive", "first-use"}, Run: func(context.Context, runtime.Runtime) error { return nil }},
-		{Name: "drive.upload", Tags: []string{"drive", "upload"}, Run: func(context.Context, runtime.Runtime) error { return nil }},
-	})
-	_ = old
+	registry := NewRegistry(
+		Scenario{Name: "drive.first-use", Tags: []string{"drive", "first-use"}, Run: func(context.Context, runtime.Runtime) error { return nil }},
+		Scenario{Name: "drive.upload", Tags: []string{"drive", "upload"}, Run: func(context.Context, runtime.Runtime) error { return nil }},
+	)
 
-	report := Run(context.Background(), testRuntime{name: "devwasm"}, []string{"first-use"})
+	report := registry.Run(context.Background(), testRuntime{name: "devwasm"}, []string{"first-use"})
 	if got := report.Row("drive.first-use", "devwasm"); got.Status != StatusPass {
 		t.Fatalf("first-use row = %+v", got)
 	}
@@ -129,11 +130,11 @@ func TestReportIncludesNotRunRowsAndValidatesExpectedScenarios(t *testing.T) {
 }
 
 func TestReportRejectsMissingExpectedScenario(t *testing.T) {
-	replaceRegistryForTest(t, []Scenario{
-		{Name: "drive.first-use", Tags: []string{"drive"}, Run: func(context.Context, runtime.Runtime) error { return nil }},
-	})
+	registry := NewRegistry(
+		Scenario{Name: "drive.first-use", Tags: []string{"drive"}, Run: func(context.Context, runtime.Runtime) error { return nil }},
+	)
 
-	report := Run(context.Background(), testRuntime{name: "devwasm"}, []string{"drive"})
+	report := registry.Run(context.Background(), testRuntime{name: "devwasm"}, []string{"drive"})
 	err := report.ValidateExpected([]Expectation{{Scenario: "drive.navigation", Runtime: "devwasm"}})
 	if err == nil || !strings.Contains(err.Error(), "drive.navigation") {
 		t.Fatalf("expected missing scenario error, got %v", err)
@@ -141,26 +142,18 @@ func TestReportRejectsMissingExpectedScenario(t *testing.T) {
 }
 
 func TestRunnerRecordsSkipAndFailureReasons(t *testing.T) {
-	replaceRegistryForTest(t, []Scenario{
-		{Name: "unsupported", Tags: []string{"drive"}, Run: func(context.Context, runtime.Runtime) error {
+	registry := NewRegistry(
+		Scenario{Name: "unsupported", Tags: []string{"drive"}, Run: func(context.Context, runtime.Runtime) error {
 			return runtime.Unsupported("reload page", "devwasm cannot reload")
 		}},
-		{Name: "failed", Tags: []string{"drive"}, Run: func(context.Context, runtime.Runtime) error { return errors.New("assertion failed") }},
-	})
+		Scenario{Name: "failed", Tags: []string{"drive"}, Run: func(context.Context, runtime.Runtime) error { return errors.New("assertion failed") }},
+	)
 
-	report := Run(context.Background(), testRuntime{name: "devwasm"}, []string{"drive"})
+	report := registry.Run(context.Background(), testRuntime{name: "devwasm"}, []string{"drive"})
 	if got := report.Row("unsupported", "devwasm"); got.Status != StatusSkip || got.Reason != "devwasm cannot reload" {
 		t.Fatalf("unsupported row = %+v", got)
 	}
 	if got := report.Row("failed", "devwasm"); got.Status != StatusFail || got.Reason != "assertion failed" {
 		t.Fatalf("failed row = %+v", got)
 	}
-}
-
-func replaceRegistryForTest(t *testing.T, scenarios []Scenario) []Scenario {
-	t.Helper()
-	old := registrySnapshot()
-	setRegistryForTest(scenarios)
-	t.Cleanup(func() { setRegistryForTest(old) })
-	return old
 }

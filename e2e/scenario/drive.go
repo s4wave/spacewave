@@ -2,8 +2,8 @@ package scenario
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/e2e/runtime"
 )
 
@@ -12,15 +12,58 @@ const starterFile = "getting-started.md"
 const crashRecoveryUploadName = "e2e-upload-recovery.bin"
 const crashRecoveryUploadSize = 8 * 1024 * 1024
 
-func init() {
-	Register(Scenario{Name: "drive.first-use.landing", Tags: []string{"drive", "first-use"}, Session: runtime.SessionFreshInstall, Run: driveFirstUse("/")})
-	Register(Scenario{Name: "drive.first-use.direct", Tags: []string{"drive", "first-use"}, Session: runtime.SessionFreshInstall, Run: driveFirstUse("/quickstart/drive")})
-	Register(Scenario{Name: "drive.navigation.nested-home", Tags: []string{"drive", "navigation"}, Session: runtime.SessionAny, Run: driveNestedHome})
-	Register(Scenario{Name: "drive.navigation.history", Tags: []string{"drive", "navigation"}, Session: runtime.SessionAny, Run: driveNavigationHistory})
-	Register(Scenario{Name: "drive.upload", Tags: []string{"drive", "upload"}, Session: runtime.SessionAny, Run: driveUpload})
-	Register(Scenario{Name: "drive.upload-crash-recovery", Tags: []string{"drive", "upload", "recovery"}, Session: runtime.SessionFresh, Run: driveUploadCrashRecovery})
-	Register(Scenario{Name: "drive.row-move", Tags: []string{"drive", "row-move"}, Session: runtime.SessionAny, Run: driveRowMove})
-	Register(Scenario{Name: "drive.space-delete", Tags: []string{"drive", "space-lifecycle"}, Session: runtime.SessionAny, Run: driveSpaceDelete})
+// DriveScenarios returns the Drive scenario catalog in execution order.
+func DriveScenarios() []Scenario {
+	return []Scenario{
+		{
+			Name:    "drive.first-use.landing",
+			Tags:    []string{"drive", "first-use"},
+			Session: runtime.SessionFreshInstall,
+			Run:     driveFirstUse("/"),
+		},
+		{
+			Name:    "drive.first-use.direct",
+			Tags:    []string{"drive", "first-use"},
+			Session: runtime.SessionFreshInstall,
+			Run:     driveFirstUse("/quickstart/drive"),
+		},
+		{
+			Name:    "drive.navigation.nested-home",
+			Tags:    []string{"drive", "navigation"},
+			Session: runtime.SessionAny,
+			Run:     driveNestedHome,
+		},
+		{
+			Name:    "drive.navigation.history",
+			Tags:    []string{"drive", "navigation"},
+			Session: runtime.SessionAny,
+			Run:     driveNavigationHistory,
+		},
+		{
+			Name:    "drive.upload",
+			Tags:    []string{"drive", "upload"},
+			Session: runtime.SessionAny,
+			Run:     driveUpload,
+		},
+		{
+			Name:    "drive.upload-crash-recovery",
+			Tags:    []string{"drive", "upload", "recovery"},
+			Session: runtime.SessionFresh,
+			Run:     driveUploadCrashRecovery,
+		},
+		{
+			Name:    "drive.row-move",
+			Tags:    []string{"drive", "row-move"},
+			Session: runtime.SessionFreshInstall,
+			Run:     driveRowMove,
+		},
+		{
+			Name:    "drive.space-delete",
+			Tags:    []string{"drive", "space-lifecycle"},
+			Session: runtime.SessionAny,
+			Run:     driveSpaceDelete,
+		},
+	}
 }
 
 func driveUploadCrashRecovery(_ context.Context, rt runtime.Runtime) error {
@@ -36,7 +79,7 @@ func driveUploadCrashRecovery(_ context.Context, rt runtime.Runtime) error {
 		return err
 	}
 	if err := rt.ExpectVisible("Uploading 1/1"); err != nil {
-		return fmt.Errorf("upload did not enter active state: %w", err)
+		return errors.Wrap(err, "upload did not enter active state")
 	}
 	if err := rt.ReloadPage(); err != nil {
 		return err
@@ -48,19 +91,19 @@ func driveUploadCrashRecovery(_ context.Context, rt runtime.Runtime) error {
 		return err
 	}
 	if err := rt.UploadFile("input[type='file']", file); err != nil {
-		return fmt.Errorf("retry interrupted upload: %w", err)
+		return errors.Wrap(err, "retry interrupted upload")
 	}
 	if err := rt.ExpectVisible("1/1 uploaded"); err != nil {
-		return fmt.Errorf("recovered upload completion: %w", err)
+		return errors.Wrap(err, "recovered upload completion")
 	}
 	if err := rt.ExpectVisible(crashRecoveryUploadName); err != nil {
-		return fmt.Errorf("recovered upload entry: %w", err)
+		return errors.Wrap(err, "recovered upload entry")
 	}
 	if err := rt.ExpectAbsent("Uploading"); err != nil {
-		return fmt.Errorf("recovered upload still active: %w", err)
+		return errors.Wrap(err, "recovered upload still active")
 	}
 	if err := rt.ExpectAbsent("Queued"); err != nil {
-		return fmt.Errorf("recovered upload still queued: %w", err)
+		return errors.Wrap(err, "recovered upload still queued")
 	}
 	return rt.ExpectAbsent("Failed")
 }
@@ -87,7 +130,7 @@ func driveFirstUse(route string) func(context.Context, runtime.Runtime) error {
 			return err
 		}
 		if err := rt.ExpectVisible(starterFile); err != nil {
-			return fmt.Errorf("starter file: %w", err)
+			return errors.Wrap(err, "starter file")
 		}
 		return rt.ExpectRoute("/u/")
 	}
@@ -106,7 +149,7 @@ func prepareDrive(rt runtime.Runtime) error {
 func driveNavigationHistory(_ context.Context, rt runtime.Runtime) error {
 	step := func(name string, fn func() error) error {
 		if err := fn(); err != nil {
-			return fmt.Errorf("%s: %w", name, err)
+			return errors.Wrap(err, name)
 		}
 		return nil
 	}
@@ -140,7 +183,7 @@ func driveNavigationHistory(_ context.Context, rt runtime.Runtime) error {
 func driveNestedHome(_ context.Context, rt runtime.Runtime) error {
 	step := func(name string, fn func() error) error {
 		if err := fn(); err != nil {
-			return fmt.Errorf("%s: %w", name, err)
+			return errors.Wrap(err, name)
 		}
 		return nil
 	}
@@ -171,20 +214,30 @@ func driveNestedHome(_ context.Context, rt runtime.Runtime) error {
 }
 
 func driveUpload(_ context.Context, rt runtime.Runtime) error {
+	return driveUploadFile(rt, "e2e-upload.txt")
+}
+
+func driveUploadFile(rt runtime.Runtime, name string) error {
 	if err := prepareDrive(rt); err != nil {
 		return err
 	}
-	if err := rt.UploadFile("input[type='file']", runtime.File{Name: "e2e-upload.txt", MIMEType: "text/plain", Contents: []byte("e2e upload contents")}); err != nil {
+	file := runtime.File{
+		Name:     name,
+		MIMEType: "text/plain",
+		Contents: []byte("e2e upload contents"),
+	}
+	if err := rt.UploadFile("input[type='file']", file); err != nil {
 		return err
 	}
 	if err := rt.ExpectVisible("1/1 uploaded"); err != nil {
-		return fmt.Errorf("upload completion: %w", err)
+		return errors.Wrap(err, "upload completion")
 	}
-	return rt.ExpectVisible("e2e-upload.txt")
+	return rt.ExpectVisible(name)
 }
 
 func driveRowMove(_ context.Context, rt runtime.Runtime) error {
-	if err := driveUpload(context.Background(), rt); err != nil {
+	source := "e2e-move-source.txt"
+	if err := driveUploadFile(rt, source); err != nil {
 		return err
 	}
 	if err := rt.ClickControl("new-folder"); err != nil {
@@ -199,16 +252,16 @@ func driveRowMove(_ context.Context, rt runtime.Runtime) error {
 	if err := rt.ExpectVisible("e2e-move-target"); err != nil {
 		return err
 	}
-	if err := rt.MoveContent("e2e-upload.txt", "e2e-move-target"); err != nil {
+	if err := rt.MoveContent(source, "e2e-move-target"); err != nil {
 		return err
 	}
-	if err := rt.ExpectAbsent("e2e-upload.txt"); err != nil {
+	if err := rt.ExpectAbsent(source); err != nil {
 		return err
 	}
 	if err := rt.DoubleClickContent("e2e-move-target"); err != nil {
 		return err
 	}
-	return rt.ExpectVisible("e2e-upload.txt")
+	return rt.ExpectVisible(source)
 }
 
 func driveSpaceDelete(_ context.Context, rt runtime.Runtime) error {

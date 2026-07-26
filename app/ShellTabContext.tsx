@@ -145,6 +145,8 @@ function normalizeLocalOrder(
   }
   return normalized
 }
+// SHELL_TAB_PATH_COMMITTED_EVENT fires after shared tab storage commits a path.
+export const SHELL_TAB_PATH_COMMITTED_EVENT = 's4wave:shell-tab-path-committed'
 
 export interface ShellTabsContextValue {
   tabs: ShellTab[]
@@ -634,6 +636,11 @@ export function ShellTabsProvider({
       )
       if (!record || record.path === path) return Promise.resolve(false)
       const operation = store.updatePath(tabId, path).then((updated) => {
+        window.dispatchEvent(
+          new CustomEvent(SHELL_TAB_PATH_COMMITTED_EVENT, {
+            detail: { tabId, path },
+          }),
+        )
         onCommitted?.()
         return updated
       })

@@ -9,6 +9,7 @@ import {
 } from '@testing-library/react'
 
 import {
+  SHELL_TAB_PATH_COMMITTED_EVENT,
   ShellTabStateProvider,
   ShellTabsProvider,
   useShellTabs,
@@ -365,6 +366,36 @@ describe('ShellTabContext', () => {
     expect(screen.getByTestId('tab-paths').textContent).toBe(
       '/u/0/so/space/-/files|/docs',
     )
+  })
+
+  it('emits an event after the active tab path commits', async () => {
+    const listener = vi.fn()
+    window.addEventListener(SHELL_TAB_PATH_COMMITTED_EVENT, listener)
+    try {
+      seedShellTabs([
+        { id: 'tab-1', name: 'Space', path: '/u/0/so/space' },
+        { id: 'tab-2', name: 'Docs', path: '/docs' },
+      ])
+
+      render(
+        <ShellTabsProvider entry={continuationEntry}>
+          <ReplaceActiveTabPathProbe path="/u/0/so/space/-/files" />
+        </ShellTabsProvider>,
+      )
+
+      await waitFor(() => expect(listener).toHaveBeenCalled())
+      const event = listener.mock.calls[0]?.[0]
+      expect(event).toBeInstanceOf(CustomEvent)
+      if (!(event instanceof CustomEvent)) {
+        throw new Error('tab path commit event was not a CustomEvent')
+      }
+      expect(event.detail).toEqual({
+        tabId: 'tab-1',
+        path: '/u/0/so/space/-/files',
+      })
+    } finally {
+      window.removeEventListener(SHELL_TAB_PATH_COMMITTED_EVENT, listener)
+    }
   })
 
   it('normalizes loaded active tab selection to a real tab', () => {
