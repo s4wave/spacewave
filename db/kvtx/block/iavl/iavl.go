@@ -1,5 +1,3 @@
-//go:build !sql_lite
-
 // Package iavl implements a iavl tree.
 //
 // NOTE: This code package is similar to Tendermint IAVL:

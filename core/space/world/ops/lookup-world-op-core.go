@@ -1,4 +1,4 @@
-//go:build !tinygo && !sql_lite
+//go:build !tinygo
 
 package space_world_ops
 

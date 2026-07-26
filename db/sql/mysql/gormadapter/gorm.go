@@ -1,4 +1,4 @@
-//go:build !sql_lite && !js
+//go:build !js
 
 // Package gormadapter bridges a Mysql transaction to a gorm instance. It lives
 // in its own package so importing db/sql/mysql does not drag gorm.io/gorm into

@@ -9,10 +9,10 @@ import (
 
 // TestSqlDbTypeIDResolvesWithoutFactory proves the SQL database type id and the
 // SqlSetRootOp world operation resolve without the SRPC-server-backed factory.
-// This file carries no build constraint, so the assertion compiles under the
-// TinyGo and sql_lite browser builds that exclude objecttype.go; it guards the
-// regression where SqlDbTypeID lived in that gated file and went undefined in
-// the unconstrained SqlSetRootOp under -tags=tinygo.
+// This file carries no build constraint, so the assertion compiles under
+// TinyGo browser builds that exclude objecttype.go; it guards the regression
+// where SqlDbTypeID lived in that gated file and went undefined in the
+// unconstrained SqlSetRootOp under -tags=tinygo.
 func TestSqlDbTypeIDResolvesWithoutFactory(t *testing.T) {
 	if s4wave_sql_world.SqlDbTypeID != "sql/db" {
 		t.Fatalf("unexpected SqlDbTypeID %q", s4wave_sql_world.SqlDbTypeID)

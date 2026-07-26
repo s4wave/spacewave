@@ -29,9 +29,9 @@ require (
 	github.com/aperturerobotics/bbolt v0.0.0-20260705010846-0a20b604a410 // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260705021747-c5ec5d20d2b6 // master
-	github.com/aperturerobotics/cli v1.1.0 // latest
+	github.com/aperturerobotics/cli v1.1.0 // v1.1.0
 	github.com/aperturerobotics/common v0.34.3-0.20260717063645-aed352835e14 // master
-	github.com/aperturerobotics/controllerbus v0.53.5-0.20260705010846-96899d3b0492 // master
+	github.com/aperturerobotics/controllerbus v0.53.5-0.20260726091303-7b91a295eab0 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34
@@ -83,6 +83,8 @@ require (
 	modernc.org/sqlite v1.54.0
 )
 
+require github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
+
 require (
 	github.com/cloudflare/circl v1.6.4
 	github.com/creack/pty v1.1.24
@@ -95,7 +97,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-alpha.2 // main
-	github.com/go-git/go-git/v6 v6.0.0-alpha.4.0.20260720134024-6a082fae5965 // main
+	github.com/go-git/go-git/v6 v6.0.0-alpha.4.0.20260726080237-8bff61114bb7 // main
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.6.0
@@ -183,7 +185,6 @@ require (
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
-	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
 	github.com/zeebo/assert v1.3.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.41.0 // indirect
