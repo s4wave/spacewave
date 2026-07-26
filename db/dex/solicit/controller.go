@@ -152,6 +152,16 @@ func (c *Controller) forwardToPeers(ctx context.Context, ref *block.BlockRef, ho
 	return peerBlockFanout{sessions: sessions, ref: ref, hops: hops}.run(ctx)
 }
 
+func (c *Controller) snapshotSessions() []*peerSession {
+	var sessions []*peerSession
+	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, s := range c.sessions {
+			sessions = append(sessions, s)
+		}
+	})
+	return sessions
+}
+
 // HandleDirective asks if the handler can resolve the directive.
 func (c *Controller) HandleDirective(
 	ctx context.Context,
