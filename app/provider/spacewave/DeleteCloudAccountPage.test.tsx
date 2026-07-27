@@ -185,9 +185,7 @@ describe('DeleteCloudAccountPage', () => {
 
     expect(mockRequestDeleteNowEmail).toHaveBeenCalledTimes(1)
     expect(
-      screen.getByRole('button', { name: 'Sending...' }).hasAttribute(
-        'disabled',
-      ),
+      screen.getByRole('button', { name: 'Sending…' }).hasAttribute('disabled'),
     ).toBe(true)
 
     await act(async () => {
@@ -219,9 +217,9 @@ describe('DeleteCloudAccountPage', () => {
     expect(mockConfirmDeleteNowCode).toHaveBeenCalledWith('123456')
     expect(mockNavigate).not.toHaveBeenCalled()
     expect(
-      screen.getByRole('button', { name: 'Confirming...' }).hasAttribute(
-        'disabled',
-      ),
+      screen
+        .getByRole('button', { name: 'Confirming…' })
+        .hasAttribute('disabled'),
     ).toBe(true)
 
     await act(async () => {
@@ -240,7 +238,7 @@ describe('DeleteCloudAccountPage', () => {
       'Deletion confirmed. The account is now read-only.',
     )
     expect(mockNavigate).toHaveBeenCalledWith({ path: '../', replace: true })
-    expect(screen.queryByText('Confirming...')).toBeNull()
+    expect(screen.queryByText('Confirming…')).toBeNull()
     expect(screen.queryByText(/Deleting/i)).toBeNull()
     expect(
       screen.getByRole('button', { name: 'Confirm delete account' }),
