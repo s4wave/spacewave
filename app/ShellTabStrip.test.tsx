@@ -124,6 +124,11 @@ vi.mock('@aptre/flex-layout', () => {
       const tabId = this.selectedTabId ?? this.children[0]?.id ?? null
       return this.children.find((child) => child.id === tabId) ?? null
     }
+
+    // The model only ever visits this tabset, so it is the active one.
+    isActive() {
+      return true
+    }
   }
 
   class MockTabNode {

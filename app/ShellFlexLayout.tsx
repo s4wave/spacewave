@@ -60,6 +60,9 @@ import { reconcileModelWithTabs } from './ShellGridLayout.js'
 import { ShellTabLabel } from './ShellTabLabel.js'
 import {
   encodeGridLayout,
+  encodeGridLayoutStructure,
+  getActiveTabsetId,
+  getSelectedTabId,
   getTabIdsFromModel,
   hasGridLayout,
   decodeGridLayout,
@@ -312,9 +315,12 @@ function ShellTabStripInner({
     getAppPath,
   )
 
-  // Initialize model from storage or default, and perform URL sync during initialization
-  // This avoids calling setState in the sync effect
-  const [model, setModel] = useState<Model>(() => {
+  // Initialize model from storage or default, and perform URL sync during
+  // initialization. This avoids calling setState in the sync effect. A grid
+  // deep link is decoded here so the first paint already shows the split, and
+  // the decoded path travels with it: the hash effect must not decode the same
+  // URL a second time and throw this model away.
+  const [initial] = useState(() => {
     const path = getAppPath()
     const gridData = path.startsWith('/g/') ? path.slice(3) : ''
     const decoded = gridData
@@ -324,8 +330,17 @@ function ShellTabStripInner({
       ? reconcileModelWithTabs(decoded.model, tabs)
       : loadModelFromStorage(tabs, activeTabId)
     const m = Model.fromJson(jsonModel)
-    if (decoded) applyLocalStateToModel(m, decoded.localState)
-    // Disable tabset dragging in non-grid mode, and tab dragging initially
+    if (decoded) {
+      applyLocalStateToModel(m, decoded.localState)
+      // Grid mode keeps FlexLayout's own tabset behavior: panes are draggable
+      // and an emptied one disappears. Only normal mode pins the layout to a
+      // single fixed tabset.
+      return {
+        model: m,
+        gridPath: path,
+        structure: encodeGridLayoutStructure(m),
+      }
+    }
     m.doAction(
       Actions.updateModelAttributes({
         tabSetEnableDeleteWhenEmpty: false,
@@ -333,10 +348,12 @@ function ShellTabStripInner({
         tabEnableDrag: false,
       }),
     )
-    return m
+    return { model: m, gridPath: null, structure: null }
   })
+  const [model, setModel] = useState<Model>(initial.model)
 
-  const gridPathRef = useRef<string | null>(null)
+  const gridPathRef = useRef<string | null>(initial.gridPath)
+  const gridStructureRef = useRef<string | null>(initial.structure)
   const initializedRef = useRef(false)
 
   // A deep link or back/forward navigation can supply a new grid structure
@@ -349,7 +366,19 @@ function ShellTabStripInner({
         const next = Model.fromJson(
           buildDefaultModel(tabsRef.current, activeTabId),
         )
+        // Normal mode configures the layout as one fixed tabset. The default
+        // model does not carry those attributes, so a rebuild that skipped
+        // them would leave FlexLayout's draggable tabsets on in a mode that
+        // has nowhere to drag them to.
+        next.doAction(
+          Actions.updateModelAttributes({
+            tabSetEnableDeleteWhenEmpty: false,
+            tabSetEnableDrag: false,
+            tabEnableDrag: tabsRef.current.length >= 2,
+          }),
+        )
         gridPathRef.current = null
+        gridStructureRef.current = null
         setModel(next)
       }
       return
@@ -367,6 +396,7 @@ function ShellTabStripInner({
     )
     applyLocalStateToModel(next, decoded.localState)
     gridPathRef.current = path
+    gridStructureRef.current = encodeGridLayoutStructure(next)
     setModel(next)
   }, [activeTabId, routePath, tabs])
   const didSyncEntryRef = useRef(false)
@@ -378,9 +408,17 @@ function ShellTabStripInner({
   } | null>(null)
   const projectingTabsToModelRef = useRef(false)
 
+  // openPathInFlexTabset opens a path as a shell tab for command handlers such
+  // as the terminal opener. In a split the tab belongs to whichever tabset the
+  // user is working in, and the route stays on the grid URL: writing the tab's
+  // own path there would collapse the split the command was invoked from.
   const openPathInFlexTabset = useCallback(
     (path: string, options: OpenShellTabOptions = {}) => {
       const select = options.select ?? true
+      const gridMode = isGridMode()
+      const tabsetId = gridMode
+        ? (getActiveTabsetId(model) ?? 'shell-tabset')
+        : 'shell-tabset'
       const existingTab = options.focusExisting
         ? tabsRef.current.find(
             (tab) => tab.path === path && model.getNodeById(tab.id),
@@ -391,7 +429,7 @@ function ShellTabStripInner({
         if (select) {
           selectShellTab(existingTab.id)
           model.doAction(Actions.selectTab(existingTab.id))
-          if (existingTab.path !== getAppPath()) {
+          if (!gridMode && existingTab.path !== getAppPath()) {
             setAppPath(existingTab.path)
           }
         }
@@ -404,21 +442,16 @@ function ShellTabStripInner({
         select,
         onCommitted: () => {
           if (select) {
-            addAndSelectShellModelTab(
-              model,
-              'shell-tabset',
-              newTab,
-              'shell-content',
-            )
-            setAppPath(path)
+            addAndSelectShellModelTab(model, tabsetId, newTab, 'shell-content')
+            if (!gridMode) setAppPath(path)
           } else {
-            addShellModelTab(model, 'shell-tabset', newTab, 'shell-content')
+            addShellModelTab(model, tabsetId, newTab, 'shell-content')
           }
         },
       })
       return newTab.id
     },
-    [addShellTab, model, selectShellTab],
+    [addShellTab, isGridMode, model, selectShellTab],
   )
 
   useEffect(
@@ -579,21 +612,14 @@ function ShellTabStripInner({
   // renderTab function - renders content for each tab
   // Path comes from tabs state via ref (single source of truth)
   // Using ref ensures stable callback identity to prevent FlexLayout re-renders
-  const renderTab = useCallback(
-    (node: TabNode) => {
-      const tabId = node.getId()
-      const tab = findShellTab(tabsRef.current, tabId)
-      const path = tab?.path ?? '/'
-      return (
-        <ShellTabContent
-          tabId={tabId}
-          path={path}
-          syncAppPath={!isGridMode()}
-        />
-      )
-    },
-    [isGridMode],
-  )
+  // Grid mode is not passed down: the content survives the mode transition, so
+  // it reads the live mode from the shell context itself.
+  const renderTab = useCallback((node: TabNode) => {
+    const tabId = node.getId()
+    const tab = findShellTab(tabsRef.current, tabId)
+    const path = tab?.path ?? '/'
+    return <ShellTabContent tabId={tabId} path={path} />
+  }, [])
 
   // Handle model changes - sync tabs state, check for grid mode transition
   const handleModelChange = useCallback(
@@ -618,9 +644,39 @@ function ShellTabStripInner({
       if (hasGridLayout(newModel)) {
         const committedTabIds = new Set(tabsRef.current.map((tab) => tab.id))
         if (
-          getTabIdsFromModel(newModel).every((id) => committedTabIds.has(id))
+          !getTabIdsFromModel(newModel).every((id) => committedTabIds.has(id))
         ) {
-          setAppPath(`/g/${encodeGridLayout(newModel)}`)
+          return
+        }
+        // Selection follows the user across panes. The tab owner drives the
+        // document title, the command session, and the toolbar actions, so a
+        // selection left behind here points all three at the wrong pane.
+        const selectedId = getSelectedTabId(newModel)
+        retainShellTabs(
+          new Set(getTabIdsFromModel(newModel)),
+          selectedId ?? undefined,
+        )
+        if (
+          selectedId &&
+          selectedId !== activeTabId &&
+          tabsRef.current.some((tab) => tab.id === selectedId)
+        ) {
+          selectShellTab(selectedId)
+          markShellEngaged()
+        }
+        // Only a structural change earns a URL write. Selecting a tab or
+        // dragging a splitter also changes the encoded model, and publishing
+        // those would make Back walk through every layout interaction before
+        // it reaches the route the user came from.
+        const structure = encodeGridLayoutStructure(newModel)
+        if (structure !== gridStructureRef.current) {
+          gridStructureRef.current = structure
+          const gridPath = `/g/${encodeGridLayout(newModel)}`
+          // The model already holds this structure, so record the path as the
+          // one in effect: the hash listener would otherwise decode our own
+          // write back into a replacement model.
+          gridPathRef.current = gridPath
+          setAppPath(gridPath)
         }
         return
       }
@@ -796,7 +852,10 @@ function ShellTabStripInner({
               'shell-content',
             )
           }
-          setAppPath(activeTab.path)
+          // A drop that created a split leaves the route on the grid URL.
+          // Writing the dropped tab's own path there would collapse the split
+          // the drop just made.
+          if (!isGridMode()) setAppPath(activeTab.path)
           model.doAction(Actions.selectTab(activeTab.id))
           markShellEngaged()
         }
@@ -809,7 +868,7 @@ function ShellTabStripInner({
           })
         }
       }),
-    [addShellTab, markShellEngaged, model],
+    [addShellTab, isGridMode, markShellEngaged, model],
   )
 
   const [contextMenu, setContextMenu] =
