@@ -467,17 +467,19 @@ func ensureFriendDmChannel(
 		return errors.Wrap(waitErr, "create friend dm channel")
 	}
 
-	if _, err := world_control.WaitForObjectRev(
+	projected, err := world_control.WaitForObjectRev(
 		ctx,
 		le,
 		ws,
 		FriendDmChannelObjectKey,
 		0,
-	); err != nil {
+	)
+	if err != nil {
 		if waitErr != nil {
 			return errors.Wrap(waitErr, "wait for friend dm channel projection")
 		}
 		return errors.Wrap(err, "wait for friend dm channel projection")
 	}
+	world.ReleaseObjectState(projected)
 	return nil
 }
