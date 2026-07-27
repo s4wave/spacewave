@@ -94,7 +94,11 @@ jobs:
             test_go_script: test:go:identity
             test_js_script: test:js:identity
 
-    timeout-minutes: 15
+    # A typical member run finishes in ten minutes, so a fifteen minute budget
+    # leaves a slow runner no room: the job is killed, and GitHub reports that
+    # kill as "cancelled", which reads as a superseded run rather than a
+    # defect. Runner minutes are cheaper than that misreading.
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
