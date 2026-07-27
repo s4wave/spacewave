@@ -3,7 +3,6 @@
 package provider_local_test
 
 import (
-	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -13,7 +12,6 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
-	"time"
 
 	websocket "github.com/aperturerobotics/go-websocket"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
@@ -356,8 +354,7 @@ func TestCompletePairingWaitsForLink(t *testing.T) {
 // TestCompletePairingReplacesEmptyTransportWithSignaling verifies that the
 // deployed short-code path starts signaling after accepting a code.
 func TestCompletePairingReplacesEmptyTransportWithSignaling(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
-	defer cancel()
+	ctx := t.Context()
 
 	_, _, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
@@ -411,9 +408,13 @@ func TestCompletePairingReplacesEmptyTransportWithSignaling(t *testing.T) {
 		t.Fatalf("got peer %s, want %s", got.String(), remotePeerID.String())
 	}
 
+	// CompletePairing starts signaling in the background, so the ticket request
+	// lands after it returns. Wait on the test context rather than a private
+	// deadline: the test timeout already bounds a hang, and a second stopwatch
+	// only decides how loaded a runner has to be before a correct run fails.
 	select {
 	case <-signalTickets:
-	case <-time.After(time.Second):
+	case <-ctx.Done():
 		t.Fatal("expected CompletePairing to request a signaling ticket")
 	}
 }
