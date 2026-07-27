@@ -2,49 +2,51 @@
 title: Create Your First Space
 section: start
 order: 2
-summary: Create a Space with a Quickstart and verify the first object opens.
+summary: Create a Space with a Quickstart and check that the first item opens.
 ---
 
-A Space is the container for your Spacewave data. Creating one stores a shared
-object for the Space, mounts its World, and adds the starter objects selected by
-the Quickstart.
+A Space is the container for your work in Spacewave. A Quickstart makes one and
+puts something useful in it, so you have a real thing to open rather than an
+empty screen.
 
 ## From the start screen
 
 1. Open Spacewave.
-2. Choose a Quickstart such as **Create a Drive**, **Create an Empty Space**,
+2. Choose a Quickstart: **Create a Drive**, **Create an Empty Space**,
    **Create/clone a Git Repository**, or **Create a Canvas**.
-3. If you do not already have a session, let Spacewave create a local session.
-4. Wait for the creation progress to finish.
+3. If you have not signed in, let Spacewave set up a local one for this device.
+4. Wait for it to finish.
 
-The route changes to `/u/{session}/so/{space}` when the Space is mounted. The
-session number selects the local mounted session. The Space identifier selects
-the shared object backing the Space.
+Spacewave opens the new Space as soon as it is ready.
 
-## What each stable Quickstart creates
+## What each Quickstart gives you
 
-- **Create an Empty Space** creates the Space settings object and leaves the
-  Space ready for new objects.
-- **Create a Drive** creates a UnixFS file tree, writes `getting-started.md`, and
-  opens Drive through a first-run guide.
-- **Create/clone a Git Repository** creates a persistent Git repository wizard
-  and opens the Space at that wizard.
-- **Create a Canvas** creates a UnixFS object, seeds a canvas demo, and opens the
-  canvas.
+- **Create a Drive** sets up file storage, writes a `getting-started.md` for you
+  to open, and drops you into the file browser with a short first-run guide.
+- **Create a Canvas** sets up a visual workspace with some starter content and
+  opens it.
+- **Create/clone a Git Repository** opens a short setup flow where you create a
+  new repository or clone an existing one.
+- **Create an Empty Space** gives you the container and nothing else, ready for
+  whatever you add next.
 
-Other Quickstarts exist behind experimental or plugin gates. If a plugin-owned
-Quickstart is unavailable, the app cannot truthfully create that surface until
-the plugin registers it.
+More Quickstarts appear as their features become available. One that is greyed
+out or missing is a feature this copy of Spacewave cannot do yet, not a fault
+with your Space.
 
-## Verify the Space
+## Check that it worked
 
-Open the object browser or current viewer and confirm the expected starter
-object appears. For Drive, open `getting-started.md`; the file viewer should show
-the starter guide. For a blank Space, use the create-object command or the Space
-settings page to pick the first object.
+Open the starter item and confirm it looks right. For a Drive, open
+`getting-started.md` and you should see the starter guide. For an empty Space,
+use the create command to add your first item.
 
-## Keep the first Space
+Then add one thing and reload the page. If it is still there, your Space is
+storing your work properly.
 
-Local sessions stay on the device that created them. Spacewave Cloud sessions
-add cloud-backed sync, backup, and access from linked devices. If the first Space
-matters, download a backup key and choose a lock mode before relying on it.
+## Before you rely on it
+
+A local Space stays on the device that made it. Signing in to Spacewave Cloud
+adds sync, backup, and access from your other devices.
+
+If this first Space is going to hold work you cannot recreate, download a backup
+key and pick a lock mode now, before it matters.

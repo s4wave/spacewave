@@ -2,38 +2,51 @@
 title: Choose How to Run Spacewave
 section: start
 order: 1
-summary: Pick browser, desktop, daemon, or Cloud-backed operation by ownership boundary.
+summary: Pick browser, desktop, daemon, or Cloud by deciding who holds the data.
 ---
 
-Spacewave can run in several shapes. Pick the one that matches who owns runtime,
-storage, and recovery.
+Spacewave runs in several shapes. The question that picks one for you is who
+holds the data and who is responsible for getting it back.
 
-## Browser local
+## In a browser
 
-Browser local mode is the quickest way to start. It creates a local session and
-stores data in browser storage. Use it for experiments. Do not use it as the only
-copy of important work because browser storage may be cleared.
+The quickest start, and the only one that needs no install. Your Spaces go into
+browser storage on this machine.
 
-## Desktop local
+Browsers clear their own storage when disk runs low, without asking. Use this to
+try things, never as the only copy of anything.
 
-The desktop app owns a native state directory and can add an existing `.spacewave`
-state root. This is the local mode to use when you want the state root under the
-operating system's filesystem instead of browser storage.
+## In the desktop app
 
-## CLI daemon
+The desktop app keeps a state directory on your own disk, which you back up like
+any other directory. It can also open a `.spacewave` directory you already have.
 
-`spacewave serve` starts a daemon that listens on `spacewave.sock` inside the
-resolved state path. CLI commands connect to that socket. Without an explicit
-socket path, client commands may autostart a daemon for the selected state path.
+This is the local mode to choose when you want the data on a filesystem you
+control.
 
-## Local web listener
+## As a background service
 
-`spacewave web` opens a localhost browser listener for a native runtime.
-Foreground listeners last until the process exits. Background listeners stay in
-the daemon and can be listed or stopped.
+```sh
+spacewave serve
+```
 
-## Spacewave Cloud
+`serve` runs in the background and listens on a Unix socket, `spacewave.sock`,
+inside the state directory. The `spacewave` commands connect to that socket, and
+will start one for you if none is running.
 
-Cloud mode uses the Spacewave provider for encrypted cloud storage, sync, backup,
-billing, and multi-device access. It does not remove local responsibility for
-local sessions until you transfer or recreate the data in the Cloud session.
+## Reachable from a browser
+
+```sh
+spacewave web
+```
+
+This opens a local address you can visit in a browser, backed by the copy of
+Spacewave running on this machine. Run it in the foreground and it lasts as long
+as the command; run it with `--background` and it stays with the service, where
+you can list and stop it later.
+
+## In Spacewave Cloud
+
+Cloud holds the data for you: encrypted storage, sync between devices, backup,
+shared Spaces, and billing. Signing into Cloud does not move anything on its
+own. Work you created locally stays your responsibility until you transfer it.

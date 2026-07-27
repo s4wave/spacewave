@@ -2,39 +2,38 @@
 title: Move to Cloud
 section: devices
 order: 2
-summary: Move from local work to Cloud with linked sessions and explicit transfers.
+summary: Take Spaces you made on this device and move them into Spacewave Cloud.
 ---
 
-Moving to Cloud is not a magic device migration. Current Spacewave behavior is a
-set of explicit flows: create or sign into a Cloud account, link or mount a
-local session, transfer selected Spaces between sessions, and keep a backup key.
+Work you started without an account stays on the device that made it. Moving it
+to Spacewave Cloud is something you do on purpose, Space by Space, and nothing
+moves until you say so.
 
-## Start from the Cloud account
+## Sign in first
 
-Sign into or create a Spacewave Cloud account from the account flow. Cloud adds
-encrypted storage, sync, backup, shared Spaces, and multi-device access. Local
-data stays local until you move it.
+Create or sign into a Spacewave Cloud account. That gets you encrypted storage,
+sync, backup, shared Spaces, and access from your other devices.
 
-If the app detects a linked local session with content, the migration decision
-screen can send you to the migration settings page or keep the sessions
-separate. Keeping sessions separate unlinks the local session from the Cloud
-flow.
+If Spacewave notices you already have work on this device, it asks what you want
+to do with it. You can go to the migration page and move it across, or leave it
+where it is and keep the two separate.
 
-## Transfer selected Spaces
+## Move the Spaces you want
 
-The migration settings page uses the transfer wizard. It inventories the source
-session, lets you choose Spaces, starts a transfer from source session to target
-session, watches progress, and can resume active or checkpointed transfers.
+The migration page lists what is on this device and lets you pick which Spaces
+to move. Start the move and you can watch it run. A long move can be paused and
+picked up again rather than started over.
 
-Transfer is the implemented data-move path. A backup PEM helps you recover
-account access; it is not a full local-data restore archive.
+Move what you want to keep. A backup key is not a copy of your work: it gets you
+back into your account, and that is all.
 
-## Link devices after the move
+## Then link your other devices
 
-After the Cloud session owns the Spaces you need, link other devices to that
-session with a pairing code. Spacewave Cloud sessions do not expose the direct
-no-cloud pairing path. Use account session settings to revoke old cloud sessions
-or unlink old local linked sessions.
+Once your Spaces are in Cloud, link your other devices with a pairing code and
+they will all see the same thing. Settings lets you revoke access from a device
+you no longer use.
 
-If a paid Cloud plan is canceled, current product copy says full access lasts
-until the end date and cloud data becomes read-only for 30 days afterward.
+## If you cancel a paid plan
+
+You keep full access until the end of the period you paid for. After that your
+content stays readable for 30 days.

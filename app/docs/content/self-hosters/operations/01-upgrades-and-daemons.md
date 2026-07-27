@@ -2,24 +2,27 @@
 title: Upgrades and Daemons
 section: operations
 order: 1
-summary: Operate the daemon, socket, state path, and local web listener explicitly.
+summary: Run the background service, point it at the right directory, and hand it over cleanly.
 ---
 
-The native CLI and desktop runtime meet at a Unix socket named `spacewave.sock`.
-The socket lives under the resolved state path.
+The `spacewave` command and the desktop app meet at one Unix socket,
+`spacewave.sock`, which sits inside whichever state directory is in use. Almost
+everything on this page follows from that.
 
-## State path rules
+## Choosing the directory
 
-Use `--state-path` or the supported state-path environment variables when you
-need a specific runtime root. Use `--socket-path` or `SPACEWAVE_SOCKET_PATH` only
-when you want to connect to an exact existing socket. An explicit socket path
-does not autostart a daemon.
+Pass `--state-path`, or set the state-path environment variable, when you want a
+specific directory. Commands find the socket inside it, and start the service if
+none is running.
 
-Without an explicit socket, client commands resolve the state path and can
-autostart the current executable in `serve` mode. Stale refused sockets are
-removed before autostart.
+Pass `--socket-path`, or set `SPACEWAVE_SOCKET_PATH`, when you want to reach one
+exact socket you already know about. That form connects to what is there and
+starts nothing.
 
-## Serve mode
+A socket left behind by a service that is gone gets cleaned up before a new one
+starts, so a crashed process does not block the next run.
+
+## Running it
 
 ```sh
 spacewave serve
@@ -27,19 +30,31 @@ spacewave serve --takeover
 spacewave stop
 ```
 
-`serve` creates the state directory, listens on the Unix socket, applies socket
-permissions, starts plugin and device runtime services, and removes the socket on
-exit. `--takeover` asks an existing runtime to yield before binding the socket.
-`stop` requests daemon shutdown and treats a missing socket as a no-op.
+`serve` creates the directory if it needs to, binds the socket with the right
+permissions, brings up plugins and device support, and removes the socket when
+it exits.
 
-## Runtime handoff
+`--takeover` asks whatever currently owns the socket to step aside first. Use it
+when you know something else is running and you want this process to win.
 
-The desktop app can show a takeover prompt when a local process asks to own the
-runtime socket. During an active handoff, native runtime actions should be
-disabled or reclaimed from the banner.
+`stop` asks the running service to shut down, and does nothing quietly if there
+is none.
 
-## Web listeners
+## When the desktop app is also running
 
-`spacewave web` starts a localhost listener for browser access to the native
-runtime. `--background` keeps it in the daemon. `web list` and `web stop` manage
-background listeners.
+If a command asks to take over while the desktop app owns the socket, the app
+shows a prompt and hands control across. While a handover is in progress the
+app's own local actions are unavailable, and its banner is how you take control
+back.
+
+## Browser access
+
+```sh
+spacewave web
+spacewave web list
+spacewave web stop <listener-id>
+```
+
+`spacewave web` opens a local address for reaching this machine's Spacewave from
+a browser. Add `--background` and it stays with the service after the command
+returns, where `list` and `stop` can manage it.

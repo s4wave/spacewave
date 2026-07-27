@@ -2,38 +2,38 @@
 title: Docs, Blogs, and Notebooks
 section: features
 order: 1
-summary: Understand public docs, public blog pages, and Space-native writing objects.
+summary: Write inside a Space with a Notebook, a Documentation set, or a Blog.
 ---
 
-Spacewave currently has separate writing surfaces that look similar but store
-data in different places.
+Spacewave has three ways to write things down inside a Space. They are the same
+underneath, and they differ in how the finished thing is laid out and read.
 
-## Public app docs
+- A **Notebook** is for notes: pages you keep for yourself, in whatever order
+  suits you.
+- **Documentation** is for a set of pages meant to be read in order, with a
+  table of contents down the side.
+- A **Blog** is for dated posts, newest first.
 
-The documentation you are reading is markdown under `app/docs/content/`. The app
-loads it at build time with Vite, renders it under `/docs`, and links each page
-to the raw markdown on GitHub. These docs are product documentation, not private
-Space data.
+All three keep their content as files in the Space, so they move with the Space,
+sync with it, and are shared with whoever the Space is shared with. Each
+Quickstart writes a starter page so you have something to open and edit right
+away.
 
-## Public blog
+## Which one
 
-The public blog uses markdown under `app/blog/posts/`. Blog posts have their own
-loader and prerender pipeline. Blog pages are public release content, not
-Space-native documents.
+Pick by how the reader will arrive. Someone browsing your own thinking wants a
+Notebook. Someone learning how something works wants Documentation. Someone
+following along over time wants a Blog. You can have all three in one Space.
 
-## Space-native notes, docs, and blogs
+## Still settling
 
-Notebook, Documentation, and Blog objects are owned by the notes plugin. They
-store their markdown sources in UnixFS objects inside a Space. The plugin seeds
-starter files, registers object types and viewers, and renders notebooks, docs
-trees, or blog posts from those source files.
+These three are newer than the rest of Spacewave, and a copy of Spacewave
+without them will show a plain file view instead of the editor. If a Quickstart
+for one of them is missing or greyed out, that feature is not available here
+yet.
 
-These Quickstarts are experimental and plugin-gated in the current app. If the
-notes plugin is not loaded, those objects may fall back to the Debug Viewer
-instead of a polished editor.
+## Not the same as this website
 
-## What to choose
-
-Use public docs or the public blog only for Spacewave's shipped website content.
-Use a Space-native Notebook, Documentation, or Blog object when the writing
-belongs inside your Space and should move with that Space's storage and sharing.
+The pages you are reading now, and the posts on the Spacewave blog, are part of
+the Spacewave website. They are not stored in a Space and are not yours to edit.
+Anything you write goes in a Space.

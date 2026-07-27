@@ -15,14 +15,14 @@ export const siteDefs: DocSite[] = [
     id: 'users',
     label: 'Users',
     description:
-      'Start a Space, move files into it, protect your session, and know when to use the CLI.',
+      'Start a Space, move files into it, keep your account safe, and work from a terminal when you want to.',
     order: 1,
   },
   {
     id: 'self-hosters',
     label: 'Self-Hosters',
     description:
-      'Choose where state lives, operate a local or cloud-backed runtime, and recover data without guessing.',
+      'Decide where the data lives, run the service, and know which recovery path applies when something breaks.',
     order: 2,
   },
   {
@@ -51,7 +51,7 @@ export const sectionDefs: SectionDef[] = [
   },
   { id: 'devices', label: 'Devices', site: 'users', order: 5 },
   { id: 'cli', label: 'Command Line', site: 'users', order: 6 },
-  { id: 'features', label: 'Feature Surfaces', site: 'users', order: 7 },
+  { id: 'features', label: 'More Features', site: 'users', order: 7 },
 
   // Self-hosters
   { id: 'start', label: 'Start', site: 'self-hosters', order: 1 },

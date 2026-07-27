@@ -12,34 +12,36 @@ const siteHomePaths: Record<
     {
       title: 'Create your first Space',
       url: '/docs/users/start/create-your-first-space',
-      summary: 'Pick the smallest useful Quickstart and verify persistence.',
+      summary: 'Pick a Quickstart and check that your work is really saved.',
     },
     {
       title: 'Drive and files',
       url: '/docs/users/files/drive-and-files',
-      summary: 'Use Drive for folders, uploads, downloads, and CLI paths.',
+      summary:
+        'Folders, uploads, downloads, and the same files from a terminal.',
     },
     {
       title: 'Backup and lock setup',
       url: '/docs/users/accounts/backup-and-lock-setup',
-      summary: 'Protect a local or cloud session before it holds real work.',
+      summary: 'Keep a way back into your account before it holds real work.',
     },
   ],
   'self-hosters': [
     {
       title: 'Choose how to run Spacewave',
       url: '/docs/self-hosters/start/choose-how-to-run-spacewave',
-      summary: 'Pick browser, desktop, daemon, or cloud-backed operation.',
+      summary: 'Browser, desktop, background service, or Cloud.',
     },
     {
       title: 'Storage modes',
       url: '/docs/self-hosters/storage/storage-modes',
-      summary: 'Tie backups to the state path or provider that owns the data.',
+      summary: 'Find out what actually holds each Space, and back that up.',
     },
     {
       title: 'Upgrades and daemons',
       url: '/docs/self-hosters/operations/upgrades-and-daemons',
-      summary: 'Keep daemon, socket, and state-path ownership explicit.',
+      summary:
+        'Run the service, point it at a directory, hand it over cleanly.',
     },
   ],
   developers: [
@@ -116,7 +118,7 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
             <button
               key={path.url}
               onClick={() => goToPage(path.url)}
-              className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-3 rounded-xl border p-5 text-left transition-all duration-200"
+              className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-3 rounded-xl border p-5 text-left transition-colors duration-200"
             >
               <h2 className="text-foreground text-base font-semibold">
                 {path.title}
@@ -141,7 +143,7 @@ export function SiteHome({ siteId, sections }: SiteHomeProps) {
               key={section.id}
               onClick={() => firstPage && goToPage(firstPage.url)}
               disabled={!firstPage}
-              className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-3 rounded-xl border p-6 text-left transition-all duration-200 disabled:cursor-default disabled:opacity-50"
+              className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-3 rounded-xl border p-6 text-left transition-colors duration-200 disabled:cursor-default disabled:opacity-50"
             >
               <div className="bg-brand/10 text-brand flex size-10 items-center justify-center rounded-lg">
                 <LuBookOpen className="size-5" />

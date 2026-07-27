@@ -2,42 +2,42 @@
 title: Accounts and Storage
 section: accounts
 order: 1
-summary: Choose local storage, Spacewave Cloud, or an existing desktop state root.
+summary: Decide where your Spaces live: this browser, this computer, or the cloud.
 ---
 
-Spacewave stores work through a mounted session. A session belongs to a Provider
-Account, which is the provider-owned account record behind local or cloud
-resources.
+Your Spaces have to live somewhere, and Spacewave gives you three answers. They
+differ in how much survives if something goes wrong.
 
-## Local sessions
+## In this browser
 
-A local session is created by the `local` provider. It does not need a username
-or password. It is the fastest way to try Spacewave, create a Drive, or work
-offline on one device.
+Sign in is not required. Choose **Continue without account** and Spacewave sets
+up storage in the browser you are using right now. Nothing to configure, works
+offline, and it is the quickest way to see what Spacewave does.
 
-Local browser storage is not a durable backup. The browser may clear stored data
-when disk space is low. Use the desktop app for a native state directory, or
-move important work to Spacewave Cloud.
+The catch is that this storage belongs to the browser. Browsers clear their own
+storage when disk space runs low, and they do not ask first. Treat it as a place
+to try things, not a place to keep them.
 
-## Spacewave Cloud accounts
+## On this computer
 
-A Spacewave Cloud account uses the `spacewave` provider. It supports password
-login, PEM backup-key login, browser handoff for desktop and CLI clients,
-passkeys, SSO, recovery email, billing, and linked local sessions.
+The desktop app keeps your Spaces in a folder on your own disk, which you can
+back up like any other folder. If you have used Spacewave on this machine
+before, the desktop app can open that existing data directly.
 
-Cloud mode is the user-facing choice for cloud sync, backup, encrypted storage,
-shared Spaces, and access from more than one device. Spacewave cannot read
-end-to-end encrypted customer content.
+Pick this when you want your data on your own hardware, under your own backup
+routine.
 
-## Existing desktop state roots
+## In Spacewave Cloud
 
-The desktop app can add an existing `.spacewave` state directory as a state root.
-This is a desktop-only path. Browser directory-grant roots and single-file
-`.s4wave` state files are reserved in the wire model but are not current
-user-facing storage modes.
+A Spacewave Cloud account adds sync between devices, backup, shared Spaces, and
+the ability to pick up on your phone what you started on your laptop. Your
+content is encrypted, and we cannot read it.
 
-## Which choice to use
+You can sign in with a password, a passkey, your organization's single sign-on,
+or a backup key. Cloud accounts also handle recovery email and billing.
 
-Use local storage for disposable experiments and private one-device work. Use
-desktop local storage when you want the state directory under your control. Use
-Cloud when you want backup, sync, billing-backed storage, and linked devices.
+## Which to pick
+
+Try Spacewave in the browser. Move to Cloud when your work starts to matter, or
+to the desktop app when you would rather hold the disk yourself. You are not
+locked in: you can move Spaces between them later.
