@@ -2118,6 +2118,8 @@ func TestForgeWorkerExecution(t *testing.T) {
 	const workerKey = "session-worker"
 
 	assertNoForgePasses(ctx, t, mounted.eng, jobKey)
+	stopForgeObserver := observeForgeWorld(ctx, h.le, mounted.engWs, jobKey)
+	defer stopForgeObserver()
 
 	_, err := mounted.contentsSvc.SetProcessBinding(ctx, &s4wave_space.SetProcessBindingRequest{
 		ObjectKey: workerKey,
