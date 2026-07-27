@@ -857,12 +857,6 @@ func TestRenderRolldownGoScriptConfigCodeSplittingWritesManualGroups(t *testing.
 	if !strings.Contains(config, `name:"app",test:(id)=>isGoScriptModule(id,"github.com/s4wave/")`) {
 		t.Fatalf("rendered config missing app GoScript group:\n%s", config)
 	}
-	// Both groups must carry the chunk cap. Without it Oxc minifies one
-	// oversized chunk on a single core and the bundle step serializes.
-	maxSizeClause := "maxSize:" + strconv.Itoa(goScriptChunkMaxSizeBytes)
-	if got := strings.Count(config, maxSizeClause); got != 2 {
-		t.Fatalf("rendered config must cap both GoScript groups with %s, found %d:\n%s", maxSizeClause, got, config)
-	}
 }
 
 func TestRenderRolldownGoScriptConfigCodeSplittingFalseKeepsSingleFileOutput(t *testing.T) {

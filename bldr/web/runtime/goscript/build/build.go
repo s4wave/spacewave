@@ -29,19 +29,6 @@ const (
 	GoScriptSharedWebPkgID       = "@s4wave/goscript-shared"
 	goScriptBundleReportFilename = "plugin-goscript-bundle-report.json"
 	rolldownCLIRelPath           = "node_modules/rolldown/dist/cli.mjs"
-
-	// goScriptChunkMaxSizeBytes caps the size of a single emitted chunk. Oxc
-	// minifies chunks in parallel, so bundle wall time tracks the largest chunk
-	// rather than the total: an uncapped spacewave-core build emitted one 31MB
-	// chunk and minified it on a single core. Splitting also costs gzip ratio,
-	// because each chunk compresses against its own window.
-	//
-	// Measured on spacewave-core (5231 modules, 45MB minified output), the cap
-	// stops paying below 4MB: 1MB, 2MB, and 4MB all bottom out at a 2.5MB
-	// largest chunk and ~2.0s, while gzip overhead climbs from 2.3% to 7.0% as
-	// chunk count grows from 67 to 245. Above 4MB the largest chunk grows again
-	// and wall time follows it.
-	goScriptChunkMaxSizeBytes = 4_000_000
 )
 
 // GoScriptSharedImportMap maps a local @goscript import to the provider URL
@@ -889,12 +876,10 @@ func renderRolldownGoScriptOutputConfig(codeSplitting bool) string {
           name: "shared",
           test: (id) => isGoScriptModule(id, "") && !isGoScriptModule(id, "github.com/s4wave/"),
           priority: 1,
-          maxSize: ` + strconv.Itoa(goScriptChunkMaxSizeBytes) + `,
         },
         {
           name: "app",
           test: (id) => isGoScriptModule(id, "github.com/s4wave/"),
-          maxSize: ` + strconv.Itoa(goScriptChunkMaxSizeBytes) + `,
         },
       ],
     },
