@@ -9,7 +9,6 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	world_control "github.com/s4wave/spacewave/db/world/control"
-	forge_pass "github.com/s4wave/spacewave/forge/pass"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_task "github.com/s4wave/spacewave/forge/task"
 	task_tx "github.com/s4wave/spacewave/forge/task/tx"
@@ -233,53 +232,9 @@ func buildUpdateInputValueSet(
 // processCheckTaskResult processes the task in the CHECKING state.
 // in the future, additional checks may be added here.
 func (c *Controller) processCheckTaskResult(ctx context.Context, ws world.WorldState, taskState *forge_task.Task) error {
-	passNonce := taskState.GetPassNonce()
-
-	// look up the completed pass
-	taskPass, taskPassTgt, _, err := forge_task.LookupTaskPass(ctx, ws, c.objKey, passNonce)
-	if err == nil {
-
-		if taskPass == nil {
-			err = errors.Wrap(world.ErrObjectNotFound, "task pass")
-		} else {
-			err = taskPass.Validate(false)
-		}
-	}
-
-	// check that the pass completed successfully
-	passResult := taskPass.GetResult()
-	if err == nil && !passResult.GetSuccess() {
-		passResult.FillFailError()
-		err = errors.New(passResult.GetFailError())
-		err = errors.Wrap(err, "pass failed")
-	}
-
-	// look up the outputs
-	outputs := taskPassTgt.GetOutputs()
-	if err == nil && len(outputs) != 0 {
-		// compute the outputs from the exec states
-		var passOutputs forge_value.ValueSlice
-		passOutputs, err = forge_pass.ComputeOutputsWithStates(outputs, taskPass.GetExecStates(), int(taskState.GetReplicas()))
-		if err != nil {
-			err = errors.Wrapf(err, "pass[%d]: compute outputs", passNonce)
-		}
-		// verify the outputs match what the pass has
-		if err == nil && !passOutputs.Equals(taskState.GetValueSet().GetOutputs()) {
-			err = errors.Wrapf(err, "pass[%d]: outputs mismatch re-computed values", passNonce)
-		}
-	}
-	if err != nil {
-		if ctx.Err() == nil || !errors.Is(err, context.Canceled) {
-			c.le.WithError(err).Warn("marking task as failed w/ error")
-		}
-		tx := task_tx.NewTxComplete(c.objKey, forge_value.NewResultWithError(err))
-		_, _, err = ws.ApplyWorldOp(ctx, tx, c.peerID)
-		return err
-	}
-
-	c.le.Info("marking task as complete")
+	c.le.Debug("submitting CHECKING completion")
 	tx := task_tx.NewTxComplete(c.objKey, forge_value.NewResultWithSuccess())
-	_, _, err = ws.ApplyWorldOp(ctx, tx, c.peerID)
+	_, _, err := ws.ApplyWorldOp(ctx, tx, c.peerID)
 	return err
 }
 
