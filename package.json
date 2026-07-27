@@ -93,6 +93,7 @@
     "test:go:e2e:wasm:tinygo:drive-split-tab": "cross-env ENABLE_E2E_WASM=true E2E_WASM_COMPILER=tinygo E2E_WASM_MANIFEST_BUILD_TIMEOUT=45m go test -count=1 -timeout=60m -v ./e2e/wasm -run TestQuickstartDriveSplitTabNavigation$",
     "test:go:e2e:wasm:goscript": "cross-env ENABLE_E2E_WASM=true E2E_WASM_COMPILER=goscript E2E_WASM_MANIFEST_BUILD_TIMEOUT=45m go test -count=1 -timeout=60m -v ./e2e/wasm",
     "test:go:e2e:wasm:goscript:smoke": "cross-env ENABLE_E2E_WASM=true E2E_WASM_COMPILER=goscript E2E_WASM_MANIFEST_BUILD_TIMEOUT=45m go test -count=1 -timeout=60m -v ./e2e/wasm -run '^TestWasmHarnessBoot$'",
+    "test:go:e2e:wasm:slice-coverage": "go test -count=1 -timeout=30s -v ./e2e/wasm/slicecoverage",
     "test:go:e2e:bldr-comms": "cross-env RUN_NO_COI_E2E=1 go test -timeout=30m -v ./bldr/e2e/comms",
     "test:go:e2e:bldr-downstreamapp": "cross-env RUN_DOWNSTREAM_APP_E2E=1 go test -count=1 -timeout=10m -v ./bldr/e2e/downstreamapp",
     "test:go:e2e:core": "cross-env RUN_CORE_E2E=1 go test -timeout=30m -v ./core/e2e/... -run TestSpacewaveCoreE2E",

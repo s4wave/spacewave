@@ -77,7 +77,7 @@ jobs:
             check_script: ''
             lint_go_script: lint:go:e2e
             lint_js_script: ''
-            test_go_script: ''
+            test_go_script: test:go:e2e:wasm:slice-coverage
             test_js_script: ''
           - name: db
             build_script: ''
