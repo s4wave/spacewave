@@ -26,6 +26,17 @@ func TestGoScriptManifestStartupTrace(t *testing.T) {
 	if compiler != E2EWasmCompilerGoScript {
 		t.Skipf("GoScript-only Manifest startup trace; compiler=%s", compiler)
 	}
+	workerMode, err := ResolveE2EWasmWorkerMode("")
+	if err != nil {
+		t.Fatalf("resolve e2e wasm worker mode: %v", err)
+	}
+	// sess.Workers() is populated from page.OnWorker, which reports dedicated
+	// workers only. In shared-worker mode the instrumented root runtime lives in
+	// a SharedWorker the scan never reaches, so the capture would fail looking
+	// for a callback that is running somewhere it cannot see.
+	if workerMode != WorkerModeDedicated {
+		t.Skipf("Manifest startup trace captures through page workers; worker mode=%s, want %s", workerMode, WorkerModeDedicated)
+	}
 
 	// The trace hook is a build tag, so the shared harness has to be compiled
 	// with it. Once an earlier test in this slice has booted that harness there
