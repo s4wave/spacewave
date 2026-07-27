@@ -92,7 +92,8 @@ vi.mock('./ShellTabContextMenu.js', () => ({
   ShellTabContextMenu: () => null,
 }))
 
-vi.mock('./shell-grid-utils.js', () => ({
+vi.mock('./shell-grid-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   encodeGridLayout: () => 'grid-layout',
   getTabIdsFromModel: (model: { tabs: Array<{ id: string }> }) =>
     model.tabs.map((tab) => tab.id),
@@ -122,6 +123,11 @@ vi.mock('@aptre/flex-layout', () => {
     getSelectedNode() {
       const tabId = this.selectedTabId ?? this.children[0]?.id ?? null
       return this.children.find((child) => child.id === tabId) ?? null
+    }
+
+    // The model only ever visits this tabset, so it is the active one.
+    isActive() {
+      return true
     }
   }
 
