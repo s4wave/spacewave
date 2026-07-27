@@ -100,3 +100,18 @@ func TestDaemonIdleTrackerServiceReleaseIsIdempotent(t *testing.T) {
 		t.Fatal("expected idle callback after service release")
 	}
 }
+
+func TestDaemonIdleTrackerZeroTimeoutDisablesShutdown(t *testing.T) {
+	tracker := newDaemonIdleTracker(0, func() {})
+	t.Cleanup(tracker.close)
+
+	tracker.clientAttached()
+	tracker.clientDetached()
+
+	tracker.mu.Lock()
+	idleTimer := tracker.idleTimer
+	tracker.mu.Unlock()
+	if idleTimer != nil {
+		t.Fatal("idle timer armed with zero timeout")
+	}
+}

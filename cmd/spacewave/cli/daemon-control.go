@@ -41,7 +41,7 @@ func newDaemonControlHandlerWithPolicy(
 	h := &daemonControlHandler{
 		Handler: listener_control.NewHandler(policy, requestShutdown),
 	}
-	h.Handler.SetShutdownGrantedCallback(func(ctx context.Context) {
+	h.SetShutdownGrantedCallback(func(ctx context.Context) {
 		if tc, ok := ctx.Value(daemonConnCtxKey{}).(*trackedConn); ok {
 			h.shutdownConn.Store(tc)
 		}

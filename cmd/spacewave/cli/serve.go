@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -38,6 +39,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 	var startupPipeID string
 	var runtimeTracePath string
 	var takeover bool
+	idleTimeout := defaultDaemonIdleTimeout
 	return &cli.Command{
 		Name:  "serve",
 		Usage: "start the daemon and listen for CLI connections",
@@ -46,6 +48,13 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 				Name:        "takeover",
 				Usage:       "ask any existing runtime on the socket to yield",
 				Destination: &takeover,
+			},
+			&cli.DurationFlag{
+				Name:        "idle-timeout",
+				Usage:       "duration controls shutdown after the last active client/service; zero disables idle shutdown",
+				EnvVars:     []string{daemonIdleTimeoutEnvVar},
+				Value:       defaultDaemonIdleTimeout,
+				Destination: &idleTimeout,
 			},
 			&cli.StringFlag{
 				Name:        "daemon-startup-pipe-id",
@@ -62,7 +71,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 		},
 		Action: func(c *cli.Context) (retErr error) {
 			return runWithRuntimeTrace(runtimeTracePath, func() error {
-				return runServeCommand(c, getBus, startupPipeID, takeover)
+				return runServeCommand(c, getBus, startupPipeID, takeover, idleTimeout)
 			})
 		},
 	}
@@ -73,6 +82,7 @@ func runServeCommand(
 	getBus func() cli_entrypoint.CliBus,
 	startupPipeID string,
 	takeover bool,
+	idleTimeout time.Duration,
 ) (retErr error) {
 	ctx := c.Context
 
@@ -131,11 +141,6 @@ func runServeCommand(
 		return err
 	}
 	defer releasePluginRuntime()
-
-	idleTimeout, err := getDaemonIdleTimeout()
-	if err != nil {
-		return err
-	}
 
 	le.Info("waiting for resource service")
 	invoker, invokerRef, err := waitForResourceService(
