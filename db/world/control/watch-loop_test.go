@@ -65,6 +65,7 @@ func TestWatchLoop(t *testing.T) {
 		if outRev != 2 {
 			t.Fatalf("expected rev: %v but got %v", 2, outRev)
 		}
+		world.ReleaseObjectState(res)
 	}
 
 	revCh := make(chan uint64, 10)
@@ -475,6 +476,7 @@ func TestWatchLoopReleasesObjectStatePerIteration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer world.ReleaseObjectState(obj)
 
 	ws := &countingWorldState{WorldState: remote}
 	revs := make(chan uint64, 8)

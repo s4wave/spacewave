@@ -39,6 +39,11 @@ type watchLoopWaiter struct {
 }
 
 // WatchLoopHandler is the callback function for the WatchLoop.
+//
+// obj is borrowed for the duration of the call: the loop releases it before the
+// next iteration. A handler that needs the object state afterwards acquires its
+// own handle with world.WorldState.GetObject.
+//
 // le may be nil
 type WatchLoopHandler = func(
 	ctx context.Context,
