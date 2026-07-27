@@ -735,6 +735,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private forceDedicatedWorkers?: boolean
   // dedicatedRuntimeHost owns the temporary DedicatedWorker host election.
   private dedicatedRuntimeHost?: DedicatedWorkerHostOwner
+  // startRuntimeOnce starts the runtime worker and its connection the first
+  // time it is called. The runtime start waits for ServiceWorker control, and
+  // control arrives by several routes, so every route that observes control
+  // calls this rather than starting the runtime itself.
+  private startRuntimeOnce?: () => void
   // forceMessagePortWorkerComms forces MessagePort-only worker communication.
   private forceMessagePortWorkerComms?: boolean
   // webRuntimePort is the Port connected to the WebRuntime (Shared Worker or Electron Main).
@@ -1252,37 +1257,39 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     const wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
     this.serviceWorker = wb
 
-    if (useDedicatedRuntime) {
-      void this.initServiceWorker(wb, swUrl, () => {
-        queueMicrotask(startDedicatedRuntime)
-      })
-    } else {
-      // Shared-worker mode: the shared worker imports /b/* runtime and plugin
-      // bundle paths, which only resolve once the ServiceWorker is controlling
-      // this page. Starting the worker before control means those imports hit the
-      // origin, which serves the SPA index.html for unmatched paths, so the
-      // module loads fail and the runtime never comes up. Gate
-      // the start on SW control like the dedicated branch, with a bounded fallback
-      // so a browser whose SW never reaches controlling state still loads
-      // (degraded) instead of hanging forever.
-      let runtimeStarted = false
-      const startRuntimeOnce = () => {
-        if (runtimeStarted || this.closed) {
-          return
-        }
-        runtimeStarted = true
-        startWebRuntimeWorker()
-        this.startWebRuntimeConnection()
+    // Both runtime modes import /b/* runtime and plugin bundle paths, which
+    // only resolve once the ServiceWorker is controlling this page. Starting a
+    // worker before control means those imports hit the origin, which serves
+    // the SPA index.html for unmatched paths, so the module loads fail and the
+    // runtime never comes up. So both modes gate the start on SW control, and
+    // neither may gate on it forever: a document that never starts a runtime
+    // has nothing left scheduled to start one, and the boot parks silently for
+    // as long as the tab stays open. The bounded fallback starts the runtime
+    // anyway, degraded, rather than hanging.
+    let runtimeStarted = false
+    const startRuntimeOnce = () => {
+      if (runtimeStarted || this.closed) {
+        return
       }
-      const controlFallback = globalThis.setTimeout(
-        startRuntimeOnce,
-        sharedWorkerControlFallbackMs,
-      )
-      void this.initServiceWorker(wb, swUrl, () => {
-        globalThis.clearTimeout(controlFallback)
-        startRuntimeOnce()
-      })
+      runtimeStarted = true
+      if (useDedicatedRuntime) {
+        // The dedicated host election reads the ServiceWorker tracker, so let
+        // the caller finish binding its port before the election starts.
+        queueMicrotask(startDedicatedRuntime)
+        return
+      }
+      startWebRuntimeWorker()
+      this.startWebRuntimeConnection()
     }
+    this.startRuntimeOnce = startRuntimeOnce
+    const controlFallback = globalThis.setTimeout(
+      startRuntimeOnce,
+      sharedWorkerControlFallbackMs,
+    )
+    void this.initServiceWorker(wb, swUrl, () => {
+      globalThis.clearTimeout(controlFallback)
+      startRuntimeOnce()
+    })
   }
 
   // openWebDocumentHostStream opens an RPC stream with the WebDocumentHost.
@@ -1762,6 +1769,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       const currSw = navigator.serviceWorker.controller || sw
       // the service worker wants a new message port for requests
       this.initServiceWorkerPort(currSw)
+      // A service worker talking to this document is proof that one controls
+      // it, which is the condition the runtime start is waiting for.
+      this.startRuntimeOnce?.()
       if (!this.runtimeConnected) {
         this.taskEnsureWebRuntimeConn()
       }
@@ -1786,6 +1796,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       // the still-live host without waiting for a failed connection to solicit
       // another registration.
       this.initServiceWorkerPort(controller)
+      // controllerchange is the event form of the condition the runtime start
+      // gate waits for. The awaited path below can return early or never
+      // settle, so this route must start the runtime rather than only rebind
+      // the port to it.
+      this.startRuntimeOnce?.()
       if (!this.runtimeConnected) {
         this.taskEnsureWebRuntimeConn()
       }

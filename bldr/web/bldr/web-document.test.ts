@@ -64,7 +64,12 @@ type TestWebDocument = {
   webDocumentUuid: string
   onWebWorkerMessage(workerID: string, event: MessageEvent): void
   onWebDocumentClientMessage(event: MessageEvent): void
-  initServiceWorker(wb: TestWorkbox, swUrl: string): Promise<void>
+  initServiceWorker(
+    wb: TestWorkbox,
+    swUrl: string,
+    onControlReady?: () => void,
+  ): Promise<void>
+  startRuntimeOnce?: () => void
   onRuntimeOpfsBrokerMessage(brokerPort: MessagePort, event: MessageEvent): void
   refreshPluginSingletonLock(): void
   releasePluginSingletonLock(): void
@@ -513,6 +518,56 @@ describe('WebDocument service worker startup', () => {
 
     await doc.initServiceWorker(wb, '/sw.mjs')
     expect(storage.getItem('bldr-sw-controller-reload')).toBeNull()
+  })
+
+  it('starts the runtime from controllerchange when the awaited path returned early', async () => {
+    const controllerChangeListeners: Array<(ev: Event) => void> = []
+    installSessionStorage({ 'bldr-sw-controller-reload': '/sw.mjs' })
+    vi.stubGlobal('location', {
+      href: 'https://example.test/app',
+      reload: vi.fn(),
+    })
+    const sw = { postMessage: vi.fn() } as unknown as ServiceWorker
+    const serviceWorker = {
+      controller: null as ServiceWorker | null,
+      addEventListener: vi.fn((type: string, listener: EventListener) => {
+        if (type === 'controllerchange') {
+          controllerChangeListeners.push(listener as (ev: Event) => void)
+        }
+      }),
+      register: vi.fn(),
+    }
+    vi.stubGlobal('navigator', { serviceWorker })
+
+    const doc = buildTestWebDocument()
+    const startRuntimeOnce = vi.fn()
+    doc.startRuntimeOnce = startRuntimeOnce
+    vi.spyOn(
+      doc as unknown as { initServiceWorkerPort: (sw: ServiceWorker) => void },
+      'initServiceWorkerPort',
+    ).mockImplementation(() => {})
+    const onControlReady = vi.fn()
+    const wb: TestWorkbox = {
+      register: vi
+        .fn()
+        .mockResolvedValue({
+          scope: 'https://example.test/',
+        } as ServiceWorkerRegistration),
+      update: vi.fn().mockResolvedValue(undefined),
+      controlling: new Promise<ServiceWorker>(() => {}),
+    }
+
+    // The controller is already missing after a reload, so this returns before
+    // reaching onControlReady and nothing on the awaited path will ever start
+    // the runtime.
+    await doc.initServiceWorker(wb, '/sw.mjs', onControlReady)
+    expect(onControlReady).not.toHaveBeenCalled()
+    expect(startRuntimeOnce).not.toHaveBeenCalled()
+
+    serviceWorker.controller = sw
+    controllerChangeListeners[0](new Event('controllerchange'))
+
+    expect(startRuntimeOnce).toHaveBeenCalledOnce()
   })
 })
 
