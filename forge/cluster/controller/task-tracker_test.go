@@ -2,6 +2,7 @@ package cluster_controller
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
+	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_control "github.com/s4wave/spacewave/db/world/control"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
@@ -147,8 +149,12 @@ func TestTaskTrackerWakesParentOnFirstComplete(t *testing.T) {
 		t.Fatalf("job did not complete after first COMPLETE task observation: %v", ctx.Err())
 	}
 
+	// The cancel below stops the tracker loop and tears the testbed engine down
+	// at the same time, so the loop returns whichever it notices first. Both are
+	// the shutdown this asserts; anything else is a real error.
 	cancel()
-	if err := <-parentDone; err != context.Canceled {
-		t.Fatalf("parent tracker returned %v after cancellation, want context.Canceled", err)
+	err = <-parentDone
+	if !errors.Is(err, context.Canceled) && !errors.Is(err, world_block.ErrEngineClosed) {
+		t.Fatalf("parent tracker returned %v after cancellation, want %v or %v", err, context.Canceled, world_block.ErrEngineClosed)
 	}
 }

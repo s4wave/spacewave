@@ -192,7 +192,7 @@ func (e *Engine) Sync(ctx context.Context) (bool, error) {
 	e.rmtx.Lock()
 	defer e.rmtx.Unlock()
 	if e.closed {
-		return false, errors.New("world block engine is closed")
+		return false, ErrEngineClosed
 	}
 
 	// block barrier: drain and fence every buffered block write durable.
@@ -242,7 +242,7 @@ func (e *Engine) SetRootRef(ctx context.Context, ref *bucket.ObjectRef) error {
 	e.rmtx.Lock()
 	defer e.rmtx.Unlock()
 	if e.closed {
-		return errors.New("world block engine is closed")
+		return ErrEngineClosed
 	}
 
 	return e.setRootRefLocked(ctx, ref)
@@ -256,7 +256,7 @@ func (e *Engine) AdoptRootRefFromWatch(ctx context.Context, ref *bucket.ObjectRe
 	e.rmtx.Lock()
 	defer e.rmtx.Unlock()
 	if e.closed {
-		return errors.New("world block engine is closed")
+		return ErrEngineClosed
 	}
 	if e.writeTx != nil {
 		return nil
@@ -392,7 +392,7 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 		e.rmtx.Lock()
 		defer e.rmtx.Unlock()
 		if e.closed {
-			return nil, errors.New("world block engine is closed")
+			return nil, ErrEngineClosed
 		}
 		if e.writeTx == nil && e.writeHeadRefresh != nil {
 			if err := e.refreshDurableHeadLocked(ctx); err != nil {
@@ -445,7 +445,7 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 			_ = lease.Release(ctx)
 		}
 		relLock()
-		return nil, errors.New("world block engine is closed")
+		return nil, ErrEngineClosed
 	}
 	if lease != nil {
 		if e.readTx != nil {
@@ -547,7 +547,7 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 	subtask.End()
 	defer e.rmtx.RUnlock()
 	if e.closed {
-		return nil, errors.New("world block engine is closed")
+		return nil, ErrEngineClosed
 	}
 
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/build-world-state")
@@ -569,7 +569,7 @@ func (e *Engine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor,
 	e.rmtx.RLock()
 	defer e.rmtx.RUnlock()
 	if e.closed {
-		return nil, errors.New("world block engine is closed")
+		return nil, ErrEngineClosed
 	}
 	ncs := e.baseRoot.Clone()
 	ncs.SetRootRef(nil)
@@ -590,7 +590,7 @@ func (e *Engine) AccessWorldState(
 	closed := e.closed
 	e.rmtx.RUnlock()
 	if closed {
-		return errors.New("world block engine is closed")
+		return ErrEngineClosed
 	}
 	if ref == nil {
 		ncs := e.root.Clone()
@@ -618,7 +618,7 @@ func (e *Engine) GetSeqno(ctx context.Context) (uint64, error) {
 	e.rmtx.Lock()
 	defer e.rmtx.Unlock()
 	if e.closed {
-		return 0, errors.New("world block engine is closed")
+		return 0, ErrEngineClosed
 	}
 	seqno, ok, err := e.currentRootSeqnoLocked(ctx)
 	if err != nil {
@@ -680,7 +680,7 @@ func (e *Engine) WaitSeqno(ctx context.Context, value uint64) (uint64, error) {
 		e.rmtx.RLock()
 		if e.closed {
 			e.rmtx.RUnlock()
-			return 0, errors.New("world block engine is closed")
+			return 0, ErrEngineClosed
 		}
 		readTx := e.readTx
 		e.rmtx.RUnlock()

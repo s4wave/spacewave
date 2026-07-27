@@ -96,17 +96,15 @@ func TestWatchWorldStateBatchedBodyReadTracksAccess(t *testing.T) {
 	}
 	writeTx.Release()
 
-	watchCtx, watchCancel := context.WithTimeout(ctx, 3*time.Second)
-	defer watchCancel()
-	stream, err := engine.WatchWorldState(watchCtx)
+	// The stream stays open across the batched read and the update transaction
+	// below, so a deadline here would be a budget over that setup work rather
+	// than a bound on any wait. Each awaited message is bounded on its own.
+	stream, err := engine.WatchWorldState(ctx)
 	if err != nil {
 		t.Fatalf("WatchWorldState: %v", err)
 	}
 	defer stream.Close()
-	watchMsg, err := stream.Recv()
-	if err != nil {
-		t.Fatalf("WatchWorldState Recv: %v", err)
-	}
+	watchMsg := recvWatchWorldState(t, stream, "initial snapshot")
 
 	trackedRef := resClient.CreateResourceReference(watchMsg.GetResourceId())
 	defer trackedRef.Release()
@@ -143,12 +141,44 @@ func TestWatchWorldStateBatchedBodyReadTracksAccess(t *testing.T) {
 		t.Fatalf("Commit update: %v", err)
 	}
 
-	changedMsg, err := stream.Recv()
-	if err != nil {
-		t.Fatalf("WatchWorldState Recv after batched access: %v", err)
-	}
-	if changedMsg.GetResourceId() == watchMsg.GetResourceId() {
+	changed := recvWatchWorldState(t, stream, "update after the batched body read and commit")
+	if changed.GetResourceId() == watchMsg.GetResourceId() {
 		t.Fatal("batched body access did not track object changes")
+	}
+}
+
+// recvWatchWorldState waits for the next message on a world state watch stream
+// under its own bound.
+//
+// Recv takes no context, so the only deadline lever is the stream context, and
+// that context has to outlive the whole flow the caller is exercising. Bounding
+// the stream would therefore budget the setup rather than the wait. Each awaited
+// message gets its own bound here instead, so a stream that never publishes
+// fails at the receive that stalled rather than hanging the package.
+func recvWatchWorldState(
+	t *testing.T,
+	stream s4wave_world.SRPCWatchWorldStateResourceService_WatchWorldStateClient,
+	what string,
+) *s4wave_world.WatchWorldStateResponse {
+	t.Helper()
+	type watchRecv struct {
+		msg *s4wave_world.WatchWorldStateResponse
+		err error
+	}
+	recvCh := make(chan watchRecv, 1)
+	go func() {
+		msg, err := stream.Recv()
+		recvCh <- watchRecv{msg: msg, err: err}
+	}()
+	select {
+	case recv := <-recvCh:
+		if recv.err != nil {
+			t.Fatalf("WatchWorldState Recv (%s): %v", what, recv.err)
+		}
+		return recv.msg
+	case <-time.After(5 * time.Second):
+		t.Fatalf("no world state %s arrived", what)
+		return nil
 	}
 }
 
