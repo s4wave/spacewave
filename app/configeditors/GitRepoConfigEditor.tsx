@@ -139,7 +139,7 @@ export function GitRepoConfigEditor({
                 </button>
               </div>
             </div>
-            <label className="border-foreground/6 bg-background/20 hover:border-foreground/12 hover:bg-background/30 flex items-center gap-3 rounded-md border px-3 py-2 transition-all duration-150">
+            <label className="border-foreground/6 bg-background/20 hover:border-foreground/12 hover:bg-background/30 flex items-center gap-3 rounded-md border px-3 py-2 transition duration-150">
               <input
                 type="checkbox"
                 checked={cloneOpts.recursive ?? false}

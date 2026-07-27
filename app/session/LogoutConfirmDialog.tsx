@@ -49,7 +49,7 @@ export function LogoutConfirmDialog({
               'disabled:cursor-not-allowed disabled:opacity-50',
             )}
           >
-            {loggingOut ? 'Logging out...' : 'Log out'}
+            {loggingOut ? 'Logging out…' : 'Log out'}
           </button>
         </DialogFooter>
       </DialogContent>

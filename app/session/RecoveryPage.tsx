@@ -404,7 +404,7 @@ function RequestRecoveryForm({
           <LuArrowRight className="text-foreground size-4" />
         )}
         <span className="text-foreground text-sm">
-          {loading ? 'Sending recovery link...' : 'Send recovery link'}
+          {loading ? 'Sending recovery link…' : 'Send recovery link'}
         </span>
       </button>
       <button

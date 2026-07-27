@@ -272,8 +272,8 @@ export function SSOConfirmPage() {
             <AnimatedLogo followMouse={false} />
             <h2 className="text-foreground text-lg font-semibold">
               {state.step === 'logging_in'
-                ? 'Signing in...'
-                : 'Creating account...'}
+                ? 'Signing in…'
+                : 'Creating account…'}
             </h2>
             {pendingState.email && (
               <p className="text-foreground-alt text-sm">

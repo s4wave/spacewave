@@ -1173,7 +1173,7 @@ function CdnImagePickerModal({
             variant="outline"
             size="sm"
             onClick={onClose}
-            className="border-foreground/8 hover:border-foreground/15 hover:bg-foreground/5 text-foreground-alt hover:text-foreground h-7 bg-transparent px-2 text-xs transition-all duration-150"
+            className="border-foreground/8 hover:border-foreground/15 hover:bg-foreground/5 text-foreground-alt hover:text-foreground h-7 bg-transparent px-2 text-xs transition duration-150"
           >
             Close
           </Button>
@@ -1224,7 +1224,7 @@ function CdnImagePickerModal({
             <button
               type="button"
               key={entry.objectKey}
-              className="border-foreground/10 bg-background-card/30 hover:border-foreground/20 hover:bg-background-card/50 flex w-full flex-col items-start gap-1 rounded-lg border p-3 text-left transition-all duration-150"
+              className="border-foreground/10 bg-background-card/30 hover:border-foreground/20 hover:bg-background-card/50 flex w-full flex-col items-start gap-1 rounded-lg border p-3 text-left transition duration-150"
               onClick={() => onSelect(entry.objectKey)}
             >
               <span className="text-foreground text-sm font-medium">

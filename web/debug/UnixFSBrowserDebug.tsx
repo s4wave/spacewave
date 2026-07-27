@@ -747,7 +747,7 @@ function ErrorStateSection() {
             <div className="mt-3 flex justify-end">
               <button
                 type="button"
-                className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-all duration-150"
+                className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition duration-150"
               >
                 <LuRotateCw className="size-3" />
                 Retry
@@ -814,7 +814,7 @@ function DestructiveDialogSection() {
           <button className="text-foreground-alt hover:text-foreground h-7 rounded-md px-3 text-xs transition-colors">
             Cancel
           </button>
-          <button className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition-all duration-150">
+          <button className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150">
             Delete
           </button>
         </div>

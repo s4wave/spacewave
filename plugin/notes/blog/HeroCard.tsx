@@ -40,7 +40,7 @@ export function HeroCard({ post, onSelectPost, onSelectTag, authorRegistry }: He
       tabIndex={0}
       onClick={handleHeroCardSelect}
       onKeyDown={handleHeroCardKeyDown}
-      className="border-foreground/8 bg-background-card/20 group relative cursor-pointer overflow-hidden rounded-2xl border backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/12"
+      className="border-foreground/8 bg-background-card/20 group relative cursor-pointer overflow-hidden rounded-2xl border backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 hover:border-white/12"
     >
       <div className="relative flex flex-col gap-6 p-6 @lg:flex-row @lg:items-start @lg:gap-10 @lg:p-10">
         <div className="flex-1">
@@ -60,7 +60,7 @@ export function HeroCard({ post, onSelectPost, onSelectTag, authorRegistry }: He
             </p>
           )}
 
-          <div className="text-brand flex items-center gap-2 text-sm font-medium opacity-0 transition-all duration-300 group-hover:opacity-100">
+          <div className="text-brand flex items-center gap-2 text-sm font-medium opacity-0 transition duration-300 group-hover:opacity-100">
             Read post
             <LuArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" />
           </div>

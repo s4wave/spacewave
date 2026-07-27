@@ -183,7 +183,7 @@ export function BillingPage() {
                   renameValue.trim() === displayName
                 }
               >
-                {renameSaving ? 'Saving...' : 'Save'}
+                {renameSaving ? 'Saving…' : 'Save'}
               </DashboardButton>
               <DashboardButton
                 icon={<LuX className="size-3" />}
@@ -283,7 +283,7 @@ export function BillingPage() {
                   onClick={() => void handleRefreshUsage()}
                   disabled={!session || refreshingUsage}
                 >
-                  {refreshingUsage ? 'Refreshing...' : 'Refresh'}
+                  {refreshingUsage ? 'Refreshing…' : 'Refresh'}
                 </DashboardButton>
               }
             />

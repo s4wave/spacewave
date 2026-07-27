@@ -181,7 +181,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
           {prevDoc ? (
             <button
               onClick={navigatePrev}
-              className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-1.5 rounded-xl border p-4 text-left transition-all duration-200 @lg:p-5"
+              className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-1.5 rounded-xl border p-4 text-left transition duration-200 @lg:p-5"
             >
               <span className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
                 <LuArrowLeft className="size-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
@@ -198,7 +198,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
           {nextDoc ? (
             <button
               onClick={navigateNext}
-              className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-end gap-1.5 rounded-xl border p-4 text-right transition-all duration-200 @lg:p-5"
+              className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-end gap-1.5 rounded-xl border p-4 text-right transition duration-200 @lg:p-5"
             >
               <span className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
                 Next

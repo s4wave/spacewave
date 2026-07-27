@@ -408,7 +408,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
                   disabled={!renameValue.trim() || renameSaving}
                   className="border-brand/30 bg-brand/10 text-foreground hover:border-brand/50 hover:bg-brand/15 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {renameSaving ? 'Saving...' : 'Rename'}
+                  {renameSaving ? 'Saving…' : 'Rename'}
                 </DashboardButton>
               </div>
             </div>

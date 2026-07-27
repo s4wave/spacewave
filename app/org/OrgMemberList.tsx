@@ -100,7 +100,7 @@ function OrgMemberRow(props: {
           disabled={removing}
           className="text-destructive hover:bg-destructive/10"
         >
-          {removing ? 'Removing...' : 'Remove'}
+          {removing ? 'Removing…' : 'Remove'}
         </DashboardButton>
       )}
     </div>

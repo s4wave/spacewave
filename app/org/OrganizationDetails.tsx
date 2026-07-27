@@ -563,7 +563,7 @@ export function OrganizationDetails({
                             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                           >
                             {mutationPending
-                              ? 'Reinitializing...'
+                              ? 'Reinitializing…'
                               : 'Confirm reinitialize'}
                           </DashboardButton>
                         </div>
@@ -663,7 +663,7 @@ export function OrganizationDetails({
                     }
                   >
                     {usernameInvitePending
-                      ? 'Sending...'
+                      ? 'Sending…'
                       : usernameInviteSent
                         ? 'Sent'
                         : 'Invite'}
@@ -717,7 +717,7 @@ export function OrganizationDetails({
                             renameSaving || renameValue.trim() === orgName
                           }
                         >
-                          {renameSaving ? 'Saving...' : 'Save'}
+                          {renameSaving ? 'Saving…' : 'Save'}
                         </DashboardButton>
                         <DashboardButton
                           icon={<LuX className="size-3" />}

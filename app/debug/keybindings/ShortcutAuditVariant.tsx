@@ -44,7 +44,8 @@ export function ShortcutAuditVariant({
   const [mode, setMode] = useState<AuditMode>('issues')
   const [query, setQuery] = useState('')
   const [selectedCommandId, setSelectedCommandId] = useState(
-    commands.find((command) => conflictCommandIds.has(command.id))?.id ??
+    () =>
+      commands.find((command) => conflictCommandIds.has(command.id))?.id ??
       commands.find((command) => !command.binding)?.id ??
       commands[0]?.id ??
       '',

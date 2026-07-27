@@ -286,7 +286,7 @@ export function TransferWizard() {
           <p className="text-foreground-alt mt-1 text-sm">
             {step === 'select' && 'Choose source and target sessions.'}
             {step === 'inventory' && 'Review spaces to transfer.'}
-            {step === 'progress' && 'Transfer in progress...'}
+            {step === 'progress' && 'Transfer in progress…'}
             {step === 'complete' && 'Transfer complete.'}
           </p>
         </div>
@@ -645,7 +645,7 @@ function ProgressStep({
                 {total > 0 && (
                   <div className="bg-foreground/10 mt-1.5 h-1 overflow-hidden rounded-full">
                     <div
-                      className="bg-brand h-full rounded-full transition-all"
+                      className="bg-brand h-full rounded-full transition-[width]"
                       style={{ width: `${pct}%` }}
                     />
                   </div>

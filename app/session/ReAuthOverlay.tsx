@@ -146,7 +146,7 @@ export function ReAuthOverlay({
             >
               <LuKeyRound className="size-4" />
               <span className="text-foreground text-sm">
-                {submitting ? 'Reconnecting...' : 'Reconnect'}
+                {submitting ? 'Reconnecting…' : 'Reconnect'}
               </span>
             </button>
 

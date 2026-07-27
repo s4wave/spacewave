@@ -81,8 +81,8 @@ export function IntroWizardOverlay({
                 key={callout.title || index}
                 className={
                   index === activeStep
-                    ? 'bg-brand h-1.5 w-4 rounded-full transition-all'
-                    : 'bg-foreground/20 h-1.5 w-1.5 rounded-full transition-all'
+                    ? 'bg-brand h-1.5 w-4 rounded-full transition-[width,background-color]'
+                    : 'bg-foreground/20 h-1.5 w-1.5 rounded-full transition-[width,background-color]'
                 }
               />
             ))}
@@ -118,7 +118,7 @@ export function IntroWizardOverlay({
               disabled={finishing}
               className="border-brand/60 bg-brand/25 hover:border-brand/80 hover:bg-brand/35 text-foreground h-8 rounded-md border px-3 text-xs font-medium"
             >
-              {isLastStep ? (finishing ? 'Opening...' : finishLabel) : 'Next'}
+              {isLastStep ? (finishing ? 'Opening…' : finishLabel) : 'Next'}
             </Button>
           </div>
         </div>

@@ -128,7 +128,7 @@ export function UnixFSMoveDialog({
 
         <div className="border-foreground/6 bg-background-card/30 overflow-hidden rounded-lg border">
           <Command className="bg-transparent">
-            <CommandInput placeholder="Search folders..." />
+            <CommandInput placeholder="Search folders…" />
             <CommandList className="max-h-72">
               {dirs.loading && (
                 <div className="px-3 py-2">
@@ -215,7 +215,7 @@ export function UnixFSMoveDialog({
             onClick={() => void handleConfirm()}
             disabled={confirmDisabled}
           >
-            {submitting ? 'Moving...' : 'Move'}
+            {submitting ? 'Moving…' : 'Move'}
           </button>
         </DialogFooter>
       </DialogContent>

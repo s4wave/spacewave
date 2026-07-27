@@ -223,7 +223,7 @@ function AddEmailForm({
       <button
         type="button"
         onClick={() => onOpenChange(true)}
-        className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/50 bg-background-card/30 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition-all duration-150"
+        className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/50 bg-background-card/30 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition duration-150"
       >
         <div className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
           <LuPlus className="text-foreground-alt size-3.5" />
@@ -288,7 +288,7 @@ function AddEmailForm({
           disabled={!canSubmit}
           onClick={() => void onSubmit()}
         >
-          {adding ? 'Adding...' : 'Send code'}
+          {adding ? 'Adding…' : 'Send code'}
         </DashboardButton>
       </div>
     </div>
@@ -410,7 +410,7 @@ function EmailRow({
               onClick={() => void onSendCode(addr)}
             >
               {sendingCode
-                ? 'Sending...'
+                ? 'Sending…'
                 : retryAfter > 0
                   ? retryAfter + 's'
                   : 'Send code'}
@@ -459,7 +459,7 @@ function EmailRow({
               disabled={settingPrimary}
               onClick={() => void onSetPrimary(addr)}
             >
-              {settingPrimary ? 'Updating...' : 'Set as primary'}
+              {settingPrimary ? 'Updating…' : 'Set as primary'}
             </DashboardButton>
           </div>
         </div>
@@ -499,7 +499,7 @@ function EmailRow({
               className="text-foreground-alt hover:text-foreground text-xs transition-colors disabled:opacity-50"
             >
               {sendingCode
-                ? 'Sending...'
+                ? 'Sending…'
                 : retryAfter > 0
                   ? 'Resend in ' + retryAfter + 's'
                   : "Didn't get it? Send again"}
@@ -515,7 +515,7 @@ function EmailRow({
               disabled={verifyingCode || code.length !== 6}
               onClick={() => void onVerifyCode()}
             >
-              {verifyingCode ? 'Verifying...' : 'Verify email'}
+              {verifyingCode ? 'Verifying…' : 'Verify email'}
             </DashboardButton>
           </div>
         </div>

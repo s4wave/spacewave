@@ -114,10 +114,10 @@ export function LinkDeviceDoneStep({
         </div>
         <h2 className="text-foreground text-sm font-medium">
           {syncState === 'confirming'
-            ? 'Confirming linked device...'
+            ? 'Confirming linked device…'
             : syncDone
               ? 'All set!'
-              : 'Finishing device sync...'}
+              : 'Finishing device sync…'}
         </h2>
       </div>
 

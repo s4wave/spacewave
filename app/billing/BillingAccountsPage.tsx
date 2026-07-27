@@ -216,7 +216,7 @@ export function BillingAccountsPage() {
             className="border-brand/30 bg-brand/10 hover:bg-brand/20 text-brand flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
             <LuPlus className="size-3.5" />
-            <span>{creating ? 'Creating...' : 'New billing account'}</span>
+            <span>{creating ? 'Creating…' : 'New billing account'}</span>
           </button>
         </div>
         {createError && (
@@ -352,7 +352,7 @@ export function BillingAccountsPage() {
                         }
                       >
                         <DropdownTriggerButton triggerStyle="ghost">
-                          {isBusy ? 'Assigning...' : 'Assign to...'}
+                          {isBusy ? 'Assigning…' : 'Assign to…'}
                         </DropdownTriggerButton>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">

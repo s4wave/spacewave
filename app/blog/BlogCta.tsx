@@ -147,14 +147,14 @@ export function BlogCta() {
             <div className="mt-1 flex flex-wrap gap-3">
               <button
                 onClick={goToQuickstart}
-                className="border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15 flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none hover:-translate-y-0.5"
+                className="border-brand/40 bg-brand/10 text-foreground hover:border-brand/60 hover:bg-brand/15 flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5"
               >
                 Get started
                 <LuArrowRight className="size-3.5" />
               </button>
               <button
                 onClick={goToCommunity}
-                className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none hover:-translate-y-0.5"
+                className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5"
               >
                 <LuGithub className="size-3.5" />
                 Join community
@@ -189,9 +189,9 @@ export function BlogCta() {
                     <button
                       type="submit"
                       disabled={formState === 'submitting'}
-                      className="border-brand/40 text-brand hover:bg-brand/10 hover:border-brand/60 shrink-0 cursor-pointer rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-50"
+                      className="border-brand/40 text-brand hover:bg-brand/10 hover:border-brand/60 shrink-0 cursor-pointer rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-50"
                     >
-                      {formState === 'submitting' ? 'Sending...' : 'Subscribe'}
+                      {formState === 'submitting' ? 'Sending…' : 'Subscribe'}
                     </button>
                   </div>
                   {formState === 'error' && errorMessage && (

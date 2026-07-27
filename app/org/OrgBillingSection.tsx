@@ -293,7 +293,7 @@ function OrgBillingDetachAction({ orgId }: { orgId: string }) {
               className="border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive flex cursor-pointer items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             >
               <LuX className="size-3" />
-              <span>{detaching ? 'Detaching...' : 'Detach'}</span>
+              <span>{detaching ? 'Detaching…' : 'Detach'}</span>
             </button>
           </DialogFooter>
         </DialogContent>

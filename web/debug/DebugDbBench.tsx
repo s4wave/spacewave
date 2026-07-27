@@ -119,8 +119,8 @@ function SuiteTable({ suite }: { suite: BenchmarkSuite }) {
             </tr>
           </thead>
           <tbody>
-            {metrics.map((m, i) => (
-              <MetricRow key={m.name || i} metric={m} />
+            {metrics.map((metric) => (
+              <MetricRow key={metric.name} metric={metric} />
             ))}
           </tbody>
         </table>
@@ -162,8 +162,8 @@ function ResultsDisplay({ results }: { results: BenchmarkResults }) {
           Download JSON
         </button>
       </div>
-      {suites.map((suite, i) => (
-        <SuiteTable key={suite.name || i} suite={suite} />
+      {suites.map((suite) => (
+        <SuiteTable key={suite.name} suite={suite} />
       ))}
     </div>
   )
@@ -230,7 +230,7 @@ function ProgressBar({ progress }: { progress: WatchProgressResponse }) {
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between text-xs">
         <span className="text-text-primary font-mono">
-          {progress.suiteName || 'Starting...'}
+          {progress.suiteName || 'Starting…'}
         </span>
         <span className="text-text-muted">
           {progress.suiteIndex?.toString() ?? '0'}/
@@ -239,7 +239,7 @@ function ProgressBar({ progress }: { progress: WatchProgressResponse }) {
       </div>
       <div className="bg-background-dark h-2 overflow-hidden rounded-full">
         <div
-          className="bg-primary h-full rounded-full transition-all duration-300"
+          className="bg-primary h-full rounded-full transition-[width] duration-300"
           style={{ width: `${progress.percentComplete ?? 0}%` }}
         />
       </div>
@@ -351,7 +351,7 @@ function BenchmarkPanel({ debugDb }: { debugDb: Resource<DebugDb> }) {
             )}
           >
             <LuPlay className="size-3.5" />
-            {running ? 'Running...' : 'Run Benchmark'}
+            {running ? 'Running…' : 'Run Benchmark'}
           </button>
         </div>
       </div>

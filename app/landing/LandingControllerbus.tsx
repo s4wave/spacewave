@@ -108,7 +108,7 @@ export function LandingControllerbus() {
             return (
               <div
                 key={feature.title}
-                className="border-foreground/6 bg-background-card/30 group rounded-lg border p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5"
+                className="border-foreground/6 bg-background-card/30 group rounded-lg border p-6 backdrop-blur-sm transition duration-300 hover:-translate-y-0.5"
               >
                 <div className="mb-3 flex items-center gap-3">
                   <div className="bg-brand/8 group-hover:bg-brand/15 flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors">
@@ -183,7 +183,7 @@ export function LandingControllerbus() {
           </ExternalLink>
           <a
             href={landingHref}
-            className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium no-underline transition-all duration-300 select-none hover:-translate-y-0.5"
+            className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium no-underline transition duration-300 select-none hover:-translate-y-0.5"
           >
             <LuCheck className="size-4" />
             <span>See all features</span>

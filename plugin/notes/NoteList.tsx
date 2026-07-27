@@ -117,13 +117,10 @@ function NoteList({
 
   const fileEntries = useMemo(() => {
     if (!entriesResource.value) return []
+    const formats = new Set(allowedFormats ?? defaultNoteFormats)
     return entriesResource.value.filter((entry) => {
       const format = getNoteFileFormat(entry.name)
-      return (
-        !entry.isDir &&
-        format !== null &&
-        (allowedFormats ?? defaultNoteFormats).includes(format)
-      )
+      return !entry.isDir && format !== null && formats.has(format)
     })
   }, [entriesResource.value, allowedFormats])
 
@@ -354,7 +351,7 @@ function NoteList({
             <LuSearch className="text-muted-foreground size-3 shrink-0" />
             <input
               type="text"
-              placeholder="Search notes..."
+              placeholder="Search notes…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="text-foreground placeholder:text-muted-foreground w-full border-none bg-transparent text-xs outline-none"

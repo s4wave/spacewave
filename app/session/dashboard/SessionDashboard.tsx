@@ -424,7 +424,7 @@ function InlineSecureAccountSection(props: {
               >
                 <LuDownload className="text-foreground size-3.5" />
                 <span className="text-foreground text-sm">
-                  {downloading ? 'Generating...' : 'Download backup .pem'}
+                  {downloading ? 'Generating…' : 'Download backup .pem'}
                 </span>
               </button>
               {pemError && (
@@ -539,7 +539,7 @@ function InlineSecureAccountSection(props: {
                 )}
               >
                 <span className="text-foreground text-sm">
-                  {savingLock ? 'Saving...' : 'Set lock mode'}
+                  {savingLock ? 'Saving…' : 'Set lock mode'}
                 </span>
               </button>
               {lock.error && (
@@ -627,7 +627,7 @@ function CreateOrgSection() {
           >
             <LuBuilding2 className="text-foreground size-3.5" />
             <span className="text-foreground text-sm">
-              {creating ? 'Creating...' : 'Create organization'}
+              {creating ? 'Creating…' : 'Create organization'}
             </span>
           </button>
           {error && <p className="text-destructive text-xs">{error}</p>}

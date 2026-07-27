@@ -174,6 +174,8 @@ export function List<T>({
     onStateChange?.(newState)
   })
   useEffect(() => {
+    // onStateChange observes persisted updates, including changes with no local event.
+    // eslint-disable-next-line react-doctor/no-prop-callback-in-effect
     notifyStateChange(state)
   }, [state])
 
@@ -186,9 +188,9 @@ export function List<T>({
 
   const handleOpenItems = useCallback(() => {
     if (!onRowDefaultAction) return
-    const selectedItemsIds = stateRef.current?.selectedIds
-    const selectedItems = sortedItemsRef.current.filter((v) =>
-      selectedItemsIds?.includes(v.id),
+    const selectedItemIds = new Set(stateRef.current?.selectedIds)
+    const selectedItems = sortedItemsRef.current.filter((item) =>
+      selectedItemIds.has(item.id),
     )
     onRowDefaultAction(selectedItems)
   }, [onRowDefaultAction])

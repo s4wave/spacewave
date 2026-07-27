@@ -171,7 +171,7 @@ export function DeleteBillingAccountSection({
                 'disabled:cursor-not-allowed disabled:opacity-50',
               )}
             >
-              {deleting ? 'Deleting...' : 'Delete billing account'}
+              {deleting ? 'Deleting…' : 'Delete billing account'}
             </button>
           </DialogFooter>
         </DialogContent>

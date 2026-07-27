@@ -316,14 +316,14 @@ function PendingDeleteNotice(props: {
             disabled={undoing}
             className="border-brand/30 bg-brand/10 hover:bg-brand/20 rounded-md border px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {undoing ? 'Canceling deletion...' : 'Undo Deletion'}
+            {undoing ? 'Canceling deletion…' : 'Undo Deletion'}
           </button>
           <button
             onClick={() => setLogoutOpen(true)}
             disabled={loggingOut}
             className="border-warning/20 bg-warning/10 hover:bg-warning/20 rounded-md border px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loggingOut ? 'Logging out...' : 'Log Out'}
+            {loggingOut ? 'Logging out…' : 'Log Out'}
           </button>
         </div>
       </div>

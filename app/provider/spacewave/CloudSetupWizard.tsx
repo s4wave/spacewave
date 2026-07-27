@@ -171,9 +171,7 @@ export function CloudSetupWizard({
               >
                 <LuDownload className="text-foreground size-4" />
                 <span className="text-foreground text-sm">
-                  {wiz.downloading
-                    ? 'Generating key...'
-                    : 'Download backup .pem'}
+                  {wiz.downloading ? 'Generating key…' : 'Download backup .pem'}
                 </span>
               </button>
               {wiz.error && (
@@ -296,7 +294,7 @@ export function CloudSetupWizard({
                 )}
               >
                 <span className="text-foreground text-sm">
-                  {wiz.saving ? 'Saving...' : 'Set lock mode'}
+                  {wiz.saving ? 'Saving…' : 'Set lock mode'}
                 </span>
                 {!wiz.saving && (
                   <LuArrowRight className="text-foreground-alt size-4" />

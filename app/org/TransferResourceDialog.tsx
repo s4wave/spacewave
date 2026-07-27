@@ -100,7 +100,7 @@ export function TransferResourceDialog(props: {
         onClick={() => void handleTransfer()}
         disabled={transferring || sameAsCurrent}
       >
-        {transferring ? 'Transferring...' : 'Transfer'}
+        {transferring ? 'Transferring…' : 'Transfer'}
       </DashboardButton>
       {error && <div className="text-destructive text-xs">{error}</div>}
     </div>

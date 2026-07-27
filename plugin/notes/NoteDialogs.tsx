@@ -78,7 +78,7 @@ export function TextInputDialog({
             </button>
             <button
               type="submit"
-              className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition-all duration-150"
+              className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150"
             >
               {confirmLabel}
             </button>
@@ -152,7 +152,7 @@ export function SourceInputDialog({
             </button>
             <button
               type="submit"
-              className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition-all duration-150"
+              className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150"
             >
               Add source
             </button>
@@ -198,7 +198,7 @@ export function ConfirmActionDialog({
           <button
             type="button"
             onClick={onConfirm}
-            className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition-all duration-150"
+            className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150"
           >
             {confirmLabel}
           </button>

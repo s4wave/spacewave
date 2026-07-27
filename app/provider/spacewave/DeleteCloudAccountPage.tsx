@@ -367,7 +367,7 @@ function InitiateDeleteView({
           )}
           <span className="text-foreground">
             {sending
-              ? 'Sending...'
+              ? 'Sending…'
               : retryAfter > 0
                 ? `Resend in ${retryAfter}s`
                 : email
@@ -409,7 +409,7 @@ function InitiateDeleteView({
             )}
           >
             {verifying && <Spinner />}
-            {verifying ? 'Confirming...' : 'Confirm delete account'}
+            {verifying ? 'Confirming…' : 'Confirm delete account'}
           </button>
           <button
             onClick={onCancel}
@@ -476,7 +476,7 @@ function PendingDeleteView({
           )}
         >
           {undoing ? <Spinner /> : <LuRotateCcw className="size-4" />}
-          {undoing ? 'Canceling...' : 'Undo deletion'}
+          {undoing ? 'Canceling…' : 'Undo deletion'}
         </button>
         <p className="text-foreground-alt text-center text-xs leading-relaxed">
           Undo stops deletion, but the account stays lapsed and read-only until
@@ -498,7 +498,7 @@ function PendingDeleteView({
           className="text-foreground-alt hover:text-foreground flex items-center justify-center gap-1.5 text-xs transition-colors select-none disabled:cursor-not-allowed disabled:opacity-50"
         >
           <LuLogOut className="size-3" />
-          {loggingOut ? 'Logging out...' : 'Log out of this device'}
+          {loggingOut ? 'Logging out…' : 'Log out of this device'}
         </button>
       </div>
     </>

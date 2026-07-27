@@ -928,7 +928,7 @@ function SshHostSetupForm({
           label="Public key"
           value={config.hostKeyPublicKey ?? ''}
           onChange={(e) => onConfigChange({ hostKeyPublicKey: e.target.value })}
-          placeholder="[host]:22 ssh-ed25519 AAAA... or ssh-ed25519 AAAA..."
+          placeholder="[host]:22 ssh-ed25519 AAAA… or ssh-ed25519 AAAA…"
           className="min-h-16 font-mono text-xs"
           fieldClassName="mt-2"
         />
@@ -1101,7 +1101,7 @@ function SpaceLinkApprovalPanel({
         <Button
           size="sm"
           onClick={onSignIn}
-          className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground mt-3 h-7 rounded-md border px-3 text-xs transition-all duration-150"
+          className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground mt-3 h-7 rounded-md border px-3 text-xs transition duration-150"
         >
           <LuLogIn className="size-3.5" />
           Sign in or create account
@@ -1154,7 +1154,7 @@ function SpaceLinkApprovalPanel({
         size="sm"
         onClick={onApprove}
         disabled={busy || !ticket.trim()}
-        className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground mt-3 h-7 rounded-md border px-3 text-xs transition-all duration-150"
+        className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground mt-3 h-7 rounded-md border px-3 text-xs transition duration-150"
       >
         <LuClipboardCheck className="size-3.5" />
         {busy ? 'Checking ticket…' : 'Approve'}

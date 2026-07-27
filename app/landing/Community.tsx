@@ -191,14 +191,14 @@ export function Community() {
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <ExternalLink
             href={GITHUB_REPO_URL}
-            className="border-foreground/20 hover:border-brand/40 hover:bg-brand/5 text-foreground inline-flex items-center gap-2.5 rounded-lg border px-6 py-3 text-sm font-medium transition-all"
+            className="border-foreground/20 hover:border-brand/40 hover:bg-brand/5 text-foreground inline-flex items-center gap-2.5 rounded-lg border px-6 py-3 text-sm font-medium transition"
           >
             <LuGithub className="size-5" />
             View on GitHub
           </ExternalLink>
           <button
             onClick={handleEmailSupport}
-            className="border-foreground/20 hover:border-brand/40 hover:bg-brand/5 text-foreground inline-flex cursor-pointer items-center gap-2.5 rounded-lg border px-6 py-3 text-sm font-medium transition-all"
+            className="border-foreground/20 hover:border-brand/40 hover:bg-brand/5 text-foreground inline-flex cursor-pointer items-center gap-2.5 rounded-lg border px-6 py-3 text-sm font-medium transition"
           >
             <LuMessageSquare className="size-5" />
             Email Support
@@ -216,7 +216,7 @@ export function Community() {
             <ExternalLink
               key={c.title}
               href={c.href}
-              className="border-foreground/8 hover:border-foreground/15 bg-background-card/50 group flex flex-col gap-3 rounded-lg border p-5 backdrop-blur-sm transition-all hover:-translate-y-0.5"
+              className="border-foreground/8 hover:border-foreground/15 bg-background-card/50 group flex flex-col gap-3 rounded-lg border p-5 backdrop-blur-sm transition hover:-translate-y-0.5"
             >
               <c.icon className="text-foreground-alt group-hover:text-brand size-5 transition-colors" />
               <h3 className="text-foreground text-sm font-semibold">
@@ -302,7 +302,7 @@ export function Community() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter packages..."
+            placeholder="Filter packages…"
             className="border-foreground/10 bg-background-card/30 text-foreground placeholder:text-foreground-alt/30 focus:border-brand/50 w-full rounded-lg border py-2 pr-3 pl-9 text-xs backdrop-blur-sm transition-colors outline-none"
           />
         </div>

@@ -155,7 +155,7 @@ export function RenameSpaceDialog({
               'disabled:cursor-not-allowed disabled:opacity-50',
             )}
           >
-            {state.submitting ? 'Saving...' : 'Save'}
+            {state.submitting ? 'Saving…' : 'Save'}
           </button>
         </DialogFooter>
       </DialogContent>

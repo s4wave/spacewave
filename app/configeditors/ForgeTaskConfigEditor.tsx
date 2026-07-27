@@ -42,7 +42,7 @@ export function ForgeTaskConfigEditor({
         <div className="border-foreground/6 bg-background-card/30 text-foreground-alt/40 flex items-center gap-2 rounded-lg border px-3.5 py-3 text-xs">
           <LuBriefcase className="size-3.5 shrink-0" />
           {jobsResource.loading
-            ? 'Loading jobs...'
+            ? 'Loading jobs…'
             : 'No jobs found. Create a job first.'}
         </div>
       )}

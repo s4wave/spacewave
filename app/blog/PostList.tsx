@@ -32,7 +32,7 @@ function PostListItem({ post }: PostListItemProps) {
       tabIndex={0}
       onClick={handlePostSelect}
       onKeyDown={handlePostRowKeyDown}
-      className="border-foreground/6 hover:bg-background-card/30 group flex cursor-pointer items-start gap-5 border-b p-5 transition-all duration-200 last:border-b-0 @lg:items-center"
+      className="border-foreground/6 hover:bg-background-card/30 group flex cursor-pointer items-start gap-5 border-b p-5 transition duration-200 last:border-b-0 @lg:items-center"
     >
       <div className="min-w-0 flex-1">
         <h3 className="text-foreground group-hover:text-brand mb-1.5 text-sm font-semibold transition-colors duration-200 @lg:text-base">
@@ -51,7 +51,7 @@ function PostListItem({ post }: PostListItemProps) {
         <time className="text-foreground-alt/50 text-xs tabular-nums">
           {post.date}
         </time>
-        <LuArrowRight className="text-foreground-alt/30 group-hover:text-brand size-3.5 transition-all duration-200 group-hover:translate-x-0.5" />
+        <LuArrowRight className="text-foreground-alt/30 group-hover:text-brand size-3.5 transition duration-200 group-hover:translate-x-0.5" />
       </div>
     </article>
   )

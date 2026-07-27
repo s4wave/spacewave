@@ -370,7 +370,7 @@ export function PlanSelectionPage({
       </div>
 
       {/* Cloud card */}
-      <div className="border-brand/40 bg-background-card/50 hover:border-brand/60 hover:shadow-brand/5 relative overflow-hidden rounded-lg border p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-md">
+      <div className="border-brand/40 bg-background-card/50 hover:border-brand/60 hover:shadow-brand/5 relative overflow-hidden rounded-lg border p-6 backdrop-blur-sm transition duration-300 hover:shadow-md">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LuCloud className="text-brand size-5" />
@@ -408,7 +408,7 @@ export function PlanSelectionPage({
       )}
 
       {/* Free local option */}
-      <div className="border-foreground/10 bg-background-card/30 hover:border-foreground/20 rounded-lg border p-6 backdrop-blur-sm transition-all duration-300 hover:shadow-md">
+      <div className="border-foreground/10 bg-background-card/30 hover:border-foreground/20 rounded-lg border p-6 backdrop-blur-sm transition duration-300 hover:shadow-md">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LuServer className="text-foreground-alt size-5" />
@@ -429,7 +429,7 @@ export function PlanSelectionPage({
         <button
           onClick={() => void handleFreeLocal()}
           disabled={state.loading || !session}
-          className="border-foreground/20 bg-foreground/5 hover:bg-foreground/10 flex w-full cursor-pointer items-center justify-center rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300 select-none disabled:cursor-not-allowed disabled:opacity-50"
+          className="border-foreground/20 bg-foreground/5 hover:bg-foreground/10 flex w-full cursor-pointer items-center justify-center rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300 select-none disabled:cursor-not-allowed disabled:opacity-50"
         >
           Continue with local storage
         </button>

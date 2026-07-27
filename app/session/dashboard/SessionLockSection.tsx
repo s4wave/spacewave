@@ -172,7 +172,7 @@ export function SessionLockSection({ embedded }: SessionLockSectionProps) {
                   'disabled:cursor-not-allowed disabled:opacity-50',
                 )}
               >
-                {saving ? 'Saving...' : 'Save'}
+                {saving ? 'Saving…' : 'Save'}
               </button>
               <button
                 onClick={() => {

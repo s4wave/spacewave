@@ -85,7 +85,7 @@ export function UnixFSBrowserDialogs({
             <button
               type="button"
               onClick={() => void onConfirmDelete()}
-              className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition-all duration-150"
+              className="border-destructive/30 bg-destructive/10 hover:border-destructive/50 hover:bg-destructive/15 text-foreground h-7 rounded-md border px-3 text-xs font-medium transition duration-150"
             >
               Delete
             </button>

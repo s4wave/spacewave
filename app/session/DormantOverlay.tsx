@@ -113,7 +113,7 @@ export function DormantOverlay({ metadata }: DormantOverlayProps) {
             >
               <LuSparkles className="size-4" />
               <span className="text-foreground text-sm">
-                {resolving ? 'Opening billing...' : 'Reactivate subscription'}
+                {resolving ? 'Opening billing…' : 'Reactivate subscription'}
               </span>
             </button>
 
