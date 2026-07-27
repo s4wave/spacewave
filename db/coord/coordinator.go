@@ -24,6 +24,11 @@ type WriteLease interface {
 	// Publish records an accepted generation/root/prefix change.
 	Publish(ctx context.Context, event Event) (*Snapshot, error)
 	// Release releases the logical write lease.
+	//
+	// Release must complete regardless of ctx cancellation. Callers release on
+	// cleanup paths that run precisely because their context ended, so a
+	// release that honored cancellation would strand the scope locked and
+	// every waiter blocked. ctx carries deadlines for backend I/O only.
 	Release(ctx context.Context) error
 }
 
