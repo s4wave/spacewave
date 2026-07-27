@@ -258,11 +258,11 @@ func (e *engineWorldState) performOp(ctx context.Context, write bool, cb func(tx
 }
 
 func (e *engineWorldState) performOpOnce(ctx context.Context, write bool, cb func(tx Tx) error) error {
-	opTx, err := e.e.NewTransaction(ctx, write)
+	opTx, err := e.newOperationTransaction(ctx, write)
 	if err != nil {
 		return err
 	}
-	defer opTx.Discard()
+	defer discardOperationTransaction(ctx, opTx)
 
 	if err := cb(opTx); err != nil {
 		return err
