@@ -61,8 +61,12 @@ describe('DocsRoutes browser smoke', () => {
     await expect
       .element(page.getByRole('heading', { name: 'Create Your First Space' }))
       .toBeInTheDocument()
-    await expect.element(page.getByText('Previous')).toBeInTheDocument()
-    await expect.element(page.getByText('Next')).toBeInTheDocument()
+    await expect
+      .element(page.getByRole('button', { name: /^Previous/ }))
+      .toBeInTheDocument()
+    await expect
+      .element(page.getByRole('button', { name: /^Next/ }))
+      .toBeInTheDocument()
 
     await expect
       .poll(() =>
