@@ -6,9 +6,16 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/s4wave/spacewave/db/world"
+	"github.com/sirupsen/logrus"
 )
 
-// Resolve resolves the values, emitting them to the handler.
-func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	return r.resolve(ctx, handler)
+// reconcileManifests re-collects and emits the manifests for this directive.
+func (r *fetchManifestResolver) reconcileManifests(
+	ctx context.Context,
+	le *logrus.Entry,
+	handler directive.ResolverHandler,
+	ws world.WorldState,
+) (bool, error) {
+	return r.reconcileManifestsCore(ctx, le, handler, ws)
 }
