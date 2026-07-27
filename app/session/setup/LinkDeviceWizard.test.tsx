@@ -238,7 +238,7 @@ describe('LinkDeviceWizard', () => {
     render(<LinkDeviceWizard />)
     fireEvent.click(screen.getByText('Show QR code'))
     const answerInput = await screen.findByPlaceholderText(
-      'Paste answer payload here...',
+      'Paste answer payload here…',
     )
     fireEvent.change(answerInput, { target: { value: 'answer-payload' } })
     fireEvent.click(screen.getByRole('button', { name: 'Connect' }))

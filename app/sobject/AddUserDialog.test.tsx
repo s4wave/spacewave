@@ -124,13 +124,13 @@ describe('AddUserDialog', () => {
     ).toBeDefined()
     expect(screen.getByText('alice')).toBeDefined()
     expect(screen.getByText('acct-alice')).toBeDefined()
-    expect(screen.getByPlaceholderText('Search org members...')).toBeDefined()
+    expect(screen.getByPlaceholderText('Search org members…')).toBeDefined()
   })
 
   it('filters org members by attested label', () => {
     renderDialog()
 
-    fireEvent.change(screen.getByPlaceholderText('Search org members...'), {
+    fireEvent.change(screen.getByPlaceholderText('Search org members…'), {
       target: { value: 'casey' },
     })
 

@@ -76,7 +76,7 @@ describe('DocsRoutes browser smoke', () => {
         'https://raw.githubusercontent.com/s4wave/spacewave/master/app/docs/content/users/start/02-create-your-first-space.md',
       )
 
-    await page.getByPlaceholder('Search docs...').fill('backup')
+    await page.getByPlaceholder('Search docs…').fill('backup')
     await expect
       .element(
         page.getByRole('button', {

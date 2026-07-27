@@ -74,7 +74,7 @@ describe('LinkDeviceDoneStep', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText('Finishing device sync...')).toBeDefined()
+      expect(screen.getByText('Finishing device sync…')).toBeDefined()
     })
     expect(screen.queryByText('All set!')).toBeNull()
     expect(screen.getByText('Skip and continue to dashboard')).toBeDefined()
@@ -139,7 +139,7 @@ describe('LinkDeviceDoneStep', () => {
         expect.any(AbortSignal),
       )
     })
-    expect(screen.getByText('Finishing device sync...')).toBeDefined()
+    expect(screen.getByText('Finishing device sync…')).toBeDefined()
     expect(screen.queryByText('All set!')).toBeNull()
   })
 })

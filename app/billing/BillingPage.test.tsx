@@ -144,9 +144,10 @@ describe('BillingPage', () => {
     await waitFor(() =>
       expect(mockRefreshBillingState).toHaveBeenCalledWith('ba_test'),
     )
-    expect(
-      screen.getByRole('button', { name: 'Refreshing...' }),
-    ).toHaveProperty('disabled', true)
+    expect(screen.getByRole('button', { name: 'Refreshing…' })).toHaveProperty(
+      'disabled',
+      true,
+    )
 
     resolveRefresh?.()
 

@@ -216,7 +216,7 @@ describe('DeleteSpaceEscapeHatchDialog', () => {
     )
 
     expect(screen.getAllByText('Broken Space').length).toBeGreaterThan(0)
-    expect(screen.getByRole('button', { name: 'Deleting...' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Deleting…' })).toBeDefined()
 
     deleteControl.resolve?.()
   })

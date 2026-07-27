@@ -128,7 +128,7 @@ describe('IntroWizardOverlay', () => {
       />,
     )
 
-    const finish = screen.getByRole('button', { name: 'Opening...' })
+    const finish = screen.getByRole('button', { name: 'Opening…' })
     const skip = screen.getByRole('button', { name: 'Skip' })
     expect((finish as HTMLButtonElement).disabled).toBe(true)
     expect((skip as HTMLButtonElement).disabled).toBe(true)

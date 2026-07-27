@@ -97,7 +97,7 @@ describe('OrganizationsSection', () => {
     fireEvent.click(screen.getByText('Create'))
 
     const input = screen.getByPlaceholderText('Organization name')
-    const createButton = screen.getByText('Creating...')
+    const createButton = screen.getByText('Creating…')
     const cancelButton = screen.getByText('Cancel')
 
     expect(mockCreateOrganization).toHaveBeenCalledWith('New Org')

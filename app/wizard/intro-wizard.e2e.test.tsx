@@ -100,7 +100,7 @@ describe('intro wizard overlay', () => {
     await page.getByRole('button', { name: 'Got it, start exploring' }).click()
 
     await expect
-      .element(page.getByRole('button', { name: 'Opening...' }))
+      .element(page.getByRole('button', { name: 'Opening…' }))
       .toBeInTheDocument()
 
     await capture('finishing')
