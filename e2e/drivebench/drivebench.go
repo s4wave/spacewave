@@ -143,10 +143,10 @@ type ResourceConn struct {
 type Trace struct {
 	Bytes            int    `json:"bytes"`
 	RuntimeTracePath string `json:"runtimeTracePath"`
-	TracetoolPath    string `json:"tracetoolPath"`
-	UserTasks        int    `json:"userTasks"`
-	UserRegions      int    `json:"userRegions"`
-	UserLogs         int    `json:"userLogs"`
+	TracetoolPath    string `json:"tracetoolPath,omitempty"`
+	UserTasks        int    `json:"userTasks,omitempty"`
+	UserRegions      int    `json:"userRegions,omitempty"`
+	UserLogs         int    `json:"userLogs,omitempty"`
 	Tasks            []Task `json:"tasks,omitempty"`
 }
 
@@ -419,10 +419,22 @@ func marshalTraceValue(arena *fastjson.Arena, trace Trace) *fastjson.Value {
 	obj := arena.NewObject()
 	obj.Set("bytes", arena.NewNumberInt(trace.Bytes))
 	obj.Set("runtimeTracePath", arena.NewString(trace.RuntimeTracePath))
-	obj.Set("tracetoolPath", arena.NewString(trace.TracetoolPath))
-	obj.Set("userTasks", arena.NewNumberInt(trace.UserTasks))
-	obj.Set("userRegions", arena.NewNumberInt(trace.UserRegions))
-	obj.Set("userLogs", arena.NewNumberInt(trace.UserLogs))
+	// A cell that captured the raw trace without summarizing it has no counts
+	// to report. Emitting them anyway would publish measured zeros for tasks
+	// and logs the capture demonstrably contains, so the summary keys appear
+	// only once something has filled them in.
+	if trace.TracetoolPath != "" {
+		obj.Set("tracetoolPath", arena.NewString(trace.TracetoolPath))
+	}
+	if trace.UserTasks != 0 {
+		obj.Set("userTasks", arena.NewNumberInt(trace.UserTasks))
+	}
+	if trace.UserRegions != 0 {
+		obj.Set("userRegions", arena.NewNumberInt(trace.UserRegions))
+	}
+	if trace.UserLogs != 0 {
+		obj.Set("userLogs", arena.NewNumberInt(trace.UserLogs))
+	}
 	if len(trace.Tasks) != 0 {
 		obj.Set("tasks", marshalTasksValue(arena, trace.Tasks))
 	}

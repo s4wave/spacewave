@@ -47,12 +47,6 @@ func TestGoScriptDriveStartupBenchBundled(t *testing.T) {
 	if compiler != releaseWasmCompilerGoScript {
 		t.Skipf("bundled drive bench requires %s=true", E2EReleaseWasmGoScriptEnv)
 	}
-	if releaseStartupTraceEnabled() {
-		if err := checkReleaseStartupTraceBrowser(); err != nil {
-			t.Fatalf("startup trace capture: %v", err)
-		}
-	}
-
 	// One run stamp groups every cell's artifacts under a single run directory.
 	runStamp := time.Now().UTC().Format("20060102-150405")
 
