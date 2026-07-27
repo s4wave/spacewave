@@ -19,3 +19,28 @@ func DumpStartupManifestGraphForManifestID(
 ) (string, error) {
 	return dumpStartupManifestGraphForManifestID(ctx, ws, manifestID, filterPlatformIDs, objKeys...)
 }
+
+func collectStartupManifestGraph(
+	ctx context.Context,
+	ws world.WorldState,
+	manifestID string,
+	objKeys ...string,
+) ([]startupManifestGraphEdge, []string, error) {
+	result, err := collectStartupManifestGraphCore(ctx, ws, manifestID, objKeys...)
+	if err != nil {
+		return nil, nil, err
+	}
+	return result.edges, result.candidates, nil
+}
+
+func lookupStartupManifestGraphQuads(
+	ctx context.Context,
+	ws world.WorldState,
+	objKey string,
+) ([]world.GraphQuad, error) {
+	return ws.LookupGraphQuads(
+		ctx,
+		world.NewGraphQuadWithKeys(objKey, PredManifest.String(), "", ""),
+		0,
+	)
+}
