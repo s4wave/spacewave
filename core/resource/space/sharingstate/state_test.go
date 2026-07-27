@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -275,6 +276,23 @@ func (w *gatedWatchable) WaitValueChange(
 	}
 }
 
+// awaitSignal receives from ch, failing the test by name if it never arrives.
+//
+// Each caller's signal is produced by this test's own causation and lands in
+// microseconds, so the deadline is not a schedule assertion: it exists so an
+// owner that stops converging reports which signal was missed instead of
+// hanging until the package timeout dumps every goroutine.
+func awaitSignal(t *testing.T, ch <-chan struct{}, what string) {
+	t.Helper()
+	timer := time.NewTimer(5 * time.Second)
+	defer timer.Stop()
+	select {
+	case <-ch:
+	case <-timer.C:
+		t.Fatalf("timed out waiting for %s", what)
+	}
+}
+
 func TestCoalescingEndToEnd(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -341,7 +359,7 @@ func TestCoalescingEndToEnd(t *testing.T) {
 	go func() {
 		loopErr <- state.RunWatchLoop(ctx, "peer-1", send)
 	}()
-	<-emitted
+	awaitSignal(t, emitted, "the first emission to block the send")
 
 	written := map[string]struct{}{
 		participantKey(initialParticipants): {},
@@ -360,13 +378,13 @@ func TestCoalescingEndToEnd(t *testing.T) {
 		ctr.SetValue(next)
 		written[participantKey(next.GetConfig().GetParticipants())] = struct{}{}
 		if i == 2 {
-			<-bridgeObserved
+			awaitSignal(t, bridgeObserved, "the bridge to observe the first write")
 		}
 	}
 
 	close(bridgeRelease)
 	close(released)
-	<-finalEmitted
+	awaitSignal(t, finalEmitted, "the loop to converge on the final participant set")
 
 	cancel()
 	cancelBridge()
