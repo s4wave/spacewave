@@ -72,65 +72,112 @@ func (t *TxComplete) ExecuteTx(
 		return err
 	}
 
-	// ensure CHECKING state if the result is not failed
-	taskState := root.GetTaskState()
-	isSuccess := t.GetResult().IsSuccessful()
-	if isSuccess {
-		if taskState != forge_task.State_TaskState_CHECKING {
-			return errors.Errorf(
-				"%s: must be in CHECKING state if completing successfully",
-				taskState.String(),
-			)
-		}
-
-		// lookup the successful pass
-		tpass, _, _, err := forge_task.LookupTaskPass(ctx, worldState, objKey, root.GetPassNonce())
-		if err != nil {
-			return errors.Wrapf(err, "lookup pass[%d]", root.GetPassNonce())
-		}
-		if tpass.GetPassState() != forge_pass.State_PassState_COMPLETE {
-			return errors.Errorf(
-				"expected pass[%d] to be complete: %s",
-				root.GetPassNonce(),
-				tpass.GetPassState().String(),
-			)
-		}
-
-		// compute the outputs from the exec states
-		outputs := tgt.GetOutputs()
-		passOutputs, err := forge_pass.ComputeOutputsWithStates(outputs, tpass.GetExecStates(), int(root.GetReplicas()))
-		if err != nil {
-			return errors.Wrapf(err, "pass[%d]: compute outputs", root.GetPassNonce())
-		}
-
-		// verify the outputs match what the pass has
-		if !passOutputs.Equals(tpass.GetValueSet().GetOutputs()) {
-			return errors.Wrapf(err, "pass[%d]: outputs mismatch re-computed values", root.GetPassNonce())
-		}
-		if root.ValueSet == nil {
-			root.ValueSet = &forge_target.ValueSet{}
-		}
-		root.ValueSet.Outputs = passOutputs
-	} else {
-		if taskState == forge_task.State_TaskState_COMPLETE {
-			return errors.Wrapf(
-				forge_value.ErrUnknownState,
-				"%s", taskState.String(),
-			)
-		}
-	}
-
 	result := t.GetResult()
 	if result == nil {
 		result = &forge_value.Result{}
 	}
-	result.FillFailError()
 
-	// promote to COMPLETE
+	var passOutputs forge_value.ValueSlice
+	if result.IsSuccessful() {
+		passOutputs, err = validateTaskCompletion(
+			ctx,
+			worldState,
+			objKey,
+			root,
+			tgt,
+		)
+		if err != nil {
+			result = forge_value.NewResultWithError(err)
+		}
+	} else if root.GetTaskState() == forge_task.State_TaskState_COMPLETE {
+		return errors.Wrapf(
+			forge_value.ErrUnknownState,
+			"%s", root.GetTaskState().String(),
+		)
+	}
+
+	result.FillFailError()
+	if result.GetSuccess() && len(tgt.GetOutputs()) != 0 {
+		if root.ValueSet == nil {
+			root.ValueSet = &forge_target.ValueSet{}
+		}
+		root.ValueSet.Outputs = passOutputs
+	}
+
 	root.TaskState = forge_task.State_TaskState_COMPLETE
 	root.Result = result
 	bcs.SetBlock(root, true)
 	return nil
+}
+
+func validateTaskCompletion(
+	ctx context.Context,
+	worldState world.WorldState,
+	objKey string,
+	root *forge_task.Task,
+	tgt *forge_target.Target,
+) (forge_value.ValueSlice, error) {
+	if root.GetTaskState() != forge_task.State_TaskState_CHECKING {
+		return nil, errors.Errorf(
+			"%s: must be in CHECKING state if completing successfully",
+			root.GetTaskState().String(),
+		)
+	}
+
+	tpass, _, _, err := forge_task.LookupTaskPass(
+		ctx,
+		worldState,
+		objKey,
+		root.GetPassNonce(),
+	)
+	if err != nil {
+		return nil, errors.Wrapf(err, "lookup pass[%d]", root.GetPassNonce())
+	}
+	if tpass == nil {
+		return nil, errors.Wrap(world.ErrObjectNotFound, "task pass")
+	}
+	if err := tpass.Validate(false); err != nil {
+		return nil, errors.Wrap(err, "pass")
+	}
+
+	passResult := tpass.GetResult()
+	if !passResult.GetSuccess() {
+		passResult.FillFailError()
+		return nil, errors.Wrap(errors.New(passResult.GetFailError()), "pass failed")
+	}
+	if tpass.GetPassState() != forge_pass.State_PassState_COMPLETE {
+		return nil, errors.Errorf(
+			"expected pass[%d] to be complete: %s",
+			root.GetPassNonce(),
+			tpass.GetPassState().String(),
+		)
+	}
+
+	outputs := tgt.GetOutputs()
+	if len(outputs) == 0 {
+		return nil, nil
+	}
+	passOutputs, err := forge_pass.ComputeOutputsWithStates(
+		outputs,
+		tpass.GetExecStates(),
+		int(root.GetReplicas()),
+	)
+	if err != nil {
+		return nil, errors.Wrapf(err, "pass[%d]: compute outputs", root.GetPassNonce())
+	}
+	if !passOutputs.Equals(tpass.GetValueSet().GetOutputs()) {
+		return nil, errors.Errorf(
+			"pass[%d]: outputs mismatch re-computed pass values",
+			root.GetPassNonce(),
+		)
+	}
+	if !passOutputs.Equals(root.GetValueSet().GetOutputs()) {
+		return nil, errors.Errorf(
+			"pass[%d]: outputs mismatch re-computed task values",
+			root.GetPassNonce(),
+		)
+	}
+	return passOutputs, nil
 }
 
 // _ is a type assertion
