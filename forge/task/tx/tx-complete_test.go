@@ -13,19 +13,23 @@ import (
 	forge_task "github.com/s4wave/spacewave/forge/task"
 	task_tx "github.com/s4wave/spacewave/forge/task/tx"
 	forge_value "github.com/s4wave/spacewave/forge/value"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
-func TestTxCompleteConvertsFailedPassToFailedTask(t *testing.T) {
+// buildTaskWithPass stands up a Task linked to a single Pass, forcing both into
+// the given states so a completion transaction can be applied against them.
+func buildTaskWithPass(
+	t *testing.T,
+	tb *world_testbed.Testbed,
+	taskKey string,
+	taskState forge_task.State,
+	taskResult *forge_value.Result,
+	passResult *forge_value.Result,
+) peer.ID {
+	t.Helper()
 	ctx := t.Context()
-	tb, err := world_testbed.Default(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(tb.Release)
-
 	sender := tb.Volume.GetPeerID()
 	target := &forge_target.Target{Exec: &forge_target.Exec{Disable: true}}
-	taskKey := "test/task/complete-failed-pass"
 	passKey := forge_task.NewPassKey(taskKey, 1)
 	ts := timestamp.Now()
 	if _, _, err := forge_task.CreateTaskWithTarget(
@@ -33,7 +37,7 @@ func TestTxCompleteConvertsFailedPassToFailedTask(t *testing.T) {
 		tb.WorldState,
 		sender,
 		taskKey,
-		"complete-failed-pass",
+		"tx-complete",
 		target,
 		"",
 		1,
@@ -72,7 +76,8 @@ func TestTxCompleteConvertsFailedPassToFailedTask(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		task.TaskState = forge_task.State_TaskState_CHECKING
+		task.TaskState = taskState
+		task.Result = taskResult
 		task.PassNonce = 1
 		bcs.SetBlock(task, true)
 		return nil
@@ -85,12 +90,30 @@ func TestTxCompleteConvertsFailedPassToFailedTask(t *testing.T) {
 			return err
 		}
 		pass.PassState = forge_pass.State_PassState_COMPLETE
-		pass.Result = forge_value.NewResultWithError(errors.New("pass failed"))
+		pass.Result = passResult
 		bcs.SetBlock(pass, true)
 		return nil
 	}); err != nil {
 		t.Fatal(err)
 	}
+	return sender
+}
+
+func TestTxCompleteConvertsFailedPassToFailedTask(t *testing.T) {
+	ctx := t.Context()
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+
+	taskKey := "test/task/complete-failed-pass"
+	sender := buildTaskWithPass(
+		t, tb, taskKey,
+		forge_task.State_TaskState_CHECKING,
+		nil,
+		forge_value.NewResultWithError(errors.New("pass failed")),
+	)
 
 	if _, _, err := tb.WorldState.ApplyWorldOp(
 		ctx,
@@ -112,5 +135,38 @@ func TestTxCompleteConvertsFailedPassToFailedTask(t *testing.T) {
 	}
 	if task.GetResult().GetFailError() == "" {
 		t.Fatal("failed pass completion did not preserve a failure error")
+	}
+}
+
+func TestTxCompleteRejectsSuccessOutsideChecking(t *testing.T) {
+	ctx := t.Context()
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+
+	taskKey := "test/task/complete-twice"
+	sender := buildTaskWithPass(
+		t, tb, taskKey,
+		forge_task.State_TaskState_COMPLETE,
+		forge_value.NewResultWithSuccess(),
+		forge_value.NewResultWithSuccess(),
+	)
+
+	if _, _, err := tb.WorldState.ApplyWorldOp(
+		ctx,
+		task_tx.NewTxComplete(taskKey, forge_value.NewResultWithSuccess()),
+		sender,
+	); err == nil {
+		t.Fatal("completing an already complete task was accepted")
+	}
+
+	task, _, err := forge_task.LookupTask(ctx, tb.WorldState, taskKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !task.GetResult().GetSuccess() {
+		t.Fatalf("recorded success was overwritten: %s", task.GetResult().GetFailError())
 	}
 }

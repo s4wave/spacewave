@@ -79,6 +79,15 @@ func (t *TxComplete) ExecuteTx(
 
 	var passOutputs forge_value.ValueSlice
 	if result.IsSuccessful() {
+		// an illegal source state is a precondition violation, not an outcome:
+		// reject the operation rather than terminally failing a Task that is
+		// still running or that already recorded a successful completion.
+		if root.GetTaskState() != forge_task.State_TaskState_CHECKING {
+			return errors.Errorf(
+				"%s: must be in CHECKING state if completing successfully",
+				root.GetTaskState().String(),
+			)
+		}
 		passOutputs, err = validateTaskCompletion(
 			ctx,
 			worldState,
@@ -117,13 +126,6 @@ func validateTaskCompletion(
 	root *forge_task.Task,
 	tgt *forge_target.Target,
 ) (forge_value.ValueSlice, error) {
-	if root.GetTaskState() != forge_task.State_TaskState_CHECKING {
-		return nil, errors.Errorf(
-			"%s: must be in CHECKING state if completing successfully",
-			root.GetTaskState().String(),
-		)
-	}
-
 	tpass, _, _, err := forge_task.LookupTaskPass(
 		ctx,
 		worldState,
