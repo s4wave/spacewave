@@ -3,6 +3,7 @@
 package wasm
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -10,6 +11,12 @@ import (
 )
 
 const chatQuickstartWaitMS = 240000
+
+// chatMessageInputSelector matches the composer textarea rendered by the Chat
+// viewer. The placeholder ends in a single ellipsis character, and a CSS
+// attribute selector compares exactly, so every query for this element shares
+// one owner rather than repeating a string that has already drifted once.
+const chatMessageInputSelector = "textarea[placeholder=\"Type a message…\"]"
 
 func TestGoScriptChatQuickstartMessagingParity(t *testing.T) {
 	compiler, err := ResolveE2EWasmCompiler()
@@ -68,7 +75,7 @@ func TestGoScriptChatQuickstartMessagingParity(t *testing.T) {
 func waitForChatRoute(t testing.TB, page playwright.Page) {
 	t.Helper()
 
-	locator := page.Locator("textarea[placeholder=\"Type a message...\"]")
+	locator := page.Locator(chatMessageInputSelector)
 	if err := locator.WaitFor(playwright.LocatorWaitForOptions{
 		Timeout: playwright.Float(chatQuickstartWaitMS),
 	}); err != nil {
@@ -84,7 +91,7 @@ func waitForChatRoute(t testing.TB, page playwright.Page) {
 func sendChatMessage(t testing.TB, page playwright.Page, message string) {
 	t.Helper()
 
-	input := page.Locator("textarea[placeholder=\"Type a message...\"]")
+	input := page.Locator(chatMessageInputSelector)
 	if err := input.Fill(message, playwright.LocatorFillOptions{
 		Timeout: playwright.Float(chatQuickstartWaitMS),
 	}); err != nil {
@@ -112,7 +119,7 @@ func collectChatQuickstartDebug(page playwright.Page) any {
 		hash: window.location.hash,
 		timing: globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null,
 		text: document.querySelector('#bldr-root')?.textContent?.replace(/\s+/g, ' ').slice(0, 2200) ?? '',
-		hasInput: !!document.querySelector('textarea[placeholder="Type a message…"]'),
+		hasInput: !!document.querySelector(` + strconv.Quote(chatMessageInputSelector) + `),
 	})`)
 	if err != nil {
 		return map[string]any{"error": err.Error()}
