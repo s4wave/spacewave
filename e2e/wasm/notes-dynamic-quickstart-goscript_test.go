@@ -162,7 +162,7 @@ func waitForNotesQuickstartSpaceRoute(t testing.TB, page playwright.Page, quicks
 		if (quickstartID === 'blog') {
 			return document.querySelector("button[title='Reading mode']") !== null
 		}
-		return document.querySelector("input[placeholder='Search notes...']") !== null
+		return document.querySelector("input[placeholder='Search notes…']") !== null
 	}`, []any{quickstartID}, playwright.PageWaitForFunctionOptions{
 		Timeout: playwright.Float(notesDynamicQuickstartWaitMS),
 	})
