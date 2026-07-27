@@ -67,6 +67,10 @@ func TestMain(m *testing.M) {
 		os.Exit(0)
 	}
 
+	if err := applyReleaseStartupTraceEnv(); err != nil {
+		le.WithError(err).Fatal("apply release wasm startup trace env")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
 	defer cancel()
 

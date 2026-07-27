@@ -81,6 +81,14 @@ func harness(t testing.TB) *Harness {
 	return sharedHarness
 }
 
+// sharedHarnessBooted reports whether the package harness has already been
+// built. A test that needs the harness compiled a particular way checks this
+// before configuring the build environment, since harnessOnce will not rebuild
+// what an earlier test in the same slice already built.
+func sharedHarnessBooted() bool {
+	return sharedHarness != nil || harnessBootErr != nil
+}
+
 // bootSharedHarness boots the harness, launches the browser, and compiles the
 // e2e test scripts. It runs once, guarded by harnessOnce.
 func bootSharedHarness() (*Harness, error) {

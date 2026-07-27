@@ -27,6 +27,14 @@ func TestGoScriptManifestStartupTrace(t *testing.T) {
 		t.Skipf("GoScript-only Manifest startup trace; compiler=%s", compiler)
 	}
 
+	// The trace hook is a build tag, so the shared harness has to be compiled
+	// with it. Once an earlier test in this slice has booted that harness there
+	// is nothing left to configure, and the run would quietly measure an
+	// uninstrumented worker and then fail looking for the callback.
+	if sharedHarnessBooted() {
+		t.Fatalf("shared harness already built without the trace tag; run this test alone with -run %s", t.Name())
+	}
+
 	t.Setenv(gocompiler.RuntimeStartupTraceEnv, "1")
 	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "false")
 	h := harness(t)

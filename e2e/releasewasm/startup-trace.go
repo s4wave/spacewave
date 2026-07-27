@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/fastjson"
 	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 )
 
 const releaseWasmStartupTraceEnv = "E2E_RELEASE_WASM_MANIFEST_STARTUP_TRACE"
@@ -27,11 +28,19 @@ func releaseStartupTraceEnabled() bool {
 	return os.Getenv(releaseWasmStartupTraceEnv) == "1"
 }
 
-// checkReleaseStartupTraceBrowser rejects a trace run on a browser that cannot
-// serve it. The capture reads the SharedWorker target through a browser-level
-// CDP session, which Playwright provides for Chromium only, so firefox and
-// webkit would boot the whole cell and then fail at the capture.
-func checkReleaseStartupTraceBrowser() error {
+// applyReleaseStartupTraceEnv prepares the process for a trace run, before the
+// harness builds anything.
+//
+// The capture reads the SharedWorker target through a browser-level CDP
+// session, which Playwright provides for Chromium only, so firefox and webkit
+// are rejected here rather than after a full build and boot. The instrumented
+// build itself is selected by gocompiler.RuntimeStartupTraceEnv, so the capture
+// opt-in sets it: an operator who asks for a trace gets a bundle that carries
+// the callback instead of one that reports it missing.
+func applyReleaseStartupTraceEnv() error {
+	if !releaseStartupTraceEnabled() {
+		return nil
+	}
 	name, err := releaseWasmBrowserName()
 	if err != nil {
 		return err
@@ -41,6 +50,9 @@ func checkReleaseStartupTraceBrowser() error {
 			"%s=1 needs a browser CDP session, which only chromium provides; E2E_RELEASE_WASM_BROWSER is %s",
 			releaseWasmStartupTraceEnv, name,
 		)
+	}
+	if err := os.Setenv(gocompiler.RuntimeStartupTraceEnv, "1"); err != nil {
+		return errors.Wrapf(err, "set %s from %s", gocompiler.RuntimeStartupTraceEnv, releaseWasmStartupTraceEnv)
 	}
 	return nil
 }
