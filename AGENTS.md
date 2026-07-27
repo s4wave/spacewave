@@ -529,3 +529,35 @@ cover the touched owner.
 - Keep this guide general-purpose. It captures repository rules, recurring
   patterns, and architectural invariants, not task-specific history or temporary
   work notes.
+
+## Documentation Audience
+
+`app/docs/content/` is split into three audience surfaces, and each page belongs
+to exactly one. Write for that surface's reader, and check the page against the
+test below before committing it.
+
+- `users/` is for someone using the app. They know what a file, a folder, an
+  account, and a backup are. They do not know what a shared object, a World,
+  UnixFS, an ObjectType, a resource, a provider ID, or a route template is, and
+  a user page must never require them to learn one. Say what to click and what
+  will happen.
+- `self-hosters/` is for someone running Spacewave for themselves or a small
+  group. They know disks, backups, servers, and recovery. Name the things they
+  operate, in the words the product uses when it shows them those things.
+- `developers/` is for someone writing code against Spacewave. Every internal
+  noun is fair game here and should be exact.
+
+The test for a `users/` page: every proper noun and every literal string on it
+is something the reader either sees in the product or types themselves. A term
+that appears only in the source tree fails, no matter how accurate it is. So
+`Drive`, `Space`, `getting-started.md`, and a `spacewave` command all pass;
+`UnixFS object`, `SharedObject`, `Hydra World`, `the local provider`, and
+`/u/{session}/so/{space}` all fail.
+
+Explaining the mechanism is not the mistake. Naming the implementation is. When
+a user page has to describe how something behaves, describe the behavior the
+reader can observe, and leave the implementation to the developer surface.
+
+The CLI pages are the one place where implementation-shaped strings belong in
+`users/`, because the reader is typing them. Commands, flags, paths, and
+environment variables are exact there.
