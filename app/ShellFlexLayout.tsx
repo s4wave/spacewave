@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react'
 import {
   OptimizedLayout,
@@ -55,11 +56,15 @@ import {
   type ShellTabContextMenuState,
 } from './ShellTabContextMenu.js'
 import { ShellTabContent } from './ShellTabContent.js'
+import { reconcileModelWithTabs } from './ShellGridLayout.js'
 import { ShellTabLabel } from './ShellTabLabel.js'
 import {
   encodeGridLayout,
   getTabIdsFromModel,
   hasGridLayout,
+  decodeGridLayout,
+  applyLocalStateToModel,
+  SHELL_GRID_BASE_MODEL,
 } from './shell-grid-utils.js'
 import { buildShellExternalDrag } from './shell-app-drag.js'
 import { openShellTabInNewTab } from './shell-popout.js'
@@ -298,12 +303,28 @@ function ShellTabStripInner({
   const isGridMode = useCallback(() => {
     return getAppPath().startsWith('/g/')
   }, [])
+  const routePath = useSyncExternalStore(
+    (onChange) => {
+      window.addEventListener('hashchange', onChange)
+      return () => window.removeEventListener('hashchange', onChange)
+    },
+    getAppPath,
+    getAppPath,
+  )
 
   // Initialize model from storage or default, and perform URL sync during initialization
   // This avoids calling setState in the sync effect
   const [model, setModel] = useState<Model>(() => {
-    const jsonModel = loadModelFromStorage(tabs, activeTabId)
+    const path = getAppPath()
+    const gridData = path.startsWith('/g/') ? path.slice(3) : ''
+    const decoded = gridData
+      ? decodeGridLayout(gridData, SHELL_GRID_BASE_MODEL)
+      : null
+    const jsonModel = decoded
+      ? reconcileModelWithTabs(decoded.model, tabs)
+      : loadModelFromStorage(tabs, activeTabId)
     const m = Model.fromJson(jsonModel)
+    if (decoded) applyLocalStateToModel(m, decoded.localState)
     // Disable tabset dragging in non-grid mode, and tab dragging initially
     m.doAction(
       Actions.updateModelAttributes({
@@ -315,7 +336,34 @@ function ShellTabStripInner({
     return m
   })
 
+  const gridPathRef = useRef<string | null>(null)
   const initializedRef = useRef(false)
+
+  // A deep link or back/forward navigation can supply a new grid structure
+  // without remounting this owner. Replace only the model; tab nodes retain
+  // their stable IDs and OptimizedLayout remains mounted.
+  useEffect(() => {
+    const path = getAppPath()
+    if (!path.startsWith('/g/')) {
+      if (gridPathRef.current !== null) {
+        const next = Model.fromJson(
+          buildDefaultModel(tabsRef.current, activeTabId),
+        )
+        gridPathRef.current = null
+        setModel(next)
+      }
+      return
+    }
+    if (gridPathRef.current === path) return
+    const decoded = decodeGridLayout(path.slice(3), SHELL_GRID_BASE_MODEL)
+    if (!decoded) return
+    const next = Model.fromJson(
+      reconcileModelWithTabs(decoded.model, tabsRef.current),
+    )
+    applyLocalStateToModel(next, decoded.localState)
+    gridPathRef.current = path
+    setModel(next)
+  }, [activeTabId, routePath, tabs])
   const didSyncEntryRef = useRef(false)
   const lastSyncedActiveTabIdRef = useRef(activeTabId)
   const suppressedHashPathRef = useRef<string | null>(null)
@@ -526,12 +574,21 @@ function ShellTabStripInner({
   // renderTab function - renders content for each tab
   // Path comes from tabs state via ref (single source of truth)
   // Using ref ensures stable callback identity to prevent FlexLayout re-renders
-  const renderTab = useCallback((node: TabNode) => {
-    const tabId = node.getId()
-    const tab = findShellTab(tabsRef.current, tabId)
-    const path = tab?.path ?? '/'
-    return <ShellTabContent tabId={tabId} path={path} />
-  }, [])
+  const renderTab = useCallback(
+    (node: TabNode) => {
+      const tabId = node.getId()
+      const tab = findShellTab(tabsRef.current, tabId)
+      const path = tab?.path ?? '/'
+      return (
+        <ShellTabContent
+          tabId={tabId}
+          path={path}
+          syncAppPath={!isGridMode()}
+        />
+      )
+    },
+    [isGridMode],
+  )
 
   // Handle model changes - sync tabs state, check for grid mode transition
   const handleModelChange = useCallback(

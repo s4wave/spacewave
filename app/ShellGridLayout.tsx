@@ -490,7 +490,7 @@ function normalizeSelectedIndex(
 // reconcileModelWithTabs ensures all tabs in the model exist in global state.
 // Shell tab paths and display names are owned by ShellTabsContext, so decoded
 // grid URL tabs with no global state entry cannot be rendered correctly.
-function reconcileModelWithTabs(
+export function reconcileModelWithTabs(
   model: IJsonModel,
   tabs: ShellTab[],
 ): IJsonModel {
