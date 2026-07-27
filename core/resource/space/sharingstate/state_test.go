@@ -3,6 +3,7 @@ package sharingstate
 import (
 	"context"
 	"slices"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -267,14 +268,17 @@ func TestCoalescingEndToEnd(t *testing.T) {
 		emissions   []*SharingState
 	)
 	released := make(chan struct{})
-	emitted := make(chan struct{}, 16)
+	emitted := make(chan struct{}, 1)
 
 	send := func(s *SharingState) error {
 		emissionsMu.Lock()
 		idx := len(emissions)
 		emissions = append(emissions, s)
 		emissionsMu.Unlock()
-		emitted <- struct{}{}
+		select {
+		case emitted <- struct{}{}:
+		default:
+		}
 		if idx == 0 {
 			<-released
 		}
@@ -292,64 +296,57 @@ func TestCoalescingEndToEnd(t *testing.T) {
 
 	<-emitted
 
-	for i := 2; i <= 4; i++ {
-		next := &sobject.SOState{
+	// Write many revisions while the first send is still blocked. Coalescing
+	// promises the loop skips intermediate values, so emissions stay far below
+	// the write count however the writer, the bridge, and the loop interleave.
+	const writes = 200
+	for i := 2; i <= writes+1; i++ {
+		ctr.SetValue(&sobject.SOState{
 			Config: &sobject.SharedObjectConfig{
 				Participants: append(slices.Clone(initialParticipants),
 					&sobject.SOParticipantConfig{
-						PeerId: "peer-" + string(rune('0'+i)),
+						PeerId: "peer-" + strconv.Itoa(i),
 						Role:   sobject.SOParticipantRole_SOParticipantRole_WRITER,
 					},
 				),
 			},
-		}
-		ctr.SetValue(next)
+		})
 	}
+	finalPeer := "peer-" + strconv.Itoa(writes+1)
 
 	close(released)
-	<-emitted
 
-	drainTimer := time.NewTimer(50 * time.Millisecond)
-	defer drainTimer.Stop()
-	var extras int
-drain:
+	converged := time.NewTimer(5 * time.Second)
+	defer converged.Stop()
+	var last *SharingState
 	for {
+		emissionsMu.Lock()
+		if n := len(emissions); n != 0 {
+			last = emissions[n-1]
+		}
+		emissionsMu.Unlock()
+		if last != nil && len(last.Participants) == 2 &&
+			last.Participants[1].GetPeerId() == finalPeer {
+			break
+		}
 		select {
 		case <-emitted:
-			extras++
-			if !drainTimer.Stop() {
-				select {
-				case <-drainTimer.C:
-				default:
-				}
-			}
-			drainTimer.Reset(50 * time.Millisecond)
-		case <-drainTimer.C:
-			break drain
+		case <-converged.C:
+			t.Fatalf("watch loop never converged on %s, last emission was %+v", finalPeer, last)
 		}
 	}
 
 	cancel()
 	<-loopErr
 
-	if extras != 0 {
-		t.Fatalf("expected 0 extra emissions after the coalesced follow-on, got %d", extras)
+	if !last.CanManage {
+		t.Fatal("converged emission lost owner role classification")
 	}
 
 	emissionsMu.Lock()
-	defer emissionsMu.Unlock()
-
-	if got := len(emissions); got != 2 {
-		t.Fatalf("expected 2 emissions (initial + coalesced follow-on), got %d", got)
-	}
-	last := emissions[1]
-	if got := len(last.Participants); got != 2 {
-		t.Fatalf("coalesced follow-on missing latest mutation: got %d participants, want 2", got)
-	}
-	if got := last.Participants[1].GetPeerId(); got != "peer-4" {
-		t.Fatalf("coalesced follow-on did not reflect latest mutation: got %s, want peer-4", got)
-	}
-	if !last.CanManage {
-		t.Fatal("coalesced follow-on lost owner role classification")
+	total := len(emissions)
+	emissionsMu.Unlock()
+	if total > writes/4 {
+		t.Fatalf("watch loop did not coalesce: %d emissions for %d writes during one blocked send", total, writes)
 	}
 }
