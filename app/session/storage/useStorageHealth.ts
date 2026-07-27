@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import { useBldrContext } from '@aptre/bldr-react'
 import { useSessionStorageStats } from '@s4wave/app/session/SessionStorageStatsContext.js'
@@ -46,10 +46,14 @@ export function useStorageHealth(): StorageHealthView {
   const provider = useSessionStorageStats()
   const sync = useSessionSyncStatus()
   const webDocument = useBldrContext()?.webDocument
+  // browserReadCount re-arms the snapshot read after an explicit protection
+  // request so the displayed state reflects the browser's answer.
+  const [browserReadCount, setBrowserReadCount] = useState(0)
   const browser = usePromise(
     useCallback(
-      (signal: AbortSignal) =>
-        readBrowserStorageHealth(
+      (signal: AbortSignal) => {
+        void browserReadCount
+        return readBrowserStorageHealth(
           typeof navigator === 'undefined' ? null : navigator.storage,
           signal,
           webDocument
@@ -57,14 +61,18 @@ export function useStorageHealth(): StorageHealthView {
                 (await webDocument.readStoragePersistenceStatus()) ===
                 'persisted'
             : undefined,
-        ),
-      [webDocument],
+        )
+      },
+      [webDocument, browserReadCount],
     ),
   )
-  const requestProtection = useCallback(
-    () => webDocument?.requestStoragePersistence() ?? Promise.resolve(),
-    [webDocument],
-  )
+  const requestProtection = useCallback(async () => {
+    if (!webDocument) {
+      return
+    }
+    await webDocument.requestStoragePersistence()
+    setBrowserReadCount((count) => count + 1)
+  }, [webDocument])
 
   return useMemo(
     () =>
