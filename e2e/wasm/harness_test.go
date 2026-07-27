@@ -2145,7 +2145,13 @@ func TestForgeWorkerExecution(t *testing.T) {
 
 	// Start the completion budget after setup has observed the approved worker.
 	// Browser/plugin startup and World mounting must not consume wait time.
-	waitCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+	// The alternate browser compilers run every pass an order slower, so they
+	// take the same doubled budget WaitForApp gives app readiness.
+	jobBudget := 3 * time.Minute
+	if E2EWasmSlowCompilerEnabled() {
+		jobBudget = 6 * time.Minute
+	}
+	waitCtx, cancel := context.WithTimeout(ctx, jobBudget)
 	defer cancel()
 	job, err := forge_job.WaitJobComplete(waitCtx, h.le, mounted.engWs, jobKey)
 	if err != nil {

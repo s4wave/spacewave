@@ -112,7 +112,7 @@ func collectChatQuickstartDebug(page playwright.Page) any {
 		hash: window.location.hash,
 		timing: globalThis.__s4waveQuickstartTiming ?? globalThis.__s4wave_debug?.quickstartTiming ?? null,
 		text: document.querySelector('#bldr-root')?.textContent?.replace(/\s+/g, ' ').slice(0, 2200) ?? '',
-		hasInput: !!document.querySelector('textarea[placeholder="Type a message..."]'),
+		hasInput: !!document.querySelector('textarea[placeholder="Type a message…"]'),
 	})`)
 	if err != nil {
 		return map[string]any{"error": err.Error()}
