@@ -28,7 +28,6 @@ import type { ShellDocumentEntry } from './ShellDocumentEntry.js'
 import { buildUnixFSEntryAppDragEnvelope } from './unixfs/unixfs-app-drag.js'
 
 const mockOptimizedLayoutProps = vi.hoisted(() => vi.fn())
-const navigateMock = vi.hoisted(() => vi.fn())
 const mockCreateSpace = vi.hoisted(() => vi.fn())
 const continuationEntry: ShellDocumentEntry = {
   kind: 'continuation',
@@ -91,11 +90,6 @@ vi.mock('./ShellTabLabel.js', () => ({
 
 vi.mock('./ShellTabContextMenu.js', () => ({
   ShellTabContextMenu: () => null,
-}))
-
-vi.mock('@s4wave/web/router/router.js', async (importOriginal) => ({
-  ...(await importOriginal<Record<string, unknown>>()),
-  useNavigate: () => navigateMock,
 }))
 
 vi.mock('./shell-grid-utils.js', async (importOriginal) => ({

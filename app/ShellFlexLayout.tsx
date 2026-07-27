@@ -24,7 +24,6 @@ import { LuExternalLink, LuPlus, LuX } from 'react-icons/lu'
 
 import { BASE_MODEL } from '@s4wave/web/layout/layout.js'
 import { getAppPath, setAppPath } from '@s4wave/web/router/app-path.js'
-import { useNavigate } from '@s4wave/web/router/router.js'
 import {
   ShellTab,
   getTabDisplayName,
@@ -285,7 +284,6 @@ function ShellTabStripInner({
     startRenaming,
     registerActiveTabsetPathOpener,
   } = useShellTabs()
-  const navigate = useNavigate()
 
   const [, setHasEngaged] = useStateAtom<boolean>(null, 'hasEngaged', false)
   const hasMarkedEngagedRef = useRef(false)
@@ -360,9 +358,8 @@ function ShellTabStripInner({
     const decoded = decodeGridLayout(path.slice(3), SHELL_GRID_BASE_MODEL)
     if (!decoded) {
       // A grid deep link that does not decode has no layout to show. Return
-      // home rather than leaving the shell on a URL it cannot render, and
-      // replace the entry so Back does not land on it again.
-      queueMicrotask(() => navigate({ path: '/', replace: true }))
+      // home rather than leaving the shell on a URL it cannot render.
+      queueMicrotask(() => setAppPath('/'))
       return
     }
     const next = Model.fromJson(
@@ -371,7 +368,7 @@ function ShellTabStripInner({
     applyLocalStateToModel(next, decoded.localState)
     gridPathRef.current = path
     setModel(next)
-  }, [activeTabId, navigate, routePath, tabs])
+  }, [activeTabId, routePath, tabs])
   const didSyncEntryRef = useRef(false)
   const lastSyncedActiveTabIdRef = useRef(activeTabId)
   const suppressedHashPathRef = useRef<string | null>(null)
