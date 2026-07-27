@@ -72,8 +72,10 @@ export class WebDocumentTracker {
   private webDocuments: Record<string, MessagePort> = {}
   // closed records that the tracker is shutting down and should not accept new work.
   private closed = false
-  // webDocumentWaiters are callbacks waiting for the next WebDocument.
+  // webDocumentWaiters are callbacks waiting for a document or readiness event.
   private webDocumentWaiters: WebDocumentWaiter[] = []
+  // webDocumentGeneration changes when a document is added or becomes runtime-connected.
+  private webDocumentGeneration = 0
   // webDocumentResumeReadyIds are WebDocuments that reported foreground readiness.
   private webDocumentResumeReadyIds = new Set<string>()
   // webDocumentRuntimeConnectedIds are WebDocuments with a live runtime channel.
@@ -153,6 +155,7 @@ export class WebDocumentTracker {
     )
 
     this.webDocuments[webDocumentId] = port
+    this.webDocumentGeneration++
     this.lastWebDocumentId = webDocumentId
     port.onmessage = (ev) => {
       const data: WebDocumentToClient = ev.data
@@ -190,6 +193,7 @@ export class WebDocumentTracker {
 
       if (data.runtimeConnected === true) {
         this.webDocumentRuntimeConnectedIds.add(webDocumentId)
+        this.webDocumentGeneration++
         this.resolveRuntimeConnectedWaiters(webDocumentId)
         const waiters = this.webDocumentWaiters.splice(0)
         for (const waiter of waiters) {
@@ -551,6 +555,7 @@ export class WebDocumentTracker {
     excludedWebDocumentId?: string,
     signal?: AbortSignal,
   ): Promise<OpenWebRuntimePortResult> {
+    const webDocumentGeneration = this.webDocumentGeneration
     if (signal?.aborted) {
       throw signal.reason instanceof Error
         ? signal.reason
@@ -726,6 +731,7 @@ export class WebDocumentTracker {
             signal,
           ),
         signal,
+        webDocumentGeneration,
       )
     }
 
@@ -737,6 +743,7 @@ export class WebDocumentTracker {
           signal,
         ),
       signal,
+      webDocumentGeneration,
     )
 
     void waitPromise.catch(() => {})
@@ -752,6 +759,7 @@ export class WebDocumentTracker {
   private waitForWebDocument<T>(
     resume: () => Promise<T>,
     signal?: AbortSignal,
+    webDocumentGeneration = this.webDocumentGeneration,
   ): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       let settled = false
@@ -797,6 +805,10 @@ export class WebDocumentTracker {
         return
       }
       signal?.addEventListener('abort', onAbort, { once: true })
+      if (this.webDocumentGeneration !== webDocumentGeneration) {
+        queueMicrotask(() => waiter.resume())
+        return
+      }
       this.webDocumentWaiters.push(waiter)
     })
   }
