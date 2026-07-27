@@ -273,7 +273,7 @@ func (e *EngineTx) refreshReadSnapshot(ctx context.Context) error {
 	e.engine.rmtx.Lock()
 	defer e.engine.rmtx.Unlock()
 	if e.engine.closed {
-		return errors.New("world block engine is closed")
+		return ErrEngineClosed
 	}
 	if e.engine.writeHeadRefresh != nil {
 		if err := e.engine.refreshDurableHeadLocked(ctx); err != nil {
