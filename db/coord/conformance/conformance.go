@@ -23,6 +23,9 @@ func Check(t *testing.T, factory Factory) {
 	t.Run("lease wait and release", func(t *testing.T) {
 		checkLeaseWaitAndRelease(t, factory)
 	})
+	t.Run("release with canceled context", func(t *testing.T) {
+		checkReleaseWithCanceledContext(t, factory)
+	})
 	t.Run("unsupported fallback", func(t *testing.T) {
 		checkUnsupportedFallback(t)
 	})
@@ -163,6 +166,52 @@ func checkLeaseWaitAndRelease(t *testing.T, factory Factory) {
 	}
 	if _, err := leaseA.Refresh(ctx); !errors.Is(err, coord.ErrLeaseReleased) {
 		t.Fatalf("released lease Refresh() error = %v, want ErrLeaseReleased", err)
+	}
+}
+
+// checkReleaseWithCanceledContext proves a lease cannot be stranded by
+// cancellation. Cleanup paths release with the same context that was just
+// canceled, so a Release that returned early there would leave the scope locked
+// forever and hang every later writer.
+func checkReleaseWithCanceledContext(t *testing.T, factory Factory) {
+	t.Helper()
+
+	ctx := context.Background()
+	firstC, secondC := factory(t)
+	first := coord.Scope{
+		VolumeID:      "volume-a",
+		ObjectStoreID: "objects",
+		ParticipantID: "first",
+	}
+	second := coord.Scope{
+		VolumeID:      "volume-a",
+		ObjectStoreID: "objects",
+		ParticipantID: "second",
+	}
+
+	leaseA, ok, err := firstC.TryAcquireWriteLease(ctx, first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("first lease unexpectedly busy")
+	}
+
+	canceled, cancel := context.WithCancel(ctx)
+	cancel()
+	if err := leaseA.Release(canceled); err != nil {
+		t.Fatalf("Release() with canceled context error = %v", err)
+	}
+
+	leaseB, ok, err := secondC.TryAcquireWriteLease(ctx, second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("lease still held after release with a canceled context")
+	}
+	if err := leaseB.Release(ctx); err != nil {
+		t.Fatal(err)
 	}
 }
 

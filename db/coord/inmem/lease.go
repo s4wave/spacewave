@@ -54,11 +54,10 @@ func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot
 	return l.state.snapshot(l.scope), nil
 }
 
-func (l *lease) Release(ctx context.Context) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
+// Release drops the lease and wakes waiters. It ignores its context: the
+// cleanup path that releases after a canceled write is the one that most needs
+// the scope unlocked.
+func (l *lease) Release(context.Context) error {
 	l.c.mu.Lock()
 	defer l.c.mu.Unlock()
 
