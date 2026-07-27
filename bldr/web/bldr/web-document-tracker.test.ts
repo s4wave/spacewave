@@ -660,6 +660,71 @@ describe('WebDocumentTracker resume-ready gate', () => {
     documentPort.close()
     runtimeChannel.port1.close()
   })
+  it('retries when runtime readiness is reported before the waiter parks', async () => {
+    const onWebDocumentsExhausted = vi.fn().mockResolvedValue(undefined)
+    const tracker = new WebDocumentTracker(
+      'service-worker',
+      WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
+      onWebDocumentsExhausted,
+      null,
+    )
+    const { port1: trackerPort, port2: documentPort } = new MessageChannel()
+    tracker.handleWebDocumentMessage({
+      from: 'document-1',
+      initPort: trackerPort,
+    })
+    const connectResolvers: Array<(msg: ClientToWebDocument) => void> = []
+    const nextConnectMsg = () =>
+      new Promise<ClientToWebDocument>((resolve) => {
+        connectResolvers.push(resolve)
+      })
+    documentPort.onmessage = (ev) => {
+      connectResolvers.shift()?.(ev.data)
+    }
+    documentPort.start()
+
+    const firstConnectMsg = nextConnectMsg()
+    const waitConn = tracker.waitConn()
+    const msg = await firstConnectMsg
+    const ackPort = msg.connectWebRuntime?.port
+    if (!ackPort) {
+      throw new Error('connectWebRuntime ack port missing')
+    }
+    trackerPort.onmessage?.call(
+      trackerPort,
+      new MessageEvent('message', {
+        data: {
+          from: 'document-1',
+          runtimeConnected: true,
+        },
+      }),
+    )
+    ackPort.postMessage({
+      from: 'document-1',
+      error: 'webRuntimePort not initialized',
+    })
+
+    const retryMsg = await nextConnectMsg()
+    const retryAckPort = retryMsg.connectWebRuntime?.port
+    if (!retryAckPort) {
+      throw new Error('retry connectWebRuntime ack port missing')
+    }
+    const runtimeChannel = new MessageChannel()
+    retryAckPort.postMessage(
+      {
+        from: 'document-1',
+        webRuntimePort: runtimeChannel.port2,
+      },
+      [runtimeChannel.port2],
+    )
+    runtimeChannel.port1.postMessage({ connected: true })
+
+    await expect(waitConn).resolves.toBeUndefined()
+
+    tracker.close()
+    documentPort.close()
+    runtimeChannel.port1.close()
+  })
 
   it('retries an already-ready replacement WebDocument after a stale pre-ack disconnect', async () => {
     const webLock = installControllableWebLock()
