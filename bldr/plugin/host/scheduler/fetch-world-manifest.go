@@ -28,7 +28,7 @@ type directFetchCandidate struct {
 }
 
 // execute executes the tracker.
-func (t *pluginInstance) execFetchWorldManifest(ctx context.Context, hosts *pluginHostSet) (rerr error) {
+func (t *pluginInstance) execFetchWorldManifestCore(ctx context.Context, hosts *pluginHostSet) (rerr error) {
 	defer func() {
 		t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "fetch plugin manifest", rerr)
 	}()
@@ -139,7 +139,7 @@ func (t *pluginInstance) newManifestFetchValueStorer(key storeFetchedManifestsKe
 }
 
 // execFetchManifestValueStorer executes storing the FetchManifest value in storage.
-func (t *fetchManifestValueStorer) execFetchManifestValueStorer(ctx context.Context) (rerr error) {
+func (t *fetchManifestValueStorer) execFetchManifestValueStorerCore(ctx context.Context) (rerr error) {
 	defer func() {
 		t.pi.c.recordPluginStatusError(
 			t.pi.pluginID,

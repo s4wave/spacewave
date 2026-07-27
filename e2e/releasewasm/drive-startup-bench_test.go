@@ -22,9 +22,9 @@ const driveBenchEnv = "E2E_WASM_DRIVE_BENCH"
 // TestGoScriptDriveStartupBenchBundled records the time-to-Drive bench for the
 // production bundled build across three runtime states on one owned
 // BrowserContext, writing the same run.json schema as the unbundled bench so
-// cells compare across harnesses. The bundled production path has no Go trace
-// service and no Resource SDK client, so cells omit Trace and leave
-// ResourceConnection zero. The states mirror the unbundled bench:
+// cells compare across harnesses. The bundled production path has no Resource
+// SDK client. An opt-in root-runtime trace is read directly from its browser
+// SharedWorker target.
 //
 //   - cold: a fresh context boots the bundled SharedWorker runtime over a cold
 //     HTTP cache and empty OPFS Space state.
@@ -46,6 +46,11 @@ func TestGoScriptDriveStartupBenchBundled(t *testing.T) {
 	}
 	if compiler != releaseWasmCompilerGoScript {
 		t.Skipf("bundled drive bench requires %s=true", E2EReleaseWasmGoScriptEnv)
+	}
+	if releaseStartupTraceEnabled() {
+		if err := checkReleaseStartupTraceBrowser(); err != nil {
+			t.Fatalf("startup trace capture: %v", err)
+		}
 	}
 
 	// One run stamp groups every cell's artifacts under a single run directory.
@@ -115,6 +120,11 @@ type bundledDriveBenchCellInput struct {
 func runBundledDriveBenchCell(t *testing.T, page playwright.Page, in bundledDriveBenchCellInput) {
 	t.Helper()
 
+	cellDir, err := drivebench.CellDir(in.runStamp, in.cell)
+	if err != nil {
+		t.Fatalf("resolve cell dir (%s): %v", in.cell, err)
+	}
+
 	navStart := time.Now()
 	if _, err := page.Goto(testHarness.getBaseURL() + "/quickstart/drive"); err != nil {
 		t.Fatalf("goto quickstart drive (%s): %v", in.cell, err)
@@ -127,7 +137,8 @@ func runBundledDriveBenchCell(t *testing.T, page playwright.Page, in bundledDriv
 	liveAppMs := browserNowMs(t, page)
 	waitForQuickstartAppRoute(t, page)
 	routeAcceptedMs := browserNowMs(t, page)
-	completeQuickstartDriveIntroIfPresent(t, page)
+	// The first-run intro overlays the already-mounted viewer; the benchmark
+	// observes readiness without adding an interaction to the startup interval.
 	if err := page.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
 	); err != nil {
@@ -140,6 +151,14 @@ func runBundledDriveBenchCell(t *testing.T, page playwright.Page, in bundledDriv
 		t.Logf("quickstart content-ready not reached (%s): %s", in.cell, contentReadyErr)
 	}
 	logQuickstartTiming(t, page)
+
+	var startupTrace []byte
+	if releaseStartupTraceEnabled() {
+		startupTrace, err = captureReleaseStartupTrace(t.Context(), testHarness.browser)
+		if err != nil {
+			t.Fatalf("capture startup trace (%s): %v", in.cell, err)
+		}
+	}
 
 	distDir := filepath.Join(testHarness.repoRoot, releaseDistRelPath)
 	bundle, err := drivebench.MeasureBundleDir(distDir)
@@ -167,14 +186,20 @@ func runBundledDriveBenchCell(t *testing.T, page playwright.Page, in bundledDriv
 		ServedBundle: bundle,
 	}
 	run.Browser.StartupMarks = readBundledStartupMarks(t, page)
+	if len(startupTrace) != 0 {
+		tracePath := filepath.Join(cellDir, "runtime.trace")
+		if err := drivebench.WriteArtifact(tracePath, startupTrace); err != nil {
+			t.Fatalf("write runtime trace (%s): %v", in.cell, err)
+		}
+		run.Trace = &drivebench.Trace{
+			Bytes:            len(startupTrace),
+			RuntimeTracePath: tracePath,
+		}
+	}
 	t.Logf("bundled served bundle (%s): totalBytes=%d wasmBytes=%d fileCount=%d",
 		in.cell, bundle.TotalBytes, bundle.WasmBytes, bundle.FileCount)
 
-	dir, err := drivebench.CellDir(in.runStamp, in.cell)
-	if err != nil {
-		t.Fatalf("resolve cell dir (%s): %v", in.cell, err)
-	}
-	runPath, err := drivebench.WriteRun(dir, run)
+	runPath, err := drivebench.WriteRun(cellDir, run)
 	if err != nil {
 		t.Fatalf("write run.json (%s): %v", in.cell, err)
 	}

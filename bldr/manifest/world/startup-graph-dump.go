@@ -20,9 +20,9 @@ type startupManifestGraphEdge struct {
 	label string
 }
 
-// DumpStartupManifestGraphForManifestID builds a non-mutating diagnostic dump
+// dumpStartupManifestGraphForManifestID builds a non-mutating diagnostic dump
 // of the retained manifest graph followed during startup selection.
-func DumpStartupManifestGraphForManifestID(
+func dumpStartupManifestGraphForManifestID(
 	ctx context.Context,
 	ws world.WorldState,
 	manifestID string,

@@ -81,7 +81,7 @@ jobs:
             test_js_script: ''
           - name: db
             build_script: ''
-            check_script: ''
+            check_script: check:go:startup-trace
             lint_go_script: lint:go:db
             lint_js_script: lint:js:db
             test_go_script: test:go:db

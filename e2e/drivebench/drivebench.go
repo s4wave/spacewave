@@ -25,8 +25,8 @@ import (
 // quickstart timing, the served bundle size, the Resource SDK connection timing,
 // and optional trace/profile summaries. It is written as run.json per cell so
 // cells compare across runtime states and build modes. The bundled production
-// bench has no Go trace service and no Resource SDK client, so it omits Trace
-// and leaves ResourceConnection zero.
+// bench has no Resource SDK client, so ResourceConnection remains zero; an
+// opt-in startup trace may populate Trace.
 type Run struct {
 	Timestamp          string          `json:"timestamp"`
 	Compiler           string          `json:"compiler"`

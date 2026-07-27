@@ -38,6 +38,7 @@ var releaseWasmArtifactEnvKeys = []string{
 	gocompiler.TinyGoInterpTimeoutEnv,
 	gocompiler.TinyGoDebugInfoEnv,
 	gocompiler.GoWasmOptimizeEnv,
+	gocompiler.RuntimeStartupTraceEnv,
 	"BINARYEN_CORES",
 	"BINARYEN_VERSION",
 	"CGO_ENABLED",

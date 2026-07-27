@@ -46,7 +46,7 @@ func (t *pluginInstance) execWatchWorldManifest(ctx context.Context, hosts *plug
 }
 
 // processManifestWorldState processes the state for the PluginManifest.
-func (t *pluginInstance) processManifestWorldState(
+func (t *pluginInstance) processManifestWorldStateCore(
 	ctx context.Context,
 	le *logrus.Entry,
 	hosts *pluginHostSet,

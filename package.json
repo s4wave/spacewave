@@ -160,6 +160,7 @@
     "bldr:lint:go": "bun run go:aptre -- lint ./bldr/...",
     "lint:js:oxlint": "oxlint .",
     "lint:js:oxlint:type-aware": "oxlint -c .oxlintrc.type-aware.json --type-aware ./app ./web ./core ./sdk ./cmd",
+    "check:go:startup-trace": "cross-env GOFLAGS=-mod=mod go build -tags bldr_startup_trace,purego ./bldr/... ./db/...",
     "lint:go:db": "bun run go:aptre -- lint ./db/...",
     "lint:go:e2e": "bun run go:aptre -- lint ./e2e/...",
     "lint:go:forge": "bun run go:aptre -- lint ./forge/...",
