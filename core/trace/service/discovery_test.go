@@ -55,15 +55,11 @@ func setupPluginClients(
 		t.Fatal(err)
 	}
 	repoRoot := filepath.Join(wd, "../../..")
-	workDir := filepath.Join(wd, ".bldr")
-	buildDir := filepath.Join(workDir, "build")
+	workDir := t.TempDir()
 	distDir := filepath.Join(workDir, "src")
 	pluginStateDir := filepath.Join(workDir, "plugin", "state")
 	pluginDistDir := filepath.Join(workDir, "plugin", "dist")
 
-	if err := fsutil.CleanCreateDir(buildDir); err != nil {
-		t.Fatal(err)
-	}
 	if err := fsutil.CleanCreateDir(pluginStateDir); err != nil {
 		t.Fatal(err)
 	}
