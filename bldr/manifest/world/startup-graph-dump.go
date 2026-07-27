@@ -105,13 +105,14 @@ func collectStartupManifestGraphCore(
 		if depth+1 > result.depthReached {
 			result.depthReached = depth + 1
 		}
+		quadsByNode, err := lookupStartupManifestGraphQuadsBatch(ctx, w, frontier)
+		if err != nil {
+			return startupManifestGraphResult{}, err
+		}
 		var next []string
-		for _, objKey := range frontier {
+		for i, objKey := range frontier {
 			result.dequeuedNodes++
-			quads, err := lookupStartupManifestGraphQuads(ctx, w, objKey)
-			if err != nil {
-				return startupManifestGraphResult{}, err
-			}
+			quads := quadsByNode[i]
 			sortStartupManifestGraphQuads(quads)
 			for _, label := range labels {
 				for _, q := range quads {

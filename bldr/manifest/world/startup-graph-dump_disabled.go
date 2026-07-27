@@ -33,14 +33,14 @@ func collectStartupManifestGraph(
 	return result.edges, result.candidates, nil
 }
 
-func lookupStartupManifestGraphQuads(
+func lookupStartupManifestGraphQuadsBatch(
 	ctx context.Context,
 	ws world.WorldState,
-	objKey string,
-) ([]world.GraphQuad, error) {
-	return ws.LookupGraphQuads(
-		ctx,
-		world.NewGraphQuadWithKeys(objKey, PredManifest.String(), "", ""),
-		0,
-	)
+	objKeys []string,
+) ([][]world.GraphQuad, error) {
+	filters := make([]world.GraphQuad, len(objKeys))
+	for i, objKey := range objKeys {
+		filters[i] = world.NewGraphQuadWithKeys(objKey, PredManifest.String(), "", "")
+	}
+	return ws.LookupGraphQuadsBatch(ctx, filters, 0)
 }

@@ -10,6 +10,19 @@ import (
 
 const buildTagged = true
 
+type graphLookupScopeKey struct{}
+
+// WithGraphLookupScope marks a context used by the startup graph lookup.
+func WithGraphLookupScope(ctx context.Context) context.Context {
+	return context.WithValue(ctx, graphLookupScopeKey{}, true)
+}
+
+// GraphLookupScope reports whether ctx is used by the startup graph lookup.
+func GraphLookupScope(ctx context.Context) bool {
+	enabled, _ := ctx.Value(graphLookupScopeKey{}).(bool)
+	return enabled
+}
+
 // Task is a startup attribution trace task.
 type Task struct {
 	task *trace.Task

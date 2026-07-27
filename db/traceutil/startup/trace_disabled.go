@@ -7,6 +7,16 @@ import "context"
 
 const buildTagged = false
 
+// WithGraphLookupScope marks a context used by the startup graph lookup.
+func WithGraphLookupScope(ctx context.Context) context.Context {
+	return ctx
+}
+
+// GraphLookupScope reports whether ctx is used by the startup graph lookup.
+func GraphLookupScope(context.Context) bool {
+	return false
+}
+
 // Task is a no-op startup attribution trace task.
 type Task struct{}
 

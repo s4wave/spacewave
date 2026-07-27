@@ -9,13 +9,21 @@ import (
 )
 
 func (e *engineWorldState) newOperationTransaction(ctx context.Context, write bool) (Tx, error) {
-	traceCtx, task := startuptrace.NewTask(ctx, "hydra/world-block/world-state/transaction/open")
+	taskType := "hydra/world-block/world-state/transaction/open"
+	if startuptrace.GraphLookupScope(ctx) {
+		taskType += "/eligibility-graph-node"
+	}
+	traceCtx, task := startuptrace.NewTask(ctx, taskType)
 	defer task.End()
 	return e.e.NewTransaction(traceCtx, write)
 }
 
 func discardOperationTransaction(ctx context.Context, tx Tx) {
-	_, task := startuptrace.NewTask(ctx, "hydra/world-block/world-state/transaction/discard")
+	taskType := "hydra/world-block/world-state/transaction/discard"
+	if startuptrace.GraphLookupScope(ctx) {
+		taskType += "/eligibility-graph-node"
+	}
+	_, task := startuptrace.NewTask(ctx, taskType)
 	defer task.End()
 	tx.Discard()
 }

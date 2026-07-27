@@ -53,16 +53,20 @@ func collectStartupManifestGraph(
 	return result.edges, result.candidates, nil
 }
 
-func lookupStartupManifestGraphQuads(
+func lookupStartupManifestGraphQuadsBatch(
 	ctx context.Context,
 	ws world.WorldState,
-	objKey string,
-) ([]world.GraphQuad, error) {
-	traceCtx, task := startuptrace.NewTask(ctx, "bldr/manifest-world/eligibility/graph-node")
+	objKeys []string,
+) ([][]world.GraphQuad, error) {
+	traceCtx, task := startuptrace.NewTask(ctx, "bldr/manifest-world/eligibility/graph-batch")
 	defer task.End()
-	return ws.LookupGraphQuads(
-		traceCtx,
-		world.NewGraphQuadWithKeys(objKey, PredManifest.String(), "", ""),
+	filters := make([]world.GraphQuad, len(objKeys))
+	for i, objKey := range objKeys {
+		filters[i] = world.NewGraphQuadWithKeys(objKey, PredManifest.String(), "", "")
+	}
+	return ws.LookupGraphQuadsBatch(
+		startuptrace.WithGraphLookupScope(traceCtx),
+		filters,
 		0,
 	)
 }
