@@ -540,7 +540,7 @@ describe('SessionSharedObjectContainer', () => {
 
     await waitFor(() => {
       expect(mockNavigateSession).toHaveBeenCalledWith({
-        path: 'settings/storage/recovery',
+        path: 'settings/storage/recovery/incident',
         replace: true,
       })
     })
