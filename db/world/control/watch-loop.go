@@ -142,85 +142,101 @@ func (c *WatchLoop) Execute(ctx context.Context, ws world.WorldState) error {
 	}
 
 	for {
-		var rootRef *bucket.ObjectRef
-		var rev uint64
-
-		if ctx.Err() != nil {
-			return context.Canceled
-		}
-
-		seqno, err := ws.GetSeqno(ctx)
-		if err != nil {
-			return err
-		}
-
-		var objState world.ObjectState
-		var objFound bool
-		if c.objectKey != "" {
-			var err error
-			objState, objFound, err = ws.GetObject(ctx, c.objectKey)
-			if err != nil {
-				return err
-			}
-		}
-		if objFound {
-			rootRef, rev, err = objState.GetRootRef(ctx)
-			if err != nil {
-				return err
-			}
-			if c.le != nil {
-				c.le.
-					WithField("object-key", c.objectKey).
-					Debugf("object found at rev %d", rev)
-			}
-		} else {
-			objState = nil
-		}
-
-		waitForChanges, err := c.handler(
-			ctx, c.le,
-			ws, objState,
-			rootRef, rev,
-		)
-		if errors.Is(err, world.ErrUnhandledOp) {
-			if c.le != nil {
-				c.le.Debug("handler skipped unhandled operation")
-			}
-			waitForChanges = true
-			err = nil
-		} else if err != nil && c.le != nil &&
-			(ctx.Err() == nil || !errors.Is(err, context.Canceled)) {
-			le := c.le.WithError(err)
-			if c.objectKey != "" {
-				le = le.WithField("object-key", c.objectKey)
-			}
-			le.
-				WithField("world-seqno", seqno).
-				WithField("wait-for-changes", waitForChanges).
-				Warn("handler returned error")
-		}
-		if !waitForChanges {
-			return err
-		}
-
-		wakeCtx, finishWake, skipWait := c.wake.beginWait(ctx)
-		if skipWait {
-			continue
-		}
-
-		if objState != nil {
-			_, err = objState.WaitRev(wakeCtx, rev+1, !objFound)
-			if err == world.ErrObjectNotFound && objFound {
-				// ignore ErrObjectNotFound if we previously found the object
-				// allow the handler to be notified of the deletion
-				err = nil
-			}
-		} else {
-			_, err = ws.WaitSeqno(wakeCtx, seqno+1)
-		}
-		finishWake()
-		if err != nil && err != context.Canceled {
+		done, err := c.executeOnce(ctx, ws)
+		if done {
 			return err
 		}
 	}
+}
+
+// executeOnce runs one iteration: it reads the watched object, calls the
+// handler, then waits for the next revision. done reports that the loop is
+// finished and Execute should return err.
+//
+// The object-state handle lives for exactly one iteration. A remote world state
+// allocates a server-side resource per GetObject, so a loop that watches a
+// long-running object would otherwise accumulate one handle per revision for as
+// long as it runs.
+func (c *WatchLoop) executeOnce(ctx context.Context, ws world.WorldState) (bool, error) {
+	var rootRef *bucket.ObjectRef
+	var rev uint64
+
+	if ctx.Err() != nil {
+		return true, context.Canceled
+	}
+
+	seqno, err := ws.GetSeqno(ctx)
+	if err != nil {
+		return true, err
+	}
+
+	var objState world.ObjectState
+	var objFound bool
+	if c.objectKey != "" {
+		objState, objFound, err = ws.GetObject(ctx, c.objectKey)
+		if err != nil {
+			return true, err
+		}
+		defer world.ReleaseObjectState(objState)
+	}
+	if objFound {
+		rootRef, rev, err = objState.GetRootRef(ctx)
+		if err != nil {
+			return true, err
+		}
+		if c.le != nil {
+			c.le.
+				WithField("object-key", c.objectKey).
+				Debugf("object found at rev %d", rev)
+		}
+	} else {
+		objState = nil
+	}
+
+	waitForChanges, err := c.handler(
+		ctx, c.le,
+		ws, objState,
+		rootRef, rev,
+	)
+	if errors.Is(err, world.ErrUnhandledOp) {
+		if c.le != nil {
+			c.le.Debug("handler skipped unhandled operation")
+		}
+		waitForChanges = true
+		err = nil
+	} else if err != nil && c.le != nil &&
+		(ctx.Err() == nil || !errors.Is(err, context.Canceled)) {
+		le := c.le.WithError(err)
+		if c.objectKey != "" {
+			le = le.WithField("object-key", c.objectKey)
+		}
+		le.
+			WithField("world-seqno", seqno).
+			WithField("wait-for-changes", waitForChanges).
+			Warn("handler returned error")
+	}
+	if !waitForChanges {
+		return true, err
+	}
+
+	wakeCtx, finishWake, skipWait := c.wake.beginWait(ctx)
+	if skipWait {
+		return false, nil
+	}
+
+	if objState != nil {
+		_, err = objState.WaitRev(wakeCtx, rev+1, !objFound)
+		if err == world.ErrObjectNotFound && objFound {
+			// ignore ErrObjectNotFound if we previously found the object
+			// allow the handler to be notified of the deletion
+			err = nil
+		}
+	} else {
+		_, err = ws.WaitSeqno(wakeCtx, seqno+1)
+	}
+	finishWake()
+	if err != nil && err != context.Canceled {
+		return true, err
+	}
+	return false, nil
 }

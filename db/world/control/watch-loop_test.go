@@ -3,6 +3,7 @@ package world_control_test
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -458,4 +459,103 @@ func recvWatchLoopValue[T any](t *testing.T, ch <-chan T, name string) T {
 	}
 	var zero T
 	return zero
+}
+
+// TestWatchLoopReleasesObjectStatePerIteration proves the loop hands back every
+// object handle it takes. A remote world state allocates a server-side resource
+// per GetObject, so a loop that watched a busy object for minutes used to leave
+// one tracked handle behind per revision.
+func TestWatchLoopReleasesObjectStatePerIteration(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	remote := setupRemoteWorldState(ctx, t)
+	objKey := "release-object"
+	obj, err := remote.CreateObject(ctx, objKey, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	ws := &countingWorldState{WorldState: remote}
+	revs := make(chan uint64, 8)
+	loop := world_control.NewWatchLoop(
+		logrus.NewEntry(logrus.New()),
+		objKey,
+		world_control.NewWaitForStateHandler(func(
+			_ context.Context,
+			_ world.WorldState,
+			_ world.ObjectState,
+			_ *block.Cursor,
+			rev uint64,
+		) (bool, error) {
+			revs <- rev
+			return true, nil
+		}),
+	)
+	done := make(chan error, 1)
+	go func() {
+		done <- loop.Execute(ctx, ws)
+	}()
+
+	const revisions = 3
+	for i := 0; i <= revisions; i++ {
+		recvWatchLoopValue(t, revs, "handler call")
+		if outstanding := ws.outstanding.Load(); outstanding > 1 {
+			t.Fatalf("outstanding object handles = %d, want at most 1", outstanding)
+		}
+		if i == revisions {
+			break
+		}
+		if _, err := obj.IncrementRev(ctx); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("watch loop did not exit")
+	}
+
+	if acquired := ws.acquired.Load(); acquired < revisions {
+		t.Fatalf("acquired object handles = %d, want at least %d", acquired, revisions)
+	}
+	if outstanding := ws.outstanding.Load(); outstanding != 0 {
+		t.Fatalf("outstanding object handles after exit = %d, want 0", outstanding)
+	}
+}
+
+// countingWorldState counts the object handles taken from a real world state
+// and the ones handed back.
+type countingWorldState struct {
+	world.WorldState
+
+	acquired    atomic.Int64
+	outstanding atomic.Int64
+}
+
+func (c *countingWorldState) GetObject(ctx context.Context, objKey string) (world.ObjectState, bool, error) {
+	obj, found, err := c.WorldState.GetObject(ctx, objKey)
+	if obj == nil {
+		return obj, found, err
+	}
+	c.acquired.Add(1)
+	c.outstanding.Add(1)
+	return &countingObjectState{ObjectState: obj, ws: c}, found, err
+}
+
+// countingObjectState reports its release to the owning countingWorldState.
+type countingObjectState struct {
+	world.ObjectState
+
+	ws       *countingWorldState
+	released atomic.Bool
+}
+
+func (c *countingObjectState) Release() {
+	if !c.released.Swap(true) {
+		c.ws.outstanding.Add(-1)
+	}
+	world.ReleaseObjectState(c.ObjectState)
 }
