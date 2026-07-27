@@ -45,6 +45,7 @@ func TestDistSourcesFSCursor(t *testing.T) {
 		"web/bldr/web-runtime.ts",
 		"web/electron/main/index.ts",
 		"web/bldr-react/WebView.tsx",
+		"devtool/web/entrypoint/startup-trace_js.go",
 	)
 	if err != nil {
 		t.Fatal(err.Error())

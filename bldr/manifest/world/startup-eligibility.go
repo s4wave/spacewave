@@ -54,9 +54,9 @@ type StartupManifestCandidateEligibility struct {
 	ManifestRef *bucket.ObjectRef
 }
 
-// CollectStartupManifestEligibilityForManifestID classifies startup manifest
+// collectStartupManifestEligibilityForManifestID classifies startup manifest
 // candidates without mutating the Manifest graph or candidate objects.
-func CollectStartupManifestEligibilityForManifestID(
+func collectStartupManifestEligibilityForManifestID(
 	ctx context.Context,
 	ws world.WorldState,
 	manifestID string,

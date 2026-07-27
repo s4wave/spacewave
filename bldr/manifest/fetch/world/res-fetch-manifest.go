@@ -19,8 +19,8 @@ type fetchManifestResolver struct {
 	dir manifest.FetchManifest
 }
 
-// Resolve resolves the values, emitting them to the handler.
-func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+// resolve runs the FetchManifest watch loop.
+func (r *fetchManifestResolver) resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	_ = handler.ClearValues()
 
 	// Watch the world state and re-check the manifests list when it changes.

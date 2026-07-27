@@ -527,7 +527,7 @@ func BuildDistBundle(
 		outBinPath,
 		enableCgo,
 		enableTinygo,
-		nil,
+		gocompiler.RuntimeStartupTraceBuildTagsForWebWasm(isWebPlatform, enableTinygo),
 		distEntrypointLDFlags(buildPlatform, meta.GetEntrypointRole()),
 	)
 	if err != nil {
@@ -579,6 +579,7 @@ func resolveDistGoCompiler(
 func newDistGoScriptBuildFlags(buildType bldr_manifest.BuildType, enableCgo bool) []string {
 	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
 	buildTags = append(buildTags, gocompiler.GoScriptBuildTag, gocompiler.SQLLiteBuildTag)
+	buildTags = append(buildTags, gocompiler.RuntimeStartupTraceBuildTags()...)
 	return []string{"-tags=" + strings.Join(buildTags, ",")}
 }
 

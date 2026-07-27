@@ -320,7 +320,7 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		runtimeOut,
 		false, // disable cgo
 		useTinygo,
-		nil,
+		gocompiler.RuntimeStartupTraceBuildTagsForWebWasm(true, useTinygo),
 		nil,
 	); err != nil {
 		return err
