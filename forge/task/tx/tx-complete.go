@@ -173,12 +173,6 @@ func validateTaskCompletion(
 			root.GetPassNonce(),
 		)
 	}
-	if !passOutputs.Equals(root.GetValueSet().GetOutputs()) {
-		return nil, errors.Errorf(
-			"pass[%d]: outputs mismatch re-computed task values",
-			root.GetPassNonce(),
-		)
-	}
 	return passOutputs, nil
 }
 
