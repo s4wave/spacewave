@@ -239,10 +239,11 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 	}
 
 	var (
-		previous  *p2pSyncState
-		waitState *p2pSyncState
-		state     *p2pSyncState
-		watch     bool
+		previous         *p2pSyncState
+		previousRetained bool
+		waitState        *p2pSyncState
+		state            *p2pSyncState
+		watch            bool
 	)
 	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		previous = a.p2pSync
@@ -279,6 +280,7 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 		if previous != nil && a.retainP2PSyncLowerSourceLocked(previous) {
 			state.lowerSource = previous
 			state.lowerSourceHeld = true
+			previousRetained = true
 		}
 		a.p2pSync = state
 		bcast()
@@ -302,7 +304,7 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 	// happened to create it. Running it here would tie it to that caller's
 	// goroutine, so a caller whose context is canceled while later owners keep
 	// the state alive could not return until startup finished on its own.
-	go a.runP2PSyncStart(state, previous, sessionTransport, childBus)
+	go a.runP2PSyncStart(state, previous, previousRetained, sessionTransport, childBus)
 	return a.awaitP2PSyncStart(ctx, state)
 }
 
@@ -388,6 +390,7 @@ func (s *p2pSyncState) markStartupExited() {
 func (a *ProviderAccount) runP2PSyncStart(
 	state *p2pSyncState,
 	previous *p2pSyncState,
+	previousRetained bool,
 	sessionTransport *transport.SessionTransport,
 	childBus bus.Bus,
 ) {
@@ -413,21 +416,47 @@ func (a *ProviderAccount) runP2PSyncStart(
 		})
 		break
 	}
-
 	if err == nil {
 		state.markStartupExited()
 		a.releaseP2PSyncLowerSource(state)
+		if previous != nil {
+			a.retireP2PSyncState(previous)
+		}
 		return
 	}
 
 	state.markStartupExited()
-	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
-		if a.p2pSync == state {
-			a.p2pSync = previous
-			bcast()
-		}
-	})
+	a.restoreP2PSyncAfterFailedStart(state, previous, previousRetained)
 	a.retireP2PSyncState(state)
+}
+
+func (a *ProviderAccount) restoreP2PSyncAfterFailedStart(
+	state *p2pSyncState,
+	previous *p2pSyncState,
+	previousRetained bool,
+) {
+	retirePrevious := false
+	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if a.p2pSync != state {
+			return
+		}
+		restorePrevious := false
+		if previousRetained {
+			previous.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+				restorePrevious = !previous.stopping && previous.ctx.Err() == nil
+			})
+		}
+		if restorePrevious {
+			a.p2pSync = previous
+		} else {
+			a.p2pSync = nil
+			retirePrevious = previous != nil
+		}
+		bcast()
+	})
+	if retirePrevious {
+		a.retireP2PSyncState(previous)
+	}
 }
 
 func (a *ProviderAccount) startP2PSyncControllers(
