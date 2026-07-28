@@ -244,6 +244,16 @@ func (a *Adapter) ClickControl(control string) error {
 		browser := a.driveBrowser()
 		input := browser.Locator("input[placeholder='Folder name']:visible").First()
 		buttons := browser.Locator("button[title='New folder']:not([disabled]):visible")
+		// Count is a snapshot. Right after navigating into a folder the browser
+		// that driveBrowser resolves is the newly mounted one, whose toolbar has
+		// not rendered its actions yet, so the snapshot can be zero. That left
+		// the loop below with nothing to click and spent the whole wait on an
+		// input no click had opened. Wait for a clickable button first.
+		if err := buttons.First().WaitFor(playwright.LocatorWaitForOptions{
+			Timeout: durationMS(defaultWait),
+		}); err != nil {
+			return err
+		}
 		count, err := buttons.Count()
 		if err != nil {
 			return err
