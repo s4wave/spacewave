@@ -58,7 +58,7 @@ type ProviderAccount struct {
 	soListCtr *ccontainer.CContainer[*sobject.SharedObjectList]
 	// p2pSyncMtx guards p2pSync lifecycle.
 	p2pSyncMtx sync.Mutex
-	// p2pSync holds running P2P sync state, nil when not active.
+	// p2pSync holds current P2P sync startup or running state, nil when inactive.
 	p2pSync *p2pSyncState
 	// sessionTransport is the running session transport, nil when not active.
 	sessionTransport *sessionTransportState

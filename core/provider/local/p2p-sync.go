@@ -20,20 +20,32 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// p2pSyncState holds running P2P sync and DEX stores for a provider account.
+// p2pSyncState holds P2P sync startup or running state and DEX stores.
 type p2pSyncState struct {
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
-	refs   []directive.Reference
-	relFns []func()
-	stores map[string]block.StoreOps
+	cancel    context.CancelFunc
+	startDone chan struct{}
+	stopOnce  sync.Once
+	wg        sync.WaitGroup
+	mtx       sync.Mutex
+	refs      []directive.Reference
+	relFns    []func()
+	stores    map[string]block.StoreOps
 }
 
 func (s *p2pSyncState) addStore(bucketID string, store block.StoreOps) {
+	s.mtx.Lock()
 	if s.stores == nil {
 		s.stores = make(map[string]block.StoreOps)
 	}
 	s.stores[bucketID] = store
+	s.mtx.Unlock()
+}
+
+func (s *p2pSyncState) getStore(bucketID string) block.StoreOps {
+	s.mtx.Lock()
+	store := s.stores[bucketID]
+	s.mtx.Unlock()
+	return store
 }
 
 // StartP2PSync starts SO sync and DEX block exchange for all mounted
@@ -42,7 +54,7 @@ func (s *p2pSyncState) addStore(bucketID string, store block.StoreOps) {
 // childBus is the session transport's child bus where solicit
 // controllers run. The session transport must be running before
 // calling this method.
-func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *transport.SessionTransport) error {
+func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *transport.SessionTransport) (rerr error) {
 	if err := sessionTransport.AwaitReady(ctx); err != nil {
 		return err
 	}
@@ -52,13 +64,42 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 	}
 
 	a.p2pSyncMtx.Lock()
-	defer a.p2pSyncMtx.Unlock()
-
-	a.stopP2PSyncLocked()
+	previous := a.p2pSync
+	if previous != nil {
+		select {
+		case <-previous.startDone:
+		default:
+			a.p2pSyncMtx.Unlock()
+			return nil
+		}
+	}
 
 	syncCtx, syncCancel := context.WithCancel(ctx)
-	state := &p2pSyncState{cancel: syncCancel}
+	state := &p2pSyncState{
+		cancel:    syncCancel,
+		startDone: make(chan struct{}),
+	}
 	a.p2pSync = state
+	defer func() {
+		if rerr == nil {
+			close(state.startDone)
+			return
+		}
+
+		a.p2pSyncMtx.Lock()
+		cleanup := a.p2pSync == state
+		if cleanup {
+			a.p2pSync = nil
+		}
+		a.p2pSyncMtx.Unlock()
+		close(state.startDone)
+		if cleanup {
+			a.stopP2PSyncState(state)
+		}
+	}()
+	a.p2pSyncMtx.Unlock()
+
+	a.stopP2PSyncState(previous)
 
 	soList := a.soListCtr.GetValue()
 	for _, entry := range soList.GetSharedObjects() {
@@ -71,19 +112,15 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 		providerAccountID := provRef.GetProviderAccountId()
 		bucketID := BlockStoreBucketID(providerID, providerAccountID, blockStoreID)
 		if err := a.startDEXSolicit(syncCtx, childBus, bucketID, state); err != nil {
-			if ctx.Err() != nil {
-				a.p2pSync = nil
-				a.stopP2PSyncState(state)
-				return ctx.Err()
+			if syncCtx.Err() != nil {
+				return syncCtx.Err()
 			}
 			a.le.WithError(err).WithField("bucket-id", bucketID).Warn("failed to start dex solicit")
 		}
 
 		if err := a.startSOSync(syncCtx, childBus, ref, soID, state); err != nil {
-			if ctx.Err() != nil {
-				a.p2pSync = nil
-				a.stopP2PSyncState(state)
-				return ctx.Err()
+			if syncCtx.Err() != nil {
+				return syncCtx.Err()
 			}
 			a.le.WithError(err).WithField("so-id", soID).Warn("failed to start so sync")
 		}
@@ -91,61 +128,66 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 
 	// Start the SO invite server so invitees can join via alpha/so-invite.
 	if err := a.startInviteServer(syncCtx, childBus, sessionTransport, state); err != nil {
+		if syncCtx.Err() != nil {
+			return syncCtx.Err()
+		}
 		a.le.WithError(err).Warn("failed to start invite server")
 	}
-	return nil
+	return syncCtx.Err()
 }
 
 // IsP2PSyncRunning returns whether P2P sync is currently active.
 // Safe to call from any goroutine.
 func (a *ProviderAccount) IsP2PSyncRunning() bool {
 	a.p2pSyncMtx.Lock()
-	running := a.p2pSync != nil
-	a.p2pSyncMtx.Unlock()
-	return running
+	defer a.p2pSyncMtx.Unlock()
+	if a.p2pSync == nil {
+		return false
+	}
+	select {
+	case <-a.p2pSync.startDone:
+		return true
+	default:
+		return false
+	}
 }
 
 // StopP2PSync stops all P2P sync controllers, waits for goroutines
 // to finish, and releases references.
 func (a *ProviderAccount) StopP2PSync() {
 	a.p2pSyncMtx.Lock()
-	defer a.p2pSyncMtx.Unlock()
+	state := a.p2pSync
+	a.p2pSync = nil
+	a.p2pSyncMtx.Unlock()
 
-	a.stopP2PSyncLocked()
+	a.stopP2PSyncState(state)
 }
 
 func (a *ProviderAccount) getP2PStore(bucketID string) block.StoreOps {
 	a.p2pSyncMtx.Lock()
 	state := a.p2pSync
-	var store block.StoreOps
-	if state != nil {
-		store = state.stores[bucketID]
-	}
 	a.p2pSyncMtx.Unlock()
-	return store
-}
-
-func (a *ProviderAccount) stopP2PSyncLocked() {
-	state := a.p2pSync
 	if state == nil {
-		return
+		return nil
 	}
-	a.p2pSync = nil
-	a.stopP2PSyncState(state)
+	return state.getStore(bucketID)
 }
 
 func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
 	if state == nil {
 		return
 	}
-	state.cancel()
-	state.wg.Wait()
-	for _, ref := range state.refs {
-		ref.Release()
-	}
-	for _, rel := range state.relFns {
-		rel()
-	}
+	state.stopOnce.Do(func() {
+		state.cancel()
+		<-state.startDone
+		state.wg.Wait()
+		for _, ref := range state.refs {
+			ref.Release()
+		}
+		for _, rel := range state.relFns {
+			rel()
+		}
+	})
 }
 
 // startSOSync mounts the shared object and starts an SOSync instance for it.

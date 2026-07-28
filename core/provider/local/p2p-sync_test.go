@@ -3,14 +3,18 @@ package provider_local_test
 import (
 	"context"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/controllerbus/directive"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/transport"
+	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/transport/common/dialer"
@@ -353,14 +357,14 @@ func TestBlockSyncDEX(t *testing.T) {
 }
 
 func TestStartP2PSyncStartsDEXSolicit(t *testing.T) {
-	ctx := t.Context()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
 
 	tb, sessRef, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
 
 	accountID := sessRef.GetProviderResourceRef().GetProviderAccountId()
-	so, soRelease := mountAccountSettingsSO(ctx, t, tb.Bus, accountID)
-	addPairedDeviceAndWait(ctx, t, so, sess.GetPeerId().String(), "GoScript DEX Test Device")
+	_, soRelease := mountAccountSettingsSO(ctx, t, tb.Bus, accountID)
 	soRelease()
 
 	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
@@ -372,7 +376,74 @@ func TestStartP2PSyncStartsDEXSolicit(t *testing.T) {
 	if st == nil {
 		t.Fatal("expected non-nil session transport")
 	}
-	if err := acc.StartP2PSync(ctx, st); err != nil {
+
+	loadStarted := make(chan struct{})
+	releaseLoad := make(chan struct{})
+	var gate sync.Once
+	removeHandler, err := st.GetChildBus().AddHandler(directive.NewFuncHandler(
+		func(handlerCtx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+			load, ok := di.GetDirective().(resolver.LoadControllerWithConfig)
+			if !ok {
+				return nil, nil
+			}
+			if _, ok := load.GetLoadControllerConfig().(*dex_solicit.Config); !ok {
+				return nil, nil
+			}
+			gate.Do(func() {
+				close(loadStarted)
+				select {
+				case <-releaseLoad:
+				case <-handlerCtx.Done():
+				}
+			})
+			return nil, nil
+		},
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer removeHandler()
+
+	firstDone := make(chan error, 1)
+	go func() {
+		firstDone <- acc.StartP2PSync(ctx, st)
+	}()
+
+	select {
+	case <-loadStarted:
+	case <-ctx.Done():
+		t.Fatal("timed out waiting for DEX solicit controller load")
+	}
+
+	secondDone := make(chan error, 1)
+	go func() {
+		secondDone <- acc.StartP2PSync(ctx, st)
+	}()
+
+	secondCtx, secondCancel := context.WithTimeout(ctx, time.Second)
+	defer secondCancel()
+	select {
+	case err := <-secondDone:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-secondCtx.Done():
+		close(releaseLoad)
+		firstErr := <-firstDone
+		secondErr := <-secondDone
+		t.Fatalf(
+			"concurrent start blocked behind DEX controller load: first=%v second=%v",
+			firstErr,
+			secondErr,
+		)
+	}
+
+	if acc.IsP2PSyncRunning() {
+		t.Fatal("expected P2P sync to remain starting while DEX controller load is blocked")
+	}
+
+	close(releaseLoad)
+	if err := <-firstDone; err != nil {
 		t.Fatal(err)
 	}
 	defer acc.StopP2PSync()
