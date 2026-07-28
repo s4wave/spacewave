@@ -67,13 +67,15 @@ func NewSpaceResourceWithSessionPeerIDAndHostPluginID(
 		sessionPeerID: sessionPeerID,
 		hostPluginID:  hostPluginID,
 	}
-	spaceResource.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
-		if err := s4wave_space.SRPCRegisterSpaceResourceService(mux, spaceResource); err != nil {
-			return err
-		}
-		wizardResource := s4wave_wizard.NewWizardRegistryResource()
-		return s4wave_wizard.SRPCRegisterObjectWizardRegistryResourceService(mux, wizardResource)
-	})
+	spaceResource.mux = resource_server.NewResourceMux(
+		func(mux srpc.Mux) error {
+			return s4wave_space.SRPCRegisterSpaceResourceService(mux, spaceResource)
+		},
+		func(mux srpc.Mux) error {
+			wizardResource := s4wave_wizard.NewWizardRegistryResource()
+			return s4wave_wizard.SRPCRegisterObjectWizardRegistryResourceService(mux, wizardResource)
+		},
+	)
 	return spaceResource
 }
 

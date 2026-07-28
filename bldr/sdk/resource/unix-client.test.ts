@@ -1,26 +1,74 @@
 import net from 'node:net'
 import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
-import { Server, StreamConn, castToError, createMux } from 'starpc'
+import {
+  Server,
+  StreamConn,
+  castToError,
+  createHandler,
+  createMux,
+} from 'starpc'
 
+import {
+  RootResourceServiceDefinition,
+  type RootResourceService,
+} from '../../../sdk/root/root_srpc.pb.js'
+import { Root } from '../../../sdk/root/root.js'
+import {
+  SessionResourceServiceDefinition,
+  type SessionResourceService,
+} from '../../../sdk/session/session_srpc.pb.js'
 import { ResourceServer } from './server/server.js'
-import { createUnixResourceClient } from './unix-client.js'
+import { constructChildResource } from './server/construct.js'
+import { connectUnixResourceClient } from './unix-client.js'
 
-describe('createUnixResourceClient', () => {
-  it('carries Resource RPC streams through a Yamux Unix connection', async () => {
-    const dir = await mkdtemp('/tmp/resource-unix-test-')
+describe('connectUnixResourceClient', () => {
+  it('mounts a Session and streams its Space list over a Unix socket', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'resource-unix-test-'))
     const socketPath = join(dir, 'resource.sock')
+    const sessionMux = createMux()
+    sessionMux.register(
+      createHandler(SessionResourceServiceDefinition, {
+        async *WatchResourcesList() {
+          yield {
+            spacesList: [{ spaceMeta: { name: 'Terminal' } }],
+          }
+        },
+      } satisfies Partial<SessionResourceService>),
+    )
     const rootMux = createMux()
+    rootMux.register(
+      createHandler(RootResourceServiceDefinition, {
+        MountSessionByIdx(request) {
+          if (request.sessionIdx !== 4) {
+            throw new Error(`unexpected Session index ${request.sessionIdx}`)
+          }
+          const { resourceId } = constructChildResource(() => ({
+            mux: sessionMux,
+            result: undefined,
+          }))
+          return Promise.resolve({ resourceId })
+        },
+      } satisfies Partial<RootResourceService>),
+    )
     const resources = new ResourceServer(rootMux)
     const rpcMux = createMux()
     resources.register(rpcMux)
     const rpcServer = new Server(rpcMux.lookupMethod)
     const sockets = new Set<net.Socket>()
+    let resolveServerClosed!: () => void
+    const serverClosed = new Promise<void>((resolve) => {
+      resolveServerClosed = resolve
+    })
     const listener = net.createServer((socket) => {
       sockets.add(socket)
-      socket.once('close', () => sockets.delete(socket))
+      socket.once('close', () => {
+        sockets.delete(socket)
+        resolveServerClosed()
+      })
       serveSocket(socket, rpcServer)
     })
     await new Promise<void>((resolve, reject) => {
@@ -30,21 +78,27 @@ describe('createUnixResourceClient', () => {
 
     const controller = new AbortController()
     try {
-      const client = createUnixResourceClient(socketPath, controller.signal)
-      const root = await client.accessRootResource()
-      expect(root.resourceId).toBe(1)
-      expect(sockets.size).toBe(1)
-      const socketClosed = Promise.all(
-        [...sockets].map(
-          (socket) =>
-            new Promise<void>((resolve) => socket.once('close', resolve)),
-        ),
+      const connection = await connectUnixResourceClient(
+        `unix://${socketPath}`,
+        controller.signal,
       )
-      root.release()
-      controller.abort()
-      await socketClosed
+      using root = new Root(await connection.client.accessRootResource())
+      using session = (await root.mountSessionByIdx(
+        { sessionIdx: 4 },
+        controller.signal,
+      ))!.session
+
+      const stream = session.watchResourcesList({}, controller.signal)
+      const snapshot = await stream[Symbol.asyncIterator]().next()
+
+      expect(snapshot.done).toBe(false)
+      expect(snapshot.value?.spacesList?.[0]?.spaceMeta?.name).toBe('Terminal')
+      expect(sockets.size).toBe(1)
+
+      connection.close()
+      expect(await connection.closed).toBeUndefined()
+      await serverClosed
       expect(sockets.size).toBe(0)
-      client.dispose()
     } finally {
       controller.abort()
       for (const socket of sockets) socket.destroy()
