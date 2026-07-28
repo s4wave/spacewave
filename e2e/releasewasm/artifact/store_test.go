@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -115,6 +116,39 @@ func TestValidateRejectsStaleIdentity(t *testing.T) {
 	changedIdentity := computeTestIdentity(t, repoRoot, changedInputs)
 	if err := Validate(publishedRelease, publishedPrerender, changedIdentity); err == nil {
 		t.Fatal("stale artifact identity validated")
+	}
+}
+
+func TestForeignIdentityMissesSilentlyAndStaysReportable(t *testing.T) {
+	repoRoot := newIdentityTestRepo(t)
+	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
+	storeDir := filepath.Join(t.TempDir(), "store")
+
+	releaseDir, prerenderDir := newArtifactFixture(t, "published")
+	if _, _, err := Publish(storeDir, releaseDir, prerenderDir, identity); err != nil {
+		t.Fatal(err)
+	}
+
+	changedInputs := testBuildInputs()
+	changedInputs.Environment["BLDR_GO_WASM_OPTIMIZE"] = "false"
+	changedIdentity := computeTestIdentity(t, repoRoot, changedInputs)
+
+	// A store holding only another identity's work is a miss, not a failure:
+	// the caller rebuilds. The caller can only say why it rebuilt if the names
+	// it did not match stay readable.
+	generations, err := ValidGenerations(storeDir, changedIdentity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(generations) != 0 {
+		t.Fatalf("foreign identity matched %d generation(s)", len(generations))
+	}
+	names, err := GenerationIDs(storeDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(names) != 1 || !strings.HasPrefix(names[0], identity.Digest) {
+		t.Fatalf("store reported generations %v, want one named for %s", names, identity.Digest)
 	}
 }
 

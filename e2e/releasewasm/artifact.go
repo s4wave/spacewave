@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 	"github.com/s4wave/spacewave/e2e/releasewasm/artifact"
+	"github.com/sirupsen/logrus"
 )
 
 const releaseWasmArtifactStoreRelPath = ".bldr/e2e-releasewasm/release-artifacts"
@@ -50,7 +51,7 @@ var releaseWasmArtifactEnvKeys = []string{
 
 // PublishReleaseWasmArtifact publishes the existing release and prerender build
 // outputs under their current source and build identity.
-func PublishReleaseWasmArtifact(ctx context.Context, repoRoot string) error {
+func PublishReleaseWasmArtifact(ctx context.Context, le *logrus.Entry, repoRoot string) error {
 	identity, err := computeReleaseWasmArtifactIdentity(ctx, repoRoot)
 	if err != nil {
 		return err
@@ -61,7 +62,14 @@ func PublishReleaseWasmArtifact(ctx context.Context, repoRoot string) error {
 		filepath.Join(repoRoot, prerenderDistRelPath),
 		identity,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	// The consumer of this artifact computes the same identity in its own
+	// process, and when the two disagree it silently rebuilds. Print the
+	// producing side's digests so the pair can be compared from two job logs.
+	le.WithFields(identityFields(identity)).Info("published release artifact")
+	return nil
 }
 
 func computeReleaseWasmArtifactIdentity(ctx context.Context, repoRoot string) (*artifact.Identity, error) {

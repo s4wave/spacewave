@@ -9,12 +9,14 @@ import (
 
 	"github.com/aperturerobotics/util/gitroot"
 	"github.com/s4wave/spacewave/e2e/releasewasm"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
+	le := logrus.NewEntry(logrus.New())
 	repoRoot, err := gitroot.FindRepoRoot()
 	if err == nil {
-		err = releasewasm.PublishReleaseWasmArtifact(context.Background(), repoRoot)
+		err = releasewasm.PublishReleaseWasmArtifact(context.Background(), le, repoRoot)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())

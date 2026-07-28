@@ -18,6 +18,16 @@ type releaseArtifact struct {
 	prerenderDir string
 }
 
+// identityFields carries every digest that determines an artifact identity into
+// one log entry.
+func identityFields(identity *artifact.Identity) logrus.Fields {
+	fields := make(logrus.Fields, 8)
+	for key, value := range identity.Summary() {
+		fields[key] = value
+	}
+	return fields
+}
+
 type releaseShape struct {
 	le       *logrus.Entry
 	repoRoot string
@@ -41,6 +51,21 @@ func (s *releaseShape) Lookup(ctx context.Context, key string) ([]e2eharness.Gen
 	if err != nil {
 		return nil, err
 	}
+	if len(generations) == 0 {
+		// A miss here is the whole cost of the run: the caller rebuilds, and in
+		// CI the job that consumes a prebuilt artifact has no compiler to
+		// rebuild with. Report the identity being looked for and the
+		// generations that were actually present, because the two digests
+		// together name the input that differs.
+		present, err := artifact.GenerationIDs(s.storeDir)
+		if err != nil {
+			return nil, err
+		}
+		s.le.WithFields(identityFields(s.identity)).
+			WithField("store", s.storeDir).
+			WithField("present", present).
+			Warn("no published release artifact matches the current identity")
+	}
 	results := make([]e2eharness.Generation[releaseArtifact], 0, len(generations))
 	for _, generation := range generations {
 		results = append(results, e2eharness.Generation[releaseArtifact]{
@@ -62,7 +87,7 @@ func (s *releaseShape) Build(ctx context.Context, key string) (e2eharness.Genera
 		return e2eharness.Generation[releaseArtifact]{}, errors.Wrap(err, "clean release dist state")
 	}
 
-	s.le.Info("building release web bundle")
+	s.le.WithFields(identityFields(s.identity)).Info("building release web bundle")
 	if err := buildReleaseWeb(ctx, s.repoRoot); err != nil {
 		return e2eharness.Generation[releaseArtifact]{}, errors.Wrap(err, "build release web bundle")
 	}
