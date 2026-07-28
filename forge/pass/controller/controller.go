@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/keyed"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	world_control "github.com/s4wave/spacewave/db/world/control"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
@@ -134,6 +135,9 @@ func (c *Controller) Execute(rctx context.Context) error {
 		case <-ctx.Done():
 			return context.Canceled
 		case err := <-errCh:
+			if ctx.Err() != nil && errors.Is(err, context.Canceled) {
+				return context.Canceled
+			}
 			return err
 		case watchStates := <-c.watchExecStatesCh:
 			if err := c.syncWatchExecStates(ctx, watchStates); err != nil {
@@ -153,7 +157,7 @@ func (c *Controller) Execute(rctx context.Context) error {
 			} else {
 				err = wtx.Commit(ctx)
 			}
-			if err != nil && err != context.Canceled {
+			if err != nil && (ctx.Err() == nil || !errors.Is(err, context.Canceled)) {
 				c.le.WithError(err).Warn("unable to update execution states")
 			}
 		}

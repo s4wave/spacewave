@@ -173,7 +173,7 @@ export function SubscriptionLapseBanner() {
       </div>
       <div className="group flex shrink-0 items-center gap-1 px-3 py-1.5 transition-colors">
         <span className="text-foreground/70 group-hover:text-foreground text-xs font-medium transition-colors">
-          {resolving ? 'Opening billing...' : actionLabel}
+          {resolving ? 'Opening billing…' : actionLabel}
         </span>
         <LuArrowRight className="text-foreground-alt group-hover:text-foreground size-3 shrink-0 transition-colors" />
       </div>

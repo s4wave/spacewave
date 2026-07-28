@@ -2,38 +2,40 @@
 title: Backup and Recovery
 section: storage
 order: 2
-summary: Separate auth recovery, session locks, Cloud recovery, and data transfer.
+summary: Four separate recovery paths, and which one applies to what went wrong.
 ---
 
-Spacewave recovery is several smaller mechanisms, not one universal restore
-button.
+There is no single restore button. Recovery in Spacewave is four separate
+mechanisms, and knowing which one applies is most of the work.
 
 ## Backup keys
 
-Cloud accounts can generate a PEM backup key through the account resource. Local
-sessions can export a PEM through the local session provider. Keep the PEM away
-from the device that holds the session.
+Both a Cloud account and an account kept on this machine can write out a backup
+key, a `.pem` file. Keep it somewhere other than the device it came from.
 
-The PEM is an authentication recovery key. It can help with sign-in, auth-method
-recovery, and PIN reset flows. It does not contain the Space data itself.
+It gets you back in: signing in on a new device, adding another way to sign in,
+resetting a forgotten PIN. It does not contain your Spaces, so it cannot restore
+them.
 
-## Session locks
+## Locks
 
-Sessions can auto-unlock or use PIN-encrypted lock mode. PIN-encrypted sessions
-ask for a PIN before mounting. If the PIN is lost, the reset flow asks for an
-account password or backup key and creates a new session key.
+An account either unlocks as soon as you open the app, or asks for a PIN first.
+Lose the PIN and the reset asks for your account password or your backup key
+instead.
 
 ## Cloud account recovery
 
-Cloud recovery can request a recovery email for a verified email address, verify
-the recovery token, and set a new password keypair. This recovers access to the
-Cloud account. It is distinct from restoring a local browser state root.
+If you have a verified email address on a Cloud account, you can have a recovery
+link sent to it, confirm it, and set a new password. This gets you back into the
+account. It does nothing for data sitting in a browser on a machine you no
+longer have.
 
-## Data movement
+## Moving data
 
-The implemented data move path is session-to-session transfer. The transfer
-wizard inventories the source session, lets you select Spaces, starts transfer
-to a target session, watches progress, and resumes active or checkpointed work.
+The way to move Spaces between two places is a transfer. It lists what is on the
+source, lets you choose what to move, runs, and can be resumed if it stops
+partway.
 
-For local-only data, the state root remains the backup boundary. For Cloud data,
-the Cloud provider is the backup and sync boundary.
+So: on a disk, the directory is what you back up. On Cloud, Cloud is doing the
+backing up. A backup key is neither, and a transfer is how data crosses between
+them.

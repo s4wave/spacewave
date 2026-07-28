@@ -98,6 +98,7 @@ func NewVolume(
 	}
 
 	var stateStore object.ObjectStore
+	worldEngineLeases := volume.NewInMemoryWorldEngineLeaseProvider()
 	if stateStoreID != "" {
 		storeVal, _, storeRef, err := volume.ExBuildObjectStoreAPI(ctx, b, false, stateStoreID, stateStoreVol, nil)
 		if err != nil {
@@ -105,6 +106,7 @@ func NewVolume(
 		}
 		rels = append(rels, storeRef.Release)
 		stateStore = storeVal.GetObjectStore()
+		worldEngineLeases = storeVal.GetVolume()
 	}
 	var headState *HeadState
 	if stateStore != nil {
@@ -174,7 +176,7 @@ func NewVolume(
 	}
 
 	// Build the volume wrapping the store.
-	bvol, err := common_kvtx.NewVolume(
+	bvol, err := common_kvtx.NewVolumeWithWorldEngineLeaseProvider(
 		ctx,
 		ControllerID,
 		kvkey,
@@ -183,6 +185,7 @@ func NewVolume(
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
 		nil,
+		worldEngineLeases,
 		func() error {
 			for _, rel := range rels {
 				rel()

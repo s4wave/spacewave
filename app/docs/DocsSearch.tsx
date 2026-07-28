@@ -62,7 +62,7 @@ export function DocsSearch({ docs, onSelect }: DocsSearchProps) {
           onChange={handleSearchChange}
           onFocus={handleSearchFocus}
           onBlur={handleSearchBlur}
-          placeholder="Search docs..."
+          placeholder="Search docs…"
           className={cn(
             'border-foreground/10 bg-background-card/50 text-foreground placeholder:text-foreground-alt/40 w-full rounded-md border py-2 pr-3 pl-9 text-sm transition-colors outline-none',
             'focus:border-foreground/20',

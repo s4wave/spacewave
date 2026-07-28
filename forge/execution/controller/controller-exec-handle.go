@@ -16,16 +16,29 @@ import (
 
 // execControllerHandle implements ExecControllerHandle from target.
 type execControllerHandle struct {
-	ctx context.Context
-	c   *Controller
-	ws  world.WorldState
-	ts  *timestamp.Timestamp
+	ctx        context.Context
+	c          *Controller
+	ws         world.WorldState
+	ts         *timestamp.Timestamp
+	claimEpoch uint64
 }
 
 // newExecControllerHandle constructs an ExecControllerHandle.
 // ts cannot be nil
-func newExecControllerHandle(ctx context.Context, c *Controller, ws world.WorldState, ts *timestamp.Timestamp) *execControllerHandle {
-	return &execControllerHandle{ctx: ctx, c: c, ws: ws, ts: ts}
+func newExecControllerHandle(
+	ctx context.Context,
+	c *Controller,
+	ws world.WorldState,
+	ts *timestamp.Timestamp,
+	claimEpoch uint64,
+) *execControllerHandle {
+	return &execControllerHandle{
+		ctx:        ctx,
+		c:          c,
+		ws:         ws,
+		ts:         ts,
+		claimEpoch: claimEpoch,
+	}
 }
 
 // GetExecutionUniqueId returns a unique identifier for the execution pass.
@@ -88,7 +101,14 @@ func (h *execControllerHandle) SetOutputs(
 		return err
 	}
 
-	tx, err := execution_transaction.NewTxSetOutputs(outps, clearOld)
+	tx, err := execution_transaction.NewTxSetOutputs(
+		outps,
+		clearOld,
+		&forge_execution.Claim{
+			ClaimId: h.c.claimID,
+			Epoch:   h.claimEpoch,
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -119,7 +139,13 @@ func (h *execControllerHandle) WriteLog(ctx context.Context, level, message stri
 		return err
 	}
 
-	tx, err := execution_transaction.NewTxAppendLog([]*forge_execution.LogEntry{entry})
+	tx, err := execution_transaction.NewTxAppendLog(
+		[]*forge_execution.LogEntry{entry},
+		&forge_execution.Claim{
+			ClaimId: h.c.claimID,
+			Epoch:   h.claimEpoch,
+		},
+	)
 	if err != nil {
 		return err
 	}

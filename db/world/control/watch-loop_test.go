@@ -2,13 +2,21 @@ package world_control_test
 
 import (
 	"context"
+	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_control "github.com/s4wave/spacewave/db/world/control"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	"github.com/s4wave/spacewave/net/peer"
+	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
+	sdk_world_engine "github.com/s4wave/spacewave/sdk/world/engine"
+	"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
 )
 
 // TestWatchLoop tests the control loop and WaitForObjectRev.
@@ -57,6 +65,7 @@ func TestWatchLoop(t *testing.T) {
 		if outRev != 2 {
 			t.Fatalf("expected rev: %v but got %v", 2, outRev)
 		}
+		world.ReleaseObjectState(res)
 	}
 
 	revCh := make(chan uint64, 10)
@@ -286,6 +295,152 @@ func TestWatchLoopCancellationDuringWait(t *testing.T) {
 	}
 }
 
+func TestWatchLoopSkipsCanceledShutdownWarning(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tb.Release)
+
+	logger, hook := test.NewNullLogger()
+	logger.SetLevel(logrus.WarnLevel)
+	loop := world_control.NewWatchLoop(
+		logrus.NewEntry(logger),
+		"",
+		world_control.NewWaitForStateHandler(func(
+			_ context.Context,
+			_ world.WorldState,
+			_ world.ObjectState,
+			_ *block.Cursor,
+			_ uint64,
+		) (bool, error) {
+			cancel()
+			return false, errors.Join(context.Canceled, errors.New("handler exit"))
+		}),
+	)
+
+	if err := loop.Execute(ctx, tb.WorldState); !errors.Is(err, context.Canceled) {
+		t.Fatalf("Execute err = %v, want context.Canceled", err)
+	}
+	if entries := hook.AllEntries(); len(entries) != 0 {
+		t.Fatalf("warning count = %d, want 0", len(entries))
+	}
+}
+func TestWatchLoopSkipsUnhandledOperation(t *testing.T) {
+	ctx := t.Context()
+	ws := setupRemoteWorldState(ctx, t)
+
+	calls := make(chan int, 2)
+	count := 0
+	loop := world_control.NewWatchLoop(
+		logrus.NewEntry(logrus.New()),
+		"",
+		world_control.NewWaitForStateHandler(func(
+			ctx context.Context,
+			state world.WorldState,
+			_ world.ObjectState,
+			_ *block.Cursor,
+			_ uint64,
+		) (bool, error) {
+			count++
+			calls <- count
+			if count == 1 {
+				_, _, err := state.ApplyWorldOp(ctx, &unhandledWorldOp{}, peer.ID(""))
+				if !errors.Is(err, world.ErrUnhandledOp) {
+					t.Errorf("remote ApplyWorldOp error = %v, want world.ErrUnhandledOp", err)
+				}
+				return false, err
+			}
+			return false, nil
+		}),
+	)
+	done := make(chan error, 1)
+	go func() {
+		done <- loop.Execute(ctx, ws)
+	}()
+
+	recvWatchLoopValue(t, calls, "initial handler")
+	loop.Wake()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("Execute err = %v, want nil", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("watch loop did not continue after unhandled operation")
+	}
+}
+
+func setupRemoteWorldState(ctx context.Context, t *testing.T) world.WorldState {
+	t.Helper()
+
+	_, resClient, cleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
+	t.Cleanup(cleanup)
+
+	rootRef := resClient.AccessRootResource()
+	t.Cleanup(rootRef.Release)
+	srpcClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
+	createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	engineRef := resClient.CreateResourceReference(createResp.ResourceId)
+	t.Cleanup(engineRef.Release)
+	engine, err := sdk_world_engine.NewSDKEngine(resClient, engineRef)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(engine.Release)
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(tx.Discard)
+	return tx
+}
+
+type unhandledWorldOp struct{}
+
+func (*unhandledWorldOp) MarshalBlock() ([]byte, error) {
+	return nil, nil
+}
+
+func (*unhandledWorldOp) UnmarshalBlock([]byte) error {
+	return nil
+}
+
+func (*unhandledWorldOp) Validate() error {
+	return nil
+}
+
+func (*unhandledWorldOp) GetOperationTypeId() string {
+	return "test/unhandled-world-op"
+}
+
+func (*unhandledWorldOp) ApplyWorldOp(
+	context.Context,
+	*logrus.Entry,
+	world.WorldState,
+	peer.ID,
+) (bool, error) {
+	return false, world.ErrUnhandledOp
+}
+
+func (*unhandledWorldOp) ApplyWorldObjectOp(
+	context.Context,
+	*logrus.Entry,
+	world.ObjectState,
+	peer.ID,
+) (bool, error) {
+	return false, world.ErrUnhandledOp
+}
+
 func recvWatchLoopEvent(t *testing.T, ch <-chan struct{}, name string) {
 	t.Helper()
 	select {
@@ -305,4 +460,104 @@ func recvWatchLoopValue[T any](t *testing.T, ch <-chan T, name string) T {
 	}
 	var zero T
 	return zero
+}
+
+// TestWatchLoopReleasesObjectStatePerIteration proves the loop hands back every
+// object handle it takes. A remote world state allocates a server-side resource
+// per GetObject, so a loop that watched a busy object for minutes used to leave
+// one tracked handle behind per revision.
+func TestWatchLoopReleasesObjectStatePerIteration(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	remote := setupRemoteWorldState(ctx, t)
+	objKey := "release-object"
+	obj, err := remote.CreateObject(ctx, objKey, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer world.ReleaseObjectState(obj)
+
+	ws := &countingWorldState{WorldState: remote}
+	revs := make(chan uint64, 8)
+	loop := world_control.NewWatchLoop(
+		logrus.NewEntry(logrus.New()),
+		objKey,
+		world_control.NewWaitForStateHandler(func(
+			_ context.Context,
+			_ world.WorldState,
+			_ world.ObjectState,
+			_ *block.Cursor,
+			rev uint64,
+		) (bool, error) {
+			revs <- rev
+			return true, nil
+		}),
+	)
+	done := make(chan error, 1)
+	go func() {
+		done <- loop.Execute(ctx, ws)
+	}()
+
+	const revisions = 3
+	for i := 0; i <= revisions; i++ {
+		recvWatchLoopValue(t, revs, "handler call")
+		if outstanding := ws.outstanding.Load(); outstanding > 1 {
+			t.Fatalf("outstanding object handles = %d, want at most 1", outstanding)
+		}
+		if i == revisions {
+			break
+		}
+		if _, err := obj.IncrementRev(ctx); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("watch loop did not exit")
+	}
+
+	if acquired := ws.acquired.Load(); acquired < revisions {
+		t.Fatalf("acquired object handles = %d, want at least %d", acquired, revisions)
+	}
+	if outstanding := ws.outstanding.Load(); outstanding != 0 {
+		t.Fatalf("outstanding object handles after exit = %d, want 0", outstanding)
+	}
+}
+
+// countingWorldState counts the object handles taken from a real world state
+// and the ones handed back.
+type countingWorldState struct {
+	world.WorldState
+
+	acquired    atomic.Int64
+	outstanding atomic.Int64
+}
+
+func (c *countingWorldState) GetObject(ctx context.Context, objKey string) (world.ObjectState, bool, error) {
+	obj, found, err := c.WorldState.GetObject(ctx, objKey)
+	if obj == nil {
+		return obj, found, err
+	}
+	c.acquired.Add(1)
+	c.outstanding.Add(1)
+	return &countingObjectState{ObjectState: obj, ws: c}, found, err
+}
+
+// countingObjectState reports its release to the owning countingWorldState.
+type countingObjectState struct {
+	world.ObjectState
+
+	ws       *countingWorldState
+	released atomic.Bool
+}
+
+func (c *countingObjectState) Release() {
+	if !c.released.Swap(true) {
+		c.ws.outstanding.Add(-1)
+	}
+	world.ReleaseObjectState(c.ObjectState)
 }

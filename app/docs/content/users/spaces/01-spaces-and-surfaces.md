@@ -1,41 +1,42 @@
 ---
-title: Spaces and Surfaces
+title: Spaces and What They Hold
 section: spaces
 order: 1
-summary: Learn how Spaces, objects, viewers, and layouts fit together.
+summary: Learn what a Space holds, how items open, and how to arrange them.
 ---
 
-A Space is a shared object whose body contains a Hydra World. The World stores
-typed objects, object roots, and graph relationships. In the app, a Space opens
-at `/u/{session}/so/{space}`.
+A Space is a container for your work. Everything you make in Spacewave lives
+inside one, and a Space is the unit that gets synced, shared, and backed up. You
+can have as many as you like, and most people end up with one per project.
 
-## Objects and viewers
+## What a Space holds
 
-Each object has an ObjectType. ObjectTypes tell Spacewave how to access the
-object's resource and which viewer can render it. The app includes viewers for
-Drive/UnixFS, Git, Canvas, Forge, Manifest, Chat, organizations, key/value
-stores, SQL, devices, terminals, and wizards. Plugins can register more object
-types and viewers.
+A Space holds items. A Drive is an item, and so is a canvas, a chat channel, a
+Git repository, or a notebook. Each item opens in the view built for it: files
+open in the file browser, a canvas opens in the canvas editor, and so on.
 
-If no installed viewer handles an object type, Spacewave shows a "can't open"
-state and can offer the Debug Viewer. That is a valid current state, not a data
-loss signal.
+Occasionally you will open something Spacewave has no view for. It will say so
+and offer you a raw look at the underlying data. Nothing is lost when this
+happens; it means the part of the app that handles that kind of item is not
+installed.
 
-## App surfaces
+## Opening a Space
 
-A Space can point its index path at the object that should open first. Space
-settings store that index path and the plugin IDs declared for the Space. A
-Quickstart writes these settings when it seeds content.
+Choosing a Space opens whichever item it is set to show first. A Quickstart sets
+this for you, so a Drive Space opens straight into the file browser. You can
+change it later in the Space's settings.
 
-## Layouts
+## Arranging your work
 
-The normal app shell uses tabs. You can open paths in tabs and, when the shell is
-split into a grid, the layout is encoded into the URL. Separately, a Space can
-hold an ObjectLayout object. ObjectLayout stores a durable multi-pane layout in
-the Space World and renders each pane through ObjectViewer.
+Spacewave opens things in tabs. Drag a tab to the edge of the window to split
+the view and see two items side by side.
 
-## Create objects
+A split you make this way lasts as long as the window. When you want an
+arrangement that stays with the Space, so anyone who opens it sees the same
+panes on any device, save it as a layout in the Space instead.
 
-The create-object command shows visible object wizards for the current Space. A
-wizard may create the object directly or create a persistent wizard object that
-you finish in its own viewer.
+## Adding to a Space
+
+Use the create command from the command palette, or the add button in the Space,
+to see everything you can add. Some items appear right away. Others open a short
+setup flow first and land in the Space once you finish it.

@@ -349,7 +349,7 @@ function CurrentRow({ sample }: { sample: RowSample }) {
 
 function GlassRow({ sample }: { sample: RowSample }) {
   return (
-    <div className="group border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition-all duration-150">
+    <div className="group border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition duration-150">
       <div className="flex min-w-0 items-center gap-2.5">
         <span className="bg-foreground/5 group-hover:bg-foreground/8 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors">
           <LuListTodo className="text-foreground-alt/70 size-3.5" />
@@ -495,8 +495,8 @@ function InlineStat({
   value: string
 }) {
   return (
-    <div className="group border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/60 flex items-center gap-3 rounded-lg border p-3 transition-all duration-150">
-      <div className="bg-brand/10 group-hover:bg-brand/15 flex size-9 shrink-0 items-center justify-center rounded transition-all duration-150">
+    <div className="group border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/60 flex items-center gap-3 rounded-lg border p-3 transition duration-150">
+      <div className="bg-brand/10 group-hover:bg-brand/15 flex size-9 shrink-0 items-center justify-center rounded transition duration-150">
         <Icon className="text-brand size-4.5" />
       </div>
       <div className="min-w-0 flex-1">

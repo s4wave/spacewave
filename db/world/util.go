@@ -55,6 +55,7 @@ func LookupRootRef(ctx context.Context, eng Engine, key string) (*bucket.ObjectR
 	defer stx.Discard()
 
 	obj, found, err := stx.GetObject(ctx, key)
+	defer ReleaseObjectState(obj)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -74,13 +75,17 @@ func LookupObject[T block.Block](
 ) (out T, objRef ObjectState, err error) {
 	obj, err := MustGetObject(ctx, ws, objKey)
 	if err != nil {
+		ReleaseObjectState(obj)
 		return out, nil, err
 	}
 	_, _, err = AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
-		var err error
 		out, err = block.UnmarshalBlock[T](ctx, bcs, ctor)
 		return err
 	})
+	if err != nil {
+		ReleaseObjectState(obj)
+		obj = nil
+	}
 	return out, obj, err
 }
 
@@ -112,6 +117,72 @@ func LookupObjectBody[T block.Block](
 	return out, err
 }
 
+// LookupObjectBodyBytes looks up the transformed root body for an object.
+// It returns nil, false, nil when the object does not exist.
+func LookupObjectBodyBytes(
+	ctx context.Context,
+	ws WorldState,
+	objKey string,
+) ([]byte, bool, error) {
+	body, _, exists, err := LookupObjectBodyBytesWithRev(ctx, ws, objKey)
+	return body, exists, err
+}
+
+// LookupObjectBodyBytesWithRev looks up the transformed root body and revision
+// for an object. It returns nil, 0, false, nil when the object does not exist.
+func LookupObjectBodyBytesWithRev(
+	ctx context.Context,
+	ws WorldState,
+	objKey string,
+) ([]byte, uint64, bool, error) {
+	obj, found, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		ReleaseObjectState(obj)
+		return nil, 0, false, err
+	}
+	if !found {
+		return nil, 0, false, nil
+	}
+	defer ReleaseObjectState(obj)
+
+	rootRef, rev, err := obj.GetRootRef(ctx)
+	if err != nil {
+		return nil, 0, false, err
+	}
+
+	var body []byte
+	_, err = AccessObject(ctx, obj.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
+		var found bool
+		body, found, err = bcs.Fetch(ctx)
+		if err == nil && !found {
+			body = nil
+		}
+		return err
+	})
+	return body, rev, true, err
+}
+
+func decodeObjectBody[T block.Block](data []byte, ctor func() block.Block) (out T, err error) {
+	if ctor == nil {
+		return out, nil
+	}
+	blk := ctor()
+	if blk == nil {
+		return out, nil
+	}
+	if data != nil {
+		if err := blk.UnmarshalBlock(data); err != nil {
+			return out, err
+		}
+	}
+	var ok bool
+	out, ok = blk.(T)
+	if !ok {
+		return out, block.ErrUnexpectedType
+	}
+	return out, nil
+}
+
 // LookupObjectRef looks up & unmarshals an object ref from the world.
 func LookupObjectRef[T block.Block](
 	ctx context.Context,
@@ -120,7 +191,6 @@ func LookupObjectRef[T block.Block](
 	ctor func() block.Block,
 ) (out T, err error) {
 	_, err = AccessObject(ctx, access, ref, func(bcs *block.Cursor) error {
-		var err error
 		out, err = block.UnmarshalBlock[T](ctx, bcs, ctor)
 		return err
 	})
@@ -145,9 +215,13 @@ func CollectObjectBodies[T block.Block](
 	for i, objKey := range objKeys {
 		obj, objState, err := LookupObject[T](ctx, ws, objKey, ctor)
 		if err != nil {
+			ReleaseObjectState(objState)
 			if err == ErrObjectNotFound {
 				retErr = err
 				continue
+			}
+			for _, objState := range objStates {
+				ReleaseObjectState(objState)
 			}
 			return nil, nil, err
 		}

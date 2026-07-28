@@ -2,43 +2,50 @@
 title: Start Here
 section: start
 order: 1
-summary: Open Spacewave, pick a local or cloud session, and create useful data.
+summary: Open Spacewave, decide whether to sign in, and make something real.
 ---
 
-Spacewave opens to a start screen with account actions and Quickstarts. A
-Quickstart creates or reuses a local session, creates a Space when needed, seeds
-starter objects, and opens the new workspace.
+Spacewave opens to a start screen with a handful of Quickstarts. Pick one and
+you will have a working Space in a few seconds, with something in it worth
+opening.
 
-## Choose a session
+## Sign in, or don't
 
-Use **Sign in or create account** when you want a Spacewave Cloud account with
-cloud sync, backup, and multi-device access. Use **Continue without account**
-when you want a local session on this device first. Local sessions are useful
-for testing and private offline work, but browser storage can be cleared by the
-browser under storage pressure. The desktop app can also open an existing local
-state root.
+Choose **Sign in or create account** to get a Spacewave Cloud account, which
+gives you sync, backup, and access from your other devices.
 
-## Create something small
+Choose **Continue without account** to work on this device only. This is the
+fastest way to try Spacewave and it works offline, with one thing to keep in
+mind: your browser can clear its own storage when the disk gets full, and it
+will take your work with it. Fine for trying things out, and worth moving to
+Cloud or the desktop app before you keep anything important there.
 
-Pick **Create a Drive** for the shortest useful path. It creates a Space, adds a
-UnixFS-backed file tree, writes `getting-started.md`, and opens Drive in the file
-browser. Pick **Create an Empty Space** when you want a blank container and will
-add objects later. **Create/clone a Git Repository** opens a Git repository
-wizard. **Create a Canvas** creates a visual workspace with starter canvas data.
+If you already have Spacewave data on this machine, the desktop app can open it
+directly.
 
-Experimental Quickstarts such as Notebook, Documentation, Blog, Chat, Key/Value,
-SQL, V86, Device, and Forge appear only when experimental creators or their
-plugins are available.
+## Make something
 
-## Find commands
+**Create a Drive** is the shortest path to something real. You get a Space with
+file storage, a `getting-started.md` to open, and the file browser.
 
-Press Cmd/Ctrl+K or click the Spacewave logo to open the command palette. Search
-for the action you need, then run it from the list. Command availability follows
-the current page and selected Space.
+**Create a Canvas** gives you a visual workspace. **Create/clone a Git
+Repository** walks you through setting up a repository. **Create an Empty
+Space** gives you the container and lets you fill it yourself.
 
-## Check persistence
+More Quickstarts, such as notebooks, chat, and virtual machines, appear as those
+features become available in your copy of Spacewave.
 
-After the first Space opens, add one file, folder, or object, then reload the
-page. If the item is still present, the session and Space are mounted correctly.
-For long-lived work, set up a backup key or move the session to Cloud before it
-holds data you cannot recreate.
+## Find anything
+
+Press Cmd/Ctrl+K, or click the Spacewave logo, to open the command palette. Type
+what you want to do. What you see there depends on where you are and which Space
+is open.
+
+## Check it stuck
+
+Once your first Space opens, add a file or a folder, then reload the page. Still
+there? Everything is set up correctly.
+
+Before you put work in Spacewave that you could not recreate, download a backup
+key or move to Cloud. Both take a minute and are much easier to do now than to
+wish you had done later.

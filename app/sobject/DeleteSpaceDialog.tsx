@@ -113,7 +113,7 @@ export function DeleteSpaceDialog({
               'disabled:cursor-not-allowed disabled:opacity-50',
             )}
           >
-            {submitting ? 'Deleting...' : 'Delete Space'}
+            {submitting ? 'Deleting…' : 'Delete Space'}
           </button>
         </DialogFooter>
       </DialogContent>

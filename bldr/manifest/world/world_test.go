@@ -568,6 +568,85 @@ func TestDumpStartupManifestGraphForManifestIDIncludesRetainedRefDiagnostics(t *
 	}
 }
 
+func TestDumpStartupManifestGraphDirectCandidateStaysLocalOnly(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	lookupObserver := &startupManifestGraphLookupObserver{called: make(chan struct{}, 1)}
+	observerRel, err := tb.Bus.AddController(ctx, lookupObserver, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer observerRel()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const lookupBucketID = "startup-graph-diagnostic-bucket"
+	bucketLkConfig, err := bucket.NewLookupConfig(configset.NewControllerConfig(1, &lookup_concurrent.Config{
+		NotFoundBehavior: lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
+	}))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	bucketConf, err := bucket.NewConfig(lookupBucketID, 1, bucketLkConfig)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, _, _, err := tb.Volume.ApplyBucketConfig(ctx, bucketConf); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "plugin-host"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+	directRef := createTestManifestRef(t, ctx, tb, "spacewave-web", "js", 13)
+	directRef.GetManifestRef().BucketId = lookupBucketID
+	const directKey = "plugin-host/direct/external"
+	if _, _, err := SetManifest(ctx, ws, peer.ID("test"), directKey, directRef.GetManifestRef()); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := ws.SetGraphQuad(ctx, NewManifestQuad(storeKey, directKey, "spacewave-web")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	dumpCtx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
+	defer cancel()
+	dump, err := DumpStartupManifestGraphForManifestID(
+		dumpCtx,
+		ws,
+		"spacewave-web",
+		[]string{"js"},
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !strings.Contains(dump, "candidate "+directKey) {
+		t.Fatalf("dump missing direct candidate:\n%s", dump)
+	}
+	select {
+	case <-lookupObserver.called:
+		t.Fatalf("diagnostic graph dump invoked LookupBlockFromNetwork:\n%s", dump)
+	default:
+	}
+}
+
 func TestDumpStartupManifestGraphForManifestIDClassifiesProvenance(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -2173,4 +2252,39 @@ func (startupManifestBlockingLookupResolver) Resolve(
 ) error {
 	<-ctx.Done()
 	return context.Canceled
+}
+
+type startupManifestGraphLookupObserver struct {
+	called chan struct{}
+}
+
+func (c *startupManifestGraphLookupObserver) Execute(ctx context.Context) error {
+	<-ctx.Done()
+	return context.Canceled
+}
+
+func (c *startupManifestGraphLookupObserver) GetControllerInfo() *controller.Info {
+	return controller.NewInfo(
+		"test/startup-manifest-graph-lookup-observer",
+		controller.MustParseVersion("0.0.1"),
+		"",
+	)
+}
+
+func (c *startupManifestGraphLookupObserver) HandleDirective(
+	_ context.Context,
+	di directive.Instance,
+) ([]directive.Resolver, error) {
+	if _, ok := di.GetDirective().(dex.LookupBlockFromNetwork); !ok {
+		return nil, nil
+	}
+	select {
+	case c.called <- struct{}{}:
+	default:
+	}
+	return directive.R(startupManifestBlockingLookupResolver{}, nil)
+}
+
+func (c *startupManifestGraphLookupObserver) Close() error {
+	return nil
 }

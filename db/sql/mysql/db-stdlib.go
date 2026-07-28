@@ -1,4 +1,4 @@
-//go:build !sql_lite && !js
+//go:build !js
 
 package mysql
 

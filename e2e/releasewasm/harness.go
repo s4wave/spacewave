@@ -22,6 +22,9 @@ import (
 	"github.com/aperturerobotics/util/gitroot"
 	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	e2eharness "github.com/s4wave/spacewave/e2e/harness"
+	"github.com/s4wave/spacewave/e2e/releasewasm/artifact"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,6 +34,7 @@ const (
 	releaseWasmDistDirEnv       = "E2E_RELEASE_WASM_DIST_DIR"
 	releaseWasmPrerenderDistEnv = "E2E_RELEASE_WASM_PRERENDER_DIST_DIR"
 	chromiumGPUEnv              = "E2E_CHROMIUM_GPU"
+	releaseAuthConfigPath       = "/api/auth/config"
 )
 
 // browserReleaseDescriptor is parsed field-by-field from browser-release.json
@@ -102,7 +106,7 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 
 	h.server = &http.Server{
 		Addr:              "127.0.0.1:" + port,
-		Handler:           releaseHandler(distDirs.releaseDist, distDirs.prerender),
+		Handler:           releaseHandler(distDirs.releaseDist, distDirs.prerender, baseURL),
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 	go func() {
@@ -175,6 +179,19 @@ func chromiumLaunchOptions(headless bool) playwright.BrowserTypeLaunchOptions {
 	return opts
 }
 
+func persistentBrowserContextLaunchOptions(browserName string) playwright.BrowserTypeLaunchPersistentContextOptions {
+	options := playwright.BrowserTypeLaunchPersistentContextOptions{
+		Headless: new(true),
+	}
+	if browserName == "chromium" {
+		launchOptions := chromiumLaunchOptions(true)
+		options.Headless = launchOptions.Headless
+		options.Channel = launchOptions.Channel
+		options.Args = launchOptions.Args
+	}
+	return options
+}
+
 func chromiumHardwareGPUEnabled() bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv(chromiumGPUEnv))) {
 	case "true", "1", "yes", "on":
@@ -185,48 +202,43 @@ func chromiumHardwareGPUEnabled() bool {
 }
 
 func prepareReleaseWasmDist(ctx context.Context, le *logrus.Entry, repoRoot string) (releaseWasmDistDirs, error) {
-	if dirs, ok, err := prebuiltReleaseWasmDistDirs(repoRoot); ok || err != nil {
-		if err != nil {
-			return releaseWasmDistDirs{}, err
-		}
-		le.WithFields(logrus.Fields{
-			"dist":      dirs.releaseDist,
-			"prerender": dirs.prerender,
-		}).Info("using prebuilt release web bundle")
-		return dirs, nil
+	identity, err := computeReleaseWasmArtifactIdentity(ctx, repoRoot)
+	if err != nil {
+		return releaseWasmDistDirs{}, errors.Wrap(err, "compute release artifact identity")
 	}
+	storeDir := releaseWasmArtifactStoreDir(repoRoot)
 
-	if err := os.RemoveAll(filepath.Join(repoRoot, prerenderDistRelPath)); err != nil {
-		return releaseWasmDistDirs{}, errors.Wrap(err, "clean prerender dist")
-	}
-	if err := os.RemoveAll(filepath.Join(repoRoot, ".bldr-dist")); err != nil {
-		return releaseWasmDistDirs{}, errors.Wrap(err, "clean release dist state")
-	}
-
-	le.Info("building release web bundle")
-	if err := buildReleaseWeb(ctx, repoRoot); err != nil {
-		return releaseWasmDistDirs{}, errors.Wrap(err, "build release web bundle")
-	}
-
-	distDir := filepath.Join(repoRoot, releaseDistRelPath)
-	le.Info("building prerender hydrate bundle")
-	if err := runBun(ctx, repoRoot, "run", "vite", "build", "--config", "app/prerender/vite.hydrate.config.ts"); err != nil {
-		return releaseWasmDistDirs{}, errors.Wrap(err, "build prerender hydrate bundle")
-	}
-	le.Info("building prerender ssr bundle")
-	if err := runBun(ctx, repoRoot, "run", "vite", "build", "--config", "app/prerender/vite.ssr.config.ts"); err != nil {
-		return releaseWasmDistDirs{}, errors.Wrap(err, "build prerender ssr bundle")
-	}
-	le.Info("running prerender build")
-	if err := runBun(ctx, repoRoot, "./app/prerender/ssr-dist/build.js", "--dist-dir", distDir); err != nil {
-		return releaseWasmDistDirs{}, errors.Wrap(err, "run prerender build")
-	}
-
-	staticDir := filepath.Join(repoRoot, prerenderDistRelPath)
-	if err := validateReleaseWasmDist(distDir, staticDir); err != nil {
+	prebuiltDirs, prebuilt, err := prebuiltReleaseWasmDistDirs(repoRoot)
+	if err != nil {
 		return releaseWasmDistDirs{}, err
 	}
-	return releaseWasmDistDirs{releaseDist: distDir, prerender: staticDir}, nil
+	requireFresh := false
+	if prebuilt {
+		validationErr := artifact.Validate(prebuiltDirs.releaseDist, prebuiltDirs.prerender, identity)
+		if validationErr == nil {
+			le.WithFields(logrus.Fields{
+				"dist":      prebuiltDirs.releaseDist,
+				"identity":  identity.Digest,
+				"prerender": prebuiltDirs.prerender,
+			}).Info("release artifact cache hit")
+			return prebuiltDirs, nil
+		}
+		requireFresh = true
+		le.WithError(validationErr).WithField("identity", identity.Digest).Info("prebuilt release artifact rejected; rebuilding")
+	}
+
+	resolved, err := e2eharness.Resolve(ctx, le, e2eharness.ResolveOptions{
+		LockDir:      storeDir,
+		LockName:     "build",
+		RequireFresh: requireFresh,
+	}, newReleaseShape(le, repoRoot, storeDir, identity))
+	if err != nil {
+		return releaseWasmDistDirs{}, err
+	}
+	return releaseWasmDistDirs{
+		releaseDist: resolved.releaseDir,
+		prerender:   resolved.prerenderDir,
+	}, nil
 }
 
 func prebuiltReleaseWasmDistDirs(repoRoot string) (releaseWasmDistDirs, bool, error) {
@@ -238,12 +250,10 @@ func prebuiltReleaseWasmDistDirs(repoRoot string) (releaseWasmDistDirs, bool, er
 	if distDir == "" || prerenderDir == "" {
 		return releaseWasmDistDirs{}, true, errors.Errorf("%s and %s must be set together", releaseWasmDistDirEnv, releaseWasmPrerenderDistEnv)
 	}
-	distDir = repoPath(repoRoot, distDir)
-	prerenderDir = repoPath(repoRoot, prerenderDir)
-	if err := validateReleaseWasmDist(distDir, prerenderDir); err != nil {
-		return releaseWasmDistDirs{}, true, err
-	}
-	return releaseWasmDistDirs{releaseDist: distDir, prerender: prerenderDir}, true, nil
+	return releaseWasmDistDirs{
+		releaseDist: repoPath(repoRoot, distDir),
+		prerender:   repoPath(repoRoot, prerenderDir),
+	}, true, nil
 }
 
 func repoPath(repoRoot, path string) string {
@@ -251,16 +261,6 @@ func repoPath(repoRoot, path string) string {
 		return path
 	}
 	return filepath.Join(repoRoot, path)
-}
-
-func validateReleaseWasmDist(distDir, prerenderDir string) error {
-	if _, err := os.Stat(filepath.Join(distDir, "browser-release.json")); err != nil {
-		return errors.Wrap(err, "stat browser-release.json")
-	}
-	if _, err := os.Stat(filepath.Join(prerenderDir, "index.html")); err != nil {
-		return errors.Wrap(err, "stat prerender index.html")
-	}
-	return nil
 }
 
 func releaseWasmBrowserName() (string, error) {
@@ -286,6 +286,21 @@ func releaseWasmBuildScript() string {
 }
 
 func buildReleaseWeb(ctx context.Context, repoRoot string) error {
+	if os.Getenv("E2E_RELEASE_WASM_LAZY_PLUGIN_FIXTURE") == "1" {
+		return runBun(
+			ctx,
+			repoRoot,
+			"run",
+			"bldr",
+			"--",
+			"--state-path=.bldr-dist",
+			"--build-type=release",
+			"build",
+			"-b",
+			"release-web-lazy-plugin-fixture",
+		)
+	}
+
 	compiler, err := resolveReleaseWasmCompiler()
 	if err != nil {
 		return err
@@ -333,6 +348,12 @@ func (h *harness) quickstartRuntimeTraceArtifactPath(t testing.TB) string {
 
 func (h *harness) newPage(t testing.TB) playwright.Page {
 	t.Helper()
+	page, _ := h.newPageWithDiagnosticsControl(t)
+	return page
+}
+
+func (h *harness) newPageWithDiagnosticsControl(t testing.TB) (playwright.Page, func()) {
+	t.Helper()
 
 	ctx, err := h.browser.NewContext(h.newContextOptions(t))
 	if err != nil {
@@ -349,8 +370,8 @@ func (h *harness) newPage(t testing.TB) playwright.Page {
 		t.Fatalf("new page: %v", err)
 	}
 
-	h.attachPageDiagnostics(t, page)
-	return page
+	muteDiagnostics := h.attachPageDiagnostics(t, page)
+	return page, muteDiagnostics
 }
 
 func (h *harness) newDedicatedWorkerPage(t testing.TB) playwright.Page {
@@ -396,17 +417,42 @@ func (h *harness) newPageInContext(t testing.TB, ctx playwright.BrowserContext) 
 	return page
 }
 
-func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) {
+func (h *harness) newPersistentBrowserContext(t testing.TB, userDataDir string) playwright.BrowserContext {
+	t.Helper()
+
+	browserType, err := playwrightBrowserType(h.pw, h.browserName)
+	if err != nil {
+		t.Fatalf("resolve persistent release browser type: %v", err)
+	}
+	options := persistentBrowserContextLaunchOptions(h.browserName)
+	ctx, err := browserType.LaunchPersistentContext(userDataDir, options)
+	if err != nil {
+		t.Fatalf("launch persistent release browser context: %v", err)
+	}
+	return ctx
+}
+
+func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) func() {
 	t.Helper()
 
 	var errs []string
 	var errsMu sync.Mutex
+	muted := false
 	recordBrowserError := func(msg string) {
 		errsMu.Lock()
 		defer errsMu.Unlock()
+		if muted {
+			return
+		}
 		errs = append(errs, msg)
 	}
+	muteDiagnostics := func() {
+		errsMu.Lock()
+		muted = true
+		errsMu.Unlock()
+	}
 	consoleTrace := os.Getenv("E2E_RELEASE_WASM_CONSOLE_TRACE") == "1"
+
 	page.OnFrameNavigated(func(frame playwright.Frame) {
 		if frame.ParentFrame() != nil {
 			return
@@ -495,7 +541,9 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) {
 			return
 		}
 		url := resp.URL()
-		if strings.HasPrefix(url, h.baseURL) && !strings.HasSuffix(url, "/.vite/manifest.json") {
+		if strings.HasPrefix(url, h.baseURL) &&
+			!strings.HasSuffix(url, "/.vite/manifest.json") &&
+			!isExpectedReleaseWasmHTTPError(url) {
 			recordBrowserError("http " + resp.StatusText() + ": " + resp.URL())
 			return
 		}
@@ -508,6 +556,7 @@ func (h *harness) attachPageDiagnostics(t testing.TB, page playwright.Page) {
 			t.Fatalf("browser errors: %v", errs)
 		}
 	})
+	return muteDiagnostics
 }
 
 func browserPageErrorMessage(err error) string {
@@ -531,6 +580,13 @@ func isRelevantReleaseWasmRequest(url string) bool {
 		return true
 	}
 	return false
+}
+
+// isExpectedReleaseWasmHTTPError identifies endpoints intentionally absent from
+// the static release server. The app probes auth configuration even when the
+// release proof runs without a cloud auth service.
+func isExpectedReleaseWasmHTTPError(url string) bool {
+	return strings.HasSuffix(url, "/api/auth/config")
 }
 
 func isBrowserAbortedRequest(failure string) bool {
@@ -638,11 +694,16 @@ func (h *harness) release(le *logrus.Entry) {
 	}
 }
 
-func releaseHandler(distDir, staticDir string) http.Handler {
+func releaseHandler(distDir, staticDir, endpoint string) http.Handler {
 	fileServer := http.FileServer(http.Dir(distDir))
+	authConfigHandler := releaseAuthConfigHandler(endpoint)
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 		rw.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
+		if req.URL.Path == releaseAuthConfigPath {
+			authConfigHandler.ServeHTTP(rw, req)
+			return
+		}
 		if strings.HasSuffix(req.URL.Path, ".wasm.gz") || strings.HasSuffix(req.URL.Path, ".mjs.gz") {
 			rw.Header().Set("Content-Encoding", "gzip")
 		}
@@ -661,6 +722,36 @@ func releaseHandler(distDir, staticDir string) http.Handler {
 			return
 		}
 		fileServer.ServeHTTP(rw, req)
+	})
+}
+
+func releaseAuthConfigHandler(endpoint string) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		if req.Method != http.MethodGet {
+			rw.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		resp := &api.AuthConfigResponse{
+			SsoBaseUrl:       endpoint + "/api/auth/sso/start",
+			ExchangeUrl:      endpoint + "/api/auth/sso/code/exchange",
+			ConfirmUrl:       endpoint + "/api/auth/sso/confirm",
+			AccountBaseUrl:   endpoint,
+			PublicBaseUrl:    endpoint,
+			GoogleSsoEnabled: false,
+			GithubSsoEnabled: false,
+			TurnstileSiteKey: "",
+		}
+		data, err := resp.MarshalVT()
+		if err != nil {
+			rw.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		rw.Header().Set("Content-Type", "application/octet-stream")
+		rw.WriteHeader(http.StatusOK)
+		if _, err := rw.Write(data); err != nil {
+			return
+		}
 	})
 }
 

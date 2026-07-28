@@ -15,6 +15,7 @@ import {
   SpaceContentsContext,
   useSessionIndex,
 } from '@s4wave/web/contexts/contexts.js'
+import { useIsTabActive } from '@s4wave/web/contexts/TabActiveContext.js'
 import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListContext.js'
 import {
   useResource,
@@ -54,6 +55,10 @@ import { useOpenCommand } from '@s4wave/web/command/CommandContext.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import {
+  getSpaceDocumentTitleName,
+  useDocumentTitle,
+} from '@s4wave/web/title/DocumentTitleContext.js'
 import { pluginPathPrefix } from '@s4wave/app/urls.js'
 import { useShellTabs, useTabId } from '@s4wave/app/ShellTabContext.js'
 import { SpaceBody } from './SpaceBody.js'
@@ -71,7 +76,10 @@ import { SpaceSettingsEditor } from './SpaceSettingsEditor.js'
 import { SpaceDataSection } from './SpaceTransformSection.js'
 import { CreateObjectButton } from './CreateObjectButton.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
-import { buildSpaceObjectActionTargets } from '@s4wave/web/space/object-tree.js'
+import {
+  buildSpaceObjectActionTargets,
+  getObjectDisplayName,
+} from '@s4wave/web/space/object-tree.js'
 import { createSpaceObjectNavigationActions } from '@s4wave/web/space/space-object-navigation-actions.js'
 import { useObjectTypeMetadata } from '@s4wave/web/hooks/useObjectTypeMetadata.js'
 import { downloadURL } from '@s4wave/web/download.js'
@@ -396,6 +404,15 @@ export function SpaceContainer() {
     const meta = SpaceSoMeta.fromBinary(bodyMeta)
     return meta.name || sharedObjectId
   }, [resourcesList, sharedObject, sharedObjectId])
+  const titleSpaceName = getSpaceDocumentTitleName(spaceName, sharedObjectId)
+  const isTabActive = useIsTabActive()
+  useDocumentTitle(
+    {
+      view: objectKey ? getObjectDisplayName(objectKey) || 'Object' : undefined,
+      space: titleSpaceName,
+    },
+    { active: isTabActive, priority: 10 },
+  )
   const canRename = canRenameSpace(providerId, canManageSharing)
   const canDeleteObjects = canDeleteSpaceObject(
     providerId,
@@ -567,6 +584,7 @@ export function SpaceContainer() {
         <SpaceContentsContext.Provider resource={spaceContentsResource}>
           <SpaceContainerContext.Provider
             spaceId={sharedObjectId}
+            spaceName={titleSpaceName}
             spaceWorldResource={spaceWorldResource}
             spaceWorld={spaceWorld}
             navigateToRoot={navigateToRoot}
@@ -665,6 +683,7 @@ export function SpaceContainer() {
     handleDeleteClick,
     handleExportClick,
     sharedObjectId,
+    titleSpaceName,
     spaceWorldResource,
     spaceWorld,
     navigateToRoot,
@@ -731,6 +750,7 @@ export function SpaceContainer() {
             {ready && routeSpaceState && spaceWorld ? (
               <SpaceContainerContext.Provider
                 spaceId={sharedObjectId}
+                spaceName={titleSpaceName}
                 spaceWorldResource={spaceWorldResource}
                 spaceWorld={spaceWorld}
                 navigateToRoot={navigateToRoot}

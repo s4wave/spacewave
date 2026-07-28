@@ -3,15 +3,12 @@
 package cli_entrypoint
 
 import (
-	"strings"
-
 	entrypoint_storagepath "github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 )
 
 // StatePathEnvVar returns the project-specific state path environment variable.
 func StatePathEnvVar(projectID string) string {
-	sanitized := strings.ReplaceAll(strings.TrimSpace(projectID), "-", "_")
-	return strings.ToUpper(sanitized) + "_STATE_PATH"
+	return entrypoint_storagepath.StatePathEnvVar(projectID)
 }
 
 // StatePathEnvVars returns the environment variables that override the state path.

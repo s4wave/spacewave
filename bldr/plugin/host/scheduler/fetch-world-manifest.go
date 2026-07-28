@@ -28,7 +28,7 @@ type directFetchCandidate struct {
 }
 
 // execute executes the tracker.
-func (t *pluginInstance) execFetchWorldManifest(ctx context.Context, hosts *pluginHostSet) (rerr error) {
+func (t *pluginInstance) execFetchWorldManifestCore(ctx context.Context, hosts *pluginHostSet) (rerr error) {
 	defer func() {
 		t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "fetch plugin manifest", rerr)
 	}()
@@ -139,7 +139,7 @@ func (t *pluginInstance) newManifestFetchValueStorer(key storeFetchedManifestsKe
 }
 
 // execFetchManifestValueStorer executes storing the FetchManifest value in storage.
-func (t *fetchManifestValueStorer) execFetchManifestValueStorer(ctx context.Context) (rerr error) {
+func (t *fetchManifestValueStorer) execFetchManifestValueStorerCore(ctx context.Context) (rerr error) {
 	defer func() {
 		t.pi.c.recordPluginStatusError(
 			t.pi.pluginID,
@@ -244,9 +244,7 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 				manifestSnapshot: snapshot,
 				pluginHost:       best.host,
 			})
-			if !t.c.conf.GetDisableCopyManifest() {
-				t.downloadManifestRoutine.SetState(snapshot)
-			}
+			t.setDownloadManifestState(ctx, snapshot, t.c.conf.GetEngineId())
 			t.loggedNotFound.Store(false)
 			return
 		}
@@ -258,9 +256,7 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 		}
 
 		t.executePluginRoutine.SetState(nil)
-		if !t.c.conf.GetDisableCopyManifest() {
-			t.downloadManifestRoutine.SetState(nil)
-		}
+		t.setDownloadManifestState(ctx, nil, t.c.conf.GetEngineId())
 	}
 
 	return directive.NewTypedCallbackHandler(

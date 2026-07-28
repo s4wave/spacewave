@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aperturerobotics/util/keyed"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
@@ -35,7 +36,7 @@ func (c *Controller) newJobTracker(key string) (keyed.Routine, *jobTracker) {
 	tr.objLoop = world_control.NewWatchLoop(
 		c.le.WithField("object-loop", "job-tracker"),
 		key,
-		tr.processState,
+		skipUnhandledOperation(tr.processState),
 	)
 	tr.taskTrackers = keyed.NewKeyedWithLogger(tr.newTaskTracker, c.le)
 	return tr.execute, tr
@@ -54,6 +55,26 @@ func (jt *jobTracker) execute(ctx context.Context) error {
 		true,
 		jt.objLoop,
 	)
+}
+
+func skipUnhandledOperation(handler world_control.WatchLoopHandler) world_control.WatchLoopHandler {
+	return func(
+		ctx context.Context,
+		le *logrus.Entry,
+		ws world.WorldState,
+		obj world.ObjectState,
+		rootRef *bucket.ObjectRef,
+		rev uint64,
+	) (bool, error) {
+		waitForChanges, err := handler(ctx, le, ws, obj, rootRef, rev)
+		if errors.Is(err, world.ErrUnhandledOp) {
+			if le != nil {
+				le.Debug("job tracker skipped unhandled operation")
+			}
+			return true, nil
+		}
+		return waitForChanges, err
+	}
 }
 
 // processState processes the state for the job.

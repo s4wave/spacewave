@@ -83,7 +83,7 @@ export function ReleaseCard({
   return (
     <div
       id={`v${release.version}`}
-      className="border-foreground/8 bg-background-card/50 hover:border-foreground/20 hover:shadow-foreground/5 rounded-lg border p-5 backdrop-blur-sm transition-all duration-300 hover:shadow-md"
+      className="border-foreground/8 bg-background-card/50 hover:border-foreground/20 hover:shadow-foreground/5 rounded-lg border p-5 backdrop-blur-sm transition duration-300 hover:shadow-md"
     >
       <div className="flex items-start justify-between">
         <h2 className="text-foreground text-lg font-semibold">

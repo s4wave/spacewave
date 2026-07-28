@@ -4,6 +4,7 @@
 
 import {
   AcquireCoordinatorWriteLeaseResponse,
+  AcquireWorldEngineLeaseResponse,
   CoordinatorWriteLeaseRequest,
   CoordinatorWriteLeaseSnapshotResponse,
   GetCoordinatorCapabilityRequest,
@@ -18,14 +19,17 @@ import {
   GetVolumeInfoResponse,
   PublishCoordinatorWriteLeaseRequest,
   ReleaseCoordinatorWriteLeaseResponse,
+  ReleaseWorldEngineLeaseRequest,
+  ReleaseWorldEngineLeaseResponse,
   TryAcquireCoordinatorWriteLeaseRequest,
+  TryAcquireWorldEngineLeaseRequest,
   WaitAcquireCoordinatorWriteLeaseRequest,
   WatchCoordinatorEventsRequest,
   WatchCoordinatorEventsResponse,
   WatchVolumeInfoRequest,
   WatchVolumeInfoResponse,
 } from './volume.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 import {
   buildDecodeMessageTransform,
@@ -234,6 +238,28 @@ export const ProxyVolumeDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * TryAcquireWorldEngineLease attempts to acquire a keyed World Engine lease.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.TryAcquireWorldEngineLease
+     */
+    TryAcquireWorldEngineLease: {
+      name: 'TryAcquireWorldEngineLease',
+      I: TryAcquireWorldEngineLeaseRequest,
+      O: AcquireWorldEngineLeaseResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * ReleaseWorldEngineLease releases a remote World Engine lease.
+     *
+     * @generated from rpc volume.rpc.ProxyVolume.ReleaseWorldEngineLease
+     */
+    ReleaseWorldEngineLease: {
+      name: 'ReleaseWorldEngineLease',
+      I: ReleaseWorldEngineLeaseRequest,
+      O: ReleaseWorldEngineLeaseResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * RefreshCoordinatorWriteLease refreshes a remote write lease.
      *
      * @generated from rpc volume.rpc.ProxyVolume.RefreshCoordinatorWriteLease
@@ -364,6 +390,26 @@ export interface ProxyVolume {
   ): MessageStream<AcquireCoordinatorWriteLeaseResponse>
 
   /**
+   * TryAcquireWorldEngineLease attempts to acquire a keyed World Engine lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.TryAcquireWorldEngineLease
+   */
+  TryAcquireWorldEngineLease(
+    request: TryAcquireWorldEngineLeaseRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<AcquireWorldEngineLeaseResponse>
+
+  /**
+   * ReleaseWorldEngineLease releases a remote World Engine lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.ReleaseWorldEngineLease
+   */
+  ReleaseWorldEngineLease(
+    request: ReleaseWorldEngineLeaseRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReleaseWorldEngineLeaseResponse>
+
+  /**
    * RefreshCoordinatorWriteLease refreshes a remote write lease.
    *
    * @generated from rpc volume.rpc.ProxyVolume.RefreshCoordinatorWriteLease
@@ -431,6 +477,8 @@ export class ProxyVolumeClient implements ProxyVolume {
       this.TryAcquireCoordinatorWriteLease.bind(this)
     this.WaitAcquireCoordinatorWriteLease =
       this.WaitAcquireCoordinatorWriteLease.bind(this)
+    this.TryAcquireWorldEngineLease = this.TryAcquireWorldEngineLease.bind(this)
+    this.ReleaseWorldEngineLease = this.ReleaseWorldEngineLease.bind(this)
     this.RefreshCoordinatorWriteLease =
       this.RefreshCoordinatorWriteLease.bind(this)
     this.PublishCoordinatorWriteLease =
@@ -556,6 +604,44 @@ export class ProxyVolumeClient implements ProxyVolume {
     return buildDecodeMessageTransform(AcquireCoordinatorWriteLeaseResponse)(
       result,
     )
+  }
+
+  /**
+   * TryAcquireWorldEngineLease attempts to acquire a keyed World Engine lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.TryAcquireWorldEngineLease
+   */
+  TryAcquireWorldEngineLease(
+    request: TryAcquireWorldEngineLeaseRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<AcquireWorldEngineLeaseResponse> {
+    const requestMsg = TryAcquireWorldEngineLeaseRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      ProxyVolumeDefinition.methods.TryAcquireWorldEngineLease.name,
+      TryAcquireWorldEngineLeaseRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(AcquireWorldEngineLeaseResponse)(result)
+  }
+
+  /**
+   * ReleaseWorldEngineLease releases a remote World Engine lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.ReleaseWorldEngineLease
+   */
+  async ReleaseWorldEngineLease(
+    request: ReleaseWorldEngineLeaseRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReleaseWorldEngineLeaseResponse> {
+    const requestMsg = ReleaseWorldEngineLeaseRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ProxyVolumeDefinition.methods.ReleaseWorldEngineLease.name,
+      ReleaseWorldEngineLeaseRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ReleaseWorldEngineLeaseResponse.fromBinary(result)
   }
 
   /**

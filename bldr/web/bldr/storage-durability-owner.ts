@@ -10,16 +10,16 @@ export interface StorageManagerLike {
 // PersistenceStatusListener observes the latest recorded persistence status.
 export type PersistenceStatusListener = (status: PersistenceStatus) => void
 
-// StorageDurabilityOwner requests browser eviction protection once, on the
-// first user-authored durable write, and records the observed status.
+// StorageDurabilityOwner requests browser eviction protection once after an
+// explicit user request or the first user-authored durable write.
 //
-// It never requests persistence before a meaningful write, deduplicates
-// concurrent first writes into a single persisted()/persist() sequence, and
-// isolates every persistence error so a query or request failure can never fail
-// the user write that triggered it. Denial is silent: only the recorded status
-// changes, with no toast, modal, retry, or engagement prompt. The dedup guard is
-// in-memory, so a new document (a new app start) re-checks on its first
-// meaningful write, with the browser remaining the source of truth.
+// It deduplicates explicit requests and concurrent first writes into a single
+// persisted()/persist() sequence, and isolates every persistence error so a
+// query or request failure can never fail the user write that triggered it.
+// Denial is silent: only the recorded status changes, with no toast, modal,
+// retry, or engagement prompt. The dedup guard is in-memory, so a new document
+// re-checks on its first request or meaningful write, with the browser
+// remaining the source of truth.
 export class StorageDurabilityOwner {
   private statusValue: PersistenceStatus = 'unknown'
   private requested = false
@@ -35,19 +35,39 @@ export class StorageDurabilityOwner {
     return this.statusValue
   }
 
-  // noteMeaningfulWrite requests eviction protection on the first call and is a
-  // no-op afterward. It never throws and never blocks the caller.
-  public noteMeaningfulWrite(): void {
+  // requestProtection requests eviction protection once and never throws.
+  public requestProtection(): Promise<void> {
     if (this.requested) {
-      return
+      return this.pending ?? Promise.resolve()
     }
     this.requested = true
     this.pending = this.requestPersistence()
+    return this.pending
+  }
+
+  // noteMeaningfulWrite requests protection without blocking the user write.
+  public noteMeaningfulWrite(): void {
+    void this.requestProtection()
   }
 
   // whenSettled resolves once the in-flight persistence request completes.
   public whenSettled(): Promise<void> {
     return this.pending ?? Promise.resolve()
+  }
+
+  // readStatus refreshes the recorded status without requesting protection.
+  public async readStatus(): Promise<PersistenceStatus> {
+    if (!this.storage) {
+      return this.statusValue
+    }
+    try {
+      this.setStatus(
+        (await this.storage.persisted()) ? 'persisted' : 'not-persisted',
+      )
+    } catch {
+      // A status query failure leaves the last known status unchanged.
+    }
+    return this.statusValue
   }
 
   private async requestPersistence(): Promise<void> {

@@ -22,6 +22,7 @@ func (s State) Validate(allowUnknown bool) error {
 	case State_PassState_RUNNING:
 	case State_PassState_CHECKING:
 	case State_PassState_COMPLETE:
+	case State_PassState_CANCELING:
 	default:
 		return errors.Wrap(ErrUnknownState, s.String())
 	}

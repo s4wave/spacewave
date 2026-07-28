@@ -46,6 +46,8 @@ type TestWebDocument = {
   singletonAbort?: AbortController
   dedicatedRuntimeHost?: {
     role: string
+    connectedHostDocumentId?: string
+    connectedHostGeneration?: string
     openClientChannel?: (init: WebRuntimeClientInit) => Promise<MessagePort>
   }
   sabPairBroker: SabPairBroker
@@ -62,7 +64,12 @@ type TestWebDocument = {
   webDocumentUuid: string
   onWebWorkerMessage(workerID: string, event: MessageEvent): void
   onWebDocumentClientMessage(event: MessageEvent): void
-  initServiceWorker(wb: TestWorkbox, swUrl: string): Promise<void>
+  initServiceWorker(
+    wb: TestWorkbox,
+    swUrl: string,
+    onControlReady?: () => void,
+  ): Promise<void>
+  startRuntimeOnce?: () => void
   onRuntimeOpfsBrokerMessage(brokerPort: MessagePort, event: MessageEvent): void
   refreshPluginSingletonLock(): void
   releasePluginSingletonLock(): void
@@ -232,7 +239,9 @@ function installFakeDedicatedWorker() {
     public readonly postMessage = vi.fn((message: unknown) => {
       this.messages.push(message)
     })
-    public addEventListener(...args: Parameters<EventTarget['addEventListener']>) {
+    public addEventListener(
+      ...args: Parameters<EventTarget['addEventListener']>
+    ) {
       this.eventTarget.addEventListener(...args)
     }
 
@@ -378,7 +387,9 @@ describe('WebDocument service worker startup', () => {
     const wb: TestWorkbox = {
       register: vi
         .fn()
-        .mockResolvedValue({ scope: 'https://example.test/' } as ServiceWorkerRegistration),
+        .mockResolvedValue({
+          scope: 'https://example.test/',
+        } as ServiceWorkerRegistration),
       update: vi.fn().mockResolvedValue(undefined),
       controlling: new Promise<ServiceWorker>(() => {}),
     }
@@ -417,7 +428,9 @@ describe('WebDocument service worker startup', () => {
     const wb: TestWorkbox = {
       register: vi
         .fn()
-        .mockResolvedValue({ scope: 'https://example.test/' } as ServiceWorkerRegistration),
+        .mockResolvedValue({
+          scope: 'https://example.test/',
+        } as ServiceWorkerRegistration),
       update: vi.fn().mockResolvedValue(undefined),
       controlling: Promise.resolve(firstSw),
     }
@@ -465,7 +478,9 @@ describe('WebDocument service worker startup', () => {
     const wb: TestWorkbox = {
       register: vi
         .fn()
-        .mockResolvedValue({ scope: 'https://example.test/' } as ServiceWorkerRegistration),
+        .mockResolvedValue({
+          scope: 'https://example.test/',
+        } as ServiceWorkerRegistration),
       update: vi.fn().mockResolvedValue(undefined),
       controlling: new Promise<ServiceWorker>(() => {}),
     }
@@ -494,13 +509,65 @@ describe('WebDocument service worker startup', () => {
     const wb: TestWorkbox = {
       register: vi
         .fn()
-        .mockResolvedValue({ scope: 'https://example.test/' } as ServiceWorkerRegistration),
+        .mockResolvedValue({
+          scope: 'https://example.test/',
+        } as ServiceWorkerRegistration),
       update: vi.fn().mockResolvedValue(undefined),
       controlling: Promise.resolve(sw),
     }
 
     await doc.initServiceWorker(wb, '/sw.mjs')
     expect(storage.getItem('bldr-sw-controller-reload')).toBeNull()
+  })
+
+  it('starts the runtime from controllerchange when the awaited path returned early', async () => {
+    const controllerChangeListeners: Array<(ev: Event) => void> = []
+    installSessionStorage({ 'bldr-sw-controller-reload': '/sw.mjs' })
+    vi.stubGlobal('location', {
+      href: 'https://example.test/app',
+      reload: vi.fn(),
+    })
+    const sw = { postMessage: vi.fn() } as unknown as ServiceWorker
+    const serviceWorker = {
+      controller: null as ServiceWorker | null,
+      addEventListener: vi.fn((type: string, listener: EventListener) => {
+        if (type === 'controllerchange') {
+          controllerChangeListeners.push(listener as (ev: Event) => void)
+        }
+      }),
+      register: vi.fn(),
+    }
+    vi.stubGlobal('navigator', { serviceWorker })
+
+    const doc = buildTestWebDocument()
+    const startRuntimeOnce = vi.fn()
+    doc.startRuntimeOnce = startRuntimeOnce
+    vi.spyOn(
+      doc as unknown as { initServiceWorkerPort: (sw: ServiceWorker) => void },
+      'initServiceWorkerPort',
+    ).mockImplementation(() => {})
+    const onControlReady = vi.fn()
+    const wb: TestWorkbox = {
+      register: vi
+        .fn()
+        .mockResolvedValue({
+          scope: 'https://example.test/',
+        } as ServiceWorkerRegistration),
+      update: vi.fn().mockResolvedValue(undefined),
+      controlling: new Promise<ServiceWorker>(() => {}),
+    }
+
+    // The controller is already missing after a reload, so this returns before
+    // reaching onControlReady and nothing on the awaited path will ever start
+    // the runtime.
+    await doc.initServiceWorker(wb, '/sw.mjs', onControlReady)
+    expect(onControlReady).not.toHaveBeenCalled()
+    expect(startRuntimeOnce).not.toHaveBeenCalled()
+
+    serviceWorker.controller = sw
+    controllerChangeListeners[0](new Event('controllerchange'))
+
+    expect(startRuntimeOnce).toHaveBeenCalledOnce()
   })
 })
 
@@ -1069,6 +1136,8 @@ describe('WebDocument plugin generation state', () => {
     const rerouteChannel = vi.fn().mockResolvedValue(undefined)
     doc.dedicatedRuntimeHost = {
       role: 'attached',
+      connectedHostDocumentId: 'host-document',
+      connectedHostGeneration: 'generation-1',
     }
     doc.webRuntimeClient = {
       openStream: vi.fn(),
@@ -1080,6 +1149,7 @@ describe('WebDocument plugin generation state', () => {
         from: 'tracker-client',
         dedicatedRuntimeHostLost: {
           webDocumentId: 'host-document',
+          hostGeneration: 'generation-1',
           reason: 'host closed',
         },
       },
@@ -1088,6 +1158,40 @@ describe('WebDocument plugin generation state', () => {
     expect(doc.runtimeConnected).toBe(false)
     expect(doc.resumeReady).toBe(false)
     expect(rerouteChannel).toHaveBeenCalledWith({ reconnect: false })
+  })
+
+  it('ignores host loss from an obsolete DedicatedWorker route', () => {
+    const doc = buildTestWebDocument()
+    doc.runtimeConnected = true
+    doc.resumeReady = true
+    const rerouteChannel = vi.fn().mockResolvedValue(undefined)
+    doc.dedicatedRuntimeHost = {
+      role: 'attached',
+      connectedHostDocumentId: 'host-document-2',
+      connectedHostGeneration: 'generation-2',
+    }
+    doc.webRuntimeClient = {
+      openStream: vi.fn(),
+      rerouteChannel,
+    }
+
+    doc.onWebDocumentClientMessage({
+      data: {
+        from: 'tracker-client',
+        dedicatedRuntimeHostLost: {
+          webDocumentId: 'host-document-1',
+          hostGeneration: 'generation-1',
+          reason: 'old host closed',
+        },
+      },
+    } as MessageEvent)
+
+    expect(doc.runtimeConnected).toBe(true)
+    expect(doc.resumeReady).toBe(true)
+    expect(rerouteChannel).not.toHaveBeenCalled()
+    expect(
+      (globalThis.__swStartupMarks ?? []).map((mark) => mark.label),
+    ).not.toContain('dedicated-host.lost')
   })
 
   it('rejects runtime relay requests from an attached DedicatedWorker non-host', async () => {

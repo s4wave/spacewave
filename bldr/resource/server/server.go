@@ -73,10 +73,13 @@ func (s *ResourceServer) ResourceClient(
 		s.clientHandleIDCtr++
 		clientHandleID = s.clientHandleIDCtr
 		clientObj = &RemoteResourceClient{
-			server:    s,
-			clientID:  clientHandleID,
-			ctx:       clientCtx,
-			resources: make(map[uint32]*trackedResource),
+			server:             s,
+			clientID:           clientHandleID,
+			ctx:                clientCtx,
+			adoptionAckEnabled: req.GetSupportsResourceAdoptionAck(),
+			resources:          make(map[uint32]*trackedResource),
+			pendingAdoptions:   make(map[uint32]*resourceRPCContext),
+			adoptedAdoptions:   make(map[uint32]*resourceRPCContext),
 		}
 		s.clients[clientHandleID] = clientObj
 		waitCh = getWaitCh()
@@ -97,6 +100,9 @@ func (s *ResourceServer) ResourceClient(
 					releaseFns = append(releaseFns, resource.releaseFn)
 				}
 			}
+			clear(clientObj.resources)
+			clear(clientObj.pendingAdoptions)
+			clear(clientObj.adoptedAdoptions)
 		})
 		for _, releaseFn := range releaseFns {
 			releaseFn()
@@ -119,8 +125,9 @@ func (s *ResourceServer) ResourceClient(
 	if err := strm.Send(&resource.ResourceClientResponse{
 		Body: &resource.ResourceClientResponse_Init{
 			Init: &resource.ResourceClientInit{
-				ClientHandleId: clientHandleID,
-				RootResourceId: rootResourceID,
+				ClientHandleId:              clientHandleID,
+				RootResourceId:              rootResourceID,
+				SupportsResourceAdoptionAck: clientObj.adoptionAckEnabled,
 			},
 		},
 	}); err != nil {
@@ -173,7 +180,7 @@ func (s *ResourceServer) ResourceRpc(
 
 			// Look up the resource in all clients.
 			var mux srpc.Invoker
-			var client ResourceClientContext
+			var client *RemoteResourceClient
 			s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 				for _, c := range s.clients {
 					if c.released {
@@ -198,7 +205,10 @@ func (s *ResourceServer) ResourceRpc(
 				return nil, nil, resource.ErrResourceOrClientReleased
 			}
 
-			return &resourceServerClientInvoker{mux: mux, client: client}, nil, nil
+			return &resourceServerClientInvoker{
+				mux:    mux,
+				client: client,
+			}, nil, nil
 		},
 	)
 }
@@ -206,17 +216,39 @@ func (s *ResourceServer) ResourceRpc(
 // resourceServerClientInvoker wraps an invoker to use a specific stream context.
 type resourceServerClientInvoker struct {
 	mux    srpc.Invoker
-	client ResourceClientContext
+	client *RemoteResourceClient
 }
 
 func (c *resourceServerClientInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-	// Add client context to the stream
-	if c.client != nil {
-		childCtx := WithResourceClientContext(strm.Context(), c.client)
-		childStrm := srpc.NewStreamWithContext(strm, childCtx)
-		return c.mux.InvokeMethod(serviceID, methodID, childStrm)
+	if c.client == nil {
+		return c.mux.InvokeMethod(serviceID, methodID, strm)
 	}
-	return c.mux.InvokeMethod(serviceID, methodID, strm)
+
+	resourceCtx := newResourceRPCContext(c.client)
+	childCtx := WithResourceClientContext(strm.Context(), resourceCtx)
+	childStrm := srpc.NewStreamWithContext(strm, childCtx)
+	ok, err := c.mux.InvokeMethod(serviceID, methodID, childStrm)
+	if !c.client.adoptionAckEnabled ||
+		!resource.IsResourceRPCAdoptingUnaryMethod(serviceID, methodID) {
+		resourceCtx.finishLegacy(ok && err == nil)
+		return ok, err
+	}
+	if !ok || err != nil {
+		resourceCtx.finish(false)
+		return ok, err
+	}
+
+	invocation, ok := srpc.GetServerInvocation(strm.Context())
+	if !ok {
+		resourceCtx.finish(false)
+		return false, errors.New("resource invocation context unavailable")
+	}
+	kind, waitErr := invocation.WaitTerminal(c.client.Context())
+	resourceCtx.finish(kind == srpc.TerminalKind_TERMINAL_KIND_COMMITTED && waitErr == nil)
+	if waitErr != nil {
+		return ok, waitErr
+	}
+	return ok, nil
 }
 
 // ResourceRefRelease releases a client's resource.
@@ -251,6 +283,7 @@ func (s *ResourceServer) ResourceRefRelease(
 				// client reference. No ResourceClient queue event is produced.
 				delete(client.resources, resourceID)
 				releaseFn = res.releaseFn
+				delete(client.pendingAdoptions, resourceID)
 			}
 			found = true
 			return
@@ -273,6 +306,25 @@ func (s *ResourceServer) ResourceRefRelease(
 	}
 
 	return &resource.ResourceRefReleaseResponse{}, nil
+}
+
+// ResourceRefAdopt acknowledges adoption of a pending resource.
+func (s *ResourceServer) ResourceRefAdopt(
+	ctx context.Context,
+	req *resource.ResourceRefAdoptRequest,
+) (*resource.ResourceRefAdoptResponse, error) {
+	clientID := req.GetClientHandleId()
+	if clientID == 0 {
+		return nil, resource.ErrInvalidClientID
+	}
+	var client *RemoteResourceClient
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		client = s.clients[clientID]
+	})
+	if client == nil || !client.adoptResource(req.GetResourceId()) {
+		return nil, resource.ErrResourceNotFound
+	}
+	return &resource.ResourceRefAdoptResponse{}, nil
 }
 
 // ResourceAttach allows a client to provide resources that server-side

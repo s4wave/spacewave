@@ -12,8 +12,8 @@ import "google/protobuf/timestamp.proto";
 // Contains snapshots of the execution instance states.
 // Execution instances can be added / removed.
 //
-// The Pass is complete when len(exec_states) == replicas and all exec states
-// are in the completed (terminal) state, or when a fatal error occurs.
+// The Pass is complete only when every linked Execution is terminal. Successful
+// passes also require len(exec_states) == replicas.
 //
 // If the Target object changes (in the world) or inputs change, a new Pass
 // should be created (these fields are immutable).
@@ -37,7 +37,8 @@ message Pass {
   // The inputs are copied to the Pass objects.
   // The output set is updated when transitioning from CHECKING -> COMPLETE.
   .forge.target.ValueSet value_set = 4;
-  // Result is information about the outcome of a completed Pass.
+  // Result is the cancellation request while CANCELING, or the outcome of a
+  // completed Pass.
   .forge.value.Result result = 5;
   // Replicas is the configured number of executions for the Pass.
   //
@@ -48,8 +49,8 @@ message Pass {
   // ExecStates contains the most recent snapshot of the execution states.
   // Updated when:
   //  - PENDING to RUNNING: contains initial execution states (PENDING)
-  //  - RUNNING: can add and remove execution states as needed.
-  //  - RUNNING to CHECKING or COMPLETE: contains final states (COMPLETE)
+  //  - RUNNING or CANCELING: updated as linked Executions change.
+  //  - RUNNING to CHECKING or COMPLETE: contains final states (COMPLETE).
   //  - Any to PENDING: cleared (set to len=0).
   repeated ExecState exec_states = 8;
   // Timestamp is the time the Pass was created.
@@ -96,4 +97,6 @@ enum State {
   // PassState_COMPLETE is the normal terminal state of the pass.
   // This includes both success and failure termination states.
   PassState_COMPLETE = 4;
+  // PassState_CANCELING is the state while linked Executions drain.
+  PassState_CANCELING = 5;
 }

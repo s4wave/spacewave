@@ -2,40 +2,49 @@
 title: Backup and Lock Setup
 section: accounts
 order: 2
-summary: Protect a session with a backup key and a clear lock mode.
+summary: Keep a way back into your account, and decide who can open it on this device.
 ---
 
-Spacewave has two separate protection tools: backup keys and session locks. A
-backup key is an authentication key in PEM format. It is not a copy of every
-file, block, or Space.
+Two different things protect your work, and it helps to keep them straight. A
+backup key is how you get back into your account if you lose your password or
+your device. A lock is what stands between someone holding your device and your
+Spaces.
 
-## Download a backup key
+Worth saying plainly: a backup key is a key, not a copy of your files. Having
+one does not mean your data is backed up.
 
-Cloud accounts ask for account proof before registering a backup key. In a
-local session, `Crypto & Keys` can add and download a backup key directly.
-Store the PEM outside the device that holds the session.
+## Get a backup key
 
-Use a backup key to sign in with `spacewave login --pem-file`, add or recover an
-auth method, or reset a locked session when the reset flow asks for account
-credentials. Do not treat the PEM as a full data archive.
+Open **Crypto & Keys** in settings and download one. If you have a Spacewave
+Cloud account, you will confirm who you are first.
 
-## Choose a lock mode
+The file that downloads is your way back in. Keep it somewhere other than the
+device that just made it: a password manager, another machine, a USB drive in a
+drawer. A backup key sitting next to the thing it recovers is not a backup.
 
-Auto-unlock stores the session key on disk and opens without a PIN. PIN lock
-encrypts the session key with a PIN and asks for that PIN on launch or mount.
-The settings page lets you switch between these modes and change the PIN.
+With it you can sign in on a new device, add a new way to sign in, or unlock
+yourself after a forgotten PIN.
 
-If you forget a PIN, Spacewave can reset the local session key after you
-re-authenticate with an account password or backup key. Resetting a PIN-locked
-session generates a new session key.
+## Choose how it locks
 
-## Long-lived work
+Auto-unlock opens Spacewave the moment you open the app. Convenient, and it
+means anyone who can open your device can open your Spaces.
 
-Before keeping real work in Spacewave, do all three checks:
+PIN lock asks for a PIN each time. Slightly more friction, considerably more
+protection.
 
-1. Download a backup PEM and store it separately.
-2. Pick auto-unlock or PIN lock intentionally.
-3. Use Cloud or a desktop state root for data you need to keep.
+Switch between them, or change your PIN, in settings.
 
-Cloud sync and backup protect cloud-backed data. Local browser storage still
-belongs to the browser and operating system.
+Forgotten your PIN? Spacewave can reset it once you prove who you are with your
+account password or your backup key.
+
+## Before it matters
+
+Three things, once, and you can stop thinking about it:
+
+1. Download a backup key and put it somewhere else.
+2. Choose auto-unlock or PIN lock on purpose rather than by default.
+3. Move to Spacewave Cloud or the desktop app for anything you want to keep.
+
+Cloud handles backup for you. Work kept only in a browser is still the browser's
+to delete.

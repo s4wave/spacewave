@@ -178,7 +178,7 @@ function ListenerYieldNotifierInner({
               disabled={pendingDecision != null}
               className="text-foreground-alt hover:text-foreground rounded-md px-4 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {pendingDecision === 'deny' ? 'Denying...' : 'Deny'}
+              {pendingDecision === 'deny' ? 'Denying…' : 'Deny'}
             </button>
             <button
               type="button"
@@ -190,7 +190,7 @@ function ListenerYieldNotifierInner({
                 'disabled:cursor-not-allowed disabled:opacity-50',
               )}
             >
-              {pendingDecision === 'allow' ? 'Allowing...' : 'Allow takeover'}
+              {pendingDecision === 'allow' ? 'Allowing…' : 'Allow takeover'}
             </button>
           </DialogFooter>
         </DialogContent>
@@ -275,7 +275,7 @@ function RuntimeHandoffBanner({
           'text-foreground disabled:cursor-not-allowed disabled:opacity-50',
         )}
       >
-        {reclaiming ? 'Reclaiming...' : 'Reclaim runtime'}
+        {reclaiming ? 'Reclaiming…' : 'Reclaim runtime'}
       </button>
     </div>
   )

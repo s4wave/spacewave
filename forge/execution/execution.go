@@ -87,6 +87,11 @@ func (e *Execution) Validate() error {
 	if err := e.GetTimestamp().Validate(false); err != nil {
 		return err
 	}
+	if claim := e.GetClaim(); claim != nil {
+		if err := claim.Validate(); err != nil {
+			return errors.Wrap(err, "claim")
+		}
+	}
 	// disallow empty reference to target
 	if err := e.GetTargetRef().Validate(false); err != nil {
 		return errors.Wrap(err, "target_ref")

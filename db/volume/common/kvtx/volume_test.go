@@ -119,6 +119,63 @@ func TestVolumeForwardsBatchPut(t *testing.T) {
 	}
 }
 
+func TestVolumeWithBlockStoreInitializesWorldEngineLeases(t *testing.T) {
+	ctx := context.Background()
+	vol, err := NewVolumeWithBlockStore(
+		ctx,
+		"hydra/test-volume",
+		store_kvkey.NewDefaultKVKey(),
+		store_kvtx_inmem.NewStore(),
+		newCountingBatchStore(),
+		&store_kvtx.Config{},
+		false,
+		false,
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewVolumeWithBlockStore failed: %v", err)
+	}
+	t.Cleanup(func() { _ = vol.Close() })
+
+	lease, err := vol.AcquireWorldEngineLease(ctx, "object-a")
+	if err != nil {
+		t.Fatalf("AcquireWorldEngineLease failed: %v", err)
+	}
+	if err := lease.Release(); err != nil {
+		t.Fatalf("WorldEngineLease.Release failed: %v", err)
+	}
+}
+
+func TestVolumeWithBlockStoreAndGCInitializesWorldEngineLeases(t *testing.T) {
+	ctx := context.Background()
+	vol, err := NewVolumeWithBlockStoreAndGC(
+		ctx,
+		"hydra/test-volume",
+		store_kvkey.NewDefaultKVKey(),
+		store_kvtx_inmem.NewStore(),
+		newCountingBatchStore(),
+		nil,
+		&store_kvtx.Config{},
+		false,
+		false,
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("NewVolumeWithBlockStoreAndGC failed: %v", err)
+	}
+	t.Cleanup(func() { _ = vol.Close() })
+
+	lease, err := vol.AcquireWorldEngineLease(ctx, "object-a")
+	if err != nil {
+		t.Fatalf("AcquireWorldEngineLease failed: %v", err)
+	}
+	if err := lease.Release(); err != nil {
+		t.Fatalf("WorldEngineLease.Release failed: %v", err)
+	}
+}
+
 func TestVolumeEmbedsInMemoryCoordinator(t *testing.T) {
 	ctx := context.Background()
 	vol, err := NewVolume(

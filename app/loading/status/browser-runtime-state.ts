@@ -47,6 +47,18 @@ export type BrowserFrameRevealState =
   | 'component-ready'
   | 'revealed'
 
+export type BrowserRuntimeWarmProjectionState = 'cold' | 'warm' | 'invalidated'
+
+export interface BrowserRuntimeWarmProjection {
+  state: BrowserRuntimeWarmProjectionState
+  generation?: string
+  mode?: 'dedicated-host' | 'dedicated-attached' | 'shared-worker'
+  hostDocumentId?: string
+  connection: boolean
+  neutralFrame: boolean
+  finalReveal: boolean
+}
+
 export interface BrowserRuntimeStartupMark {
   label: string
   sequence: number
@@ -89,6 +101,7 @@ export interface BrowserRuntimeState {
   frame: {
     state: BrowserFrameRevealState
   }
+  warmProjection: BrowserRuntimeWarmProjection
   terminalFailure?: BrowserRuntimeFailure
 }
 
@@ -186,6 +199,9 @@ const startupMarkToPhase: Record<string, BrowserRuntimeStartupPhaseID> = {
   'runtime.client-channel-acked': 'runtime',
   'runtime.client-connect-ack': 'runtime',
   'runtime.connected': 'runtime',
+  'runtime.connection-invalidated': 'runtime',
+  'dedicated-host.attach-open-ready': 'runtime',
+  'dedicated-host.lost': 'runtime',
   'shell.deferred-boot-ready': 'runtime',
   'boot-status.runtime': 'runtime',
   'boot-status.ready': 'runtime',
@@ -196,6 +212,7 @@ const startupMarkToPhase: Record<string, BrowserRuntimeStartupPhaseID> = {
   'webview.registered': 'frame',
   'webview.stylesheet-ready': 'frame',
   'webview.component-ready': 'frame',
+  'webview.neutral-frame': 'frame',
   'webview.revealed': 'done',
   'webview.loading-surface-mounted': 'frame',
   'webview.loading-surface-revealed': 'done',
@@ -206,6 +223,12 @@ export function createBrowserRuntimeState(): BrowserRuntimeState {
     startup: { phase: 'prepare' },
     document: { state: 'unknown' },
     runtimeClient: { state: 'unknown' },
+    warmProjection: {
+      state: 'cold',
+      connection: false,
+      neutralFrame: false,
+      finalReveal: false,
+    },
     serviceWorker: { state: 'unknown' },
     pluginGeneration: { state: 'idle' },
     frame: { state: 'idle' },
@@ -303,6 +326,61 @@ function applyStartupMark(
   state: BrowserRuntimeState,
   mark: BrowserRuntimeStartupMark,
 ): void {
+  const generation = startupMarkGeneration(mark)
+  if (
+    startupMarkInvalidatesWarmProjection(mark) &&
+    startupMarkIsGenerationScoped(mark) &&
+    generation &&
+    state.warmProjection.generation &&
+    generation !== state.warmProjection.generation
+  ) {
+    return
+  }
+  if (startupMarkInvalidatesWarmProjection(mark)) {
+    replaceWarmProjection(state, generation ?? state.warmProjection.generation)
+    state.runtimeClient.state = 'unknown'
+    state.frame.state = 'idle'
+    return
+  }
+  const canReconnectInvalidatedGeneration =
+    mark.label === 'runtime.connected' &&
+    generation === state.warmProjection.generation &&
+    (mark.detail.connectionMode === 'dedicated-host' ||
+      mark.detail.connectionMode === 'shared-worker')
+  if (
+    state.warmProjection.state === 'invalidated' &&
+    generation &&
+    generation === state.warmProjection.generation &&
+    startupMarkIsGenerationScoped(mark) &&
+    !canReconnectInvalidatedGeneration
+  ) {
+    return
+  }
+  if (startupMarkIsGenerationScoped(mark)) {
+    const isAttachReplacement =
+      mark.label === 'dedicated-host.attach-open-ready' && !!generation
+    const isInitialConnection =
+      mark.label === 'runtime.connected' &&
+      !!generation &&
+      !state.warmProjection.generation
+    if (isAttachReplacement) {
+      if (generation !== state.warmProjection.generation) {
+        replaceWarmProjection(state, generation)
+        state.runtimeClient.state = 'unknown'
+        state.frame.state = 'idle'
+      }
+    } else if (isInitialConnection) {
+      replaceWarmProjection(state, generation)
+      state.runtimeClient.state = 'unknown'
+      state.frame.state = 'idle'
+    } else if (
+      !generation ||
+      !state.warmProjection.generation ||
+      generation !== state.warmProjection.generation
+    ) {
+      return
+    }
+  }
   const phase = startupMarkToPhase[mark.label]
   if (phase && startupMarkCanAdvanceFrame(mark)) {
     advanceStartupPhase(state, phase)
@@ -324,6 +402,10 @@ function applyStartupMark(
     case 'runtime.worker-create-start':
       advanceRuntimeClient(state, 'opening')
       break
+    case 'dedicated-host.attach-open-ready':
+      applyWarmAttachment(state, mark, generation)
+      advanceRuntimeClient(state, 'opening')
+      break
     case 'runtime.wait-ready':
     case 'runtime.wait-conn-ready':
     case 'runtime.event-connected':
@@ -331,6 +413,7 @@ function applyStartupMark(
     case 'runtime.client-connect-ack':
     case 'runtime.connected':
       advanceRuntimeClient(state, 'connected')
+      applyWarmConnection(state, mark, generation)
       break
     case 'service-worker.install-start':
     case 'service-worker.register-start':
@@ -400,12 +483,135 @@ function applyStartupMark(
         advanceFrame(state, 'component-ready')
       }
       break
+    case 'webview.neutral-frame':
+      if (
+        startupMarkCanAdvanceFrame(mark) &&
+        startupMarkIsGenerationScoped(mark) &&
+        generation === state.warmProjection.generation &&
+        state.warmProjection.state !== 'invalidated'
+      ) {
+        state.warmProjection.neutralFrame = true
+        advanceFrame(state, 'component-ready')
+      }
+      break
     case 'webview.revealed':
     case 'webview.loading-surface-revealed':
-      if (startupMarkCanAdvanceFrame(mark)) {
+      if (
+        startupMarkCanAdvanceFrame(mark) &&
+        (!startupMarkIsGenerationScoped(mark) ||
+          (generation === state.warmProjection.generation &&
+            state.warmProjection.state !== 'invalidated' &&
+            state.warmProjection.neutralFrame))
+      ) {
+        state.warmProjection.finalReveal = startupMarkIsGenerationScoped(mark)
         advanceFrame(state, 'revealed')
       }
       break
+  }
+}
+function startupMarkGeneration(
+  mark: BrowserRuntimeStartupMark,
+): string | undefined {
+  for (const key of ['runtimeGeneration', 'hostGeneration', 'generation']) {
+    const value = mark.detail[key]
+    if (typeof value === 'string' && value) {
+      return value
+    }
+  }
+  return undefined
+}
+
+function startupMarkIsGenerationScoped(
+  mark: BrowserRuntimeStartupMark,
+): boolean {
+  if (!startupMarkGeneration(mark)) {
+    return false
+  }
+  return (
+    mark.label === 'dedicated-host.attach-open-ready' ||
+    mark.label === 'runtime.connected' ||
+    mark.label === 'runtime.connection-invalidated' ||
+    mark.label === 'dedicated-host.lost' ||
+    mark.label === 'webview.neutral-frame' ||
+    mark.label === 'webview.revealed' ||
+    mark.label === 'webview.loading-surface-revealed'
+  )
+}
+
+function startupMarkInvalidatesWarmProjection(
+  mark: BrowserRuntimeStartupMark,
+): boolean {
+  return (
+    mark.label === 'runtime.connection-invalidated' ||
+    mark.label === 'dedicated-host.promoted' ||
+    mark.label === 'dedicated-host.lost' ||
+    mark.label === 'runtime.client-channel-reroute-start' ||
+    mark.label === 'runtime.client-channel-rerouted'
+  )
+}
+
+function replaceWarmProjection(
+  state: BrowserRuntimeState,
+  generation?: string,
+): void {
+  state.warmProjection = {
+    state: 'invalidated',
+    generation,
+    connection: false,
+    neutralFrame: false,
+    finalReveal: false,
+  }
+}
+
+function applyWarmAttachment(
+  state: BrowserRuntimeState,
+  mark: BrowserRuntimeStartupMark,
+  generation: string | undefined,
+): void {
+  if (!generation) {
+    return
+  }
+  state.warmProjection = {
+    state: 'warm',
+    generation,
+    mode: 'dedicated-attached',
+    hostDocumentId:
+      typeof mark.detail.hostDocumentId === 'string'
+        ? mark.detail.hostDocumentId
+        : undefined,
+    connection: false,
+    neutralFrame: false,
+    finalReveal: false,
+  }
+}
+
+function applyWarmConnection(
+  state: BrowserRuntimeState,
+  mark: BrowserRuntimeStartupMark,
+  generation: string | undefined,
+): void {
+  if (!generation) {
+    return
+  }
+  const mode =
+    mark.detail.connectionMode === 'shared-worker'
+      ? 'shared-worker'
+      : mark.detail.connectionMode === 'dedicated-attached'
+        ? 'dedicated-attached'
+        : mark.detail.connectionMode === 'dedicated-host'
+          ? 'dedicated-host'
+          : state.warmProjection.mode
+  const warm = mode === 'shared-worker' || mode === 'dedicated-attached'
+  state.warmProjection = {
+    ...state.warmProjection,
+    state: warm ? 'warm' : 'cold',
+    generation,
+    mode,
+    hostDocumentId:
+      typeof mark.detail.hostDocumentId === 'string'
+        ? mark.detail.hostDocumentId
+        : state.warmProjection.hostDocumentId,
+    connection: true,
   }
 }
 

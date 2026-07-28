@@ -44,6 +44,15 @@ type processConfig struct {
 	typeID string
 	ws     world.WorldState
 }
+type pluginReference struct {
+	ref          directive.Reference
+	releaseState func()
+}
+
+func (r pluginReference) release() {
+	r.releaseState()
+	r.ref.Release()
+}
 
 var processRetryBackoff = &backoff.Backoff{
 	BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,
@@ -79,7 +88,7 @@ type Controller struct {
 	// pluginIDs is the current set of plugin IDs from SpaceSettings.
 	// Updated each world watch cycle. Protected by bcast.
 	pluginIDs []string
-	// loadedPlugins tracks plugin IDs with active LoadPlugin refs.
+	// loadedPlugins tracks demanded plugin startup readiness.
 	loadedPlugins loadedplugins.State
 	// processConfigs tracks the current enabled process configuration by object key.
 	processConfigs map[string]processConfig
@@ -173,6 +182,8 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 		return c.resolveFetchManifest(ctx, di, dir)
 	case plugin_list.ListAvailablePlugins:
 		return c.resolveListAvailablePlugins(ctx, di, dir)
+	case objecttype.LookupObjectType:
+		return c.resolveLookupObjectType(dir)
 	}
 	return nil, nil
 }
@@ -196,6 +207,26 @@ func (c *Controller) resolveListAvailablePlugins(
 		plugin_list.NewResolver(c.GetBus(), dir, ids, conf.GetVolumeId(), conf.GetObjectStoreId()),
 		nil,
 	)
+}
+
+func (c *Controller) resolveLookupObjectType(
+	dir objecttype.LookupObjectType,
+) ([]directive.Resolver, error) {
+	engineID := dir.LookupObjectTypeEngineID()
+	if engineID == "" || engineID != c.GetConfig().GetEngineId() {
+		return nil, nil
+	}
+	return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
+		for {
+			pending, waitCh := c.loadedPlugins.HasPendingAndWaitCh()
+			handler.MarkIdle(!pending)
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-waitCh:
+			}
+		}
+	}), nil)
 }
 
 // resolveFetchManifest handles a FetchManifest directive.
@@ -241,13 +272,13 @@ func (c *Controller) resolveFetchManifest(
 func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) error {
 	le := c.GetLogger()
 
-	refs := make(map[string]directive.Reference)
+	refs := make(map[string]pluginReference)
 	defer func() {
 		c.processes.ClearContext()
 		for _, ref := range refs {
-			ref.Release()
+			ref.release()
 		}
-		c.setLoadedPluginIDs(nil)
+		c.loadedPlugins.Reset()
 	}()
 	c.processes.SetContext(ctx, true)
 
@@ -296,12 +327,12 @@ func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) err
 
 // reconcilePlugins reads SpaceSettings from the world and reconciles
 // LoadPlugin directives based on the current plugin_ids.
-func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, refs map[string]directive.Reference) {
+func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, refs map[string]pluginReference) {
 	le := c.GetLogger()
 
 	settings, _, err := space_world.LookupSpaceSettings(ctx, ws)
 	if err != nil {
-		le.WithError(err).Warn("failed to lookup SpaceSettings")
+		warnOnErrorUnlessCanceled(ctx, le, err, "failed to lookup SpaceSettings")
 		return
 	}
 
@@ -323,11 +354,12 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 	for _, pid := range ids {
 		desired[pid] = struct{}{}
 	}
+	c.loadedPlugins.Reconcile(ids)
 
 	// Release directives for plugins removed from SpaceSettings.
 	for pid, ref := range refs {
 		if _, ok := desired[pid]; !ok {
-			ref.Release()
+			ref.release()
 			delete(refs, pid)
 		}
 	}
@@ -338,27 +370,34 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 			continue
 		}
 
-		_, ref, err := c.GetBus().AddDirective(
+		di, ref, err := c.GetBus().AddDirective(
 			bldr_plugin.NewLoadPlugin(pid),
 			nil,
 		)
 		if err != nil {
-			le.WithError(err).Warn("failed to add LoadPlugin directive")
+			warnOnErrorUnlessCanceled(ctx, le, err, "failed to add LoadPlugin directive")
+			c.loadedPlugins.SetPluginState(pid, false, true)
 			continue
 		}
-		refs[pid] = ref
+		pluginID := pid
+		releaseState := di.AddStateCallback(func(
+			isIdle bool,
+			_ []error,
+			vals []directive.AttachedValue,
+		) {
+			running := false
+			if isIdle {
+				for _, val := range vals {
+					if _, ok := val.GetValue().(bldr_plugin.RunningPlugin); ok {
+						running = true
+						break
+					}
+				}
+			}
+			c.loadedPlugins.SetPluginState(pluginID, running, isIdle)
+		})
+		refs[pid] = pluginReference{ref: ref, releaseState: releaseState}
 	}
-	loaded := make([]string, 0, len(refs))
-	for _, pid := range ids {
-		if _, ok := refs[pid]; ok {
-			loaded = append(loaded, pid)
-		}
-	}
-	c.setLoadedPluginIDs(loaded)
-}
-
-func (c *Controller) setLoadedPluginIDs(ids []string) {
-	c.loadedPlugins.Set(ids)
 }
 
 // reconcileProcesses reads process bindings from the platform-account
@@ -385,12 +424,14 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 		nil,
 	)
 	if err != nil {
-		le.WithError(err).Warn("failed to get object store for process bindings")
+		warnOnErrorUnlessCanceled(ctx, le, err, "failed to get object store for process bindings")
 		c.reconcileProcessConfigs(le, nil)
 		return
 	}
 	if handle == nil || ref == nil {
-		le.Warn("process binding object store unavailable")
+		if ctx.Err() == nil {
+			le.Warn("process binding object store unavailable")
+		}
 		c.reconcileProcessConfigs(le, nil)
 		return
 	}
@@ -399,7 +440,7 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 	spaceID := conf.GetSpaceId()
 	bindings, err := process_binding.ListProcessBindings(ctx, handle.GetObjectStore(), spaceID)
 	if err != nil {
-		le.WithError(err).Warn("failed to list process bindings")
+		warnOnErrorUnlessCanceled(ctx, le, err, "failed to list process bindings")
 		return
 	}
 
@@ -418,7 +459,7 @@ func (c *Controller) reconcileProcesses(ctx context.Context, ws world.WorldState
 
 func (c *Controller) reconcileProcessConfigs(le *logrus.Entry, desired map[string]processConfig) {
 	active := c.processes.GetKeysWithData()
-	le.WithField("enabled", len(desired)).WithField("active", len(active)).Debug("reconcileProcesses")
+	le.WithField("enabled", len(desired)).WithField("active", len(active)).Debug("reconciling space processes")
 
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		c.processConfigs = desired

@@ -24,6 +24,9 @@ pub struct Config {
     /// InputWorld is the default value for the "world" input.
     #[prost(message, optional, tag="6")]
     pub input_world: ::core::option::Option<super::super::forge::target::InputWorld>,
+    /// ClaimId is the stable owner token used across controller retries.
+    #[prost(string, tag="7")]
+    pub claim_id: ::prost::alloc::string::String,
 }
 /// ExecConfig is a configuration for the execution routine.
 #[derive(Clone, PartialEq, ::prost::Message)]

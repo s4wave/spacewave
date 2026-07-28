@@ -1,4 +1,4 @@
-//go:build !tinygo && !sql_lite
+//go:build !tinygo
 
 package s4wave_sql_query_result_world
 

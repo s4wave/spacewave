@@ -27,6 +27,8 @@ type SRPCResourceServiceClient interface {
 	// ResourceRefRelease releases a resource given a handle ID.
 	// This is called when no references remain to a resource.
 	ResourceRefRelease(ctx context.Context, in *ResourceRefReleaseRequest) (*ResourceRefReleaseResponse, error)
+	// ResourceRefAdopt acknowledges adoption of a resource created by a held RPC.
+	ResourceRefAdopt(ctx context.Context, in *ResourceRefAdoptRequest) (*ResourceRefAdoptResponse, error)
 	// ResourceAttach allows a client to provide resources that server-side
 	// RPC handlers can invoke via getAttachedRef(id). Session-only Init/Ack,
 	// then resources registered via Add/AddAck. After Init/Ack, mux_data
@@ -134,6 +136,15 @@ func (c *srpcResourceServiceClient) ResourceRefRelease(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *srpcResourceServiceClient) ResourceRefAdopt(ctx context.Context, in *ResourceRefAdoptRequest) (*ResourceRefAdoptResponse, error) {
+	out := new(ResourceRefAdoptResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ResourceRefAdopt", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcResourceServiceClient) ResourceAttach(ctx context.Context) (SRPCResourceService_ResourceAttachClient, error) {
 	stream, err := c.cc.NewStream(ctx, c.serviceID, "ResourceAttach", nil)
 	if err != nil {
@@ -186,6 +197,8 @@ type SRPCResourceServiceServer interface {
 	// ResourceRefRelease releases a resource given a handle ID.
 	// This is called when no references remain to a resource.
 	ResourceRefRelease(context.Context, *ResourceRefReleaseRequest) (*ResourceRefReleaseResponse, error)
+	// ResourceRefAdopt acknowledges adoption of a resource created by a held RPC.
+	ResourceRefAdopt(context.Context, *ResourceRefAdoptRequest) (*ResourceRefAdoptResponse, error)
 	// ResourceAttach allows a client to provide resources that server-side
 	// RPC handlers can invoke via getAttachedRef(id). Session-only Init/Ack,
 	// then resources registered via Add/AddAck. After Init/Ack, mux_data
@@ -222,6 +235,7 @@ func (SRPCResourceServiceHandler) GetMethodIDs() []string {
 		"ResourceClient",
 		"ResourceRpc",
 		"ResourceRefRelease",
+		"ResourceRefAdopt",
 		"ResourceAttach",
 	}
 }
@@ -241,6 +255,8 @@ func (d *SRPCResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_ResourceRpc(d.impl, strm)
 	case "ResourceRefRelease":
 		return true, d.InvokeMethod_ResourceRefRelease(d.impl, strm)
+	case "ResourceRefAdopt":
+		return true, d.InvokeMethod_ResourceRefAdopt(d.impl, strm)
 	case "ResourceAttach":
 		return true, d.InvokeMethod_ResourceAttach(d.impl, strm)
 	default:
@@ -268,6 +284,18 @@ func (SRPCResourceServiceHandler) InvokeMethod_ResourceRefRelease(impl SRPCResou
 		return err
 	}
 	out, err := impl.ResourceRefRelease(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCResourceServiceHandler) InvokeMethod_ResourceRefAdopt(impl SRPCResourceServiceServer, strm srpc.Stream) error {
+	req := new(ResourceRefAdoptRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ResourceRefAdopt(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -344,6 +372,14 @@ type SRPCResourceService_ResourceRefReleaseStream interface {
 }
 
 type srpcResourceService_ResourceRefReleaseStream struct {
+	srpc.Stream
+}
+
+type SRPCResourceService_ResourceRefAdoptStream interface {
+	srpc.Stream
+}
+
+type srpcResourceService_ResourceRefAdoptStream struct {
 	srpc.Stream
 }
 

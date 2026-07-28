@@ -186,7 +186,7 @@ export function BillingAssignmentsSection({
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={menuDisabled}>
             <DropdownTriggerButton icon={<LuLink className="size-3" />}>
-              {assigning ? 'Assigning...' : 'Assign to...'}
+              {assigning ? 'Assigning…' : 'Assign to…'}
             </DropdownTriggerButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">

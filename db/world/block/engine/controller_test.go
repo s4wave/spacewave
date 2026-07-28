@@ -307,8 +307,8 @@ func TestControllerEngineSurvivesExecuteRestartUntilClose(t *testing.T) {
 	assertClosed := func(name string, eng Engine) {
 		t.Helper()
 		_, err := eng.GetSeqno(ctx)
-		if err == nil || !strings.Contains(err.Error(), "world block engine is closed") {
-			t.Fatalf("%s engine error after Close = %v, want world block engine is closed", name, err)
+		if !errors.Is(err, world_block.ErrEngineClosed) {
+			t.Fatalf("%s engine error after Close = %v, want %v", name, err, world_block.ErrEngineClosed)
 		}
 	}
 

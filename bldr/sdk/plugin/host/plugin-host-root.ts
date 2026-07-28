@@ -52,4 +52,10 @@ export class PluginHostRoot extends Resource {
   async getPluginInfo(signal?: AbortSignal) {
     return this.svc.GetPluginInfo({}, signal)
   }
+
+  // completeInitialCapabilityRegistration marks the entrypoint's startup
+  // capability-registration pass complete.
+  async completeInitialCapabilityRegistration(signal?: AbortSignal) {
+    return this.svc.CompleteInitialCapabilityRegistration({}, signal)
+  }
 }

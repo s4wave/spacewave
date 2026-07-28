@@ -55,12 +55,9 @@ describe('PairCodePage', () => {
     }
 
     render(<PairCodePage session={session as never} />)
-    fireEvent.change(
-      screen.getByPlaceholderText('Paste offer payload here...'),
-      {
-        target: { value: 'offer-payload' },
-      },
-    )
+    fireEvent.change(screen.getByPlaceholderText('Paste offer payload here…'), {
+      target: { value: 'offer-payload' },
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Accept offer' }))
 
     expect(await screen.findByText('Verification failed')).toBeDefined()

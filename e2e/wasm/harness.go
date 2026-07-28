@@ -34,6 +34,7 @@ import (
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	bldr_project_controller "github.com/s4wave/spacewave/bldr/project/controller"
 	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
+	bldr_statepath "github.com/s4wave/spacewave/bldr/statepath"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
@@ -92,6 +93,7 @@ type Harness struct {
 	stateRoot                 string
 	preserveStartupBuildCache bool
 	stateRootOwner            harnessStateRootOwner
+	stateRootLock             *os.File
 }
 
 // resolveHeadless determines whether the browser should run headless.
@@ -162,14 +164,40 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	if err != nil {
 		return nil, err
 	}
-	if preserveStartupBuildCache {
-		le.WithField("state-root", stateRoot).Info("preserving e2e wasm startup build cache")
-	}
-	if err := clearHarnessStateRoot(stateRoot, preserveStartupBuildCache); err != nil {
-		return nil, err
-	}
 	if err := os.MkdirAll(stateRoot, 0o755); err != nil {
 		return nil, errors.Wrap(err, "create state root")
+	}
+	stateRootLock, acquired, err := acquireHarnessStateRootLock(stateRoot)
+	if err != nil {
+		return nil, err
+	}
+	if !acquired {
+		if !preserveStartupBuildCache {
+			return nil, errors.Errorf("e2e wasm state root is already owned: %s", stateRoot)
+		}
+		sharedStateRoot := stateRoot
+		stateRoot, err = buildHarnessStateRoot(repoRoot, false)
+		if err != nil {
+			return nil, err
+		}
+		preserveStartupBuildCache = false
+		if err := os.MkdirAll(stateRoot, 0o755); err != nil {
+			return nil, errors.Wrap(err, "create isolated state root")
+		}
+		stateRootLock, acquired, err = acquireHarnessStateRootLock(stateRoot)
+		if err != nil {
+			return nil, err
+		}
+		if !acquired {
+			return nil, errors.Errorf("isolated e2e wasm state root is already owned: %s", stateRoot)
+		}
+		le.WithFields(logrus.Fields{
+			"state-root":          sharedStateRoot,
+			"isolated-state-root": stateRoot,
+		}).Info("isolating concurrent e2e wasm startup build cache")
+	}
+	if preserveStartupBuildCache {
+		le.WithField("state-root", stateRoot).Info("preserving e2e wasm startup build cache")
 	}
 
 	hctx, cancel := context.WithCancel(ctx)
@@ -189,6 +217,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		stateRoot:                 stateRoot,
 		preserveStartupBuildCache: preserveStartupBuildCache,
 		stateRootOwner:            stateRootOwner,
+		stateRootLock:             stateRootLock,
 	}
 	defer func() {
 		if retErr != nil {
@@ -199,6 +228,9 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		if err := writeHarnessStateRootOwner(stateRoot, stateRootOwner); err != nil {
 			return nil, err
 		}
+	}
+	if err := bldr_statepath.ClearBuildState(stateRoot, preserveStartupBuildCache); err != nil {
+		return nil, err
 	}
 
 	d, err := devtool.BuildDevtoolBus(hctx, le, repoRoot, stateRoot, false)
@@ -530,6 +562,12 @@ func (h *Harness) Release() {
 	h.releaseManifestFetches()
 	if h.devtool != nil {
 		h.devtool.Release()
+	}
+	if h.stateRootLock != nil {
+		if err := h.stateRootLock.Close(); err != nil && h.le != nil {
+			h.le.WithError(err).WithField("state-root", h.stateRoot).Error("release e2e wasm state root lock")
+		}
+		h.stateRootLock = nil
 	}
 	if h.stateRoot != "" && !h.preserveStartupBuildCache {
 		if err := os.RemoveAll(h.stateRoot); err != nil && h.le != nil {
@@ -1116,6 +1154,7 @@ func resolveLocalModulePath(repoRoot, path string) (string, bool) {
 }
 
 const (
+	harnessStateRootLockName           = ".e2e-lock"
 	harnessStateRootOwnerName          = ".e2e-owner"
 	harnessMarkerlessStateRootMaxAge   = 24 * time.Hour
 	harnessStateRootTokenBytes         = 16
@@ -1126,6 +1165,23 @@ type harnessStateRootOwner struct {
 	pid             int
 	createdUnixNano int64
 	token           string
+}
+
+func acquireHarnessStateRootLock(stateRoot string) (*os.File, bool, error) {
+	lock, err := os.OpenFile(filepath.Join(stateRoot, harnessStateRootLockName), os.O_CREATE|os.O_RDWR, 0o644)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "open state root lock")
+	}
+	if err := unix.Flock(int(lock.Fd()), unix.LOCK_EX|unix.LOCK_NB); err != nil {
+		if closeErr := lock.Close(); closeErr != nil {
+			return nil, false, errors.Wrapf(err, "close state root lock after claim failure: %v", closeErr)
+		}
+		if err == unix.EWOULDBLOCK || err == unix.EAGAIN {
+			return nil, false, nil
+		}
+		return nil, false, errors.Wrap(err, "claim state root lock")
+	}
+	return lock, true, nil
 }
 
 func newHarnessStateRootOwner() (harnessStateRootOwner, error) {
@@ -1303,39 +1359,4 @@ func buildHarnessStateRoot(repoRoot string, preserveStartupBuildCache bool) (str
 	sum := sha256.Sum256([]byte(tokenInput))
 	token := hex.EncodeToString(sum[:4])
 	return filepath.Join(stateRoot, label+"-"+token), nil
-}
-
-var harnessStartupBuildCacheGlobs = []string{
-	"devtool.db*",
-	"devtool.s4wave*",
-}
-
-var harnessTransientStateCleanupGlobs = []string{
-	"logs",
-	"src",
-	"plugin",
-	"build",
-	"cli",
-}
-
-// clearHarnessStateRoot removes the transient .bldr entries that the harness
-// needs to rebuild from a clean state. This matches the repo clean target more
-// closely than deleting the entire .bldr tree.
-func clearHarnessStateRoot(stateRoot string, preserveStartupBuildCache bool) error {
-	patterns := harnessTransientStateCleanupGlobs
-	if !preserveStartupBuildCache {
-		patterns = append(slices.Clone(harnessStartupBuildCacheGlobs), patterns...)
-	}
-	for _, pattern := range patterns {
-		matches, err := filepath.Glob(filepath.Join(stateRoot, pattern))
-		if err != nil {
-			return errors.Wrapf(err, "expand state cleanup pattern %q", pattern)
-		}
-		for _, path := range matches {
-			if err := os.RemoveAll(path); err != nil {
-				return errors.Wrapf(err, "remove state path %s", path)
-			}
-		}
-	}
-	return nil
 }

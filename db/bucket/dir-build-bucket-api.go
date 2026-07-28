@@ -1,5 +1,3 @@
-//go:build !sql_lite
-
 package bucket
 
 import (

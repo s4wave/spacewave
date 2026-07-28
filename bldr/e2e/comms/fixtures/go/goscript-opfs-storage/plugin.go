@@ -28,22 +28,24 @@ func run() {
 	}()
 
 	mode := readMode()
+	var err error
 	switch mode {
 	case "write":
-		if err := writeProofData(); err != nil {
-			postFailure(err)
-			return
-		}
-		postMessage(map[string]any{"type": "opfs-done", "mode": mode})
+		err = writeProofData()
 	case "read":
-		if err := readProofData(); err != nil {
-			postFailure(err)
-			return
-		}
-		postMessage(map[string]any{"type": "opfs-done", "mode": mode})
+		err = readProofData()
 	default:
-		postFailure(errors.Errorf("unknown mode %q", mode))
+		err = errors.Errorf("unknown mode %q", mode)
 	}
+	if err != nil {
+		postFailure(err)
+		return
+	}
+	if err := markReady(); err != nil {
+		postFailure(err)
+		return
+	}
+	postMessage(map[string]any{"type": "opfs-done", "mode": mode})
 }
 
 func readMode() string {
@@ -88,6 +90,15 @@ func readProofData() error {
 		return errors.Errorf("read %q, want %q", string(data), payload)
 	}
 	return opfs.DeleteEntry(root, dirName, true)
+}
+
+func markReady() error {
+	ready := js.Global().Get("BLDR_PLUGIN_MARK_READY")
+	if ready.IsUndefined() || ready.IsNull() || ready.Type() != js.TypeFunction {
+		return errors.New("BLDR_PLUGIN_MARK_READY is not a function")
+	}
+	ready.Invoke()
+	return nil
 }
 
 func postFailure(err error) {

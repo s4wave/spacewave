@@ -33,9 +33,15 @@ type pluginInstance struct {
 	loggedNotFound atomic.Bool
 	// manifestCopyAccounting owns demand and copy counters for the selected candidate.
 	manifestCopyAccounting atomic.Pointer[manifestCopyAccounting]
+	// manifestSelectionFingerprint is the last input set fully processed by
+	// watchWorldManifestRoutine.
+	manifestSelectionFingerprint atomic.Pointer[manifestSelectionInput]
 
 	// runningPluginCtr contains the running plugin ref
 	runningPluginCtr *ccontainer.CContainer[bldr_plugin.RunningPlugin]
+	// pluginLoadStateCtr atomically tracks the RPC client and initial
+	// capability-registration state.
+	pluginLoadStateCtr *ccontainer.CContainer[bldr_plugin.PluginLoadState]
 
 	// distAccess owns the lifetime of the plugin dist fs access provider
 	distAccess *unixfs_access.RotatingAccess
@@ -63,6 +69,12 @@ func (t *pluginInstance) GetRunningPluginCtr() ccontainer.Watchable[bldr_plugin.
 	return t.runningPluginCtr
 }
 
+// GetPluginLoadStateCtr returns the atomic RPC-client and initial
+// capability-registration state for the plugin instance.
+func (t *pluginInstance) GetPluginLoadStateCtr() ccontainer.Watchable[bldr_plugin.PluginLoadState] {
+	return t.pluginLoadStateCtr
+}
+
 // newPluginInstance constructs a new execute plugin routine.
 // key is the composite key: pluginID or pluginID/instanceKey.
 func (c *Controller) newPluginInstance(key string) (keyed.Routine, *pluginInstance) {
@@ -72,11 +84,17 @@ func (c *Controller) newPluginInstance(key string) (keyed.Routine, *pluginInstan
 		le = le.WithField("instance-key", instanceKey)
 	}
 	tr := &pluginInstance{
-		c:                  c,
-		le:                 le,
-		pluginID:           pluginID,
-		instanceKey:        instanceKey,
-		runningPluginCtr:   ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
+		c:                c,
+		le:               le,
+		pluginID:         pluginID,
+		instanceKey:      instanceKey,
+		runningPluginCtr: ccontainer.NewCContainer[bldr_plugin.RunningPlugin](nil),
+		pluginLoadStateCtr: ccontainer.NewCContainer[bldr_plugin.PluginLoadState](
+			bldr_plugin.NewPluginLoadState(
+				nil,
+				bldr_plugin.InitialCapabilityRegistrationPending,
+			),
+		),
 		manifestCopyStatus: ccontainer.NewCContainer[*manifestCopyStatus](nil),
 		distAccess:         unixfs_access.NewRotatingAccess(),
 		assetsAccess:       unixfs_access.NewRotatingAccess(),

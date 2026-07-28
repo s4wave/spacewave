@@ -8,6 +8,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	world_control "github.com/s4wave/spacewave/db/world/control"
+	execution_transaction "github.com/s4wave/spacewave/forge/execution/tx"
 	forge_pass "github.com/s4wave/spacewave/forge/pass"
 	pass_transaction "github.com/s4wave/spacewave/forge/pass/tx"
 	forge_target "github.com/s4wave/spacewave/forge/target"
@@ -47,9 +48,10 @@ func (c *Controller) ProcessState(
 	}
 	_ = tgt
 
-	// signal to the controller to stop watching for exec states
+	// Keep observing linked executions while they run or drain.
 	currState := passState.GetPassState()
-	if currState != forge_pass.State_PassState_RUNNING {
+	if currState != forge_pass.State_PassState_RUNNING &&
+		currState != forge_pass.State_PassState_CANCELING {
 		c.pushWatchExecStates(nil)
 	}
 
@@ -66,6 +68,35 @@ func (c *Controller) ProcessState(
 	}
 
 	execStates := passState.GetExecStates()
+	if currState == forge_pass.State_PassState_CANCELING {
+		executions, executionKeys, err := forge_pass.CollectPassExecutions(ctx, ws, objKey)
+		if err != nil {
+			return true, err
+		}
+		for i, execution := range executions {
+			if execution.IsComplete() {
+				continue
+			}
+			executionObj, err := world.MustGetObject(ctx, ws, executionKeys[i])
+			if err != nil {
+				return true, err
+			}
+			_, _, err = executionObj.ApplyObjectOp(
+				ctx,
+				execution_transaction.NewTxCancel(),
+				c.peerID,
+			)
+			if err != nil {
+				return true, err
+			}
+		}
+
+		c.pushWatchExecStates(passState.GetExecStates())
+		txd := pass_transaction.NewTxUpdateExecStates(objKey)
+		_, _, err = ws.ApplyWorldOp(ctx, txd, c.peerID)
+		return true, err
+	}
+
 	if currState == forge_pass.State_PassState_CHECKING {
 		// asserts that len(execStates) != 0
 		if err := passState.Validate(false); err != nil {

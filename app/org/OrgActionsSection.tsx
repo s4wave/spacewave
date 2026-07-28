@@ -169,7 +169,7 @@ function DeleteOrgDialog(props: {
               'disabled:cursor-not-allowed disabled:opacity-50',
             )}
           >
-            {deleting ? 'Deleting...' : 'Delete Organization'}
+            {deleting ? 'Deleting…' : 'Delete Organization'}
           </button>
         </DialogFooter>
       </DialogContent>

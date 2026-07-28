@@ -12,11 +12,16 @@ import (
 )
 
 // NewTxStart constructs a new START transaction.
-func NewTxStart(peerID peer.ID) *Tx {
+func NewTxStart(peerID peer.ID, claimIDs ...string) *Tx {
+	claimID := implicitClaim.GetClaimId()
+	if len(claimIDs) != 0 {
+		claimID = claimIDs[0]
+	}
 	return &Tx{
 		TxType: TxType_TxType_START,
 		TxStart: &TxStart{
-			PeerId: peerID.String(),
+			PeerId:  peerID.String(),
+			ClaimId: claimID,
 		},
 	}
 }
@@ -40,6 +45,9 @@ func (t *TxStart) Validate() error {
 	if _, err := t.ParsePeerID(); err != nil {
 		return err
 	}
+	if t.GetClaimId() == "" {
+		return errors.New("claim_id cannot be empty")
+	}
 	return nil
 }
 
@@ -50,16 +58,6 @@ func (t *TxStart) ExecuteTx(
 	exCursor *block.Cursor,
 	root *forge_execution.Execution,
 ) error {
-	// ensure PENDING
-	execState := root.GetExecutionState()
-	if execState != forge_execution.State_ExecutionState_PENDING {
-		return errors.Wrapf(
-			forge_value.ErrUnknownState,
-			"%s", execState.String(),
-		)
-	}
-
-	// ensure peer id matches sender peer id
 	txPeerID, err := t.ParsePeerID()
 	if err != nil {
 		return err
@@ -67,24 +65,55 @@ func (t *TxStart) ExecuteTx(
 	if len(txPeerID) == 0 {
 		return peer.ErrEmptyPeerID
 	}
-	if len(sender) != 0 {
-		if sender != txPeerID {
-			return errors.Errorf(
-				"tx body peer id %s must match sender %s",
-				txPeerID.String(), sender.String(),
-			)
-		}
+	if len(sender) != 0 && sender != txPeerID {
+		return errors.Errorf(
+			"tx body peer id %s must match sender %s",
+			txPeerID.String(), sender.String(),
+		)
 	}
-
-	// promote to RUNNING
-	root.ExecutionState = forge_execution.State_ExecutionState_RUNNING
-	exCursor.SetBlock(root, true)
-
-	if err := root.Validate(); err != nil {
+	if err := root.CheckPeerID(txPeerID); err != nil {
 		return err
 	}
+	if t.GetClaimId() == "" {
+		return errors.New("claim_id cannot be empty")
+	}
 
-	return nil
+	execState := root.GetExecutionState()
+	switch execState {
+	case forge_execution.State_ExecutionState_PENDING:
+	case forge_execution.State_ExecutionState_RUNNING,
+		forge_execution.State_ExecutionState_CANCELING:
+		claim := root.GetClaim()
+		if claim != nil {
+			if claim.GetClaimId() != t.GetClaimId() {
+				return &ClaimHeldError{
+					ClaimID: claim.GetClaimId(),
+					Epoch:   claim.GetEpoch(),
+				}
+			}
+			return nil
+		}
+	default:
+		return errors.Wrapf(
+			forge_value.ErrUnknownState,
+			"%s", execState.String(),
+		)
+	}
+
+	claimEpoch := root.GetClaim().GetEpoch() + 1
+	if claimEpoch == 0 {
+		return errors.New("execution claim epoch overflow")
+	}
+	root.Claim = &forge_execution.Claim{
+		ClaimId: t.GetClaimId(),
+		Epoch:   claimEpoch,
+	}
+	if execState == forge_execution.State_ExecutionState_PENDING {
+		root.ExecutionState = forge_execution.State_ExecutionState_RUNNING
+	}
+	exCursor.SetBlock(root, true)
+
+	return root.Validate()
 }
 
 // ParsePeerID parses the peer ID field.

@@ -56,6 +56,12 @@ export interface Config {
    * @generated from field: forge.target.InputWorld input_world = 6;
    */
   inputWorld?: InputWorld
+  /**
+   * ClaimId is the stable owner token used across controller retries.
+   *
+   * @generated from field: string claim_id = 7;
+   */
+  claimId?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -77,6 +83,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: ScalarType.BOOL,
     },
     { no: 6, name: 'input_world', kind: 'message', T: () => InputWorld },
+    { no: 7, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

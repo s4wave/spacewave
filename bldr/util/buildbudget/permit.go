@@ -1,5 +1,3 @@
-//go:build !js
-
 package bldr_buildbudget
 
 import "sync"

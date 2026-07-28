@@ -5,6 +5,7 @@ package volume_bolt
 import (
 	"context"
 	"os"
+	"path/filepath"
 
 	bdb "github.com/aperturerobotics/bbolt"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -83,7 +84,7 @@ func NewBolt(
 
 	boltDB := store.GetDB()
 	path := conf.GetPath()
-	vol, err := kvtx.NewVolume(
+	vol, err := kvtx.NewVolumeWithWorldEngineLeaseProvider(
 		ctx,
 		ControllerID,
 		kvkey,
@@ -113,6 +114,7 @@ func NewBolt(
 				BlockCount: count,
 			}, nil
 		},
+		volume.NewFileWorldEngineLeaseProvider(filepath.Dir(path), path),
 		closeFn,
 		func() error { return os.Remove(path) },
 	)

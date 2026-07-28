@@ -15,80 +15,17 @@ on:
       - 'CHANGELOG.org'
   workflow_dispatch:
 
-# Queue CI by branch/PR instead of canceling older runs. Canceling makes older
-# commits show failed/canceled CI even when the newer HEAD is the only commit we
-# care about. The head-check job below lets a queued run skip the expensive test
-# matrix when it finally starts and discovers that it is no longer branch or PR
-# HEAD. If this policy does not work out, drop this concurrency block, delete
-# head-check, and remove the head-check needs/if gates below; the fallback should
-# be GitHub's default behavior, where every CI run starts and all CI executes for
-# every commit.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
-  queue: max
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  head-check:
-    name: Check current HEAD
-    runs-on: ubuntu-latest
-    outputs:
-      should_run: ${{ steps.head.outputs.should_run }}
-    steps:
-      - name: Check whether this CI run is still current
-        id: head
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          GITHUB_SHA_VALUE: ${{ github.sha }}
-          GITHUB_REF_VALUE: ${{ github.ref }}
-          GITHUB_API_URL_VALUE: ${{ github.api_url }}
-          GITHUB_REPOSITORY_VALUE: ${{ github.repository }}
-          GITHUB_TOKEN_VALUE: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          set -euo pipefail
-
-          github_api() {
-            curl -fsSL \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer $GITHUB_TOKEN_VALUE" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              "$GITHUB_API_URL_VALUE$1"
-          }
-
-          case "$EVENT_NAME" in
-          pull_request)
-            latest="$(github_api "/repos/$GITHUB_REPOSITORY_VALUE/pulls/$PR_NUMBER" | jq -r '.head.sha')"
-            expected="$PR_HEAD_SHA"
-            ;;
-          push)
-            latest="$(github_api "/repos/$GITHUB_REPOSITORY_VALUE/git/ref/${GITHUB_REF_VALUE#refs/}" | jq -r '.object.sha')"
-            expected="$GITHUB_SHA_VALUE"
-            ;;
-          *)
-            latest="$GITHUB_SHA_VALUE"
-            expected="$GITHUB_SHA_VALUE"
-            ;;
-          esac
-
-          if [ "$latest" = "$expected" ]; then
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "CI run is current at $expected."
-            exit 0
-          fi
-
-          echo "should_run=false" >> "$GITHUB_OUTPUT"
-          echo "Skipping stale CI run for $expected; latest HEAD is ${latest:-unknown}."
-
   member-ci:
     name: CI (${{ matrix.member.name }})
     runs-on: ubuntu-latest
-    needs: head-check
-    if: ${{ needs.head-check.outputs.should_run == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -140,11 +77,11 @@ jobs:
             check_script: ''
             lint_go_script: lint:go:e2e
             lint_js_script: ''
-            test_go_script: ''
+            test_go_script: test:go:e2e:wasm:slice-coverage
             test_js_script: ''
           - name: db
             build_script: ''
-            check_script: ''
+            check_script: check:go:startup-trace
             lint_go_script: lint:go:db
             lint_js_script: lint:js:db
             test_go_script: test:go:db
@@ -157,13 +94,17 @@ jobs:
             test_go_script: test:go:identity
             test_js_script: test:js:identity
 
-    timeout-minutes: 15
+    # A typical member run finishes in ten minutes, so a fifteen minute budget
+    # leaves a slow runner no room: the job is killed, and GitHub reports that
+    # kill as "cancelled", which reads as a superseded run rather than a
+    # defect. Runner minutes are cheaper than that misreading.
+    timeout-minutes: 25
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
@@ -209,14 +150,12 @@ jobs:
   licenses:
     name: Licenses
     runs-on: ubuntu-latest
-    needs: head-check
-    if: ${{ needs.head-check.outputs.should_run == 'true' }}
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
@@ -281,8 +220,6 @@ jobs:
   e2e-go:
     name: E2E (${{ matrix.suite.name }})
     runs-on: ubuntu-latest
-    needs: head-check
-    if: ${{ needs.head-check.outputs.should_run == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -319,10 +256,10 @@ jobs:
             timeout_minutes: 20
     timeout-minutes: ${{ matrix.suite.timeout_minutes }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
@@ -355,33 +292,47 @@ jobs:
   e2e-wasm:
     name: E2E (wasm / ${{ matrix.slice.name }})
     runs-on: ubuntu-latest
-    needs: head-check
-    if: ${{ needs.head-check.outputs.should_run == 'true' }}
     strategy:
       fail-fast: false
       matrix:
         slice:
           - name: support
-            run: '^(TestE2ECloudAuthConfigEndpoint|TestStableE2ECloudAuthConfigAddr|TestApplyE2ECloudAuthConfigEndpoint|TestCompileTestScripts|TestCrashReportClassifiesGoFatalAndExitedGoLoop|TestDrainCrashReportDoesNotWaitForFutureMessages|TestTrace(CaptureBytes|CaptureWritesFile|PathDerivation|WindowControl|PolicyBehavior)|Test(Enable(TinyGo|GoScript)ForManifest|ResolveE2EWasmCompiler(RejectsInvalid|RejectsLegacyTinyGoEnv)?|Configure(TinyGoForManifest(RemovesDebugTrace|RemovesSessionHarnessWebRTC|DeterministicConfig)|GoScriptForManifestRemovesSeedRuntimeConfig)|StartupBuildCacheDefaultsToTinyGo|WorkerMode(DefaultsToDedicated|SelectsSharedWorker)|ApplyE2EWasmTinyGoCompilerEnv(DefaultsToFastProfile|CopiesExplicitDebugKnobs)|ClearHarnessStateRoot(PreservesStartupBuildCache|RemovesStartupBuildCache)|BrowserPeerErrorClassification|PeerWatcher(ReturnsNewestObservation|ObservationAfterSkipsStalePeers)|ResourceConnectionTimingSnapshot))$'
+            run: '^(TestE2ECloudAuthConfigEndpoint|TestStableE2ECloudAuthConfigAddr|TestApplyE2ECloudAuthConfigEndpoint|TestCompileTestScripts|TestCrashReportClassifiesGoFatalAndExitedGoLoop|TestDrainCrashReportDoesNotWaitForFutureMessages|TestTrace(CaptureBytes|CaptureWritesFile|PathDerivation|WindowControl|PolicyBehavior)|Test(Enable(TinyGo|GoScript)ForManifest|ResolveE2EWasmCompiler(RejectsInvalid|RejectsLegacyTinyGoEnv)?|Configure(TinyGoForManifest(RemovesDebugTrace|RemovesSessionHarnessWebRTC|DeterministicConfig)|GoScriptForManifestRemovesSeedRuntimeConfig)|StartupBuildCacheDefaultsToTinyGo|WorkerMode(DefaultsToDedicated|SelectsSharedWorker)|ApplyE2EWasmTinyGoCompilerEnv(DefaultsToFastProfile|CopiesExplicitDebugKnobs)|ClearHarnessStateRoot(PreservesStartupBuildCache|RemovesStartupBuildCache)|BrowserPeerErrorClassification|PeerWatcher(ReturnsNewestObservation|ObservationAfterSkipsStalePeers)|ResourceConnectionTimingSnapshot)|Test(BuildHarnessStateRootKeepsCachedRunsStable|ChromiumLaunchOptions|ConfigureGoScriptBrowserStartupUsesLauncherCoreAndBuildsSQL|ConfigureGoScriptForManifestPreservesTraceService|ConfigureGoScriptForManifestRetainsSessionHarnessWebRTC|CrashReport(IgnoresBenignNormalCloseTeardownAbort|StillCatchesRealAbortPageError)|E2EWasm(BrowserWebRTCEnabled|DriveBenchJSProfileEnabled|TraceServiceEnabled)|HarnessStateRoot(ConcurrentOwnersUseDistinctRoots|OwnerMarkerRoundTrip|ReleaseStopsConsumersBeforeUnlock|SerialOwnersReuseStableRoot)|ReapHarnessCacheOffStateRoots(DeletesDeadPIDMarker|DeletesOldMarkerlessStateRoot|PreservesLivePIDMarker|PreservesStableStateRoot|PreservesYoungMarkerlessStateRoot)|ResolveBldrDependencyUsesExplicitSpacewaveRepoRoot|ResolveE2EWasmManifestBuildTimeout(RejectsInvalid)?|StartupBuildCacheDefaultsOnWithExplicitFreshBuildEscape|Summarize(BrowserCPUProfileBucketsSamples|TraceBuildsOperationShapeFromTasksAndLogs)|TransientAppWaitErrorIncludesStartupNavigation|WaitForCountConsumesOwnerUpdates))$'
             timeout_minutes: 20
           - name: harness
-            run: '^(TestWasmHarness.*|TestSessionHarnessPeerInfo|TestMultiSessionPeerDiscovery|TestSignalRelayCrossConnect|TestEndToEndLinkEstablishment|TestBrowser(LaunchFromGo|SessionIsolation|HelpersAndRawAccess|RouteNavigation)|TestRetainedState(PageSessionReusesWarmContext|ResourceSessionSupportsSequentialReuse|SessionReleaseCleansPerSessionState)|TestRootResourceMount|TestSessionMount|TestSpaceMountAfterQuickstart|TestResourceSetupHelpers)$'
+            package: scenario
+            tags: first-use
+            run: '^TestScenarios$'
             timeout_minutes: 40
+          - name: wasm-harness-retained
+            run: '^(TestWasmHarness(Boot|PackageLifecycle|Readiness|Teardown)|TestBrowserSessionIsolation|TestMultiSessionPeerDiscovery|Test(RootResourceMount|SessionMount|SpaceMountAfterQuickstart))$'
+            timeout_minutes: 30
           - name: drive
-            run: '^(TestQuickstartDrive(Route|DirectRouteStartup|NavigateHomeFromNestedDir|DeleteSpace|Trace|NavigateTrace|UploadCrashRecovery|SingleEntryRowMove|VideoPreview)|TestDriveScenarioSequence|TestDriveNavigationBurstTrace|TestExistingDriveOpenMeasurement)$'
+            package: scenario
+            tags: drive
+            run: '^TestScenarios$'
+            timeout_minutes: 40
+          - name: drive-retained
+            run: '^(TestQuickstartDriveVideoPreview|TestExistingDriveOpenMeasurement|TestDriveNavigationBurstTrace|TestGoScriptDriveBrowserPreviewRenameUIParity)$'
             timeout_minutes: 40
           - name: forge-blog
             run: '^(TestQuickstartForge(Route|Trace)|TestForge(ScenarioSequence|WorkerExecution)|TestBlog(CoexistenceScenario|QuickstartSetupProbe|QuickstartRetainedStateRegistrationProbe))$'
             timeout_minutes: 20
           - name: session-sync
-            run: '^(TestLocalOnboardingScenario|TestMultiSessionScenario|TestNoCloud(AnonymousParticipantSync|PairingDirect)|TestBackgroundThrottledLifecycle|TestRecreatedPageSharedObjectHealthGuard|TestRetainedStatePagePeerProbe)$'
+            run: '^(TestLocalOnboardingScenario|TestMultiSessionScenario|TestNoCloud(AnonymousParticipantSync|PairingDirect)|TestRecreatedPageSharedObjectHealthGuard|TestRetainedStatePagePeerProbe)$'
             timeout_minutes: 30
+          - name: web-lifecycle-host
+            run: '^(TestDedicatedWorkerHostMultiTab|TestWebDocumentLivenessLockReleaseNoDeletion)$'
+            timeout_minutes: 40
+          - name: web-lifecycle-session
+            run: '^(TestBackgroundThrottledLifecycle|TestNeverFocusedBackgroundTabLoads|TestServiceWorkerRestartRecoversBldrWebHarness)$'
+            timeout_minutes: 40
     timeout-minutes: ${{ matrix.slice.timeout_minutes }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
@@ -425,32 +376,55 @@ jobs:
         env:
           ENABLE_E2E_WASM: 'true'
           E2E_WASM_STARTUP_BUILD_CACHE: 'false'
+          E2E_SCENARIO_TAGS: ${{ matrix.slice.tags }}
           GO_TEST_REPORT_TITLE: E2E (wasm / ${{ matrix.slice.name }})
           WASM_TEST_RUN: ${{ matrix.slice.run }}
-        run: bun scripts/go-test-report.ts -- go test -json -count=1 -timeout=30m -run "$WASM_TEST_RUN" ./e2e/wasm
+        run: |
+          if [ "${{ matrix.slice.package }}" = "scenario" ]; then
+            bun scripts/go-test-report.ts -- go test -json -count=1 -tags e2e_scenario -timeout=${{ matrix.slice.timeout_minutes }}m -run "$WASM_TEST_RUN" ./e2e/scenario
+          else
+            bun scripts/go-test-report.ts -- go test -json -count=1 -timeout=${{ matrix.slice.timeout_minutes }}m -run "$WASM_TEST_RUN" ./e2e/wasm
+          fi
 
   e2e-wasm-complete:
     name: E2E (wasm)
     runs-on: ubuntu-latest
-    needs:
-      - head-check
-      - e2e-wasm
-    if: ${{ always() && needs.head-check.outputs.should_run == 'true' }}
+    needs: e2e-wasm
+    if: ${{ always() }}
     timeout-minutes: 5
+    permissions:
+      actions: read
     steps:
       - name: Check wasm E2E slices
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "${{ needs.e2e-wasm.result }}" != "success" ]; then
-            echo "wasm E2E slices completed with result: ${{ needs.e2e-wasm.result }}"
-            exit 1
+          if [ "${{ needs.e2e-wasm.result }}" = "success" ]; then
+            echo "wasm E2E slices passed"
+            exit 0
           fi
-          echo "wasm E2E slices passed"
+          # The matrix result on its own says only that something went wrong,
+          # and a slice killed by its own timeout-minutes reports as cancelled,
+          # which reads as a slow runner rather than as a defect. Name the
+          # slices that did not pass and the step each one stopped on.
+          echo "wasm E2E slices completed with result: ${{ needs.e2e-wasm.result }}"
+          echo
+          gh api --paginate \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}/jobs?per_page=100" \
+            --jq '.jobs[]
+              | select(.name | startswith("E2E (wasm / "))
+              | select(.conclusion != "success")
+              | . as $job
+              | (($job.steps // [])
+                  | map(select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out"))
+                  | first) as $step
+              | "\($job.conclusion)\t\($job.name)\tstopped on: \($step.name // "unknown")\n  \($job.html_url)"' \
+            || echo "could not list the slice jobs; open the run to see which slice failed"
+          exit 1
 
   e2e-playwright:
     name: E2E (${{ matrix.suite.name }})
     runs-on: ubuntu-latest
-    needs: head-check
-    if: ${{ needs.head-check.outputs.should_run == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -461,10 +435,10 @@ jobs:
             timeout_minutes: 15
     timeout-minutes: ${{ matrix.suite.timeout_minutes }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true

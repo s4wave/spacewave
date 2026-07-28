@@ -24,7 +24,20 @@ const (
 
 	// PredPassToExecution is the predicate linking Pass to a Execution.
 	PredPassToExecution = quad.IRI("forge/pass-execution")
+
+	// PredPassToPrevious is the predicate linking a successor Pass to its predecessor.
+	PredPassToPrevious = quad.IRI("forge/pass-previous")
 )
+
+// NewPassToPreviousQuad creates a quad linking a successor Pass to its predecessor.
+func NewPassToPreviousQuad(passObjKey, previousPassObjKey string) world.GraphQuad {
+	return world.NewGraphQuadWithKeys(
+		passObjKey,
+		PredPassToPrevious.String(),
+		previousPassObjKey,
+		"",
+	)
+}
 
 // NewPassBlock constructs a new Pass block.
 func NewPassBlock() block.Block {
@@ -56,6 +69,13 @@ func CreatePassWithTarget(
 	passPeerID string,
 	ts *timestamp.Timestamp,
 ) (world.ObjectState, *bucket.ObjectRef, error) {
+	if valueSet == nil {
+		valueSet = forge_target.NewValueSet()
+	} else {
+		valueSet = valueSet.Clone()
+	}
+	valueSet.Outputs = nil
+
 	ps := &Pass{
 		PassState: State_PassState_PENDING,
 		PeerId:    passPeerID,
@@ -127,7 +147,8 @@ func (e *Pass) Validate(allowEmptyRefs bool) error {
 	if e.GetReplicas() == 0 {
 		return errors.New("replicas cannot be zero")
 	}
-	if e.GetPassState() == State_PassState_COMPLETE {
+	switch e.GetPassState() {
+	case State_PassState_COMPLETE:
 		if err := e.GetResult().Validate(); err != nil {
 			return errors.Wrap(err, "result")
 		}
@@ -143,9 +164,16 @@ func (e *Pass) Validate(allowEmptyRefs bool) error {
 		} else if e.GetResult().IsEmpty() {
 			return errors.New("result: cannot be empty when pass is complete")
 		}
-	} else {
+	case State_PassState_CANCELING:
+		if err := e.GetResult().Validate(); err != nil {
+			return errors.Wrap(err, "result")
+		}
+		if !e.GetResult().GetCanceled() {
+			return errors.New("result: must be canceled while pass is canceling")
+		}
+	default:
 		if !e.GetResult().IsEmpty() {
-			return errors.New("result: cannot be set when pass is not complete")
+			return errors.New("result: cannot be set before cancellation or completion")
 		}
 		if e.GetPassState() == State_PassState_PENDING {
 			if len(e.GetExecStates()) != 0 {

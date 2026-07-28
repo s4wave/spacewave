@@ -68,6 +68,11 @@ func (s *SharedObject) GetBlockStore() bstore.BlockStore {
 	return s.blkStore
 }
 
+// GetBackingVolume returns the volume that owns this SharedObject's storage.
+func (s *SharedObject) GetBackingVolume() volume.Volume {
+	return s.tkr.a.vol
+}
+
 // AccessLocalStateStore accesses a kvtx ops for a local state store with the given ID.
 // This state store is stored along with the local SharedObject state.
 func (s *SharedObject) AccessLocalStateStore(ctx context.Context, storeID string, released func()) (kvtx.Store, func(), error) {

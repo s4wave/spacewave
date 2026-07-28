@@ -80,6 +80,11 @@ func TestGetReadySessionClientRepairsStaleLockedOwner(t *testing.T) {
 		defer ref.Release()
 	}
 
+	var readyCh <-chan struct{}
+	acc.accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		readyCh = getWaitCh()
+	})
+
 	cli, priv, pid, err := acc.getReadySessionClient(context.Background())
 	if err != nil {
 		t.Fatalf("get ready session client: %v", err)
@@ -95,6 +100,11 @@ func TestGetReadySessionClientRepairsStaleLockedOwner(t *testing.T) {
 	}
 	if acc.sessionClientSessionID != "fresh" {
 		t.Fatalf("expected repaired client owner to be fresh, got %q", acc.sessionClientSessionID)
+	}
+	select {
+	case <-readyCh:
+	default:
+		t.Fatal("expected repaired session client to wake account waiters")
 	}
 }
 

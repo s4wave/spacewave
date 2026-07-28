@@ -26,10 +26,26 @@ pub struct Tx {
     /// TxType_COMPLETE
     #[prost(message, optional, tag="6")]
     pub tx_complete: ::core::option::Option<TxComplete>,
+    /// TxRetry contains the explicit retry transaction.
+    /// TxType_RETRY
+    #[prost(message, optional, tag="7")]
+    pub tx_retry: ::core::option::Option<TxRetry>,
+}
+/// TxRetry authorizes a successor Pass after a terminal failed Pass.
+/// The scheduler supplies the named inputs for the successor.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TxRetry {
+    /// ExpectedPassNonce identifies the failed Pass being retried.
+    #[prost(uint64, tag="1")]
+    pub expected_pass_nonce: u64,
+    /// NextInputs contains the named inputs for the successor Pass.
+    /// Outputs must be empty.
+    #[prost(message, optional, tag="2")]
+    pub next_inputs: ::core::option::Option<super::super::forge::target::ValueSet>,
 }
 /// TxUpdateInputs updates the Task with the latest Target and Inputs.
-/// If the value is identical: does nothing.
-/// If changed: transitions to PENDING state and cancels any ongoing Pass.
+/// If changed outside a live Pass, transitions to PENDING.
+/// If a Pass is live, requests cancellation and stays RUNNING until drain.
 ///
 /// TxType: TxType_UPDATE_INPUTS
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -46,9 +62,9 @@ pub struct TxUpdateInputs {
     #[prost(message, optional, tag="3")]
     pub value_set: ::core::option::Option<super::super::forge::target::ValueSet>,
 }
-/// TxStart starts the execution of the Task by creating a Pass.
-/// Transitions from PENDING, RETRY, or COMPLETE to RUNNING.
-/// Cancels any existing Pass.
+/// TxStart starts a Task by creating a Pass.
+/// Transitions PENDING to RUNNING only after every predecessor Pass is complete.
+/// Requests cancellation without creating a successor while a predecessor lives.
 ///
 /// TxType: TxType_START
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -57,9 +73,9 @@ pub struct TxStart {
     #[prost(bool, tag="1")]
     pub assign_self: bool,
 }
-/// TxUpdateWithPassState updates the state of the Task based on the current Pass.
-/// If none or not found: transitions to PENDING.
-/// If complete or failed: transitions to CHECKING state.
+/// TxUpdateWithPassState updates the Task from the current Pass.
+/// Canceled completion transitions to PENDING; other completion to CHECKING.
+/// A nonterminal Pass leaves the Task state unchanged.
 /// TxType: TxType_UPDATE_WITH_PASS_STATE
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct TxUpdateWithPassState {
@@ -87,22 +103,24 @@ pub struct TxComplete {
 pub enum TxType {
     Invalid = 0,
     /// TxType_UPDATE_INPUTS updates the ValueSet inputs and target.
-    /// If the values are identical: does nothing.
-    /// If changed: transitions to PENDING state and cancels any ongoing Pass.
+    /// If changed outside a live Pass, transitions to PENDING.
+    /// If a Pass is live, requests cancellation and stays RUNNING until drain.
     UpdateInputs = 1,
-    /// TxType_START marks the pass as running.
-    /// Transitions to state RUNNING from PENDING.
+    /// TxType_START starts the Task when every predecessor Pass is complete.
+    /// Transitions PENDING to RUNNING and creates the next Pass.
     Start = 2,
-    /// TxType_UPDATE_WITH_PASS_STATE updates the state of the Task based the Pass.
-    /// If none or missing: can transition to PENDING.
-    /// If failed: can transition to COMPLETE or RETRY.
-    /// If success or complete: can transition to CHECKING state.
+    /// TxType_UPDATE_WITH_PASS_STATE updates the Task from the current Pass.
+    /// Canceled completion transitions to PENDING; other completion to CHECKING.
+    /// A nonterminal Pass leaves the Task state unchanged.
     UpdateWithPassState = 3,
     /// TxType_COMPLETE sets the result of the Task.
     /// If failed, can transition from any state.
     /// If success, must transition from CHECKING state.
     /// If success, all Execution states must be Successful.
     Complete = 4,
+    /// TxType_RETRY authorizes one successor Pass for a failed predecessor.
+    /// The expected pass nonce is the idempotency fence.
+    Retry = 5,
 }
 impl TxType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -116,6 +134,7 @@ impl TxType {
             Self::Start => "TxType_START",
             Self::UpdateWithPassState => "TxType_UPDATE_WITH_PASS_STATE",
             Self::Complete => "TxType_COMPLETE",
+            Self::Retry => "TxType_RETRY",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -126,6 +145,7 @@ impl TxType {
             "TxType_START" => Some(Self::Start),
             "TxType_UPDATE_WITH_PASS_STATE" => Some(Self::UpdateWithPassState),
             "TxType_COMPLETE" => Some(Self::Complete),
+            "TxType_RETRY" => Some(Self::Retry),
             _ => None,
         }
     }

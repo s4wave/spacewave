@@ -56,6 +56,11 @@ service ProxyVolume {
   // WaitAcquireCoordinatorWriteLease waits for the remote write lease.
   rpc WaitAcquireCoordinatorWriteLease(WaitAcquireCoordinatorWriteLeaseRequest) returns (stream AcquireCoordinatorWriteLeaseResponse);
 
+  // TryAcquireWorldEngineLease attempts to acquire a keyed World Engine lease.
+  rpc TryAcquireWorldEngineLease(TryAcquireWorldEngineLeaseRequest) returns (stream AcquireWorldEngineLeaseResponse);
+  // ReleaseWorldEngineLease releases a remote World Engine lease.
+  rpc ReleaseWorldEngineLease(ReleaseWorldEngineLeaseRequest) returns (ReleaseWorldEngineLeaseResponse);
+
   // RefreshCoordinatorWriteLease refreshes a remote write lease.
   rpc RefreshCoordinatorWriteLease(CoordinatorWriteLeaseRequest) returns (CoordinatorWriteLeaseSnapshotResponse);
 
@@ -191,6 +196,29 @@ message WaitAcquireCoordinatorWriteLeaseRequest {
   // Scope identifies the coordinated ObjectStore.
   CoordinatorScope scope = 1;
 }
+
+// TryAcquireWorldEngineLeaseRequest is a non-blocking keyed lease request.
+message TryAcquireWorldEngineLeaseRequest {
+  // Key identifies the World Engine lease.
+  string key = 1;
+}
+
+// AcquireWorldEngineLeaseResponse is returned by a World Engine lease request.
+message AcquireWorldEngineLeaseResponse {
+  // LeaseId identifies the remote lease for later release.
+  string lease_id = 1;
+  // Acquired is false when the requested lease key is already held.
+  bool acquired = 2;
+}
+
+// ReleaseWorldEngineLeaseRequest identifies a held remote World Engine lease.
+message ReleaseWorldEngineLeaseRequest {
+  // LeaseId identifies the remote lease.
+  string lease_id = 1;
+}
+
+// ReleaseWorldEngineLeaseResponse is returned after releasing a lease.
+message ReleaseWorldEngineLeaseResponse {}
 
 // AcquireCoordinatorWriteLeaseResponse is returned by lease acquisition.
 message AcquireCoordinatorWriteLeaseResponse {

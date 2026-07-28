@@ -5,6 +5,7 @@ import "github.com/s4wave/spacewave/sdk/provider/spacewave/spacewave.proto";
 import "github.com/s4wave/spacewave/core/session/session.proto";
 import "github.com/s4wave/spacewave/core/session/handoff/handoff.proto";
 import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
+import "github.com/s4wave/spacewave/net/peer/peer.proto";
 import "google/protobuf/timestamp.proto";
 
 // RegisterAccountRequest is the request body for POST /account/register.
@@ -128,6 +129,10 @@ message SOStateMessage {
   // snapshot's config_chain_hash. State responses include it so clients do not
   // burst a separate /config-chain request after every cold state pull.
   .sobject.SOConfigChainResponse config_chain = 6;
+
+  // ReceiptProtocolEpoch advertises the per-SharedObject receipt-v1 activation.
+  // Zero keeps receipt-v1 disabled; one marks the receipt owner active.
+  uint32 receipt_protocol_epoch = 7;
 }
 
 // SOStateError is a server-side error notification sent to subscribers.
@@ -164,6 +169,82 @@ message PostRootRequest {
   .sobject.SORoot root = 1;
   // RejectedOps are the operations the validator rejected while producing Root.
   repeated .sobject.SOOperationRejection rejected_ops = 2;
+  // TerminalReceipts are validator-signed terminal receipts for every accepted or rejected attempt terminalized by Root.
+  // Receipt signatures are separate from Root signatures and cover each receipt's deterministic inner bytes.
+  repeated .sobject.SOTerminalReceipt terminal_receipts = 3;
+  // ReceiptProtocolEpoch binds root terminalization to the per-SharedObject receipt-v1 activation.
+  // Zero keeps receipt-v1 disabled; an active object requires its advertised epoch.
+  uint32 receipt_protocol_epoch = 4;
+}
+
+// SubmitOperationV1Request is the exact-key body for receipt-v1 operation admission.
+message SubmitOperationV1Request {
+  // Key identifies the immutable participant attempt.
+  .sobject.SOMutationKey key = 1;
+  // ExactEnvelope is the exact serialized signed SOOperation envelope.
+  // Its digest is DigestSOOperationEnvelope(exact_envelope); callers must not decode or reserialize it.
+  bytes exact_envelope = 2;
+}
+
+// SubmitOperationV1Response is the receipt-v1 admission result.
+message SubmitOperationV1Response {
+  // State is the authoritative state of the submitted exact key.
+  .sobject.SOReceiptState state = 1;
+  // TerminalReceipt is present only when State is accepted or rejected.
+  .sobject.SOTerminalReceipt terminal_receipt = 2;
+}
+
+// LookupOperationReceiptInner is the deterministic signed lookup payload.
+message LookupOperationReceiptInner {
+  // Key identifies the exact participant attempt to look up.
+  .sobject.SOMutationKey key = 1;
+}
+
+// LookupOperationReceiptRequest is a participant-signed exact-key lookup.
+message LookupOperationReceiptRequest {
+  // Inner is the deterministic serialized LookupOperationReceiptInner bytes.
+  bytes inner = 1;
+  // Signature covers the deterministic Inner bytes using
+  // BuildSOReceiptLookupSignatureContext(Inner.key.shared_object_id,
+  // Inner.key.participant_peer_id, Inner.key.local_id).
+  // The participant_peer_id extracted from Inner.key must sign; this domain is
+  // separate from operation, acknowledgement, terminal-receipt, and root signatures.
+  .peer.Signature signature = 2;
+}
+
+// LookupOperationReceiptResponse is the authoritative exact-key lookup result.
+message LookupOperationReceiptResponse {
+  // State is exactly NO_RECORD, PENDING, ACCEPTED, or REJECTED.
+  .sobject.SOReceiptState state = 1;
+  // TerminalReceipt is present only when State is accepted or rejected.
+  .sobject.SOTerminalReceipt terminal_receipt = 2;
+}
+
+// AcknowledgeOperationReceiptInner is the deterministic signed acknowledgement payload.
+message AcknowledgeOperationReceiptInner {
+  // Key identifies the exact participant attempt being acknowledged.
+  .sobject.SOMutationKey key = 1;
+  // ReceiptDigest binds acknowledgement to the exact terminal receipt bytes.
+  // It is DigestSOTerminalReceipt(terminal_receipt), not a digest of Inner alone.
+  bytes receipt_digest = 2;
+}
+
+// AcknowledgeOperationReceiptRequest is a participant-signed receipt acknowledgement.
+message AcknowledgeOperationReceiptRequest {
+  // Inner is the deterministic serialized AcknowledgeOperationReceiptInner bytes.
+  bytes inner = 1;
+  // Signature covers the deterministic Inner bytes using
+  // BuildSOReceiptAcknowledgementSignatureContext(Inner.key.shared_object_id,
+  // Inner.key.participant_peer_id, Inner.key.local_id).
+  // The participant_peer_id extracted from Inner.key must sign; this domain is
+  // separate from operation, lookup, terminal-receipt, and root signatures.
+  .peer.Signature signature = 2;
+}
+
+// AcknowledgeOperationReceiptResponse reports durable acknowledgement.
+message AcknowledgeOperationReceiptResponse {
+  // Acknowledged is true when the matching terminal receipt became prune-eligible.
+  bool acknowledged = 1;
 }
 
 // SessionMessage is the multiplexed WebSocket envelope sent from

@@ -591,35 +591,6 @@ func getGCSweepTestJournalEntries(
 	return ws.bengine.GetGCJournalEntries()
 }
 
-func applyGCSweepTestTx(
-	t *testing.T,
-	ctx context.Context,
-	ws *blkEngine,
-	sender peer.ID,
-	tx *world_block_tx.Tx,
-) {
-	t.Helper()
-	ttx, err := tx.LocateTx()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	btx, err := ws.bengine.NewBlockEngineTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer btx.Discard()
-	sysErr, err := ttx.ExecuteTx(ctx, sender, world_mock.LookupMockOp, btx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if sysErr {
-		t.Fatal("gc sweep tx returned system error")
-	}
-	if _, err := btx.CommitBlockTransaction(ctx); err != nil {
-		t.Fatal(err.Error())
-	}
-}
-
 type testGCSweepSharedObject struct {
 	snapshot   sobject.SharedObjectStateSnapshot
 	blockStore bstore.BlockStore

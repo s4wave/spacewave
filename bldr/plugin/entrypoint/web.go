@@ -64,7 +64,7 @@ func Main(
 		}
 
 		err = Run(ctx, le, pluginStartInfo, pluginMeta, addFactoryFuncs, configSetFuncs, pluginIo)
-		if err != context.Canceled {
+		if !isExpectedPluginEntrypointError(err) {
 			return err
 		}
 
@@ -96,8 +96,9 @@ func Run(
 
 	// dial outgoing streams and accept incoming streams
 	rpcClient := pluginIo.BuildClient()
-	acceptRpcStreams := func(ctx context.Context, srv *srpc.Server) error {
+	acceptRpcStreams := func(ctx context.Context, srv *srpc.Server, ready func()) error {
 		pluginIo.SetAcceptStreams(ctx, srv.GetInvoker())
+		ready()
 		return nil
 	}
 

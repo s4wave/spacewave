@@ -115,14 +115,11 @@ const AnimatedLogo = ({
     return { x, y, distance }
   }, [mouse.x, mouse.y, canAnimate, elementRect])
 
-  const transform = useMemo(
-    () => ({
-      rotateX: canAnimate ? mousePosition.y * -9.262 : 0, // 8.42 * 1.1
-      rotateY: canAnimate ? mousePosition.x * 8.42 : 0,
-      scale: canAnimate ? 1 + mousePosition.distance * 0.002 : 1,
-    }),
-    [mousePosition, canAnimate],
-  )
+  const transform = {
+    rotateX: canAnimate ? mousePosition.y * -9.262 : 0, // 8.42 * 1.1
+    rotateY: canAnimate ? mousePosition.x * 8.42 : 0,
+    scale: canAnimate ? 1 + mousePosition.distance * 0.002 : 1,
+  }
   const fixedSizeStyle = fixedSize
     ? {
         width: fixedSize,

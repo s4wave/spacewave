@@ -2,44 +2,47 @@
 title: Drive and Files
 section: files
 order: 1
-summary: Use Drive as the user-facing file browser over UnixFS objects.
+summary: Store files and folders in a Space and work with them in the browser.
 ---
 
-Drive is the user-facing file surface. Under the hood it uses a UnixFS object,
-which is Spacewave's Hydra-backed file and folder tree inside a Space.
+Drive is where your files live. It works the way a file browser should: folders,
+uploads, drag and drop, rename, move, delete, download.
 
 ## Start with Drive
 
-The Drive Quickstart creates a UnixFS tree, writes `getting-started.md`, and
-opens a first-run Drive guide. At the Drive root, the guide header appears while
-the starter file is the only content. Uploading files, creating a folder, opening
-the guide, inviting people, or dismissing the header hides it for that viewer
-state.
+The Drive Quickstart creates a Space with file storage in it, writes a
+`getting-started.md` for you, and opens the file browser with a short guide at
+the top. The guide disappears once you start using the Drive, and you can
+dismiss it at any time.
 
-## File actions
+## What you can do
 
-The Drive toolbar and context menu support:
+From the toolbar or by right-clicking:
 
-- upload files and folders by picker or native drag and drop;
+- upload files and folders, with the picker or by dragging them in;
 - create folders and files;
-- open folders and supported files;
-- rename with the menu or F2;
-- delete with confirmation;
-- move entries with the move dialog or by dragging into folders;
-- download a file, a folder as a zip, or a multi-selection as `selection.zip`.
+- open folders and any file Spacewave can preview;
+- rename, with the menu or F2;
+- delete, with a confirmation;
+- move things with the move dialog or by dragging them into a folder;
+- download a file, a whole folder as a zip, or whatever you have selected.
 
-Directory listings are live. When another tab, CLI command, or background
-process changes the directory, the browser watches the UnixFS directory and
-updates the listing.
+## Everything stays in sync
 
-## Paths and the CLI
+Folder listings update themselves. Change something from another tab, from
+another device, or from the command line, and the folder you are looking at
+follows along without a reload.
 
-Drive paths map to UnixFS object paths. The CLI uses the same `/u/{session}/so/
-{space}/-/{object}/-/{path}` shape as the app URL. Short CLI paths such as
-`my-object/-/docs/report.pdf` use the default session and Space.
+## From the command line
 
-## Current limits
+The `spacewave fs` commands work on the same files. See
+[Command Line Basics](/docs/users/cli/command-line-basics) for the commands and
+how paths work there.
 
-Text preview reads are capped for large files. Download actions need the current
-session and Space IDs. Browser local storage is not a substitute for backup; use
-Cloud or a desktop state root for files you need to keep.
+## Worth knowing
+
+Previews of very large text files are cut short.
+
+Files kept only in your browser belong to the browser, which can clear them when
+it runs low on space. For anything you need to keep, use Spacewave Cloud or the
+desktop app.

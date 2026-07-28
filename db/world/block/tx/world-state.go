@@ -73,6 +73,39 @@ func (w *WorldState) GetSeqno(ctx context.Context) (uint64, error) {
 	return w.world.GetSeqno(ctx)
 }
 
+// GetObjectBodiesBatchPage returns one budgeted page from the wrapped state.
+func (w *WorldState) GetObjectBodiesBatchPage(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, error) {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	if w.discarded {
+		return nil, 0, tx.ErrDiscarded
+	}
+	if pager, ok := w.world.(world.ObjectBodyPageBatcher); ok {
+		return pager.GetObjectBodiesBatchPage(ctx, keys, byteBudget)
+	}
+	return world.GetObjectBodiesBatchPage(ctx, w.world, keys, byteBudget)
+}
+
+// GetObjectBodiesBatchPageWithSeqno returns one budgeted page and its transaction seqno.
+func (w *WorldState) GetObjectBodiesBatchPageWithSeqno(ctx context.Context, keys []string, byteBudget int) ([]*world.ObjectBody, uint32, uint64, error) {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	if w.discarded {
+		return nil, 0, 0, tx.ErrDiscarded
+	}
+	if pager, ok := w.world.(world.ObjectBodyPageSeqnoBatcher); ok {
+		return pager.GetObjectBodiesBatchPageWithSeqno(ctx, keys, byteBudget)
+	}
+	seqno, err := w.world.GetSeqno(ctx)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	bodies, consumed, err := world.GetObjectBodiesBatchPage(ctx, w.world, keys, byteBudget)
+	return bodies, consumed, seqno, err
+}
+
 // WaitSeqno waits for the seqno of the world state to be >= value.
 // Returns the seqno when the condition is reached.
 // If value == 0, this might return immediately unconditionally.

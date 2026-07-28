@@ -26,6 +26,10 @@ pub struct Tx {
     /// TxType_COMPLETE
     #[prost(message, optional, tag="6")]
     pub tx_complete: ::core::option::Option<TxComplete>,
+    /// TxCancel contains the cancel tx.
+    /// TxType_CANCEL
+    #[prost(message, optional, tag="7")]
+    pub tx_cancel: ::core::option::Option<TxCancel>,
 }
 /// ExecSpec contains a specification for creating an Execution.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -60,17 +64,16 @@ pub struct TxCreateExecSpecs {
     pub clear_existing: bool,
 }
 /// TxUpdateExecStates updates the list of execution states for the Pass.
-/// Updates the list with objects found via graph quad lookup.
-/// Transitions to CHECKING if terminal conditions are found.
-/// If any assigned executions fail, the Pass will also fail.
+/// Transitions RUNNING to CHECKING when every linked Execution is terminal.
+/// Transitions CANCELING to COMPLETE after every linked Execution is terminal.
+/// If all assigned Executions fail, the Pass also fails.
 /// TxType: TxType_UPDATE_EXEC_STATES
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct TxUpdateExecStates {
 }
-/// TxComplete completes the execution by setting the result.
-/// If failed, may transition from any state.
-/// If success, must be in the CHECKING state.
-/// If success, all Exections must be in COMPLETE state and not failed.
+/// TxComplete sets the terminal result after every linked Execution is terminal.
+/// Canceled completion requires CANCELING.
+/// Successful or failed completion requires CHECKING.
 /// TxType: TxType_COMPLETE
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TxComplete {
@@ -83,6 +86,14 @@ pub struct TxComplete {
     /// Must be empty if the result is not success.
     #[prost(message, optional, tag="2")]
     pub value_set: ::core::option::Option<super::super::forge::target::ValueSet>,
+}
+/// TxCancel requests cancellation and records the terminal canceled result.
+/// TxType: TxType_CANCEL
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TxCancel {
+    /// Result is the canceled result recorded when the drain completes.
+    #[prost(message, optional, tag="1")]
+    pub result: ::core::option::Option<super::super::forge::value::Result>,
 }
 /// TxType indicates the kind of transaction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -97,17 +108,17 @@ pub enum TxType {
     /// Can optionally clear the list of executions before creating.
     /// Used to add / reset execution instances.
     CreateExecSpecs = 2,
-    /// TxType_UPDATE_EXEC_STATES updates the execution states.
-    /// Searches for valid Execution objects linked to the Pass.
-    /// Updates the list with the found objects.
-    /// Transitions to CHECKING if terminal conditions are found.
-    /// If any assigned executions fail, the Pass will also fail.
+    /// TxType_UPDATE_EXEC_STATES updates linked Execution snapshots.
+    /// Transitions RUNNING to CHECKING when every linked Execution is terminal.
+    /// Transitions CANCELING to COMPLETE after every linked Execution is terminal.
+    /// If all assigned Executions fail, the Pass also fails.
     UpdateExecStates = 3,
-    /// TxType_COMPLETE sets the result of the execution.
-    /// If failed, can transition from any state.
-    /// If success, must transition from CHECKING state.
-    /// If success, all Execution states must be Successful.
+    /// TxType_COMPLETE sets the terminal result after every linked Execution is
+    /// terminal. Canceled completion requires CANCELING; other completion
+    /// requires CHECKING.
     Complete = 4,
+    /// TxType_CANCEL requests cancellation and custody drain.
+    Cancel = 5,
 }
 impl TxType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -121,6 +132,7 @@ impl TxType {
             Self::CreateExecSpecs => "TxType_CREATE_EXEC_SPECS",
             Self::UpdateExecStates => "TxType_UPDATE_EXEC_STATES",
             Self::Complete => "TxType_COMPLETE",
+            Self::Cancel => "TxType_CANCEL",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -131,6 +143,7 @@ impl TxType {
             "TxType_CREATE_EXEC_SPECS" => Some(Self::CreateExecSpecs),
             "TxType_UPDATE_EXEC_STATES" => Some(Self::UpdateExecStates),
             "TxType_COMPLETE" => Some(Self::Complete),
+            "TxType_CANCEL" => Some(Self::Cancel),
             _ => None,
         }
     }

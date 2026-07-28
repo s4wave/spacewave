@@ -42,17 +42,71 @@ type sessionTracker struct {
 	// offerer indicates if we are offering or answering
 	offerer bool
 
-	// errCh is pushed if a fatal error failed the session or signaling
-	errCh chan error
-	// rxSignal receives an incoming signaling message
-	rxSignal chan *WebRtcSignal
-	// xmitRoutine is the routine that manages transmitting a signaling message
-	xmitRoutine *routine.StateRoutineContainer[*outgoingSignal]
-	// linkRoutine is the routine that manages the Quic link when the session dcOpen.
-	linkRoutine *routine.StateRoutineContainer[datachannel.ReadWriteCloser]
+	// executionGeneration identifies each execute invocation on this tracker.
+	// execution is non-nil only while that invocation is live.
+	// w.bcast guards executionGeneration, execution, and link.
+	executionGeneration uint64
+	execution           *sessionTrackerExecution
 	// link contains the current link, if any
-	// w.bcast is broadcasted when this changes
 	link *transport_quic.Link
+}
+
+// sessionTrackerExecution is one live invocation of sessionTracker.execute.
+type sessionTrackerExecution struct {
+	generation uint64
+	rxSignal   chan *incomingSignal
+}
+
+// beginExecution publishes a new execution generation.
+func (s *sessionTracker) beginExecution() *sessionTrackerExecution {
+	var execution *sessionTrackerExecution
+	s.w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		s.executionGeneration++
+		execution = &sessionTrackerExecution{
+			generation: s.executionGeneration,
+			rxSignal:   make(chan *incomingSignal),
+		}
+		s.execution = execution
+		broadcast()
+	})
+	return execution
+}
+
+// retireExecution clears a generation and reports its lease retirement.
+func (s *sessionTracker) retireExecution(execution *sessionTrackerExecution) {
+	s.w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if s.execution != execution {
+			return
+		}
+		s.execution = nil
+		s.w.retireSignalIngressLocked(s.key, s)
+		broadcast()
+	})
+}
+
+// completeExecution waits for both child routines before retiring the execution.
+func (s *sessionTracker) completeExecution(
+	execution *sessionTrackerExecution,
+	linkDone, xmitDone <-chan struct{},
+) {
+	if linkDone != nil {
+		<-linkDone
+	}
+	if xmitDone != nil {
+		<-xmitDone
+	}
+	s.retireExecution(execution)
+}
+
+// incomingSignal holds a decoded signal until a live tracker accepts it.
+type incomingSignal struct {
+	sig      *WebRtcSignal
+	accepted chan struct{}
+}
+
+// accept records that the current live tracker owns the signal.
+func (s *incomingSignal) accept() {
+	close(s.accepted)
 }
 
 // newSessionTracker constructs a new sessionTracker.
@@ -72,40 +126,7 @@ func (w *WebRTC) newSessionTracker(peerIDStr string) (keyed.Routine, *sessionTra
 		offerer: offerer,
 	}
 
-	sess.errCh = make(chan error, 1)
-
-	sess.linkRoutine = routine.NewStateRoutineContainer(
-		func(t1, t2 datachannel.ReadWriteCloser) bool { return t1 == t2 },
-		routine.WithExitCb(func(err error) {
-			if err != nil {
-				sess.failWithErr(pkgerrors.Wrap(err, "link routine"))
-			}
-		}),
-	)
-	_, _, _ = sess.linkRoutine.SetStateRoutine(sess.executeLink)
-
-	sess.rxSignal = make(chan *WebRtcSignal)
-	sess.xmitRoutine = routine.NewStateRoutineContainer[*outgoingSignal](
-		nil,
-		routine.WithExitCb(func(err error) {
-			if err != nil {
-				sess.failWithErr(pkgerrors.Wrap(err, "signal transmit routine"))
-			}
-		}),
-	)
-	_, _, _ = sess.xmitRoutine.SetStateRoutine(sess.executeXmitSignal)
-
 	return sess.execute, sess
-}
-
-// failWithErr pushes to errCh
-func (s *sessionTracker) failWithErr(err error) {
-	if err != nil && err != context.Canceled {
-		select {
-		case s.errCh <- err:
-		default:
-		}
-	}
 }
 
 // outgoingSignal contains a signal to transmit
@@ -335,30 +356,29 @@ func (s *sessionTracker) newSession() (*session, <-chan struct{}, error) {
 		return nil, nil, pkgerrors.Wrap(err, "create peer connection")
 	}
 
-	// Create the data channel in advance.
-	negotiated := true
-	protocol := dataChannelID
-	ordered := false // Allow unordered data since Quic can handle it.
-	var channelID uint16 = 1
-	dc, err := pc.CreateDataChannel(dataChannelID, &webrtc.DataChannelInit{
-		// We use the same channel label on both sides and set Negotiated: true.
-		// This avoids sending redundant info via the OnDataChannel callback.
-		Negotiated: &negotiated,
-		Protocol:   &protocol,
-		ID:         &channelID,
-		Ordered:    &ordered,
-	})
-	if err != nil {
-		_ = pc.Close()
-		return nil, nil, pkgerrors.Wrap(err, "create data channel")
-	}
-
-	sess := &session{t: s, pc: pc, dc: dc}
+	sess := &session{t: s, pc: pc}
 
 	var waitCh <-chan struct{}
 	sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		waitCh = getWaitCh()
 	})
+
+	var dc *webrtc.DataChannel
+	var createErr error
+	if err := setCallback("initialize negotiated data channel", func() {
+		dc, createErr = sess.createDataChannel(
+			pc.OnNegotiationNeeded,
+			pc.CreateDataChannel,
+		)
+	}); err != nil {
+		_ = pc.Close()
+		return nil, nil, err
+	}
+	if createErr != nil {
+		_ = pc.Close()
+		return nil, nil, pkgerrors.Wrap(createErr, "create data channel")
+	}
+	sess.dc = dc
 
 	// DataChannel callbacks
 	if err := setCallback("register data channel onopen", func() {
@@ -387,13 +407,6 @@ func (s *sessionTracker) newSession() (*session, <-chan struct{}, error) {
 		_ = pc.Close()
 		return nil, nil, err
 	}
-	if err := setCallback("register peer connection onnegotiationneeded", func() {
-		pc.OnNegotiationNeeded(sess.onNegotiationNeeded)
-	}); err != nil {
-		_ = dc.Close()
-		_ = pc.Close()
-		return nil, nil, err
-	}
 	if err := setCallback("register peer connection onicecandidate", func() {
 		pc.OnICECandidate(sess.onIceCandidate)
 	}); err != nil {
@@ -409,6 +422,27 @@ func (s *sessionTracker) newSession() (*session, <-chan struct{}, error) {
 	return sess, waitCh, nil
 }
 
+// createDataChannel installs negotiation ownership before creating the channel.
+func (s *session) createDataChannel(
+	onNegotiationNeeded func(func()),
+	createDataChannel func(string, *webrtc.DataChannelInit) (*webrtc.DataChannel, error),
+) (*webrtc.DataChannel, error) {
+	onNegotiationNeeded(s.onNegotiationNeeded)
+
+	negotiated := true
+	protocol := dataChannelID
+	ordered := false // Allow unordered data since Quic can handle it.
+	var channelID uint16 = 1
+	return createDataChannel(dataChannelID, &webrtc.DataChannelInit{
+		// We use the same channel label on both sides and set Negotiated: true.
+		// This avoids sending redundant info via the OnDataChannel callback.
+		Negotiated: &negotiated,
+		Protocol:   &protocol,
+		ID:         &channelID,
+		Ordered:    &ordered,
+	})
+}
+
 func (s *session) onNegotiationNeeded() {
 	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		s.localSeqno++
@@ -419,6 +453,39 @@ func (s *session) onNegotiationNeeded() {
 				Debug("negotiation is needed")
 		}
 	})
+}
+
+// acceptIncomingSignalLocked accepts sig only while this session is live.
+// The caller must hold s.bcast.
+func (s *session) acceptIncomingSignalLocked(sig *incomingSignal) {
+	if sig == nil || s.fatalErr != nil || s.connState == webrtc.PeerConnectionStateFailed {
+		return
+	}
+	sig.accept()
+}
+
+// failWithErr fences signal acceptance before exposing a routine error.
+func (s *session) failWithErr(errCh chan<- error, err error) {
+	if err == nil || err == context.Canceled {
+		return
+	}
+
+	var recorded bool
+	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		if s.fatalErr == nil {
+			s.fatalErr = err
+			recorded = true
+			broadcast()
+		}
+	})
+	if !recorded {
+		return
+	}
+
+	select {
+	case errCh <- err:
+	default:
+	}
 }
 
 func (s *session) onIceCandidate(c *webrtc.ICECandidate) {
@@ -488,6 +555,47 @@ func (s *session) close() {
 	_ = s.pc.Close()
 }
 
+// transmitLocalNegotiation emits one offer or request for each local sequence.
+func (s *sessionTracker) transmitLocalNegotiation(
+	sess *session,
+	le *logrus.Entry,
+	currLocalSeqno uint64,
+	lastLocalSeqno uint64,
+	xmitSignal func(*WebRtcSignal),
+) (uint64, bool, error) {
+	if currLocalSeqno == lastLocalSeqno {
+		return lastLocalSeqno, false, nil
+	}
+
+	var xmit *WebRtcSignal
+	if s.offerer {
+		if s.w.GetVerbose() {
+			le.Debug("signal tx: offer sdp")
+		}
+		localDesc, err := sess.pc.CreateOffer(nil)
+		if err != nil {
+			return lastLocalSeqno, false, pkgerrors.Wrap(err, "create offer")
+		}
+		if err := sess.pc.SetLocalDescription(localDesc); err != nil {
+			return lastLocalSeqno, false, pkgerrors.Wrap(err, "set local description(offer)")
+		}
+		xmit = &WebRtcSignal{
+			Body: &WebRtcSignal_Sdp{Sdp: NewWebRtcSdp(
+				currLocalSeqno,
+				&localDesc,
+			)},
+		}
+	} else {
+		if s.w.GetVerbose() {
+			le.Debug("signal tx: offer request")
+		}
+		xmit = &WebRtcSignal{Body: &WebRtcSignal_RequestOffer{RequestOffer: currLocalSeqno}}
+	}
+
+	xmitSignal(xmit)
+	return currLocalSeqno, true, nil
+}
+
 // execute executes the sessionTracker.
 func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	defer s.le.Warn("session tracker exited")
@@ -498,6 +606,11 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 		}
 	}()
 	s.le.Info("session tracker starting")
+	execution := s.beginExecution()
+	var linkDone, xmitDone <-chan struct{}
+	defer func() {
+		s.completeExecution(execution, linkDone, xmitDone)
+	}()
 
 	// Construct the PeerConnection and attach the callbacks.
 	phase = "construct session"
@@ -507,24 +620,36 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	}
 	defer sess.close()
 
+	errCh := make(chan error, 1)
+	linkRoutine := routine.NewStateRoutineContainer(
+		func(t1, t2 datachannel.ReadWriteCloser) bool { return t1 == t2 },
+		routine.WithExitCb(func(err error) {
+			if err != nil {
+				sess.failWithErr(errCh, pkgerrors.Wrap(err, "link routine"))
+			}
+		}),
+	)
+	_, _, _ = linkRoutine.SetStateRoutine(s.executeLink)
+
+	xmitRoutine := routine.NewStateRoutineContainer[*outgoingSignal](
+		nil,
+		routine.WithExitCb(func(err error) {
+			if err != nil {
+				sess.failWithErr(errCh, pkgerrors.Wrap(err, "signal transmit routine"))
+			}
+		}),
+	)
+	_, _, _ = xmitRoutine.SetStateRoutine(s.executeXmitSignal)
+
 	// Set the context for the link routine.
 	phase = "bind routines"
-	s.linkRoutine.SetContext(ctx, true)
-	s.xmitRoutine.SetContext(ctx, true)
+	linkRoutine.SetContext(ctx, true)
+	xmitRoutine.SetContext(ctx, true)
 
-	// When exiting, clear any references to this tracker from incoming signaling.
-	// The incoming signaling will trigger re-adding a reference if any new messages arrive.
+	// Stop child routines before retiring this execution generation.
 	defer func() {
-		peerIDStr := s.peerID.String()
-		s.linkRoutine.SetState(nil)
-		s.xmitRoutine.SetState(nil)
-		s.w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			if ref := s.w.incomingSessions[peerIDStr]; ref != nil {
-				ref.Release()
-				broadcast()
-				delete(s.w.incomingSessions, peerIDStr)
-			}
-		})
+		linkDone, _, _, _ = linkRoutine.SetState(nil)
+		xmitDone, _, _, _ = xmitRoutine.SetState(nil)
 	}()
 
 	// Open the signaling session with the remote peer.
@@ -548,7 +673,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	var signalSent <-chan struct{}
 	xmitSignal := func(msg *WebRtcSignal) {
 		sentCh := make(chan struct{})
-		_, _, _, _ = s.xmitRoutine.SetState(&outgoingSignal{
+		_, _, _, _ = xmitRoutine.SetState(&outgoingSignal{
 			sess:   signal,
 			sig:    msg,
 			sentCh: sentCh,
@@ -590,24 +715,24 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	for {
 		phase = "wait for session change"
 		// Wait for something to change or for an incoming signal.
-		var currRxSignal *WebRtcSignal
+		var currIncomingSignal *incomingSignal
 
 		// Prioritize receiving an incoming signal first.
 		select {
 		case <-ctx.Done():
 			return context.Canceled
-		case currRxSignal = <-s.rxSignal:
+		case currIncomingSignal = <-execution.rxSignal:
 		default:
 		}
 
 		// Then allow also re-checking in case we need to transmit ice candidates.
-		if currRxSignal == nil {
+		if currIncomingSignal == nil {
 			select {
 			case <-ctx.Done():
 				return context.Canceled
-			case err := <-s.errCh:
+			case err := <-errCh:
 				return err
-			case currRxSignal = <-s.rxSignal:
+			case currIncomingSignal = <-execution.rxSignal:
 			case <-signalSent:
 				signalSent = nil
 			case <-waitCh:
@@ -615,12 +740,20 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 			}
 		}
 
+		// A channel receive is not acceptance. The terminal-state transition
+		// and this acceptance fence are serialized by the session owner.
+		if currIncomingSignal != nil {
+			sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+				sess.acceptIncomingSignalLocked(currIncomingSignal)
+			})
+		}
+
 		// Process the incoming signal, if any.
 		var currRxSdp *WebRtcSdp
 		var currRxIce *WebRtcIce
-		if currRxSignal != nil {
+		if currIncomingSignal != nil {
 			phase = "process incoming signal"
-			switch b := currRxSignal.GetBody().(type) {
+			switch b := currIncomingSignal.sig.GetBody().(type) {
 			case *WebRtcSignal_RequestOffer:
 				if !s.offerer {
 					return errors.New("remote peer requested offer but we are not the offerer")
@@ -684,7 +817,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 		if currDcRwc != currLinkRwc {
 			phase = "update link routine"
 			// Update the link routine and wait for the old link to exit.
-			waitReturn, changed, _, _ := s.linkRoutine.SetState(currDcRwc)
+			waitReturn, changed, _, _ := linkRoutine.SetState(currDcRwc)
 			if changed && waitReturn != nil {
 				select {
 				case <-ctx.Done():
@@ -796,37 +929,19 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 		// Transmit an offer or a request for one when local seqno changes.
 		if currLocalSeqno != lastLocalSeqno {
 			phase = "transmit local negotiation"
-			var xmit *WebRtcSignal
-
-			if s.offerer {
-				if s.w.GetVerbose() {
-					le.Debug("signal tx: offer sdp")
-				}
-				localDesc, err := sess.pc.CreateOffer(nil)
-				if err != nil {
-					return pkgerrors.Wrap(err, "create offer")
-				}
-				if err := sess.pc.SetLocalDescription(localDesc); err != nil {
-					return pkgerrors.Wrap(err, "set local description(offer)")
-				}
-				xmit = &WebRtcSignal{
-					Body: &WebRtcSignal_Sdp{Sdp: NewWebRtcSdp(
-						currLocalSeqno,
-						&localDesc,
-					)},
-				}
-			} else {
-				if s.w.GetVerbose() {
-					le.Debug("signal tx: offer request")
-				}
-				xmit = &WebRtcSignal{Body: &WebRtcSignal_RequestOffer{RequestOffer: currLocalSeqno}}
-			}
-
-			// Encrypt and transmit the message.
-			xmitSignal(xmit)
-
-			// Mark as sent
-			lastLocalSeqno = currLocalSeqno
+		}
+		nextLocalSeqno, transmitted, err := s.transmitLocalNegotiation(
+			sess,
+			le,
+			currLocalSeqno,
+			lastLocalSeqno,
+			xmitSignal,
+		)
+		if err != nil {
+			return err
+		}
+		if transmitted {
+			lastLocalSeqno = nextLocalSeqno
 
 			// Restart sending ice candidates & recheck
 			lastSentICE = 0

@@ -109,6 +109,28 @@ func copyObjectToBucket(
 	destinationRef.TransformConf = srcCursor.GetTransformConf().Clone()
 	destinationRef.TransformConfRef = nil
 
+	// An empty source transform means the copied blocks are raw at rest. When
+	// the destination parent is transformed, make that raw encoding explicit
+	// in the returned ref so nested references reset the inherited decoder.
+	if srcCursor.GetTransformConf().GetEmpty() && !destCursor.GetTransformConf().GetEmpty() {
+		destBucket, ok := destCursor.GetBucket().(bucket.Bucket)
+		if !ok {
+			return nil, ObjectCopyStats{}, errors.New("destination bucket does not support transform config writes")
+		}
+		transformConfRef, _, err := WriteTransformConf(
+			ctx,
+			destBucket,
+			destCursor.GetTransformer(),
+			destCursor.defaultPutOpts(),
+			&block_transform.Config{},
+		)
+		if err != nil {
+			return nil, ObjectCopyStats{}, errors.Wrap(err, "write raw transform config")
+		}
+		destinationRef.TransformConf = nil
+		destinationRef.TransformConfRef = transformConfRef
+	}
+
 	// if the cursors are located in the same bucket and volume, do nothing.
 	if srcCursor.GetOpArgs().EqualVT(destCursor.GetOpArgs()) {
 		return destinationRef, ObjectCopyStats{}, nil

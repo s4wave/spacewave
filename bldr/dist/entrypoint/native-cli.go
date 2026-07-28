@@ -42,6 +42,7 @@ func runCliMain(
 
 	var dtBus *DistBus
 	var statePath string
+	var socketPath string
 	var logLevelName string
 	var logFiles cli.StringSlice
 	var logFileCleanup func()
@@ -61,6 +62,10 @@ func runCliMain(
 				root = filepath.Join(cwd, root)
 			}
 			if err := os.MkdirAll(root, 0o755); err != nil {
+				busInitErr = err
+				return
+			}
+			if err := storagepath.PublishResolvedPaths(projectID, root, socketPath); err != nil {
 				busInitErr = err
 				return
 			}
@@ -115,6 +120,12 @@ func runCliMain(
 			EnvVars:     statePathEnvVars,
 			Value:       defaultStatePath,
 			Destination: &statePath,
+		},
+		&cli.StringFlag{
+			Name:        "socket-path",
+			Usage:       "listen on this exact Unix socket path",
+			EnvVars:     []string{storagepath.SocketPathEnvVar(projectID)},
+			Destination: &socketPath,
 		},
 		&cli.StringFlag{
 			Name:        "log-level",

@@ -6,8 +6,9 @@ import {
   useStateAtom,
   useStateNamespace,
   useStateReducerAtom,
-  atom,
   useParentStateNamespace,
+  atom,
+  type StateAtomAccessor,
 } from './persist.js'
 
 // Test component that uses the namespace state
@@ -30,6 +31,21 @@ function CounterContent() {
     <button onClick={() => setCount((c: number) => c + 1)} data-testid={testId}>
       Count: {count}
     </button>
+  )
+}
+
+function AccessorIdentityProbe({
+  expected,
+  testId,
+}: {
+  expected: StateAtomAccessor | undefined
+  testId: string
+}) {
+  const { stateAtomAccessor } = useStateNamespace()
+  return (
+    <div data-testid={testId}>
+      {stateAtomAccessor === expected ? 'expected' : 'unexpected'}
+    </div>
   )
 }
 
@@ -70,6 +86,45 @@ describe('StateNamespaceProvider', () => {
     expect(rootButton.textContent).toBe('Count: 1')
     expect(ns1Button.textContent).toBe('Count: 1')
     expect(ns2Button.textContent).toBe('Count: 1')
+  })
+
+  it('can stop accessor inheritance while honoring an explicit nested accessor', () => {
+    const parentAccessor: StateAtomAccessor = {
+      value: null,
+      loading: false,
+      error: null,
+      retry: () => {},
+    }
+    const childAccessor: StateAtomAccessor = {
+      value: null,
+      loading: false,
+      error: null,
+      retry: () => {},
+    }
+
+    render(
+      <StateNamespaceProvider stateAtomAccessor={parentAccessor}>
+        <StateNamespaceProvider inheritStateAtomAccessor={false}>
+          <AccessorIdentityProbe
+            expected={undefined}
+            testId="without-inherited-accessor"
+          />
+          <StateNamespaceProvider stateAtomAccessor={childAccessor}>
+            <AccessorIdentityProbe
+              expected={childAccessor}
+              testId="explicit-nested-accessor"
+            />
+          </StateNamespaceProvider>
+        </StateNamespaceProvider>
+      </StateNamespaceProvider>,
+    )
+
+    expect(screen.getByTestId('without-inherited-accessor').textContent).toBe(
+      'expected',
+    )
+    expect(screen.getByTestId('explicit-nested-accessor').textContent).toBe(
+      'expected',
+    )
   })
 
   it('handles nested namespaces correctly', () => {

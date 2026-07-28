@@ -388,7 +388,7 @@ function DangerZoneSection({
                 'disabled:cursor-not-allowed disabled:opacity-50',
               )}
             >
-              {submitting ? 'Deleting...' : 'Delete Object'}
+              {submitting ? 'Deleting…' : 'Delete Object'}
             </button>
           </DialogFooter>
         </DialogContent>

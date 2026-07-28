@@ -105,6 +105,22 @@ std::pair<std::unique_ptr<SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseClient
   return {std::make_unique<SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseClient>(std::move(strm)), starpc::Error::OK};
 }
 
+std::pair<std::unique_ptr<SRPCProxyVolume_TryAcquireWorldEngineLeaseClient>, starpc::Error> SRPCProxyVolumeClientImpl::TryAcquireWorldEngineLease(const volume::rpc::TryAcquireWorldEngineLeaseRequest& in) {
+  auto [strm, err] = cc_->NewStream(service_id_, "TryAcquireWorldEngineLease", &in);
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  err = strm->CloseSend();
+  if (err != starpc::Error::OK) {
+    return {nullptr, err};
+  }
+  return {std::make_unique<SRPCProxyVolume_TryAcquireWorldEngineLeaseClient>(std::move(strm)), starpc::Error::OK};
+}
+
+starpc::Error SRPCProxyVolumeClientImpl::ReleaseWorldEngineLease(const volume::rpc::ReleaseWorldEngineLeaseRequest& in, volume::rpc::ReleaseWorldEngineLeaseResponse* out) {
+  return cc_->ExecCall(service_id_, "ReleaseWorldEngineLease", in, out);
+}
+
 starpc::Error SRPCProxyVolumeClientImpl::RefreshCoordinatorWriteLease(const volume::rpc::CoordinatorWriteLeaseRequest& in, volume::rpc::CoordinatorWriteLeaseSnapshotResponse* out) {
   return cc_->ExecCall(service_id_, "RefreshCoordinatorWriteLease", in, out);
 }
@@ -133,6 +149,8 @@ std::vector<std::string> SRPCProxyVolumeHandler::GetMethodIDs() const {
     "GetCoordinatorSnapshot",
     "TryAcquireCoordinatorWriteLease",
     "WaitAcquireCoordinatorWriteLease",
+    "TryAcquireWorldEngineLease",
+    "ReleaseWorldEngineLease",
     "RefreshCoordinatorWriteLease",
     "PublishCoordinatorWriteLease",
     "ReleaseCoordinatorWriteLease",
@@ -191,6 +209,20 @@ std::pair<bool, starpc::Error> SRPCProxyVolumeHandler::InvokeMethod(
     if (err != starpc::Error::OK) return {true, err};
     SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseStream serverStrm(strm);
     return {true, impl_->WaitAcquireCoordinatorWriteLease(req, &serverStrm)};
+  } else if (method_id == "TryAcquireWorldEngineLease") {
+    volume::rpc::TryAcquireWorldEngineLeaseRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    SRPCProxyVolume_TryAcquireWorldEngineLeaseStream serverStrm(strm);
+    return {true, impl_->TryAcquireWorldEngineLease(req, &serverStrm)};
+  } else if (method_id == "ReleaseWorldEngineLease") {
+    volume::rpc::ReleaseWorldEngineLeaseRequest req;
+    starpc::Error err = strm->MsgRecv(&req);
+    if (err != starpc::Error::OK) return {true, err};
+    volume::rpc::ReleaseWorldEngineLeaseResponse resp;
+    err = impl_->ReleaseWorldEngineLease(req, &resp);
+    if (err != starpc::Error::OK) return {true, err};
+    return {true, strm->MsgSend(resp)};
   } else if (method_id == "RefreshCoordinatorWriteLease") {
     volume::rpc::CoordinatorWriteLeaseRequest req;
     starpc::Error err = strm->MsgRecv(&req);

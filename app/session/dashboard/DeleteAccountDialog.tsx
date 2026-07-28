@@ -168,7 +168,7 @@ export function DeleteAccountDialog({
                 )}
               >
                 {submitting
-                  ? 'Deleting...'
+                  ? 'Deleting…'
                   : isCloud
                     ? 'Continue to Delete Flow'
                     : 'Delete Everything'}

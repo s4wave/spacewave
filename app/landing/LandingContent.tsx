@@ -203,7 +203,7 @@ const HeroFeature: React.FC<HeroFeatureProps> = ({
   } as const
 
   return (
-    <li className="group flex items-center transition-all duration-300 ease-in-out select-none hover:-translate-y-[1px]">
+    <li className="group flex items-center transition duration-300 ease-in-out select-none hover:-translate-y-[1px]">
       <span
         className={cn(
           colorClasses[color],
@@ -437,7 +437,7 @@ const HeroSection: React.FC = () => {
 
         <a
           href={blogHref}
-          className="border-brand/30 text-brand hover:border-brand/50 mb-8 inline-block cursor-pointer rounded-full border px-4 py-2 text-sm font-medium no-underline backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5"
+          className="border-brand/30 text-brand hover:border-brand/50 mb-8 inline-block cursor-pointer rounded-full border px-4 py-2 text-sm font-medium no-underline backdrop-blur-sm transition duration-300 hover:-translate-y-0.5"
         >
           <PiRocketLaunchDuotone className="mr-2 inline-block size-4 -translate-y-0.5" />
           Announcing open beta
@@ -935,7 +935,7 @@ function HowItWorksSection() {
           return (
             <div
               key={card.title}
-              className="border-foreground/6 bg-background-card/30 group rounded-lg border p-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5"
+              className="border-foreground/6 bg-background-card/30 group rounded-lg border p-5 backdrop-blur-sm transition duration-300 hover:-translate-y-0.5"
             >
               <CardIcon className="text-brand mb-3 size-5" />
               <h3 className="text-foreground mb-2 text-sm font-semibold">
@@ -1256,7 +1256,7 @@ function ForDevelopersSection() {
         </CtaButton>
         <ExternalLink
           href={GITHUB_REPO_URL}
-          className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium no-underline transition-all duration-300 select-none hover:-translate-y-0.5"
+          className="border-foreground/15 bg-background/50 text-foreground hover:border-brand/40 hover:bg-brand/8 flex cursor-pointer items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium no-underline transition duration-300 select-none hover:-translate-y-0.5"
         >
           <LuGithub className="size-4" />
           <span>Browse Source</span>
@@ -1429,7 +1429,7 @@ const OpenSourceSection: React.FC = () => {
         </div>
         <ExternalLink
           href={GITHUB_REPO_URL}
-          className="group hover:border-brand/30 hover:bg-brand/10 flex cursor-pointer items-center rounded-md border border-zinc-700 bg-black/50 px-6 py-2 text-sm font-medium text-white no-underline transition-all duration-300"
+          className="group hover:border-brand/30 hover:bg-brand/10 flex cursor-pointer items-center rounded-md border border-zinc-700 bg-black/50 px-6 py-2 text-sm font-medium text-white no-underline transition duration-300"
         >
           <LuGithub className="mr-2 size-4 transition-transform duration-300 group-hover:scale-110" />
           <span className="select-none">View on GitHub</span>

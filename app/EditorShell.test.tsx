@@ -1,7 +1,7 @@
 import { Window } from 'happy-dom'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 
 import { EditorShell } from './EditorShell.js'
 
@@ -93,8 +93,8 @@ if (typeof document === 'undefined') {
 
 vi.mock('@s4wave/web/router/app-path.js', () => ({
   getAppPath: () => h.appPath,
+  getAppNavigation: () => ({ path: h.appPath, params: {} }),
 }))
-
 vi.mock('@s4wave/web/state/index.js', () => ({
   useStateAtom: <T,>(_: unknown, __: string, initialValue: T) => [
     initialValue,
@@ -248,6 +248,10 @@ describe('EditorShell command session scope', () => {
     h.mountSessionByIdx.mockResolvedValue({ session: h.session })
     h.sessionProviderResources = []
     h.setOpenMenu.mockReset()
+    h.shellTabs = {
+      tabs: [{ id: 'tab-active', name: 'Home', path: '/' }],
+      activeTabId: 'tab-active',
+    }
   })
 
   afterEach(() => {
@@ -277,5 +281,18 @@ describe('EditorShell command session scope', () => {
     expect(screen.getByTestId('command-palette-session').textContent).toBe(
       'no-session',
     )
+  })
+
+  it('tracks the active Shell Tab route in the document title', async () => {
+    const view = render(<EditorShell />)
+    await waitFor(() => expect(document.title).toBe('Spacewave'))
+
+    h.shellTabs = {
+      tabs: [{ id: 'tab-pricing', name: 'Pricing', path: '/pricing' }],
+      activeTabId: 'tab-pricing',
+    }
+    view.rerender(<EditorShell />)
+
+    await waitFor(() => expect(document.title).toBe('Pricing - Spacewave'))
   })
 })

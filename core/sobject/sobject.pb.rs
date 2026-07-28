@@ -538,6 +538,356 @@ pub struct SoJoinResponse {
     #[prost(message, optional, tag="4")]
     pub signature: ::core::option::Option<super::peer::Signature>,
 }
+/// SOMutationKey identifies one immutable exact participant attempt.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SoMutationKey {
+    /// OriginScopeId is the stable opaque account/store scope identifier.
+    #[prost(bytes="vec", tag="1")]
+    pub origin_scope_id: ::prost::alloc::vec::Vec<u8>,
+    /// SharedObjectId is the object identity within the origin scope.
+    #[prost(string, tag="2")]
+    pub shared_object_id: ::prost::alloc::string::String,
+    /// ParticipantPeerId is the submitting participant identity.
+    #[prost(string, tag="3")]
+    pub participant_peer_id: ::prost::alloc::string::String,
+    /// LocalId is allocated once for this exact attempt.
+    #[prost(string, tag="4")]
+    pub local_id: ::prost::alloc::string::String,
+}
+/// SOJournalLineage links an immutable attempt to an optional predecessor.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SoJournalLineage {
+    /// RootKey is the exact key carried by this lineage record.
+    #[prost(message, optional, tag="1")]
+    pub root_key: ::core::option::Option<SoMutationKey>,
+    /// Supersedes links a changed attempt to its predecessor.
+    #[prost(message, optional, tag="2")]
+    pub supersedes: ::core::option::Option<SoMutationKey>,
+}
+/// SOJournalVersionTuple carries local and remote observations needed for replay.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SoJournalVersionTuple {
+    /// LocalVersion is the local journal version at preparation.
+    #[prost(uint64, tag="1")]
+    pub local_version: u64,
+    /// RemoteVersion is the authoritative remote version observed at preparation.
+    #[prost(uint64, tag="2")]
+    pub remote_version: u64,
+    /// TransformEpoch is the verified transform epoch used by the envelope.
+    #[prost(uint64, tag="3")]
+    pub transform_epoch: u64,
+    /// ConfigChainDigest identifies the verified configuration chain.
+    #[prost(bytes="vec", tag="4")]
+    pub config_chain_digest: ::prost::alloc::vec::Vec<u8>,
+}
+/// SOJournalIntent is the canonical body-neutral operation before signing.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SoJournalIntent {
+    /// Key identifies the exact operation attempt.
+    #[prost(message, optional, tag="1")]
+    pub key: ::core::option::Option<SoMutationKey>,
+    /// Lineage records the immutable predecessor relation.
+    #[prost(message, optional, tag="2")]
+    pub lineage: ::core::option::Option<SoJournalLineage>,
+    /// Version records the observations used to construct the operation.
+    #[prost(message, optional, tag="3")]
+    pub version: ::core::option::Option<SoJournalVersionTuple>,
+    /// CanonicalOperation contains operation input without body-specific metadata.
+    #[prost(bytes="vec", tag="4")]
+    pub canonical_operation: ::prost::alloc::vec::Vec<u8>,
+}
+/// SOJournalEncryptedPayload contains authenticated ciphertext and its nonce.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SoJournalEncryptedPayload {
+    /// Nonce is unique within the derived journal key domain.
+    #[prost(bytes="vec", tag="1")]
+    pub nonce: ::prost::alloc::vec::Vec<u8>,
+    /// Ciphertext contains the encrypted staged payload and authentication tag.
+    #[prost(bytes="vec", tag="2")]
+    pub ciphertext: ::prost::alloc::vec::Vec<u8>,
+}
+/// SOJournalLookup records one serialized exact-key receipt lookup.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SoJournalLookup {
+    /// Key identifies the exact lookup attempt.
+    #[prost(message, optional, tag="1")]
+    pub key: ::core::option::Option<SoMutationKey>,
+    /// State is the authoritative lookup result.
+    #[prost(enumeration="SoReceiptState", tag="2")]
+    pub state: i32,
+    /// Receipt carries terminal evidence when state is accepted or rejected.
+    #[prost(message, optional, tag="3")]
+    pub receipt: ::core::option::Option<SoJournalReceipt>,
+    /// Response contains the opaque authenticated lookup response bytes.
+    #[prost(bytes="vec", tag="4")]
+    pub response: ::prost::alloc::vec::Vec<u8>,
+    /// ResponseDigest binds the retained response bytes.
+    #[prost(bytes="vec", tag="5")]
+    pub response_digest: ::prost::alloc::vec::Vec<u8>,
+    /// ConfigChainDigest identifies the verified lookup configuration.
+    #[prost(bytes="vec", tag="6")]
+    pub config_chain_digest: ::prost::alloc::vec::Vec<u8>,
+}
+/// SOJournalReceipt records terminal evidence without making projection implicit.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SoJournalReceipt {
+    /// Key identifies the exact terminal attempt.
+    #[prost(message, optional, tag="1")]
+    pub key: ::core::option::Option<SoMutationKey>,
+    /// EnvelopeDigest binds the receipt to the immutable signed envelope using DigestSOOperationEnvelope.
+    #[prost(bytes="vec", tag="2")]
+    pub envelope_digest: ::prost::alloc::vec::Vec<u8>,
+    /// Outcome is the authenticated terminal result.
+    #[prost(enumeration="SoJournalOutcome", tag="3")]
+    pub outcome: i32,
+    /// TerminalReceipt contains the verified signed remote receipt.
+    #[prost(bytes="vec", tag="4")]
+    pub terminal_receipt: ::prost::alloc::vec::Vec<u8>,
+    /// TerminalReceiptDigest is DigestSOTerminalReceipt over the durable signed receipt bytes.
+    #[prost(bytes="vec", tag="5")]
+    pub terminal_receipt_digest: ::prost::alloc::vec::Vec<u8>,
+    /// AuthoritativeRootSeqno is the root sequence named by the receipt.
+    #[prost(uint64, tag="6")]
+    pub authoritative_root_seqno: u64,
+    /// AuthoritativeRootDigest is DigestSOAuthoritativeRoot of the root named by the receipt.
+    #[prost(bytes="vec", tag="7")]
+    pub authoritative_root_digest: ::prost::alloc::vec::Vec<u8>,
+    /// ConfigChainDigest identifies the matching historical SharedObjectConfig.config_chain_hash.
+    #[prost(bytes="vec", tag="8")]
+    pub config_chain_digest: ::prost::alloc::vec::Vec<u8>,
+    /// TerminalUnixMillis is the remote terminal timestamp.
+    #[prost(uint64, tag="9")]
+    pub terminal_unix_millis: u64,
+    /// Supersedes links this receipt to a predecessor when applicable.
+    #[prost(message, optional, tag="10")]
+    pub supersedes: ::core::option::Option<SoMutationKey>,
+}
+/// SOJournalAcknowledgement records remote receipt acknowledgement.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SoJournalAcknowledgement {
+    /// Key identifies the exact acknowledged attempt.
+    #[prost(message, optional, tag="1")]
+    pub key: ::core::option::Option<SoMutationKey>,
+    /// ReceiptDigest binds acknowledgement to one terminal receipt using DigestSOTerminalReceipt.
+    #[prost(bytes="vec", tag="2")]
+    pub receipt_digest: ::prost::alloc::vec::Vec<u8>,
+    /// AcknowledgedUnixMillis records when acknowledgement became durable.
+    #[prost(uint64, tag="3")]
+    pub acknowledged_unix_millis: u64,
+}
+/// SOJournalProjection records the body's exact authoritative-root observation.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SoJournalProjection {
+    /// Key identifies the projected attempt.
+    #[prost(message, optional, tag="1")]
+    pub key: ::core::option::Option<SoMutationKey>,
+    /// ReceiptDigest binds projection to the terminal receipt.
+    #[prost(bytes="vec", tag="2")]
+    pub receipt_digest: ::prost::alloc::vec::Vec<u8>,
+    /// AuthoritativeRootSeqno is the exact root sequence projected by the body.
+    #[prost(uint64, tag="3")]
+    pub authoritative_root_seqno: u64,
+    /// AuthoritativeRootDigest is the exact root identity projected by the body.
+    #[prost(bytes="vec", tag="4")]
+    pub authoritative_root_digest: ::prost::alloc::vec::Vec<u8>,
+}
+/// SOJournalRecord is the generated body-neutral durable journal payload.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SoJournalRecord {
+    /// FormatVersion identifies the journal payload schema.
+    #[prost(uint32, tag="1")]
+    pub format_version: u32,
+    /// Sequence is the strictly increasing journal record sequence.
+    #[prost(uint64, tag="2")]
+    pub sequence: u64,
+    /// Kind identifies which durable transition this record represents.
+    #[prost(enumeration="SoJournalRecordKind", tag="3")]
+    pub kind: i32,
+    /// Key is the immutable exact mutation identity.
+    #[prost(message, optional, tag="4")]
+    pub key: ::core::option::Option<SoMutationKey>,
+    /// Lineage carries the immutable supersession relation.
+    #[prost(message, optional, tag="5")]
+    pub lineage: ::core::option::Option<SoJournalLineage>,
+    /// Version carries local/remote and transform observations.
+    #[prost(message, optional, tag="6")]
+    pub version: ::core::option::Option<SoJournalVersionTuple>,
+    /// Intent is encrypted canonical intent for an intent record.
+    #[prost(message, optional, tag="7")]
+    pub intent: ::core::option::Option<SoJournalEncryptedPayload>,
+    /// Envelope is encrypted immutable signed bytes for an envelope record.
+    #[prost(message, optional, tag="8")]
+    pub envelope: ::core::option::Option<SoJournalEncryptedPayload>,
+    /// Receipt is terminal evidence for a receipt record.
+    #[prost(message, optional, tag="9")]
+    pub receipt: ::core::option::Option<SoJournalReceipt>,
+    /// Acknowledgement is remote receipt acknowledgement.
+    #[prost(message, optional, tag="10")]
+    pub acknowledgement: ::core::option::Option<SoJournalAcknowledgement>,
+    /// Projection is the body owner's exact-root observation.
+    #[prost(message, optional, tag="11")]
+    pub projection: ::core::option::Option<SoJournalProjection>,
+    /// Readiness is the body-owned preparation result.
+    #[prost(enumeration="SoJournalReadiness", tag="12")]
+    pub readiness: i32,
+    /// RecoveryReason carries a typed recovery stop.
+    #[prost(enumeration="SoJournalRecoveryReason", tag="13")]
+    pub recovery_reason: i32,
+    /// AttemptState records the legal lifecycle state after this transition.
+    #[prost(enumeration="SoJournalAttemptState", tag="14")]
+    pub attempt_state: i32,
+    /// EnvelopeDigest identifies the immutable signed-envelope plaintext.
+    #[prost(bytes="vec", tag="15")]
+    pub envelope_digest: ::prost::alloc::vec::Vec<u8>,
+    /// Lookup is the serialized exact-key receipt observation.
+    #[prost(message, optional, tag="16")]
+    pub lookup: ::core::option::Option<SoJournalLookup>,
+}
+/// SOJournalCheckpointAttempt is the bounded reducer state for one exact key.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SoJournalCheckpointAttempt {
+    /// Key identifies the exact checkpointed mutation attempt.
+    #[prost(message, optional, tag="1")]
+    pub key: ::core::option::Option<SoMutationKey>,
+    /// Lineage carries the immutable supersession relation.
+    #[prost(message, optional, tag="2")]
+    pub lineage: ::core::option::Option<SoJournalLineage>,
+    /// Version carries local/remote and transform observations.
+    #[prost(message, optional, tag="3")]
+    pub version: ::core::option::Option<SoJournalVersionTuple>,
+    /// State is the legal lifecycle state at checkpoint publication.
+    #[prost(enumeration="SoJournalAttemptState", tag="4")]
+    pub state: i32,
+    /// Readiness records body-owned preparation status.
+    #[prost(enumeration="SoJournalReadiness", tag="5")]
+    pub readiness: i32,
+    /// Intent is the retained encrypted canonical operation.
+    #[prost(message, optional, tag="6")]
+    pub intent: ::core::option::Option<SoJournalEncryptedPayload>,
+    /// Envelope is the retained encrypted immutable signed bytes.
+    #[prost(message, optional, tag="7")]
+    pub envelope: ::core::option::Option<SoJournalEncryptedPayload>,
+    /// EnvelopeDigest binds the retained envelope plaintext.
+    #[prost(bytes="vec", tag="8")]
+    pub envelope_digest: ::prost::alloc::vec::Vec<u8>,
+    /// Receipt is terminal remote evidence kept separate from projection.
+    #[prost(message, optional, tag="9")]
+    pub receipt: ::core::option::Option<SoJournalReceipt>,
+    /// Acknowledgement records remote acknowledgement of the receipt.
+    #[prost(message, optional, tag="10")]
+    pub acknowledgement: ::core::option::Option<SoJournalAcknowledgement>,
+    /// Projection records the body's exact authoritative-root observation.
+    #[prost(message, optional, tag="11")]
+    pub projection: ::core::option::Option<SoJournalProjection>,
+    /// Lookup records the retained exact-key receipt lookup.
+    #[prost(message, optional, tag="12")]
+    pub lookup: ::core::option::Option<SoJournalLookup>,
+    /// SendAttempted records that transport crossed the durable send boundary.
+    #[prost(bool, tag="13")]
+    pub send_attempted: bool,
+    /// ResendAuthorized records authoritative no-record resend permission.
+    #[prost(bool, tag="14")]
+    pub resend_authorized: bool,
+    /// LineageRecoveryBlocked records that successor recovery is blocked.
+    #[prost(bool, tag="15")]
+    pub lineage_recovery_blocked: bool,
+    /// IntentSequence is the exact journal sequence used by the retained intent ciphertext.
+    #[prost(uint64, tag="16")]
+    pub intent_sequence: u64,
+    /// EnvelopeSequence is the exact journal sequence used by the retained envelope ciphertext.
+    #[prost(uint64, tag="17")]
+    pub envelope_sequence: u64,
+    /// CheckpointEligible is the derived receipt-plus-projection eligibility bit.
+    #[prost(bool, tag="18")]
+    pub checkpoint_eligible: bool,
+}
+/// SOJournalCheckpoint is a deterministic compact reducer snapshot.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SoJournalCheckpoint {
+    /// JournalIdentity is the stable identity of the journal storage.
+    #[prost(bytes="vec", tag="1")]
+    pub journal_identity: ::prost::alloc::vec::Vec<u8>,
+    /// Generation identifies this compact snapshot publication.
+    #[prost(uint64, tag="2")]
+    pub generation: u64,
+    /// NextSequence is the first sequence expected in the append tail.
+    #[prost(uint64, tag="3")]
+    pub next_sequence: u64,
+    /// Attempts contains one bounded state snapshot per exact mutation key.
+    #[prost(message, repeated, tag="4")]
+    pub attempts: ::prost::alloc::vec::Vec<SoJournalCheckpointAttempt>,
+}
+/// SOTerminalReceiptAccepted marks an accepted terminal mutation outcome.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SoTerminalReceiptAccepted {
+}
+/// SOTerminalReceiptInner is the deterministic signed evidence for one terminal mutation outcome.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SoTerminalReceiptInner {
+    /// Key identifies the exact immutable participant attempt.
+    #[prost(message, optional, tag="1")]
+    pub key: ::core::option::Option<SoMutationKey>,
+    /// EnvelopeDigest is DigestSOOperationEnvelope of the exact serialized signed SOOperation bytes.
+    /// The owner must compare this digest before decoding or reserializing the admitted envelope.
+    #[prost(bytes="vec", tag="2")]
+    pub envelope_digest: ::prost::alloc::vec::Vec<u8>,
+    /// AuthoritativeRootSeqno is the sequence number of the authoritative root terminalizing this mutation.
+    #[prost(uint64, tag="5")]
+    pub authoritative_root_seqno: u64,
+    /// AuthoritativeRootDigest is DigestSOAuthoritativeRoot of the terminalizing SORoot.
+    /// Its preimage includes BuildSignatureData only (inner and account nonces), never root signatures.
+    #[prost(bytes="vec", tag="6")]
+    pub authoritative_root_digest: ::prost::alloc::vec::Vec<u8>,
+    /// ConfigChainDigest equals the matching historical SharedObjectConfig.config_chain_hash.
+    /// That hash is produced by HashSOConfigChange over signature-cleared deterministic SOConfigChange bytes.
+    #[prost(bytes="vec", tag="7")]
+    pub config_chain_digest: ::prost::alloc::vec::Vec<u8>,
+    /// ConsensusMode records the signature-set rule required for this receipt.
+    #[prost(enumeration="SoConsensusMode", tag="8")]
+    pub consensus_mode: i32,
+    /// ValidatorSetDigest is DigestSOValidatorSet of the historical SharedObjectConfig.
+    /// It filters role >= VALIDATOR and hashes sorted, unique, length-framed peer IDs.
+    #[prost(bytes="vec", tag="9")]
+    pub validator_set_digest: ::prost::alloc::vec::Vec<u8>,
+    /// TerminalUnixMillis is the authoritative terminalization time in Unix milliseconds.
+    #[prost(uint64, tag="10")]
+    pub terminal_unix_millis: u64,
+    /// Supersedes links this mutation to an optional predecessor attempt.
+    #[prost(message, optional, tag="11")]
+    pub supersedes: ::core::option::Option<SoMutationKey>,
+    /// Outcome distinguishes acceptance from the existing signed rejection payload.
+    #[prost(oneof="so_terminal_receipt_inner::Outcome", tags="3, 4")]
+    pub outcome: ::core::option::Option<so_terminal_receipt_inner::Outcome>,
+}
+/// Nested message and enum types in `SOTerminalReceiptInner`.
+pub mod so_terminal_receipt_inner {
+    /// Outcome distinguishes acceptance from the existing signed rejection payload.
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Outcome {
+        /// Accepted indicates that the mutation was applied by the authoritative root.
+        #[prost(message, tag="3")]
+        Accepted(super::SoTerminalReceiptAccepted),
+        /// SignedRejection is the existing validator-signed rejection for this mutation.
+        #[prost(message, tag="4")]
+        SignedRejection(super::SoOperationRejection),
+    }
+}
+/// SOTerminalReceipt is the signed terminal evidence for one exact mutation outcome.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SoTerminalReceipt {
+    /// Inner is the deterministic serialized SOTerminalReceiptInner covered by every validator signature.
+    #[prost(bytes="vec", tag="1")]
+    pub inner: ::prost::alloc::vec::Vec<u8>,
+    /// ValidatorSignatures cover the deterministic Inner bytes using
+    /// BuildSOTerminalReceiptSignatureContext(Inner.key.shared_object_id,
+    /// Inner.key.participant_peer_id, Inner.key.local_id,
+    /// Inner.authoritative_root_seqno).
+    /// These signatures are separate from SORoot validator signatures. Signers
+    /// must belong to the validator set identified by Inner.validator_set_digest
+    /// and satisfy Inner.consensus_mode.
+    #[prost(message, repeated, tag="2")]
+    pub validator_signatures: ::prost::alloc::vec::Vec<super::peer::Signature>,
+}
 /// SharedObjectHealthStatus describes the lifecycle status of a SharedObject mount.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -868,6 +1218,254 @@ impl SoRevocationReason {
             "SO_REVOCATION_REASON_ORG_REMOVED" => Some(Self::OrgRemoved),
             "SO_REVOCATION_REASON_OWNER_REMOVED" => Some(Self::OwnerRemoved),
             "SO_REVOCATION_REASON_INVITE_REVOKED" => Some(Self::InviteRevoked),
+            _ => None,
+        }
+    }
+}
+/// SOJournalRecordKind identifies the durable event in a mutation journal.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SoJournalRecordKind {
+    Unspecified = 0,
+    Intent = 1,
+    SignedEnvelope = 2,
+    Sent = 3,
+    Receipt = 4,
+    Acknowledgement = 5,
+    BodyProjection = 6,
+    StaleTransformEpoch = 7,
+    RecoveryBlocked = 8,
+    LineageRecoveryBlocked = 9,
+    ReceiptLookup = 10,
+    ResendAuthorized = 11,
+}
+impl SoJournalRecordKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SO_JOURNAL_RECORD_KIND_UNSPECIFIED",
+            Self::Intent => "SO_JOURNAL_RECORD_KIND_INTENT",
+            Self::SignedEnvelope => "SO_JOURNAL_RECORD_KIND_SIGNED_ENVELOPE",
+            Self::Sent => "SO_JOURNAL_RECORD_KIND_SENT",
+            Self::Receipt => "SO_JOURNAL_RECORD_KIND_RECEIPT",
+            Self::Acknowledgement => "SO_JOURNAL_RECORD_KIND_ACKNOWLEDGEMENT",
+            Self::BodyProjection => "SO_JOURNAL_RECORD_KIND_BODY_PROJECTION",
+            Self::StaleTransformEpoch => "SO_JOURNAL_RECORD_KIND_STALE_TRANSFORM_EPOCH",
+            Self::RecoveryBlocked => "SO_JOURNAL_RECORD_KIND_RECOVERY_BLOCKED",
+            Self::LineageRecoveryBlocked => "SO_JOURNAL_RECORD_KIND_LINEAGE_RECOVERY_BLOCKED",
+            Self::ReceiptLookup => "SO_JOURNAL_RECORD_KIND_RECEIPT_LOOKUP",
+            Self::ResendAuthorized => "SO_JOURNAL_RECORD_KIND_RESEND_AUTHORIZED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SO_JOURNAL_RECORD_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "SO_JOURNAL_RECORD_KIND_INTENT" => Some(Self::Intent),
+            "SO_JOURNAL_RECORD_KIND_SIGNED_ENVELOPE" => Some(Self::SignedEnvelope),
+            "SO_JOURNAL_RECORD_KIND_SENT" => Some(Self::Sent),
+            "SO_JOURNAL_RECORD_KIND_RECEIPT" => Some(Self::Receipt),
+            "SO_JOURNAL_RECORD_KIND_ACKNOWLEDGEMENT" => Some(Self::Acknowledgement),
+            "SO_JOURNAL_RECORD_KIND_BODY_PROJECTION" => Some(Self::BodyProjection),
+            "SO_JOURNAL_RECORD_KIND_STALE_TRANSFORM_EPOCH" => Some(Self::StaleTransformEpoch),
+            "SO_JOURNAL_RECORD_KIND_RECOVERY_BLOCKED" => Some(Self::RecoveryBlocked),
+            "SO_JOURNAL_RECORD_KIND_LINEAGE_RECOVERY_BLOCKED" => Some(Self::LineageRecoveryBlocked),
+            "SO_JOURNAL_RECORD_KIND_RECEIPT_LOOKUP" => Some(Self::ReceiptLookup),
+            "SO_JOURNAL_RECORD_KIND_RESEND_AUTHORIZED" => Some(Self::ResendAuthorized),
+            _ => None,
+        }
+    }
+}
+/// SOJournalAttemptState identifies the attempt lifecycle state.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SoJournalAttemptState {
+    Unspecified = 0,
+    IntentDurable = 1,
+    EnvelopeDurable = 2,
+    Sent = 3,
+    ReceiptDurable = 4,
+    StaleTransformEpoch = 5,
+    RecoveryBlocked = 6,
+}
+impl SoJournalAttemptState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SO_JOURNAL_ATTEMPT_STATE_UNSPECIFIED",
+            Self::IntentDurable => "SO_JOURNAL_ATTEMPT_STATE_INTENT_DURABLE",
+            Self::EnvelopeDurable => "SO_JOURNAL_ATTEMPT_STATE_ENVELOPE_DURABLE",
+            Self::Sent => "SO_JOURNAL_ATTEMPT_STATE_SENT",
+            Self::ReceiptDurable => "SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURABLE",
+            Self::StaleTransformEpoch => "SO_JOURNAL_ATTEMPT_STATE_STALE_TRANSFORM_EPOCH",
+            Self::RecoveryBlocked => "SO_JOURNAL_ATTEMPT_STATE_RECOVERY_BLOCKED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SO_JOURNAL_ATTEMPT_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "SO_JOURNAL_ATTEMPT_STATE_INTENT_DURABLE" => Some(Self::IntentDurable),
+            "SO_JOURNAL_ATTEMPT_STATE_ENVELOPE_DURABLE" => Some(Self::EnvelopeDurable),
+            "SO_JOURNAL_ATTEMPT_STATE_SENT" => Some(Self::Sent),
+            "SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURABLE" => Some(Self::ReceiptDurable),
+            "SO_JOURNAL_ATTEMPT_STATE_STALE_TRANSFORM_EPOCH" => Some(Self::StaleTransformEpoch),
+            "SO_JOURNAL_ATTEMPT_STATE_RECOVERY_BLOCKED" => Some(Self::RecoveryBlocked),
+            _ => None,
+        }
+    }
+}
+/// SOJournalOutcome identifies the authenticated terminal result of an attempt.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SoJournalOutcome {
+    Unspecified = 0,
+    Accepted = 1,
+    Rejected = 2,
+}
+impl SoJournalOutcome {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SO_JOURNAL_OUTCOME_UNSPECIFIED",
+            Self::Accepted => "SO_JOURNAL_OUTCOME_ACCEPTED",
+            Self::Rejected => "SO_JOURNAL_OUTCOME_REJECTED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SO_JOURNAL_OUTCOME_UNSPECIFIED" => Some(Self::Unspecified),
+            "SO_JOURNAL_OUTCOME_ACCEPTED" => Some(Self::Accepted),
+            "SO_JOURNAL_OUTCOME_REJECTED" => Some(Self::Rejected),
+            _ => None,
+        }
+    }
+}
+/// SOJournalReadiness identifies whether the body owner can supply dependencies.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SoJournalReadiness {
+    Unspecified = 0,
+    Ready = 1,
+    Missing = 2,
+    Corrupt = 3,
+    Obsolete = 4,
+}
+impl SoJournalReadiness {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SO_JOURNAL_READINESS_UNSPECIFIED",
+            Self::Ready => "SO_JOURNAL_READINESS_READY",
+            Self::Missing => "SO_JOURNAL_READINESS_MISSING",
+            Self::Corrupt => "SO_JOURNAL_READINESS_CORRUPT",
+            Self::Obsolete => "SO_JOURNAL_READINESS_OBSOLETE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SO_JOURNAL_READINESS_UNSPECIFIED" => Some(Self::Unspecified),
+            "SO_JOURNAL_READINESS_READY" => Some(Self::Ready),
+            "SO_JOURNAL_READINESS_MISSING" => Some(Self::Missing),
+            "SO_JOURNAL_READINESS_CORRUPT" => Some(Self::Corrupt),
+            "SO_JOURNAL_READINESS_OBSOLETE" => Some(Self::Obsolete),
+            _ => None,
+        }
+    }
+}
+/// SOJournalRecoveryReason identifies a typed recovery stop.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SoJournalRecoveryReason {
+    Unspecified = 0,
+    StaleTransformEpoch = 1,
+    KeyUnavailable = 2,
+    AuthorityFailure = 3,
+    BodyMissing = 4,
+    BodyCorrupt = 5,
+    BodyObsolete = 6,
+}
+impl SoJournalRecoveryReason {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SO_JOURNAL_RECOVERY_REASON_UNSPECIFIED",
+            Self::StaleTransformEpoch => "SO_JOURNAL_RECOVERY_REASON_STALE_TRANSFORM_EPOCH",
+            Self::KeyUnavailable => "SO_JOURNAL_RECOVERY_REASON_KEY_UNAVAILABLE",
+            Self::AuthorityFailure => "SO_JOURNAL_RECOVERY_REASON_AUTHORITY_FAILURE",
+            Self::BodyMissing => "SO_JOURNAL_RECOVERY_REASON_BODY_MISSING",
+            Self::BodyCorrupt => "SO_JOURNAL_RECOVERY_REASON_BODY_CORRUPT",
+            Self::BodyObsolete => "SO_JOURNAL_RECOVERY_REASON_BODY_OBSOLETE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SO_JOURNAL_RECOVERY_REASON_UNSPECIFIED" => Some(Self::Unspecified),
+            "SO_JOURNAL_RECOVERY_REASON_STALE_TRANSFORM_EPOCH" => Some(Self::StaleTransformEpoch),
+            "SO_JOURNAL_RECOVERY_REASON_KEY_UNAVAILABLE" => Some(Self::KeyUnavailable),
+            "SO_JOURNAL_RECOVERY_REASON_AUTHORITY_FAILURE" => Some(Self::AuthorityFailure),
+            "SO_JOURNAL_RECOVERY_REASON_BODY_MISSING" => Some(Self::BodyMissing),
+            "SO_JOURNAL_RECOVERY_REASON_BODY_CORRUPT" => Some(Self::BodyCorrupt),
+            "SO_JOURNAL_RECOVERY_REASON_BODY_OBSOLETE" => Some(Self::BodyObsolete),
+            _ => None,
+        }
+    }
+}
+/// SOReceiptState identifies the authoritative state of one exact mutation key.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SoReceiptState {
+    /// SO_RECEIPT_STATE_UNSPECIFIED is the zero value.
+    Unspecified = 0,
+    /// SO_RECEIPT_STATE_NO_RECORD means no pending or terminal record exists at the lookup linearization point.
+    NoRecord = 1,
+    /// SO_RECEIPT_STATE_PENDING means the exact mutation has been durably admitted but not terminalized.
+    Pending = 2,
+    /// SO_RECEIPT_STATE_ACCEPTED means the exact mutation has an accepted terminal receipt.
+    Accepted = 3,
+    /// SO_RECEIPT_STATE_REJECTED means the exact mutation has a rejected terminal receipt.
+    Rejected = 4,
+}
+impl SoReceiptState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SO_RECEIPT_STATE_UNSPECIFIED",
+            Self::NoRecord => "SO_RECEIPT_STATE_NO_RECORD",
+            Self::Pending => "SO_RECEIPT_STATE_PENDING",
+            Self::Accepted => "SO_RECEIPT_STATE_ACCEPTED",
+            Self::Rejected => "SO_RECEIPT_STATE_REJECTED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SO_RECEIPT_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "SO_RECEIPT_STATE_NO_RECORD" => Some(Self::NoRecord),
+            "SO_RECEIPT_STATE_PENDING" => Some(Self::Pending),
+            "SO_RECEIPT_STATE_ACCEPTED" => Some(Self::Accepted),
+            "SO_RECEIPT_STATE_REJECTED" => Some(Self::Rejected),
             _ => None,
         }
     }

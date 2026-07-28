@@ -527,8 +527,8 @@ func BuildDistBundle(
 		outBinPath,
 		enableCgo,
 		enableTinygo,
-		nil,
-		nil,
+		gocompiler.RuntimeStartupTraceBuildTagsForWebWasm(isWebPlatform, enableTinygo),
+		distEntrypointLDFlags(buildPlatform, meta.GetEntrypointRole()),
 	)
 	if err != nil {
 		return err
@@ -547,6 +547,14 @@ func BuildDistBundle(
 	}
 
 	return nil
+}
+
+func distEntrypointLDFlags(buildPlatform bldr_platform.Platform, entrypointRole string) []string {
+	native, ok := buildPlatform.(*bldr_platform.NativePlatform)
+	if !ok || native.GetGOOS() != "windows" || entrypointRole != bldr_dist.EntrypointRoleDesktop {
+		return nil
+	}
+	return []string{"-H=windowsgui"}
 }
 
 func resolveDistGoCompiler(
@@ -570,7 +578,8 @@ func resolveDistGoCompiler(
 
 func newDistGoScriptBuildFlags(buildType bldr_manifest.BuildType, enableCgo bool) []string {
 	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
-	buildTags = append(buildTags, gocompiler.GoScriptBuildTag)
+	buildTags = append(buildTags, gocompiler.GoScriptBuildTag, gocompiler.SQLLiteBuildTag)
+	buildTags = append(buildTags, gocompiler.RuntimeStartupTraceBuildTags()...)
 	return []string{"-tags=" + strings.Join(buildTags, ",")}
 }
 

@@ -16,6 +16,9 @@ type RunningPluginRef interface {
 	// GetRunningPluginCtr returns the current running plugin instance.
 	// May be changed (or set to nil) when the instance changes.
 	GetRunningPluginCtr() ccontainer.Watchable[RunningPlugin]
+	// GetPluginLoadStateCtr returns the atomic RPC-client and initial
+	// capability-registration state for the plugin instance.
+	GetPluginLoadStateCtr() ccontainer.Watchable[PluginLoadState]
 }
 
 // runningPlugin contains a static srpc client

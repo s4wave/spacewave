@@ -912,7 +912,10 @@ export function SessionSharedObjectContainer() {
 
   if (resourceError && isStorageQuotaError(resourceError)) {
     queueMicrotask(() =>
-      navigateSession({ path: 'settings/storage/recovery', replace: true }),
+      navigateSession({
+        path: 'settings/storage/recovery/incident',
+        replace: true,
+      }),
     )
   } else if (shouldRedirectMissingSpace) {
     queueMicrotask(() => navigateSession({ path: '', replace: true }))

@@ -369,7 +369,7 @@ export function ForgeDashboardViewer({
                   onClick={() => {
                     void handleStartWorkers()
                   }}
-                  className="border-brand/40 bg-brand/10 hover:border-brand/60 hover:bg-brand/15 text-foreground mt-3 inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-all duration-150"
+                  className="border-brand/40 bg-brand/10 hover:border-brand/60 hover:bg-brand/15 text-foreground mt-3 inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition duration-150"
                 >
                   <LuPlus className="size-3.5" />
                   {pendingWorkers.length === 1

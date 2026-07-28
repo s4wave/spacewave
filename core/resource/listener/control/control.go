@@ -17,6 +17,7 @@ import (
 	"io"
 	"net"
 	"strings"
+	"sync"
 
 	emptypb "github.com/aperturerobotics/protobuf-go-lite/types/known/emptypb"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -52,12 +53,18 @@ func AutoAllowPolicy(context.Context) error { return nil }
 type Handler struct {
 	policy   YieldPolicy
 	shutdown func()
+
+	mtx              sync.Mutex
+	claimed          bool
+	shutdownGranted  func(context.Context)
+	shutdownComplete chan struct{}
+	completeOnce     sync.Once
 }
 
 // NewHandler constructs a daemon control handler. policy decides
-// whether to honor a Shutdown RPC; shutdown is invoked once after the
-// handler acknowledges a permitted request. shutdown must be safe to
-// call from an RPC goroutine and from multiple goroutines.
+// whether to honor a Shutdown RPC. For the one permitted requester,
+// shutdown runs before the completion acknowledgement and must
+// synchronously release the listener and its socket path.
 //
 // If policy is nil, the handler auto-allows every request (matching
 // the legacy "always allow" behavior of the CLI daemon).
@@ -68,7 +75,25 @@ func NewHandler(policy YieldPolicy, shutdown func()) *Handler {
 	if shutdown == nil {
 		shutdown = func() {}
 	}
-	return &Handler{policy: policy, shutdown: shutdown}
+	return &Handler{
+		policy:           policy,
+		shutdown:         shutdown,
+		shutdownComplete: make(chan struct{}),
+	}
+}
+
+// ShutdownComplete closes after the granted shutdown invocation finishes
+// writing its acknowledgement, including the final stream close attempt.
+func (h *Handler) ShutdownComplete() <-chan struct{} {
+	return h.shutdownComplete
+}
+
+// SetShutdownGrantedCallback sets fn to run after a Shutdown request passes
+// policy and claims the handler. fn receives the granted stream context.
+func (h *Handler) SetShutdownGrantedCallback(fn func(context.Context)) {
+	h.mtx.Lock()
+	h.shutdownGranted = fn
+	h.mtx.Unlock()
 }
 
 // GetServiceID returns the service identifier.
@@ -82,9 +107,11 @@ func (h *Handler) GetMethodIDs() []string {
 }
 
 // InvokeMethod handles the Shutdown RPC. The handler consults its
-// YieldPolicy; on nil it acknowledges the peer and fires the shutdown
-// callback. On policy error, it returns a wrapped error that the peer
-// sees as the RPC result.
+// YieldPolicy and grants at most one caller. On approval it notifies the
+// granted-requester callback, releases the listener before acknowledging the
+// peer, then signals ShutdownComplete after response-stream completion. On
+// policy error or an already-claimed handoff, it returns a wrapped denial to
+// the peer.
 func (h *Handler) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
 	if serviceID != ServiceID || methodID != ShutdownMethodID {
 		return false, nil
@@ -100,34 +127,69 @@ func (h *Handler) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bo
 		return true, errors.Errorf("%s %s", DenyErrorMarker, err.Error())
 	}
 
+	h.mtx.Lock()
+	if h.claimed {
+		h.mtx.Unlock()
+		return true, errors.Errorf("%s takeover already granted to another requester", DenyErrorMarker)
+	}
+	h.claimed = true
+	shutdownGranted := h.shutdownGranted
+	h.mtx.Unlock()
+
+	if shutdownGranted != nil {
+		shutdownGranted(ctx)
+	}
+
+	// Release the socket before acknowledging the requester. If the
+	// process or connection disappears before the acknowledgement, the
+	// requester verifies that no listener remains and reclaims the stale
+	// path.
+	h.shutdown()
+	defer h.completeOnce.Do(func() {
+		close(h.shutdownComplete)
+	})
 	if err := strm.MsgSend(&emptypb.Empty{}); err != nil {
 		return true, err
 	}
-	// The delivered ack grants the takeover, and the client closes the
-	// control connection the instant it reads that ack (TakeoverSocket
-	// defers conn.Close). Commit the shutdown here: CloseSend below is
-	// best-effort stream teardown racing that close, and gating shutdown
-	// on it stranded the old daemon whenever the client won the race.
-	h.shutdown()
 	return true, strm.CloseSend()
 }
 
-// RequestShutdown issues the Shutdown RPC over conn and waits for the
-// peer's acknowledgement. If the peer denies the takeover, the
-// returned error is a DenyError describing the denial reason.
+// RequestShutdown issues the Shutdown RPC over conn and waits for both the
+// peer's acknowledgement and its stream-completion event. If the peer denies
+// the takeover, the returned error is a DenyError describing the denial reason.
 // Callers are responsible for closing conn.
 func RequestShutdown(ctx context.Context, conn net.Conn) error {
 	client, err := srpc.NewClientWithConn(conn, true, nil)
 	if err != nil {
 		return errors.Wrap(err, "create daemon control client")
 	}
-	if err := client.ExecCall(ctx, ServiceID, ShutdownMethodID, &emptypb.Empty{}, &emptypb.Empty{}); err != nil {
-		if denyReason, ok := extractDenyReason(err); ok {
-			return &DenyError{Reason: denyReason}
+	strm, err := client.NewStream(
+		ctx,
+		ServiceID,
+		ShutdownMethodID,
+		&emptypb.Empty{},
+	)
+	if err != nil {
+		return wrapRequestShutdownError(err)
+	}
+	defer strm.Close()
+	if err := strm.MsgRecv(&emptypb.Empty{}); err != nil {
+		return wrapRequestShutdownError(err)
+	}
+	if err := strm.MsgRecv(&emptypb.Empty{}); err != io.EOF {
+		if err == nil {
+			return errors.New("request daemon shutdown: unexpected response after acknowledgement")
 		}
-		return errors.Wrap(err, "request daemon shutdown")
+		return wrapRequestShutdownError(err)
 	}
 	return nil
+}
+
+func wrapRequestShutdownError(err error) error {
+	if denyReason, ok := extractDenyReason(err); ok {
+		return &DenyError{Reason: denyReason}
+	}
+	return errors.Wrap(err, "request daemon shutdown")
 }
 
 // DenyError indicates that the peer explicitly denied the takeover.

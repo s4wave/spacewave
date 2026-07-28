@@ -84,8 +84,6 @@ a subdirectory.
 - Run `bun install` before treating generated/module-resolution failures as real.
   Use `bun run setup` only to repair stale `.bldr` exports or module resolution
   after dependencies are installed.
-- Do not edit, copy into, or sync files under `.bldr/src/`; it is generated.
-  Edit source files in their original locations.
 - Keep large command output under `.tmp/` when needed, then inspect a short
   summary or tail. Do not commit `.tmp/`.
 - Do not use sleep loops for readiness, locks, files, ports, pids, or results.
@@ -230,8 +228,8 @@ a subdirectory.
 
 ## Bldr Build And Runtime
 
-- Bldr setup output is generated. Do not edit `.bldr/src/` or hand-copy files
-  there.
+- Bldr setup output is generated. Do not edit, copy into, or sync files under
+  `.bldr/src/`; edit source files in their original locations.
 - Controller factories are normally registered through Bldr `configSet` entries
   and package scans, not production `AddFactory` calls. Direct `AddFactory`
   belongs in tests.
@@ -252,6 +250,35 @@ a subdirectory.
   404.
 - When adding TypeScript that must be bundled for Electron or browser
   entrypoints, update the relevant `//go:embed` `DistSources` in `dist.go`.
+- `DistSources` may also grow so a downstream Bldr app can resolve a Spacewave
+  TypeScript subpath from `.bldr/src` instead of a sibling checkout. This serves
+  the `web/` plugin-importable surface named under Package Boundaries; it does
+  not widen that surface. Embed only the subpaths that app imports plus their
+  transitive TypeScript imports.
+  Downstream apps consume leaf modules, so the transitive set is usually larger
+  than the import list and must be walked, not guessed. Never embed a whole
+  domain tree or the app surface to save that walk.
+- Match the existing entry style and prefer the narrowest form that covers the
+  need: an exact file list (`sdk/resource/client.ts sdk/resource/resource.ts`)
+  or a single-directory extension glob (`web/fetch/*.ts`). Whole-directory
+  entries such as `web/electron` exist for entrypoint trees and are not the
+  default for new downstream additions.
+- Embed TypeScript and TSX only. Go reaches downstream projects through
+  `vendor/`, so domain `.go` never belongs in `DistSources`. The handful of
+  embedded `deps.go` and `web.go` entries are `deps_only` build-tag stubs that
+  let the dist module resolve packages referenced by `.proto` files; they are
+  not precedent for embedding Go logic.
+- `//go:embed` patterns cannot contain `..`, so `bldr/dist.go` reaches only
+  paths under `bldr/`. A downstream `@s4wave/web/...` import resolves against
+  the repository-root `web/` tree, which `bldr/dist.go` cannot embed. Exporting
+  that tree needs an embed rooted inside it, not a wider pattern in
+  `bldr/dist.go`. Note also that `.bldr/src/web` is `bldr/web`, a different tree
+  from `web/`, so mapping a downstream alias at `.bldr/src/web` silently
+  resolves the wrong sources.
+- `go mod vendor` keeps a directory's full contents once any Go file makes it a
+  package, so a TypeScript-only directory under `web/` vendors as empty while a
+  sibling with generated Go vendors completely. Do not infer downstream
+  TypeScript availability from a populated `vendor/` path.
 - Treat Bldr config as the build graph. Change it only when the task truly
   changes build inputs, manifests, platform targets, or generated exports.
 
@@ -344,6 +371,29 @@ a subdirectory.
 - When identifiers share a wire shape but mean different domain roles, encode
   the distinction in the owner library API with semantic helpers. Callers choose
   by meaning, not byte shape.
+- World object keys are `<stable-type-root>/<self-contained-id>`. The
+  identifier is this object's own identity: an opaque ID or a natural external
+  identity such as `owner/repo`. Never embed a FOREIGN owner's World object key
+  as an identity segment; carry cross-owner relationships as typed fields or
+  graph quads, never as key substrings.
+- Prefer World Graph edges over storing a foreign object key in a field for
+  cross-object references. A key-valued field is the exception and needs a
+  stated reason (a consumer that genuinely needs the direct key without a
+  graph read); the graph edge is the primary reference.
+- Owner-local parent-scoped child keys (`<ownKey>/<role>`,
+  `<jobKey>/pass/<n>`) are legitimate for owned children when depth is bounded
+  and the segment carries information. Reject constant segments whose nonce can
+  never vary; a retry ordinal or role name carries information, a fixed filler
+  word does not.
+- Every key builder ships its inverse: a parser that splits `(type root,
+  self-contained id)` without knowing another object's grammar, counting
+  unbounded cross-owner depth, or `TrimPrefix`-recovering an embedded foreign
+  key. A prefix scan over one type root enumerates one standalone object
+  family.
+- Changing a durable key grammar is a data migration, not a refactor: it needs
+  an explicit reset, migration, or clean-break decision, and an authorized
+  rename uses `RenameObject(descendants=true)` plus rewriting every graph quad
+  that stores the renamed key.
 
 ## Protobufs And Generated Sources
 
@@ -479,3 +529,35 @@ cover the touched owner.
 - Keep this guide general-purpose. It captures repository rules, recurring
   patterns, and architectural invariants, not task-specific history or temporary
   work notes.
+
+## Documentation Audience
+
+`app/docs/content/` is split into three audience surfaces, and each page belongs
+to exactly one. Write for that surface's reader, and check the page against the
+test below before committing it.
+
+- `users/` is for someone using the app. They know what a file, a folder, an
+  account, and a backup are. They do not know what a shared object, a World,
+  UnixFS, an ObjectType, a resource, a provider ID, or a route template is, and
+  a user page must never require them to learn one. Say what to click and what
+  will happen.
+- `self-hosters/` is for someone running Spacewave for themselves or a small
+  group. They know disks, backups, servers, and recovery. Name the things they
+  operate, in the words the product uses when it shows them those things.
+- `developers/` is for someone writing code against Spacewave. Every internal
+  noun is fair game here and should be exact.
+
+The test for a `users/` page: every proper noun and every literal string on it
+is something the reader either sees in the product or types themselves. A term
+that appears only in the source tree fails, no matter how accurate it is. So
+`Drive`, `Space`, `getting-started.md`, and a `spacewave` command all pass;
+`UnixFS object`, `SharedObject`, `Hydra World`, `the local provider`, and
+`/u/{session}/so/{space}` all fail.
+
+Explaining the mechanism is not the mistake. Naming the implementation is. When
+a user page has to describe how something behaves, describe the behavior the
+reader can observe, and leave the implementation to the developer surface.
+
+The CLI pages are the one place where implementation-shaped strings belong in
+`users/`, because the reader is typing them. Commands, flags, paths, and
+environment variables are exact there.

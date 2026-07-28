@@ -132,7 +132,7 @@ export function ForgePassViewer({
               {decodedExecutions.map((execution) => (
                 <div
                   key={execution.entity.objectKey}
-                  className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition-all duration-150"
+                  className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition duration-150"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">

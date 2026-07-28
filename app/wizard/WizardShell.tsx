@@ -174,7 +174,7 @@ export function WizardShell({
                 size="sm"
                 onClick={onNext}
                 disabled={nextBusy || !canNext}
-                className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs transition-all duration-150"
+                className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs transition duration-150"
               >
                 {nextBusy ? nextBusyLabel : nextLabel}
               </Button>
@@ -184,7 +184,7 @@ export function WizardShell({
                 size="sm"
                 onClick={onFinalize}
                 disabled={creating || !localName.trim() || !canFinalize}
-                className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs transition-all duration-150"
+                className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-7 rounded-md border px-3 text-xs transition duration-150"
               >
                 <LuCheck className="size-3.5" />
                 {creating ? creatingLabel : createLabel}

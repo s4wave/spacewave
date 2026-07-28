@@ -75,12 +75,15 @@ pub struct CreateSpaceResponse {
     /// MountedSharedObject is the mounted SharedObject resource created as part of
     /// space initialization. Callers may use it instead of immediately remounting
     /// the same SharedObject by id.
+    /// @resource-adoption-ids
     #[prost(message, optional, tag="3")]
     pub mounted_shared_object: ::core::option::Option<MountSharedObjectResponse>,
     /// SharedObjectBodyResourceId is the resource id of the mounted Space body.
+    /// @resource-adoption-id
     #[prost(uint32, tag="4")]
     pub shared_object_body_resource_id: u32,
     /// SpaceWorldResourceId is the resource id of the mounted Space world engine.
+    /// @resource-adoption-id
     #[prost(uint32, tag="5")]
     pub space_world_resource_id: u32,
 }

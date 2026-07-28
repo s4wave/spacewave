@@ -51,12 +51,17 @@ func (t *TxStart) ExecuteTx(
 	bcs *block.Cursor,
 	root *forge_task.Task,
 ) error {
+	// A restart or concurrent reconciler may observe the already-promoted
+	// task. Starting it again is an idempotent adoption.
+	taskState := root.GetTaskState()
+	if taskState == forge_task.State_TaskState_RUNNING {
+		return nil
+	}
 	// ensure PENDING
-	passState := root.GetTaskState()
-	if passState != forge_task.State_TaskState_PENDING {
+	if taskState != forge_task.State_TaskState_PENDING {
 		return errors.Wrapf(
 			forge_value.ErrUnknownState,
-			"%s", passState.String(),
+			"%s", taskState.String(),
 		)
 	}
 
@@ -78,21 +83,32 @@ func (t *TxStart) ExecuteTx(
 		return err
 	}
 	highestNonce := root.GetPassNonce()
+	previousPassKey := ""
+	var previousPassNonce uint64
+	var canceling bool
 	for i, pass := range passes {
 		passKey := passKeys[i]
+		if previousPassKey == "" || pass.GetPassNonce() > previousPassNonce {
+			previousPassNonce = pass.GetPassNonce()
+			previousPassKey = passKey
+		}
+		if pass.GetPassNonce() > highestNonce {
+			highestNonce = pass.GetPassNonce()
+		}
 		if pass.GetPassState() != forge_pass.State_PassState_COMPLETE {
-			passCompleteTx := pass_tx.NewTxComplete(
+			passCancelTx := pass_tx.NewTxCancel(
 				passKey,
 				forge_value.NewResultWithCanceled(errors.New("starting new pass")),
 			)
-			_, _, err = worldState.ApplyWorldOp(ctx, passCompleteTx, sender)
+			_, _, err = worldState.ApplyWorldOp(ctx, passCancelTx, sender)
 			if err != nil {
 				return err
 			}
+			canceling = true
 		}
-		if pn := pass.GetPassNonce(); pn > highestNonce {
-			highestNonce = pn
-		}
+	}
+	if canceling {
+		return nil
 	}
 
 	// promote to RUNNING
@@ -131,6 +147,12 @@ func (t *TxStart) ExecuteTx(
 	err = world_parent.SetObjectParent(ctx, worldState, passKey, objKey, false)
 	if err != nil {
 		return err
+	}
+	if previousPassKey != "" {
+		err = worldState.SetGraphQuad(ctx, forge_pass.NewPassToPreviousQuad(passKey, previousPassKey))
+		if err != nil {
+			return err
+		}
 	}
 
 	// link the pass to the task

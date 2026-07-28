@@ -7,7 +7,7 @@ pub struct Tx {
     #[prost(enumeration="TxType", tag="1")]
     pub tx_type: i32,
     /// TxStart contains the start transaction tx.
-    /// TxType_INVALID
+    /// TxType_START
     #[prost(message, optional, tag="2")]
     pub tx_start: ::core::option::Option<TxStart>,
     /// TxSetOutputs contains the set outputs tx.
@@ -22,9 +22,17 @@ pub struct Tx {
     /// TxType_APPEND_LOG
     #[prost(message, optional, tag="5")]
     pub tx_append_log: ::core::option::Option<TxAppendLog>,
+    /// TxCancel contains the cancel tx.
+    /// TxType_CANCEL
+    #[prost(message, optional, tag="6")]
+    pub tx_cancel: ::core::option::Option<TxCancel>,
+    /// TxReclaim transfers a running execution after owner liveness is resolved.
+    /// TxType_RECLAIM
+    #[prost(message, optional, tag="7")]
+    pub tx_reclaim: ::core::option::Option<TxReclaim>,
 }
 /// TxStart starts the execution with a peer id.
-/// Execution must be in the PENDING state.
+/// Execution must be PENDING, or active with the same claim.
 /// TxType: TxType_START
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct TxStart {
@@ -33,9 +41,12 @@ pub struct TxStart {
     /// Must match peer_id on the Execution if it's not empty.
     #[prost(string, tag="1")]
     pub peer_id: ::prost::alloc::string::String,
+    /// ClaimId is the opaque identifier of the claiming controller instance.
+    #[prost(string, tag="2")]
+    pub claim_id: ::prost::alloc::string::String,
 }
 /// TxSetOutputs updates the value of one or more execution outputs.
-/// Execution must be in the RUNNING state.
+/// Execution must be RUNNING or CANCELING.
 /// Sender must be the peer_id specified on the Execution.
 /// TxType: TxType_SET_OUTPUTS
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -46,9 +57,16 @@ pub struct TxSetOutputs {
     /// ClearOld indicates to clear all old output values before setting.
     #[prost(bool, tag="2")]
     pub clear_old: bool,
+    /// ClaimEpoch is the fencing token authorizing this write.
+    #[prost(uint64, tag="3")]
+    pub claim_epoch: u64,
+    /// ClaimId identifies the controller instance carrying the epoch.
+    #[prost(string, tag="4")]
+    pub claim_id: ::prost::alloc::string::String,
 }
 /// TxComplete completes the execution by setting the result.
-/// Execution must be in the RUNNING state.
+/// Execution must be RUNNING, CANCELING with a canceled result, or COMPLETE
+/// with the same claim.
 /// Sender must be the peer_id specified on the Execution.
 /// TxType: TxType_COMPLETE
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -56,9 +74,35 @@ pub struct TxComplete {
     /// Result is information about the outcome of a completed execution.
     #[prost(message, optional, tag="1")]
     pub result: ::core::option::Option<super::super::forge::value::Result>,
+    /// ClaimEpoch is the fencing token authorizing this completion.
+    #[prost(uint64, tag="2")]
+    pub claim_epoch: u64,
+    /// ClaimId identifies the controller instance carrying the epoch.
+    #[prost(string, tag="3")]
+    pub claim_id: ::prost::alloc::string::String,
+}
+/// TxCancel requests cancellation of a running execution.
+/// TxType: TxType_CANCEL
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TxCancel {
+}
+/// TxReclaim transfers a RUNNING execution to a new controller instance.
+/// The current owner must already be known unavailable by the caller.
+/// TxType: TxType_RECLAIM
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TxReclaim {
+    /// PeerId is the peer identifier to set as the executor.
+    #[prost(string, tag="1")]
+    pub peer_id: ::prost::alloc::string::String,
+    /// ClaimId is the opaque identifier of the new controller instance.
+    #[prost(string, tag="2")]
+    pub claim_id: ::prost::alloc::string::String,
+    /// ExpectedClaimEpoch prevents racing transfers from both succeeding.
+    #[prost(uint64, tag="3")]
+    pub expected_claim_epoch: u64,
 }
 /// TxAppendLog appends log entries to the execution.
-/// Execution must be in the RUNNING state.
+/// Execution must be RUNNING or CANCELING.
 /// Sender must be the peer_id specified on the Execution.
 /// TxType: TxType_APPEND_LOG
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -66,6 +110,12 @@ pub struct TxAppendLog {
     /// Entries is the set of log entries to append.
     #[prost(message, repeated, tag="1")]
     pub entries: ::prost::alloc::vec::Vec<super::super::forge::execution::LogEntry>,
+    /// ClaimEpoch is the fencing token authorizing this write.
+    #[prost(uint64, tag="2")]
+    pub claim_epoch: u64,
+    /// ClaimId identifies the controller instance carrying the epoch.
+    #[prost(string, tag="3")]
+    pub claim_id: ::prost::alloc::string::String,
 }
 /// TxType indicates the kind of transaction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -80,6 +130,10 @@ pub enum TxType {
     Complete = 3,
     /// TxType_APPEND_LOG appends log entries to the execution.
     AppendLog = 4,
+    /// TxType_CANCEL requests cancellation and custody drain.
+    Cancel = 5,
+    /// TxType_RECLAIM transfers a running execution to a new claim owner.
+    Reclaim = 6,
 }
 impl TxType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -93,6 +147,8 @@ impl TxType {
             Self::SetOutputs => "TxType_SET_OUTPUTS",
             Self::Complete => "TxType_COMPLETE",
             Self::AppendLog => "TxType_APPEND_LOG",
+            Self::Cancel => "TxType_CANCEL",
+            Self::Reclaim => "TxType_RECLAIM",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -103,6 +159,8 @@ impl TxType {
             "TxType_SET_OUTPUTS" => Some(Self::SetOutputs),
             "TxType_COMPLETE" => Some(Self::Complete),
             "TxType_APPEND_LOG" => Some(Self::AppendLog),
+            "TxType_CANCEL" => Some(Self::Cancel),
+            "TxType_RECLAIM" => Some(Self::Reclaim),
             _ => None,
         }
     }

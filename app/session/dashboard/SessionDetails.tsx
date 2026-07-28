@@ -445,7 +445,7 @@ export function SessionDetails({
                         disabled={loggingOut}
                       >
                         <span className="hidden md:inline">
-                          {loggingOut ? 'Logging out...' : 'Logout'}
+                          {loggingOut ? 'Logging out…' : 'Logout'}
                         </span>
                       </DashboardButton>
                     </TooltipTrigger>
@@ -528,7 +528,7 @@ export function SessionDetails({
                                     !displayNameChanged || savingDisplayName
                                   }
                                 >
-                                  {savingDisplayName ? 'Saving...' : 'Save'}
+                                  {savingDisplayName ? 'Saving…' : 'Save'}
                                 </DashboardButton>
                                 <DashboardButton
                                   icon={<LuX className="size-3" />}
@@ -753,7 +753,7 @@ export function SessionDetails({
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col">
                           <h4 className="text-warning text-xs font-medium select-none">
-                            {loggingOut ? 'Logging out...' : 'Log Out'}
+                            {loggingOut ? 'Logging out…' : 'Log Out'}
                           </h4>
                           <p className="text-warning/80 text-xs select-none">
                             Sign out and remove session data

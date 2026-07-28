@@ -34,6 +34,7 @@ interface BuiltinCommandMocks {
   commands: RegisteredCommand[]
   quitDesktopRuntime: () => Promise<void>
   addRootAlias: () => void
+  resetShellTabs: () => void
   openPathInNewTab: (path: string, opts: ShellTabOpenOptions) => void
   appPath: string
   setAppPath: (path: string) => void
@@ -115,11 +116,11 @@ vi.mock('@s4wave/app/hooks/useAddSpaceRootAlias.js', () => ({
 vi.mock('@s4wave/app/session/SelectAccountCommand.js', () => ({
   SelectAccountCommand: () => null,
 }))
-
 vi.mock('@s4wave/app/ShellTabContext.js', () => ({
   useShellTabs: () => ({
     activeTabId: 'home',
     openPathInNewTab: builtinCommandMocks.openPathInNewTab,
+    resetShellTabs: builtinCommandMocks.resetShellTabs,
   }),
 }))
 
@@ -139,6 +140,7 @@ describe('BuiltinCommands', () => {
       commands: [],
       quitDesktopRuntime: vi.fn(() => Promise.resolve()),
       addRootAlias: vi.fn(),
+      resetShellTabs: vi.fn(),
       openPathInNewTab: vi.fn(),
       appPath: '/',
       setAppPath: vi.fn(),
@@ -223,6 +225,18 @@ describe('BuiltinCommands', () => {
       focusExisting: true,
     })
     expect(builtinCommandMocks.setAppPath).not.toHaveBeenCalled()
+  })
+  it('exposes a visible Shell reset command through the menu owner', () => {
+    render(<BuiltinCommands />)
+
+    const command = findCommand('spacewave.shell.reset-tabs')
+    expect(command).toMatchObject({
+      label: 'Reset Shell Tabs',
+      menuPath: 'View/Reset Shell Tabs',
+    })
+
+    command?.handler({})
+    expect(builtinCommandMocks.resetShellTabs).toHaveBeenCalledTimes(1)
   })
 
   it('registers the keyboard shortcut preference command and opens the keybinding editor for its target command', () => {

@@ -317,7 +317,7 @@ export function AddUserDialog({
                 disabled={state.creating || !session}
                 className={actionButtonClass}
               >
-                {state.creating ? 'Creating...' : 'Create Invite Code'}
+                {state.creating ? 'Creating…' : 'Create Invite Code'}
               </button>
             )}
           </TabsContent>
@@ -358,7 +358,7 @@ export function AddUserDialog({
                   ) : (
                     <>
                       <LuUserPlus className="size-3.5" />
-                      {state.creating ? 'Sending...' : 'Send Invite'}
+                      {state.creating ? 'Sending…' : 'Send Invite'}
                     </>
                   )}
                 </button>
@@ -408,7 +408,7 @@ export function AddUserDialog({
                 disabled={state.creating || !session}
                 className={actionButtonClass}
               >
-                {state.creating ? 'Creating...' : 'Create Invite Link'}
+                {state.creating ? 'Creating…' : 'Create Invite Link'}
               </button>
             )}
           </TabsContent>
@@ -511,7 +511,7 @@ function OrgMembersTab({
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search org members..."
+          placeholder="Search org members…"
           className={cn(
             'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border py-2 pr-3 pl-8 text-sm transition-colors outline-none',
             'focus:border-foreground/40',

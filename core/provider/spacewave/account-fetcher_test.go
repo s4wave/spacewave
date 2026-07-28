@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	provider "github.com/s4wave/spacewave/core/provider"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -415,4 +416,101 @@ func (tx *accountFetcherCacheTx) Commit(ctx context.Context) error {
 	}
 	tx.committed()
 	return nil
+}
+
+func TestGetAccountStateWaitsForSigningSession(t *testing.T) {
+	acc := NewTestProviderAccount(t, "https://example.com")
+	acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		acc.sessionClient = NewSessionClient(
+			http.DefaultClient,
+			"https://example.com",
+			DefaultSigningEnvPrefix,
+			nil,
+			"",
+		)
+		broadcast()
+	})
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	_, err := acc.GetAccountState(ctx)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("GetAccountState error = %v, want context cancellation while signer is unavailable", err)
+	}
+}
+
+func TestGetAccountStateWaitsForSigningSessionThenFetches(t *testing.T) {
+	var stateHits atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/account/state" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		stateHits.Add(1)
+		_, _ = w.Write(mustMarshalVT(t, &api.AccountStateResponse{
+			Epoch:          1,
+			LifecycleState: api.AccountLifecycleState_ACCOUNT_LIFECYCLE_STATE_ACTIVE,
+		}))
+	}))
+	defer srv.Close()
+
+	acc := NewTestProviderAccount(t, srv.URL)
+	_, initialPID := generateTestKeypair(t)
+	acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		acc.sessionClient = NewSessionClientSigner(
+			http.DefaultClient,
+			srv.URL,
+			DefaultSigningEnvPrefix,
+			initialPID.String(),
+			func(context.Context, []byte) ([]byte, error) {
+				return nil, ErrSigningUnavailable
+			},
+		)
+		broadcast()
+	})
+
+	ctx := t.Context()
+	resultCh := make(chan struct {
+		state *api.AccountStateResponse
+		err   error
+	}, 1)
+	go func() {
+		state, err := acc.GetAccountState(ctx)
+		resultCh <- struct {
+			state *api.AccountStateResponse
+			err   error
+		}{state: state, err: err}
+	}()
+
+	select {
+	case <-time.After(25 * time.Millisecond):
+		if got := stateHits.Load(); got != 0 {
+			t.Fatalf("account-state requests without signer = %d, want 0", got)
+		}
+	case result := <-resultCh:
+		t.Fatalf("GetAccountState returned before signer: state=%v err=%v", result.state, result.err)
+	}
+
+	priv, pid := generateTestKeypair(t)
+	acc.ReplaceSessionClient(NewSessionClient(
+		http.DefaultClient,
+		srv.URL,
+		DefaultSigningEnvPrefix,
+		priv,
+		pid.String(),
+	))
+
+	select {
+	case result := <-resultCh:
+		if result.err != nil {
+			t.Fatalf("GetAccountState after signer: %v", result.err)
+		}
+		if result.state == nil || result.state.GetEpoch() != 1 {
+			t.Fatalf("GetAccountState state = %v, want epoch 1", result.state)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for account state after signer installation")
+	}
+	if got := stateHits.Load(); got != 1 {
+		t.Fatalf("account-state requests = %d, want 1", got)
+	}
 }

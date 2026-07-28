@@ -9,6 +9,7 @@ import (
 )
 
 func emitManifestCopyStartupMarkToBrowser(
+	pluginID string,
 	phase manifestCopyPhase,
 	stats bucket_lookup.ObjectCopyStats,
 ) {
@@ -19,6 +20,7 @@ func emitManifestCopyStartupMarkToBrowser(
 	mark.Invoke(
 		"manifest-copy."+string(phase),
 		string(phase),
+		pluginID,
 		float64(stats.BlocksSeen),
 		float64(stats.BlocksCopied),
 		float64(stats.BlocksExisting),

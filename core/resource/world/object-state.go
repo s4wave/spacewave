@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_bucket_lookup "github.com/s4wave/spacewave/core/resource/bucket/lookup"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
@@ -88,7 +89,9 @@ func (r *ObjectStateResource) AccessWorldState(ctx context.Context, req *s4wave_
 // ApplyObjectOp applies a batch operation at the object level.
 func (r *ObjectStateResource) ApplyObjectOp(ctx context.Context, req *s4wave_world.ApplyObjectOpRequest) (*s4wave_world.ApplyObjectOpResponse, error) {
 	if r.lookupOp == nil {
-		return nil, world.ErrUnhandledOp
+		return &s4wave_world.ApplyObjectOpResponse{
+			ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
+		}, nil
 	}
 
 	op, err := r.lookupOp(ctx, req.GetOpTypeId())
@@ -96,6 +99,11 @@ func (r *ObjectStateResource) ApplyObjectOp(ctx context.Context, req *s4wave_wor
 		err = world.ErrUnhandledOp
 	}
 	if err != nil {
+		if errors.Is(err, world.ErrUnhandledOp) {
+			return &s4wave_world.ApplyObjectOpResponse{
+				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
+			}, nil
+		}
 		return nil, err
 	}
 
@@ -111,6 +119,11 @@ func (r *ObjectStateResource) ApplyObjectOp(ctx context.Context, req *s4wave_wor
 
 	rev, sysErr, err := r.obj.ApplyObjectOp(ctx, op, opSender)
 	if err != nil {
+		if errors.Is(err, world.ErrUnhandledOp) {
+			return &s4wave_world.ApplyObjectOpResponse{
+				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
+			}, nil
+		}
 		return nil, err
 	}
 

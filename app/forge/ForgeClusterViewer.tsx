@@ -252,7 +252,7 @@ export function ForgeClusterViewer({
               {snapshot.workers.map((worker) => (
                 <div
                   key={worker.objectKey}
-                  className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition-all duration-150"
+                  className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition duration-150"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <ForgeEntityLink
@@ -288,7 +288,7 @@ export function ForgeClusterViewer({
                   }}
                   disabled={creatingJob}
                 >
-                  {creatingJob ? 'Creating...' : 'Create Job'}
+                  {creatingJob ? 'Creating…' : 'Create Job'}
                 </DashboardButton>
               </div>
             )}
@@ -319,7 +319,7 @@ export function ForgeClusterViewer({
                   return (
                     <div
                       key={job.objectKey}
-                      className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-3 rounded-lg border px-3.5 py-2.5 transition-all duration-150"
+                      className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-3 rounded-lg border px-3.5 py-2.5 transition duration-150"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
@@ -338,7 +338,7 @@ export function ForgeClusterViewer({
                       </div>
                       <div className="bg-foreground/8 h-1.5 w-full overflow-hidden rounded-full">
                         <div
-                          className="bg-brand h-full transition-all duration-200"
+                          className="bg-brand h-full transition-[width] duration-200"
                           style={{ width: `${progressPercent}%` }}
                         />
                       </div>

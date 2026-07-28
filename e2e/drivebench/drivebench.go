@@ -25,8 +25,8 @@ import (
 // quickstart timing, the served bundle size, the Resource SDK connection timing,
 // and optional trace/profile summaries. It is written as run.json per cell so
 // cells compare across runtime states and build modes. The bundled production
-// bench has no Go trace service and no Resource SDK client, so it omits Trace
-// and leaves ResourceConnection zero.
+// bench has no Resource SDK client, so ResourceConnection remains zero; an
+// opt-in startup trace may populate Trace.
 type Run struct {
 	Timestamp          string          `json:"timestamp"`
 	Compiler           string          `json:"compiler"`
@@ -143,10 +143,10 @@ type ResourceConn struct {
 type Trace struct {
 	Bytes            int    `json:"bytes"`
 	RuntimeTracePath string `json:"runtimeTracePath"`
-	TracetoolPath    string `json:"tracetoolPath"`
-	UserTasks        int    `json:"userTasks"`
-	UserRegions      int    `json:"userRegions"`
-	UserLogs         int    `json:"userLogs"`
+	TracetoolPath    string `json:"tracetoolPath,omitempty"`
+	UserTasks        int    `json:"userTasks,omitempty"`
+	UserRegions      int    `json:"userRegions,omitempty"`
+	UserLogs         int    `json:"userLogs,omitempty"`
 	Tasks            []Task `json:"tasks,omitempty"`
 }
 
@@ -419,11 +419,16 @@ func marshalTraceValue(arena *fastjson.Arena, trace Trace) *fastjson.Value {
 	obj := arena.NewObject()
 	obj.Set("bytes", arena.NewNumberInt(trace.Bytes))
 	obj.Set("runtimeTracePath", arena.NewString(trace.RuntimeTracePath))
-	obj.Set("tracetoolPath", arena.NewString(trace.TracetoolPath))
-	obj.Set("userTasks", arena.NewNumberInt(trace.UserTasks))
-	obj.Set("userRegions", arena.NewNumberInt(trace.UserRegions))
-	obj.Set("userLogs", arena.NewNumberInt(trace.UserLogs))
-	if len(trace.Tasks) != 0 {
+	// A cell that captured the raw trace without summarizing it has no counts to
+	// report, and the tracetool path is what says whether summarization ran. Key
+	// the whole summary block on it rather than on the counts themselves: a
+	// summarized cell that legitimately saw no user regions must serialize that
+	// zero, or a consumer cannot tell a measured zero from an unsummarized cell.
+	if trace.TracetoolPath != "" {
+		obj.Set("tracetoolPath", arena.NewString(trace.TracetoolPath))
+		obj.Set("userTasks", arena.NewNumberInt(trace.UserTasks))
+		obj.Set("userRegions", arena.NewNumberInt(trace.UserRegions))
+		obj.Set("userLogs", arena.NewNumberInt(trace.UserLogs))
 		obj.Set("tasks", marshalTasksValue(arena, trace.Tasks))
 	}
 	return obj

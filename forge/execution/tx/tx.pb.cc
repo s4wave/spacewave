@@ -34,6 +34,9 @@ inline constexpr TxStart::Impl_::Impl_(
       : _cached_size_{0},
         peer_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        claim_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()) {}
 
 template <typename>
@@ -56,10 +59,63 @@ struct TxStartDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TxStartDefaultTypeInternal _TxStart_default_instance_;
 
+inline constexpr TxReclaim::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        peer_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        claim_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        expected_claim_epoch_{::uint64_t{0u}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR TxReclaim::TxReclaim(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(TxReclaim_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct TxReclaimDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TxReclaimDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TxReclaimDefaultTypeInternal() {}
+  union {
+    TxReclaim _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TxReclaimDefaultTypeInternal _TxReclaim_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR TxCancel::TxCancel(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(TxCancel_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct TxCancelDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TxCancelDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TxCancelDefaultTypeInternal() {}
+  union {
+    TxCancel _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TxCancelDefaultTypeInternal _TxCancel_default_instance_;
+
 inline constexpr TxComplete::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
-        result_{nullptr} {}
+        claim_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        result_{nullptr},
+        claim_epoch_{::uint64_t{0u}} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR TxComplete::TxComplete(::_pbi::ConstantInitialized)
@@ -84,7 +140,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 inline constexpr TxAppendLog::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
-        entries_{} {}
+        entries_{},
+        claim_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        claim_epoch_{::uint64_t{0u}} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR TxAppendLog::TxAppendLog(::_pbi::ConstantInitialized)
@@ -110,6 +170,10 @@ inline constexpr TxSetOutputs::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         outputs_{},
+        claim_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        claim_epoch_{::uint64_t{0u}},
         clear_old_{false} {}
 
 template <typename>
@@ -139,6 +203,8 @@ inline constexpr Tx::Impl_::Impl_(
         tx_set_outputs_{nullptr},
         tx_complete_{nullptr},
         tx_append_log_{nullptr},
+        tx_cancel_{nullptr},
+        tx_reclaim_{nullptr},
         tx_type_{static_cast< ::execution::tx::TxType >(0)} {}
 
 template <typename>
@@ -171,54 +237,86 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::execution::tx::Tx, _impl_._has_bits_),
-        8, // hasbit index offset
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::execution::tx::Tx, _impl_.tx_type_),
         PROTOBUF_FIELD_OFFSET(::execution::tx::Tx, _impl_.tx_start_),
         PROTOBUF_FIELD_OFFSET(::execution::tx::Tx, _impl_.tx_set_outputs_),
         PROTOBUF_FIELD_OFFSET(::execution::tx::Tx, _impl_.tx_complete_),
         PROTOBUF_FIELD_OFFSET(::execution::tx::Tx, _impl_.tx_append_log_),
-        4,
+        PROTOBUF_FIELD_OFFSET(::execution::tx::Tx, _impl_.tx_cancel_),
+        PROTOBUF_FIELD_OFFSET(::execution::tx::Tx, _impl_.tx_reclaim_),
+        6,
         0,
         1,
         2,
         3,
+        4,
+        5,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::execution::tx::TxStart, _impl_._has_bits_),
-        4, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::execution::tx::TxStart, _impl_.peer_id_),
-        0,
-        0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::execution::tx::TxSetOutputs, _impl_._has_bits_),
         5, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::execution::tx::TxSetOutputs, _impl_.outputs_),
-        PROTOBUF_FIELD_OFFSET(::execution::tx::TxSetOutputs, _impl_.clear_old_),
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxStart, _impl_.peer_id_),
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxStart, _impl_.claim_id_),
         0,
         1,
         0x081, // bitmap
-        PROTOBUF_FIELD_OFFSET(::execution::tx::TxComplete, _impl_._has_bits_),
-        4, // hasbit index offset
-        PROTOBUF_FIELD_OFFSET(::execution::tx::TxComplete, _impl_.result_),
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxSetOutputs, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxSetOutputs, _impl_.outputs_),
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxSetOutputs, _impl_.clear_old_),
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxSetOutputs, _impl_.claim_epoch_),
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxSetOutputs, _impl_.claim_id_),
         0,
+        3,
+        2,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxComplete, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxComplete, _impl_.result_),
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxComplete, _impl_.claim_epoch_),
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxComplete, _impl_.claim_id_),
+        1,
+        2,
+        0,
+        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxReclaim, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxReclaim, _impl_.peer_id_),
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxReclaim, _impl_.claim_id_),
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxReclaim, _impl_.expected_claim_epoch_),
+        0,
+        1,
+        2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::execution::tx::TxAppendLog, _impl_._has_bits_),
-        4, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::execution::tx::TxAppendLog, _impl_.entries_),
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxAppendLog, _impl_.claim_epoch_),
+        PROTOBUF_FIELD_OFFSET(::execution::tx::TxAppendLog, _impl_.claim_id_),
         0,
+        2,
+        1,
 };
 
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::execution::tx::Tx)},
-        {13, sizeof(::execution::tx::TxStart)},
-        {18, sizeof(::execution::tx::TxSetOutputs)},
-        {25, sizeof(::execution::tx::TxComplete)},
-        {30, sizeof(::execution::tx::TxAppendLog)},
+        {17, sizeof(::execution::tx::TxStart)},
+        {24, sizeof(::execution::tx::TxSetOutputs)},
+        {35, sizeof(::execution::tx::TxComplete)},
+        {44, sizeof(::execution::tx::TxCancel)},
+        {45, sizeof(::execution::tx::TxReclaim)},
+        {54, sizeof(::execution::tx::TxAppendLog)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::execution::tx::_Tx_default_instance_._instance,
     &::execution::tx::_TxStart_default_instance_._instance,
     &::execution::tx::_TxSetOutputs_default_instance_._instance,
     &::execution::tx::_TxComplete_default_instance_._instance,
+    &::execution::tx::_TxCancel_default_instance_._instance,
+    &::execution::tx::_TxReclaim_default_instance_._instance,
     &::execution::tx::_TxAppendLog_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2ftx_2ftx_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
@@ -227,21 +325,30 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2
     "ution/tx/tx.proto\022\014execution.tx\032;github."
     "com/s4wave/spacewave/forge/execution/exe"
     "cution.proto\0323github.com/s4wave/spacewav"
-    "e/forge/value/value.proto\"\351\001\n\002Tx\022%\n\007tx_t"
+    "e/forge/value/value.proto\"\301\002\n\002Tx\022%\n\007tx_t"
     "ype\030\001 \001(\0162\024.execution.tx.TxType\022\'\n\010tx_st"
     "art\030\002 \001(\0132\025.execution.tx.TxStart\0222\n\016tx_s"
     "et_outputs\030\003 \001(\0132\032.execution.tx.TxSetOut"
     "puts\022-\n\013tx_complete\030\004 \001(\0132\030.execution.tx"
     ".TxComplete\0220\n\rtx_append_log\030\005 \001(\0132\031.exe"
-    "cution.tx.TxAppendLog\"\032\n\007TxStart\022\017\n\007peer"
-    "_id\030\001 \001(\t\"F\n\014TxSetOutputs\022#\n\007outputs\030\001 \003"
-    "(\0132\022.forge.value.Value\022\021\n\tclear_old\030\002 \001("
-    "\010\"1\n\nTxComplete\022#\n\006result\030\001 \001(\0132\023.forge."
-    "value.Result\"9\n\013TxAppendLog\022*\n\007entries\030\001"
-    " \003(\0132\031.forge.execution.LogEntry*r\n\006TxTyp"
-    "e\022\022\n\016TxType_INVALID\020\000\022\020\n\014TxType_START\020\001\022"
-    "\026\n\022TxType_SET_OUTPUTS\020\002\022\023\n\017TxType_COMPLE"
-    "TE\020\003\022\025\n\021TxType_APPEND_LOG\020\004b\006proto3"
+    "cution.tx.TxAppendLog\022)\n\ttx_cancel\030\006 \001(\013"
+    "2\026.execution.tx.TxCancel\022+\n\ntx_reclaim\030\007"
+    " \001(\0132\027.execution.tx.TxReclaim\",\n\007TxStart"
+    "\022\017\n\007peer_id\030\001 \001(\t\022\020\n\010claim_id\030\002 \001(\t\"m\n\014T"
+    "xSetOutputs\022#\n\007outputs\030\001 \003(\0132\022.forge.val"
+    "ue.Value\022\021\n\tclear_old\030\002 \001(\010\022\023\n\013claim_epo"
+    "ch\030\003 \001(\004\022\020\n\010claim_id\030\004 \001(\t\"X\n\nTxComplete"
+    "\022#\n\006result\030\001 \001(\0132\023.forge.value.Result\022\023\n"
+    "\013claim_epoch\030\002 \001(\004\022\020\n\010claim_id\030\003 \001(\t\"\n\n\010"
+    "TxCancel\"L\n\tTxReclaim\022\017\n\007peer_id\030\001 \001(\t\022\020"
+    "\n\010claim_id\030\002 \001(\t\022\034\n\024expected_claim_epoch"
+    "\030\003 \001(\004\"`\n\013TxAppendLog\022*\n\007entries\030\001 \003(\0132\031"
+    ".forge.execution.LogEntry\022\023\n\013claim_epoch"
+    "\030\002 \001(\004\022\020\n\010claim_id\030\003 \001(\t*\231\001\n\006TxType\022\022\n\016T"
+    "xType_INVALID\020\000\022\020\n\014TxType_START\020\001\022\026\n\022TxT"
+    "ype_SET_OUTPUTS\020\002\022\023\n\017TxType_COMPLETE\020\003\022\025"
+    "\n\021TxType_APPEND_LOG\020\004\022\021\n\rTxType_CANCEL\020\005"
+    "\022\022\n\016TxType_RECLAIM\020\006b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2ftx_2ftx_2eproto_deps[2] = {
@@ -252,13 +359,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2ffo
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2ftx_2ftx_2eproto = {
     false,
     false,
-    755,
+    1108,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2ftx_2ftx_2eproto,
     "github.com/s4wave/spacewave/forge/execution/tx/tx.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2ftx_2ftx_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2ftx_2ftx_2eproto_deps,
     2,
-    5,
+    7,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2ftx_2ftx_2eproto::offsets,
@@ -272,7 +379,7 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TxType_descriptor() {
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2ftx_2ftx_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t TxType_internal_data_[] = {
-    327680u, 0u, };
+    458752u, 0u, };
 // ===================================================================
 
 class Tx::_Internal {
@@ -325,6 +432,12 @@ Tx::Tx(
   _impl_.tx_append_log_ = (CheckHasBit(cached_has_bits, 0x00000008U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.tx_append_log_)
                 : nullptr;
+  _impl_.tx_cancel_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.tx_cancel_)
+                : nullptr;
+  _impl_.tx_reclaim_ = (CheckHasBit(cached_has_bits, 0x00000020U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.tx_reclaim_)
+                : nullptr;
   _impl_.tx_type_ = from._impl_.tx_type_;
 
   // @@protoc_insertion_point(copy_constructor:execution.tx.Tx)
@@ -358,6 +471,8 @@ inline void Tx::SharedDtor(MessageLite& self) {
   delete this_._impl_.tx_set_outputs_;
   delete this_._impl_.tx_complete_;
   delete this_._impl_.tx_append_log_;
+  delete this_._impl_.tx_cancel_;
+  delete this_._impl_.tx_reclaim_;
   this_._impl_.~Impl_();
 }
 
@@ -404,17 +519,17 @@ Tx::GetClassData() const {
   return Tx_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 5, 4, 0, 2>
+const ::_pbi::TcParseTable<3, 7, 6, 0, 2>
 Tx::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(Tx, _impl_._has_bits_),
     0, // no _extensions_
-    5, 56,  // max_field_number, fast_idx_mask
+    7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967264,  // skipmap
+    4294967168,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    5,  // num_field_entries
-    4,  // num_aux_entries
+    7,  // num_field_entries
+    6,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     Tx_class_data_.base(),
     nullptr,  // post_loop_handler
@@ -425,8 +540,8 @@ Tx::_table_ = {
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
     // .execution.tx.TxType tx_type = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Tx, _impl_.tx_type_), 4>(),
-     {8, 4, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(Tx, _impl_.tx_type_), 6>(),
+     {8, 6, 0,
       PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_type_)}},
     // .execution.tx.TxStart tx_start = 2;
     {::_pbi::TcParser::FastMtS1,
@@ -444,13 +559,19 @@ Tx::_table_ = {
     {::_pbi::TcParser::FastMtS1,
      {42, 3, 3,
       PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_append_log_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .execution.tx.TxCancel tx_cancel = 6;
+    {::_pbi::TcParser::FastMtS1,
+     {50, 4, 4,
+      PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_cancel_)}},
+    // .execution.tx.TxReclaim tx_reclaim = 7;
+    {::_pbi::TcParser::FastMtS1,
+     {58, 5, 5,
+      PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_reclaim_)}},
   }}, {{
     65535, 65535
   }}, {{
     // .execution.tx.TxType tx_type = 1;
-    {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_type_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_type_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
     // .execution.tx.TxStart tx_start = 2;
     {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_start_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .execution.tx.TxSetOutputs tx_set_outputs = 3;
@@ -459,12 +580,18 @@ Tx::_table_ = {
     {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_complete_), _Internal::kHasBitsOffset + 2, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // .execution.tx.TxAppendLog tx_append_log = 5;
     {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_append_log_), _Internal::kHasBitsOffset + 3, 3, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .execution.tx.TxCancel tx_cancel = 6;
+    {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_cancel_), _Internal::kHasBitsOffset + 4, 4, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .execution.tx.TxReclaim tx_reclaim = 7;
+    {PROTOBUF_FIELD_OFFSET(Tx, _impl_.tx_reclaim_), _Internal::kHasBitsOffset + 5, 5, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::execution::tx::TxStart>()},
       {::_pbi::TcParser::GetTable<::execution::tx::TxSetOutputs>()},
       {::_pbi::TcParser::GetTable<::execution::tx::TxComplete>()},
       {::_pbi::TcParser::GetTable<::execution::tx::TxAppendLog>()},
+      {::_pbi::TcParser::GetTable<::execution::tx::TxCancel>()},
+      {::_pbi::TcParser::GetTable<::execution::tx::TxReclaim>()},
   }},
   {{
   }},
@@ -477,7 +604,7 @@ PROTOBUF_NOINLINE void Tx::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       ABSL_DCHECK(_impl_.tx_start_ != nullptr);
       _impl_.tx_start_->Clear();
@@ -493,6 +620,14 @@ PROTOBUF_NOINLINE void Tx::Clear() {
     if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       ABSL_DCHECK(_impl_.tx_append_log_ != nullptr);
       _impl_.tx_append_log_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(_impl_.tx_cancel_ != nullptr);
+      _impl_.tx_cancel_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(_impl_.tx_reclaim_ != nullptr);
+      _impl_.tx_reclaim_->Clear();
     }
   }
   _impl_.tx_type_ = 0;
@@ -520,7 +655,7 @@ PROTOBUF_NOINLINE void Tx::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .execution.tx.TxType tx_type = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (this_._internal_tx_type() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteEnumToArray(
@@ -556,6 +691,20 @@ PROTOBUF_NOINLINE void Tx::Clear() {
         stream);
   }
 
+  // .execution.tx.TxCancel tx_cancel = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        6, *this_._impl_.tx_cancel_, this_._impl_.tx_cancel_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .execution.tx.TxReclaim tx_reclaim = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        7, *this_._impl_.tx_reclaim_, this_._impl_.tx_reclaim_->GetCachedSize(), target,
+        stream);
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -581,7 +730,7 @@ PROTOBUF_NOINLINE void Tx::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     // .execution.tx.TxStart tx_start = 2;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       total_size += 1 +
@@ -602,8 +751,18 @@ PROTOBUF_NOINLINE void Tx::Clear() {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.tx_append_log_);
     }
-    // .execution.tx.TxType tx_type = 1;
+    // .execution.tx.TxCancel tx_cancel = 6;
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.tx_cancel_);
+    }
+    // .execution.tx.TxReclaim tx_reclaim = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.tx_reclaim_);
+    }
+    // .execution.tx.TxType tx_type = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (this_._internal_tx_type() != 0) {
         total_size += 1 +
                       ::_pbi::WireFormatLite::EnumSize(this_._internal_tx_type());
@@ -629,7 +788,7 @@ void Tx::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       ABSL_DCHECK(from._impl_.tx_start_ != nullptr);
       if (_this->_impl_.tx_start_ == nullptr) {
@@ -663,6 +822,22 @@ void Tx::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(from._impl_.tx_cancel_ != nullptr);
+      if (_this->_impl_.tx_cancel_ == nullptr) {
+        _this->_impl_.tx_cancel_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.tx_cancel_);
+      } else {
+        _this->_impl_.tx_cancel_->MergeFrom(*from._impl_.tx_cancel_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(from._impl_.tx_reclaim_ != nullptr);
+      if (_this->_impl_.tx_reclaim_ == nullptr) {
+        _this->_impl_.tx_reclaim_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.tx_reclaim_);
+      } else {
+        _this->_impl_.tx_reclaim_->MergeFrom(*from._impl_.tx_reclaim_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (from._internal_tx_type() != 0) {
         _this->_impl_.tx_type_ = from._impl_.tx_type_;
       }
@@ -721,7 +896,8 @@ PROTOBUF_NDEBUG_INLINE TxStart::Impl_::Impl_(
     [[maybe_unused]] const ::execution::tx::TxStart& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        peer_id_(arena, from.peer_id_) {}
+        peer_id_(arena, from.peer_id_),
+        claim_id_(arena, from.claim_id_) {}
 
 TxStart::TxStart(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -743,7 +919,8 @@ PROTOBUF_NDEBUG_INLINE TxStart::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
-        peer_id_(arena) {}
+        peer_id_(arena),
+        claim_id_(arena) {}
 
 inline void TxStart::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -760,6 +937,7 @@ inline void TxStart::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.peer_id_.Destroy();
+  this_._impl_.claim_id_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -806,16 +984,16 @@ TxStart::GetClassData() const {
   return TxStart_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 0, 36, 2>
+const ::_pbi::TcParseTable<1, 2, 0, 44, 2>
 TxStart::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(TxStart, _impl_._has_bits_),
     0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
+    2, 8,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
+    4294967292,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
+    2,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     TxStart_class_data_.base(),
@@ -825,6 +1003,10 @@ TxStart::_table_ = {
     ::_pbi::TcParser::GetTable<::execution::tx::TxStart>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    // string claim_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(TxStart, _impl_.claim_id_)}},
     // string peer_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
@@ -834,12 +1016,15 @@ TxStart::_table_ = {
   }}, {{
     // string peer_id = 1;
     {PROTOBUF_FIELD_OFFSET(TxStart, _impl_.peer_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string claim_id = 2;
+    {PROTOBUF_FIELD_OFFSET(TxStart, _impl_.claim_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\24\7\0\0\0\0\0\0"
+    "\24\7\10\0\0\0\0\0"
     "execution.tx.TxStart"
     "peer_id"
+    "claim_id"
   }},
 };
 PROTOBUF_NOINLINE void TxStart::Clear() {
@@ -850,8 +1035,13 @@ PROTOBUF_NOINLINE void TxStart::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    _impl_.peer_id_.ClearNonDefaultToEmpty();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.peer_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.claim_id_.ClearNonDefaultToEmpty();
+    }
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -886,6 +1076,16 @@ PROTOBUF_NOINLINE void TxStart::Clear() {
     }
   }
 
+  // string claim_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_claim_id().empty()) {
+      const ::std::string& _s = this_._internal_claim_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "execution.tx.TxStart.claim_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -909,13 +1109,21 @@ PROTOBUF_NOINLINE void TxStart::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void)cached_has_bits;
 
-   {
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
     // string peer_id = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_peer_id().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_peer_id());
+      }
+    }
+    // string claim_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_claim_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_claim_id());
       }
     }
   }
@@ -937,12 +1145,23 @@ void TxStart::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    if (!from._internal_peer_id().empty()) {
-      _this->_internal_set_peer_id(from._internal_peer_id());
-    } else {
-      if (_this->_impl_.peer_id_.IsDefault()) {
-        _this->_internal_set_peer_id("");
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_peer_id().empty()) {
+        _this->_internal_set_peer_id(from._internal_peer_id());
+      } else {
+        if (_this->_impl_.peer_id_.IsDefault()) {
+          _this->_internal_set_peer_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_claim_id().empty()) {
+        _this->_internal_set_claim_id(from._internal_claim_id());
+      } else {
+        if (_this->_impl_.claim_id_.IsDefault()) {
+          _this->_internal_set_claim_id("");
+        }
       }
     }
   }
@@ -966,6 +1185,7 @@ void TxStart::InternalSwap(TxStart* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.peer_id_, &other->_impl_.peer_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.claim_id_, &other->_impl_.claim_id_, arena);
 }
 
 ::google::protobuf::Metadata TxStart::GetMetadata() const {
@@ -1002,7 +1222,8 @@ PROTOBUF_NDEBUG_INLINE TxSetOutputs::Impl_::Impl_(
     [[maybe_unused]] const ::execution::tx::TxSetOutputs& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        outputs_{visibility, arena, from.outputs_} {}
+        outputs_{visibility, arena, from.outputs_},
+        claim_id_(arena, from.claim_id_) {}
 
 TxSetOutputs::TxSetOutputs(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -1017,7 +1238,13 @@ TxSetOutputs::TxSetOutputs(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  _impl_.clear_old_ = from._impl_.clear_old_;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, claim_epoch_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, claim_epoch_),
+           offsetof(Impl_, clear_old_) -
+               offsetof(Impl_, claim_epoch_) +
+               sizeof(Impl_::clear_old_));
 
   // @@protoc_insertion_point(copy_constructor:execution.tx.TxSetOutputs)
 }
@@ -1025,11 +1252,17 @@ PROTOBUF_NDEBUG_INLINE TxSetOutputs::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
-        outputs_{visibility, arena} {}
+        outputs_{visibility, arena},
+        claim_id_(arena) {}
 
 inline void TxSetOutputs::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.clear_old_ = {};
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, claim_epoch_),
+           0,
+           offsetof(Impl_, clear_old_) -
+               offsetof(Impl_, claim_epoch_) +
+               sizeof(Impl_::clear_old_));
 }
 TxSetOutputs::~TxSetOutputs() {
   // @@protoc_insertion_point(destructor:execution.tx.TxSetOutputs)
@@ -1042,6 +1275,7 @@ inline void TxSetOutputs::SharedDtor(MessageLite& self) {
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.claim_id_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -1058,7 +1292,7 @@ constexpr auto TxSetOutputs::InternalNewImpl_() {
                   ::google::protobuf::Message::internal_visibility()),
   });
   if (arena_bits.has_value()) {
-    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
         sizeof(TxSetOutputs), alignof(TxSetOutputs), *arena_bits);
   } else {
     return ::google::protobuf::internal::MessageCreator(&TxSetOutputs::PlacementNew_,
@@ -1100,16 +1334,16 @@ TxSetOutputs::GetClassData() const {
   return TxSetOutputs_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 1, 0, 2>
+const ::_pbi::TcParseTable<2, 4, 1, 42, 2>
 TxSetOutputs::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(TxSetOutputs, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    4, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967280,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
+    4,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     TxSetOutputs_class_data_.base(),
@@ -1119,26 +1353,41 @@ TxSetOutputs::_table_ = {
     ::_pbi::TcParser::GetTable<::execution::tx::TxSetOutputs>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // bool clear_old = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(TxSetOutputs, _impl_.clear_old_), 1>(),
-     {16, 1, 0,
-      PROTOBUF_FIELD_OFFSET(TxSetOutputs, _impl_.clear_old_)}},
+    // string claim_id = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 1, 0,
+      PROTOBUF_FIELD_OFFSET(TxSetOutputs, _impl_.claim_id_)}},
     // repeated .forge.value.Value outputs = 1;
     {::_pbi::TcParser::FastMtR1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(TxSetOutputs, _impl_.outputs_)}},
+    // bool clear_old = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(TxSetOutputs, _impl_.clear_old_), 3>(),
+     {16, 3, 0,
+      PROTOBUF_FIELD_OFFSET(TxSetOutputs, _impl_.clear_old_)}},
+    // uint64 claim_epoch = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(TxSetOutputs, _impl_.claim_epoch_), 2>(),
+     {24, 2, 0,
+      PROTOBUF_FIELD_OFFSET(TxSetOutputs, _impl_.claim_epoch_)}},
   }}, {{
     65535, 65535
   }}, {{
     // repeated .forge.value.Value outputs = 1;
     {PROTOBUF_FIELD_OFFSET(TxSetOutputs, _impl_.outputs_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
     // bool clear_old = 2;
-    {PROTOBUF_FIELD_OFFSET(TxSetOutputs, _impl_.clear_old_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    {PROTOBUF_FIELD_OFFSET(TxSetOutputs, _impl_.clear_old_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // uint64 claim_epoch = 3;
+    {PROTOBUF_FIELD_OFFSET(TxSetOutputs, _impl_.claim_epoch_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // string claim_id = 4;
+    {PROTOBUF_FIELD_OFFSET(TxSetOutputs, _impl_.claim_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::forge::value::Value>()},
   }},
   {{
+    "\31\0\0\0\10\0\0\0"
+    "execution.tx.TxSetOutputs"
+    "claim_id"
   }},
 };
 PROTOBUF_NOINLINE void TxSetOutputs::Clear() {
@@ -1149,10 +1398,19 @@ PROTOBUF_NOINLINE void TxSetOutputs::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
-    _impl_.outputs_.Clear();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.outputs_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.claim_id_.ClearNonDefaultToEmpty();
+    }
   }
-  _impl_.clear_old_ = false;
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000cU)) {
+    ::memset(&_impl_.claim_epoch_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.clear_old_) -
+        reinterpret_cast<char*>(&_impl_.claim_epoch_)) + sizeof(_impl_.clear_old_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -1190,11 +1448,30 @@ PROTOBUF_NOINLINE void TxSetOutputs::Clear() {
   }
 
   // bool clear_old = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
     if (this_._internal_clear_old() != 0) {
       target = stream->EnsureSpace(target);
       target = ::_pbi::WireFormatLite::WriteBoolToArray(
           2, this_._internal_clear_old(), target);
+    }
+  }
+
+  // uint64 claim_epoch = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_claim_epoch() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          3, this_._internal_claim_epoch(), target);
+    }
+  }
+
+  // string claim_id = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_claim_id().empty()) {
+      const ::std::string& _s = this_._internal_claim_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "execution.tx.TxSetOutputs.claim_id");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
     }
   }
 
@@ -1223,7 +1500,7 @@ PROTOBUF_NOINLINE void TxSetOutputs::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     // repeated .forge.value.Value outputs = 1;
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size += 1UL * this_._internal_outputs_size();
@@ -1231,8 +1508,22 @@ PROTOBUF_NOINLINE void TxSetOutputs::Clear() {
         total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
       }
     }
-    // bool clear_old = 2;
+    // string claim_id = 4;
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_claim_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_claim_id());
+      }
+    }
+    // uint64 claim_epoch = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_claim_epoch() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_claim_epoch());
+      }
+    }
+    // bool clear_old = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (this_._internal_clear_old() != 0) {
         total_size += 2;
       }
@@ -1257,13 +1548,27 @@ void TxSetOutputs::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       _this->_internal_mutable_outputs()->InternalMergeFromWithArena(
           ::google::protobuf::MessageLite::internal_visibility(), arena,
           from._internal_outputs());
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_claim_id().empty()) {
+        _this->_internal_set_claim_id(from._internal_claim_id());
+      } else {
+        if (_this->_impl_.claim_id_.IsDefault()) {
+          _this->_internal_set_claim_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_claim_epoch() != 0) {
+        _this->_impl_.claim_epoch_ = from._impl_.claim_epoch_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
       if (from._internal_clear_old() != 0) {
         _this->_impl_.clear_old_ = from._impl_.clear_old_;
       }
@@ -1284,10 +1589,18 @@ void TxSetOutputs::CopyFrom(const TxSetOutputs& from) {
 
 void TxSetOutputs::InternalSwap(TxSetOutputs* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.outputs_.InternalSwap(&other->_impl_.outputs_);
-  swap(_impl_.clear_old_, other->_impl_.clear_old_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.claim_id_, &other->_impl_.claim_id_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(TxSetOutputs, _impl_.clear_old_)
+      + sizeof(TxSetOutputs::_impl_.clear_old_)
+      - PROTOBUF_FIELD_OFFSET(TxSetOutputs, _impl_.claim_epoch_)>(
+          reinterpret_cast<char*>(&_impl_.claim_epoch_),
+          reinterpret_cast<char*>(&other->_impl_.claim_epoch_));
 }
 
 ::google::protobuf::Metadata TxSetOutputs::GetMetadata() const {
@@ -1307,7 +1620,7 @@ void TxComplete::clear_result() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (_impl_.result_ != nullptr) _impl_.result_->Clear();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000001U);
+                  0x00000002U);
 }
 TxComplete::TxComplete(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
@@ -1323,7 +1636,8 @@ PROTOBUF_NDEBUG_INLINE TxComplete::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
     [[maybe_unused]] const ::execution::tx::TxComplete& from_msg)
       : _has_bits_{from._has_bits_},
-        _cached_size_{0} {}
+        _cached_size_{0},
+        claim_id_(arena, from.claim_id_) {}
 
 TxComplete::TxComplete(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -1339,20 +1653,27 @@ TxComplete::TxComplete(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::uint32_t cached_has_bits = _impl_._has_bits_[0];
-  _impl_.result_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+  _impl_.result_ = (CheckHasBit(cached_has_bits, 0x00000002U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.result_)
                 : nullptr;
+  _impl_.claim_epoch_ = from._impl_.claim_epoch_;
 
   // @@protoc_insertion_point(copy_constructor:execution.tx.TxComplete)
 }
 PROTOBUF_NDEBUG_INLINE TxComplete::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
-      : _cached_size_{0} {}
+      : _cached_size_{0},
+        claim_id_(arena) {}
 
 inline void TxComplete::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.result_ = {};
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, result_),
+           0,
+           offsetof(Impl_, claim_epoch_) -
+               offsetof(Impl_, result_) +
+               sizeof(Impl_::claim_epoch_));
 }
 TxComplete::~TxComplete() {
   // @@protoc_insertion_point(destructor:execution.tx.TxComplete)
@@ -1365,6 +1686,7 @@ inline void TxComplete::SharedDtor(MessageLite& self) {
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.claim_id_.Destroy();
   delete this_._impl_.result_;
   this_._impl_.~Impl_();
 }
@@ -1375,7 +1697,7 @@ inline void* PROTOBUF_NONNULL TxComplete::PlacementNew_(
   return ::new (mem) TxComplete(arena);
 }
 constexpr auto TxComplete::InternalNewImpl_() {
-  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(TxComplete),
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(TxComplete),
                                             alignof(TxComplete));
 }
 constexpr auto TxComplete::InternalGenerateClassData_() {
@@ -1412,16 +1734,16 @@ TxComplete::GetClassData() const {
   return TxComplete_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+const ::_pbi::TcParseTable<2, 3, 1, 40, 2>
 TxComplete::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(TxComplete, _impl_._has_bits_),
     0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
+    3,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     TxComplete_class_data_.base(),
@@ -1431,20 +1753,36 @@ TxComplete::_table_ = {
     ::_pbi::TcParser::GetTable<::execution::tx::TxComplete>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    {::_pbi::TcParser::MiniParse, {}},
     // .forge.value.Result result = 1;
     {::_pbi::TcParser::FastMtS1,
-     {10, 0, 0,
+     {10, 1, 0,
       PROTOBUF_FIELD_OFFSET(TxComplete, _impl_.result_)}},
+    // uint64 claim_epoch = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(TxComplete, _impl_.claim_epoch_), 2>(),
+     {16, 2, 0,
+      PROTOBUF_FIELD_OFFSET(TxComplete, _impl_.claim_epoch_)}},
+    // string claim_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 0, 0,
+      PROTOBUF_FIELD_OFFSET(TxComplete, _impl_.claim_id_)}},
   }}, {{
     65535, 65535
   }}, {{
     // .forge.value.Result result = 1;
-    {PROTOBUF_FIELD_OFFSET(TxComplete, _impl_.result_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    {PROTOBUF_FIELD_OFFSET(TxComplete, _impl_.result_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint64 claim_epoch = 2;
+    {PROTOBUF_FIELD_OFFSET(TxComplete, _impl_.claim_epoch_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // string claim_id = 3;
+    {PROTOBUF_FIELD_OFFSET(TxComplete, _impl_.claim_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::forge::value::Result>()},
   }},
   {{
+    "\27\0\0\10\0\0\0\0"
+    "execution.tx.TxComplete"
+    "claim_id"
   }},
 };
 PROTOBUF_NOINLINE void TxComplete::Clear() {
@@ -1455,10 +1793,16 @@ PROTOBUF_NOINLINE void TxComplete::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    ABSL_DCHECK(_impl_.result_ != nullptr);
-    _impl_.result_->Clear();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.claim_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.result_ != nullptr);
+      _impl_.result_->Clear();
+    }
   }
+  _impl_.claim_epoch_ = ::uint64_t{0u};
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -1483,10 +1827,29 @@ PROTOBUF_NOINLINE void TxComplete::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // .forge.value.Result result = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
         1, *this_._impl_.result_, this_._impl_.result_->GetCachedSize(), target,
         stream);
+  }
+
+  // uint64 claim_epoch = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_claim_epoch() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          2, this_._internal_claim_epoch(), target);
+    }
+  }
+
+  // string claim_id = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_claim_id().empty()) {
+      const ::std::string& _s = this_._internal_claim_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "execution.tx.TxComplete.claim_id");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
   }
 
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
@@ -1512,12 +1875,27 @@ PROTOBUF_NOINLINE void TxComplete::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void)cached_has_bits;
 
-   {
-    // .forge.value.Result result = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // string claim_id = 3;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_claim_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_claim_id());
+      }
+    }
+    // .forge.value.Result result = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       total_size += 1 +
                     ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.result_);
+    }
+    // uint64 claim_epoch = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_claim_epoch() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_claim_epoch());
+      }
     }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
@@ -1539,12 +1917,28 @@ void TxComplete::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    ABSL_DCHECK(from._impl_.result_ != nullptr);
-    if (_this->_impl_.result_ == nullptr) {
-      _this->_impl_.result_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.result_);
-    } else {
-      _this->_impl_.result_->MergeFrom(*from._impl_.result_);
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_claim_id().empty()) {
+        _this->_internal_set_claim_id(from._internal_claim_id());
+      } else {
+        if (_this->_impl_.claim_id_.IsDefault()) {
+          _this->_internal_set_claim_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.result_ != nullptr);
+      if (_this->_impl_.result_ == nullptr) {
+        _this->_impl_.result_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.result_);
+      } else {
+        _this->_impl_.result_->MergeFrom(*from._impl_.result_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_claim_epoch() != 0) {
+        _this->_impl_.claim_epoch_ = from._impl_.claim_epoch_;
+      }
     }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
@@ -1562,12 +1956,481 @@ void TxComplete::CopyFrom(const TxComplete& from) {
 
 void TxComplete::InternalSwap(TxComplete* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  swap(_impl_.result_, other->_impl_.result_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.claim_id_, &other->_impl_.claim_id_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(TxComplete, _impl_.claim_epoch_)
+      + sizeof(TxComplete::_impl_.claim_epoch_)
+      - PROTOBUF_FIELD_OFFSET(TxComplete, _impl_.result_)>(
+          reinterpret_cast<char*>(&_impl_.result_),
+          reinterpret_cast<char*>(&other->_impl_.result_));
 }
 
 ::google::protobuf::Metadata TxComplete::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class TxCancel::_Internal {
+ public:
+};
+
+TxCancel::TxCancel(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, TxCancel_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:execution.tx.TxCancel)
+}
+TxCancel::TxCancel(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const TxCancel& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, TxCancel_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  TxCancel* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:execution.tx.TxCancel)
+}
+
+inline void* PROTOBUF_NONNULL TxCancel::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) TxCancel(arena);
+}
+constexpr auto TxCancel::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(TxCancel),
+                                            alignof(TxCancel));
+}
+constexpr auto TxCancel::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_TxCancel_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &TxCancel::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<TxCancel>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &TxCancel::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<TxCancel>(), &TxCancel::ByteSizeLong,
+              &TxCancel::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(TxCancel, _impl_._cached_size_),
+          false,
+      },
+      &TxCancel::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2ftx_2ftx_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull TxCancel_class_data_ =
+        TxCancel::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+TxCancel::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&TxCancel_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(TxCancel_class_data_.tc_table);
+  return TxCancel_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+TxCancel::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    TxCancel_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::execution::tx::TxCancel>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata TxCancel::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class TxReclaim::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<TxReclaim>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(TxReclaim, _impl_._has_bits_);
+};
+
+TxReclaim::TxReclaim(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TxReclaim_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:execution.tx.TxReclaim)
+}
+PROTOBUF_NDEBUG_INLINE TxReclaim::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::execution::tx::TxReclaim& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        peer_id_(arena, from.peer_id_),
+        claim_id_(arena, from.claim_id_) {}
+
+TxReclaim::TxReclaim(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const TxReclaim& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, TxReclaim_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  TxReclaim* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.expected_claim_epoch_ = from._impl_.expected_claim_epoch_;
+
+  // @@protoc_insertion_point(copy_constructor:execution.tx.TxReclaim)
+}
+PROTOBUF_NDEBUG_INLINE TxReclaim::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        peer_id_(arena),
+        claim_id_(arena) {}
+
+inline void TxReclaim::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.expected_claim_epoch_ = {};
+}
+TxReclaim::~TxReclaim() {
+  // @@protoc_insertion_point(destructor:execution.tx.TxReclaim)
+  SharedDtor(*this);
+}
+inline void TxReclaim::SharedDtor(MessageLite& self) {
+  TxReclaim& this_ = static_cast<TxReclaim&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.peer_id_.Destroy();
+  this_._impl_.claim_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL TxReclaim::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) TxReclaim(arena);
+}
+constexpr auto TxReclaim::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(TxReclaim),
+                                            alignof(TxReclaim));
+}
+constexpr auto TxReclaim::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_TxReclaim_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &TxReclaim::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<TxReclaim>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &TxReclaim::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<TxReclaim>(), &TxReclaim::ByteSizeLong,
+              &TxReclaim::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(TxReclaim, _impl_._cached_size_),
+          false,
+      },
+      &TxReclaim::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fexecution_2ftx_2ftx_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull TxReclaim_class_data_ =
+        TxReclaim::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+TxReclaim::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&TxReclaim_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(TxReclaim_class_data_.tc_table);
+  return TxReclaim_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 0, 46, 2>
+TxReclaim::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(TxReclaim, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    TxReclaim_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::execution::tx::TxReclaim>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string peer_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(TxReclaim, _impl_.peer_id_)}},
+    // string claim_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(TxReclaim, _impl_.claim_id_)}},
+    // uint64 expected_claim_epoch = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(TxReclaim, _impl_.expected_claim_epoch_), 2>(),
+     {24, 2, 0,
+      PROTOBUF_FIELD_OFFSET(TxReclaim, _impl_.expected_claim_epoch_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string peer_id = 1;
+    {PROTOBUF_FIELD_OFFSET(TxReclaim, _impl_.peer_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string claim_id = 2;
+    {PROTOBUF_FIELD_OFFSET(TxReclaim, _impl_.claim_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint64 expected_claim_epoch = 3;
+    {PROTOBUF_FIELD_OFFSET(TxReclaim, _impl_.expected_claim_epoch_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+  }},
+  // no aux_entries
+  {{
+    "\26\7\10\0\0\0\0\0"
+    "execution.tx.TxReclaim"
+    "peer_id"
+    "claim_id"
+  }},
+};
+PROTOBUF_NOINLINE void TxReclaim::Clear() {
+// @@protoc_insertion_point(message_clear_start:execution.tx.TxReclaim)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.peer_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.claim_id_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_.expected_claim_epoch_ = ::uint64_t{0u};
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL TxReclaim::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const TxReclaim& this_ = static_cast<const TxReclaim&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL TxReclaim::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const TxReclaim& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:execution.tx.TxReclaim)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // string peer_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_peer_id().empty()) {
+      const ::std::string& _s = this_._internal_peer_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "execution.tx.TxReclaim.peer_id");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string claim_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_claim_id().empty()) {
+      const ::std::string& _s = this_._internal_claim_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "execution.tx.TxReclaim.claim_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // uint64 expected_claim_epoch = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_expected_claim_epoch() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          3, this_._internal_expected_claim_epoch(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:execution.tx.TxReclaim)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t TxReclaim::ByteSizeLong(const MessageLite& base) {
+  const TxReclaim& this_ = static_cast<const TxReclaim&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t TxReclaim::ByteSizeLong() const {
+  const TxReclaim& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:execution.tx.TxReclaim)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // string peer_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_peer_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_peer_id());
+      }
+    }
+    // string claim_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_claim_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_claim_id());
+      }
+    }
+    // uint64 expected_claim_epoch = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_expected_claim_epoch() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_expected_claim_epoch());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void TxReclaim::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<TxReclaim*>(&to_msg);
+  auto& from = static_cast<const TxReclaim&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:execution.tx.TxReclaim)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_peer_id().empty()) {
+        _this->_internal_set_peer_id(from._internal_peer_id());
+      } else {
+        if (_this->_impl_.peer_id_.IsDefault()) {
+          _this->_internal_set_peer_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_claim_id().empty()) {
+        _this->_internal_set_claim_id(from._internal_claim_id());
+      } else {
+        if (_this->_impl_.claim_id_.IsDefault()) {
+          _this->_internal_set_claim_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_expected_claim_epoch() != 0) {
+        _this->_impl_.expected_claim_epoch_ = from._impl_.expected_claim_epoch_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void TxReclaim::CopyFrom(const TxReclaim& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:execution.tx.TxReclaim)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void TxReclaim::InternalSwap(TxReclaim* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.peer_id_, &other->_impl_.peer_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.claim_id_, &other->_impl_.claim_id_, arena);
+  swap(_impl_.expected_claim_epoch_, other->_impl_.expected_claim_epoch_);
+}
+
+::google::protobuf::Metadata TxReclaim::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
@@ -1601,7 +2464,8 @@ PROTOBUF_NDEBUG_INLINE TxAppendLog::Impl_::Impl_(
     [[maybe_unused]] const ::execution::tx::TxAppendLog& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
-        entries_{visibility, arena, from.entries_} {}
+        entries_{visibility, arena, from.entries_},
+        claim_id_(arena, from.claim_id_) {}
 
 TxAppendLog::TxAppendLog(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -1616,6 +2480,7 @@ TxAppendLog::TxAppendLog(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.claim_epoch_ = from._impl_.claim_epoch_;
 
   // @@protoc_insertion_point(copy_constructor:execution.tx.TxAppendLog)
 }
@@ -1623,10 +2488,12 @@ PROTOBUF_NDEBUG_INLINE TxAppendLog::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
-        entries_{visibility, arena} {}
+        entries_{visibility, arena},
+        claim_id_(arena) {}
 
 inline void TxAppendLog::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.claim_epoch_ = {};
 }
 TxAppendLog::~TxAppendLog() {
   // @@protoc_insertion_point(destructor:execution.tx.TxAppendLog)
@@ -1639,6 +2506,7 @@ inline void TxAppendLog::SharedDtor(MessageLite& self) {
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.claim_id_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -1655,7 +2523,7 @@ constexpr auto TxAppendLog::InternalNewImpl_() {
                   ::google::protobuf::Message::internal_visibility()),
   });
   if (arena_bits.has_value()) {
-    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
         sizeof(TxAppendLog), alignof(TxAppendLog), *arena_bits);
   } else {
     return ::google::protobuf::internal::MessageCreator(&TxAppendLog::PlacementNew_,
@@ -1697,16 +2565,16 @@ TxAppendLog::GetClassData() const {
   return TxAppendLog_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 1, 1, 0, 2>
+const ::_pbi::TcParseTable<2, 3, 1, 41, 2>
 TxAppendLog::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(TxAppendLog, _impl_._has_bits_),
     0, // no _extensions_
-    1, 0,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967294,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    1,  // num_field_entries
+    3,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     TxAppendLog_class_data_.base(),
@@ -1716,20 +2584,36 @@ TxAppendLog::_table_ = {
     ::_pbi::TcParser::GetTable<::execution::tx::TxAppendLog>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    {::_pbi::TcParser::MiniParse, {}},
     // repeated .forge.execution.LogEntry entries = 1;
     {::_pbi::TcParser::FastMtR1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(TxAppendLog, _impl_.entries_)}},
+    // uint64 claim_epoch = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(TxAppendLog, _impl_.claim_epoch_), 2>(),
+     {16, 2, 0,
+      PROTOBUF_FIELD_OFFSET(TxAppendLog, _impl_.claim_epoch_)}},
+    // string claim_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 1, 0,
+      PROTOBUF_FIELD_OFFSET(TxAppendLog, _impl_.claim_id_)}},
   }}, {{
     65535, 65535
   }}, {{
     // repeated .forge.execution.LogEntry entries = 1;
     {PROTOBUF_FIELD_OFFSET(TxAppendLog, _impl_.entries_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint64 claim_epoch = 2;
+    {PROTOBUF_FIELD_OFFSET(TxAppendLog, _impl_.claim_epoch_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // string claim_id = 3;
+    {PROTOBUF_FIELD_OFFSET(TxAppendLog, _impl_.claim_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::forge::execution::LogEntry>()},
   }},
   {{
+    "\30\0\0\10\0\0\0\0"
+    "execution.tx.TxAppendLog"
+    "claim_id"
   }},
 };
 PROTOBUF_NOINLINE void TxAppendLog::Clear() {
@@ -1740,9 +2624,15 @@ PROTOBUF_NOINLINE void TxAppendLog::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
-    _impl_.entries_.Clear();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.entries_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.claim_id_.ClearNonDefaultToEmpty();
+    }
   }
+  _impl_.claim_epoch_ = ::uint64_t{0u};
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -1779,6 +2669,25 @@ PROTOBUF_NOINLINE void TxAppendLog::Clear() {
     }
   }
 
+  // uint64 claim_epoch = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_claim_epoch() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          2, this_._internal_claim_epoch(), target);
+    }
+  }
+
+  // string claim_id = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_claim_id().empty()) {
+      const ::std::string& _s = this_._internal_claim_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "execution.tx.TxAppendLog.claim_id");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1803,13 +2712,27 @@ PROTOBUF_NOINLINE void TxAppendLog::Clear() {
   (void)cached_has_bits;
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
-   {
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     // repeated .forge.execution.LogEntry entries = 1;
-    cached_has_bits = this_._impl_._has_bits_[0];
     if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
       total_size += 1UL * this_._internal_entries_size();
       for (const auto& msg : this_._internal_entries()) {
         total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // string claim_id = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_claim_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_claim_id());
+      }
+    }
+    // uint64 claim_epoch = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_claim_epoch() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_claim_epoch());
       }
     }
   }
@@ -1832,10 +2755,26 @@ void TxAppendLog::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
-    _this->_internal_mutable_entries()->InternalMergeFromWithArena(
-        ::google::protobuf::MessageLite::internal_visibility(), arena,
-        from._internal_entries());
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_entries()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_entries());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_claim_id().empty()) {
+        _this->_internal_set_claim_id(from._internal_claim_id());
+      } else {
+        if (_this->_impl_.claim_id_.IsDefault()) {
+          _this->_internal_set_claim_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_claim_epoch() != 0) {
+        _this->_impl_.claim_epoch_ = from._impl_.claim_epoch_;
+      }
+    }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -1852,9 +2791,13 @@ void TxAppendLog::CopyFrom(const TxAppendLog& from) {
 
 void TxAppendLog::InternalSwap(TxAppendLog* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
   using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   _impl_.entries_.InternalSwap(&other->_impl_.entries_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.claim_id_, &other->_impl_.claim_id_, arena);
+  swap(_impl_.claim_epoch_, other->_impl_.claim_epoch_);
 }
 
 ::google::protobuf::Metadata TxAppendLog::GetMetadata() const {

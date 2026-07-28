@@ -182,7 +182,7 @@ describe('PinUnlockOverlay', () => {
     act(() => {
       fireEvent.click(unlockButton!)
     })
-    expect(screen.getByText('Unlocking...')).toBeDefined()
+    expect(screen.getByText('Unlocking…')).toBeDefined()
   })
 
   it('renders "Forgot PIN?" button', () => {

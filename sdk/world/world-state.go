@@ -354,6 +354,21 @@ func (ws *WorldState) GetObjectMetadataBatch(ctx context.Context, keys []string)
 	return metadata, nil
 }
 
+// ForEachObjectBodyPage calls cb with each page of serialized object bodies.
+// The callback must finish with the page before the next RPC response is read.
+func (ws *WorldState) ForEachObjectBodyPage(
+	ctx context.Context,
+	keys []string,
+	cb func([]*world.ObjectBody) error,
+) error {
+	return ForEachObjectBodyPage(ctx, ws.service, keys, cb)
+}
+
+// GetObjectBodiesBatch returns serialized object bodies for object keys.
+func (ws *WorldState) GetObjectBodiesBatch(ctx context.Context, keys []string) ([]*world.ObjectBody, error) {
+	return GetObjectBodiesBatch(ctx, ws.service, keys)
+}
+
 // QueryGraphPath executes a bounded server-side graph path query.
 func (ws *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
 	req, err := graphPathQueryToProto(query)
@@ -409,6 +424,9 @@ func (ws *WorldState) ApplyWorldOp(ctx context.Context, opTypeID string, opData 
 		OpSender: opSender,
 	})
 	if err != nil {
+		return 0, false, err
+	}
+	if err := ErrorFromCode(resp.GetErrorCode()); err != nil {
 		return 0, false, err
 	}
 	return resp.Seqno, resp.SysErr, nil

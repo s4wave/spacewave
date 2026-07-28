@@ -73,6 +73,15 @@ func (o *subManifestBuildOwner) observedInParentAttempt() bool {
 	return o.observed
 }
 
+func (o *subManifestBuildOwner) observedResult() (*bldr_manifest_builder.BuilderResult, error, bool) {
+	o.mtx.Lock()
+	defer o.mtx.Unlock()
+	if !o.observed {
+		return nil, nil, false
+	}
+	return o.result.CloneVT(), o.resultErr, true
+}
+
 func (o *subManifestBuildOwner) setResult(val *bldr_manifest_builder.BuilderResult, err error) {
 	o.mtx.Lock()
 	defer o.mtx.Unlock()

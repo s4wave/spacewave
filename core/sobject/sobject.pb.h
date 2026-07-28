@@ -22,6 +22,7 @@
 #include "google/protobuf/io/coded_stream.h"
 #include "google/protobuf/arena.h"
 #include "google/protobuf/arenastring.h"
+#include "google/protobuf/generated_message_bases.h"
 #include "google/protobuf/generated_message_tctable_decl.h"
 #include "google/protobuf/generated_message_util.h"
 #include "google/protobuf/metadata_lite.h"
@@ -64,8 +65,20 @@ enum SOConfigChangeType : int;
 extern const uint32_t SOConfigChangeType_internal_data_[];
 enum SOConsensusMode : int;
 extern const uint32_t SOConsensusMode_internal_data_[];
+enum SOJournalAttemptState : int;
+extern const uint32_t SOJournalAttemptState_internal_data_[];
+enum SOJournalOutcome : int;
+extern const uint32_t SOJournalOutcome_internal_data_[];
+enum SOJournalReadiness : int;
+extern const uint32_t SOJournalReadiness_internal_data_[];
+enum SOJournalRecordKind : int;
+extern const uint32_t SOJournalRecordKind_internal_data_[];
+enum SOJournalRecoveryReason : int;
+extern const uint32_t SOJournalRecoveryReason_internal_data_[];
 enum SOParticipantRole : int;
 extern const uint32_t SOParticipantRole_internal_data_[];
+enum SOReceiptState : int;
+extern const uint32_t SOReceiptState_internal_data_[];
 enum SORevocationReason : int;
 extern const uint32_t SORevocationReason_internal_data_[];
 enum SharedObjectHealthCommonReason : int;
@@ -128,10 +141,58 @@ class SOJoinResponse;
 struct SOJoinResponseDefaultTypeInternal;
 extern SOJoinResponseDefaultTypeInternal _SOJoinResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull SOJoinResponse_class_data_;
+class SOJournalAcknowledgement;
+struct SOJournalAcknowledgementDefaultTypeInternal;
+extern SOJournalAcknowledgementDefaultTypeInternal _SOJournalAcknowledgement_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOJournalAcknowledgement_class_data_;
+class SOJournalCheckpoint;
+struct SOJournalCheckpointDefaultTypeInternal;
+extern SOJournalCheckpointDefaultTypeInternal _SOJournalCheckpoint_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOJournalCheckpoint_class_data_;
+class SOJournalCheckpointAttempt;
+struct SOJournalCheckpointAttemptDefaultTypeInternal;
+extern SOJournalCheckpointAttemptDefaultTypeInternal _SOJournalCheckpointAttempt_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOJournalCheckpointAttempt_class_data_;
+class SOJournalEncryptedPayload;
+struct SOJournalEncryptedPayloadDefaultTypeInternal;
+extern SOJournalEncryptedPayloadDefaultTypeInternal _SOJournalEncryptedPayload_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOJournalEncryptedPayload_class_data_;
+class SOJournalIntent;
+struct SOJournalIntentDefaultTypeInternal;
+extern SOJournalIntentDefaultTypeInternal _SOJournalIntent_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOJournalIntent_class_data_;
+class SOJournalLineage;
+struct SOJournalLineageDefaultTypeInternal;
+extern SOJournalLineageDefaultTypeInternal _SOJournalLineage_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOJournalLineage_class_data_;
+class SOJournalLookup;
+struct SOJournalLookupDefaultTypeInternal;
+extern SOJournalLookupDefaultTypeInternal _SOJournalLookup_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOJournalLookup_class_data_;
+class SOJournalProjection;
+struct SOJournalProjectionDefaultTypeInternal;
+extern SOJournalProjectionDefaultTypeInternal _SOJournalProjection_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOJournalProjection_class_data_;
+class SOJournalReceipt;
+struct SOJournalReceiptDefaultTypeInternal;
+extern SOJournalReceiptDefaultTypeInternal _SOJournalReceipt_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOJournalReceipt_class_data_;
+class SOJournalRecord;
+struct SOJournalRecordDefaultTypeInternal;
+extern SOJournalRecordDefaultTypeInternal _SOJournalRecord_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOJournalRecord_class_data_;
+class SOJournalVersionTuple;
+struct SOJournalVersionTupleDefaultTypeInternal;
+extern SOJournalVersionTupleDefaultTypeInternal _SOJournalVersionTuple_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOJournalVersionTuple_class_data_;
 class SOKeyEpoch;
 struct SOKeyEpochDefaultTypeInternal;
 extern SOKeyEpochDefaultTypeInternal _SOKeyEpoch_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull SOKeyEpoch_class_data_;
+class SOMutationKey;
+struct SOMutationKeyDefaultTypeInternal;
+extern SOMutationKeyDefaultTypeInternal _SOMutationKey_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOMutationKey_class_data_;
 class SOOperation;
 struct SOOperationDefaultTypeInternal;
 extern SOOperationDefaultTypeInternal _SOOperation_default_instance_;
@@ -184,6 +245,18 @@ class SOState;
 struct SOStateDefaultTypeInternal;
 extern SOStateDefaultTypeInternal _SOState_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull SOState_class_data_;
+class SOTerminalReceipt;
+struct SOTerminalReceiptDefaultTypeInternal;
+extern SOTerminalReceiptDefaultTypeInternal _SOTerminalReceipt_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOTerminalReceipt_class_data_;
+class SOTerminalReceiptAccepted;
+struct SOTerminalReceiptAcceptedDefaultTypeInternal;
+extern SOTerminalReceiptAcceptedDefaultTypeInternal _SOTerminalReceiptAccepted_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOTerminalReceiptAccepted_class_data_;
+class SOTerminalReceiptInner;
+struct SOTerminalReceiptInnerDefaultTypeInternal;
+extern SOTerminalReceiptInnerDefaultTypeInternal _SOTerminalReceiptInner_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull SOTerminalReceiptInner_class_data_;
 class SharedObjectConfig;
 struct SharedObjectConfigDefaultTypeInternal;
 extern SharedObjectConfigDefaultTypeInternal _SharedObjectConfig_default_instance_;
@@ -218,8 +291,26 @@ template <>
 internal::EnumTraitsT<::sobject::SOConsensusMode_internal_data_>
     internal::EnumTraitsImpl::value<::sobject::SOConsensusMode>;
 template <>
+internal::EnumTraitsT<::sobject::SOJournalAttemptState_internal_data_>
+    internal::EnumTraitsImpl::value<::sobject::SOJournalAttemptState>;
+template <>
+internal::EnumTraitsT<::sobject::SOJournalOutcome_internal_data_>
+    internal::EnumTraitsImpl::value<::sobject::SOJournalOutcome>;
+template <>
+internal::EnumTraitsT<::sobject::SOJournalReadiness_internal_data_>
+    internal::EnumTraitsImpl::value<::sobject::SOJournalReadiness>;
+template <>
+internal::EnumTraitsT<::sobject::SOJournalRecordKind_internal_data_>
+    internal::EnumTraitsImpl::value<::sobject::SOJournalRecordKind>;
+template <>
+internal::EnumTraitsT<::sobject::SOJournalRecoveryReason_internal_data_>
+    internal::EnumTraitsImpl::value<::sobject::SOJournalRecoveryReason>;
+template <>
 internal::EnumTraitsT<::sobject::SOParticipantRole_internal_data_>
     internal::EnumTraitsImpl::value<::sobject::SOParticipantRole>;
+template <>
+internal::EnumTraitsT<::sobject::SOReceiptState_internal_data_>
+    internal::EnumTraitsImpl::value<::sobject::SOReceiptState>;
 template <>
 internal::EnumTraitsT<::sobject::SORevocationReason_internal_data_>
     internal::EnumTraitsImpl::value<::sobject::SORevocationReason>;
@@ -549,6 +640,249 @@ inline const ::std::string& SORevocationReason_Name(SORevocationReason value) {
 inline bool SORevocationReason_Parse(
     ::absl::string_view name, SORevocationReason* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<SORevocationReason>(SORevocationReason_descriptor(), name,
+                                           value);
+}
+enum SOJournalRecordKind : int {
+  SO_JOURNAL_RECORD_KIND_UNSPECIFIED = 0,
+  SO_JOURNAL_RECORD_KIND_INTENT = 1,
+  SO_JOURNAL_RECORD_KIND_SIGNED_ENVELOPE = 2,
+  SO_JOURNAL_RECORD_KIND_SENT = 3,
+  SO_JOURNAL_RECORD_KIND_RECEIPT = 4,
+  SO_JOURNAL_RECORD_KIND_ACKNOWLEDGEMENT = 5,
+  SO_JOURNAL_RECORD_KIND_BODY_PROJECTION = 6,
+  SO_JOURNAL_RECORD_KIND_STALE_TRANSFORM_EPOCH = 7,
+  SO_JOURNAL_RECORD_KIND_RECOVERY_BLOCKED = 8,
+  SO_JOURNAL_RECORD_KIND_LINEAGE_RECOVERY_BLOCKED = 9,
+  SO_JOURNAL_RECORD_KIND_RECEIPT_LOOKUP = 10,
+  SO_JOURNAL_RECORD_KIND_RESEND_AUTHORIZED = 11,
+  SOJournalRecordKind_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  SOJournalRecordKind_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t SOJournalRecordKind_internal_data_[];
+inline constexpr SOJournalRecordKind SOJournalRecordKind_MIN =
+    static_cast<SOJournalRecordKind>(0);
+inline constexpr SOJournalRecordKind SOJournalRecordKind_MAX =
+    static_cast<SOJournalRecordKind>(11);
+inline bool SOJournalRecordKind_IsValid(int value) {
+  return 0 <= value && value <= 11;
+}
+inline constexpr int SOJournalRecordKind_ARRAYSIZE = 11 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOJournalRecordKind_descriptor();
+template <typename T>
+const ::std::string& SOJournalRecordKind_Name(T value) {
+  static_assert(::std::is_same<T, SOJournalRecordKind>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SOJournalRecordKind_Name().");
+  return SOJournalRecordKind_Name(static_cast<SOJournalRecordKind>(value));
+}
+template <>
+inline const ::std::string& SOJournalRecordKind_Name(SOJournalRecordKind value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<SOJournalRecordKind_descriptor, 0, 11>(
+      static_cast<int>(value));
+}
+inline bool SOJournalRecordKind_Parse(
+    ::absl::string_view name, SOJournalRecordKind* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SOJournalRecordKind>(SOJournalRecordKind_descriptor(), name,
+                                           value);
+}
+enum SOJournalAttemptState : int {
+  SO_JOURNAL_ATTEMPT_STATE_UNSPECIFIED = 0,
+  SO_JOURNAL_ATTEMPT_STATE_INTENT_DURABLE = 1,
+  SO_JOURNAL_ATTEMPT_STATE_ENVELOPE_DURABLE = 2,
+  SO_JOURNAL_ATTEMPT_STATE_SENT = 3,
+  SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURABLE = 4,
+  SO_JOURNAL_ATTEMPT_STATE_STALE_TRANSFORM_EPOCH = 5,
+  SO_JOURNAL_ATTEMPT_STATE_RECOVERY_BLOCKED = 6,
+  SOJournalAttemptState_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  SOJournalAttemptState_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t SOJournalAttemptState_internal_data_[];
+inline constexpr SOJournalAttemptState SOJournalAttemptState_MIN =
+    static_cast<SOJournalAttemptState>(0);
+inline constexpr SOJournalAttemptState SOJournalAttemptState_MAX =
+    static_cast<SOJournalAttemptState>(6);
+inline bool SOJournalAttemptState_IsValid(int value) {
+  return 0 <= value && value <= 6;
+}
+inline constexpr int SOJournalAttemptState_ARRAYSIZE = 6 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOJournalAttemptState_descriptor();
+template <typename T>
+const ::std::string& SOJournalAttemptState_Name(T value) {
+  static_assert(::std::is_same<T, SOJournalAttemptState>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SOJournalAttemptState_Name().");
+  return SOJournalAttemptState_Name(static_cast<SOJournalAttemptState>(value));
+}
+template <>
+inline const ::std::string& SOJournalAttemptState_Name(SOJournalAttemptState value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<SOJournalAttemptState_descriptor, 0, 6>(
+      static_cast<int>(value));
+}
+inline bool SOJournalAttemptState_Parse(
+    ::absl::string_view name, SOJournalAttemptState* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SOJournalAttemptState>(SOJournalAttemptState_descriptor(), name,
+                                           value);
+}
+enum SOJournalOutcome : int {
+  SO_JOURNAL_OUTCOME_UNSPECIFIED = 0,
+  SO_JOURNAL_OUTCOME_ACCEPTED = 1,
+  SO_JOURNAL_OUTCOME_REJECTED = 2,
+  SOJournalOutcome_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  SOJournalOutcome_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t SOJournalOutcome_internal_data_[];
+inline constexpr SOJournalOutcome SOJournalOutcome_MIN =
+    static_cast<SOJournalOutcome>(0);
+inline constexpr SOJournalOutcome SOJournalOutcome_MAX =
+    static_cast<SOJournalOutcome>(2);
+inline bool SOJournalOutcome_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int SOJournalOutcome_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOJournalOutcome_descriptor();
+template <typename T>
+const ::std::string& SOJournalOutcome_Name(T value) {
+  static_assert(::std::is_same<T, SOJournalOutcome>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SOJournalOutcome_Name().");
+  return SOJournalOutcome_Name(static_cast<SOJournalOutcome>(value));
+}
+template <>
+inline const ::std::string& SOJournalOutcome_Name(SOJournalOutcome value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<SOJournalOutcome_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool SOJournalOutcome_Parse(
+    ::absl::string_view name, SOJournalOutcome* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SOJournalOutcome>(SOJournalOutcome_descriptor(), name,
+                                           value);
+}
+enum SOJournalReadiness : int {
+  SO_JOURNAL_READINESS_UNSPECIFIED = 0,
+  SO_JOURNAL_READINESS_READY = 1,
+  SO_JOURNAL_READINESS_MISSING = 2,
+  SO_JOURNAL_READINESS_CORRUPT = 3,
+  SO_JOURNAL_READINESS_OBSOLETE = 4,
+  SOJournalReadiness_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  SOJournalReadiness_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t SOJournalReadiness_internal_data_[];
+inline constexpr SOJournalReadiness SOJournalReadiness_MIN =
+    static_cast<SOJournalReadiness>(0);
+inline constexpr SOJournalReadiness SOJournalReadiness_MAX =
+    static_cast<SOJournalReadiness>(4);
+inline bool SOJournalReadiness_IsValid(int value) {
+  return 0 <= value && value <= 4;
+}
+inline constexpr int SOJournalReadiness_ARRAYSIZE = 4 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOJournalReadiness_descriptor();
+template <typename T>
+const ::std::string& SOJournalReadiness_Name(T value) {
+  static_assert(::std::is_same<T, SOJournalReadiness>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SOJournalReadiness_Name().");
+  return SOJournalReadiness_Name(static_cast<SOJournalReadiness>(value));
+}
+template <>
+inline const ::std::string& SOJournalReadiness_Name(SOJournalReadiness value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<SOJournalReadiness_descriptor, 0, 4>(
+      static_cast<int>(value));
+}
+inline bool SOJournalReadiness_Parse(
+    ::absl::string_view name, SOJournalReadiness* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SOJournalReadiness>(SOJournalReadiness_descriptor(), name,
+                                           value);
+}
+enum SOJournalRecoveryReason : int {
+  SO_JOURNAL_RECOVERY_REASON_UNSPECIFIED = 0,
+  SO_JOURNAL_RECOVERY_REASON_STALE_TRANSFORM_EPOCH = 1,
+  SO_JOURNAL_RECOVERY_REASON_KEY_UNAVAILABLE = 2,
+  SO_JOURNAL_RECOVERY_REASON_AUTHORITY_FAILURE = 3,
+  SO_JOURNAL_RECOVERY_REASON_BODY_MISSING = 4,
+  SO_JOURNAL_RECOVERY_REASON_BODY_CORRUPT = 5,
+  SO_JOURNAL_RECOVERY_REASON_BODY_OBSOLETE = 6,
+  SOJournalRecoveryReason_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  SOJournalRecoveryReason_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t SOJournalRecoveryReason_internal_data_[];
+inline constexpr SOJournalRecoveryReason SOJournalRecoveryReason_MIN =
+    static_cast<SOJournalRecoveryReason>(0);
+inline constexpr SOJournalRecoveryReason SOJournalRecoveryReason_MAX =
+    static_cast<SOJournalRecoveryReason>(6);
+inline bool SOJournalRecoveryReason_IsValid(int value) {
+  return 0 <= value && value <= 6;
+}
+inline constexpr int SOJournalRecoveryReason_ARRAYSIZE = 6 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOJournalRecoveryReason_descriptor();
+template <typename T>
+const ::std::string& SOJournalRecoveryReason_Name(T value) {
+  static_assert(::std::is_same<T, SOJournalRecoveryReason>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SOJournalRecoveryReason_Name().");
+  return SOJournalRecoveryReason_Name(static_cast<SOJournalRecoveryReason>(value));
+}
+template <>
+inline const ::std::string& SOJournalRecoveryReason_Name(SOJournalRecoveryReason value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<SOJournalRecoveryReason_descriptor, 0, 6>(
+      static_cast<int>(value));
+}
+inline bool SOJournalRecoveryReason_Parse(
+    ::absl::string_view name, SOJournalRecoveryReason* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SOJournalRecoveryReason>(SOJournalRecoveryReason_descriptor(), name,
+                                           value);
+}
+enum SOReceiptState : int {
+  SO_RECEIPT_STATE_UNSPECIFIED = 0,
+  SO_RECEIPT_STATE_NO_RECORD = 1,
+  SO_RECEIPT_STATE_PENDING = 2,
+  SO_RECEIPT_STATE_ACCEPTED = 3,
+  SO_RECEIPT_STATE_REJECTED = 4,
+  SOReceiptState_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  SOReceiptState_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t SOReceiptState_internal_data_[];
+inline constexpr SOReceiptState SOReceiptState_MIN =
+    static_cast<SOReceiptState>(0);
+inline constexpr SOReceiptState SOReceiptState_MAX =
+    static_cast<SOReceiptState>(4);
+inline bool SOReceiptState_IsValid(int value) {
+  return 0 <= value && value <= 4;
+}
+inline constexpr int SOReceiptState_ARRAYSIZE = 4 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOReceiptState_descriptor();
+template <typename T>
+const ::std::string& SOReceiptState_Name(T value) {
+  static_assert(::std::is_same<T, SOReceiptState>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to SOReceiptState_Name().");
+  return SOReceiptState_Name(static_cast<SOReceiptState>(value));
+}
+template <>
+inline const ::std::string& SOReceiptState_Name(SOReceiptState value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<SOReceiptState_descriptor, 0, 4>(
+      static_cast<int>(value));
+}
+inline bool SOReceiptState_Parse(
+    ::absl::string_view name, SOReceiptState* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SOReceiptState>(SOReceiptState_descriptor(), name,
                                            value);
 }
 
@@ -1039,6 +1373,140 @@ class SharedObjectHealth final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull SharedObjectHealth_class_data_;
+// -------------------------------------------------------------------
+
+class SOTerminalReceiptAccepted final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:sobject.SOTerminalReceiptAccepted) */ {
+ public:
+  inline SOTerminalReceiptAccepted() : SOTerminalReceiptAccepted(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOTerminalReceiptAccepted* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOTerminalReceiptAccepted));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOTerminalReceiptAccepted(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOTerminalReceiptAccepted(const SOTerminalReceiptAccepted& from) : SOTerminalReceiptAccepted(nullptr, from) {}
+  inline SOTerminalReceiptAccepted(SOTerminalReceiptAccepted&& from) noexcept
+      : SOTerminalReceiptAccepted(nullptr, ::std::move(from)) {}
+  inline SOTerminalReceiptAccepted& operator=(const SOTerminalReceiptAccepted& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOTerminalReceiptAccepted& operator=(SOTerminalReceiptAccepted&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOTerminalReceiptAccepted& default_instance() {
+    return *reinterpret_cast<const SOTerminalReceiptAccepted*>(
+        &_SOTerminalReceiptAccepted_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 45;
+  friend void swap(SOTerminalReceiptAccepted& a, SOTerminalReceiptAccepted& b) { a.Swap(&b); }
+  inline void Swap(SOTerminalReceiptAccepted* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOTerminalReceiptAccepted* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOTerminalReceiptAccepted* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<SOTerminalReceiptAccepted>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const SOTerminalReceiptAccepted& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const SOTerminalReceiptAccepted& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOTerminalReceiptAccepted"; }
+
+  explicit SOTerminalReceiptAccepted(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOTerminalReceiptAccepted(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOTerminalReceiptAccepted& from);
+  SOTerminalReceiptAccepted(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOTerminalReceiptAccepted&& from) noexcept
+      : SOTerminalReceiptAccepted(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:sobject.SOTerminalReceiptAccepted)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOTerminalReceiptAccepted_class_data_;
 // -------------------------------------------------------------------
 
 class SORootInner final : public ::google::protobuf::Message
@@ -2354,6 +2822,695 @@ class SOOperationInner final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull SOOperationInner_class_data_;
+// -------------------------------------------------------------------
+
+class SOMutationKey final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOMutationKey) */ {
+ public:
+  inline SOMutationKey() : SOMutationKey(nullptr) {}
+  ~SOMutationKey() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOMutationKey* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOMutationKey));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOMutationKey(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOMutationKey(const SOMutationKey& from) : SOMutationKey(nullptr, from) {}
+  inline SOMutationKey(SOMutationKey&& from) noexcept
+      : SOMutationKey(nullptr, ::std::move(from)) {}
+  inline SOMutationKey& operator=(const SOMutationKey& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOMutationKey& operator=(SOMutationKey&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOMutationKey& default_instance() {
+    return *reinterpret_cast<const SOMutationKey*>(
+        &_SOMutationKey_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 33;
+  friend void swap(SOMutationKey& a, SOMutationKey& b) { a.Swap(&b); }
+  inline void Swap(SOMutationKey* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOMutationKey* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOMutationKey* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOMutationKey>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOMutationKey& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOMutationKey& from) { SOMutationKey::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOMutationKey* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOMutationKey"; }
+
+  explicit SOMutationKey(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOMutationKey(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOMutationKey& from);
+  SOMutationKey(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOMutationKey&& from) noexcept
+      : SOMutationKey(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kOriginScopeIdFieldNumber = 1,
+    kSharedObjectIdFieldNumber = 2,
+    kParticipantPeerIdFieldNumber = 3,
+    kLocalIdFieldNumber = 4,
+  };
+  // bytes origin_scope_id = 1;
+  void clear_origin_scope_id() ;
+  const ::std::string& origin_scope_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_origin_scope_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_origin_scope_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_origin_scope_id();
+  void set_allocated_origin_scope_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_origin_scope_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_origin_scope_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_origin_scope_id();
+
+  public:
+  // string shared_object_id = 2;
+  void clear_shared_object_id() ;
+  const ::std::string& shared_object_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_shared_object_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_shared_object_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_shared_object_id();
+  void set_allocated_shared_object_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_shared_object_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_shared_object_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_shared_object_id();
+
+  public:
+  // string participant_peer_id = 3;
+  void clear_participant_peer_id() ;
+  const ::std::string& participant_peer_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_participant_peer_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_participant_peer_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_participant_peer_id();
+  void set_allocated_participant_peer_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_participant_peer_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_participant_peer_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_participant_peer_id();
+
+  public:
+  // string local_id = 4;
+  void clear_local_id() ;
+  const ::std::string& local_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_local_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_local_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_local_id();
+  void set_allocated_local_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_local_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_local_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_local_id();
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.SOMutationKey)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   0, 73,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOMutationKey& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr origin_scope_id_;
+    ::google::protobuf::internal::ArenaStringPtr shared_object_id_;
+    ::google::protobuf::internal::ArenaStringPtr participant_peer_id_;
+    ::google::protobuf::internal::ArenaStringPtr local_id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOMutationKey_class_data_;
+// -------------------------------------------------------------------
+
+class SOJournalVersionTuple final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOJournalVersionTuple) */ {
+ public:
+  inline SOJournalVersionTuple() : SOJournalVersionTuple(nullptr) {}
+  ~SOJournalVersionTuple() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOJournalVersionTuple* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOJournalVersionTuple));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOJournalVersionTuple(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOJournalVersionTuple(const SOJournalVersionTuple& from) : SOJournalVersionTuple(nullptr, from) {}
+  inline SOJournalVersionTuple(SOJournalVersionTuple&& from) noexcept
+      : SOJournalVersionTuple(nullptr, ::std::move(from)) {}
+  inline SOJournalVersionTuple& operator=(const SOJournalVersionTuple& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOJournalVersionTuple& operator=(SOJournalVersionTuple&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOJournalVersionTuple& default_instance() {
+    return *reinterpret_cast<const SOJournalVersionTuple*>(
+        &_SOJournalVersionTuple_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 35;
+  friend void swap(SOJournalVersionTuple& a, SOJournalVersionTuple& b) { a.Swap(&b); }
+  inline void Swap(SOJournalVersionTuple* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOJournalVersionTuple* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOJournalVersionTuple* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOJournalVersionTuple>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOJournalVersionTuple& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOJournalVersionTuple& from) { SOJournalVersionTuple::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOJournalVersionTuple* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOJournalVersionTuple"; }
+
+  explicit SOJournalVersionTuple(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOJournalVersionTuple(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOJournalVersionTuple& from);
+  SOJournalVersionTuple(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOJournalVersionTuple&& from) noexcept
+      : SOJournalVersionTuple(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kConfigChainDigestFieldNumber = 4,
+    kLocalVersionFieldNumber = 1,
+    kRemoteVersionFieldNumber = 2,
+    kTransformEpochFieldNumber = 3,
+  };
+  // bytes config_chain_digest = 4;
+  void clear_config_chain_digest() ;
+  const ::std::string& config_chain_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_config_chain_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_config_chain_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_config_chain_digest();
+  void set_allocated_config_chain_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_config_chain_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_config_chain_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_config_chain_digest();
+
+  public:
+  // uint64 local_version = 1;
+  void clear_local_version() ;
+  ::uint64_t local_version() const;
+  void set_local_version(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_local_version() const;
+  void _internal_set_local_version(::uint64_t value);
+
+  public:
+  // uint64 remote_version = 2;
+  void clear_remote_version() ;
+  ::uint64_t remote_version() const;
+  void set_remote_version(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_remote_version() const;
+  void _internal_set_remote_version(::uint64_t value);
+
+  public:
+  // uint64 transform_epoch = 3;
+  void clear_transform_epoch() ;
+  ::uint64_t transform_epoch() const;
+  void set_transform_epoch(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_transform_epoch() const;
+  void _internal_set_transform_epoch(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.SOJournalVersionTuple)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOJournalVersionTuple& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr config_chain_digest_;
+    ::uint64_t local_version_;
+    ::uint64_t remote_version_;
+    ::uint64_t transform_epoch_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOJournalVersionTuple_class_data_;
+// -------------------------------------------------------------------
+
+class SOJournalEncryptedPayload final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOJournalEncryptedPayload) */ {
+ public:
+  inline SOJournalEncryptedPayload() : SOJournalEncryptedPayload(nullptr) {}
+  ~SOJournalEncryptedPayload() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOJournalEncryptedPayload* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOJournalEncryptedPayload));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOJournalEncryptedPayload(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOJournalEncryptedPayload(const SOJournalEncryptedPayload& from) : SOJournalEncryptedPayload(nullptr, from) {}
+  inline SOJournalEncryptedPayload(SOJournalEncryptedPayload&& from) noexcept
+      : SOJournalEncryptedPayload(nullptr, ::std::move(from)) {}
+  inline SOJournalEncryptedPayload& operator=(const SOJournalEncryptedPayload& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOJournalEncryptedPayload& operator=(SOJournalEncryptedPayload&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOJournalEncryptedPayload& default_instance() {
+    return *reinterpret_cast<const SOJournalEncryptedPayload*>(
+        &_SOJournalEncryptedPayload_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 37;
+  friend void swap(SOJournalEncryptedPayload& a, SOJournalEncryptedPayload& b) { a.Swap(&b); }
+  inline void Swap(SOJournalEncryptedPayload* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOJournalEncryptedPayload* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOJournalEncryptedPayload* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOJournalEncryptedPayload>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOJournalEncryptedPayload& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOJournalEncryptedPayload& from) { SOJournalEncryptedPayload::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOJournalEncryptedPayload* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOJournalEncryptedPayload"; }
+
+  explicit SOJournalEncryptedPayload(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOJournalEncryptedPayload(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOJournalEncryptedPayload& from);
+  SOJournalEncryptedPayload(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOJournalEncryptedPayload&& from) noexcept
+      : SOJournalEncryptedPayload(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kNonceFieldNumber = 1,
+    kCiphertextFieldNumber = 2,
+  };
+  // bytes nonce = 1;
+  void clear_nonce() ;
+  const ::std::string& nonce() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_nonce(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_nonce();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_nonce();
+  void set_allocated_nonce(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_nonce() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_nonce(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_nonce();
+
+  public:
+  // bytes ciphertext = 2;
+  void clear_ciphertext() ;
+  const ::std::string& ciphertext() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_ciphertext(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_ciphertext();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_ciphertext();
+  void set_allocated_ciphertext(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_ciphertext() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_ciphertext(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_ciphertext();
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.SOJournalEncryptedPayload)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOJournalEncryptedPayload& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr nonce_;
+    ::google::protobuf::internal::ArenaStringPtr ciphertext_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOJournalEncryptedPayload_class_data_;
 // -------------------------------------------------------------------
 
 class SOEntityRecoveryEnvelope final : public ::google::protobuf::Message
@@ -3690,6 +4847,220 @@ class SharedObjectConfig final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull SharedObjectConfig_class_data_;
 // -------------------------------------------------------------------
 
+class SOTerminalReceipt final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOTerminalReceipt) */ {
+ public:
+  inline SOTerminalReceipt() : SOTerminalReceipt(nullptr) {}
+  ~SOTerminalReceipt() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOTerminalReceipt* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOTerminalReceipt));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOTerminalReceipt(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOTerminalReceipt(const SOTerminalReceipt& from) : SOTerminalReceipt(nullptr, from) {}
+  inline SOTerminalReceipt(SOTerminalReceipt&& from) noexcept
+      : SOTerminalReceipt(nullptr, ::std::move(from)) {}
+  inline SOTerminalReceipt& operator=(const SOTerminalReceipt& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOTerminalReceipt& operator=(SOTerminalReceipt&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOTerminalReceipt& default_instance() {
+    return *reinterpret_cast<const SOTerminalReceipt*>(
+        &_SOTerminalReceipt_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 47;
+  friend void swap(SOTerminalReceipt& a, SOTerminalReceipt& b) { a.Swap(&b); }
+  inline void Swap(SOTerminalReceipt* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOTerminalReceipt* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOTerminalReceipt* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOTerminalReceipt>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOTerminalReceipt& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOTerminalReceipt& from) { SOTerminalReceipt::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOTerminalReceipt* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOTerminalReceipt"; }
+
+  explicit SOTerminalReceipt(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOTerminalReceipt(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOTerminalReceipt& from);
+  SOTerminalReceipt(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOTerminalReceipt&& from) noexcept
+      : SOTerminalReceipt(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kValidatorSignaturesFieldNumber = 2,
+    kInnerFieldNumber = 1,
+  };
+  // repeated .peer.Signature validator_signatures = 2;
+  int validator_signatures_size() const;
+  private:
+  int _internal_validator_signatures_size() const;
+
+  public:
+  void clear_validator_signatures() ;
+  ::peer::Signature* PROTOBUF_NONNULL mutable_validator_signatures(int index);
+  ::google::protobuf::RepeatedPtrField<::peer::Signature>* PROTOBUF_NONNULL mutable_validator_signatures();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::peer::Signature>& _internal_validator_signatures() const;
+  ::google::protobuf::RepeatedPtrField<::peer::Signature>* PROTOBUF_NONNULL _internal_mutable_validator_signatures();
+  public:
+  const ::peer::Signature& validator_signatures(int index) const;
+  ::peer::Signature* PROTOBUF_NONNULL add_validator_signatures();
+  const ::google::protobuf::RepeatedPtrField<::peer::Signature>& validator_signatures() const;
+  // bytes inner = 1;
+  void clear_inner() ;
+  const ::std::string& inner() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_inner(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_inner();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_inner();
+  void set_allocated_inner(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_inner() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_inner(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_inner();
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.SOTerminalReceipt)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOTerminalReceipt& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::peer::Signature > validator_signatures_;
+    ::google::protobuf::internal::ArenaStringPtr inner_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOTerminalReceipt_class_data_;
+// -------------------------------------------------------------------
+
 class SORoot final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:sobject.SORoot) */ {
  public:
@@ -4821,6 +6192,1016 @@ class SOOperation final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull SOOperation_class_data_;
+// -------------------------------------------------------------------
+
+class SOJournalReceipt final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOJournalReceipt) */ {
+ public:
+  inline SOJournalReceipt() : SOJournalReceipt(nullptr) {}
+  ~SOJournalReceipt() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOJournalReceipt* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOJournalReceipt));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOJournalReceipt(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOJournalReceipt(const SOJournalReceipt& from) : SOJournalReceipt(nullptr, from) {}
+  inline SOJournalReceipt(SOJournalReceipt&& from) noexcept
+      : SOJournalReceipt(nullptr, ::std::move(from)) {}
+  inline SOJournalReceipt& operator=(const SOJournalReceipt& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOJournalReceipt& operator=(SOJournalReceipt&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOJournalReceipt& default_instance() {
+    return *reinterpret_cast<const SOJournalReceipt*>(
+        &_SOJournalReceipt_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 39;
+  friend void swap(SOJournalReceipt& a, SOJournalReceipt& b) { a.Swap(&b); }
+  inline void Swap(SOJournalReceipt* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOJournalReceipt* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOJournalReceipt* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOJournalReceipt>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOJournalReceipt& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOJournalReceipt& from) { SOJournalReceipt::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOJournalReceipt* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOJournalReceipt"; }
+
+  explicit SOJournalReceipt(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOJournalReceipt(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOJournalReceipt& from);
+  SOJournalReceipt(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOJournalReceipt&& from) noexcept
+      : SOJournalReceipt(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kEnvelopeDigestFieldNumber = 2,
+    kTerminalReceiptFieldNumber = 4,
+    kTerminalReceiptDigestFieldNumber = 5,
+    kAuthoritativeRootDigestFieldNumber = 7,
+    kConfigChainDigestFieldNumber = 8,
+    kKeyFieldNumber = 1,
+    kSupersedesFieldNumber = 10,
+    kAuthoritativeRootSeqnoFieldNumber = 6,
+    kTerminalUnixMillisFieldNumber = 9,
+    kOutcomeFieldNumber = 3,
+  };
+  // bytes envelope_digest = 2;
+  void clear_envelope_digest() ;
+  const ::std::string& envelope_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_envelope_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_envelope_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_envelope_digest();
+  void set_allocated_envelope_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_envelope_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_envelope_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_envelope_digest();
+
+  public:
+  // bytes terminal_receipt = 4;
+  void clear_terminal_receipt() ;
+  const ::std::string& terminal_receipt() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_terminal_receipt(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_terminal_receipt();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_terminal_receipt();
+  void set_allocated_terminal_receipt(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_terminal_receipt() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_terminal_receipt(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_terminal_receipt();
+
+  public:
+  // bytes terminal_receipt_digest = 5;
+  void clear_terminal_receipt_digest() ;
+  const ::std::string& terminal_receipt_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_terminal_receipt_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_terminal_receipt_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_terminal_receipt_digest();
+  void set_allocated_terminal_receipt_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_terminal_receipt_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_terminal_receipt_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_terminal_receipt_digest();
+
+  public:
+  // bytes authoritative_root_digest = 7;
+  void clear_authoritative_root_digest() ;
+  const ::std::string& authoritative_root_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_authoritative_root_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_authoritative_root_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_authoritative_root_digest();
+  void set_allocated_authoritative_root_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_authoritative_root_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_authoritative_root_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_authoritative_root_digest();
+
+  public:
+  // bytes config_chain_digest = 8;
+  void clear_config_chain_digest() ;
+  const ::std::string& config_chain_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_config_chain_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_config_chain_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_config_chain_digest();
+  void set_allocated_config_chain_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_config_chain_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_config_chain_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_config_chain_digest();
+
+  public:
+  // .sobject.SOMutationKey key = 1;
+  bool has_key() const;
+  void clear_key() ;
+  const ::sobject::SOMutationKey& key() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_key();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_key();
+  void set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_key();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_key() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // .sobject.SOMutationKey supersedes = 10;
+  bool has_supersedes() const;
+  void clear_supersedes() ;
+  const ::sobject::SOMutationKey& supersedes() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_supersedes();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_supersedes();
+  void set_allocated_supersedes(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_supersedes(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_supersedes();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_supersedes() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_supersedes();
+
+  public:
+  // uint64 authoritative_root_seqno = 6;
+  void clear_authoritative_root_seqno() ;
+  ::uint64_t authoritative_root_seqno() const;
+  void set_authoritative_root_seqno(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_authoritative_root_seqno() const;
+  void _internal_set_authoritative_root_seqno(::uint64_t value);
+
+  public:
+  // uint64 terminal_unix_millis = 9;
+  void clear_terminal_unix_millis() ;
+  ::uint64_t terminal_unix_millis() const;
+  void set_terminal_unix_millis(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_terminal_unix_millis() const;
+  void _internal_set_terminal_unix_millis(::uint64_t value);
+
+  public:
+  // .sobject.SOJournalOutcome outcome = 3;
+  void clear_outcome() ;
+  ::sobject::SOJournalOutcome outcome() const;
+  void set_outcome(::sobject::SOJournalOutcome value);
+
+  private:
+  ::sobject::SOJournalOutcome _internal_outcome() const;
+  void _internal_set_outcome(::sobject::SOJournalOutcome value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.SOJournalReceipt)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<4, 10,
+                                   2, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOJournalReceipt& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr envelope_digest_;
+    ::google::protobuf::internal::ArenaStringPtr terminal_receipt_;
+    ::google::protobuf::internal::ArenaStringPtr terminal_receipt_digest_;
+    ::google::protobuf::internal::ArenaStringPtr authoritative_root_digest_;
+    ::google::protobuf::internal::ArenaStringPtr config_chain_digest_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE key_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE supersedes_;
+    ::uint64_t authoritative_root_seqno_;
+    ::uint64_t terminal_unix_millis_;
+    int outcome_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOJournalReceipt_class_data_;
+// -------------------------------------------------------------------
+
+class SOJournalProjection final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOJournalProjection) */ {
+ public:
+  inline SOJournalProjection() : SOJournalProjection(nullptr) {}
+  ~SOJournalProjection() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOJournalProjection* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOJournalProjection));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOJournalProjection(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOJournalProjection(const SOJournalProjection& from) : SOJournalProjection(nullptr, from) {}
+  inline SOJournalProjection(SOJournalProjection&& from) noexcept
+      : SOJournalProjection(nullptr, ::std::move(from)) {}
+  inline SOJournalProjection& operator=(const SOJournalProjection& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOJournalProjection& operator=(SOJournalProjection&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOJournalProjection& default_instance() {
+    return *reinterpret_cast<const SOJournalProjection*>(
+        &_SOJournalProjection_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 41;
+  friend void swap(SOJournalProjection& a, SOJournalProjection& b) { a.Swap(&b); }
+  inline void Swap(SOJournalProjection* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOJournalProjection* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOJournalProjection* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOJournalProjection>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOJournalProjection& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOJournalProjection& from) { SOJournalProjection::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOJournalProjection* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOJournalProjection"; }
+
+  explicit SOJournalProjection(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOJournalProjection(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOJournalProjection& from);
+  SOJournalProjection(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOJournalProjection&& from) noexcept
+      : SOJournalProjection(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kReceiptDigestFieldNumber = 2,
+    kAuthoritativeRootDigestFieldNumber = 4,
+    kKeyFieldNumber = 1,
+    kAuthoritativeRootSeqnoFieldNumber = 3,
+  };
+  // bytes receipt_digest = 2;
+  void clear_receipt_digest() ;
+  const ::std::string& receipt_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_receipt_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_receipt_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_receipt_digest();
+  void set_allocated_receipt_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_receipt_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_receipt_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_receipt_digest();
+
+  public:
+  // bytes authoritative_root_digest = 4;
+  void clear_authoritative_root_digest() ;
+  const ::std::string& authoritative_root_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_authoritative_root_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_authoritative_root_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_authoritative_root_digest();
+  void set_allocated_authoritative_root_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_authoritative_root_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_authoritative_root_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_authoritative_root_digest();
+
+  public:
+  // .sobject.SOMutationKey key = 1;
+  bool has_key() const;
+  void clear_key() ;
+  const ::sobject::SOMutationKey& key() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_key();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_key();
+  void set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_key();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_key() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // uint64 authoritative_root_seqno = 3;
+  void clear_authoritative_root_seqno() ;
+  ::uint64_t authoritative_root_seqno() const;
+  void set_authoritative_root_seqno(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_authoritative_root_seqno() const;
+  void _internal_set_authoritative_root_seqno(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.SOJournalProjection)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOJournalProjection& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr receipt_digest_;
+    ::google::protobuf::internal::ArenaStringPtr authoritative_root_digest_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE key_;
+    ::uint64_t authoritative_root_seqno_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOJournalProjection_class_data_;
+// -------------------------------------------------------------------
+
+class SOJournalLineage final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOJournalLineage) */ {
+ public:
+  inline SOJournalLineage() : SOJournalLineage(nullptr) {}
+  ~SOJournalLineage() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOJournalLineage* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOJournalLineage));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOJournalLineage(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOJournalLineage(const SOJournalLineage& from) : SOJournalLineage(nullptr, from) {}
+  inline SOJournalLineage(SOJournalLineage&& from) noexcept
+      : SOJournalLineage(nullptr, ::std::move(from)) {}
+  inline SOJournalLineage& operator=(const SOJournalLineage& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOJournalLineage& operator=(SOJournalLineage&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOJournalLineage& default_instance() {
+    return *reinterpret_cast<const SOJournalLineage*>(
+        &_SOJournalLineage_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 34;
+  friend void swap(SOJournalLineage& a, SOJournalLineage& b) { a.Swap(&b); }
+  inline void Swap(SOJournalLineage* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOJournalLineage* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOJournalLineage* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOJournalLineage>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOJournalLineage& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOJournalLineage& from) { SOJournalLineage::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOJournalLineage* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOJournalLineage"; }
+
+  explicit SOJournalLineage(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOJournalLineage(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOJournalLineage& from);
+  SOJournalLineage(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOJournalLineage&& from) noexcept
+      : SOJournalLineage(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kRootKeyFieldNumber = 1,
+    kSupersedesFieldNumber = 2,
+  };
+  // .sobject.SOMutationKey root_key = 1;
+  bool has_root_key() const;
+  void clear_root_key() ;
+  const ::sobject::SOMutationKey& root_key() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_root_key();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_root_key();
+  void set_allocated_root_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_root_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_root_key();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_root_key() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_root_key();
+
+  public:
+  // .sobject.SOMutationKey supersedes = 2;
+  bool has_supersedes() const;
+  void clear_supersedes() ;
+  const ::sobject::SOMutationKey& supersedes() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_supersedes();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_supersedes();
+  void set_allocated_supersedes(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_supersedes(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_supersedes();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_supersedes() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_supersedes();
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.SOJournalLineage)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   2, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOJournalLineage& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE root_key_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE supersedes_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOJournalLineage_class_data_;
+// -------------------------------------------------------------------
+
+class SOJournalAcknowledgement final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOJournalAcknowledgement) */ {
+ public:
+  inline SOJournalAcknowledgement() : SOJournalAcknowledgement(nullptr) {}
+  ~SOJournalAcknowledgement() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOJournalAcknowledgement* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOJournalAcknowledgement));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOJournalAcknowledgement(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOJournalAcknowledgement(const SOJournalAcknowledgement& from) : SOJournalAcknowledgement(nullptr, from) {}
+  inline SOJournalAcknowledgement(SOJournalAcknowledgement&& from) noexcept
+      : SOJournalAcknowledgement(nullptr, ::std::move(from)) {}
+  inline SOJournalAcknowledgement& operator=(const SOJournalAcknowledgement& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOJournalAcknowledgement& operator=(SOJournalAcknowledgement&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOJournalAcknowledgement& default_instance() {
+    return *reinterpret_cast<const SOJournalAcknowledgement*>(
+        &_SOJournalAcknowledgement_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 40;
+  friend void swap(SOJournalAcknowledgement& a, SOJournalAcknowledgement& b) { a.Swap(&b); }
+  inline void Swap(SOJournalAcknowledgement* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOJournalAcknowledgement* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOJournalAcknowledgement* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOJournalAcknowledgement>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOJournalAcknowledgement& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOJournalAcknowledgement& from) { SOJournalAcknowledgement::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOJournalAcknowledgement* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOJournalAcknowledgement"; }
+
+  explicit SOJournalAcknowledgement(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOJournalAcknowledgement(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOJournalAcknowledgement& from);
+  SOJournalAcknowledgement(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOJournalAcknowledgement&& from) noexcept
+      : SOJournalAcknowledgement(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kReceiptDigestFieldNumber = 2,
+    kKeyFieldNumber = 1,
+    kAcknowledgedUnixMillisFieldNumber = 3,
+  };
+  // bytes receipt_digest = 2;
+  void clear_receipt_digest() ;
+  const ::std::string& receipt_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_receipt_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_receipt_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_receipt_digest();
+  void set_allocated_receipt_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_receipt_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_receipt_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_receipt_digest();
+
+  public:
+  // .sobject.SOMutationKey key = 1;
+  bool has_key() const;
+  void clear_key() ;
+  const ::sobject::SOMutationKey& key() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_key();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_key();
+  void set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_key();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_key() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // uint64 acknowledged_unix_millis = 3;
+  void clear_acknowledged_unix_millis() ;
+  ::uint64_t acknowledged_unix_millis() const;
+  void set_acknowledged_unix_millis(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_acknowledged_unix_millis() const;
+  void _internal_set_acknowledged_unix_millis(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.SOJournalAcknowledgement)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOJournalAcknowledgement& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr receipt_digest_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE key_;
+    ::uint64_t acknowledged_unix_millis_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOJournalAcknowledgement_class_data_;
 // -------------------------------------------------------------------
 
 class SOJoinResponse final : public ::google::protobuf::Message
@@ -6388,6 +8769,380 @@ class SharedObjectListEntry final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull SharedObjectListEntry_class_data_;
 // -------------------------------------------------------------------
 
+class SOTerminalReceiptInner final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOTerminalReceiptInner) */ {
+ public:
+  inline SOTerminalReceiptInner() : SOTerminalReceiptInner(nullptr) {}
+  ~SOTerminalReceiptInner() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOTerminalReceiptInner* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOTerminalReceiptInner));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOTerminalReceiptInner(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOTerminalReceiptInner(const SOTerminalReceiptInner& from) : SOTerminalReceiptInner(nullptr, from) {}
+  inline SOTerminalReceiptInner(SOTerminalReceiptInner&& from) noexcept
+      : SOTerminalReceiptInner(nullptr, ::std::move(from)) {}
+  inline SOTerminalReceiptInner& operator=(const SOTerminalReceiptInner& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOTerminalReceiptInner& operator=(SOTerminalReceiptInner&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOTerminalReceiptInner& default_instance() {
+    return *reinterpret_cast<const SOTerminalReceiptInner*>(
+        &_SOTerminalReceiptInner_default_instance_);
+  }
+  enum OutcomeCase {
+    kAccepted = 3,
+    kSignedRejection = 4,
+    OUTCOME_NOT_SET = 0,
+  };
+  static constexpr int kIndexInFileMessages = 46;
+  friend void swap(SOTerminalReceiptInner& a, SOTerminalReceiptInner& b) { a.Swap(&b); }
+  inline void Swap(SOTerminalReceiptInner* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOTerminalReceiptInner* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOTerminalReceiptInner* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOTerminalReceiptInner>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOTerminalReceiptInner& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOTerminalReceiptInner& from) { SOTerminalReceiptInner::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOTerminalReceiptInner* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOTerminalReceiptInner"; }
+
+  explicit SOTerminalReceiptInner(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOTerminalReceiptInner(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOTerminalReceiptInner& from);
+  SOTerminalReceiptInner(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOTerminalReceiptInner&& from) noexcept
+      : SOTerminalReceiptInner(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kEnvelopeDigestFieldNumber = 2,
+    kAuthoritativeRootDigestFieldNumber = 6,
+    kConfigChainDigestFieldNumber = 7,
+    kValidatorSetDigestFieldNumber = 9,
+    kKeyFieldNumber = 1,
+    kSupersedesFieldNumber = 11,
+    kAuthoritativeRootSeqnoFieldNumber = 5,
+    kTerminalUnixMillisFieldNumber = 10,
+    kConsensusModeFieldNumber = 8,
+    kAcceptedFieldNumber = 3,
+    kSignedRejectionFieldNumber = 4,
+  };
+  // bytes envelope_digest = 2;
+  void clear_envelope_digest() ;
+  const ::std::string& envelope_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_envelope_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_envelope_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_envelope_digest();
+  void set_allocated_envelope_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_envelope_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_envelope_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_envelope_digest();
+
+  public:
+  // bytes authoritative_root_digest = 6;
+  void clear_authoritative_root_digest() ;
+  const ::std::string& authoritative_root_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_authoritative_root_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_authoritative_root_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_authoritative_root_digest();
+  void set_allocated_authoritative_root_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_authoritative_root_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_authoritative_root_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_authoritative_root_digest();
+
+  public:
+  // bytes config_chain_digest = 7;
+  void clear_config_chain_digest() ;
+  const ::std::string& config_chain_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_config_chain_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_config_chain_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_config_chain_digest();
+  void set_allocated_config_chain_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_config_chain_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_config_chain_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_config_chain_digest();
+
+  public:
+  // bytes validator_set_digest = 9;
+  void clear_validator_set_digest() ;
+  const ::std::string& validator_set_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_validator_set_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_validator_set_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_validator_set_digest();
+  void set_allocated_validator_set_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_validator_set_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_validator_set_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_validator_set_digest();
+
+  public:
+  // .sobject.SOMutationKey key = 1;
+  bool has_key() const;
+  void clear_key() ;
+  const ::sobject::SOMutationKey& key() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_key();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_key();
+  void set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_key();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_key() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // .sobject.SOMutationKey supersedes = 11;
+  bool has_supersedes() const;
+  void clear_supersedes() ;
+  const ::sobject::SOMutationKey& supersedes() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_supersedes();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_supersedes();
+  void set_allocated_supersedes(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_supersedes(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_supersedes();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_supersedes() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_supersedes();
+
+  public:
+  // uint64 authoritative_root_seqno = 5;
+  void clear_authoritative_root_seqno() ;
+  ::uint64_t authoritative_root_seqno() const;
+  void set_authoritative_root_seqno(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_authoritative_root_seqno() const;
+  void _internal_set_authoritative_root_seqno(::uint64_t value);
+
+  public:
+  // uint64 terminal_unix_millis = 10;
+  void clear_terminal_unix_millis() ;
+  ::uint64_t terminal_unix_millis() const;
+  void set_terminal_unix_millis(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_terminal_unix_millis() const;
+  void _internal_set_terminal_unix_millis(::uint64_t value);
+
+  public:
+  // .sobject.SOConsensusMode consensus_mode = 8;
+  void clear_consensus_mode() ;
+  ::sobject::SOConsensusMode consensus_mode() const;
+  void set_consensus_mode(::sobject::SOConsensusMode value);
+
+  private:
+  ::sobject::SOConsensusMode _internal_consensus_mode() const;
+  void _internal_set_consensus_mode(::sobject::SOConsensusMode value);
+
+  public:
+  // .sobject.SOTerminalReceiptAccepted accepted = 3;
+  bool has_accepted() const;
+  private:
+  bool _internal_has_accepted() const;
+
+  public:
+  void clear_accepted() ;
+  const ::sobject::SOTerminalReceiptAccepted& accepted() const;
+  [[nodiscard]] ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE release_accepted();
+  ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NONNULL mutable_accepted();
+  void set_allocated_accepted(::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_accepted(::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE value);
+  ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE unsafe_arena_release_accepted();
+
+  private:
+  const ::sobject::SOTerminalReceiptAccepted& _internal_accepted() const;
+  ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NONNULL _internal_mutable_accepted();
+
+  public:
+  // .sobject.SOOperationRejection signed_rejection = 4;
+  bool has_signed_rejection() const;
+  private:
+  bool _internal_has_signed_rejection() const;
+
+  public:
+  void clear_signed_rejection() ;
+  const ::sobject::SOOperationRejection& signed_rejection() const;
+  [[nodiscard]] ::sobject::SOOperationRejection* PROTOBUF_NULLABLE release_signed_rejection();
+  ::sobject::SOOperationRejection* PROTOBUF_NONNULL mutable_signed_rejection();
+  void set_allocated_signed_rejection(::sobject::SOOperationRejection* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_signed_rejection(::sobject::SOOperationRejection* PROTOBUF_NULLABLE value);
+  ::sobject::SOOperationRejection* PROTOBUF_NULLABLE unsafe_arena_release_signed_rejection();
+
+  private:
+  const ::sobject::SOOperationRejection& _internal_signed_rejection() const;
+  ::sobject::SOOperationRejection* PROTOBUF_NONNULL _internal_mutable_signed_rejection();
+
+  public:
+  void clear_outcome();
+  OutcomeCase outcome_case() const;
+  // @@protoc_insertion_point(class_scope:sobject.SOTerminalReceiptInner)
+ private:
+  class _Internal;
+  void set_has_accepted();
+  void set_has_signed_rejection();
+  inline bool has_outcome() const;
+  inline void clear_has_outcome();
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<4, 11,
+                                   4, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOTerminalReceiptInner& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr envelope_digest_;
+    ::google::protobuf::internal::ArenaStringPtr authoritative_root_digest_;
+    ::google::protobuf::internal::ArenaStringPtr config_chain_digest_;
+    ::google::protobuf::internal::ArenaStringPtr validator_set_digest_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE key_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE supersedes_;
+    ::uint64_t authoritative_root_seqno_;
+    ::uint64_t terminal_unix_millis_;
+    int consensus_mode_;
+    union OutcomeUnion {
+      constexpr OutcomeUnion() : _constinit_{} {}
+      ::google::protobuf::internal::ConstantInitialized _constinit_;
+      ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE accepted_;
+      ::sobject::SOOperationRejection* PROTOBUF_NULLABLE signed_rejection_;
+    } outcome_;
+    ::uint32_t _oneof_case_[1];
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOTerminalReceiptInner_class_data_;
+// -------------------------------------------------------------------
+
 class SOPeerOpRejections final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:sobject.SOPeerOpRejections) */ {
  public:
@@ -6833,6 +9588,527 @@ class SOKeyEpoch final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull SOKeyEpoch_class_data_;
+// -------------------------------------------------------------------
+
+class SOJournalLookup final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOJournalLookup) */ {
+ public:
+  inline SOJournalLookup() : SOJournalLookup(nullptr) {}
+  ~SOJournalLookup() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOJournalLookup* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOJournalLookup));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOJournalLookup(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOJournalLookup(const SOJournalLookup& from) : SOJournalLookup(nullptr, from) {}
+  inline SOJournalLookup(SOJournalLookup&& from) noexcept
+      : SOJournalLookup(nullptr, ::std::move(from)) {}
+  inline SOJournalLookup& operator=(const SOJournalLookup& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOJournalLookup& operator=(SOJournalLookup&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOJournalLookup& default_instance() {
+    return *reinterpret_cast<const SOJournalLookup*>(
+        &_SOJournalLookup_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 38;
+  friend void swap(SOJournalLookup& a, SOJournalLookup& b) { a.Swap(&b); }
+  inline void Swap(SOJournalLookup* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOJournalLookup* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOJournalLookup* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOJournalLookup>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOJournalLookup& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOJournalLookup& from) { SOJournalLookup::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOJournalLookup* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOJournalLookup"; }
+
+  explicit SOJournalLookup(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOJournalLookup(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOJournalLookup& from);
+  SOJournalLookup(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOJournalLookup&& from) noexcept
+      : SOJournalLookup(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kResponseFieldNumber = 4,
+    kResponseDigestFieldNumber = 5,
+    kConfigChainDigestFieldNumber = 6,
+    kKeyFieldNumber = 1,
+    kReceiptFieldNumber = 3,
+    kStateFieldNumber = 2,
+  };
+  // bytes response = 4;
+  void clear_response() ;
+  const ::std::string& response() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_response(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_response();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_response();
+  void set_allocated_response(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_response() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_response(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_response();
+
+  public:
+  // bytes response_digest = 5;
+  void clear_response_digest() ;
+  const ::std::string& response_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_response_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_response_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_response_digest();
+  void set_allocated_response_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_response_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_response_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_response_digest();
+
+  public:
+  // bytes config_chain_digest = 6;
+  void clear_config_chain_digest() ;
+  const ::std::string& config_chain_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_config_chain_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_config_chain_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_config_chain_digest();
+  void set_allocated_config_chain_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_config_chain_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_config_chain_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_config_chain_digest();
+
+  public:
+  // .sobject.SOMutationKey key = 1;
+  bool has_key() const;
+  void clear_key() ;
+  const ::sobject::SOMutationKey& key() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_key();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_key();
+  void set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_key();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_key() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // .sobject.SOJournalReceipt receipt = 3;
+  bool has_receipt() const;
+  void clear_receipt() ;
+  const ::sobject::SOJournalReceipt& receipt() const;
+  [[nodiscard]] ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE release_receipt();
+  ::sobject::SOJournalReceipt* PROTOBUF_NONNULL mutable_receipt();
+  void set_allocated_receipt(::sobject::SOJournalReceipt* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_receipt(::sobject::SOJournalReceipt* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE unsafe_arena_release_receipt();
+
+  private:
+  const ::sobject::SOJournalReceipt& _internal_receipt() const;
+  ::sobject::SOJournalReceipt* PROTOBUF_NONNULL _internal_mutable_receipt();
+
+  public:
+  // .sobject.SOReceiptState state = 2;
+  void clear_state() ;
+  ::sobject::SOReceiptState state() const;
+  void set_state(::sobject::SOReceiptState value);
+
+  private:
+  ::sobject::SOReceiptState _internal_state() const;
+  void _internal_set_state(::sobject::SOReceiptState value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.SOJournalLookup)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   2, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOJournalLookup& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr response_;
+    ::google::protobuf::internal::ArenaStringPtr response_digest_;
+    ::google::protobuf::internal::ArenaStringPtr config_chain_digest_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE key_;
+    ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE receipt_;
+    int state_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOJournalLookup_class_data_;
+// -------------------------------------------------------------------
+
+class SOJournalIntent final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOJournalIntent) */ {
+ public:
+  inline SOJournalIntent() : SOJournalIntent(nullptr) {}
+  ~SOJournalIntent() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOJournalIntent* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOJournalIntent));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOJournalIntent(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOJournalIntent(const SOJournalIntent& from) : SOJournalIntent(nullptr, from) {}
+  inline SOJournalIntent(SOJournalIntent&& from) noexcept
+      : SOJournalIntent(nullptr, ::std::move(from)) {}
+  inline SOJournalIntent& operator=(const SOJournalIntent& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOJournalIntent& operator=(SOJournalIntent&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOJournalIntent& default_instance() {
+    return *reinterpret_cast<const SOJournalIntent*>(
+        &_SOJournalIntent_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 36;
+  friend void swap(SOJournalIntent& a, SOJournalIntent& b) { a.Swap(&b); }
+  inline void Swap(SOJournalIntent* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOJournalIntent* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOJournalIntent* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOJournalIntent>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOJournalIntent& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOJournalIntent& from) { SOJournalIntent::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOJournalIntent* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOJournalIntent"; }
+
+  explicit SOJournalIntent(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOJournalIntent(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOJournalIntent& from);
+  SOJournalIntent(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOJournalIntent&& from) noexcept
+      : SOJournalIntent(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kCanonicalOperationFieldNumber = 4,
+    kKeyFieldNumber = 1,
+    kLineageFieldNumber = 2,
+    kVersionFieldNumber = 3,
+  };
+  // bytes canonical_operation = 4;
+  void clear_canonical_operation() ;
+  const ::std::string& canonical_operation() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_canonical_operation(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_canonical_operation();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_canonical_operation();
+  void set_allocated_canonical_operation(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_canonical_operation() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_canonical_operation(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_canonical_operation();
+
+  public:
+  // .sobject.SOMutationKey key = 1;
+  bool has_key() const;
+  void clear_key() ;
+  const ::sobject::SOMutationKey& key() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_key();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_key();
+  void set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_key();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_key() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // .sobject.SOJournalLineage lineage = 2;
+  bool has_lineage() const;
+  void clear_lineage() ;
+  const ::sobject::SOJournalLineage& lineage() const;
+  [[nodiscard]] ::sobject::SOJournalLineage* PROTOBUF_NULLABLE release_lineage();
+  ::sobject::SOJournalLineage* PROTOBUF_NONNULL mutable_lineage();
+  void set_allocated_lineage(::sobject::SOJournalLineage* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_lineage(::sobject::SOJournalLineage* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalLineage* PROTOBUF_NULLABLE unsafe_arena_release_lineage();
+
+  private:
+  const ::sobject::SOJournalLineage& _internal_lineage() const;
+  ::sobject::SOJournalLineage* PROTOBUF_NONNULL _internal_mutable_lineage();
+
+  public:
+  // .sobject.SOJournalVersionTuple version = 3;
+  bool has_version() const;
+  void clear_version() ;
+  const ::sobject::SOJournalVersionTuple& version() const;
+  [[nodiscard]] ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE release_version();
+  ::sobject::SOJournalVersionTuple* PROTOBUF_NONNULL mutable_version();
+  void set_allocated_version(::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_version(::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE unsafe_arena_release_version();
+
+  private:
+  const ::sobject::SOJournalVersionTuple& _internal_version() const;
+  ::sobject::SOJournalVersionTuple* PROTOBUF_NONNULL _internal_mutable_version();
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.SOJournalIntent)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   3, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOJournalIntent& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr canonical_operation_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE key_;
+    ::sobject::SOJournalLineage* PROTOBUF_NULLABLE lineage_;
+    ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE version_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOJournalIntent_class_data_;
 // -------------------------------------------------------------------
 
 class SOGrantInner final : public ::google::protobuf::Message
@@ -7821,6 +11097,870 @@ class SOState final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull SOState_class_data_;
 // -------------------------------------------------------------------
 
+class SOJournalRecord final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOJournalRecord) */ {
+ public:
+  inline SOJournalRecord() : SOJournalRecord(nullptr) {}
+  ~SOJournalRecord() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOJournalRecord* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOJournalRecord));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOJournalRecord(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOJournalRecord(const SOJournalRecord& from) : SOJournalRecord(nullptr, from) {}
+  inline SOJournalRecord(SOJournalRecord&& from) noexcept
+      : SOJournalRecord(nullptr, ::std::move(from)) {}
+  inline SOJournalRecord& operator=(const SOJournalRecord& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOJournalRecord& operator=(SOJournalRecord&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOJournalRecord& default_instance() {
+    return *reinterpret_cast<const SOJournalRecord*>(
+        &_SOJournalRecord_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 42;
+  friend void swap(SOJournalRecord& a, SOJournalRecord& b) { a.Swap(&b); }
+  inline void Swap(SOJournalRecord* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOJournalRecord* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOJournalRecord* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOJournalRecord>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOJournalRecord& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOJournalRecord& from) { SOJournalRecord::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOJournalRecord* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOJournalRecord"; }
+
+  explicit SOJournalRecord(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOJournalRecord(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOJournalRecord& from);
+  SOJournalRecord(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOJournalRecord&& from) noexcept
+      : SOJournalRecord(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kEnvelopeDigestFieldNumber = 15,
+    kKeyFieldNumber = 4,
+    kLineageFieldNumber = 5,
+    kVersionFieldNumber = 6,
+    kIntentFieldNumber = 7,
+    kEnvelopeFieldNumber = 8,
+    kReceiptFieldNumber = 9,
+    kAcknowledgementFieldNumber = 10,
+    kProjectionFieldNumber = 11,
+    kLookupFieldNumber = 16,
+    kSequenceFieldNumber = 2,
+    kFormatVersionFieldNumber = 1,
+    kKindFieldNumber = 3,
+    kReadinessFieldNumber = 12,
+    kRecoveryReasonFieldNumber = 13,
+    kAttemptStateFieldNumber = 14,
+  };
+  // bytes envelope_digest = 15;
+  void clear_envelope_digest() ;
+  const ::std::string& envelope_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_envelope_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_envelope_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_envelope_digest();
+  void set_allocated_envelope_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_envelope_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_envelope_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_envelope_digest();
+
+  public:
+  // .sobject.SOMutationKey key = 4;
+  bool has_key() const;
+  void clear_key() ;
+  const ::sobject::SOMutationKey& key() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_key();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_key();
+  void set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_key();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_key() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // .sobject.SOJournalLineage lineage = 5;
+  bool has_lineage() const;
+  void clear_lineage() ;
+  const ::sobject::SOJournalLineage& lineage() const;
+  [[nodiscard]] ::sobject::SOJournalLineage* PROTOBUF_NULLABLE release_lineage();
+  ::sobject::SOJournalLineage* PROTOBUF_NONNULL mutable_lineage();
+  void set_allocated_lineage(::sobject::SOJournalLineage* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_lineage(::sobject::SOJournalLineage* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalLineage* PROTOBUF_NULLABLE unsafe_arena_release_lineage();
+
+  private:
+  const ::sobject::SOJournalLineage& _internal_lineage() const;
+  ::sobject::SOJournalLineage* PROTOBUF_NONNULL _internal_mutable_lineage();
+
+  public:
+  // .sobject.SOJournalVersionTuple version = 6;
+  bool has_version() const;
+  void clear_version() ;
+  const ::sobject::SOJournalVersionTuple& version() const;
+  [[nodiscard]] ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE release_version();
+  ::sobject::SOJournalVersionTuple* PROTOBUF_NONNULL mutable_version();
+  void set_allocated_version(::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_version(::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE unsafe_arena_release_version();
+
+  private:
+  const ::sobject::SOJournalVersionTuple& _internal_version() const;
+  ::sobject::SOJournalVersionTuple* PROTOBUF_NONNULL _internal_mutable_version();
+
+  public:
+  // .sobject.SOJournalEncryptedPayload intent = 7;
+  bool has_intent() const;
+  void clear_intent() ;
+  const ::sobject::SOJournalEncryptedPayload& intent() const;
+  [[nodiscard]] ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE release_intent();
+  ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL mutable_intent();
+  void set_allocated_intent(::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_intent(::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE unsafe_arena_release_intent();
+
+  private:
+  const ::sobject::SOJournalEncryptedPayload& _internal_intent() const;
+  ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL _internal_mutable_intent();
+
+  public:
+  // .sobject.SOJournalEncryptedPayload envelope = 8;
+  bool has_envelope() const;
+  void clear_envelope() ;
+  const ::sobject::SOJournalEncryptedPayload& envelope() const;
+  [[nodiscard]] ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE release_envelope();
+  ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL mutable_envelope();
+  void set_allocated_envelope(::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_envelope(::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE unsafe_arena_release_envelope();
+
+  private:
+  const ::sobject::SOJournalEncryptedPayload& _internal_envelope() const;
+  ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL _internal_mutable_envelope();
+
+  public:
+  // .sobject.SOJournalReceipt receipt = 9;
+  bool has_receipt() const;
+  void clear_receipt() ;
+  const ::sobject::SOJournalReceipt& receipt() const;
+  [[nodiscard]] ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE release_receipt();
+  ::sobject::SOJournalReceipt* PROTOBUF_NONNULL mutable_receipt();
+  void set_allocated_receipt(::sobject::SOJournalReceipt* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_receipt(::sobject::SOJournalReceipt* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE unsafe_arena_release_receipt();
+
+  private:
+  const ::sobject::SOJournalReceipt& _internal_receipt() const;
+  ::sobject::SOJournalReceipt* PROTOBUF_NONNULL _internal_mutable_receipt();
+
+  public:
+  // .sobject.SOJournalAcknowledgement acknowledgement = 10;
+  bool has_acknowledgement() const;
+  void clear_acknowledgement() ;
+  const ::sobject::SOJournalAcknowledgement& acknowledgement() const;
+  [[nodiscard]] ::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE release_acknowledgement();
+  ::sobject::SOJournalAcknowledgement* PROTOBUF_NONNULL mutable_acknowledgement();
+  void set_allocated_acknowledgement(::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_acknowledgement(::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE unsafe_arena_release_acknowledgement();
+
+  private:
+  const ::sobject::SOJournalAcknowledgement& _internal_acknowledgement() const;
+  ::sobject::SOJournalAcknowledgement* PROTOBUF_NONNULL _internal_mutable_acknowledgement();
+
+  public:
+  // .sobject.SOJournalProjection projection = 11;
+  bool has_projection() const;
+  void clear_projection() ;
+  const ::sobject::SOJournalProjection& projection() const;
+  [[nodiscard]] ::sobject::SOJournalProjection* PROTOBUF_NULLABLE release_projection();
+  ::sobject::SOJournalProjection* PROTOBUF_NONNULL mutable_projection();
+  void set_allocated_projection(::sobject::SOJournalProjection* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_projection(::sobject::SOJournalProjection* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalProjection* PROTOBUF_NULLABLE unsafe_arena_release_projection();
+
+  private:
+  const ::sobject::SOJournalProjection& _internal_projection() const;
+  ::sobject::SOJournalProjection* PROTOBUF_NONNULL _internal_mutable_projection();
+
+  public:
+  // .sobject.SOJournalLookup lookup = 16;
+  bool has_lookup() const;
+  void clear_lookup() ;
+  const ::sobject::SOJournalLookup& lookup() const;
+  [[nodiscard]] ::sobject::SOJournalLookup* PROTOBUF_NULLABLE release_lookup();
+  ::sobject::SOJournalLookup* PROTOBUF_NONNULL mutable_lookup();
+  void set_allocated_lookup(::sobject::SOJournalLookup* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_lookup(::sobject::SOJournalLookup* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalLookup* PROTOBUF_NULLABLE unsafe_arena_release_lookup();
+
+  private:
+  const ::sobject::SOJournalLookup& _internal_lookup() const;
+  ::sobject::SOJournalLookup* PROTOBUF_NONNULL _internal_mutable_lookup();
+
+  public:
+  // uint64 sequence = 2;
+  void clear_sequence() ;
+  ::uint64_t sequence() const;
+  void set_sequence(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_sequence() const;
+  void _internal_set_sequence(::uint64_t value);
+
+  public:
+  // uint32 format_version = 1;
+  void clear_format_version() ;
+  ::uint32_t format_version() const;
+  void set_format_version(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_format_version() const;
+  void _internal_set_format_version(::uint32_t value);
+
+  public:
+  // .sobject.SOJournalRecordKind kind = 3;
+  void clear_kind() ;
+  ::sobject::SOJournalRecordKind kind() const;
+  void set_kind(::sobject::SOJournalRecordKind value);
+
+  private:
+  ::sobject::SOJournalRecordKind _internal_kind() const;
+  void _internal_set_kind(::sobject::SOJournalRecordKind value);
+
+  public:
+  // .sobject.SOJournalReadiness readiness = 12;
+  void clear_readiness() ;
+  ::sobject::SOJournalReadiness readiness() const;
+  void set_readiness(::sobject::SOJournalReadiness value);
+
+  private:
+  ::sobject::SOJournalReadiness _internal_readiness() const;
+  void _internal_set_readiness(::sobject::SOJournalReadiness value);
+
+  public:
+  // .sobject.SOJournalRecoveryReason recovery_reason = 13;
+  void clear_recovery_reason() ;
+  ::sobject::SOJournalRecoveryReason recovery_reason() const;
+  void set_recovery_reason(::sobject::SOJournalRecoveryReason value);
+
+  private:
+  ::sobject::SOJournalRecoveryReason _internal_recovery_reason() const;
+  void _internal_set_recovery_reason(::sobject::SOJournalRecoveryReason value);
+
+  public:
+  // .sobject.SOJournalAttemptState attempt_state = 14;
+  void clear_attempt_state() ;
+  ::sobject::SOJournalAttemptState attempt_state() const;
+  void set_attempt_state(::sobject::SOJournalAttemptState value);
+
+  private:
+  ::sobject::SOJournalAttemptState _internal_attempt_state() const;
+  void _internal_set_attempt_state(::sobject::SOJournalAttemptState value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.SOJournalRecord)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<4, 16,
+                                   9, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOJournalRecord& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr envelope_digest_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE key_;
+    ::sobject::SOJournalLineage* PROTOBUF_NULLABLE lineage_;
+    ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE version_;
+    ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE intent_;
+    ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE envelope_;
+    ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE receipt_;
+    ::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE acknowledgement_;
+    ::sobject::SOJournalProjection* PROTOBUF_NULLABLE projection_;
+    ::sobject::SOJournalLookup* PROTOBUF_NULLABLE lookup_;
+    ::uint64_t sequence_;
+    ::uint32_t format_version_;
+    int kind_;
+    int readiness_;
+    int recovery_reason_;
+    int attempt_state_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOJournalRecord_class_data_;
+// -------------------------------------------------------------------
+
+class SOJournalCheckpointAttempt final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOJournalCheckpointAttempt) */ {
+ public:
+  inline SOJournalCheckpointAttempt() : SOJournalCheckpointAttempt(nullptr) {}
+  ~SOJournalCheckpointAttempt() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOJournalCheckpointAttempt* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOJournalCheckpointAttempt));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOJournalCheckpointAttempt(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOJournalCheckpointAttempt(const SOJournalCheckpointAttempt& from) : SOJournalCheckpointAttempt(nullptr, from) {}
+  inline SOJournalCheckpointAttempt(SOJournalCheckpointAttempt&& from) noexcept
+      : SOJournalCheckpointAttempt(nullptr, ::std::move(from)) {}
+  inline SOJournalCheckpointAttempt& operator=(const SOJournalCheckpointAttempt& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOJournalCheckpointAttempt& operator=(SOJournalCheckpointAttempt&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOJournalCheckpointAttempt& default_instance() {
+    return *reinterpret_cast<const SOJournalCheckpointAttempt*>(
+        &_SOJournalCheckpointAttempt_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 43;
+  friend void swap(SOJournalCheckpointAttempt& a, SOJournalCheckpointAttempt& b) { a.Swap(&b); }
+  inline void Swap(SOJournalCheckpointAttempt* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOJournalCheckpointAttempt* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOJournalCheckpointAttempt* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOJournalCheckpointAttempt>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOJournalCheckpointAttempt& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOJournalCheckpointAttempt& from) { SOJournalCheckpointAttempt::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOJournalCheckpointAttempt* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOJournalCheckpointAttempt"; }
+
+  explicit SOJournalCheckpointAttempt(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOJournalCheckpointAttempt(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOJournalCheckpointAttempt& from);
+  SOJournalCheckpointAttempt(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOJournalCheckpointAttempt&& from) noexcept
+      : SOJournalCheckpointAttempt(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kEnvelopeDigestFieldNumber = 8,
+    kKeyFieldNumber = 1,
+    kLineageFieldNumber = 2,
+    kVersionFieldNumber = 3,
+    kIntentFieldNumber = 6,
+    kEnvelopeFieldNumber = 7,
+    kReceiptFieldNumber = 9,
+    kAcknowledgementFieldNumber = 10,
+    kProjectionFieldNumber = 11,
+    kLookupFieldNumber = 12,
+    kStateFieldNumber = 4,
+    kReadinessFieldNumber = 5,
+    kIntentSequenceFieldNumber = 16,
+    kEnvelopeSequenceFieldNumber = 17,
+    kSendAttemptedFieldNumber = 13,
+    kResendAuthorizedFieldNumber = 14,
+    kLineageRecoveryBlockedFieldNumber = 15,
+    kCheckpointEligibleFieldNumber = 18,
+  };
+  // bytes envelope_digest = 8;
+  void clear_envelope_digest() ;
+  const ::std::string& envelope_digest() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_envelope_digest(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_envelope_digest();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_envelope_digest();
+  void set_allocated_envelope_digest(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_envelope_digest() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_envelope_digest(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_envelope_digest();
+
+  public:
+  // .sobject.SOMutationKey key = 1;
+  bool has_key() const;
+  void clear_key() ;
+  const ::sobject::SOMutationKey& key() const;
+  [[nodiscard]] ::sobject::SOMutationKey* PROTOBUF_NULLABLE release_key();
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL mutable_key();
+  void set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value);
+  ::sobject::SOMutationKey* PROTOBUF_NULLABLE unsafe_arena_release_key();
+
+  private:
+  const ::sobject::SOMutationKey& _internal_key() const;
+  ::sobject::SOMutationKey* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // .sobject.SOJournalLineage lineage = 2;
+  bool has_lineage() const;
+  void clear_lineage() ;
+  const ::sobject::SOJournalLineage& lineage() const;
+  [[nodiscard]] ::sobject::SOJournalLineage* PROTOBUF_NULLABLE release_lineage();
+  ::sobject::SOJournalLineage* PROTOBUF_NONNULL mutable_lineage();
+  void set_allocated_lineage(::sobject::SOJournalLineage* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_lineage(::sobject::SOJournalLineage* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalLineage* PROTOBUF_NULLABLE unsafe_arena_release_lineage();
+
+  private:
+  const ::sobject::SOJournalLineage& _internal_lineage() const;
+  ::sobject::SOJournalLineage* PROTOBUF_NONNULL _internal_mutable_lineage();
+
+  public:
+  // .sobject.SOJournalVersionTuple version = 3;
+  bool has_version() const;
+  void clear_version() ;
+  const ::sobject::SOJournalVersionTuple& version() const;
+  [[nodiscard]] ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE release_version();
+  ::sobject::SOJournalVersionTuple* PROTOBUF_NONNULL mutable_version();
+  void set_allocated_version(::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_version(::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE unsafe_arena_release_version();
+
+  private:
+  const ::sobject::SOJournalVersionTuple& _internal_version() const;
+  ::sobject::SOJournalVersionTuple* PROTOBUF_NONNULL _internal_mutable_version();
+
+  public:
+  // .sobject.SOJournalEncryptedPayload intent = 6;
+  bool has_intent() const;
+  void clear_intent() ;
+  const ::sobject::SOJournalEncryptedPayload& intent() const;
+  [[nodiscard]] ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE release_intent();
+  ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL mutable_intent();
+  void set_allocated_intent(::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_intent(::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE unsafe_arena_release_intent();
+
+  private:
+  const ::sobject::SOJournalEncryptedPayload& _internal_intent() const;
+  ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL _internal_mutable_intent();
+
+  public:
+  // .sobject.SOJournalEncryptedPayload envelope = 7;
+  bool has_envelope() const;
+  void clear_envelope() ;
+  const ::sobject::SOJournalEncryptedPayload& envelope() const;
+  [[nodiscard]] ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE release_envelope();
+  ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL mutable_envelope();
+  void set_allocated_envelope(::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_envelope(::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE unsafe_arena_release_envelope();
+
+  private:
+  const ::sobject::SOJournalEncryptedPayload& _internal_envelope() const;
+  ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL _internal_mutable_envelope();
+
+  public:
+  // .sobject.SOJournalReceipt receipt = 9;
+  bool has_receipt() const;
+  void clear_receipt() ;
+  const ::sobject::SOJournalReceipt& receipt() const;
+  [[nodiscard]] ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE release_receipt();
+  ::sobject::SOJournalReceipt* PROTOBUF_NONNULL mutable_receipt();
+  void set_allocated_receipt(::sobject::SOJournalReceipt* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_receipt(::sobject::SOJournalReceipt* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE unsafe_arena_release_receipt();
+
+  private:
+  const ::sobject::SOJournalReceipt& _internal_receipt() const;
+  ::sobject::SOJournalReceipt* PROTOBUF_NONNULL _internal_mutable_receipt();
+
+  public:
+  // .sobject.SOJournalAcknowledgement acknowledgement = 10;
+  bool has_acknowledgement() const;
+  void clear_acknowledgement() ;
+  const ::sobject::SOJournalAcknowledgement& acknowledgement() const;
+  [[nodiscard]] ::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE release_acknowledgement();
+  ::sobject::SOJournalAcknowledgement* PROTOBUF_NONNULL mutable_acknowledgement();
+  void set_allocated_acknowledgement(::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_acknowledgement(::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE unsafe_arena_release_acknowledgement();
+
+  private:
+  const ::sobject::SOJournalAcknowledgement& _internal_acknowledgement() const;
+  ::sobject::SOJournalAcknowledgement* PROTOBUF_NONNULL _internal_mutable_acknowledgement();
+
+  public:
+  // .sobject.SOJournalProjection projection = 11;
+  bool has_projection() const;
+  void clear_projection() ;
+  const ::sobject::SOJournalProjection& projection() const;
+  [[nodiscard]] ::sobject::SOJournalProjection* PROTOBUF_NULLABLE release_projection();
+  ::sobject::SOJournalProjection* PROTOBUF_NONNULL mutable_projection();
+  void set_allocated_projection(::sobject::SOJournalProjection* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_projection(::sobject::SOJournalProjection* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalProjection* PROTOBUF_NULLABLE unsafe_arena_release_projection();
+
+  private:
+  const ::sobject::SOJournalProjection& _internal_projection() const;
+  ::sobject::SOJournalProjection* PROTOBUF_NONNULL _internal_mutable_projection();
+
+  public:
+  // .sobject.SOJournalLookup lookup = 12;
+  bool has_lookup() const;
+  void clear_lookup() ;
+  const ::sobject::SOJournalLookup& lookup() const;
+  [[nodiscard]] ::sobject::SOJournalLookup* PROTOBUF_NULLABLE release_lookup();
+  ::sobject::SOJournalLookup* PROTOBUF_NONNULL mutable_lookup();
+  void set_allocated_lookup(::sobject::SOJournalLookup* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_lookup(::sobject::SOJournalLookup* PROTOBUF_NULLABLE value);
+  ::sobject::SOJournalLookup* PROTOBUF_NULLABLE unsafe_arena_release_lookup();
+
+  private:
+  const ::sobject::SOJournalLookup& _internal_lookup() const;
+  ::sobject::SOJournalLookup* PROTOBUF_NONNULL _internal_mutable_lookup();
+
+  public:
+  // .sobject.SOJournalAttemptState state = 4;
+  void clear_state() ;
+  ::sobject::SOJournalAttemptState state() const;
+  void set_state(::sobject::SOJournalAttemptState value);
+
+  private:
+  ::sobject::SOJournalAttemptState _internal_state() const;
+  void _internal_set_state(::sobject::SOJournalAttemptState value);
+
+  public:
+  // .sobject.SOJournalReadiness readiness = 5;
+  void clear_readiness() ;
+  ::sobject::SOJournalReadiness readiness() const;
+  void set_readiness(::sobject::SOJournalReadiness value);
+
+  private:
+  ::sobject::SOJournalReadiness _internal_readiness() const;
+  void _internal_set_readiness(::sobject::SOJournalReadiness value);
+
+  public:
+  // uint64 intent_sequence = 16;
+  void clear_intent_sequence() ;
+  ::uint64_t intent_sequence() const;
+  void set_intent_sequence(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_intent_sequence() const;
+  void _internal_set_intent_sequence(::uint64_t value);
+
+  public:
+  // uint64 envelope_sequence = 17;
+  void clear_envelope_sequence() ;
+  ::uint64_t envelope_sequence() const;
+  void set_envelope_sequence(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_envelope_sequence() const;
+  void _internal_set_envelope_sequence(::uint64_t value);
+
+  public:
+  // bool send_attempted = 13;
+  void clear_send_attempted() ;
+  bool send_attempted() const;
+  void set_send_attempted(bool value);
+
+  private:
+  bool _internal_send_attempted() const;
+  void _internal_set_send_attempted(bool value);
+
+  public:
+  // bool resend_authorized = 14;
+  void clear_resend_authorized() ;
+  bool resend_authorized() const;
+  void set_resend_authorized(bool value);
+
+  private:
+  bool _internal_resend_authorized() const;
+  void _internal_set_resend_authorized(bool value);
+
+  public:
+  // bool lineage_recovery_blocked = 15;
+  void clear_lineage_recovery_blocked() ;
+  bool lineage_recovery_blocked() const;
+  void set_lineage_recovery_blocked(bool value);
+
+  private:
+  bool _internal_lineage_recovery_blocked() const;
+  void _internal_set_lineage_recovery_blocked(bool value);
+
+  public:
+  // bool checkpoint_eligible = 18;
+  void clear_checkpoint_eligible() ;
+  bool checkpoint_eligible() const;
+  void set_checkpoint_eligible(bool value);
+
+  private:
+  bool _internal_checkpoint_eligible() const;
+  void _internal_set_checkpoint_eligible(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.SOJournalCheckpointAttempt)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<5, 18,
+                                   9, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOJournalCheckpointAttempt& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr envelope_digest_;
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE key_;
+    ::sobject::SOJournalLineage* PROTOBUF_NULLABLE lineage_;
+    ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE version_;
+    ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE intent_;
+    ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE envelope_;
+    ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE receipt_;
+    ::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE acknowledgement_;
+    ::sobject::SOJournalProjection* PROTOBUF_NULLABLE projection_;
+    ::sobject::SOJournalLookup* PROTOBUF_NULLABLE lookup_;
+    int state_;
+    int readiness_;
+    ::uint64_t intent_sequence_;
+    ::uint64_t envelope_sequence_;
+    bool send_attempted_;
+    bool resend_authorized_;
+    bool lineage_recovery_blocked_;
+    bool checkpoint_eligible_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOJournalCheckpointAttempt_class_data_;
+// -------------------------------------------------------------------
+
 class SOEntityRecoveryMaterial final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:sobject.SOEntityRecoveryMaterial) */ {
  public:
@@ -8259,6 +12399,244 @@ class SOConfigChainResponse final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull SOConfigChainResponse_class_data_;
+// -------------------------------------------------------------------
+
+class SOJournalCheckpoint final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:sobject.SOJournalCheckpoint) */ {
+ public:
+  inline SOJournalCheckpoint() : SOJournalCheckpoint(nullptr) {}
+  ~SOJournalCheckpoint() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(SOJournalCheckpoint* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(SOJournalCheckpoint));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR SOJournalCheckpoint(::google::protobuf::internal::ConstantInitialized);
+
+  inline SOJournalCheckpoint(const SOJournalCheckpoint& from) : SOJournalCheckpoint(nullptr, from) {}
+  inline SOJournalCheckpoint(SOJournalCheckpoint&& from) noexcept
+      : SOJournalCheckpoint(nullptr, ::std::move(from)) {}
+  inline SOJournalCheckpoint& operator=(const SOJournalCheckpoint& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline SOJournalCheckpoint& operator=(SOJournalCheckpoint&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const SOJournalCheckpoint& default_instance() {
+    return *reinterpret_cast<const SOJournalCheckpoint*>(
+        &_SOJournalCheckpoint_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 44;
+  friend void swap(SOJournalCheckpoint& a, SOJournalCheckpoint& b) { a.Swap(&b); }
+  inline void Swap(SOJournalCheckpoint* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(SOJournalCheckpoint* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  SOJournalCheckpoint* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<SOJournalCheckpoint>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const SOJournalCheckpoint& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const SOJournalCheckpoint& from) { SOJournalCheckpoint::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(SOJournalCheckpoint* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "sobject.SOJournalCheckpoint"; }
+
+  explicit SOJournalCheckpoint(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  SOJournalCheckpoint(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const SOJournalCheckpoint& from);
+  SOJournalCheckpoint(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, SOJournalCheckpoint&& from) noexcept
+      : SOJournalCheckpoint(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kAttemptsFieldNumber = 4,
+    kJournalIdentityFieldNumber = 1,
+    kGenerationFieldNumber = 2,
+    kNextSequenceFieldNumber = 3,
+  };
+  // repeated .sobject.SOJournalCheckpointAttempt attempts = 4;
+  int attempts_size() const;
+  private:
+  int _internal_attempts_size() const;
+
+  public:
+  void clear_attempts() ;
+  ::sobject::SOJournalCheckpointAttempt* PROTOBUF_NONNULL mutable_attempts(int index);
+  ::google::protobuf::RepeatedPtrField<::sobject::SOJournalCheckpointAttempt>* PROTOBUF_NONNULL mutable_attempts();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::sobject::SOJournalCheckpointAttempt>& _internal_attempts() const;
+  ::google::protobuf::RepeatedPtrField<::sobject::SOJournalCheckpointAttempt>* PROTOBUF_NONNULL _internal_mutable_attempts();
+  public:
+  const ::sobject::SOJournalCheckpointAttempt& attempts(int index) const;
+  ::sobject::SOJournalCheckpointAttempt* PROTOBUF_NONNULL add_attempts();
+  const ::google::protobuf::RepeatedPtrField<::sobject::SOJournalCheckpointAttempt>& attempts() const;
+  // bytes journal_identity = 1;
+  void clear_journal_identity() ;
+  const ::std::string& journal_identity() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_journal_identity(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_journal_identity();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_journal_identity();
+  void set_allocated_journal_identity(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_journal_identity() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_journal_identity(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_journal_identity();
+
+  public:
+  // uint64 generation = 2;
+  void clear_generation() ;
+  ::uint64_t generation() const;
+  void set_generation(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_generation() const;
+  void _internal_set_generation(::uint64_t value);
+
+  public:
+  // uint64 next_sequence = 3;
+  void clear_next_sequence() ;
+  ::uint64_t next_sequence() const;
+  void set_next_sequence(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_next_sequence() const;
+  void _internal_set_next_sequence(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:sobject.SOJournalCheckpoint)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const SOJournalCheckpoint& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::RepeatedPtrField< ::sobject::SOJournalCheckpointAttempt > attempts_;
+    ::google::protobuf::internal::ArenaStringPtr journal_identity_;
+    ::uint64_t generation_;
+    ::uint64_t next_sequence_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull SOJournalCheckpoint_class_data_;
 
 // ===================================================================
 
@@ -15093,6 +19471,5869 @@ inline void SOJoinResponse::set_allocated_signature(::peer::Signature* PROTOBUF_
   // @@protoc_insertion_point(field_set_allocated:sobject.SOJoinResponse.signature)
 }
 
+// -------------------------------------------------------------------
+
+// SOMutationKey
+
+// bytes origin_scope_id = 1;
+inline void SOMutationKey::clear_origin_scope_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.origin_scope_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SOMutationKey::origin_scope_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOMutationKey.origin_scope_id)
+  return _internal_origin_scope_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOMutationKey::set_origin_scope_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.origin_scope_id_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOMutationKey.origin_scope_id)
+}
+inline ::std::string* PROTOBUF_NONNULL SOMutationKey::mutable_origin_scope_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_origin_scope_id();
+  // @@protoc_insertion_point(field_mutable:sobject.SOMutationKey.origin_scope_id)
+  return _s;
+}
+inline const ::std::string& SOMutationKey::_internal_origin_scope_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.origin_scope_id_.Get();
+}
+inline void SOMutationKey::_internal_set_origin_scope_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.origin_scope_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOMutationKey::_internal_mutable_origin_scope_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.origin_scope_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOMutationKey::release_origin_scope_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOMutationKey.origin_scope_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.origin_scope_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.origin_scope_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOMutationKey::set_allocated_origin_scope_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.origin_scope_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.origin_scope_id_.IsDefault()) {
+    _impl_.origin_scope_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOMutationKey.origin_scope_id)
+}
+
+// string shared_object_id = 2;
+inline void SOMutationKey::clear_shared_object_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.shared_object_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SOMutationKey::shared_object_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOMutationKey.shared_object_id)
+  return _internal_shared_object_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOMutationKey::set_shared_object_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.shared_object_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOMutationKey.shared_object_id)
+}
+inline ::std::string* PROTOBUF_NONNULL SOMutationKey::mutable_shared_object_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_shared_object_id();
+  // @@protoc_insertion_point(field_mutable:sobject.SOMutationKey.shared_object_id)
+  return _s;
+}
+inline const ::std::string& SOMutationKey::_internal_shared_object_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.shared_object_id_.Get();
+}
+inline void SOMutationKey::_internal_set_shared_object_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.shared_object_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOMutationKey::_internal_mutable_shared_object_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.shared_object_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOMutationKey::release_shared_object_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOMutationKey.shared_object_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.shared_object_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.shared_object_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOMutationKey::set_allocated_shared_object_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.shared_object_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.shared_object_id_.IsDefault()) {
+    _impl_.shared_object_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOMutationKey.shared_object_id)
+}
+
+// string participant_peer_id = 3;
+inline void SOMutationKey::clear_participant_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.participant_peer_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& SOMutationKey::participant_peer_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOMutationKey.participant_peer_id)
+  return _internal_participant_peer_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOMutationKey::set_participant_peer_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.participant_peer_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOMutationKey.participant_peer_id)
+}
+inline ::std::string* PROTOBUF_NONNULL SOMutationKey::mutable_participant_peer_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_participant_peer_id();
+  // @@protoc_insertion_point(field_mutable:sobject.SOMutationKey.participant_peer_id)
+  return _s;
+}
+inline const ::std::string& SOMutationKey::_internal_participant_peer_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.participant_peer_id_.Get();
+}
+inline void SOMutationKey::_internal_set_participant_peer_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.participant_peer_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOMutationKey::_internal_mutable_participant_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.participant_peer_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOMutationKey::release_participant_peer_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOMutationKey.participant_peer_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.participant_peer_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.participant_peer_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOMutationKey::set_allocated_participant_peer_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.participant_peer_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.participant_peer_id_.IsDefault()) {
+    _impl_.participant_peer_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOMutationKey.participant_peer_id)
+}
+
+// string local_id = 4;
+inline void SOMutationKey::clear_local_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& SOMutationKey::local_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOMutationKey.local_id)
+  return _internal_local_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOMutationKey::set_local_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.local_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOMutationKey.local_id)
+}
+inline ::std::string* PROTOBUF_NONNULL SOMutationKey::mutable_local_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_local_id();
+  // @@protoc_insertion_point(field_mutable:sobject.SOMutationKey.local_id)
+  return _s;
+}
+inline const ::std::string& SOMutationKey::_internal_local_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.local_id_.Get();
+}
+inline void SOMutationKey::_internal_set_local_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOMutationKey::_internal_mutable_local_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.local_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOMutationKey::release_local_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOMutationKey.local_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.local_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.local_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOMutationKey::set_allocated_local_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.local_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.local_id_.IsDefault()) {
+    _impl_.local_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOMutationKey.local_id)
+}
+
+// -------------------------------------------------------------------
+
+// SOJournalLineage
+
+// .sobject.SOMutationKey root_key = 1;
+inline bool SOJournalLineage::has_root_key() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.root_key_ != nullptr);
+  return value;
+}
+inline void SOJournalLineage::clear_root_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.root_key_ != nullptr) _impl_.root_key_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::sobject::SOMutationKey& SOJournalLineage::_internal_root_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.root_key_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& SOJournalLineage::root_key() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalLineage.root_key)
+  return _internal_root_key();
+}
+inline void SOJournalLineage::unsafe_arena_set_allocated_root_key(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.root_key_);
+  }
+  _impl_.root_key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalLineage.root_key)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalLineage::release_root_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::sobject::SOMutationKey* released = _impl_.root_key_;
+  _impl_.root_key_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalLineage::unsafe_arena_release_root_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalLineage.root_key)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::sobject::SOMutationKey* temp = _impl_.root_key_;
+  _impl_.root_key_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalLineage::_internal_mutable_root_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.root_key_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.root_key_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.root_key_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalLineage::mutable_root_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_root_key();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalLineage.root_key)
+  return _msg;
+}
+inline void SOJournalLineage::set_allocated_root_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.root_key_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.root_key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalLineage.root_key)
+}
+
+// .sobject.SOMutationKey supersedes = 2;
+inline bool SOJournalLineage::has_supersedes() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.supersedes_ != nullptr);
+  return value;
+}
+inline void SOJournalLineage::clear_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.supersedes_ != nullptr) _impl_.supersedes_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::sobject::SOMutationKey& SOJournalLineage::_internal_supersedes() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.supersedes_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& SOJournalLineage::supersedes() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalLineage.supersedes)
+  return _internal_supersedes();
+}
+inline void SOJournalLineage::unsafe_arena_set_allocated_supersedes(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.supersedes_);
+  }
+  _impl_.supersedes_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalLineage.supersedes)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalLineage::release_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* released = _impl_.supersedes_;
+  _impl_.supersedes_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalLineage::unsafe_arena_release_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalLineage.supersedes)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* temp = _impl_.supersedes_;
+  _impl_.supersedes_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalLineage::_internal_mutable_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.supersedes_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.supersedes_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.supersedes_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalLineage::mutable_supersedes()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_supersedes();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalLineage.supersedes)
+  return _msg;
+}
+inline void SOJournalLineage::set_allocated_supersedes(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.supersedes_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.supersedes_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalLineage.supersedes)
+}
+
+// -------------------------------------------------------------------
+
+// SOJournalVersionTuple
+
+// uint64 local_version = 1;
+inline void SOJournalVersionTuple::clear_local_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_version_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::uint64_t SOJournalVersionTuple::local_version() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalVersionTuple.local_version)
+  return _internal_local_version();
+}
+inline void SOJournalVersionTuple::set_local_version(::uint64_t value) {
+  _internal_set_local_version(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalVersionTuple.local_version)
+}
+inline ::uint64_t SOJournalVersionTuple::_internal_local_version() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.local_version_;
+}
+inline void SOJournalVersionTuple::_internal_set_local_version(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.local_version_ = value;
+}
+
+// uint64 remote_version = 2;
+inline void SOJournalVersionTuple::clear_remote_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.remote_version_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t SOJournalVersionTuple::remote_version() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalVersionTuple.remote_version)
+  return _internal_remote_version();
+}
+inline void SOJournalVersionTuple::set_remote_version(::uint64_t value) {
+  _internal_set_remote_version(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalVersionTuple.remote_version)
+}
+inline ::uint64_t SOJournalVersionTuple::_internal_remote_version() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.remote_version_;
+}
+inline void SOJournalVersionTuple::_internal_set_remote_version(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.remote_version_ = value;
+}
+
+// uint64 transform_epoch = 3;
+inline void SOJournalVersionTuple::clear_transform_epoch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.transform_epoch_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::uint64_t SOJournalVersionTuple::transform_epoch() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalVersionTuple.transform_epoch)
+  return _internal_transform_epoch();
+}
+inline void SOJournalVersionTuple::set_transform_epoch(::uint64_t value) {
+  _internal_set_transform_epoch(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalVersionTuple.transform_epoch)
+}
+inline ::uint64_t SOJournalVersionTuple::_internal_transform_epoch() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.transform_epoch_;
+}
+inline void SOJournalVersionTuple::_internal_set_transform_epoch(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.transform_epoch_ = value;
+}
+
+// bytes config_chain_digest = 4;
+inline void SOJournalVersionTuple::clear_config_chain_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.config_chain_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SOJournalVersionTuple::config_chain_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalVersionTuple.config_chain_digest)
+  return _internal_config_chain_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalVersionTuple::set_config_chain_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.config_chain_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalVersionTuple.config_chain_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalVersionTuple::mutable_config_chain_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_config_chain_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalVersionTuple.config_chain_digest)
+  return _s;
+}
+inline const ::std::string& SOJournalVersionTuple::_internal_config_chain_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.config_chain_digest_.Get();
+}
+inline void SOJournalVersionTuple::_internal_set_config_chain_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.config_chain_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalVersionTuple::_internal_mutable_config_chain_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.config_chain_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalVersionTuple::release_config_chain_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalVersionTuple.config_chain_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.config_chain_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.config_chain_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalVersionTuple::set_allocated_config_chain_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.config_chain_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.config_chain_digest_.IsDefault()) {
+    _impl_.config_chain_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalVersionTuple.config_chain_digest)
+}
+
+// -------------------------------------------------------------------
+
+// SOJournalIntent
+
+// .sobject.SOMutationKey key = 1;
+inline bool SOJournalIntent::has_key() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.key_ != nullptr);
+  return value;
+}
+inline void SOJournalIntent::clear_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ != nullptr) _impl_.key_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::sobject::SOMutationKey& SOJournalIntent::_internal_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.key_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& SOJournalIntent::key() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalIntent.key)
+  return _internal_key();
+}
+inline void SOJournalIntent::unsafe_arena_set_allocated_key(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalIntent.key)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalIntent::release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* released = _impl_.key_;
+  _impl_.key_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalIntent::unsafe_arena_release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalIntent.key)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* temp = _impl_.key_;
+  _impl_.key_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalIntent::_internal_mutable_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.key_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalIntent::mutable_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_key();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalIntent.key)
+  return _msg;
+}
+inline void SOJournalIntent::set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalIntent.key)
+}
+
+// .sobject.SOJournalLineage lineage = 2;
+inline bool SOJournalIntent::has_lineage() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.lineage_ != nullptr);
+  return value;
+}
+inline void SOJournalIntent::clear_lineage() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.lineage_ != nullptr) _impl_.lineage_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::sobject::SOJournalLineage& SOJournalIntent::_internal_lineage() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalLineage* p = _impl_.lineage_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalLineage&>(::sobject::_SOJournalLineage_default_instance_);
+}
+inline const ::sobject::SOJournalLineage& SOJournalIntent::lineage() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalIntent.lineage)
+  return _internal_lineage();
+}
+inline void SOJournalIntent::unsafe_arena_set_allocated_lineage(
+    ::sobject::SOJournalLineage* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.lineage_);
+  }
+  _impl_.lineage_ = reinterpret_cast<::sobject::SOJournalLineage*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalIntent.lineage)
+}
+inline ::sobject::SOJournalLineage* PROTOBUF_NULLABLE SOJournalIntent::release_lineage() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::sobject::SOJournalLineage* released = _impl_.lineage_;
+  _impl_.lineage_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalLineage* PROTOBUF_NULLABLE SOJournalIntent::unsafe_arena_release_lineage() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalIntent.lineage)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::sobject::SOJournalLineage* temp = _impl_.lineage_;
+  _impl_.lineage_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalLineage* PROTOBUF_NONNULL SOJournalIntent::_internal_mutable_lineage() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.lineage_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalLineage>(GetArena());
+    _impl_.lineage_ = reinterpret_cast<::sobject::SOJournalLineage*>(p);
+  }
+  return _impl_.lineage_;
+}
+inline ::sobject::SOJournalLineage* PROTOBUF_NONNULL SOJournalIntent::mutable_lineage()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::sobject::SOJournalLineage* _msg = _internal_mutable_lineage();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalIntent.lineage)
+  return _msg;
+}
+inline void SOJournalIntent::set_allocated_lineage(::sobject::SOJournalLineage* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.lineage_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.lineage_ = reinterpret_cast<::sobject::SOJournalLineage*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalIntent.lineage)
+}
+
+// .sobject.SOJournalVersionTuple version = 3;
+inline bool SOJournalIntent::has_version() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.version_ != nullptr);
+  return value;
+}
+inline void SOJournalIntent::clear_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.version_ != nullptr) _impl_.version_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::sobject::SOJournalVersionTuple& SOJournalIntent::_internal_version() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalVersionTuple* p = _impl_.version_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalVersionTuple&>(::sobject::_SOJournalVersionTuple_default_instance_);
+}
+inline const ::sobject::SOJournalVersionTuple& SOJournalIntent::version() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalIntent.version)
+  return _internal_version();
+}
+inline void SOJournalIntent::unsafe_arena_set_allocated_version(
+    ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.version_);
+  }
+  _impl_.version_ = reinterpret_cast<::sobject::SOJournalVersionTuple*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalIntent.version)
+}
+inline ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE SOJournalIntent::release_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::sobject::SOJournalVersionTuple* released = _impl_.version_;
+  _impl_.version_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE SOJournalIntent::unsafe_arena_release_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalIntent.version)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::sobject::SOJournalVersionTuple* temp = _impl_.version_;
+  _impl_.version_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalVersionTuple* PROTOBUF_NONNULL SOJournalIntent::_internal_mutable_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.version_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalVersionTuple>(GetArena());
+    _impl_.version_ = reinterpret_cast<::sobject::SOJournalVersionTuple*>(p);
+  }
+  return _impl_.version_;
+}
+inline ::sobject::SOJournalVersionTuple* PROTOBUF_NONNULL SOJournalIntent::mutable_version()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::sobject::SOJournalVersionTuple* _msg = _internal_mutable_version();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalIntent.version)
+  return _msg;
+}
+inline void SOJournalIntent::set_allocated_version(::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.version_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.version_ = reinterpret_cast<::sobject::SOJournalVersionTuple*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalIntent.version)
+}
+
+// bytes canonical_operation = 4;
+inline void SOJournalIntent::clear_canonical_operation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.canonical_operation_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SOJournalIntent::canonical_operation() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalIntent.canonical_operation)
+  return _internal_canonical_operation();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalIntent::set_canonical_operation(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.canonical_operation_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalIntent.canonical_operation)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalIntent::mutable_canonical_operation()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_canonical_operation();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalIntent.canonical_operation)
+  return _s;
+}
+inline const ::std::string& SOJournalIntent::_internal_canonical_operation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.canonical_operation_.Get();
+}
+inline void SOJournalIntent::_internal_set_canonical_operation(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.canonical_operation_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalIntent::_internal_mutable_canonical_operation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.canonical_operation_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalIntent::release_canonical_operation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalIntent.canonical_operation)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.canonical_operation_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.canonical_operation_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalIntent::set_allocated_canonical_operation(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.canonical_operation_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.canonical_operation_.IsDefault()) {
+    _impl_.canonical_operation_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalIntent.canonical_operation)
+}
+
+// -------------------------------------------------------------------
+
+// SOJournalEncryptedPayload
+
+// bytes nonce = 1;
+inline void SOJournalEncryptedPayload::clear_nonce() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.nonce_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SOJournalEncryptedPayload::nonce() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalEncryptedPayload.nonce)
+  return _internal_nonce();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalEncryptedPayload::set_nonce(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.nonce_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalEncryptedPayload.nonce)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalEncryptedPayload::mutable_nonce()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_nonce();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalEncryptedPayload.nonce)
+  return _s;
+}
+inline const ::std::string& SOJournalEncryptedPayload::_internal_nonce() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.nonce_.Get();
+}
+inline void SOJournalEncryptedPayload::_internal_set_nonce(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.nonce_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalEncryptedPayload::_internal_mutable_nonce() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.nonce_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalEncryptedPayload::release_nonce() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalEncryptedPayload.nonce)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.nonce_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.nonce_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalEncryptedPayload::set_allocated_nonce(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.nonce_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.nonce_.IsDefault()) {
+    _impl_.nonce_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalEncryptedPayload.nonce)
+}
+
+// bytes ciphertext = 2;
+inline void SOJournalEncryptedPayload::clear_ciphertext() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ciphertext_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SOJournalEncryptedPayload::ciphertext() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalEncryptedPayload.ciphertext)
+  return _internal_ciphertext();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalEncryptedPayload::set_ciphertext(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.ciphertext_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalEncryptedPayload.ciphertext)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalEncryptedPayload::mutable_ciphertext()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_ciphertext();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalEncryptedPayload.ciphertext)
+  return _s;
+}
+inline const ::std::string& SOJournalEncryptedPayload::_internal_ciphertext() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.ciphertext_.Get();
+}
+inline void SOJournalEncryptedPayload::_internal_set_ciphertext(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.ciphertext_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalEncryptedPayload::_internal_mutable_ciphertext() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.ciphertext_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalEncryptedPayload::release_ciphertext() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalEncryptedPayload.ciphertext)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.ciphertext_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.ciphertext_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalEncryptedPayload::set_allocated_ciphertext(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.ciphertext_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.ciphertext_.IsDefault()) {
+    _impl_.ciphertext_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalEncryptedPayload.ciphertext)
+}
+
+// -------------------------------------------------------------------
+
+// SOJournalLookup
+
+// .sobject.SOMutationKey key = 1;
+inline bool SOJournalLookup::has_key() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.key_ != nullptr);
+  return value;
+}
+inline void SOJournalLookup::clear_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ != nullptr) _impl_.key_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::sobject::SOMutationKey& SOJournalLookup::_internal_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.key_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& SOJournalLookup::key() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalLookup.key)
+  return _internal_key();
+}
+inline void SOJournalLookup::unsafe_arena_set_allocated_key(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalLookup.key)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalLookup::release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::sobject::SOMutationKey* released = _impl_.key_;
+  _impl_.key_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalLookup::unsafe_arena_release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalLookup.key)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::sobject::SOMutationKey* temp = _impl_.key_;
+  _impl_.key_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalLookup::_internal_mutable_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.key_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalLookup::mutable_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_key();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalLookup.key)
+  return _msg;
+}
+inline void SOJournalLookup::set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalLookup.key)
+}
+
+// .sobject.SOReceiptState state = 2;
+inline void SOJournalLookup::clear_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::sobject::SOReceiptState SOJournalLookup::state() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalLookup.state)
+  return _internal_state();
+}
+inline void SOJournalLookup::set_state(::sobject::SOReceiptState value) {
+  _internal_set_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalLookup.state)
+}
+inline ::sobject::SOReceiptState SOJournalLookup::_internal_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::sobject::SOReceiptState>(_impl_.state_);
+}
+inline void SOJournalLookup::_internal_set_state(::sobject::SOReceiptState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = value;
+}
+
+// .sobject.SOJournalReceipt receipt = 3;
+inline bool SOJournalLookup::has_receipt() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  PROTOBUF_ASSUME(!value || _impl_.receipt_ != nullptr);
+  return value;
+}
+inline void SOJournalLookup::clear_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.receipt_ != nullptr) _impl_.receipt_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::sobject::SOJournalReceipt& SOJournalLookup::_internal_receipt() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalReceipt* p = _impl_.receipt_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalReceipt&>(::sobject::_SOJournalReceipt_default_instance_);
+}
+inline const ::sobject::SOJournalReceipt& SOJournalLookup::receipt() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalLookup.receipt)
+  return _internal_receipt();
+}
+inline void SOJournalLookup::unsafe_arena_set_allocated_receipt(
+    ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.receipt_);
+  }
+  _impl_.receipt_ = reinterpret_cast<::sobject::SOJournalReceipt*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalLookup.receipt)
+}
+inline ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE SOJournalLookup::release_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::sobject::SOJournalReceipt* released = _impl_.receipt_;
+  _impl_.receipt_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE SOJournalLookup::unsafe_arena_release_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalLookup.receipt)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::sobject::SOJournalReceipt* temp = _impl_.receipt_;
+  _impl_.receipt_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalReceipt* PROTOBUF_NONNULL SOJournalLookup::_internal_mutable_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.receipt_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalReceipt>(GetArena());
+    _impl_.receipt_ = reinterpret_cast<::sobject::SOJournalReceipt*>(p);
+  }
+  return _impl_.receipt_;
+}
+inline ::sobject::SOJournalReceipt* PROTOBUF_NONNULL SOJournalLookup::mutable_receipt()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::sobject::SOJournalReceipt* _msg = _internal_mutable_receipt();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalLookup.receipt)
+  return _msg;
+}
+inline void SOJournalLookup::set_allocated_receipt(::sobject::SOJournalReceipt* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.receipt_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+
+  _impl_.receipt_ = reinterpret_cast<::sobject::SOJournalReceipt*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalLookup.receipt)
+}
+
+// bytes response = 4;
+inline void SOJournalLookup::clear_response() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.response_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SOJournalLookup::response() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalLookup.response)
+  return _internal_response();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalLookup::set_response(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.response_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalLookup.response)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalLookup::mutable_response()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_response();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalLookup.response)
+  return _s;
+}
+inline const ::std::string& SOJournalLookup::_internal_response() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.response_.Get();
+}
+inline void SOJournalLookup::_internal_set_response(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.response_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalLookup::_internal_mutable_response() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.response_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalLookup::release_response() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalLookup.response)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.response_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.response_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalLookup::set_allocated_response(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.response_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.response_.IsDefault()) {
+    _impl_.response_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalLookup.response)
+}
+
+// bytes response_digest = 5;
+inline void SOJournalLookup::clear_response_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.response_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SOJournalLookup::response_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalLookup.response_digest)
+  return _internal_response_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalLookup::set_response_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.response_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalLookup.response_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalLookup::mutable_response_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_response_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalLookup.response_digest)
+  return _s;
+}
+inline const ::std::string& SOJournalLookup::_internal_response_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.response_digest_.Get();
+}
+inline void SOJournalLookup::_internal_set_response_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.response_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalLookup::_internal_mutable_response_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.response_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalLookup::release_response_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalLookup.response_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.response_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.response_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalLookup::set_allocated_response_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.response_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.response_digest_.IsDefault()) {
+    _impl_.response_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalLookup.response_digest)
+}
+
+// bytes config_chain_digest = 6;
+inline void SOJournalLookup::clear_config_chain_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.config_chain_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& SOJournalLookup::config_chain_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalLookup.config_chain_digest)
+  return _internal_config_chain_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalLookup::set_config_chain_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.config_chain_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalLookup.config_chain_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalLookup::mutable_config_chain_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_config_chain_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalLookup.config_chain_digest)
+  return _s;
+}
+inline const ::std::string& SOJournalLookup::_internal_config_chain_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.config_chain_digest_.Get();
+}
+inline void SOJournalLookup::_internal_set_config_chain_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.config_chain_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalLookup::_internal_mutable_config_chain_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.config_chain_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalLookup::release_config_chain_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalLookup.config_chain_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.config_chain_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.config_chain_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalLookup::set_allocated_config_chain_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.config_chain_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.config_chain_digest_.IsDefault()) {
+    _impl_.config_chain_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalLookup.config_chain_digest)
+}
+
+// -------------------------------------------------------------------
+
+// SOJournalReceipt
+
+// .sobject.SOMutationKey key = 1;
+inline bool SOJournalReceipt::has_key() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
+  PROTOBUF_ASSUME(!value || _impl_.key_ != nullptr);
+  return value;
+}
+inline void SOJournalReceipt::clear_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ != nullptr) _impl_.key_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::sobject::SOMutationKey& SOJournalReceipt::_internal_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.key_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& SOJournalReceipt::key() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalReceipt.key)
+  return _internal_key();
+}
+inline void SOJournalReceipt::unsafe_arena_set_allocated_key(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalReceipt.key)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalReceipt::release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::sobject::SOMutationKey* released = _impl_.key_;
+  _impl_.key_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalReceipt::unsafe_arena_release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalReceipt.key)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::sobject::SOMutationKey* temp = _impl_.key_;
+  _impl_.key_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalReceipt::_internal_mutable_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.key_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalReceipt::mutable_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_key();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalReceipt.key)
+  return _msg;
+}
+inline void SOJournalReceipt::set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalReceipt.key)
+}
+
+// bytes envelope_digest = 2;
+inline void SOJournalReceipt::clear_envelope_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.envelope_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SOJournalReceipt::envelope_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalReceipt.envelope_digest)
+  return _internal_envelope_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalReceipt::set_envelope_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.envelope_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalReceipt.envelope_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalReceipt::mutable_envelope_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_envelope_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalReceipt.envelope_digest)
+  return _s;
+}
+inline const ::std::string& SOJournalReceipt::_internal_envelope_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.envelope_digest_.Get();
+}
+inline void SOJournalReceipt::_internal_set_envelope_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.envelope_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalReceipt::_internal_mutable_envelope_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.envelope_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalReceipt::release_envelope_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalReceipt.envelope_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.envelope_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.envelope_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalReceipt::set_allocated_envelope_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.envelope_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.envelope_digest_.IsDefault()) {
+    _impl_.envelope_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalReceipt.envelope_digest)
+}
+
+// .sobject.SOJournalOutcome outcome = 3;
+inline void SOJournalReceipt::clear_outcome() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.outcome_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline ::sobject::SOJournalOutcome SOJournalReceipt::outcome() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalReceipt.outcome)
+  return _internal_outcome();
+}
+inline void SOJournalReceipt::set_outcome(::sobject::SOJournalOutcome value) {
+  _internal_set_outcome(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalReceipt.outcome)
+}
+inline ::sobject::SOJournalOutcome SOJournalReceipt::_internal_outcome() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::sobject::SOJournalOutcome>(_impl_.outcome_);
+}
+inline void SOJournalReceipt::_internal_set_outcome(::sobject::SOJournalOutcome value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.outcome_ = value;
+}
+
+// bytes terminal_receipt = 4;
+inline void SOJournalReceipt::clear_terminal_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.terminal_receipt_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SOJournalReceipt::terminal_receipt() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalReceipt.terminal_receipt)
+  return _internal_terminal_receipt();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalReceipt::set_terminal_receipt(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.terminal_receipt_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalReceipt.terminal_receipt)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalReceipt::mutable_terminal_receipt()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_terminal_receipt();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalReceipt.terminal_receipt)
+  return _s;
+}
+inline const ::std::string& SOJournalReceipt::_internal_terminal_receipt() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.terminal_receipt_.Get();
+}
+inline void SOJournalReceipt::_internal_set_terminal_receipt(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.terminal_receipt_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalReceipt::_internal_mutable_terminal_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.terminal_receipt_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalReceipt::release_terminal_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalReceipt.terminal_receipt)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.terminal_receipt_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.terminal_receipt_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalReceipt::set_allocated_terminal_receipt(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.terminal_receipt_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.terminal_receipt_.IsDefault()) {
+    _impl_.terminal_receipt_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalReceipt.terminal_receipt)
+}
+
+// bytes terminal_receipt_digest = 5;
+inline void SOJournalReceipt::clear_terminal_receipt_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.terminal_receipt_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& SOJournalReceipt::terminal_receipt_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalReceipt.terminal_receipt_digest)
+  return _internal_terminal_receipt_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalReceipt::set_terminal_receipt_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.terminal_receipt_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalReceipt.terminal_receipt_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalReceipt::mutable_terminal_receipt_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_terminal_receipt_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalReceipt.terminal_receipt_digest)
+  return _s;
+}
+inline const ::std::string& SOJournalReceipt::_internal_terminal_receipt_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.terminal_receipt_digest_.Get();
+}
+inline void SOJournalReceipt::_internal_set_terminal_receipt_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.terminal_receipt_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalReceipt::_internal_mutable_terminal_receipt_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.terminal_receipt_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalReceipt::release_terminal_receipt_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalReceipt.terminal_receipt_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.terminal_receipt_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.terminal_receipt_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalReceipt::set_allocated_terminal_receipt_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.terminal_receipt_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.terminal_receipt_digest_.IsDefault()) {
+    _impl_.terminal_receipt_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalReceipt.terminal_receipt_digest)
+}
+
+// uint64 authoritative_root_seqno = 6;
+inline void SOJournalReceipt::clear_authoritative_root_seqno() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_seqno_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline ::uint64_t SOJournalReceipt::authoritative_root_seqno() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalReceipt.authoritative_root_seqno)
+  return _internal_authoritative_root_seqno();
+}
+inline void SOJournalReceipt::set_authoritative_root_seqno(::uint64_t value) {
+  _internal_set_authoritative_root_seqno(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalReceipt.authoritative_root_seqno)
+}
+inline ::uint64_t SOJournalReceipt::_internal_authoritative_root_seqno() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.authoritative_root_seqno_;
+}
+inline void SOJournalReceipt::_internal_set_authoritative_root_seqno(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_seqno_ = value;
+}
+
+// bytes authoritative_root_digest = 7;
+inline void SOJournalReceipt::clear_authoritative_root_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& SOJournalReceipt::authoritative_root_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalReceipt.authoritative_root_digest)
+  return _internal_authoritative_root_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalReceipt::set_authoritative_root_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.authoritative_root_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalReceipt.authoritative_root_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalReceipt::mutable_authoritative_root_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_authoritative_root_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalReceipt.authoritative_root_digest)
+  return _s;
+}
+inline const ::std::string& SOJournalReceipt::_internal_authoritative_root_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.authoritative_root_digest_.Get();
+}
+inline void SOJournalReceipt::_internal_set_authoritative_root_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalReceipt::_internal_mutable_authoritative_root_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.authoritative_root_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalReceipt::release_authoritative_root_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalReceipt.authoritative_root_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.authoritative_root_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.authoritative_root_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalReceipt::set_allocated_authoritative_root_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.authoritative_root_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.authoritative_root_digest_.IsDefault()) {
+    _impl_.authoritative_root_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalReceipt.authoritative_root_digest)
+}
+
+// bytes config_chain_digest = 8;
+inline void SOJournalReceipt::clear_config_chain_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.config_chain_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& SOJournalReceipt::config_chain_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalReceipt.config_chain_digest)
+  return _internal_config_chain_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalReceipt::set_config_chain_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.config_chain_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalReceipt.config_chain_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalReceipt::mutable_config_chain_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_config_chain_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalReceipt.config_chain_digest)
+  return _s;
+}
+inline const ::std::string& SOJournalReceipt::_internal_config_chain_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.config_chain_digest_.Get();
+}
+inline void SOJournalReceipt::_internal_set_config_chain_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.config_chain_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalReceipt::_internal_mutable_config_chain_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.config_chain_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalReceipt::release_config_chain_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalReceipt.config_chain_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.config_chain_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.config_chain_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalReceipt::set_allocated_config_chain_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.config_chain_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.config_chain_digest_.IsDefault()) {
+    _impl_.config_chain_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalReceipt.config_chain_digest)
+}
+
+// uint64 terminal_unix_millis = 9;
+inline void SOJournalReceipt::clear_terminal_unix_millis() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.terminal_unix_millis_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline ::uint64_t SOJournalReceipt::terminal_unix_millis() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalReceipt.terminal_unix_millis)
+  return _internal_terminal_unix_millis();
+}
+inline void SOJournalReceipt::set_terminal_unix_millis(::uint64_t value) {
+  _internal_set_terminal_unix_millis(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalReceipt.terminal_unix_millis)
+}
+inline ::uint64_t SOJournalReceipt::_internal_terminal_unix_millis() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.terminal_unix_millis_;
+}
+inline void SOJournalReceipt::_internal_set_terminal_unix_millis(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.terminal_unix_millis_ = value;
+}
+
+// .sobject.SOMutationKey supersedes = 10;
+inline bool SOJournalReceipt::has_supersedes() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000040U);
+  PROTOBUF_ASSUME(!value || _impl_.supersedes_ != nullptr);
+  return value;
+}
+inline void SOJournalReceipt::clear_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.supersedes_ != nullptr) _impl_.supersedes_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::sobject::SOMutationKey& SOJournalReceipt::_internal_supersedes() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.supersedes_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& SOJournalReceipt::supersedes() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalReceipt.supersedes)
+  return _internal_supersedes();
+}
+inline void SOJournalReceipt::unsafe_arena_set_allocated_supersedes(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.supersedes_);
+  }
+  _impl_.supersedes_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalReceipt.supersedes)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalReceipt::release_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::sobject::SOMutationKey* released = _impl_.supersedes_;
+  _impl_.supersedes_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalReceipt::unsafe_arena_release_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalReceipt.supersedes)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::sobject::SOMutationKey* temp = _impl_.supersedes_;
+  _impl_.supersedes_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalReceipt::_internal_mutable_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.supersedes_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.supersedes_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.supersedes_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalReceipt::mutable_supersedes()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_supersedes();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalReceipt.supersedes)
+  return _msg;
+}
+inline void SOJournalReceipt::set_allocated_supersedes(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.supersedes_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+
+  _impl_.supersedes_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalReceipt.supersedes)
+}
+
+// -------------------------------------------------------------------
+
+// SOJournalAcknowledgement
+
+// .sobject.SOMutationKey key = 1;
+inline bool SOJournalAcknowledgement::has_key() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.key_ != nullptr);
+  return value;
+}
+inline void SOJournalAcknowledgement::clear_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ != nullptr) _impl_.key_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::sobject::SOMutationKey& SOJournalAcknowledgement::_internal_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.key_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& SOJournalAcknowledgement::key() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalAcknowledgement.key)
+  return _internal_key();
+}
+inline void SOJournalAcknowledgement::unsafe_arena_set_allocated_key(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalAcknowledgement.key)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalAcknowledgement::release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* released = _impl_.key_;
+  _impl_.key_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalAcknowledgement::unsafe_arena_release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalAcknowledgement.key)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* temp = _impl_.key_;
+  _impl_.key_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalAcknowledgement::_internal_mutable_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.key_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalAcknowledgement::mutable_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_key();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalAcknowledgement.key)
+  return _msg;
+}
+inline void SOJournalAcknowledgement::set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalAcknowledgement.key)
+}
+
+// bytes receipt_digest = 2;
+inline void SOJournalAcknowledgement::clear_receipt_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.receipt_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SOJournalAcknowledgement::receipt_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalAcknowledgement.receipt_digest)
+  return _internal_receipt_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalAcknowledgement::set_receipt_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.receipt_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalAcknowledgement.receipt_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalAcknowledgement::mutable_receipt_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_receipt_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalAcknowledgement.receipt_digest)
+  return _s;
+}
+inline const ::std::string& SOJournalAcknowledgement::_internal_receipt_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.receipt_digest_.Get();
+}
+inline void SOJournalAcknowledgement::_internal_set_receipt_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.receipt_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalAcknowledgement::_internal_mutable_receipt_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.receipt_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalAcknowledgement::release_receipt_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalAcknowledgement.receipt_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.receipt_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.receipt_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalAcknowledgement::set_allocated_receipt_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.receipt_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.receipt_digest_.IsDefault()) {
+    _impl_.receipt_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalAcknowledgement.receipt_digest)
+}
+
+// uint64 acknowledged_unix_millis = 3;
+inline void SOJournalAcknowledgement::clear_acknowledged_unix_millis() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.acknowledged_unix_millis_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t SOJournalAcknowledgement::acknowledged_unix_millis() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalAcknowledgement.acknowledged_unix_millis)
+  return _internal_acknowledged_unix_millis();
+}
+inline void SOJournalAcknowledgement::set_acknowledged_unix_millis(::uint64_t value) {
+  _internal_set_acknowledged_unix_millis(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalAcknowledgement.acknowledged_unix_millis)
+}
+inline ::uint64_t SOJournalAcknowledgement::_internal_acknowledged_unix_millis() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.acknowledged_unix_millis_;
+}
+inline void SOJournalAcknowledgement::_internal_set_acknowledged_unix_millis(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.acknowledged_unix_millis_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// SOJournalProjection
+
+// .sobject.SOMutationKey key = 1;
+inline bool SOJournalProjection::has_key() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.key_ != nullptr);
+  return value;
+}
+inline void SOJournalProjection::clear_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ != nullptr) _impl_.key_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::sobject::SOMutationKey& SOJournalProjection::_internal_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.key_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& SOJournalProjection::key() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalProjection.key)
+  return _internal_key();
+}
+inline void SOJournalProjection::unsafe_arena_set_allocated_key(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalProjection.key)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalProjection::release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::sobject::SOMutationKey* released = _impl_.key_;
+  _impl_.key_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalProjection::unsafe_arena_release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalProjection.key)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::sobject::SOMutationKey* temp = _impl_.key_;
+  _impl_.key_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalProjection::_internal_mutable_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.key_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalProjection::mutable_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_key();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalProjection.key)
+  return _msg;
+}
+inline void SOJournalProjection::set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalProjection.key)
+}
+
+// bytes receipt_digest = 2;
+inline void SOJournalProjection::clear_receipt_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.receipt_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SOJournalProjection::receipt_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalProjection.receipt_digest)
+  return _internal_receipt_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalProjection::set_receipt_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.receipt_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalProjection.receipt_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalProjection::mutable_receipt_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_receipt_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalProjection.receipt_digest)
+  return _s;
+}
+inline const ::std::string& SOJournalProjection::_internal_receipt_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.receipt_digest_.Get();
+}
+inline void SOJournalProjection::_internal_set_receipt_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.receipt_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalProjection::_internal_mutable_receipt_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.receipt_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalProjection::release_receipt_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalProjection.receipt_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.receipt_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.receipt_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalProjection::set_allocated_receipt_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.receipt_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.receipt_digest_.IsDefault()) {
+    _impl_.receipt_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalProjection.receipt_digest)
+}
+
+// uint64 authoritative_root_seqno = 3;
+inline void SOJournalProjection::clear_authoritative_root_seqno() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_seqno_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::uint64_t SOJournalProjection::authoritative_root_seqno() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalProjection.authoritative_root_seqno)
+  return _internal_authoritative_root_seqno();
+}
+inline void SOJournalProjection::set_authoritative_root_seqno(::uint64_t value) {
+  _internal_set_authoritative_root_seqno(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalProjection.authoritative_root_seqno)
+}
+inline ::uint64_t SOJournalProjection::_internal_authoritative_root_seqno() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.authoritative_root_seqno_;
+}
+inline void SOJournalProjection::_internal_set_authoritative_root_seqno(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_seqno_ = value;
+}
+
+// bytes authoritative_root_digest = 4;
+inline void SOJournalProjection::clear_authoritative_root_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SOJournalProjection::authoritative_root_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalProjection.authoritative_root_digest)
+  return _internal_authoritative_root_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalProjection::set_authoritative_root_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.authoritative_root_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalProjection.authoritative_root_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalProjection::mutable_authoritative_root_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_authoritative_root_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalProjection.authoritative_root_digest)
+  return _s;
+}
+inline const ::std::string& SOJournalProjection::_internal_authoritative_root_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.authoritative_root_digest_.Get();
+}
+inline void SOJournalProjection::_internal_set_authoritative_root_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalProjection::_internal_mutable_authoritative_root_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.authoritative_root_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalProjection::release_authoritative_root_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalProjection.authoritative_root_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.authoritative_root_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.authoritative_root_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalProjection::set_allocated_authoritative_root_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.authoritative_root_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.authoritative_root_digest_.IsDefault()) {
+    _impl_.authoritative_root_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalProjection.authoritative_root_digest)
+}
+
+// -------------------------------------------------------------------
+
+// SOJournalRecord
+
+// uint32 format_version = 1;
+inline void SOJournalRecord::clear_format_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.format_version_ = 0u;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000800U);
+}
+inline ::uint32_t SOJournalRecord::format_version() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.format_version)
+  return _internal_format_version();
+}
+inline void SOJournalRecord::set_format_version(::uint32_t value) {
+  _internal_set_format_version(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalRecord.format_version)
+}
+inline ::uint32_t SOJournalRecord::_internal_format_version() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.format_version_;
+}
+inline void SOJournalRecord::_internal_set_format_version(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.format_version_ = value;
+}
+
+// uint64 sequence = 2;
+inline void SOJournalRecord::clear_sequence() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.sequence_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline ::uint64_t SOJournalRecord::sequence() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.sequence)
+  return _internal_sequence();
+}
+inline void SOJournalRecord::set_sequence(::uint64_t value) {
+  _internal_set_sequence(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalRecord.sequence)
+}
+inline ::uint64_t SOJournalRecord::_internal_sequence() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.sequence_;
+}
+inline void SOJournalRecord::_internal_set_sequence(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.sequence_ = value;
+}
+
+// .sobject.SOJournalRecordKind kind = 3;
+inline void SOJournalRecord::clear_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.kind_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00001000U);
+}
+inline ::sobject::SOJournalRecordKind SOJournalRecord::kind() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.kind)
+  return _internal_kind();
+}
+inline void SOJournalRecord::set_kind(::sobject::SOJournalRecordKind value) {
+  _internal_set_kind(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalRecord.kind)
+}
+inline ::sobject::SOJournalRecordKind SOJournalRecord::_internal_kind() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::sobject::SOJournalRecordKind>(_impl_.kind_);
+}
+inline void SOJournalRecord::_internal_set_kind(::sobject::SOJournalRecordKind value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.kind_ = value;
+}
+
+// .sobject.SOMutationKey key = 4;
+inline bool SOJournalRecord::has_key() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.key_ != nullptr);
+  return value;
+}
+inline void SOJournalRecord::clear_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ != nullptr) _impl_.key_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::sobject::SOMutationKey& SOJournalRecord::_internal_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.key_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& SOJournalRecord::key() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.key)
+  return _internal_key();
+}
+inline void SOJournalRecord::unsafe_arena_set_allocated_key(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalRecord.key)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalRecord::release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* released = _impl_.key_;
+  _impl_.key_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalRecord::unsafe_arena_release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalRecord.key)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* temp = _impl_.key_;
+  _impl_.key_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalRecord::_internal_mutable_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.key_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalRecord::mutable_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_key();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalRecord.key)
+  return _msg;
+}
+inline void SOJournalRecord::set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalRecord.key)
+}
+
+// .sobject.SOJournalLineage lineage = 5;
+inline bool SOJournalRecord::has_lineage() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.lineage_ != nullptr);
+  return value;
+}
+inline void SOJournalRecord::clear_lineage() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.lineage_ != nullptr) _impl_.lineage_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::sobject::SOJournalLineage& SOJournalRecord::_internal_lineage() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalLineage* p = _impl_.lineage_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalLineage&>(::sobject::_SOJournalLineage_default_instance_);
+}
+inline const ::sobject::SOJournalLineage& SOJournalRecord::lineage() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.lineage)
+  return _internal_lineage();
+}
+inline void SOJournalRecord::unsafe_arena_set_allocated_lineage(
+    ::sobject::SOJournalLineage* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.lineage_);
+  }
+  _impl_.lineage_ = reinterpret_cast<::sobject::SOJournalLineage*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalRecord.lineage)
+}
+inline ::sobject::SOJournalLineage* PROTOBUF_NULLABLE SOJournalRecord::release_lineage() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::sobject::SOJournalLineage* released = _impl_.lineage_;
+  _impl_.lineage_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalLineage* PROTOBUF_NULLABLE SOJournalRecord::unsafe_arena_release_lineage() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalRecord.lineage)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::sobject::SOJournalLineage* temp = _impl_.lineage_;
+  _impl_.lineage_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalLineage* PROTOBUF_NONNULL SOJournalRecord::_internal_mutable_lineage() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.lineage_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalLineage>(GetArena());
+    _impl_.lineage_ = reinterpret_cast<::sobject::SOJournalLineage*>(p);
+  }
+  return _impl_.lineage_;
+}
+inline ::sobject::SOJournalLineage* PROTOBUF_NONNULL SOJournalRecord::mutable_lineage()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::sobject::SOJournalLineage* _msg = _internal_mutable_lineage();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalRecord.lineage)
+  return _msg;
+}
+inline void SOJournalRecord::set_allocated_lineage(::sobject::SOJournalLineage* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.lineage_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.lineage_ = reinterpret_cast<::sobject::SOJournalLineage*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalRecord.lineage)
+}
+
+// .sobject.SOJournalVersionTuple version = 6;
+inline bool SOJournalRecord::has_version() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.version_ != nullptr);
+  return value;
+}
+inline void SOJournalRecord::clear_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.version_ != nullptr) _impl_.version_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::sobject::SOJournalVersionTuple& SOJournalRecord::_internal_version() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalVersionTuple* p = _impl_.version_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalVersionTuple&>(::sobject::_SOJournalVersionTuple_default_instance_);
+}
+inline const ::sobject::SOJournalVersionTuple& SOJournalRecord::version() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.version)
+  return _internal_version();
+}
+inline void SOJournalRecord::unsafe_arena_set_allocated_version(
+    ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.version_);
+  }
+  _impl_.version_ = reinterpret_cast<::sobject::SOJournalVersionTuple*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalRecord.version)
+}
+inline ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE SOJournalRecord::release_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::sobject::SOJournalVersionTuple* released = _impl_.version_;
+  _impl_.version_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE SOJournalRecord::unsafe_arena_release_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalRecord.version)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::sobject::SOJournalVersionTuple* temp = _impl_.version_;
+  _impl_.version_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalVersionTuple* PROTOBUF_NONNULL SOJournalRecord::_internal_mutable_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.version_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalVersionTuple>(GetArena());
+    _impl_.version_ = reinterpret_cast<::sobject::SOJournalVersionTuple*>(p);
+  }
+  return _impl_.version_;
+}
+inline ::sobject::SOJournalVersionTuple* PROTOBUF_NONNULL SOJournalRecord::mutable_version()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::sobject::SOJournalVersionTuple* _msg = _internal_mutable_version();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalRecord.version)
+  return _msg;
+}
+inline void SOJournalRecord::set_allocated_version(::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.version_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.version_ = reinterpret_cast<::sobject::SOJournalVersionTuple*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalRecord.version)
+}
+
+// .sobject.SOJournalEncryptedPayload intent = 7;
+inline bool SOJournalRecord::has_intent() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  PROTOBUF_ASSUME(!value || _impl_.intent_ != nullptr);
+  return value;
+}
+inline void SOJournalRecord::clear_intent() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.intent_ != nullptr) _impl_.intent_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::sobject::SOJournalEncryptedPayload& SOJournalRecord::_internal_intent() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalEncryptedPayload* p = _impl_.intent_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalEncryptedPayload&>(::sobject::_SOJournalEncryptedPayload_default_instance_);
+}
+inline const ::sobject::SOJournalEncryptedPayload& SOJournalRecord::intent() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.intent)
+  return _internal_intent();
+}
+inline void SOJournalRecord::unsafe_arena_set_allocated_intent(
+    ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.intent_);
+  }
+  _impl_.intent_ = reinterpret_cast<::sobject::SOJournalEncryptedPayload*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalRecord.intent)
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE SOJournalRecord::release_intent() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::sobject::SOJournalEncryptedPayload* released = _impl_.intent_;
+  _impl_.intent_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE SOJournalRecord::unsafe_arena_release_intent() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalRecord.intent)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::sobject::SOJournalEncryptedPayload* temp = _impl_.intent_;
+  _impl_.intent_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL SOJournalRecord::_internal_mutable_intent() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.intent_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalEncryptedPayload>(GetArena());
+    _impl_.intent_ = reinterpret_cast<::sobject::SOJournalEncryptedPayload*>(p);
+  }
+  return _impl_.intent_;
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL SOJournalRecord::mutable_intent()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::sobject::SOJournalEncryptedPayload* _msg = _internal_mutable_intent();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalRecord.intent)
+  return _msg;
+}
+inline void SOJournalRecord::set_allocated_intent(::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.intent_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+
+  _impl_.intent_ = reinterpret_cast<::sobject::SOJournalEncryptedPayload*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalRecord.intent)
+}
+
+// .sobject.SOJournalEncryptedPayload envelope = 8;
+inline bool SOJournalRecord::has_envelope() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
+  PROTOBUF_ASSUME(!value || _impl_.envelope_ != nullptr);
+  return value;
+}
+inline void SOJournalRecord::clear_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.envelope_ != nullptr) _impl_.envelope_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::sobject::SOJournalEncryptedPayload& SOJournalRecord::_internal_envelope() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalEncryptedPayload* p = _impl_.envelope_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalEncryptedPayload&>(::sobject::_SOJournalEncryptedPayload_default_instance_);
+}
+inline const ::sobject::SOJournalEncryptedPayload& SOJournalRecord::envelope() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.envelope)
+  return _internal_envelope();
+}
+inline void SOJournalRecord::unsafe_arena_set_allocated_envelope(
+    ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.envelope_);
+  }
+  _impl_.envelope_ = reinterpret_cast<::sobject::SOJournalEncryptedPayload*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalRecord.envelope)
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE SOJournalRecord::release_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::sobject::SOJournalEncryptedPayload* released = _impl_.envelope_;
+  _impl_.envelope_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE SOJournalRecord::unsafe_arena_release_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalRecord.envelope)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::sobject::SOJournalEncryptedPayload* temp = _impl_.envelope_;
+  _impl_.envelope_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL SOJournalRecord::_internal_mutable_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.envelope_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalEncryptedPayload>(GetArena());
+    _impl_.envelope_ = reinterpret_cast<::sobject::SOJournalEncryptedPayload*>(p);
+  }
+  return _impl_.envelope_;
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL SOJournalRecord::mutable_envelope()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::sobject::SOJournalEncryptedPayload* _msg = _internal_mutable_envelope();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalRecord.envelope)
+  return _msg;
+}
+inline void SOJournalRecord::set_allocated_envelope(::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.envelope_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+
+  _impl_.envelope_ = reinterpret_cast<::sobject::SOJournalEncryptedPayload*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalRecord.envelope)
+}
+
+// .sobject.SOJournalReceipt receipt = 9;
+inline bool SOJournalRecord::has_receipt() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000040U);
+  PROTOBUF_ASSUME(!value || _impl_.receipt_ != nullptr);
+  return value;
+}
+inline void SOJournalRecord::clear_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.receipt_ != nullptr) _impl_.receipt_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::sobject::SOJournalReceipt& SOJournalRecord::_internal_receipt() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalReceipt* p = _impl_.receipt_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalReceipt&>(::sobject::_SOJournalReceipt_default_instance_);
+}
+inline const ::sobject::SOJournalReceipt& SOJournalRecord::receipt() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.receipt)
+  return _internal_receipt();
+}
+inline void SOJournalRecord::unsafe_arena_set_allocated_receipt(
+    ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.receipt_);
+  }
+  _impl_.receipt_ = reinterpret_cast<::sobject::SOJournalReceipt*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalRecord.receipt)
+}
+inline ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE SOJournalRecord::release_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::sobject::SOJournalReceipt* released = _impl_.receipt_;
+  _impl_.receipt_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE SOJournalRecord::unsafe_arena_release_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalRecord.receipt)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::sobject::SOJournalReceipt* temp = _impl_.receipt_;
+  _impl_.receipt_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalReceipt* PROTOBUF_NONNULL SOJournalRecord::_internal_mutable_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.receipt_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalReceipt>(GetArena());
+    _impl_.receipt_ = reinterpret_cast<::sobject::SOJournalReceipt*>(p);
+  }
+  return _impl_.receipt_;
+}
+inline ::sobject::SOJournalReceipt* PROTOBUF_NONNULL SOJournalRecord::mutable_receipt()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::sobject::SOJournalReceipt* _msg = _internal_mutable_receipt();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalRecord.receipt)
+  return _msg;
+}
+inline void SOJournalRecord::set_allocated_receipt(::sobject::SOJournalReceipt* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.receipt_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+
+  _impl_.receipt_ = reinterpret_cast<::sobject::SOJournalReceipt*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalRecord.receipt)
+}
+
+// .sobject.SOJournalAcknowledgement acknowledgement = 10;
+inline bool SOJournalRecord::has_acknowledgement() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000080U);
+  PROTOBUF_ASSUME(!value || _impl_.acknowledgement_ != nullptr);
+  return value;
+}
+inline void SOJournalRecord::clear_acknowledgement() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.acknowledgement_ != nullptr) _impl_.acknowledgement_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline const ::sobject::SOJournalAcknowledgement& SOJournalRecord::_internal_acknowledgement() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalAcknowledgement* p = _impl_.acknowledgement_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalAcknowledgement&>(::sobject::_SOJournalAcknowledgement_default_instance_);
+}
+inline const ::sobject::SOJournalAcknowledgement& SOJournalRecord::acknowledgement() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.acknowledgement)
+  return _internal_acknowledgement();
+}
+inline void SOJournalRecord::unsafe_arena_set_allocated_acknowledgement(
+    ::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.acknowledgement_);
+  }
+  _impl_.acknowledgement_ = reinterpret_cast<::sobject::SOJournalAcknowledgement*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalRecord.acknowledgement)
+}
+inline ::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE SOJournalRecord::release_acknowledgement() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::sobject::SOJournalAcknowledgement* released = _impl_.acknowledgement_;
+  _impl_.acknowledgement_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE SOJournalRecord::unsafe_arena_release_acknowledgement() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalRecord.acknowledgement)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::sobject::SOJournalAcknowledgement* temp = _impl_.acknowledgement_;
+  _impl_.acknowledgement_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalAcknowledgement* PROTOBUF_NONNULL SOJournalRecord::_internal_mutable_acknowledgement() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.acknowledgement_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalAcknowledgement>(GetArena());
+    _impl_.acknowledgement_ = reinterpret_cast<::sobject::SOJournalAcknowledgement*>(p);
+  }
+  return _impl_.acknowledgement_;
+}
+inline ::sobject::SOJournalAcknowledgement* PROTOBUF_NONNULL SOJournalRecord::mutable_acknowledgement()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::sobject::SOJournalAcknowledgement* _msg = _internal_mutable_acknowledgement();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalRecord.acknowledgement)
+  return _msg;
+}
+inline void SOJournalRecord::set_allocated_acknowledgement(::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.acknowledgement_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+
+  _impl_.acknowledgement_ = reinterpret_cast<::sobject::SOJournalAcknowledgement*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalRecord.acknowledgement)
+}
+
+// .sobject.SOJournalProjection projection = 11;
+inline bool SOJournalRecord::has_projection() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000100U);
+  PROTOBUF_ASSUME(!value || _impl_.projection_ != nullptr);
+  return value;
+}
+inline void SOJournalRecord::clear_projection() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.projection_ != nullptr) _impl_.projection_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline const ::sobject::SOJournalProjection& SOJournalRecord::_internal_projection() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalProjection* p = _impl_.projection_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalProjection&>(::sobject::_SOJournalProjection_default_instance_);
+}
+inline const ::sobject::SOJournalProjection& SOJournalRecord::projection() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.projection)
+  return _internal_projection();
+}
+inline void SOJournalRecord::unsafe_arena_set_allocated_projection(
+    ::sobject::SOJournalProjection* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.projection_);
+  }
+  _impl_.projection_ = reinterpret_cast<::sobject::SOJournalProjection*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalRecord.projection)
+}
+inline ::sobject::SOJournalProjection* PROTOBUF_NULLABLE SOJournalRecord::release_projection() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::sobject::SOJournalProjection* released = _impl_.projection_;
+  _impl_.projection_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalProjection* PROTOBUF_NULLABLE SOJournalRecord::unsafe_arena_release_projection() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalRecord.projection)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::sobject::SOJournalProjection* temp = _impl_.projection_;
+  _impl_.projection_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalProjection* PROTOBUF_NONNULL SOJournalRecord::_internal_mutable_projection() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.projection_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalProjection>(GetArena());
+    _impl_.projection_ = reinterpret_cast<::sobject::SOJournalProjection*>(p);
+  }
+  return _impl_.projection_;
+}
+inline ::sobject::SOJournalProjection* PROTOBUF_NONNULL SOJournalRecord::mutable_projection()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::sobject::SOJournalProjection* _msg = _internal_mutable_projection();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalRecord.projection)
+  return _msg;
+}
+inline void SOJournalRecord::set_allocated_projection(::sobject::SOJournalProjection* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.projection_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  }
+
+  _impl_.projection_ = reinterpret_cast<::sobject::SOJournalProjection*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalRecord.projection)
+}
+
+// .sobject.SOJournalReadiness readiness = 12;
+inline void SOJournalRecord::clear_readiness() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.readiness_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00002000U);
+}
+inline ::sobject::SOJournalReadiness SOJournalRecord::readiness() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.readiness)
+  return _internal_readiness();
+}
+inline void SOJournalRecord::set_readiness(::sobject::SOJournalReadiness value) {
+  _internal_set_readiness(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalRecord.readiness)
+}
+inline ::sobject::SOJournalReadiness SOJournalRecord::_internal_readiness() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::sobject::SOJournalReadiness>(_impl_.readiness_);
+}
+inline void SOJournalRecord::_internal_set_readiness(::sobject::SOJournalReadiness value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.readiness_ = value;
+}
+
+// .sobject.SOJournalRecoveryReason recovery_reason = 13;
+inline void SOJournalRecord::clear_recovery_reason() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.recovery_reason_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00004000U);
+}
+inline ::sobject::SOJournalRecoveryReason SOJournalRecord::recovery_reason() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.recovery_reason)
+  return _internal_recovery_reason();
+}
+inline void SOJournalRecord::set_recovery_reason(::sobject::SOJournalRecoveryReason value) {
+  _internal_set_recovery_reason(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00004000U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalRecord.recovery_reason)
+}
+inline ::sobject::SOJournalRecoveryReason SOJournalRecord::_internal_recovery_reason() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::sobject::SOJournalRecoveryReason>(_impl_.recovery_reason_);
+}
+inline void SOJournalRecord::_internal_set_recovery_reason(::sobject::SOJournalRecoveryReason value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.recovery_reason_ = value;
+}
+
+// .sobject.SOJournalAttemptState attempt_state = 14;
+inline void SOJournalRecord::clear_attempt_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.attempt_state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00008000U);
+}
+inline ::sobject::SOJournalAttemptState SOJournalRecord::attempt_state() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.attempt_state)
+  return _internal_attempt_state();
+}
+inline void SOJournalRecord::set_attempt_state(::sobject::SOJournalAttemptState value) {
+  _internal_set_attempt_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00008000U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalRecord.attempt_state)
+}
+inline ::sobject::SOJournalAttemptState SOJournalRecord::_internal_attempt_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::sobject::SOJournalAttemptState>(_impl_.attempt_state_);
+}
+inline void SOJournalRecord::_internal_set_attempt_state(::sobject::SOJournalAttemptState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.attempt_state_ = value;
+}
+
+// bytes envelope_digest = 15;
+inline void SOJournalRecord::clear_envelope_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.envelope_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SOJournalRecord::envelope_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.envelope_digest)
+  return _internal_envelope_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalRecord::set_envelope_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.envelope_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalRecord.envelope_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalRecord::mutable_envelope_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_envelope_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalRecord.envelope_digest)
+  return _s;
+}
+inline const ::std::string& SOJournalRecord::_internal_envelope_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.envelope_digest_.Get();
+}
+inline void SOJournalRecord::_internal_set_envelope_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.envelope_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalRecord::_internal_mutable_envelope_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.envelope_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalRecord::release_envelope_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalRecord.envelope_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.envelope_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.envelope_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalRecord::set_allocated_envelope_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.envelope_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.envelope_digest_.IsDefault()) {
+    _impl_.envelope_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalRecord.envelope_digest)
+}
+
+// .sobject.SOJournalLookup lookup = 16;
+inline bool SOJournalRecord::has_lookup() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000200U);
+  PROTOBUF_ASSUME(!value || _impl_.lookup_ != nullptr);
+  return value;
+}
+inline void SOJournalRecord::clear_lookup() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.lookup_ != nullptr) _impl_.lookup_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline const ::sobject::SOJournalLookup& SOJournalRecord::_internal_lookup() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalLookup* p = _impl_.lookup_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalLookup&>(::sobject::_SOJournalLookup_default_instance_);
+}
+inline const ::sobject::SOJournalLookup& SOJournalRecord::lookup() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalRecord.lookup)
+  return _internal_lookup();
+}
+inline void SOJournalRecord::unsafe_arena_set_allocated_lookup(
+    ::sobject::SOJournalLookup* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.lookup_);
+  }
+  _impl_.lookup_ = reinterpret_cast<::sobject::SOJournalLookup*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalRecord.lookup)
+}
+inline ::sobject::SOJournalLookup* PROTOBUF_NULLABLE SOJournalRecord::release_lookup() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  ::sobject::SOJournalLookup* released = _impl_.lookup_;
+  _impl_.lookup_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalLookup* PROTOBUF_NULLABLE SOJournalRecord::unsafe_arena_release_lookup() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalRecord.lookup)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  ::sobject::SOJournalLookup* temp = _impl_.lookup_;
+  _impl_.lookup_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalLookup* PROTOBUF_NONNULL SOJournalRecord::_internal_mutable_lookup() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.lookup_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalLookup>(GetArena());
+    _impl_.lookup_ = reinterpret_cast<::sobject::SOJournalLookup*>(p);
+  }
+  return _impl_.lookup_;
+}
+inline ::sobject::SOJournalLookup* PROTOBUF_NONNULL SOJournalRecord::mutable_lookup()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  ::sobject::SOJournalLookup* _msg = _internal_mutable_lookup();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalRecord.lookup)
+  return _msg;
+}
+inline void SOJournalRecord::set_allocated_lookup(::sobject::SOJournalLookup* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.lookup_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  }
+
+  _impl_.lookup_ = reinterpret_cast<::sobject::SOJournalLookup*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalRecord.lookup)
+}
+
+// -------------------------------------------------------------------
+
+// SOJournalCheckpointAttempt
+
+// .sobject.SOMutationKey key = 1;
+inline bool SOJournalCheckpointAttempt::has_key() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000002U);
+  PROTOBUF_ASSUME(!value || _impl_.key_ != nullptr);
+  return value;
+}
+inline void SOJournalCheckpointAttempt::clear_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ != nullptr) _impl_.key_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::sobject::SOMutationKey& SOJournalCheckpointAttempt::_internal_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.key_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& SOJournalCheckpointAttempt::key() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.key)
+  return _internal_key();
+}
+inline void SOJournalCheckpointAttempt::unsafe_arena_set_allocated_key(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalCheckpointAttempt.key)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* released = _impl_.key_;
+  _impl_.key_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::unsafe_arena_release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalCheckpointAttempt.key)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* temp = _impl_.key_;
+  _impl_.key_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalCheckpointAttempt::_internal_mutable_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.key_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOJournalCheckpointAttempt::mutable_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_key();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalCheckpointAttempt.key)
+  return _msg;
+}
+inline void SOJournalCheckpointAttempt::set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalCheckpointAttempt.key)
+}
+
+// .sobject.SOJournalLineage lineage = 2;
+inline bool SOJournalCheckpointAttempt::has_lineage() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000004U);
+  PROTOBUF_ASSUME(!value || _impl_.lineage_ != nullptr);
+  return value;
+}
+inline void SOJournalCheckpointAttempt::clear_lineage() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.lineage_ != nullptr) _impl_.lineage_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::sobject::SOJournalLineage& SOJournalCheckpointAttempt::_internal_lineage() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalLineage* p = _impl_.lineage_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalLineage&>(::sobject::_SOJournalLineage_default_instance_);
+}
+inline const ::sobject::SOJournalLineage& SOJournalCheckpointAttempt::lineage() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.lineage)
+  return _internal_lineage();
+}
+inline void SOJournalCheckpointAttempt::unsafe_arena_set_allocated_lineage(
+    ::sobject::SOJournalLineage* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.lineage_);
+  }
+  _impl_.lineage_ = reinterpret_cast<::sobject::SOJournalLineage*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalCheckpointAttempt.lineage)
+}
+inline ::sobject::SOJournalLineage* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::release_lineage() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::sobject::SOJournalLineage* released = _impl_.lineage_;
+  _impl_.lineage_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalLineage* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::unsafe_arena_release_lineage() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalCheckpointAttempt.lineage)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::sobject::SOJournalLineage* temp = _impl_.lineage_;
+  _impl_.lineage_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalLineage* PROTOBUF_NONNULL SOJournalCheckpointAttempt::_internal_mutable_lineage() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.lineage_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalLineage>(GetArena());
+    _impl_.lineage_ = reinterpret_cast<::sobject::SOJournalLineage*>(p);
+  }
+  return _impl_.lineage_;
+}
+inline ::sobject::SOJournalLineage* PROTOBUF_NONNULL SOJournalCheckpointAttempt::mutable_lineage()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::sobject::SOJournalLineage* _msg = _internal_mutable_lineage();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalCheckpointAttempt.lineage)
+  return _msg;
+}
+inline void SOJournalCheckpointAttempt::set_allocated_lineage(::sobject::SOJournalLineage* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.lineage_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+
+  _impl_.lineage_ = reinterpret_cast<::sobject::SOJournalLineage*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalCheckpointAttempt.lineage)
+}
+
+// .sobject.SOJournalVersionTuple version = 3;
+inline bool SOJournalCheckpointAttempt::has_version() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000008U);
+  PROTOBUF_ASSUME(!value || _impl_.version_ != nullptr);
+  return value;
+}
+inline void SOJournalCheckpointAttempt::clear_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.version_ != nullptr) _impl_.version_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::sobject::SOJournalVersionTuple& SOJournalCheckpointAttempt::_internal_version() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalVersionTuple* p = _impl_.version_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalVersionTuple&>(::sobject::_SOJournalVersionTuple_default_instance_);
+}
+inline const ::sobject::SOJournalVersionTuple& SOJournalCheckpointAttempt::version() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.version)
+  return _internal_version();
+}
+inline void SOJournalCheckpointAttempt::unsafe_arena_set_allocated_version(
+    ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.version_);
+  }
+  _impl_.version_ = reinterpret_cast<::sobject::SOJournalVersionTuple*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalCheckpointAttempt.version)
+}
+inline ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::release_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::sobject::SOJournalVersionTuple* released = _impl_.version_;
+  _impl_.version_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::unsafe_arena_release_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalCheckpointAttempt.version)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::sobject::SOJournalVersionTuple* temp = _impl_.version_;
+  _impl_.version_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalVersionTuple* PROTOBUF_NONNULL SOJournalCheckpointAttempt::_internal_mutable_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.version_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalVersionTuple>(GetArena());
+    _impl_.version_ = reinterpret_cast<::sobject::SOJournalVersionTuple*>(p);
+  }
+  return _impl_.version_;
+}
+inline ::sobject::SOJournalVersionTuple* PROTOBUF_NONNULL SOJournalCheckpointAttempt::mutable_version()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::sobject::SOJournalVersionTuple* _msg = _internal_mutable_version();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalCheckpointAttempt.version)
+  return _msg;
+}
+inline void SOJournalCheckpointAttempt::set_allocated_version(::sobject::SOJournalVersionTuple* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.version_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+
+  _impl_.version_ = reinterpret_cast<::sobject::SOJournalVersionTuple*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalCheckpointAttempt.version)
+}
+
+// .sobject.SOJournalAttemptState state = 4;
+inline void SOJournalCheckpointAttempt::clear_state() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000400U);
+}
+inline ::sobject::SOJournalAttemptState SOJournalCheckpointAttempt::state() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.state)
+  return _internal_state();
+}
+inline void SOJournalCheckpointAttempt::set_state(::sobject::SOJournalAttemptState value) {
+  _internal_set_state(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalCheckpointAttempt.state)
+}
+inline ::sobject::SOJournalAttemptState SOJournalCheckpointAttempt::_internal_state() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::sobject::SOJournalAttemptState>(_impl_.state_);
+}
+inline void SOJournalCheckpointAttempt::_internal_set_state(::sobject::SOJournalAttemptState value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.state_ = value;
+}
+
+// .sobject.SOJournalReadiness readiness = 5;
+inline void SOJournalCheckpointAttempt::clear_readiness() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.readiness_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000800U);
+}
+inline ::sobject::SOJournalReadiness SOJournalCheckpointAttempt::readiness() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.readiness)
+  return _internal_readiness();
+}
+inline void SOJournalCheckpointAttempt::set_readiness(::sobject::SOJournalReadiness value) {
+  _internal_set_readiness(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalCheckpointAttempt.readiness)
+}
+inline ::sobject::SOJournalReadiness SOJournalCheckpointAttempt::_internal_readiness() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::sobject::SOJournalReadiness>(_impl_.readiness_);
+}
+inline void SOJournalCheckpointAttempt::_internal_set_readiness(::sobject::SOJournalReadiness value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.readiness_ = value;
+}
+
+// .sobject.SOJournalEncryptedPayload intent = 6;
+inline bool SOJournalCheckpointAttempt::has_intent() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  PROTOBUF_ASSUME(!value || _impl_.intent_ != nullptr);
+  return value;
+}
+inline void SOJournalCheckpointAttempt::clear_intent() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.intent_ != nullptr) _impl_.intent_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::sobject::SOJournalEncryptedPayload& SOJournalCheckpointAttempt::_internal_intent() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalEncryptedPayload* p = _impl_.intent_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalEncryptedPayload&>(::sobject::_SOJournalEncryptedPayload_default_instance_);
+}
+inline const ::sobject::SOJournalEncryptedPayload& SOJournalCheckpointAttempt::intent() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.intent)
+  return _internal_intent();
+}
+inline void SOJournalCheckpointAttempt::unsafe_arena_set_allocated_intent(
+    ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.intent_);
+  }
+  _impl_.intent_ = reinterpret_cast<::sobject::SOJournalEncryptedPayload*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalCheckpointAttempt.intent)
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::release_intent() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::sobject::SOJournalEncryptedPayload* released = _impl_.intent_;
+  _impl_.intent_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::unsafe_arena_release_intent() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalCheckpointAttempt.intent)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::sobject::SOJournalEncryptedPayload* temp = _impl_.intent_;
+  _impl_.intent_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL SOJournalCheckpointAttempt::_internal_mutable_intent() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.intent_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalEncryptedPayload>(GetArena());
+    _impl_.intent_ = reinterpret_cast<::sobject::SOJournalEncryptedPayload*>(p);
+  }
+  return _impl_.intent_;
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL SOJournalCheckpointAttempt::mutable_intent()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::sobject::SOJournalEncryptedPayload* _msg = _internal_mutable_intent();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalCheckpointAttempt.intent)
+  return _msg;
+}
+inline void SOJournalCheckpointAttempt::set_allocated_intent(::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.intent_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+
+  _impl_.intent_ = reinterpret_cast<::sobject::SOJournalEncryptedPayload*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalCheckpointAttempt.intent)
+}
+
+// .sobject.SOJournalEncryptedPayload envelope = 7;
+inline bool SOJournalCheckpointAttempt::has_envelope() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
+  PROTOBUF_ASSUME(!value || _impl_.envelope_ != nullptr);
+  return value;
+}
+inline void SOJournalCheckpointAttempt::clear_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.envelope_ != nullptr) _impl_.envelope_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::sobject::SOJournalEncryptedPayload& SOJournalCheckpointAttempt::_internal_envelope() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalEncryptedPayload* p = _impl_.envelope_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalEncryptedPayload&>(::sobject::_SOJournalEncryptedPayload_default_instance_);
+}
+inline const ::sobject::SOJournalEncryptedPayload& SOJournalCheckpointAttempt::envelope() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.envelope)
+  return _internal_envelope();
+}
+inline void SOJournalCheckpointAttempt::unsafe_arena_set_allocated_envelope(
+    ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.envelope_);
+  }
+  _impl_.envelope_ = reinterpret_cast<::sobject::SOJournalEncryptedPayload*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalCheckpointAttempt.envelope)
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::release_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::sobject::SOJournalEncryptedPayload* released = _impl_.envelope_;
+  _impl_.envelope_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::unsafe_arena_release_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalCheckpointAttempt.envelope)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::sobject::SOJournalEncryptedPayload* temp = _impl_.envelope_;
+  _impl_.envelope_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL SOJournalCheckpointAttempt::_internal_mutable_envelope() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.envelope_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalEncryptedPayload>(GetArena());
+    _impl_.envelope_ = reinterpret_cast<::sobject::SOJournalEncryptedPayload*>(p);
+  }
+  return _impl_.envelope_;
+}
+inline ::sobject::SOJournalEncryptedPayload* PROTOBUF_NONNULL SOJournalCheckpointAttempt::mutable_envelope()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::sobject::SOJournalEncryptedPayload* _msg = _internal_mutable_envelope();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalCheckpointAttempt.envelope)
+  return _msg;
+}
+inline void SOJournalCheckpointAttempt::set_allocated_envelope(::sobject::SOJournalEncryptedPayload* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.envelope_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+
+  _impl_.envelope_ = reinterpret_cast<::sobject::SOJournalEncryptedPayload*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalCheckpointAttempt.envelope)
+}
+
+// bytes envelope_digest = 8;
+inline void SOJournalCheckpointAttempt::clear_envelope_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.envelope_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SOJournalCheckpointAttempt::envelope_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.envelope_digest)
+  return _internal_envelope_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalCheckpointAttempt::set_envelope_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.envelope_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalCheckpointAttempt.envelope_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalCheckpointAttempt::mutable_envelope_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_envelope_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalCheckpointAttempt.envelope_digest)
+  return _s;
+}
+inline const ::std::string& SOJournalCheckpointAttempt::_internal_envelope_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.envelope_digest_.Get();
+}
+inline void SOJournalCheckpointAttempt::_internal_set_envelope_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.envelope_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalCheckpointAttempt::_internal_mutable_envelope_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.envelope_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::release_envelope_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalCheckpointAttempt.envelope_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.envelope_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.envelope_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalCheckpointAttempt::set_allocated_envelope_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.envelope_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.envelope_digest_.IsDefault()) {
+    _impl_.envelope_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalCheckpointAttempt.envelope_digest)
+}
+
+// .sobject.SOJournalReceipt receipt = 9;
+inline bool SOJournalCheckpointAttempt::has_receipt() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000040U);
+  PROTOBUF_ASSUME(!value || _impl_.receipt_ != nullptr);
+  return value;
+}
+inline void SOJournalCheckpointAttempt::clear_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.receipt_ != nullptr) _impl_.receipt_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline const ::sobject::SOJournalReceipt& SOJournalCheckpointAttempt::_internal_receipt() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalReceipt* p = _impl_.receipt_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalReceipt&>(::sobject::_SOJournalReceipt_default_instance_);
+}
+inline const ::sobject::SOJournalReceipt& SOJournalCheckpointAttempt::receipt() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.receipt)
+  return _internal_receipt();
+}
+inline void SOJournalCheckpointAttempt::unsafe_arena_set_allocated_receipt(
+    ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.receipt_);
+  }
+  _impl_.receipt_ = reinterpret_cast<::sobject::SOJournalReceipt*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalCheckpointAttempt.receipt)
+}
+inline ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::release_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::sobject::SOJournalReceipt* released = _impl_.receipt_;
+  _impl_.receipt_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalReceipt* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::unsafe_arena_release_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalCheckpointAttempt.receipt)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::sobject::SOJournalReceipt* temp = _impl_.receipt_;
+  _impl_.receipt_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalReceipt* PROTOBUF_NONNULL SOJournalCheckpointAttempt::_internal_mutable_receipt() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.receipt_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalReceipt>(GetArena());
+    _impl_.receipt_ = reinterpret_cast<::sobject::SOJournalReceipt*>(p);
+  }
+  return _impl_.receipt_;
+}
+inline ::sobject::SOJournalReceipt* PROTOBUF_NONNULL SOJournalCheckpointAttempt::mutable_receipt()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ::sobject::SOJournalReceipt* _msg = _internal_mutable_receipt();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalCheckpointAttempt.receipt)
+  return _msg;
+}
+inline void SOJournalCheckpointAttempt::set_allocated_receipt(::sobject::SOJournalReceipt* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.receipt_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  }
+
+  _impl_.receipt_ = reinterpret_cast<::sobject::SOJournalReceipt*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalCheckpointAttempt.receipt)
+}
+
+// .sobject.SOJournalAcknowledgement acknowledgement = 10;
+inline bool SOJournalCheckpointAttempt::has_acknowledgement() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000080U);
+  PROTOBUF_ASSUME(!value || _impl_.acknowledgement_ != nullptr);
+  return value;
+}
+inline void SOJournalCheckpointAttempt::clear_acknowledgement() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.acknowledgement_ != nullptr) _impl_.acknowledgement_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline const ::sobject::SOJournalAcknowledgement& SOJournalCheckpointAttempt::_internal_acknowledgement() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalAcknowledgement* p = _impl_.acknowledgement_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalAcknowledgement&>(::sobject::_SOJournalAcknowledgement_default_instance_);
+}
+inline const ::sobject::SOJournalAcknowledgement& SOJournalCheckpointAttempt::acknowledgement() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.acknowledgement)
+  return _internal_acknowledgement();
+}
+inline void SOJournalCheckpointAttempt::unsafe_arena_set_allocated_acknowledgement(
+    ::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.acknowledgement_);
+  }
+  _impl_.acknowledgement_ = reinterpret_cast<::sobject::SOJournalAcknowledgement*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalCheckpointAttempt.acknowledgement)
+}
+inline ::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::release_acknowledgement() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::sobject::SOJournalAcknowledgement* released = _impl_.acknowledgement_;
+  _impl_.acknowledgement_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::unsafe_arena_release_acknowledgement() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalCheckpointAttempt.acknowledgement)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::sobject::SOJournalAcknowledgement* temp = _impl_.acknowledgement_;
+  _impl_.acknowledgement_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalAcknowledgement* PROTOBUF_NONNULL SOJournalCheckpointAttempt::_internal_mutable_acknowledgement() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.acknowledgement_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalAcknowledgement>(GetArena());
+    _impl_.acknowledgement_ = reinterpret_cast<::sobject::SOJournalAcknowledgement*>(p);
+  }
+  return _impl_.acknowledgement_;
+}
+inline ::sobject::SOJournalAcknowledgement* PROTOBUF_NONNULL SOJournalCheckpointAttempt::mutable_acknowledgement()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  ::sobject::SOJournalAcknowledgement* _msg = _internal_mutable_acknowledgement();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalCheckpointAttempt.acknowledgement)
+  return _msg;
+}
+inline void SOJournalCheckpointAttempt::set_allocated_acknowledgement(::sobject::SOJournalAcknowledgement* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.acknowledgement_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
+  }
+
+  _impl_.acknowledgement_ = reinterpret_cast<::sobject::SOJournalAcknowledgement*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalCheckpointAttempt.acknowledgement)
+}
+
+// .sobject.SOJournalProjection projection = 11;
+inline bool SOJournalCheckpointAttempt::has_projection() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000100U);
+  PROTOBUF_ASSUME(!value || _impl_.projection_ != nullptr);
+  return value;
+}
+inline void SOJournalCheckpointAttempt::clear_projection() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.projection_ != nullptr) _impl_.projection_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline const ::sobject::SOJournalProjection& SOJournalCheckpointAttempt::_internal_projection() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalProjection* p = _impl_.projection_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalProjection&>(::sobject::_SOJournalProjection_default_instance_);
+}
+inline const ::sobject::SOJournalProjection& SOJournalCheckpointAttempt::projection() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.projection)
+  return _internal_projection();
+}
+inline void SOJournalCheckpointAttempt::unsafe_arena_set_allocated_projection(
+    ::sobject::SOJournalProjection* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.projection_);
+  }
+  _impl_.projection_ = reinterpret_cast<::sobject::SOJournalProjection*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalCheckpointAttempt.projection)
+}
+inline ::sobject::SOJournalProjection* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::release_projection() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::sobject::SOJournalProjection* released = _impl_.projection_;
+  _impl_.projection_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalProjection* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::unsafe_arena_release_projection() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalCheckpointAttempt.projection)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::sobject::SOJournalProjection* temp = _impl_.projection_;
+  _impl_.projection_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalProjection* PROTOBUF_NONNULL SOJournalCheckpointAttempt::_internal_mutable_projection() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.projection_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalProjection>(GetArena());
+    _impl_.projection_ = reinterpret_cast<::sobject::SOJournalProjection*>(p);
+  }
+  return _impl_.projection_;
+}
+inline ::sobject::SOJournalProjection* PROTOBUF_NONNULL SOJournalCheckpointAttempt::mutable_projection()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  ::sobject::SOJournalProjection* _msg = _internal_mutable_projection();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalCheckpointAttempt.projection)
+  return _msg;
+}
+inline void SOJournalCheckpointAttempt::set_allocated_projection(::sobject::SOJournalProjection* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.projection_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000100U);
+  }
+
+  _impl_.projection_ = reinterpret_cast<::sobject::SOJournalProjection*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalCheckpointAttempt.projection)
+}
+
+// .sobject.SOJournalLookup lookup = 12;
+inline bool SOJournalCheckpointAttempt::has_lookup() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000200U);
+  PROTOBUF_ASSUME(!value || _impl_.lookup_ != nullptr);
+  return value;
+}
+inline void SOJournalCheckpointAttempt::clear_lookup() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.lookup_ != nullptr) _impl_.lookup_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000200U);
+}
+inline const ::sobject::SOJournalLookup& SOJournalCheckpointAttempt::_internal_lookup() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOJournalLookup* p = _impl_.lookup_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOJournalLookup&>(::sobject::_SOJournalLookup_default_instance_);
+}
+inline const ::sobject::SOJournalLookup& SOJournalCheckpointAttempt::lookup() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.lookup)
+  return _internal_lookup();
+}
+inline void SOJournalCheckpointAttempt::unsafe_arena_set_allocated_lookup(
+    ::sobject::SOJournalLookup* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.lookup_);
+  }
+  _impl_.lookup_ = reinterpret_cast<::sobject::SOJournalLookup*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOJournalCheckpointAttempt.lookup)
+}
+inline ::sobject::SOJournalLookup* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::release_lookup() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  ::sobject::SOJournalLookup* released = _impl_.lookup_;
+  _impl_.lookup_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOJournalLookup* PROTOBUF_NULLABLE SOJournalCheckpointAttempt::unsafe_arena_release_lookup() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalCheckpointAttempt.lookup)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  ::sobject::SOJournalLookup* temp = _impl_.lookup_;
+  _impl_.lookup_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOJournalLookup* PROTOBUF_NONNULL SOJournalCheckpointAttempt::_internal_mutable_lookup() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.lookup_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOJournalLookup>(GetArena());
+    _impl_.lookup_ = reinterpret_cast<::sobject::SOJournalLookup*>(p);
+  }
+  return _impl_.lookup_;
+}
+inline ::sobject::SOJournalLookup* PROTOBUF_NONNULL SOJournalCheckpointAttempt::mutable_lookup()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  ::sobject::SOJournalLookup* _msg = _internal_mutable_lookup();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalCheckpointAttempt.lookup)
+  return _msg;
+}
+inline void SOJournalCheckpointAttempt::set_allocated_lookup(::sobject::SOJournalLookup* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.lookup_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000200U);
+  }
+
+  _impl_.lookup_ = reinterpret_cast<::sobject::SOJournalLookup*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalCheckpointAttempt.lookup)
+}
+
+// bool send_attempted = 13;
+inline void SOJournalCheckpointAttempt::clear_send_attempted() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.send_attempted_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00004000U);
+}
+inline bool SOJournalCheckpointAttempt::send_attempted() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.send_attempted)
+  return _internal_send_attempted();
+}
+inline void SOJournalCheckpointAttempt::set_send_attempted(bool value) {
+  _internal_set_send_attempted(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00004000U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalCheckpointAttempt.send_attempted)
+}
+inline bool SOJournalCheckpointAttempt::_internal_send_attempted() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.send_attempted_;
+}
+inline void SOJournalCheckpointAttempt::_internal_set_send_attempted(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.send_attempted_ = value;
+}
+
+// bool resend_authorized = 14;
+inline void SOJournalCheckpointAttempt::clear_resend_authorized() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.resend_authorized_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00008000U);
+}
+inline bool SOJournalCheckpointAttempt::resend_authorized() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.resend_authorized)
+  return _internal_resend_authorized();
+}
+inline void SOJournalCheckpointAttempt::set_resend_authorized(bool value) {
+  _internal_set_resend_authorized(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00008000U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalCheckpointAttempt.resend_authorized)
+}
+inline bool SOJournalCheckpointAttempt::_internal_resend_authorized() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.resend_authorized_;
+}
+inline void SOJournalCheckpointAttempt::_internal_set_resend_authorized(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.resend_authorized_ = value;
+}
+
+// bool lineage_recovery_blocked = 15;
+inline void SOJournalCheckpointAttempt::clear_lineage_recovery_blocked() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.lineage_recovery_blocked_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00010000U);
+}
+inline bool SOJournalCheckpointAttempt::lineage_recovery_blocked() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.lineage_recovery_blocked)
+  return _internal_lineage_recovery_blocked();
+}
+inline void SOJournalCheckpointAttempt::set_lineage_recovery_blocked(bool value) {
+  _internal_set_lineage_recovery_blocked(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00010000U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalCheckpointAttempt.lineage_recovery_blocked)
+}
+inline bool SOJournalCheckpointAttempt::_internal_lineage_recovery_blocked() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.lineage_recovery_blocked_;
+}
+inline void SOJournalCheckpointAttempt::_internal_set_lineage_recovery_blocked(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.lineage_recovery_blocked_ = value;
+}
+
+// uint64 intent_sequence = 16;
+inline void SOJournalCheckpointAttempt::clear_intent_sequence() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.intent_sequence_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00001000U);
+}
+inline ::uint64_t SOJournalCheckpointAttempt::intent_sequence() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.intent_sequence)
+  return _internal_intent_sequence();
+}
+inline void SOJournalCheckpointAttempt::set_intent_sequence(::uint64_t value) {
+  _internal_set_intent_sequence(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalCheckpointAttempt.intent_sequence)
+}
+inline ::uint64_t SOJournalCheckpointAttempt::_internal_intent_sequence() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.intent_sequence_;
+}
+inline void SOJournalCheckpointAttempt::_internal_set_intent_sequence(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.intent_sequence_ = value;
+}
+
+// uint64 envelope_sequence = 17;
+inline void SOJournalCheckpointAttempt::clear_envelope_sequence() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.envelope_sequence_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00002000U);
+}
+inline ::uint64_t SOJournalCheckpointAttempt::envelope_sequence() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.envelope_sequence)
+  return _internal_envelope_sequence();
+}
+inline void SOJournalCheckpointAttempt::set_envelope_sequence(::uint64_t value) {
+  _internal_set_envelope_sequence(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00002000U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalCheckpointAttempt.envelope_sequence)
+}
+inline ::uint64_t SOJournalCheckpointAttempt::_internal_envelope_sequence() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.envelope_sequence_;
+}
+inline void SOJournalCheckpointAttempt::_internal_set_envelope_sequence(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.envelope_sequence_ = value;
+}
+
+// bool checkpoint_eligible = 18;
+inline void SOJournalCheckpointAttempt::clear_checkpoint_eligible() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.checkpoint_eligible_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00020000U);
+}
+inline bool SOJournalCheckpointAttempt::checkpoint_eligible() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpointAttempt.checkpoint_eligible)
+  return _internal_checkpoint_eligible();
+}
+inline void SOJournalCheckpointAttempt::set_checkpoint_eligible(bool value) {
+  _internal_set_checkpoint_eligible(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00020000U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalCheckpointAttempt.checkpoint_eligible)
+}
+inline bool SOJournalCheckpointAttempt::_internal_checkpoint_eligible() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.checkpoint_eligible_;
+}
+inline void SOJournalCheckpointAttempt::_internal_set_checkpoint_eligible(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.checkpoint_eligible_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// SOJournalCheckpoint
+
+// bytes journal_identity = 1;
+inline void SOJournalCheckpoint::clear_journal_identity() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.journal_identity_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SOJournalCheckpoint::journal_identity() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpoint.journal_identity)
+  return _internal_journal_identity();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOJournalCheckpoint::set_journal_identity(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.journal_identity_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOJournalCheckpoint.journal_identity)
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalCheckpoint::mutable_journal_identity()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_journal_identity();
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalCheckpoint.journal_identity)
+  return _s;
+}
+inline const ::std::string& SOJournalCheckpoint::_internal_journal_identity() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.journal_identity_.Get();
+}
+inline void SOJournalCheckpoint::_internal_set_journal_identity(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.journal_identity_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOJournalCheckpoint::_internal_mutable_journal_identity() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.journal_identity_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOJournalCheckpoint::release_journal_identity() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOJournalCheckpoint.journal_identity)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.journal_identity_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.journal_identity_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOJournalCheckpoint::set_allocated_journal_identity(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.journal_identity_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.journal_identity_.IsDefault()) {
+    _impl_.journal_identity_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOJournalCheckpoint.journal_identity)
+}
+
+// uint64 generation = 2;
+inline void SOJournalCheckpoint::clear_generation() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::uint64_t SOJournalCheckpoint::generation() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpoint.generation)
+  return _internal_generation();
+}
+inline void SOJournalCheckpoint::set_generation(::uint64_t value) {
+  _internal_set_generation(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalCheckpoint.generation)
+}
+inline ::uint64_t SOJournalCheckpoint::_internal_generation() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.generation_;
+}
+inline void SOJournalCheckpoint::_internal_set_generation(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.generation_ = value;
+}
+
+// uint64 next_sequence = 3;
+inline void SOJournalCheckpoint::clear_next_sequence() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.next_sequence_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::uint64_t SOJournalCheckpoint::next_sequence() const {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpoint.next_sequence)
+  return _internal_next_sequence();
+}
+inline void SOJournalCheckpoint::set_next_sequence(::uint64_t value) {
+  _internal_set_next_sequence(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:sobject.SOJournalCheckpoint.next_sequence)
+}
+inline ::uint64_t SOJournalCheckpoint::_internal_next_sequence() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.next_sequence_;
+}
+inline void SOJournalCheckpoint::_internal_set_next_sequence(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.next_sequence_ = value;
+}
+
+// repeated .sobject.SOJournalCheckpointAttempt attempts = 4;
+inline int SOJournalCheckpoint::_internal_attempts_size() const {
+  return _internal_attempts().size();
+}
+inline int SOJournalCheckpoint::attempts_size() const {
+  return _internal_attempts_size();
+}
+inline void SOJournalCheckpoint::clear_attempts() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.attempts_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::sobject::SOJournalCheckpointAttempt* PROTOBUF_NONNULL SOJournalCheckpoint::mutable_attempts(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:sobject.SOJournalCheckpoint.attempts)
+  return _internal_mutable_attempts()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::sobject::SOJournalCheckpointAttempt>* PROTOBUF_NONNULL SOJournalCheckpoint::mutable_attempts()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:sobject.SOJournalCheckpoint.attempts)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_attempts();
+}
+inline const ::sobject::SOJournalCheckpointAttempt& SOJournalCheckpoint::attempts(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOJournalCheckpoint.attempts)
+  return _internal_attempts().Get(index);
+}
+inline ::sobject::SOJournalCheckpointAttempt* PROTOBUF_NONNULL SOJournalCheckpoint::add_attempts()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::sobject::SOJournalCheckpointAttempt* _add =
+      _internal_mutable_attempts()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:sobject.SOJournalCheckpoint.attempts)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::sobject::SOJournalCheckpointAttempt>& SOJournalCheckpoint::attempts() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:sobject.SOJournalCheckpoint.attempts)
+  return _internal_attempts();
+}
+inline const ::google::protobuf::RepeatedPtrField<::sobject::SOJournalCheckpointAttempt>&
+SOJournalCheckpoint::_internal_attempts() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.attempts_;
+}
+inline ::google::protobuf::RepeatedPtrField<::sobject::SOJournalCheckpointAttempt>* PROTOBUF_NONNULL
+SOJournalCheckpoint::_internal_mutable_attempts() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.attempts_;
+}
+
+// -------------------------------------------------------------------
+
+// SOTerminalReceiptAccepted
+
+// -------------------------------------------------------------------
+
+// SOTerminalReceiptInner
+
+// .sobject.SOMutationKey key = 1;
+inline bool SOTerminalReceiptInner::has_key() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  PROTOBUF_ASSUME(!value || _impl_.key_ != nullptr);
+  return value;
+}
+inline void SOTerminalReceiptInner::clear_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ != nullptr) _impl_.key_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::sobject::SOMutationKey& SOTerminalReceiptInner::_internal_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.key_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& SOTerminalReceiptInner::key() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.key)
+  return _internal_key();
+}
+inline void SOTerminalReceiptInner::unsafe_arena_set_allocated_key(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOTerminalReceiptInner.key)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::sobject::SOMutationKey* released = _impl_.key_;
+  _impl_.key_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOTerminalReceiptInner::unsafe_arena_release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.key)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::sobject::SOMutationKey* temp = _impl_.key_;
+  _impl_.key_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.key_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.key_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_key();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.key)
+  return _msg;
+}
+inline void SOTerminalReceiptInner::set_allocated_key(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.key_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+
+  _impl_.key_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.key)
+}
+
+// bytes envelope_digest = 2;
+inline void SOTerminalReceiptInner::clear_envelope_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.envelope_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& SOTerminalReceiptInner::envelope_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.envelope_digest)
+  return _internal_envelope_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOTerminalReceiptInner::set_envelope_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.envelope_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceiptInner.envelope_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_envelope_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_envelope_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.envelope_digest)
+  return _s;
+}
+inline const ::std::string& SOTerminalReceiptInner::_internal_envelope_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.envelope_digest_.Get();
+}
+inline void SOTerminalReceiptInner::_internal_set_envelope_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.envelope_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_envelope_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.envelope_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_envelope_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.envelope_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.envelope_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.envelope_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOTerminalReceiptInner::set_allocated_envelope_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.envelope_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.envelope_digest_.IsDefault()) {
+    _impl_.envelope_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.envelope_digest)
+}
+
+// .sobject.SOTerminalReceiptAccepted accepted = 3;
+inline bool SOTerminalReceiptInner::has_accepted() const {
+  return outcome_case() == kAccepted;
+}
+inline bool SOTerminalReceiptInner::_internal_has_accepted() const {
+  return outcome_case() == kAccepted;
+}
+inline void SOTerminalReceiptInner::set_has_accepted() {
+  _impl_._oneof_case_[0] = kAccepted;
+}
+inline void SOTerminalReceiptInner::clear_accepted() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (outcome_case() == kAccepted) {
+    if (GetArena() == nullptr) {
+      delete _impl_.outcome_.accepted_;
+    } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+      ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.outcome_.accepted_);
+    }
+    clear_has_outcome();
+  }
+}
+inline ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_accepted() {
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.accepted)
+  if (outcome_case() == kAccepted) {
+    clear_has_outcome();
+    auto* temp = _impl_.outcome_.accepted_;
+    if (GetArena() != nullptr) {
+      temp = ::google::protobuf::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.outcome_.accepted_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::sobject::SOTerminalReceiptAccepted& SOTerminalReceiptInner::_internal_accepted() const {
+  return outcome_case() == kAccepted ? static_cast<const ::sobject::SOTerminalReceiptAccepted&>(*_impl_.outcome_.accepted_)
+                     : reinterpret_cast<const ::sobject::SOTerminalReceiptAccepted&>(::sobject::_SOTerminalReceiptAccepted_default_instance_);
+}
+inline const ::sobject::SOTerminalReceiptAccepted& SOTerminalReceiptInner::accepted() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.accepted)
+  return _internal_accepted();
+}
+inline ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE SOTerminalReceiptInner::unsafe_arena_release_accepted() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:sobject.SOTerminalReceiptInner.accepted)
+  if (outcome_case() == kAccepted) {
+    clear_has_outcome();
+    auto* temp = _impl_.outcome_.accepted_;
+    _impl_.outcome_.accepted_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void SOTerminalReceiptInner::unsafe_arena_set_allocated_accepted(
+    ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE value) {
+  // We rely on the oneof clear method to free the earlier contents
+  // of this oneof. We can directly use the pointer we're given to
+  // set the new value.
+  clear_outcome();
+  if (value) {
+    set_has_accepted();
+    _impl_.outcome_.accepted_ = value;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOTerminalReceiptInner.accepted)
+}
+inline ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_accepted() {
+  if (outcome_case() != kAccepted) {
+    clear_outcome();
+    set_has_accepted();
+    _impl_.outcome_.accepted_ = 
+        ::google::protobuf::Message::DefaultConstruct<::sobject::SOTerminalReceiptAccepted>(GetArena());
+  }
+  return _impl_.outcome_.accepted_;
+}
+inline ::sobject::SOTerminalReceiptAccepted* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_accepted()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::sobject::SOTerminalReceiptAccepted* _msg = _internal_mutable_accepted();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.accepted)
+  return _msg;
+}
+
+// .sobject.SOOperationRejection signed_rejection = 4;
+inline bool SOTerminalReceiptInner::has_signed_rejection() const {
+  return outcome_case() == kSignedRejection;
+}
+inline bool SOTerminalReceiptInner::_internal_has_signed_rejection() const {
+  return outcome_case() == kSignedRejection;
+}
+inline void SOTerminalReceiptInner::set_has_signed_rejection() {
+  _impl_._oneof_case_[0] = kSignedRejection;
+}
+inline void SOTerminalReceiptInner::clear_signed_rejection() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (outcome_case() == kSignedRejection) {
+    if (GetArena() == nullptr) {
+      delete _impl_.outcome_.signed_rejection_;
+    } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+      ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.outcome_.signed_rejection_);
+    }
+    clear_has_outcome();
+  }
+}
+inline ::sobject::SOOperationRejection* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_signed_rejection() {
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.signed_rejection)
+  if (outcome_case() == kSignedRejection) {
+    clear_has_outcome();
+    auto* temp = _impl_.outcome_.signed_rejection_;
+    if (GetArena() != nullptr) {
+      temp = ::google::protobuf::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.outcome_.signed_rejection_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::sobject::SOOperationRejection& SOTerminalReceiptInner::_internal_signed_rejection() const {
+  return outcome_case() == kSignedRejection ? static_cast<const ::sobject::SOOperationRejection&>(*_impl_.outcome_.signed_rejection_)
+                     : reinterpret_cast<const ::sobject::SOOperationRejection&>(::sobject::_SOOperationRejection_default_instance_);
+}
+inline const ::sobject::SOOperationRejection& SOTerminalReceiptInner::signed_rejection() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.signed_rejection)
+  return _internal_signed_rejection();
+}
+inline ::sobject::SOOperationRejection* PROTOBUF_NULLABLE SOTerminalReceiptInner::unsafe_arena_release_signed_rejection() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:sobject.SOTerminalReceiptInner.signed_rejection)
+  if (outcome_case() == kSignedRejection) {
+    clear_has_outcome();
+    auto* temp = _impl_.outcome_.signed_rejection_;
+    _impl_.outcome_.signed_rejection_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void SOTerminalReceiptInner::unsafe_arena_set_allocated_signed_rejection(
+    ::sobject::SOOperationRejection* PROTOBUF_NULLABLE value) {
+  // We rely on the oneof clear method to free the earlier contents
+  // of this oneof. We can directly use the pointer we're given to
+  // set the new value.
+  clear_outcome();
+  if (value) {
+    set_has_signed_rejection();
+    _impl_.outcome_.signed_rejection_ = value;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOTerminalReceiptInner.signed_rejection)
+}
+inline ::sobject::SOOperationRejection* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_signed_rejection() {
+  if (outcome_case() != kSignedRejection) {
+    clear_outcome();
+    set_has_signed_rejection();
+    _impl_.outcome_.signed_rejection_ = 
+        ::google::protobuf::Message::DefaultConstruct<::sobject::SOOperationRejection>(GetArena());
+  }
+  return _impl_.outcome_.signed_rejection_;
+}
+inline ::sobject::SOOperationRejection* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_signed_rejection()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::sobject::SOOperationRejection* _msg = _internal_mutable_signed_rejection();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.signed_rejection)
+  return _msg;
+}
+
+// uint64 authoritative_root_seqno = 5;
+inline void SOTerminalReceiptInner::clear_authoritative_root_seqno() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_seqno_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::uint64_t SOTerminalReceiptInner::authoritative_root_seqno() const {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.authoritative_root_seqno)
+  return _internal_authoritative_root_seqno();
+}
+inline void SOTerminalReceiptInner::set_authoritative_root_seqno(::uint64_t value) {
+  _internal_set_authoritative_root_seqno(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceiptInner.authoritative_root_seqno)
+}
+inline ::uint64_t SOTerminalReceiptInner::_internal_authoritative_root_seqno() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.authoritative_root_seqno_;
+}
+inline void SOTerminalReceiptInner::_internal_set_authoritative_root_seqno(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_seqno_ = value;
+}
+
+// bytes authoritative_root_digest = 6;
+inline void SOTerminalReceiptInner::clear_authoritative_root_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SOTerminalReceiptInner::authoritative_root_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.authoritative_root_digest)
+  return _internal_authoritative_root_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOTerminalReceiptInner::set_authoritative_root_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.authoritative_root_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceiptInner.authoritative_root_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_authoritative_root_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_authoritative_root_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.authoritative_root_digest)
+  return _s;
+}
+inline const ::std::string& SOTerminalReceiptInner::_internal_authoritative_root_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.authoritative_root_digest_.Get();
+}
+inline void SOTerminalReceiptInner::_internal_set_authoritative_root_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.authoritative_root_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_authoritative_root_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.authoritative_root_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_authoritative_root_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.authoritative_root_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.authoritative_root_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.authoritative_root_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOTerminalReceiptInner::set_allocated_authoritative_root_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.authoritative_root_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.authoritative_root_digest_.IsDefault()) {
+    _impl_.authoritative_root_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.authoritative_root_digest)
+}
+
+// bytes config_chain_digest = 7;
+inline void SOTerminalReceiptInner::clear_config_chain_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.config_chain_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline const ::std::string& SOTerminalReceiptInner::config_chain_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.config_chain_digest)
+  return _internal_config_chain_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOTerminalReceiptInner::set_config_chain_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  _impl_.config_chain_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceiptInner.config_chain_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_config_chain_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ::std::string* _s = _internal_mutable_config_chain_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.config_chain_digest)
+  return _s;
+}
+inline const ::std::string& SOTerminalReceiptInner::_internal_config_chain_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.config_chain_digest_.Get();
+}
+inline void SOTerminalReceiptInner::_internal_set_config_chain_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.config_chain_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_config_chain_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.config_chain_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_config_chain_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.config_chain_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  auto* released = _impl_.config_chain_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.config_chain_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOTerminalReceiptInner::set_allocated_config_chain_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  }
+  _impl_.config_chain_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.config_chain_digest_.IsDefault()) {
+    _impl_.config_chain_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.config_chain_digest)
+}
+
+// .sobject.SOConsensusMode consensus_mode = 8;
+inline void SOTerminalReceiptInner::clear_consensus_mode() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.consensus_mode_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000100U);
+}
+inline ::sobject::SOConsensusMode SOTerminalReceiptInner::consensus_mode() const {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.consensus_mode)
+  return _internal_consensus_mode();
+}
+inline void SOTerminalReceiptInner::set_consensus_mode(::sobject::SOConsensusMode value) {
+  _internal_set_consensus_mode(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceiptInner.consensus_mode)
+}
+inline ::sobject::SOConsensusMode SOTerminalReceiptInner::_internal_consensus_mode() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::sobject::SOConsensusMode>(_impl_.consensus_mode_);
+}
+inline void SOTerminalReceiptInner::_internal_set_consensus_mode(::sobject::SOConsensusMode value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.consensus_mode_ = value;
+}
+
+// bytes validator_set_digest = 9;
+inline void SOTerminalReceiptInner::clear_validator_set_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.validator_set_digest_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::std::string& SOTerminalReceiptInner::validator_set_digest() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.validator_set_digest)
+  return _internal_validator_set_digest();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOTerminalReceiptInner::set_validator_set_digest(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  _impl_.validator_set_digest_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceiptInner.validator_set_digest)
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_validator_set_digest()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ::std::string* _s = _internal_mutable_validator_set_digest();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.validator_set_digest)
+  return _s;
+}
+inline const ::std::string& SOTerminalReceiptInner::_internal_validator_set_digest() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.validator_set_digest_.Get();
+}
+inline void SOTerminalReceiptInner::_internal_set_validator_set_digest(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.validator_set_digest_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_validator_set_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.validator_set_digest_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_validator_set_digest() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.validator_set_digest)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  auto* released = _impl_.validator_set_digest_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.validator_set_digest_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOTerminalReceiptInner::set_allocated_validator_set_digest(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  }
+  _impl_.validator_set_digest_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.validator_set_digest_.IsDefault()) {
+    _impl_.validator_set_digest_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.validator_set_digest)
+}
+
+// uint64 terminal_unix_millis = 10;
+inline void SOTerminalReceiptInner::clear_terminal_unix_millis() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.terminal_unix_millis_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000080U);
+}
+inline ::uint64_t SOTerminalReceiptInner::terminal_unix_millis() const {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.terminal_unix_millis)
+  return _internal_terminal_unix_millis();
+}
+inline void SOTerminalReceiptInner::set_terminal_unix_millis(::uint64_t value) {
+  _internal_set_terminal_unix_millis(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceiptInner.terminal_unix_millis)
+}
+inline ::uint64_t SOTerminalReceiptInner::_internal_terminal_unix_millis() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.terminal_unix_millis_;
+}
+inline void SOTerminalReceiptInner::_internal_set_terminal_unix_millis(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.terminal_unix_millis_ = value;
+}
+
+// .sobject.SOMutationKey supersedes = 11;
+inline bool SOTerminalReceiptInner::has_supersedes() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
+  PROTOBUF_ASSUME(!value || _impl_.supersedes_ != nullptr);
+  return value;
+}
+inline void SOTerminalReceiptInner::clear_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.supersedes_ != nullptr) _impl_.supersedes_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::sobject::SOMutationKey& SOTerminalReceiptInner::_internal_supersedes() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::sobject::SOMutationKey* p = _impl_.supersedes_;
+  return p != nullptr ? *p : reinterpret_cast<const ::sobject::SOMutationKey&>(::sobject::_SOMutationKey_default_instance_);
+}
+inline const ::sobject::SOMutationKey& SOTerminalReceiptInner::supersedes() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceiptInner.supersedes)
+  return _internal_supersedes();
+}
+inline void SOTerminalReceiptInner::unsafe_arena_set_allocated_supersedes(
+    ::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.supersedes_);
+  }
+  _impl_.supersedes_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:sobject.SOTerminalReceiptInner.supersedes)
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOTerminalReceiptInner::release_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::sobject::SOMutationKey* released = _impl_.supersedes_;
+  _impl_.supersedes_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NULLABLE SOTerminalReceiptInner::unsafe_arena_release_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceiptInner.supersedes)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::sobject::SOMutationKey* temp = _impl_.supersedes_;
+  _impl_.supersedes_ = nullptr;
+  return temp;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOTerminalReceiptInner::_internal_mutable_supersedes() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.supersedes_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::sobject::SOMutationKey>(GetArena());
+    _impl_.supersedes_ = reinterpret_cast<::sobject::SOMutationKey*>(p);
+  }
+  return _impl_.supersedes_;
+}
+inline ::sobject::SOMutationKey* PROTOBUF_NONNULL SOTerminalReceiptInner::mutable_supersedes()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::sobject::SOMutationKey* _msg = _internal_mutable_supersedes();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceiptInner.supersedes)
+  return _msg;
+}
+inline void SOTerminalReceiptInner::set_allocated_supersedes(::sobject::SOMutationKey* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.supersedes_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+
+  _impl_.supersedes_ = reinterpret_cast<::sobject::SOMutationKey*>(value);
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.supersedes)
+}
+
+inline bool SOTerminalReceiptInner::has_outcome() const {
+  return outcome_case() != OUTCOME_NOT_SET;
+}
+inline void SOTerminalReceiptInner::clear_has_outcome() {
+  _impl_._oneof_case_[0] = OUTCOME_NOT_SET;
+}
+inline SOTerminalReceiptInner::OutcomeCase SOTerminalReceiptInner::outcome_case() const {
+  return SOTerminalReceiptInner::OutcomeCase(_impl_._oneof_case_[0]);
+}
+// -------------------------------------------------------------------
+
+// SOTerminalReceipt
+
+// bytes inner = 1;
+inline void SOTerminalReceipt::clear_inner() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.inner_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline const ::std::string& SOTerminalReceipt::inner() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceipt.inner)
+  return _internal_inner();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void SOTerminalReceipt::set_inner(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  _impl_.inner_.SetBytes(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:sobject.SOTerminalReceipt.inner)
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceipt::mutable_inner()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ::std::string* _s = _internal_mutable_inner();
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceipt.inner)
+  return _s;
+}
+inline const ::std::string& SOTerminalReceipt::_internal_inner() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.inner_.Get();
+}
+inline void SOTerminalReceipt::_internal_set_inner(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.inner_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL SOTerminalReceipt::_internal_mutable_inner() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.inner_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE SOTerminalReceipt::release_inner() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:sobject.SOTerminalReceipt.inner)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  auto* released = _impl_.inner_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.inner_.Set("", GetArena());
+  }
+  return released;
+}
+inline void SOTerminalReceipt::set_allocated_inner(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  }
+  _impl_.inner_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.inner_.IsDefault()) {
+    _impl_.inner_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceipt.inner)
+}
+
+// repeated .peer.Signature validator_signatures = 2;
+inline int SOTerminalReceipt::_internal_validator_signatures_size() const {
+  return _internal_validator_signatures().size();
+}
+inline int SOTerminalReceipt::validator_signatures_size() const {
+  return _internal_validator_signatures_size();
+}
+inline ::peer::Signature* PROTOBUF_NONNULL SOTerminalReceipt::mutable_validator_signatures(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:sobject.SOTerminalReceipt.validator_signatures)
+  return _internal_mutable_validator_signatures()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::peer::Signature>* PROTOBUF_NONNULL SOTerminalReceipt::mutable_validator_signatures()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_mutable_list:sobject.SOTerminalReceipt.validator_signatures)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_validator_signatures();
+}
+inline const ::peer::Signature& SOTerminalReceipt::validator_signatures(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:sobject.SOTerminalReceipt.validator_signatures)
+  return _internal_validator_signatures().Get(index);
+}
+inline ::peer::Signature* PROTOBUF_NONNULL SOTerminalReceipt::add_validator_signatures()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::peer::Signature* _add =
+      _internal_mutable_validator_signatures()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_add:sobject.SOTerminalReceipt.validator_signatures)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::peer::Signature>& SOTerminalReceipt::validator_signatures() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:sobject.SOTerminalReceipt.validator_signatures)
+  return _internal_validator_signatures();
+}
+inline const ::google::protobuf::RepeatedPtrField<::peer::Signature>&
+SOTerminalReceipt::_internal_validator_signatures() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.validator_signatures_;
+}
+inline ::google::protobuf::RepeatedPtrField<::peer::Signature>* PROTOBUF_NONNULL
+SOTerminalReceipt::_internal_mutable_validator_signatures() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.validator_signatures_;
+}
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif  // __GNUC__
@@ -15151,6 +25392,42 @@ struct is_proto_enum<::sobject::SORevocationReason> : std::true_type {};
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::sobject::SORevocationReason>() {
   return ::sobject::SORevocationReason_descriptor();
+}
+template <>
+struct is_proto_enum<::sobject::SOJournalRecordKind> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::sobject::SOJournalRecordKind>() {
+  return ::sobject::SOJournalRecordKind_descriptor();
+}
+template <>
+struct is_proto_enum<::sobject::SOJournalAttemptState> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::sobject::SOJournalAttemptState>() {
+  return ::sobject::SOJournalAttemptState_descriptor();
+}
+template <>
+struct is_proto_enum<::sobject::SOJournalOutcome> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::sobject::SOJournalOutcome>() {
+  return ::sobject::SOJournalOutcome_descriptor();
+}
+template <>
+struct is_proto_enum<::sobject::SOJournalReadiness> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::sobject::SOJournalReadiness>() {
+  return ::sobject::SOJournalReadiness_descriptor();
+}
+template <>
+struct is_proto_enum<::sobject::SOJournalRecoveryReason> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::sobject::SOJournalRecoveryReason>() {
+  return ::sobject::SOJournalRecoveryReason_descriptor();
+}
+template <>
+struct is_proto_enum<::sobject::SOReceiptState> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::sobject::SOReceiptState>() {
+  return ::sobject::SOReceiptState_descriptor();
 }
 
 }  // namespace protobuf

@@ -2,10 +2,15 @@ package plugin_host_resource
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
+	resource "github.com/s4wave/spacewave/bldr/resource"
+	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	sdk_plugin_host "github.com/s4wave/spacewave/bldr/sdk/plugin/host"
@@ -13,26 +18,57 @@ import (
 	unixfs_rpc "github.com/s4wave/spacewave/db/unixfs/rpc"
 	unixfs_rpc_server "github.com/s4wave/spacewave/db/unixfs/rpc/server"
 	volume_rpc_server "github.com/s4wave/spacewave/db/volume/rpc/server"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
+	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
 	"github.com/sirupsen/logrus"
 )
+
+// InitialCapabilityRegistrationDoneFunc reports whether the plugin completed
+// its initial capability-registration pass before its instance ended.
+type InitialCapabilityRegistrationDoneFunc func(complete bool)
 
 // PluginHostRoot is the root resource handler for plugins.
 // It wraps all plugin resources and implements PluginHostResourceService.
 type PluginHostRoot struct {
-	le           *logrus.Entry
-	b            bus.Bus
-	pluginID     string
-	entrypoint   string
-	distFS       *unixfs.FSHandle
-	assetsFS     *unixfs.FSHandle
-	proxyHostVol *volume_rpc_server.ProxyVolume
-	stateAtomMgr *resource_state.StateAtomManager
-	hostRoot     *plugin_host_root.Root
-	mux          srpc.Invoker
+	ctx                  context.Context
+	le                   *logrus.Entry
+	b                    bus.Bus
+	pluginID             string
+	entrypoint           string
+	distFS               *unixfs.FSHandle
+	assetsFS             *unixfs.FSHandle
+	proxyHostVol         *volume_rpc_server.ProxyVolume
+	stateAtomMgr         *resource_state.StateAtomManager
+	hostRoot             *plugin_host_root.Root
+	mux                  srpc.Invoker
+	releaseOnce          sync.Once
+	registrationDoneOnce sync.Once
+	registrationDone     InitialCapabilityRegistrationDoneFunc
+	objectTypeMtx        sync.Mutex
+	objectTypes          map[*objectTypeRegistration]struct{}
+	released             bool
+}
+
+type objectTypeRegistration struct {
+	once       sync.Once
+	resources  *resource_client.Client
+	serviceRef directive.Reference
+	ref        resource_client.ResourceRef
+}
+
+func (r *objectTypeRegistration) release() {
+	r.once.Do(func() {
+		if r.ref != nil {
+			r.ref.Release()
+		}
+		r.resources.Release()
+		r.serviceRef.Release()
+	})
 }
 
 // NewPluginHostRoot constructs a new PluginHostRoot.
 func NewPluginHostRoot(
+	ctx context.Context,
 	le *logrus.Entry,
 	b bus.Bus,
 	pluginID, entrypoint string,
@@ -40,16 +76,20 @@ func NewPluginHostRoot(
 	proxyHostVol *volume_rpc_server.ProxyVolume,
 	hostRoot *plugin_host_root.Root,
 	stateAtomObjectStoreID, stateAtomVolumeID string,
+	registrationDone InitialCapabilityRegistrationDoneFunc,
 ) *PluginHostRoot {
 	r := &PluginHostRoot{
-		le:           le,
-		b:            b,
-		pluginID:     pluginID,
-		entrypoint:   entrypoint,
-		distFS:       distFS,
-		assetsFS:     assetsFS,
-		proxyHostVol: proxyHostVol,
-		hostRoot:     hostRoot,
+		ctx:              ctx,
+		le:               le,
+		b:                b,
+		pluginID:         pluginID,
+		entrypoint:       entrypoint,
+		distFS:           distFS,
+		assetsFS:         assetsFS,
+		proxyHostVol:     proxyHostVol,
+		hostRoot:         hostRoot,
+		objectTypes:      make(map[*objectTypeRegistration]struct{}),
+		registrationDone: registrationDone,
 	}
 	r.stateAtomMgr = resource_state.NewStateAtomManager(b, stateAtomObjectStoreID, stateAtomVolumeID)
 	mux := resource_server.NewResourceMux(func(m srpc.Mux) error {
@@ -66,7 +106,131 @@ func (r *PluginHostRoot) GetMux() srpc.Invoker {
 
 // Release releases all resources held by the root.
 func (r *PluginHostRoot) Release() {
-	r.stateAtomMgr.Release()
+	r.finishInitialCapabilityRegistration(false)
+	r.releaseOnce.Do(func() {
+		r.objectTypeMtx.Lock()
+		r.released = true
+		registrations := make([]*objectTypeRegistration, 0, len(r.objectTypes))
+		for registration := range r.objectTypes {
+			registrations = append(registrations, registration)
+		}
+		clear(r.objectTypes)
+		r.objectTypeMtx.Unlock()
+
+		for _, registration := range registrations {
+			registration.release()
+		}
+		r.stateAtomMgr.Release()
+	})
+}
+
+// CompleteInitialCapabilityRegistration marks the plugin's initial capability
+// registration pass complete.
+func (r *PluginHostRoot) CompleteInitialCapabilityRegistration(
+	context.Context,
+	*sdk_plugin_host.CompleteInitialCapabilityRegistrationRequest,
+) (*sdk_plugin_host.CompleteInitialCapabilityRegistrationResponse, error) {
+	r.finishInitialCapabilityRegistration(true)
+	return &sdk_plugin_host.CompleteInitialCapabilityRegistrationResponse{}, nil
+}
+
+func (r *PluginHostRoot) finishInitialCapabilityRegistration(complete bool) {
+	r.registrationDoneOnce.Do(func() {
+		if r.registrationDone != nil {
+			r.registrationDone(complete)
+		}
+	})
+}
+
+// RegisterObjectType registers an ObjectType served by the running plugin.
+func (r *PluginHostRoot) RegisterObjectType(
+	ctx context.Context,
+	req *sdk_plugin_host.RegisterObjectTypeRequest,
+) (*sdk_plugin_host.RegisterObjectTypeResponse, error) {
+	pluginClient, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	invokers, _, serviceRef, err := bifrost_rpc.ExLookupRpcService(
+		r.ctx,
+		r.b,
+		resource.SRPCResourceServiceServiceID,
+		"",
+		true,
+		nil,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "lookup core Resource service")
+	}
+	if len(invokers) == 0 {
+		serviceRef.Release()
+		return nil, errors.New("core Resource service not found")
+	}
+	resourceService := resource.NewSRPCResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invokers[0]))),
+	)
+	resources, err := resource_client.NewClient(r.ctx, resourceService)
+	if err != nil {
+		serviceRef.Release()
+		return nil, errors.Wrap(err, "connect to core ObjectType registry")
+	}
+	registration := &objectTypeRegistration{
+		resources:  resources,
+		serviceRef: serviceRef,
+	}
+	rootRef := resources.AccessRootResource()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		rootRef.Release()
+		registration.release()
+		return nil, err
+	}
+	service := s4wave_objecttype_registry.NewSRPCObjectTypeRegistryResourceServiceClient(rootClient)
+	resp, err := service.RegisterObjectType(ctx, &s4wave_objecttype_registry.RegisterObjectTypeRequest{
+		TypeId:   req.GetTypeId(),
+		PluginId: r.pluginID,
+		Metadata: req.GetMetadata(),
+	})
+	rootRef.Release()
+	if err != nil {
+		registration.release()
+		return nil, err
+	}
+	if resp.GetResourceId() == 0 {
+		registration.release()
+		return nil, errors.New("core ObjectType registration returned zero resource id")
+	}
+	registration.ref = resources.CreateResourceReference(resp.GetResourceId())
+	r.objectTypeMtx.Lock()
+	if r.released {
+		r.objectTypeMtx.Unlock()
+		registration.release()
+		return nil, errors.New("plugin host root is released")
+	}
+	r.objectTypes[registration] = struct{}{}
+	r.objectTypeMtx.Unlock()
+
+	resourceID, err := pluginClient.AddResource(srpc.NewMux(), func() {
+		r.releaseObjectTypeRegistration(registration)
+	})
+	if err != nil {
+		r.releaseObjectTypeRegistration(registration)
+		return nil, err
+	}
+	return &sdk_plugin_host.RegisterObjectTypeResponse{ResourceId: resourceID}, nil
+}
+
+func (r *PluginHostRoot) releaseObjectTypeRegistration(registration *objectTypeRegistration) {
+	r.objectTypeMtx.Lock()
+	_, ok := r.objectTypes[registration]
+	if ok {
+		delete(r.objectTypes, registration)
+	}
+	r.objectTypeMtx.Unlock()
+	if ok {
+		registration.release()
+	}
 }
 
 // AccessAssetsFS returns a resource ID for the plugin's assets filesystem.

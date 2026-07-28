@@ -186,7 +186,7 @@ function AuthUnlockWizardContent({
 
             <div className="bg-foreground/5 h-1.5 w-full overflow-hidden rounded-full">
               <div
-                className="bg-brand h-full transition-all duration-300"
+                className="bg-brand h-full transition-[width] duration-300"
                 style={{
                   width: `${Math.min(100, (unlockedCount / required) * 100)}%`,
                 }}
@@ -226,7 +226,7 @@ function AuthUnlockWizardContent({
               'disabled:cursor-not-allowed disabled:opacity-50',
             )}
           >
-            {submitting ? 'Confirming...' : confirmLabel}
+            {submitting ? 'Confirming…' : confirmLabel}
           </button>
         </DialogFooter>
       </DialogContent>
@@ -741,7 +741,7 @@ function BrowserUnlockCard({
               ? '...'
               : 'Unlock'
             : waiting
-              ? 'Waiting...'
+              ? 'Waiting…'
               : actionLabel}
         </button>
       </div>

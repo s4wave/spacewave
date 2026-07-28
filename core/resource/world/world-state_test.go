@@ -15,6 +15,8 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
+	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
@@ -420,6 +422,81 @@ func TestWorldStateResourceGetObjectRootRefsBatch(t *testing.T) {
 	}
 	if record.Duration <= 0 {
 		t.Fatalf("expected positive duration, got %s", record.Duration)
+	}
+}
+
+func TestWorldStateResourceGetObjectBodiesBatch(t *testing.T) {
+	ctx := context.Background()
+
+	tb, tbCleanup := setupWorldTestbed(ctx, t)
+	defer tbCleanup()
+
+	for _, entry := range []struct {
+		key string
+		msg string
+	}{
+		{key: "body/alpha", msg: "alpha"},
+		{key: "body/beta", msg: "beta"},
+		{key: "body/gamma", msg: "gamma"},
+	} {
+		_, _, err := world.CreateWorldObject(ctx, tb.WorldState, entry.key, func(bcs *block.Cursor) error {
+			bcs.SetBlock(block_mock.NewExample(entry.msg), true)
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	var records []resource_world.WorldStateOperationRecord
+	resource := resource_world.NewWorldStateResource(nil, nil, tb.WorldState, nil, resource_world.WithWorldStateOperationObserver(func(record resource_world.WorldStateOperationRecord) {
+		records = append(records, record)
+	}))
+	resp, err := resource.GetObjectBodiesBatch(ctx, &s4wave_world.GetObjectBodiesBatchRequest{
+		ObjectKeys: []string{"body/gamma", "body/missing", "body/alpha", "body/alpha"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bodies := resp.GetBodies()
+	if len(bodies) != 4 {
+		t.Fatalf("expected 4 bodies, got %d", len(bodies))
+	}
+	checkBody := func(index int, key string, msg string, exists bool) {
+		t.Helper()
+		body := bodies[index]
+		if body.GetObjectKey() != key || body.GetExists() != exists {
+			t.Fatalf("body %d = key %q exists %v, want key %q exists %v", index, body.GetObjectKey(), body.GetExists(), key, exists)
+		}
+		if !exists {
+			if body.GetBody() != nil {
+				t.Fatalf("body %d has data for missing key", index)
+			}
+			return
+		}
+		decoded := block_mock.NewExample("")
+		if err := decoded.UnmarshalBlock(body.GetBody()); err != nil {
+			t.Fatalf("decode body %d: %v", index, err)
+		}
+		if decoded.GetMsg() != msg {
+			t.Fatalf("body %d message = %q, want %q", index, decoded.GetMsg(), msg)
+		}
+	}
+	checkBody(0, "body/gamma", "gamma", true)
+	checkBody(1, "body/missing", "", false)
+	checkBody(2, "body/alpha", "alpha", true)
+	checkBody(3, "body/alpha", "alpha", true)
+
+	if len(records) != 1 {
+		t.Fatalf("expected one operation record, got %d", len(records))
+	}
+	record := records[0]
+	if record.Name != "GetObjectBodiesBatch" {
+		t.Fatalf("record name = %q", record.Name)
+	}
+	if record.StartKeyCount != 4 || record.ResultObjectCount != 3 {
+		t.Fatalf("unexpected object counts: %+v", record)
 	}
 }
 

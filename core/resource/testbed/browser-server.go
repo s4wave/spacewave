@@ -59,5 +59,5 @@ func (h *LayoutServerHelper) SetupInitialLayoutModel() {
 
 // WaitForLayoutUpdateWithTimeout waits for a layout update with context timeout handling.
 func (h *LayoutServerHelper) WaitForLayoutUpdateWithTimeout(ctx context.Context) (*s4wave_layout.LayoutModel, error) {
-	return h.LayoutServer.WaitForLayoutUpdate(ctx)
+	return h.WaitForLayoutUpdate(ctx)
 }

@@ -3,10 +3,15 @@ package provider_spacewave
 import (
 	"context"
 	"crypto/rand"
+	"encoding/base64"
+	"path"
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
@@ -169,22 +174,253 @@ func initializeCloudSharedObjectState(
 	sfs *block_transform.StepFactorySet,
 	seedWorldHead bool,
 ) error {
-	localPeerID, err := peer.IDFromPrivateKey(localPriv)
+	state, err := buildStandaloneSpaceInitState(
+		ctx,
+		cli,
+		le,
+		accountID,
+		sharedObjectID,
+		localPriv,
+		sfs,
+		seedWorldHead,
+		nil,
+	)
 	if err != nil {
 		return err
 	}
-
-	_, soTransform, grantInner, err := buildInitialSpaceTransform(le, sfs)
+	if err := cli.PostConfigState(
+		ctx,
+		sharedObjectID,
+		state.configData,
+		nil,
+		state.keyEpoch,
+		state.recoveryEnvelopes,
+	); err != nil {
+		return errors.Wrap(err, "post signed genesis config")
+	}
+	rootData, err := state.root.MarshalVT()
 	if err != nil {
+		return errors.Wrap(err, "marshal root")
+	}
+	if err := cli.PostInitState(ctx, sharedObjectID, rootData); err != nil {
 		return err
 	}
+	return nil
+}
 
-	genesisConfig := &sobject.SharedObjectConfig{
-		Participants: []*sobject.SOParticipantConfig{{
+type standaloneSpaceInitState struct {
+	configData        []byte
+	keyEpoch          *sobject.SOKeyEpoch
+	recoveryEnvelopes []*sobject.SOEntityRecoveryEnvelope
+	root              *sobject.SORoot
+}
+
+func buildStandaloneGenesisParticipants(
+	localPeerID peer.ID,
+	accountID string,
+	friendAccounts []FriendDmAccount,
+) ([]*sobject.SOParticipantConfig, error) {
+	if len(friendAccounts) == 0 {
+		return []*sobject.SOParticipantConfig{{
 			PeerId:   localPeerID.String(),
 			Role:     sobject.SOParticipantRole_SOParticipantRole_OWNER,
 			EntityId: accountID,
-		}},
+		}}, nil
+	}
+	participants := make([]*sobject.SOParticipantConfig, 0)
+	seenAccounts := make(map[string]struct{}, len(friendAccounts))
+	seenPeers := make(map[string]struct{})
+	ownerAccountFound := false
+	for _, account := range friendAccounts {
+		if account.AccountID == "" {
+			return nil, errors.New("friend dm account id is required")
+		}
+		if _, ok := seenAccounts[account.AccountID]; ok {
+			return nil, errors.New("friend dm account is duplicated")
+		}
+		seenAccounts[account.AccountID] = struct{}{}
+		if len(account.Sessions) == 0 {
+			return nil, errors.Errorf(
+				"friend dm account %s has no active sessions",
+				account.AccountID,
+			)
+		}
+		role := sobject.SOParticipantRole_SOParticipantRole_WRITER
+		if account.AccountID == accountID {
+			role = sobject.SOParticipantRole_SOParticipantRole_OWNER
+			ownerAccountFound = true
+		}
+		for _, session := range account.Sessions {
+			if session.PeerID == "" {
+				return nil, errors.New("friend dm session peer is required")
+			}
+			if _, ok := seenPeers[session.PeerID]; ok {
+				return nil, errors.Errorf(
+					"friend dm peer %s appears more than once",
+					session.PeerID,
+				)
+			}
+			seenPeers[session.PeerID] = struct{}{}
+			participants = append(participants, &sobject.SOParticipantConfig{
+				PeerId:   session.PeerID,
+				Role:     role,
+				EntityId: account.AccountID,
+			})
+		}
+	}
+	if len(seenAccounts) != 2 {
+		return nil, errors.New("friend dm requires two accounts")
+	}
+	if !ownerAccountFound {
+		return nil, errors.New("friend dm owner account is not present")
+	}
+	localPeerFound := false
+	localOwnerFound := false
+	for _, participant := range participants {
+		if participant.GetPeerId() != localPeerID.String() {
+			continue
+		}
+		localPeerFound = true
+		if participant.GetEntityId() == accountID &&
+			sobject.IsOwner(participant.GetRole()) {
+			localOwnerFound = true
+		}
+		break
+	}
+	if !localPeerFound {
+		return nil, errors.New("friend dm owner session is not present")
+	}
+	if !localOwnerFound {
+		return nil, errors.New("friend dm owner session has non-owner role")
+	}
+	return participants, nil
+}
+
+func buildFriendDmRecoveryEnvelopes(
+	accounts []FriendDmAccount,
+	cfg *sobject.SharedObjectConfig,
+	keyEpoch uint64,
+	grantInner *sobject.SOGrantInner,
+) ([]*sobject.SOEntityRecoveryEnvelope, error) {
+	if cfg == nil {
+		return nil, errors.New("friend dm recovery config is required")
+	}
+	if grantInner == nil {
+		return nil, errors.New("friend dm recovery grant material is required")
+	}
+	entityRoles := listReadableEntityRoles(cfg)
+	if len(entityRoles) != len(accounts) {
+		return nil, errors.New("friend dm recovery entities do not match accounts")
+	}
+	envelopes := make([]*sobject.SOEntityRecoveryEnvelope, 0, len(accounts))
+	for _, account := range accounts {
+		role, ok := entityRoles[account.AccountID]
+		if !ok {
+			return nil, errors.Errorf(
+				"friend dm recovery entity %s is not readable",
+				account.AccountID,
+			)
+		}
+		if len(account.RecoveryKeypairs) == 0 {
+			return nil, errors.Errorf(
+				"friend dm account %s has no recovery keypairs",
+				account.AccountID,
+			)
+		}
+		recipientPubs := make([]crypto.PubKey, 0, len(account.RecoveryKeypairs))
+		seenRecoveryPeers := make(map[string]struct{}, len(account.RecoveryKeypairs))
+		for _, recoveryKeypair := range account.RecoveryKeypairs {
+			if _, ok := seenRecoveryPeers[recoveryKeypair.PeerID]; ok {
+				return nil, errors.Errorf(
+					"friend dm recovery peer %s appears more than once",
+					recoveryKeypair.PeerID,
+				)
+			}
+			seenRecoveryPeers[recoveryKeypair.PeerID] = struct{}{}
+			pub, err := session.ExtractPublicKeyFromPeerID(recoveryKeypair.PeerID)
+			if err != nil {
+				return nil, errors.Wrapf(
+					err,
+					"extract friend dm recovery pubkey %s",
+					recoveryKeypair.PeerID,
+				)
+			}
+			recipientPubs = append(recipientPubs, pub)
+		}
+		env, err := sobject.BuildSOEntityRecoveryEnvelope(
+			account.AccountID,
+			keyEpoch,
+			cfg,
+			&sobject.SOEntityRecoveryMaterial{
+				EntityId:   account.AccountID,
+				Role:       role,
+				GrantInner: grantInner.CloneVT(),
+			},
+			recipientPubs,
+		)
+		if err != nil {
+			return nil, errors.Wrapf(
+				err,
+				"build friend dm recovery envelope %s",
+				account.AccountID,
+			)
+		}
+		envelopes = append(envelopes, env)
+	}
+	return envelopes, nil
+}
+
+func marshalFriendDmInitialState(
+	state *standaloneSpaceInitState,
+) ([]byte, []byte, error) {
+	if state == nil || state.keyEpoch == nil || state.root == nil {
+		return nil, nil, errors.New("friend dm initial state is incomplete")
+	}
+	configData, err := (&api.PostConfigStateRequest{
+		ConfigChange:      state.configData,
+		KeyEpoch:          state.keyEpoch,
+		RecoveryEnvelopes: state.recoveryEnvelopes,
+	}).MarshalVT()
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "marshal friend dm config state")
+	}
+	rootData, err := (&api.PostRootRequest{Root: state.root}).MarshalVT()
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "marshal friend dm root state")
+	}
+	return configData, rootData, nil
+}
+
+func buildStandaloneSpaceInitState(
+	ctx context.Context,
+	cli *SessionClient,
+	le *logrus.Entry,
+	accountID string,
+	sharedObjectID string,
+	localPriv crypto.PrivKey,
+	sfs *block_transform.StepFactorySet,
+	seedWorldHead bool,
+	friendAccounts []FriendDmAccount,
+) (*standaloneSpaceInitState, error) {
+	localPeerID, err := peer.IDFromPrivateKey(localPriv)
+	if err != nil {
+		return nil, err
+	}
+	_, soTransform, grantInner, err := buildInitialSpaceTransform(le, sfs)
+	if err != nil {
+		return nil, err
+	}
+
+	participants, err := buildStandaloneGenesisParticipants(
+		localPeerID,
+		accountID,
+		friendAccounts,
+	)
+	if err != nil {
+		return nil, err
+	}
+	genesisConfig := &sobject.SharedObjectConfig{
+		Participants: participants,
 	}
 	genesisEntry, err := sobject.BuildSOConfigChange(
 		&sobject.SharedObjectConfig{},
@@ -194,63 +430,79 @@ func initializeCloudSharedObjectState(
 		nil,
 	)
 	if err != nil {
-		return errors.Wrap(err, "build signed genesis config")
+		return nil, errors.Wrap(err, "build signed genesis config")
 	}
 	genesisData, err := genesisEntry.MarshalVT()
 	if err != nil {
-		return errors.Wrap(err, "marshal signed genesis config")
+		return nil, errors.Wrap(err, "marshal signed genesis config")
 	}
 
-	localPub, err := localPeerID.ExtractPublicKey()
-	if err != nil {
-		return errors.Wrap(err, "extract local public key")
+	grants := make([]*sobject.SOGrant, 0, len(participants))
+	for _, participant := range participants {
+		targetPeer, peerErr := participant.ParsePeerID()
+		if peerErr != nil {
+			return nil, errors.Wrap(peerErr, "parse genesis participant peer")
+		}
+		targetPub, pubErr := targetPeer.ExtractPublicKey()
+		if pubErr != nil {
+			return nil, errors.Wrap(pubErr, "extract genesis participant public key")
+		}
+		grant, grantErr := sobject.EncryptSOGrant(
+			localPriv,
+			targetPub,
+			sharedObjectID,
+			grantInner,
+		)
+		if grantErr != nil {
+			return nil, errors.Wrap(grantErr, "encrypt genesis grant")
+		}
+		grants = append(grants, grant)
 	}
-	grant, err := sobject.EncryptSOGrant(localPriv, localPub, sharedObjectID, grantInner)
-	if err != nil {
-		return errors.Wrap(err, "encrypt grant")
-	}
-
 	epoch := &sobject.SOKeyEpoch{
 		Epoch:      0,
 		SeqnoStart: 1,
-		Grants:     []*sobject.SOGrant{grant},
+		Grants:     grants,
 	}
 	genesisHash, err := sobject.HashSOConfigChange(genesisEntry)
 	if err != nil {
-		return errors.Wrap(err, "hash signed genesis config")
+		return nil, errors.Wrap(err, "hash signed genesis config")
 	}
 	genesisConfig = genesisConfig.CloneVT()
 	genesisConfig.ConfigChainSeqno = genesisEntry.GetConfigSeqno()
 	genesisConfig.ConfigChainHash = genesisHash
-	recoveryEnvelopes, err := buildSORecoveryEnvelopes(
-		ctx,
-		cli,
-		sharedObjectID,
-		genesisConfig,
-		epoch.GetEpoch(),
-		grantInner,
-	)
-	if err != nil {
-		var missingErr *missingRecoveryKeypairsError
-		if !errors.As(err, &missingErr) || missingErr.entityID != accountID {
-			return errors.Wrap(err, "build recovery envelopes")
+	var recoveryEnvelopes []*sobject.SOEntityRecoveryEnvelope
+	if len(friendAccounts) > 0 {
+		recoveryEnvelopes, err = buildFriendDmRecoveryEnvelopes(
+			friendAccounts,
+			genesisConfig,
+			epoch.GetEpoch(),
+			grantInner,
+		)
+	} else {
+		recoveryEnvelopes, err = buildSORecoveryEnvelopes(
+			ctx,
+			cli,
+			sharedObjectID,
+			genesisConfig,
+			epoch.GetEpoch(),
+			grantInner,
+		)
+		if err != nil {
+			var missingErr *missingRecoveryKeypairsError
+			if !errors.As(err, &missingErr) || missingErr.entityID != accountID {
+				return nil, errors.Wrap(err, "build recovery envelopes")
+			}
+			recoveryEnvelopes = nil
+			err = nil
 		}
-		recoveryEnvelopes = nil
 	}
-	if err := cli.PostConfigState(
-		ctx,
-		sharedObjectID,
-		genesisData,
-		nil,
-		epoch,
-		recoveryEnvelopes,
-	); err != nil {
-		return errors.Wrap(err, "post signed genesis config")
+	if err != nil {
+		return nil, errors.Wrap(err, "build friend dm recovery envelopes")
 	}
 
 	stateData, err := buildInitialWorldStateData(seedWorldHead)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	ninner := &sobject.SORootInner{
 		Seqno:     1,
@@ -258,27 +510,96 @@ func initializeCloudSharedObjectState(
 	}
 	innerDataDec, err := ninner.MarshalVT()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	innerDataEnc, err := soTransform.EncodeBlock(innerDataDec)
 	if err != nil {
-		return errors.Wrap(err, "encrypt root inner")
+		return nil, errors.Wrap(err, "encrypt root inner")
 	}
-
-	nroot := &sobject.SORoot{InnerSeqno: 1, Inner: innerDataEnc}
-	if err := nroot.SignInnerData(localPriv, sharedObjectID, nroot.GetInnerSeqno(), hash.RecommendedHashType); err != nil {
-		return errors.Wrap(err, "sign root")
+	root := &sobject.SORoot{InnerSeqno: 1, Inner: innerDataEnc}
+	if err := root.SignInnerData(localPriv, sharedObjectID, root.GetInnerSeqno(), hash.RecommendedHashType); err != nil {
+		return nil, errors.Wrap(err, "sign root")
 	}
+	return &standaloneSpaceInitState{
+		configData:        genesisData,
+		keyEpoch:          epoch,
+		recoveryEnvelopes: recoveryEnvelopes,
+		root:              root,
+	}, nil
+}
 
-	rootData, err := nroot.MarshalVT()
+func marshalCreateWithStateBody(
+	displayName string,
+	objectType string,
+	ownerType string,
+	ownerID string,
+	accountPrivate bool,
+	configState []byte,
+	rootState []byte,
+) ([]byte, error) {
+	if displayName == "" || objectType == "" || ownerType == "" || ownerID == "" {
+		return nil, errors.New("space metadata is required")
+	}
+	if len(configState) == 0 || len(rootState) == 0 {
+		return nil, errors.New("space initial state is required")
+	}
+	var arena fastjson.Arena
+	body := arena.NewObject()
+	body.Set("displayName", arena.NewString(displayName))
+	body.Set("objectType", arena.NewString(objectType))
+	body.Set("ownerType", arena.NewString(ownerType))
+	body.Set("ownerId", arena.NewString(ownerID))
+	if accountPrivate {
+		body.Set("accountPrivate", arena.NewTrue())
+	} else {
+		body.Set("accountPrivate", arena.NewFalse())
+	}
+	body.Set("configState", arena.NewString(base64.StdEncoding.EncodeToString(configState)))
+	body.Set("rootState", arena.NewString(base64.StdEncoding.EncodeToString(rootState)))
+	return body.MarshalTo(nil), nil
+}
+
+// CreateSpaceWithState atomically creates a private shared object with signed
+// config and root state. A 200 response is an idempotent existing-state match;
+// a 201 response creates the canonical state.
+func (c *SessionClient) CreateSpaceWithState(
+	ctx context.Context,
+	spaceID string,
+	displayName string,
+	objectType string,
+	ownerType string,
+	ownerID string,
+	accountPrivate bool,
+	configState []byte,
+	rootState []byte,
+) error {
+	if c == nil {
+		return errors.New("session client is required")
+	}
+	if spaceID == "" {
+		return errors.New("space id is required")
+	}
+	body, err := marshalCreateWithStateBody(
+		displayName,
+		objectType,
+		ownerType,
+		ownerID,
+		accountPrivate,
+		configState,
+		rootState,
+	)
 	if err != nil {
-		return errors.Wrap(err, "marshal root")
-	}
-	if err := cli.PostInitState(ctx, sharedObjectID, rootData); err != nil {
 		return err
 	}
-
-	return nil
+	_, err = c.doPost(
+		ctx,
+		path.Join("/api/sobject", spaceID, "create-with-state"),
+		"application/json",
+		body,
+		map[string]string{"Accept": "application/json"},
+		SeedReasonMutation,
+	)
+	return errors.Wrap(err, "create space with state")
 }
 
 func repairGrantlessStandaloneSpace(

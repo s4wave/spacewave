@@ -82,7 +82,7 @@ func (c *Controller) processResolvers(ctx context.Context, ws world.WorldState) 
 			var listErr error
 			objKeys, listErr = world_types.ListObjectsWithType(entryCtx, ws, bldr_manifest_world.ManifestTypeID)
 			if listErr != nil {
-				le.WithError(listErr).Warn("failed to list manifest objects")
+				warnOnErrorUnlessCanceled(entryCtx, le, listErr, "failed to list manifest objects")
 				trace.Log(entryCtx, "result", "list-objects-error")
 				entryTask.End()
 				continue
@@ -96,13 +96,13 @@ func (c *Controller) processResolvers(ctx context.Context, ws world.WorldState) 
 			entryCtx, ws, mid, entry.dir.GetPlatformIds(), objKeys...,
 		)
 		if err != nil {
-			le.WithError(err).WithField("manifest-id", mid).Warn("failed to collect manifests")
+			warnOnErrorUnlessCanceled(entryCtx, le.WithField("manifest-id", mid), err, "failed to collect manifests")
 			trace.Log(entryCtx, "result", "collect-error")
 			entryTask.End()
 			continue
 		}
 		for _, merr := range manifestErrs {
-			le.WithError(merr).Warn("ignoring invalid manifest")
+			warnOnErrorUnlessCanceled(entryCtx, le, merr, "ignoring invalid manifest")
 		}
 		le.WithField("manifest-id", mid).WithField("count", len(manifests)).Debug("collected manifests")
 		trace.Logf(entryCtx, "collected-count", "%d", len(manifests))

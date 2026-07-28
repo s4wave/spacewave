@@ -49,6 +49,13 @@ export enum State {
    * @generated from enum value: ExecutionState_COMPLETE = 3;
    */
   ExecutionState_COMPLETE = 3,
+
+  /**
+   * ExecutionState_CANCELING is the state while the executor drains custody.
+   *
+   * @generated from enum value: ExecutionState_CANCELING = 4;
+   */
+  ExecutionState_CANCELING = 4,
 }
 
 export const State_Enum = /* @__PURE__ */ createEnumType(
@@ -58,6 +65,7 @@ export const State_Enum = /* @__PURE__ */ createEnumType(
     [1, 'ExecutionState_PENDING'],
     [2, 'ExecutionState_RUNNING'],
     [3, 'ExecutionState_COMPLETE'],
+    [4, 'ExecutionState_CANCELING'],
   ],
 )
 
@@ -99,6 +107,35 @@ export const LogEntry: MessageType<LogEntry> =
   })
 
 /**
+ * Claim fences side effects and write-back for one execution owner.
+ *
+ * @generated from message forge.execution.Claim
+ */
+export interface Claim {
+  /**
+   * ClaimId is the opaque identifier of the controller instance.
+   *
+   * @generated from field: string claim_id = 1;
+   */
+  claimId?: string
+  /**
+   * Epoch is the monotonic fencing token for this claim.
+   *
+   * @generated from field: uint64 epoch = 2;
+   */
+  epoch?: bigint
+}
+
+export const Claim: MessageType<Claim> = /* @__PURE__ */ createMessageType({
+  typeName: 'forge.execution.Claim',
+  fields: [
+    { no: 1, name: 'claim_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'epoch', kind: 'scalar', T: ScalarType.UINT64 },
+  ] satisfies readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
  * World graph links:
  *  - <parent> -> usually a Pass which created the Execution
  *
@@ -128,7 +165,7 @@ export interface Execution {
   timestamp?: Date
   /**
    * ValueSet is the set of inputs and outputs used in the execution.
-   * Outputs are updated while the execution is in RUNNING state.
+   * Outputs are updated while the execution is RUNNING or CANCELING.
    *
    * @generated from field: forge.target.ValueSet value_set = 4;
    */
@@ -147,11 +184,17 @@ export interface Execution {
   result?: Result
   /**
    * LogEntries contains log output from the execution.
-   * Appended while the execution is in RUNNING state.
+   * Appended while the execution is RUNNING or CANCELING.
    *
    * @generated from field: repeated forge.execution.LogEntry log_entries = 7;
    */
   logEntries?: LogEntry[]
+  /**
+   * Claim identifies the controller instance authorized to run and write back.
+   *
+   * @generated from field: forge.execution.Claim claim = 8;
+   */
+  claim?: Claim
 }
 
 export const Execution: MessageType<Execution> =
@@ -171,6 +214,7 @@ export const Execution: MessageType<Execution> =
         T: () => LogEntry,
         repeated: true,
       },
+      { no: 8, name: 'claim', kind: 'message', T: () => Claim },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

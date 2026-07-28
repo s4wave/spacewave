@@ -121,7 +121,7 @@ export function ForgeJobConfigEditor({
           <div className="border-foreground/6 bg-background-card/30 text-foreground-alt/40 flex items-center gap-2 rounded-lg border px-3.5 py-3 text-xs">
             <LuServer className="size-3.5 shrink-0" />
             {clustersResource.loading
-              ? 'Loading clusters...'
+              ? 'Loading clusters…'
               : 'No clusters found. Create a cluster first.'}
           </div>
         )}
@@ -158,7 +158,7 @@ export function ForgeJobConfigEditor({
             variant="outline"
             size="sm"
             onClick={handleAddTask}
-            className="border-foreground/8 hover:border-foreground/15 hover:bg-foreground/5 text-foreground-alt hover:text-foreground h-7 bg-transparent px-2 text-xs transition-all duration-150"
+            className="border-foreground/8 hover:border-foreground/15 hover:bg-foreground/5 text-foreground-alt hover:text-foreground h-7 bg-transparent px-2 text-xs transition duration-150"
           >
             <LuPlus className="size-3.5" />
             Add Task
@@ -179,7 +179,7 @@ export function ForgeJobConfigEditor({
                   size="sm"
                   onClick={() => handleRemoveTask(i)}
                   aria-label={`Remove task ${i + 1}`}
-                  className="border-foreground/8 hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive h-9 bg-transparent px-2 transition-all duration-150"
+                  className="border-foreground/8 hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive h-9 bg-transparent px-2 transition duration-150"
                 >
                   <LuTrash className="size-3.5" />
                 </Button>

@@ -241,7 +241,7 @@ export function DocumentationViewer({
           <LuSearch className="text-muted-foreground size-3 shrink-0" />
           <input
             type="text"
-            placeholder="Search pages..."
+            placeholder="Search pages…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="text-foreground placeholder:text-muted-foreground w-full border-none bg-transparent text-xs outline-none"

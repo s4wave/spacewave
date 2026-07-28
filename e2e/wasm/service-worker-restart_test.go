@@ -73,14 +73,14 @@ func TestServiceWorkerRestartRecoversBldrWebHarness(t *testing.T) {
 	createDriveFolder(t, leftPage, serviceWorkerRestartPreFolder)
 	waitForDriveEntry(t, rightPage, serviceWorkerRestartPreFolder)
 	pluginAssetURL := serviceWorkerRestartPluginAssetURL(t, leftPage)
-	assertServiceWorkerRestartPluginFetch(t, leftPage, pluginAssetURL, "before ServiceWorker restart")
+	assertPluginAssetFetchSucceeds(t, leftPage, pluginAssetURL, "before ServiceWorker restart")
 
 	control := newServiceWorkerRestartCDPControl(t, rightPage)
 	defer control.Close()
 	active := control.WaitForRunning(t)
 	stopped := control.Stop(t, active)
 	control.Drain()
-	assertServiceWorkerRestartPluginFetch(t, rightPage, pluginAssetURL, "after ServiceWorker restart")
+	assertPluginAssetFetchSucceeds(t, rightPage, pluginAssetURL, "after ServiceWorker restart")
 	restarted := control.WaitForRunning(t)
 	if restarted.VersionID != stopped.VersionID {
 		t.Fatalf("ServiceWorker restarted unexpected version: stopped=%#v running=%#v", stopped, restarted)
@@ -315,7 +315,11 @@ func serviceWorkerRestartPluginAssetURL(t testing.TB, page playwright.Page) stri
 	return url
 }
 
-func assertServiceWorkerRestartPluginFetch(
+// assertPluginAssetFetchSucceeds fetches a plugin asset through the runtime
+// relay and asserts it returns HTTP 200. Every test that disturbs the relay,
+// by restarting the ServiceWorker or by failing the DedicatedWorker host over
+// to a survivor document, uses this to prove the relay serves again afterwards.
+func assertPluginAssetFetchSucceeds(
 	t testing.TB,
 	page playwright.Page,
 	url string,

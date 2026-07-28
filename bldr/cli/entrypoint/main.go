@@ -18,6 +18,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
+	entrypoint_fatal "github.com/s4wave/spacewave/bldr/entrypoint/fatal"
 	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/sirupsen/logrus"
@@ -36,6 +37,8 @@ func Main(
 
 	var dtBus *CliBusImpl
 	var statePath string
+	var socketPath string
+	var startSocketPath string
 	var logLevel string
 	var logFiles cli.StringSlice
 	var logFileCleanup func()
@@ -56,6 +59,10 @@ func Main(
 				root = filepath.Join(cwd, root)
 			}
 			if err := os.MkdirAll(root, 0o755); err != nil {
+				busInitErr = err
+				return
+			}
+			if err := storagepath.PublishResolvedPaths(projectID, root, socketPath); err != nil {
 				busInitErr = err
 				return
 			}
@@ -130,6 +137,12 @@ func Main(
 			EnvVars:     statePathEnvVars,
 			Value:       defaultStatePath,
 			Destination: &statePath,
+		},
+		&cli.StringFlag{
+			Name:        "socket-path",
+			Usage:       "listen on this exact Unix socket path",
+			EnvVars:     []string{envPrefix + "_SOCKET_PATH"},
+			Destination: &socketPath,
 		},
 		&cli.StringFlag{
 			Name:        "log-level",
@@ -238,9 +251,18 @@ func Main(
 				EnvVars:     []string{envPrefix + "_TRACE"},
 				Destination: &runtimeTracePath,
 			},
+			&cli.StringFlag{
+				Name:        "socket-path",
+				Usage:       "listen on this exact Unix socket path",
+				EnvVars:     []string{envPrefix + "_SOCKET_PATH"},
+				Destination: &startSocketPath,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			return runWithRuntimeTrace(runtimeTracePath, func() error {
+				if startSocketPath != "" {
+					socketPath = startSocketPath
+				}
 				if err := ensureBus(); err != nil {
 					return err
 				}
@@ -248,8 +270,17 @@ func Main(
 					return errors.New("bus not initialized")
 				}
 				dtBus.GetLogger().Info("started, press ctrl+c to stop")
-				<-dtBus.GetContext().Done()
-				return nil
+				select {
+				case <-dtBus.GetContext().Done():
+					return nil
+				case <-entrypoint_fatal.Chan():
+					// A controller reported a condition under which the
+					// daemon cannot serve, such as another live daemon
+					// owning the front-door socket. Exit with the error
+					// instead of blocking as a daemon without its
+					// front door.
+					return entrypoint_fatal.Err()
+				}
 			})
 		},
 	})

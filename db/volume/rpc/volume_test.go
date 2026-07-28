@@ -247,6 +247,45 @@ func TestRPCVolume(t *testing.T) {
 		t.Fatalf("expected RPC coordinator wait-lease release, got %v", err)
 	}
 
+	worldLease, err := vol.AcquireWorldEngineLease(ctx, "rpc-world-engine-object")
+	if err != nil {
+		t.Fatalf("expected RPC World Engine lease, got %v", err)
+	}
+	_, err = vol.AcquireWorldEngineLease(ctx, "rpc-world-engine-object")
+	var heldErr *volume.WorldEngineLeaseHeldError
+	if !errors.As(err, &heldErr) {
+		_ = worldLease.Release()
+		t.Fatalf("expected held World Engine lease error, got %v", err)
+	}
+	differentWorldLease, err := vol.AcquireWorldEngineLease(ctx, "rpc-world-engine-other")
+	if err != nil {
+		_ = worldLease.Release()
+		t.Fatalf("expected different World Engine lease key to acquire, got %v", err)
+	}
+	if err := differentWorldLease.Release(); err != nil {
+		_ = worldLease.Release()
+		t.Fatalf("expected different World Engine lease release, got %v", err)
+	}
+	if err := worldLease.Release(); err != nil {
+		t.Fatalf("expected World Engine lease release, got %v", err)
+	}
+	worldLease, err = vol.AcquireWorldEngineLease(ctx, "rpc-world-engine-object")
+	if err != nil {
+		t.Fatalf("expected World Engine lease reacquisition, got %v", err)
+	}
+	differentWorldLease, err = vol.AcquireWorldEngineLease(ctx, "rpc-world-engine-other")
+	if err != nil {
+		_ = worldLease.Release()
+		t.Fatalf("expected different World Engine lease reacquisition, got %v", err)
+	}
+	if err := differentWorldLease.Release(); err != nil {
+		_ = worldLease.Release()
+		t.Fatalf("expected different World Engine lease reacquisition release, got %v", err)
+	}
+	if err := worldLease.Release(); err != nil {
+		t.Fatalf("expected World Engine lease reacquisition release, got %v", err)
+	}
+
 	t.Log("testing object store api")
 	if err := store_test.TestObjectStore(ctx, vol, store_test.WithVLogger(le)); err != nil {
 		t.Fatal(err.Error())

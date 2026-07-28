@@ -5,6 +5,7 @@ package main
 import (
 	"embed"
 
+	aperture_cli "github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	auth_method_password "github.com/s4wave/spacewave/auth/method/password"
@@ -134,7 +135,22 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 var configSets = []cli_entrypoint.BuildConfigSetFunc{cli_entrypoint.ConfigSetFuncFromFS(configSetFS, "configset.bin")}
 
 // cliCommands are the CLI command builders.
-var cliCommands = []cli_entrypoint.BuildCommandsFunc{cli.NewCliCommands}
+//
+// CLI commands build a local bus for storage and control work. They must not
+// let that bus's configured resource listener displace the foreground serve
+// process; serve binds the socket explicitly after installing its own handoff
+// guard.
+var cliCommands = []cli_entrypoint.BuildCommandsFunc{func(getBus func() cli_entrypoint.CliBus) []*aperture_cli.Command {
+	handedOff := false
+	protectedGetBus := func() cli_entrypoint.CliBus {
+		if !handedOff {
+			resource_listener.GetProcessYieldBroker().BeginHandoff("spacewave CLI", "")
+			handedOff = true
+		}
+		return getBus()
+	}
+	return cli.NewCliCommands(protectedGetBus)
+}}
 
 // main is the main entrypoint.
 func main() { cli_entrypoint.Main("spacewave", "spacewave", factories, configSets, cliCommands) }

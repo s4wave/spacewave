@@ -305,6 +305,9 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if core == nil {
 		t.Fatal("spacewave-core manifest not found")
 	}
+	if got := core.GetBuilder().GetRev(); got != 13 {
+		t.Fatalf("spacewave-core manifest revision: got %d, want 13", got)
+	}
 	coreCfg := string(core.GetBuilder().GetConfig())
 	for _, want := range []string{
 		`"accountEndpoint":"https://account.spacewave.app"`,

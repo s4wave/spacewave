@@ -1,5 +1,3 @@
-//go:build !js
-
 // Package bldr_buildbudget bounds concurrent memory-heavy Bldr build stages.
 package bldr_buildbudget
 

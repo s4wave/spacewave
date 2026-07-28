@@ -206,6 +206,9 @@ func (c *Controller) BuildManifest(
 		if err := fsutil.CleanCreateDir(outAssetsPath); err != nil {
 			return nil, err
 		}
+		if err := bldr_manifest_builder.WriteSubManifestEntrypoint(outDistPath); err != nil {
+			return nil, err
+		}
 
 		// build base config
 		buildCtrlConf := conf.CloneVT()
@@ -381,7 +384,7 @@ func (c *Controller) BuildManifest(
 		le,
 		tx,
 		meta,
-		"", // no entrypoint
+		bldr_manifest_builder.SubManifestEntrypoint,
 		outDistPath,
 		outAssetsPath,
 	)

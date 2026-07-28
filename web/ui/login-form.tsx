@@ -12,6 +12,7 @@ import { FcGoogle } from 'react-icons/fc'
 import { RxArrowRight } from 'react-icons/rx'
 import { PiUserCircleDuotone } from 'react-icons/pi'
 import { isDesktop } from '@aptre/bldr'
+import { useLatestRef } from '@aptre/bldr-react'
 import type { CloudProviderConfig } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import { SPACEWAVE_PUBLIC_BASE_URL } from '@s4wave/app/urls.js'
 
@@ -226,8 +227,10 @@ export function LoginForm({
   onAuthBusyChange,
   ...props
 }: LoginFormProps) {
-  const [loading, setLoading] = useState<string | null>(null)
-  const [username, setUsername] = useState(initialUsername?.toLowerCase() ?? '')
+  const [loading, setLoadingState] = useState<string | null>(null)
+  const [username, setUsername] = useState(
+    () => initialUsername?.toLowerCase() ?? '',
+  )
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -285,31 +288,32 @@ export function LoginForm({
     setBrowserSignInPrompt(null)
   }, [])
 
+  const onAuthBusyChangeRef = useLatestRef(onAuthBusyChange)
+  const setLoading = useCallback(
+    (value: string | null) => {
+      setLoadingState(value)
+      onAuthBusyChangeRef.current?.(value !== null)
+    },
+    [onAuthBusyChangeRef],
+  )
+
   const cancelBrowserSignInAttempt = useCallback(() => {
     browserSignInAbortRef.current?.abort()
     browserSignInAbortRef.current = null
     clearBrowserSignInPrompt()
     setLoading(null)
-  }, [clearBrowserSignInPrompt])
+  }, [clearBrowserSignInPrompt, setLoading])
 
-  const onAuthBusyChangeEvent = useEffectEvent((busy: boolean) => {
-    onAuthBusyChange?.(busy)
+  const notifyAuthIdleOnUnmount = useEffectEvent(() => {
+    onAuthBusyChange?.(false)
   })
 
   useEffect(() => {
-    onAuthBusyChangeEvent(loading !== null)
-  }, [loading])
-
-  useEffect(() => {
     return () => {
-      onAuthBusyChangeEvent(false)
+      notifyAuthIdleOnUnmount()
       browserSignInAbortRef.current?.abort()
-      if (browserSignInTimerRef.current) {
-        clearTimeout(browserSignInTimerRef.current)
-      }
-      if (retryTimerRef.current) {
-        clearTimeout(retryTimerRef.current)
-      }
+      clearTimeout(browserSignInTimerRef.current ?? undefined)
+      clearTimeout(retryTimerRef.current ?? undefined)
     }
   }, [])
 
@@ -346,7 +350,7 @@ export function LoginForm({
         setLoading(null)
       }
     },
-    [],
+    [setLoading],
   )
 
   const getTurnstileToken = useCallback(async (): Promise<string> => {
@@ -452,6 +456,7 @@ export function LoginForm({
     onNavigateToSession,
     username,
     password,
+    setLoading,
   ])
 
   const handleKeyDown = useCallback(
@@ -578,6 +583,7 @@ export function LoginForm({
       onBrowserAuth,
       onContinueWithPasskey,
       onSignInWithSSO,
+      setLoading,
     ],
   )
 
@@ -594,7 +600,7 @@ export function LoginForm({
         setLoading(null)
       }
     },
-    [handleAuthError, onSignInWithSSO],
+    [handleAuthError, onSignInWithSSO, setLoading],
   )
 
   return (
@@ -771,7 +777,7 @@ export function LoginForm({
             )}
             <span className="text-foreground text-sm">
               {passwordBusy
-                ? 'Connecting...'
+                ? 'Connecting…'
                 : creatingAccount
                   ? 'Confirm and create account'
                   : 'Continue with password'}
@@ -925,7 +931,7 @@ export function LoginForm({
                           <PiUserCircleDuotone className="text-foreground-alt group-hover:text-brand size-5 transition-colors" />
                           <span className="text-foreground-alt group-hover:text-foreground text-sm transition-colors">
                             {loading === 'continue'
-                              ? 'Starting...'
+                              ? 'Starting…'
                               : 'Continue without account'}
                           </span>
                         </div>

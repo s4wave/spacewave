@@ -7,6 +7,8 @@ import {
   ResourceAttachResponse,
   ResourceClientRequest,
   ResourceClientResponse,
+  ResourceRefAdoptRequest,
+  ResourceRefAdoptResponse,
   ResourceRefReleaseRequest,
   ResourceRefReleaseResponse,
 } from './resource.pb.js'
@@ -64,6 +66,17 @@ export const ResourceServiceDefinition = {
       name: 'ResourceRefRelease',
       I: ResourceRefReleaseRequest,
       O: ResourceRefReleaseResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ResourceRefAdopt acknowledges adoption of a resource created by a held RPC.
+     *
+     * @generated from rpc resource.ResourceService.ResourceRefAdopt
+     */
+    ResourceRefAdopt: {
+      name: 'ResourceRefAdopt',
+      I: ResourceRefAdoptRequest,
+      O: ResourceRefAdoptResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -126,6 +139,16 @@ export interface ResourceService {
   ): Promise<ResourceRefReleaseResponse>
 
   /**
+   * ResourceRefAdopt acknowledges adoption of a resource created by a held RPC.
+   *
+   * @generated from rpc resource.ResourceService.ResourceRefAdopt
+   */
+  ResourceRefAdopt(
+    request: ResourceRefAdoptRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ResourceRefAdoptResponse>
+
+  /**
    * ResourceAttach allows a client to provide resources that server-side
    * RPC handlers can invoke via getAttachedRef(id). Session-only Init/Ack,
    * then resources registered via Add/AddAck. After Init/Ack, mux_data
@@ -150,6 +173,7 @@ export class ResourceServiceClient implements ResourceService {
     this.ResourceClient = this.ResourceClient.bind(this)
     this.ResourceRpc = this.ResourceRpc.bind(this)
     this.ResourceRefRelease = this.ResourceRefRelease.bind(this)
+    this.ResourceRefAdopt = this.ResourceRefAdopt.bind(this)
     this.ResourceAttach = this.ResourceAttach.bind(this)
   }
   /**
@@ -212,6 +236,25 @@ export class ResourceServiceClient implements ResourceService {
       abortSignal || undefined,
     )
     return ResourceRefReleaseResponse.fromBinary(result)
+  }
+
+  /**
+   * ResourceRefAdopt acknowledges adoption of a resource created by a held RPC.
+   *
+   * @generated from rpc resource.ResourceService.ResourceRefAdopt
+   */
+  async ResourceRefAdopt(
+    request: ResourceRefAdoptRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ResourceRefAdoptResponse> {
+    const requestMsg = ResourceRefAdoptRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      ResourceServiceDefinition.methods.ResourceRefAdopt.name,
+      ResourceRefAdoptRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ResourceRefAdoptResponse.fromBinary(result)
   }
 
   /**

@@ -89,6 +89,9 @@ func (os *SDKObjectState) ApplyObjectOp(ctx context.Context, op world.Operation,
 	if err != nil {
 		return 0, false, err
 	}
+	if err := s4wave_world.ErrorFromCode(resp.GetErrorCode()); err != nil {
+		return 0, false, err
+	}
 	return resp.Rev, resp.SysErr, nil
 }
 

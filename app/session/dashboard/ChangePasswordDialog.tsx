@@ -172,7 +172,7 @@ export function ChangePasswordDialog({
               'disabled:cursor-not-allowed disabled:opacity-50',
             )}
           >
-            {submitting ? 'Changing...' : 'Change password'}
+            {submitting ? 'Changing…' : 'Change password'}
           </button>
         </DialogFooter>
       </DialogContent>

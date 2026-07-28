@@ -63,7 +63,14 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 	}
 
 	var regID uint32
+	var duplicate bool
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		for _, registration := range r.registrations {
+			if registration.GetTypeId() == typeID {
+				duplicate = true
+				return
+			}
+		}
 		regID = r.nextID
 		r.nextID++
 		var metadata *s4wave_objecttype_registry.ObjectTypeMetadata
@@ -78,6 +85,9 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 		}
 		broadcast()
 	})
+	if duplicate {
+		return nil, ErrTypeIdAlreadyRegistered
+	}
 
 	emptyMux := srpc.NewMux()
 	resourceID, err := client.AddResource(emptyMux, func() {

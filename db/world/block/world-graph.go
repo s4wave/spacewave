@@ -15,7 +15,7 @@ import (
 // All accesses of the handle should complete before returning cb.
 // Try to make access (queries) as short as possible.
 // Write operations will fail if the store is read-only.
-func (t *WorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
+func (t *WorldState) accessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
 	if t.discarded.Load() {
 		return tx.ErrDiscarded
 	}
@@ -26,7 +26,7 @@ func (t *WorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(
 }
 
 // LookupGraphQuads searches for graph quads in the store.
-func (t *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
+func (t *WorldState) lookupGraphQuadsOnWorld(ctx context.Context, filter world.GraphQuad, limit uint32) ([]world.GraphQuad, error) {
 	if t.discarded.Load() {
 		return nil, tx.ErrDiscarded
 	}
@@ -45,7 +45,7 @@ func (t *WorldState) LookupGraphQuads(ctx context.Context, filter world.GraphQua
 }
 
 // LookupGraphQuadsBatch searches for graph quads for each filter in one graph read.
-func (t *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+func (t *WorldState) lookupGraphQuadsBatchOnWorld(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
 	if t.discarded.Load() {
 		return nil, tx.ErrDiscarded
 	}
@@ -138,7 +138,7 @@ func (t *WorldState) graphQuadExists(ctx context.Context, cq quad.Quad) (bool, e
 }
 
 // QueryGraphPath executes a bounded graph traversal.
-func (t *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
+func (t *WorldState) queryGraphPathOnWorld(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
 	if t.discarded.Load() {
 		return nil, tx.ErrDiscarded
 	}
@@ -189,7 +189,7 @@ func (g *graphPathReadOperation) QueryGraphPath(ctx context.Context, query *worl
 
 // SetGraphQuad sets a quad in the graph store.
 // If already exists, returns nil.
-func (t *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
+func (t *WorldState) setGraphQuad(ctx context.Context, q world.GraphQuad) error {
 	if !t.write {
 		return tx.ErrNotWrite
 	}
@@ -257,7 +257,7 @@ func (t *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error 
 
 // DeleteGraphQuad deletes a quad from the graph store.
 // Note: if quad did not exist, returns nil.
-func (t *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error {
+func (t *WorldState) deleteGraphQuadEntry(ctx context.Context, q world.GraphQuad) error {
 	return t.deleteGraphQuad(ctx, q, true)
 }
 
@@ -320,7 +320,7 @@ func (t *WorldState) deleteGraphQuad(ctx context.Context, q world.GraphQuad, val
 }
 
 // DeleteGraphObject deletes all quads with Subject or Object set to value.
-func (t *WorldState) DeleteGraphObject(ctx context.Context, objKey string) error {
+func (t *WorldState) deleteGraphObject(ctx context.Context, objKey string) error {
 	if !t.write {
 		return tx.ErrNotWrite
 	}
@@ -367,6 +367,37 @@ func (t *WorldState) DeleteGraphObject(ctx context.Context, objKey string) error
 	}
 
 	return nil
+}
+
+// AccessCayleyGraph calls a callback with a temporary Cayley graph handle.
+func (t *WorldState) AccessCayleyGraph(ctx context.Context, write bool, cb func(ctx context.Context, h world.CayleyHandle) error) error {
+	return t.accessCayleyGraph(ctx, write, cb)
+}
+
+// LookupGraphQuadsBatch searches for graph quads for each filter in one graph read.
+func (t *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world.GraphQuad, limitPerFilter uint32) ([][]world.GraphQuad, error) {
+	return t.lookupGraphQuadsBatchOnWorld(ctx, filters, limitPerFilter)
+}
+
+// QueryGraphPath executes a bounded graph traversal.
+func (t *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
+	return t.queryGraphPathOnWorld(ctx, query)
+}
+
+// SetGraphQuad sets a quad in the graph store.
+func (t *WorldState) SetGraphQuad(ctx context.Context, q world.GraphQuad) error {
+	return t.setGraphQuad(ctx, q)
+}
+
+// DeleteGraphQuad deletes a quad from the graph store.
+// Note: if quad did not exist, returns nil.
+func (t *WorldState) DeleteGraphQuad(ctx context.Context, q world.GraphQuad) error {
+	return t.deleteGraphQuadEntry(ctx, q)
+}
+
+// DeleteGraphObject deletes all quads with Subject or Object set to value.
+func (t *WorldState) DeleteGraphObject(ctx context.Context, objKey string) error {
+	return t.deleteGraphObject(ctx, objKey)
 }
 
 // _ is a type assertion

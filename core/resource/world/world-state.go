@@ -467,6 +467,82 @@ func (r *WorldStateResource) GetObjectMetadataBatch(ctx context.Context, req *s4
 	return &s4wave_world.GetObjectMetadataBatchResponse{Metadata: out}, nil
 }
 
+// GetObjectBodiesBatch returns serialized object bodies for object keys.
+func (r *WorldStateResource) GetObjectBodiesBatch(ctx context.Context, req *s4wave_world.GetObjectBodiesBatchRequest) (*s4wave_world.GetObjectBodiesBatchResponse, error) {
+	started := time.Now()
+	record := WorldStateOperationRecord{
+		Name:              "GetObjectBodiesBatch",
+		StartKeyCount:     len(req.GetObjectKeys()),
+		ResultObjectCount: 0,
+	}
+	var retErr error
+	ctx, readCounter := block.WithReadCounter(ctx)
+	defer func() {
+		recordBlockReadSnapshot(&record, readCounter)
+		r.observeOperation(record, started, retErr)
+	}()
+
+	keys := req.GetObjectKeys()
+	var bodies []*world.ObjectBody
+	var nextKeyIndex uint32
+	var worldSeqno uint64
+	startKeyIndex := req.GetStartKeyIndex()
+	if uint64(startKeyIndex) < uint64(len(keys)) {
+		bodies, nextKeyIndex, worldSeqno, retErr = getObjectBodiesBatchPage(
+			ctx,
+			r.ws,
+			keys,
+			startKeyIndex,
+			objectBodiesBatchBudget,
+		)
+		if retErr != nil {
+			return nil, retErr
+		}
+	}
+
+	out := make([]*s4wave_world.ObjectBody, len(bodies))
+	for i, body := range bodies {
+		if body.Exists {
+			record.ResultObjectCount++
+		}
+		out[i] = &s4wave_world.ObjectBody{
+			ObjectKey: body.ObjectKey,
+			Body:      body.Body,
+			Exists:    body.Exists,
+			Rev:       body.Rev,
+		}
+	}
+
+	return &s4wave_world.GetObjectBodiesBatchResponse{
+		Bodies:       out,
+		NextKeyIndex: nextKeyIndex,
+		WorldSeqno:   worldSeqno,
+	}, nil
+}
+
+const objectBodiesBatchBudget = world.ObjectBodiesBatchByteBudget
+
+func getObjectBodiesBatchPage(
+	ctx context.Context,
+	ws world.WorldState,
+	keys []string,
+	startKeyIndex uint32,
+	bodyBudget int,
+) ([]*world.ObjectBody, uint32, uint64, error) {
+	if uint64(startKeyIndex) >= uint64(len(keys)) {
+		return nil, 0, 0, nil
+	}
+	start := int(startKeyIndex)
+	bodies, consumed, worldSeqno, err := world.GetObjectBodiesBatchPageWithSeqno(ctx, ws, keys[start:], bodyBudget)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	if consumed == 0 || uint64(consumed) >= uint64(len(keys)-start) {
+		return bodies, 0, worldSeqno, nil
+	}
+	return bodies, startKeyIndex + consumed, worldSeqno, nil
+}
+
 // QueryGraphPath creates a resource for a bounded graph path query.
 func (r *WorldStateResource) QueryGraphPath(ctx context.Context, req *s4wave_world.QueryGraphPathRequest) (*s4wave_world.QueryGraphPathResponse, error) {
 	started := time.Now()
@@ -530,7 +606,9 @@ func (r *WorldStateResource) DeleteGraphObject(ctx context.Context, req *s4wave_
 // ApplyWorldOp applies a batch operation at the world level.
 func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world.ApplyWorldOpRequest) (*s4wave_world.ApplyWorldOpResponse, error) {
 	if r.lookupOp == nil {
-		return nil, world.ErrUnhandledOp
+		return &s4wave_world.ApplyWorldOpResponse{
+			ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
+		}, nil
 	}
 
 	opTypeID := req.GetOpTypeId()
@@ -539,6 +617,11 @@ func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world
 		err = world.ErrUnhandledOp
 	}
 	if err != nil {
+		if errors.Is(err, world.ErrUnhandledOp) {
+			return &s4wave_world.ApplyWorldOpResponse{
+				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
+			}, nil
+		}
 		return nil, err
 	}
 
@@ -554,6 +637,11 @@ func (r *WorldStateResource) ApplyWorldOp(ctx context.Context, req *s4wave_world
 
 	seqno, sysErr, err := r.ws.ApplyWorldOp(ctx, op, opSender)
 	if err != nil {
+		if errors.Is(err, world.ErrUnhandledOp) {
+			return &s4wave_world.ApplyWorldOpResponse{
+				ErrorCode: s4wave_world.WorldErrorCode_WORLD_ERROR_CODE_UNHANDLED_OP,
+			}, nil
+		}
 		return nil, err
 	}
 

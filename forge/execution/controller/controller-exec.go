@@ -30,9 +30,21 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 		return context.Canceled
 	}
 
-	// mark the execution as complete
+	canceling := false
+	select {
+	case <-c.cancelCh:
+		canceling = true
+	default:
+	}
+
 	var res *forge_value.Result
-	if execErr != nil {
+	if canceling {
+		if execErr != nil {
+			return errors.Wrap(execErr, "drain canceled execution")
+		}
+		c.le.Info("marking execution as canceled after drain")
+		res = forge_value.NewResultWithCanceled(errors.New("execution canceled"))
+	} else if execErr != nil {
 		c.le.WithError(execErr).Warn("marking execution as failed w/ error")
 		res = forge_value.NewResultWithError(execErr)
 	} else {
@@ -40,7 +52,6 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 		res = forge_value.NewResultWithSuccess()
 	}
 
-	// COMPLETE w/ success=true
 	completeTx, err := c.busEngine.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -52,7 +63,10 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 		return err
 	}
 
-	txd := execution_transaction.NewTxComplete(res)
+	txd := execution_transaction.NewTxComplete(
+		res,
+		execConf.GetExecution().GetClaim(),
+	)
 	_, _, err = execObjState.ApplyObjectOp(ctx, txd, c.peerID)
 	if err != nil {
 		return err
@@ -197,10 +211,17 @@ func (c *Controller) processExec(
 	}
 
 	// pass handles to the exec controller
-	execCtrlHandle := newExecControllerHandle(ctx, c, c.ws, exState.GetTimestamp())
+	execCtx := forge_target.WithExecCancelSignal(ctx, c.cancelCh)
+	execCtrlHandle := newExecControllerHandle(
+		execCtx,
+		c,
+		c.ws,
+		exState.GetTimestamp(),
+		exState.GetClaim().GetEpoch(),
+	)
 	if execCtrl, execCtrlOk := ctrl.(forge_target.ExecController); execCtrlOk {
 		err = execCtrl.InitForgeExecController(
-			ctx,
+			execCtx,
 			inputsMap,
 			execCtrlHandle,
 		)
@@ -221,18 +242,27 @@ func (c *Controller) processExec(
 		return errors.Wrap(err, "init exec controller")
 	}
 
-	// wait for the execution controller to complete
-	le.
+	return c.executeTargetController(execCtx, tgtBus, ctrl)
+}
+
+// executeTargetController runs a resolved target controller through its local
+// lifecycle.
+func (c *Controller) executeTargetController(
+	ctx context.Context,
+	tgtBus bus.Bus,
+	ctrl controller.Controller,
+) error {
+	c.le.
 		WithField("controller-id", ctrl.GetControllerInfo().Id).
 		Info("starting exec controller")
 	t1 := time.Now()
-	err = tgtBus.ExecuteController(ctx, ctrl)
+	err := tgtBus.ExecuteController(ctx, ctrl)
 	_ = ctrl.Close()
-	t2 := time.Now()
-	durLe := le.WithField("exec-dur", t2.Sub(t1))
+	durLe := c.le.WithField("exec-dur", time.Since(t1))
 	if err != nil {
-		// this is an error returned by the exec controller itself.
-		durLe.WithError(err).Warn("exec controller failed")
+		if ctx.Err() == nil || !errors.Is(err, context.Canceled) {
+			durLe.WithError(err).Warn("exec controller failed")
+		}
 		return err
 	}
 

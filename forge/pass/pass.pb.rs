@@ -5,8 +5,8 @@
 /// Contains snapshots of the execution instance states.
 /// Execution instances can be added / removed.
 ///
-/// The Pass is complete when len(exec_states) == replicas and all exec states
-/// are in the completed (terminal) state, or when a fatal error occurs.
+/// The Pass is complete only when every linked Execution is terminal. Successful
+/// passes also require len(exec_states) == replicas.
 ///
 /// If the Target object changes (in the world) or inputs change, a new Pass
 /// should be created (these fields are immutable).
@@ -35,7 +35,8 @@ pub struct Pass {
     /// The output set is updated when transitioning from CHECKING -> COMPLETE.
     #[prost(message, optional, tag="4")]
     pub value_set: ::core::option::Option<super::target::ValueSet>,
-    /// Result is information about the outcome of a completed Pass.
+    /// Result is the cancellation request while CANCELING, or the outcome of a
+    /// completed Pass.
     #[prost(message, optional, tag="5")]
     pub result: ::core::option::Option<super::value::Result>,
     /// Replicas is the configured number of executions for the Pass.
@@ -49,8 +50,8 @@ pub struct Pass {
     /// ExecStates contains the most recent snapshot of the execution states.
     /// Updated when:
     ///   - PENDING to RUNNING: contains initial execution states (PENDING)
-    ///   - RUNNING: can add and remove execution states as needed.
-    ///   - RUNNING to CHECKING or COMPLETE: contains final states (COMPLETE)
+    ///   - RUNNING or CANCELING: updated as linked Executions change.
+    ///   - RUNNING to CHECKING or COMPLETE: contains final states (COMPLETE).
     ///   - Any to PENDING: cleared (set to len=0).
     #[prost(message, repeated, tag="8")]
     pub exec_states: ::prost::alloc::vec::Vec<ExecState>,
@@ -106,6 +107,8 @@ pub enum State {
     /// PassState_COMPLETE is the normal terminal state of the pass.
     /// This includes both success and failure termination states.
     PassStateComplete = 4,
+    /// PassState_CANCELING is the state while linked Executions drain.
+    PassStateCanceling = 5,
 }
 impl State {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -119,6 +122,7 @@ impl State {
             Self::PassStateRunning => "PassState_RUNNING",
             Self::PassStateChecking => "PassState_CHECKING",
             Self::PassStateComplete => "PassState_COMPLETE",
+            Self::PassStateCanceling => "PassState_CANCELING",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -129,6 +133,7 @@ impl State {
             "PassState_RUNNING" => Some(Self::PassStateRunning),
             "PassState_CHECKING" => Some(Self::PassStateChecking),
             "PassState_COMPLETE" => Some(Self::PassStateComplete),
+            "PassState_CANCELING" => Some(Self::PassStateCanceling),
             _ => None,
         }
     }

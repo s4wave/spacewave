@@ -64,6 +64,10 @@ class AcquireCoordinatorWriteLeaseResponse;
 struct AcquireCoordinatorWriteLeaseResponseDefaultTypeInternal;
 extern AcquireCoordinatorWriteLeaseResponseDefaultTypeInternal _AcquireCoordinatorWriteLeaseResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull AcquireCoordinatorWriteLeaseResponse_class_data_;
+class AcquireWorldEngineLeaseResponse;
+struct AcquireWorldEngineLeaseResponseDefaultTypeInternal;
+extern AcquireWorldEngineLeaseResponseDefaultTypeInternal _AcquireWorldEngineLeaseResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull AcquireWorldEngineLeaseResponse_class_data_;
 class CoordinatorCapability;
 struct CoordinatorCapabilityDefaultTypeInternal;
 extern CoordinatorCapabilityDefaultTypeInternal _CoordinatorCapability_default_instance_;
@@ -136,10 +140,22 @@ class ReleaseCoordinatorWriteLeaseResponse;
 struct ReleaseCoordinatorWriteLeaseResponseDefaultTypeInternal;
 extern ReleaseCoordinatorWriteLeaseResponseDefaultTypeInternal _ReleaseCoordinatorWriteLeaseResponse_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull ReleaseCoordinatorWriteLeaseResponse_class_data_;
+class ReleaseWorldEngineLeaseRequest;
+struct ReleaseWorldEngineLeaseRequestDefaultTypeInternal;
+extern ReleaseWorldEngineLeaseRequestDefaultTypeInternal _ReleaseWorldEngineLeaseRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ReleaseWorldEngineLeaseRequest_class_data_;
+class ReleaseWorldEngineLeaseResponse;
+struct ReleaseWorldEngineLeaseResponseDefaultTypeInternal;
+extern ReleaseWorldEngineLeaseResponseDefaultTypeInternal _ReleaseWorldEngineLeaseResponse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ReleaseWorldEngineLeaseResponse_class_data_;
 class TryAcquireCoordinatorWriteLeaseRequest;
 struct TryAcquireCoordinatorWriteLeaseRequestDefaultTypeInternal;
 extern TryAcquireCoordinatorWriteLeaseRequestDefaultTypeInternal _TryAcquireCoordinatorWriteLeaseRequest_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull TryAcquireCoordinatorWriteLeaseRequest_class_data_;
+class TryAcquireWorldEngineLeaseRequest;
+struct TryAcquireWorldEngineLeaseRequestDefaultTypeInternal;
+extern TryAcquireWorldEngineLeaseRequestDefaultTypeInternal _TryAcquireWorldEngineLeaseRequest_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull TryAcquireWorldEngineLeaseRequest_class_data_;
 class WaitAcquireCoordinatorWriteLeaseRequest;
 struct WaitAcquireCoordinatorWriteLeaseRequestDefaultTypeInternal;
 extern WaitAcquireCoordinatorWriteLeaseRequestDefaultTypeInternal _WaitAcquireCoordinatorWriteLeaseRequest_default_instance_;
@@ -370,6 +386,530 @@ class WatchVolumeInfoRequest final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull WatchVolumeInfoRequest_class_data_;
 // -------------------------------------------------------------------
 
+class TryAcquireWorldEngineLeaseRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:volume.rpc.TryAcquireWorldEngineLeaseRequest) */ {
+ public:
+  inline TryAcquireWorldEngineLeaseRequest() : TryAcquireWorldEngineLeaseRequest(nullptr) {}
+  ~TryAcquireWorldEngineLeaseRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(TryAcquireWorldEngineLeaseRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(TryAcquireWorldEngineLeaseRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR TryAcquireWorldEngineLeaseRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline TryAcquireWorldEngineLeaseRequest(const TryAcquireWorldEngineLeaseRequest& from) : TryAcquireWorldEngineLeaseRequest(nullptr, from) {}
+  inline TryAcquireWorldEngineLeaseRequest(TryAcquireWorldEngineLeaseRequest&& from) noexcept
+      : TryAcquireWorldEngineLeaseRequest(nullptr, ::std::move(from)) {}
+  inline TryAcquireWorldEngineLeaseRequest& operator=(const TryAcquireWorldEngineLeaseRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline TryAcquireWorldEngineLeaseRequest& operator=(TryAcquireWorldEngineLeaseRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const TryAcquireWorldEngineLeaseRequest& default_instance() {
+    return *reinterpret_cast<const TryAcquireWorldEngineLeaseRequest*>(
+        &_TryAcquireWorldEngineLeaseRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 16;
+  friend void swap(TryAcquireWorldEngineLeaseRequest& a, TryAcquireWorldEngineLeaseRequest& b) { a.Swap(&b); }
+  inline void Swap(TryAcquireWorldEngineLeaseRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(TryAcquireWorldEngineLeaseRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  TryAcquireWorldEngineLeaseRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<TryAcquireWorldEngineLeaseRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const TryAcquireWorldEngineLeaseRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const TryAcquireWorldEngineLeaseRequest& from) { TryAcquireWorldEngineLeaseRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(TryAcquireWorldEngineLeaseRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "volume.rpc.TryAcquireWorldEngineLeaseRequest"; }
+
+  explicit TryAcquireWorldEngineLeaseRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  TryAcquireWorldEngineLeaseRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const TryAcquireWorldEngineLeaseRequest& from);
+  TryAcquireWorldEngineLeaseRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, TryAcquireWorldEngineLeaseRequest&& from) noexcept
+      : TryAcquireWorldEngineLeaseRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kKeyFieldNumber = 1,
+  };
+  // string key = 1;
+  void clear_key() ;
+  const ::std::string& key() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_key(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_key();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_key();
+  void set_allocated_key(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_key() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_key(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_key();
+
+  public:
+  // @@protoc_insertion_point(class_scope:volume.rpc.TryAcquireWorldEngineLeaseRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 56,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const TryAcquireWorldEngineLeaseRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr key_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull TryAcquireWorldEngineLeaseRequest_class_data_;
+// -------------------------------------------------------------------
+
+class ReleaseWorldEngineLeaseResponse final : public ::google::protobuf::internal::ZeroFieldsBase
+/* @@protoc_insertion_point(class_definition:volume.rpc.ReleaseWorldEngineLeaseResponse) */ {
+ public:
+  inline ReleaseWorldEngineLeaseResponse() : ReleaseWorldEngineLeaseResponse(nullptr) {}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ReleaseWorldEngineLeaseResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ReleaseWorldEngineLeaseResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ReleaseWorldEngineLeaseResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline ReleaseWorldEngineLeaseResponse(const ReleaseWorldEngineLeaseResponse& from) : ReleaseWorldEngineLeaseResponse(nullptr, from) {}
+  inline ReleaseWorldEngineLeaseResponse(ReleaseWorldEngineLeaseResponse&& from) noexcept
+      : ReleaseWorldEngineLeaseResponse(nullptr, ::std::move(from)) {}
+  inline ReleaseWorldEngineLeaseResponse& operator=(const ReleaseWorldEngineLeaseResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ReleaseWorldEngineLeaseResponse& operator=(ReleaseWorldEngineLeaseResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ReleaseWorldEngineLeaseResponse& default_instance() {
+    return *reinterpret_cast<const ReleaseWorldEngineLeaseResponse*>(
+        &_ReleaseWorldEngineLeaseResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 19;
+  friend void swap(ReleaseWorldEngineLeaseResponse& a, ReleaseWorldEngineLeaseResponse& b) { a.Swap(&b); }
+  inline void Swap(ReleaseWorldEngineLeaseResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ReleaseWorldEngineLeaseResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ReleaseWorldEngineLeaseResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<ReleaseWorldEngineLeaseResponse>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const ReleaseWorldEngineLeaseResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const ReleaseWorldEngineLeaseResponse& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "volume.rpc.ReleaseWorldEngineLeaseResponse"; }
+
+  explicit ReleaseWorldEngineLeaseResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ReleaseWorldEngineLeaseResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ReleaseWorldEngineLeaseResponse& from);
+  ReleaseWorldEngineLeaseResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ReleaseWorldEngineLeaseResponse&& from) noexcept
+      : ReleaseWorldEngineLeaseResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  // @@protoc_insertion_point(class_scope:volume.rpc.ReleaseWorldEngineLeaseResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 0,
+                                   0, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ReleaseWorldEngineLeaseResponse_class_data_;
+// -------------------------------------------------------------------
+
+class ReleaseWorldEngineLeaseRequest final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:volume.rpc.ReleaseWorldEngineLeaseRequest) */ {
+ public:
+  inline ReleaseWorldEngineLeaseRequest() : ReleaseWorldEngineLeaseRequest(nullptr) {}
+  ~ReleaseWorldEngineLeaseRequest() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ReleaseWorldEngineLeaseRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ReleaseWorldEngineLeaseRequest));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ReleaseWorldEngineLeaseRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline ReleaseWorldEngineLeaseRequest(const ReleaseWorldEngineLeaseRequest& from) : ReleaseWorldEngineLeaseRequest(nullptr, from) {}
+  inline ReleaseWorldEngineLeaseRequest(ReleaseWorldEngineLeaseRequest&& from) noexcept
+      : ReleaseWorldEngineLeaseRequest(nullptr, ::std::move(from)) {}
+  inline ReleaseWorldEngineLeaseRequest& operator=(const ReleaseWorldEngineLeaseRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ReleaseWorldEngineLeaseRequest& operator=(ReleaseWorldEngineLeaseRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ReleaseWorldEngineLeaseRequest& default_instance() {
+    return *reinterpret_cast<const ReleaseWorldEngineLeaseRequest*>(
+        &_ReleaseWorldEngineLeaseRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 18;
+  friend void swap(ReleaseWorldEngineLeaseRequest& a, ReleaseWorldEngineLeaseRequest& b) { a.Swap(&b); }
+  inline void Swap(ReleaseWorldEngineLeaseRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ReleaseWorldEngineLeaseRequest* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ReleaseWorldEngineLeaseRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ReleaseWorldEngineLeaseRequest>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ReleaseWorldEngineLeaseRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ReleaseWorldEngineLeaseRequest& from) { ReleaseWorldEngineLeaseRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ReleaseWorldEngineLeaseRequest* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "volume.rpc.ReleaseWorldEngineLeaseRequest"; }
+
+  explicit ReleaseWorldEngineLeaseRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ReleaseWorldEngineLeaseRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ReleaseWorldEngineLeaseRequest& from);
+  ReleaseWorldEngineLeaseRequest(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ReleaseWorldEngineLeaseRequest&& from) noexcept
+      : ReleaseWorldEngineLeaseRequest(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kLeaseIdFieldNumber = 1,
+  };
+  // string lease_id = 1;
+  void clear_lease_id() ;
+  const ::std::string& lease_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_lease_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_lease_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_lease_id();
+  void set_allocated_lease_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_lease_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_lease_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_lease_id();
+
+  public:
+  // @@protoc_insertion_point(class_scope:volume.rpc.ReleaseWorldEngineLeaseRequest)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
+                                   0, 58,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ReleaseWorldEngineLeaseRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr lease_id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ReleaseWorldEngineLeaseRequest_class_data_;
+// -------------------------------------------------------------------
+
 class ReleaseCoordinatorWriteLeaseResponse final : public ::google::protobuf::internal::ZeroFieldsBase
 /* @@protoc_insertion_point(class_definition:volume.rpc.ReleaseCoordinatorWriteLeaseResponse) */ {
  public:
@@ -424,7 +964,7 @@ class ReleaseCoordinatorWriteLeaseResponse final : public ::google::protobuf::in
     return *reinterpret_cast<const ReleaseCoordinatorWriteLeaseResponse*>(
         &_ReleaseCoordinatorWriteLeaseResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 20;
+  static constexpr int kIndexInFileMessages = 24;
   friend void swap(ReleaseCoordinatorWriteLeaseResponse& a, ReleaseCoordinatorWriteLeaseResponse& b) { a.Swap(&b); }
   inline void Swap(ReleaseCoordinatorWriteLeaseResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -692,7 +1232,7 @@ class GetStorageStatsRequest final : public ::google::protobuf::internal::ZeroFi
     return *reinterpret_cast<const GetStorageStatsRequest*>(
         &_GetStorageStatsRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 23;
+  static constexpr int kIndexInFileMessages = 27;
   friend void swap(GetStorageStatsRequest& a, GetStorageStatsRequest& b) { a.Swap(&b); }
   inline void Swap(GetStorageStatsRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -827,7 +1367,7 @@ class GetPeerPrivResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetPeerPrivResponse*>(
         &_GetPeerPrivResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 22;
+  static constexpr int kIndexInFileMessages = 26;
   friend void swap(GetPeerPrivResponse& a, GetPeerPrivResponse& b) { a.Swap(&b); }
   inline void Swap(GetPeerPrivResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1021,7 +1561,7 @@ class GetPeerPrivRequest final : public ::google::protobuf::internal::ZeroFields
     return *reinterpret_cast<const GetPeerPrivRequest*>(
         &_GetPeerPrivRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 21;
+  static constexpr int kIndexInFileMessages = 25;
   friend void swap(GetPeerPrivRequest& a, GetPeerPrivRequest& b) { a.Swap(&b); }
   inline void Swap(GetPeerPrivRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1156,7 +1696,7 @@ class CoordinatorWriteLeaseRequest final : public ::google::protobuf::Message
     return *reinterpret_cast<const CoordinatorWriteLeaseRequest*>(
         &_CoordinatorWriteLeaseRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 17;
+  static constexpr int kIndexInFileMessages = 21;
   friend void swap(CoordinatorWriteLeaseRequest& a, CoordinatorWriteLeaseRequest& b) { a.Swap(&b); }
   inline void Swap(CoordinatorWriteLeaseRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1795,6 +2335,213 @@ class CoordinatorCapability final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull CoordinatorCapability_class_data_;
 // -------------------------------------------------------------------
 
+class AcquireWorldEngineLeaseResponse final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:volume.rpc.AcquireWorldEngineLeaseResponse) */ {
+ public:
+  inline AcquireWorldEngineLeaseResponse() : AcquireWorldEngineLeaseResponse(nullptr) {}
+  ~AcquireWorldEngineLeaseResponse() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(AcquireWorldEngineLeaseResponse* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(AcquireWorldEngineLeaseResponse));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR AcquireWorldEngineLeaseResponse(::google::protobuf::internal::ConstantInitialized);
+
+  inline AcquireWorldEngineLeaseResponse(const AcquireWorldEngineLeaseResponse& from) : AcquireWorldEngineLeaseResponse(nullptr, from) {}
+  inline AcquireWorldEngineLeaseResponse(AcquireWorldEngineLeaseResponse&& from) noexcept
+      : AcquireWorldEngineLeaseResponse(nullptr, ::std::move(from)) {}
+  inline AcquireWorldEngineLeaseResponse& operator=(const AcquireWorldEngineLeaseResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline AcquireWorldEngineLeaseResponse& operator=(AcquireWorldEngineLeaseResponse&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const AcquireWorldEngineLeaseResponse& default_instance() {
+    return *reinterpret_cast<const AcquireWorldEngineLeaseResponse*>(
+        &_AcquireWorldEngineLeaseResponse_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 17;
+  friend void swap(AcquireWorldEngineLeaseResponse& a, AcquireWorldEngineLeaseResponse& b) { a.Swap(&b); }
+  inline void Swap(AcquireWorldEngineLeaseResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(AcquireWorldEngineLeaseResponse* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  AcquireWorldEngineLeaseResponse* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<AcquireWorldEngineLeaseResponse>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const AcquireWorldEngineLeaseResponse& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const AcquireWorldEngineLeaseResponse& from) { AcquireWorldEngineLeaseResponse::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(AcquireWorldEngineLeaseResponse* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "volume.rpc.AcquireWorldEngineLeaseResponse"; }
+
+  explicit AcquireWorldEngineLeaseResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  AcquireWorldEngineLeaseResponse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const AcquireWorldEngineLeaseResponse& from);
+  AcquireWorldEngineLeaseResponse(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, AcquireWorldEngineLeaseResponse&& from) noexcept
+      : AcquireWorldEngineLeaseResponse(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kLeaseIdFieldNumber = 1,
+    kAcquiredFieldNumber = 2,
+  };
+  // string lease_id = 1;
+  void clear_lease_id() ;
+  const ::std::string& lease_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_lease_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_lease_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_lease_id();
+  void set_allocated_lease_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_lease_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_lease_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_lease_id();
+
+  public:
+  // bool acquired = 2;
+  void clear_acquired() ;
+  bool acquired() const;
+  void set_acquired(bool value);
+
+  private:
+  bool _internal_acquired() const;
+  void _internal_set_acquired(bool value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:volume.rpc.AcquireWorldEngineLeaseResponse)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   0, 59,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const AcquireWorldEngineLeaseResponse& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr lease_id_;
+    bool acquired_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fdb_2fvolume_2frpc_2fvolume_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull AcquireWorldEngineLeaseResponse_class_data_;
+// -------------------------------------------------------------------
+
 class AcquireCoordinatorWriteLeaseResponse final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:volume.rpc.AcquireCoordinatorWriteLeaseResponse) */ {
  public:
@@ -1850,7 +2597,7 @@ class AcquireCoordinatorWriteLeaseResponse final : public ::google::protobuf::Me
     return *reinterpret_cast<const AcquireCoordinatorWriteLeaseResponse*>(
         &_AcquireCoordinatorWriteLeaseResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 16;
+  static constexpr int kIndexInFileMessages = 20;
   friend void swap(AcquireCoordinatorWriteLeaseResponse& a, AcquireCoordinatorWriteLeaseResponse& b) { a.Swap(&b); }
   inline void Swap(AcquireCoordinatorWriteLeaseResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2654,7 +3401,7 @@ class GetStorageStatsResponse final : public ::google::protobuf::Message
     return *reinterpret_cast<const GetStorageStatsResponse*>(
         &_GetStorageStatsResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 24;
+  static constexpr int kIndexInFileMessages = 28;
   friend void swap(GetStorageStatsResponse& a, GetStorageStatsResponse& b) { a.Swap(&b); }
   inline void Swap(GetStorageStatsResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4588,7 +5335,7 @@ class PublishCoordinatorWriteLeaseRequest final : public ::google::protobuf::Mes
     return *reinterpret_cast<const PublishCoordinatorWriteLeaseRequest*>(
         &_PublishCoordinatorWriteLeaseRequest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 19;
+  static constexpr int kIndexInFileMessages = 23;
   friend void swap(PublishCoordinatorWriteLeaseRequest& a, PublishCoordinatorWriteLeaseRequest& b) { a.Swap(&b); }
   inline void Swap(PublishCoordinatorWriteLeaseRequest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -4995,7 +5742,7 @@ class CoordinatorWriteLeaseSnapshotResponse final : public ::google::protobuf::M
     return *reinterpret_cast<const CoordinatorWriteLeaseSnapshotResponse*>(
         &_CoordinatorWriteLeaseSnapshotResponse_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 18;
+  static constexpr int kIndexInFileMessages = 22;
   friend void swap(CoordinatorWriteLeaseSnapshotResponse& a, CoordinatorWriteLeaseSnapshotResponse& b) { a.Swap(&b); }
   inline void Swap(CoordinatorWriteLeaseSnapshotResponse* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -7548,6 +8295,242 @@ inline void WaitAcquireCoordinatorWriteLeaseRequest::set_allocated_scope(::volum
   _impl_.scope_ = reinterpret_cast<::volume::rpc::CoordinatorScope*>(value);
   // @@protoc_insertion_point(field_set_allocated:volume.rpc.WaitAcquireCoordinatorWriteLeaseRequest.scope)
 }
+
+// -------------------------------------------------------------------
+
+// TryAcquireWorldEngineLeaseRequest
+
+// string key = 1;
+inline void TryAcquireWorldEngineLeaseRequest::clear_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.key_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& TryAcquireWorldEngineLeaseRequest::key() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.TryAcquireWorldEngineLeaseRequest.key)
+  return _internal_key();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void TryAcquireWorldEngineLeaseRequest::set_key(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.rpc.TryAcquireWorldEngineLeaseRequest.key)
+}
+inline ::std::string* PROTOBUF_NONNULL TryAcquireWorldEngineLeaseRequest::mutable_key()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_key();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.TryAcquireWorldEngineLeaseRequest.key)
+  return _s;
+}
+inline const ::std::string& TryAcquireWorldEngineLeaseRequest::_internal_key() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.key_.Get();
+}
+inline void TryAcquireWorldEngineLeaseRequest::_internal_set_key(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.key_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL TryAcquireWorldEngineLeaseRequest::_internal_mutable_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.key_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE TryAcquireWorldEngineLeaseRequest::release_key() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.TryAcquireWorldEngineLeaseRequest.key)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.key_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.key_.Set("", GetArena());
+  }
+  return released;
+}
+inline void TryAcquireWorldEngineLeaseRequest::set_allocated_key(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.key_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.key_.IsDefault()) {
+    _impl_.key_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.TryAcquireWorldEngineLeaseRequest.key)
+}
+
+// -------------------------------------------------------------------
+
+// AcquireWorldEngineLeaseResponse
+
+// string lease_id = 1;
+inline void AcquireWorldEngineLeaseResponse::clear_lease_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.lease_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& AcquireWorldEngineLeaseResponse::lease_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.AcquireWorldEngineLeaseResponse.lease_id)
+  return _internal_lease_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void AcquireWorldEngineLeaseResponse::set_lease_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.lease_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.rpc.AcquireWorldEngineLeaseResponse.lease_id)
+}
+inline ::std::string* PROTOBUF_NONNULL AcquireWorldEngineLeaseResponse::mutable_lease_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_lease_id();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.AcquireWorldEngineLeaseResponse.lease_id)
+  return _s;
+}
+inline const ::std::string& AcquireWorldEngineLeaseResponse::_internal_lease_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.lease_id_.Get();
+}
+inline void AcquireWorldEngineLeaseResponse::_internal_set_lease_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.lease_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL AcquireWorldEngineLeaseResponse::_internal_mutable_lease_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.lease_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE AcquireWorldEngineLeaseResponse::release_lease_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.AcquireWorldEngineLeaseResponse.lease_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.lease_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.lease_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void AcquireWorldEngineLeaseResponse::set_allocated_lease_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.lease_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.lease_id_.IsDefault()) {
+    _impl_.lease_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.AcquireWorldEngineLeaseResponse.lease_id)
+}
+
+// bool acquired = 2;
+inline void AcquireWorldEngineLeaseResponse::clear_acquired() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.acquired_ = false;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline bool AcquireWorldEngineLeaseResponse::acquired() const {
+  // @@protoc_insertion_point(field_get:volume.rpc.AcquireWorldEngineLeaseResponse.acquired)
+  return _internal_acquired();
+}
+inline void AcquireWorldEngineLeaseResponse::set_acquired(bool value) {
+  _internal_set_acquired(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:volume.rpc.AcquireWorldEngineLeaseResponse.acquired)
+}
+inline bool AcquireWorldEngineLeaseResponse::_internal_acquired() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.acquired_;
+}
+inline void AcquireWorldEngineLeaseResponse::_internal_set_acquired(bool value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.acquired_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// ReleaseWorldEngineLeaseRequest
+
+// string lease_id = 1;
+inline void ReleaseWorldEngineLeaseRequest::clear_lease_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.lease_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ReleaseWorldEngineLeaseRequest::lease_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:volume.rpc.ReleaseWorldEngineLeaseRequest.lease_id)
+  return _internal_lease_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ReleaseWorldEngineLeaseRequest::set_lease_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.lease_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:volume.rpc.ReleaseWorldEngineLeaseRequest.lease_id)
+}
+inline ::std::string* PROTOBUF_NONNULL ReleaseWorldEngineLeaseRequest::mutable_lease_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_lease_id();
+  // @@protoc_insertion_point(field_mutable:volume.rpc.ReleaseWorldEngineLeaseRequest.lease_id)
+  return _s;
+}
+inline const ::std::string& ReleaseWorldEngineLeaseRequest::_internal_lease_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.lease_id_.Get();
+}
+inline void ReleaseWorldEngineLeaseRequest::_internal_set_lease_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.lease_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ReleaseWorldEngineLeaseRequest::_internal_mutable_lease_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.lease_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ReleaseWorldEngineLeaseRequest::release_lease_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:volume.rpc.ReleaseWorldEngineLeaseRequest.lease_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.lease_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.lease_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ReleaseWorldEngineLeaseRequest::set_allocated_lease_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.lease_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.lease_id_.IsDefault()) {
+    _impl_.lease_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:volume.rpc.ReleaseWorldEngineLeaseRequest.lease_id)
+}
+
+// -------------------------------------------------------------------
+
+// ReleaseWorldEngineLeaseResponse
 
 // -------------------------------------------------------------------
 

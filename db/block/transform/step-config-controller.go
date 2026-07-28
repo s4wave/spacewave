@@ -1,5 +1,3 @@
-//go:build !sql_lite
-
 package block_transform
 
 import "github.com/aperturerobotics/controllerbus/config"

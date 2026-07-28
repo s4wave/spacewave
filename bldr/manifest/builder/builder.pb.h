@@ -30,6 +30,10 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/map.h"  // IWYU pragma: export
+#include "google/protobuf/map_type_handler.h"  // IWYU pragma: export
+#include "google/protobuf/map_entry.h"
+#include "google/protobuf/map_field.h"
 #include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 #include "../manifest.pb.h"
@@ -75,6 +79,10 @@ class BuilderResult;
 struct BuilderResultDefaultTypeInternal;
 extern BuilderResultDefaultTypeInternal _BuilderResult_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull BuilderResult_class_data_;
+class BuilderResult_SubManifestResultsEntry_DoNotUse;
+struct BuilderResult_SubManifestResultsEntry_DoNotUseDefaultTypeInternal;
+extern BuilderResult_SubManifestResultsEntry_DoNotUseDefaultTypeInternal _BuilderResult_SubManifestResultsEntry_DoNotUse_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull BuilderResult_SubManifestResultsEntry_DoNotUse_class_data_;
 class InputManifest;
 struct InputManifestDefaultTypeInternal;
 extern InputManifestDefaultTypeInternal _InputManifest_default_instance_;
@@ -207,7 +215,7 @@ class InputManifest_StartupInput final : public ::google::protobuf::Message
     return *reinterpret_cast<const InputManifest_StartupInput*>(
         &_InputManifest_StartupInput_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 5;
+  static constexpr int kIndexInFileMessages = 6;
   friend void swap(InputManifest_StartupInput& a, InputManifest_StartupInput& b) { a.Swap(&b); }
   inline void Swap(InputManifest_StartupInput* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -448,7 +456,7 @@ class InputManifest_FileIdentity final : public ::google::protobuf::Message
     return *reinterpret_cast<const InputManifest_FileIdentity*>(
         &_InputManifest_FileIdentity_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 3;
   friend void swap(InputManifest_FileIdentity& a, InputManifest_FileIdentity& b) { a.Swap(&b); }
   inline void Swap(InputManifest_FileIdentity* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -667,7 +675,7 @@ class InputManifest_File final : public ::google::protobuf::Message
     return *reinterpret_cast<const InputManifest_File*>(
         &_InputManifest_File_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(InputManifest_File& a, InputManifest_File& b) { a.Swap(&b); }
   inline void Swap(InputManifest_File* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1287,7 +1295,7 @@ class InputManifest_ManifestDep final : public ::google::protobuf::Message
     return *reinterpret_cast<const InputManifest_ManifestDep*>(
         &_InputManifest_ManifestDep_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(InputManifest_ManifestDep& a, InputManifest_ManifestDep& b) { a.Swap(&b); }
   inline void Swap(InputManifest_ManifestDep* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1499,7 +1507,7 @@ class InputManifest final : public ::google::protobuf::Message
     return *reinterpret_cast<const InputManifest*>(
         &_InputManifest_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 6;
+  static constexpr int kIndexInFileMessages = 7;
   friend void swap(InputManifest& a, InputManifest& b) { a.Swap(&b); }
   inline void Swap(InputManifest* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1776,7 +1784,7 @@ class BuilderResult final : public ::google::protobuf::Message
     return *reinterpret_cast<const BuilderResult*>(
         &_BuilderResult_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 1;
+  static constexpr int kIndexInFileMessages = 2;
   friend void swap(BuilderResult& a, BuilderResult& b) { a.Swap(&b); }
   inline void Swap(BuilderResult* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1866,6 +1874,7 @@ class BuilderResult final : public ::google::protobuf::Message
     kManifestFieldNumber = 1,
     kManifestRefFieldNumber = 2,
     kInputManifestFieldNumber = 3,
+    kSubManifestResultsFieldNumber = 4,
   };
   // .bldr.manifest.Manifest manifest = 1;
   bool has_manifest() const;
@@ -1912,12 +1921,27 @@ class BuilderResult final : public ::google::protobuf::Message
   ::bldr::manifest::builder::InputManifest* PROTOBUF_NONNULL _internal_mutable_input_manifest();
 
   public:
+  // map<string, .bldr.manifest.builder.BuilderResult> sub_manifest_results = 4;
+  int sub_manifest_results_size() const;
+  private:
+  int _internal_sub_manifest_results_size() const;
+
+  public:
+  void clear_sub_manifest_results() ;
+  const ::google::protobuf::Map<::std::string, ::bldr::manifest::builder::BuilderResult>& sub_manifest_results() const;
+  ::google::protobuf::Map<::std::string, ::bldr::manifest::builder::BuilderResult>* PROTOBUF_NONNULL mutable_sub_manifest_results();
+
+  private:
+  const ::google::protobuf::Map<::std::string, ::bldr::manifest::builder::BuilderResult>& _internal_sub_manifest_results() const;
+  ::google::protobuf::Map<::std::string, ::bldr::manifest::builder::BuilderResult>* PROTOBUF_NONNULL _internal_mutable_sub_manifest_results();
+
+  public:
   // @@protoc_insertion_point(class_scope:bldr.manifest.builder.BuilderResult)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 3,
-                                   3, 0,
+  static const ::google::protobuf::internal::TcParseTable<2, 4,
+                                   5, 64,
                                    2>
       _table_;
 
@@ -1941,6 +1965,10 @@ class BuilderResult final : public ::google::protobuf::Message
     ::bldr::manifest::Manifest* PROTOBUF_NULLABLE manifest_;
     ::bldr::manifest::ManifestRef* PROTOBUF_NULLABLE manifest_ref_;
     ::bldr::manifest::builder::InputManifest* PROTOBUF_NULLABLE input_manifest_;
+    ::google::protobuf::internal::MapField<BuilderResult_SubManifestResultsEntry_DoNotUse, ::std::string, ::bldr::manifest::builder::BuilderResult,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>
+        sub_manifest_results_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -1948,6 +1976,45 @@ class BuilderResult final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull BuilderResult_class_data_;
+// -------------------------------------------------------------------
+
+class BuilderResult_SubManifestResultsEntry_DoNotUse final
+    : public ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
+                             ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                             ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE> {
+ public:
+  using SuperType =
+      ::google::protobuf::internal::MapEntry<::std::string, ::google::protobuf::Message,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+                      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE>;
+  BuilderResult_SubManifestResultsEntry_DoNotUse();
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR BuilderResult_SubManifestResultsEntry_DoNotUse(::google::protobuf::internal::ConstantInitialized);
+  explicit BuilderResult_SubManifestResultsEntry_DoNotUse(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr const void* PROTOBUF_NONNULL internal_default_instance() {
+    return &_BuilderResult_SubManifestResultsEntry_DoNotUse_default_instance_;
+  }
+
+
+  static constexpr auto InternalGenerateClassData_();
+
+ private:
+  friend class ::google::protobuf::MessageLite;
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fbldr_2fmanifest_2fbuilder_2fbuilder_2eproto;
+
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 71,
+                                   2>
+      _table_;
+
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+};
+extern const ::google::protobuf::internal::ClassDataFull BuilderResult_SubManifestResultsEntry_DoNotUse_class_data_;
 // -------------------------------------------------------------------
 
 class BuildManifestArgs final : public ::google::protobuf::Message
@@ -2005,7 +2072,7 @@ class BuildManifestArgs final : public ::google::protobuf::Message
     return *reinterpret_cast<const BuildManifestArgs*>(
         &_BuildManifestArgs_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 7;
+  static constexpr int kIndexInFileMessages = 8;
   friend void swap(BuildManifestArgs& a, BuildManifestArgs& b) { a.Swap(&b); }
   inline void Swap(BuildManifestArgs* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -2983,6 +3050,8 @@ inline void BuilderConfig::set_allocated_build_policy(::bldr::manifest::build::B
 
 // -------------------------------------------------------------------
 
+// -------------------------------------------------------------------
+
 // BuilderResult
 
 // .bldr.manifest.Manifest manifest = 1;
@@ -3268,6 +3337,38 @@ inline void BuilderResult::set_allocated_input_manifest(::bldr::manifest::builde
 
   _impl_.input_manifest_ = reinterpret_cast<::bldr::manifest::builder::InputManifest*>(value);
   // @@protoc_insertion_point(field_set_allocated:bldr.manifest.builder.BuilderResult.input_manifest)
+}
+
+// map<string, .bldr.manifest.builder.BuilderResult> sub_manifest_results = 4;
+inline int BuilderResult::_internal_sub_manifest_results_size() const {
+  return _internal_sub_manifest_results().size();
+}
+inline int BuilderResult::sub_manifest_results_size() const {
+  return _internal_sub_manifest_results_size();
+}
+inline void BuilderResult::clear_sub_manifest_results() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.sub_manifest_results_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline const ::google::protobuf::Map<::std::string, ::bldr::manifest::builder::BuilderResult>& BuilderResult::_internal_sub_manifest_results() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.sub_manifest_results_.GetMap();
+}
+inline const ::google::protobuf::Map<::std::string, ::bldr::manifest::builder::BuilderResult>& BuilderResult::sub_manifest_results() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_map:bldr.manifest.builder.BuilderResult.sub_manifest_results)
+  return _internal_sub_manifest_results();
+}
+inline ::google::protobuf::Map<::std::string, ::bldr::manifest::builder::BuilderResult>* PROTOBUF_NONNULL BuilderResult::_internal_mutable_sub_manifest_results() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.sub_manifest_results_.MutableMap();
+}
+inline ::google::protobuf::Map<::std::string, ::bldr::manifest::builder::BuilderResult>* PROTOBUF_NONNULL BuilderResult::mutable_sub_manifest_results()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_mutable_map:bldr.manifest.builder.BuilderResult.sub_manifest_results)
+  return _internal_mutable_sub_manifest_results();
 }
 
 // -------------------------------------------------------------------

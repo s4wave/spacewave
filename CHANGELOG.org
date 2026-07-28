@@ -1,5 +1,63 @@
 #+TITLE: Spacewave Changelog
 
+* v0.56.1
+<2026-07-18 Sat>
+
+Spacewave 0.56.1 adds new Canvas tools, Storage Health and recovery guidance,
+contextual browser tab titles, and version-specific release pages. It also
+improves Drive uploads, invites, device linking, multi-tab browser use, Terminal
+continuity, experimental V86 VM setup, and Windows desktop startup.
+
+** Features
+- Canvas now includes line, arrow, rectangle, and ellipse tools, plus an image
+  picker for placing pictures from Drive.
+- Session settings now include Storage Health, showing browser usage, cleanup
+  protection, sync activity, and recovery options for freeing space, linking
+  another device, using Spacewave Cloud, or exporting important Spaces.
+- Dragging several selected Drive items into a layout now opens one Spacewave
+  tab per item, in selection order.
+- The Command Palette now includes Select Account for switching directly between
+  available accounts.
+- Each changelog release now has its own page with desktop downloads pinned to
+  that version.
+
+** Fixes
+- Large Drive selections now upload up to three items at a time and publish each
+  completed file immediately; one failed file no longer stops the rest of the
+  selection.
+- When browser file storage is full, Drive now shows capacity and recovery
+  guidance and removes incomplete data instead of consuming more space on
+  repeated failures.
+- Invite links opened without an active session now survive sign-in and session
+  setup, then open the shared Space after acceptance.
+- Fixed multiple browser tabs and popouts so their Spacewave tab list stays in
+  sync while each page keeps its own active tab, URL, and layout.
+- Terminal command sessions now survive pane remounts when a split layout
+  collapses, instead of ending with a session failure.
+- Fixed Windows desktop startup so packaged releases open Spacewave normally
+  without stray console windows.
+- When a Space has no configured home object, Spacewave now shows its object
+  list instead of an empty view.
+
+** Improvements
+- Browser tab titles now follow the active section, Space, object, selected
+  viewer, or focused layout pane, making tabs and bookmarks easier to identify.
+- Device linking now lets you click the code to copy it, shows ordered
+  connection progress, and surfaces direct-link failures instead of leaving an
+  indefinite spinner.
+- Experimental V86 VM setup now stays in its wizard and reports real image-copy
+  and creation progress, with Retry for recoverable failures.
+- Terminal now shows a Connecting state while it opens, and Command Line output
+  renders more consistently across pane changes.
+- Browser file storage now requests protection from automatic cleanup after the
+  first successful save, reducing eviction risk without delaying startup.
+- Browser startup now waits until app features are fully ready before leaving
+  the loading flow, reducing blank or partially initialized views after updates.
+
+** Security
+- Password and backup recovery keys are now separate actions, so generating a
+  backup key no longer also adds the password entered for the session.
+
 * v0.56.0
 <2026-07-10 Fri>
 

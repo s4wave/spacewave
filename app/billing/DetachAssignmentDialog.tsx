@@ -64,7 +64,7 @@ export function DetachAssignmentDialog({
             className="border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive flex cursor-pointer items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
             <LuUnlink className="size-3" />
-            <span>{busy ? 'Detaching...' : 'Detach'}</span>
+            <span>{busy ? 'Detaching…' : 'Detach'}</span>
           </button>
         </DialogFooter>
       </DialogContent>

@@ -113,7 +113,7 @@ export function PlanControls(props: {
             disabled={action !== 'idle' || checkout.polling}
           >
             {action === 'reactivating'
-              ? 'Keeping subscription...'
+              ? 'Keeping subscription…'
               : 'Keep subscription'}
           </DashboardButton>
         )}
@@ -124,7 +124,7 @@ export function PlanControls(props: {
             disabled={action !== 'idle' || checkout.polling}
           >
             {action === 'reactivating'
-              ? 'Reactivating...'
+              ? 'Reactivating…'
               : 'Reactivate subscription'}
           </DashboardButton>
         )}

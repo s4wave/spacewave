@@ -170,7 +170,7 @@ export function ForgeJobViewer({
           {decodedTasks.map((task) => (
             <div
               key={task.entity.objectKey}
-              className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition-all duration-150"
+              className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition duration-150"
             >
               <div className="min-w-0">
                 <div className="text-foreground truncate text-sm font-medium">
@@ -286,7 +286,7 @@ export function ForgeJobViewer({
               </div>
               <div className="bg-foreground/8 mt-3 h-1.5 w-full overflow-hidden rounded-full">
                 <div
-                  className="bg-brand h-full transition-all duration-200"
+                  className="bg-brand h-full transition-[width] duration-200"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -336,7 +336,7 @@ export function ForgeJobViewer({
                   }}
                   disabled={creatingTask}
                 >
-                  {creatingTask ? 'Adding...' : 'Add Task'}
+                  {creatingTask ? 'Adding…' : 'Add Task'}
                 </DashboardButton>
               )}
             </div>

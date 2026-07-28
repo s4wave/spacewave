@@ -25,6 +25,7 @@ func NewConfig(
 	watchFetchManifest,
 	disableStoreManifest,
 	disableCopyManifest bool,
+	noCopyBucketIDs ...string,
 ) *Config {
 	return &Config{
 		EngineId:  engineID,
@@ -35,6 +36,7 @@ func NewConfig(
 		WatchFetchManifest:   watchFetchManifest,
 		DisableStoreManifest: disableStoreManifest,
 		DisableCopyManifest:  disableCopyManifest,
+		NoCopyBucketIds:      slices.Clone(noCopyBucketIDs),
 	}
 }
 
@@ -144,6 +146,10 @@ func (c *Config) BuildFetchBackoff() *backoff.Backoff {
 		backoffConf.Exponential.MaxInterval = 1200
 	}
 	return backoffConf
+}
+
+func (c *Config) manifestCopyConcurrency() int {
+	return int(c.GetFetchConcurrency())
 }
 
 // _ is a type assertion

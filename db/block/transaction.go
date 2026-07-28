@@ -338,6 +338,15 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	encodeQueue := conc.NewConcurrentQueue(maxEncodeConcurrency)
 	// writeQueue is the job queue to write blocks to the store.
 	writeQueue := conc.NewConcurrentQueue(maxWriteConcurrency)
+	// Workers mutate transaction handles while the caller owns t.mtx. If an
+	// error makes WaitIdle return early, stop and join every worker before
+	// deferred transaction cleanup or unlock can run.
+	defer func() {
+		subCtxCancel()
+		waitCtx := context.WithoutCancel(ctx)
+		_ = encodeQueue.WaitIdle(waitCtx, nil)
+		_ = writeQueue.WaitIdle(waitCtx, nil)
+	}()
 
 	// mtx is locked while updating parents, as this may result in concurrent map writes otherwise.
 	var mtx sync.Mutex

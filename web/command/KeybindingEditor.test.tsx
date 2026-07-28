@@ -254,7 +254,7 @@ describe('KeybindingEditor', () => {
     expect(view.getAllByText('Open Terminal').length).toBeGreaterThan(0)
     expect(view.getAllByText('Special Command').length).toBeGreaterThan(0)
 
-    const search = view.getByPlaceholderText('Search commands...')
+    const search = view.getByPlaceholderText('Search commands…')
 
     await act(async () =>
       fireEvent.input(search, { target: { value: 'brush' } }),

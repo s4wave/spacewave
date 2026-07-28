@@ -1,0 +1,57 @@
+package provider_spacewave
+
+import (
+	"crypto/sha256"
+	"strconv"
+	"strings"
+)
+
+const friendDmIDDomain = "spacewave/friend-dm/v1"
+const friendDmULIDTimestamp = int64(1262304000000)
+const friendDmCrockfordLower = "0123456789abcdefghjkmnpqrstvwxyz"
+
+func encodeFriendDmTimestamp(timestamp int64) string {
+	chars := make([]byte, 10)
+	value := timestamp
+	for index := len(chars) - 1; index >= 0; index-- {
+		chars[index] = friendDmCrockfordLower[value&0x1f]
+		value >>= 5
+	}
+	return string(chars)
+}
+
+func encodeFriendDmRandomPart(bytes []byte) string {
+	chars := make([]byte, 16)
+	for index := range chars {
+		bitOffset := index * 5
+		byteIndex := bitOffset / 8
+		shift := bitOffset % 8
+		bits := uint16(bytes[byteIndex]) << 8
+		if byteIndex+1 < len(bytes) {
+			bits |= uint16(bytes[byteIndex+1])
+		}
+		chars[index] = friendDmCrockfordLower[(bits>>uint(11-shift))&0x1f]
+	}
+	return string(chars)
+}
+
+func deriveFriendDmSharedObjectID(
+	first FriendDmAccount,
+	second FriendDmAccount,
+) string {
+	low, high := first, second
+	if high.AccountID < low.AccountID {
+		low, high = high, low
+	}
+	payload := strings.Join([]string{
+		friendDmIDDomain,
+		low.AccountID,
+		low.EntityUUID,
+		strconv.FormatUint(low.Epoch, 10),
+		high.AccountID,
+		high.EntityUUID,
+		strconv.FormatUint(high.Epoch, 10),
+	}, "\x00")
+	digest := sha256.Sum256([]byte(payload))
+	return encodeFriendDmTimestamp(friendDmULIDTimestamp) + encodeFriendDmRandomPart(digest[:10])
+}

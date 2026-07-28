@@ -1,6 +1,7 @@
 package sobject
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
 	"slices"
 	"strconv"
@@ -15,6 +16,91 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
+const (
+	soAuthoritativeRootDigestDomain = "spacewave/sharedobject/authoritative-root/v1"
+	soValidatorSetDigestDomain      = "spacewave/sharedobject/validator-set/v1"
+)
+
+// DigestSOOperationEnvelope hashes the exact serialized signed SOOperation envelope.
+// The caller must pass the original wire bytes without decoding or reserializing.
+func DigestSOOperationEnvelope(exactEnvelope []byte) []byte {
+	digest := sha256.Sum256(exactEnvelope)
+	return digest[:]
+}
+
+// DigestSOAuthoritativeRoot hashes the domain- and length-framed root signature preimage.
+// BuildSignatureData excludes root validator signatures and includes the deterministic
+// inner bytes followed by account nonces in their canonical order.
+func DigestSOAuthoritativeRoot(root *SORoot) ([]byte, error) {
+	if root == nil {
+		return nil, errors.New("authoritative root is required")
+	}
+
+	signatureData, err := root.BuildSignatureData()
+	if err != nil {
+		return nil, errors.Wrap(err, "build authoritative root signature data")
+	}
+
+	preimage := make([]byte, 0, len(soAuthoritativeRootDigestDomain)+8+len(signatureData))
+	preimage = append(preimage, soAuthoritativeRootDigestDomain...)
+	preimage = binary.BigEndian.AppendUint64(preimage, uint64(len(signatureData)))
+	preimage = append(preimage, signatureData...)
+	digest := sha256.Sum256(preimage)
+	return digest[:], nil
+}
+
+// DigestSOTerminalReceipt hashes the deterministic serialized terminal receipt,
+// including its validator signatures.
+func DigestSOTerminalReceipt(receipt *SOTerminalReceipt) ([]byte, error) {
+	if receipt == nil {
+		return nil, errors.New("terminal receipt is required")
+	}
+
+	serialized, err := receipt.MarshalVT()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal terminal receipt")
+	}
+	digest := sha256.Sum256(serialized)
+	return digest[:], nil
+}
+
+// DigestSOValidatorSet hashes a versioned, count- and length-framed validator set.
+// Eligible participants have role VALIDATOR or OWNER; peer IDs are sorted
+// lexicographically and each eligible ID must be unique and non-empty.
+func DigestSOValidatorSet(config *SharedObjectConfig) ([]byte, error) {
+	if config == nil {
+		return nil, errors.New("shared object config is required")
+	}
+
+	peerIDs := make([]string, 0, len(config.GetParticipants()))
+	seen := make(map[string]struct{}, len(config.GetParticipants()))
+	for i, participant := range config.GetParticipants() {
+		if participant == nil || participant.GetRole() < SOParticipantRole_SOParticipantRole_VALIDATOR {
+			continue
+		}
+		peerID := participant.GetPeerId()
+		if peerID == "" {
+			return nil, errors.Errorf("participants[%d]: eligible validator peer_id is required", i)
+		}
+		if _, ok := seen[peerID]; ok {
+			return nil, errors.Errorf("participants[%d]: duplicate eligible validator peer_id: %s", i, peerID)
+		}
+		seen[peerID] = struct{}{}
+		peerIDs = append(peerIDs, peerID)
+	}
+	slices.Sort(peerIDs)
+
+	preimage := make([]byte, 0, len(soValidatorSetDigestDomain)+8)
+	preimage = append(preimage, soValidatorSetDigestDomain...)
+	preimage = binary.BigEndian.AppendUint64(preimage, uint64(len(peerIDs)))
+	for _, peerID := range peerIDs {
+		preimage = binary.BigEndian.AppendUint64(preimage, uint64(len(peerID)))
+		preimage = append(preimage, peerID...)
+	}
+	digest := sha256.Sum256(preimage)
+	return digest[:], nil
+}
+
 // baseCryptoContext is the base string for the crypto context.
 var baseCryptoContext = "sobject 2024-05-22T20:10:42.613604Z shared object crypto ctx v1."
 
@@ -26,6 +112,47 @@ func BuildValidatorRootSignatureContext(sharedObjectID string, seqno uint64) str
 	b.WriteString(sharedObjectID)
 	b.WriteString(" seqno ")
 	b.WriteString(strconv.FormatUint(seqno, 10))
+	return b.String()
+}
+
+// BuildSOReceiptLookupSignatureContext builds the context for a participant signature on an exact-key receipt lookup.
+func BuildSOReceiptLookupSignatureContext(sharedObjectID, participantPeerID, localID string) string {
+	var b strings.Builder
+	b.WriteString(baseCryptoContext)
+	b.WriteString("participant_receipt_lookup_signature ")
+	b.WriteString(sharedObjectID)
+	b.WriteString(" participant ")
+	b.WriteString(participantPeerID)
+	b.WriteString(" local-id ")
+	b.WriteString(localID)
+	return b.String()
+}
+
+// BuildSOReceiptAcknowledgementSignatureContext builds the context for a participant signature on an exact-key receipt acknowledgement.
+func BuildSOReceiptAcknowledgementSignatureContext(sharedObjectID, participantPeerID, localID string) string {
+	var b strings.Builder
+	b.WriteString(baseCryptoContext)
+	b.WriteString("participant_receipt_acknowledgement_signature ")
+	b.WriteString(sharedObjectID)
+	b.WriteString(" participant ")
+	b.WriteString(participantPeerID)
+	b.WriteString(" local-id ")
+	b.WriteString(localID)
+	return b.String()
+}
+
+// BuildSOTerminalReceiptSignatureContext builds the context for a validator signature on a terminal receipt.
+func BuildSOTerminalReceiptSignatureContext(sharedObjectID, participantPeerID, localID string, authoritativeRootSeqno uint64) string {
+	var b strings.Builder
+	b.WriteString(baseCryptoContext)
+	b.WriteString("validator_terminal_receipt_signature ")
+	b.WriteString(sharedObjectID)
+	b.WriteString(" participant ")
+	b.WriteString(participantPeerID)
+	b.WriteString(" local-id ")
+	b.WriteString(localID)
+	b.WriteString(" root-seqno ")
+	b.WriteString(strconv.FormatUint(authoritativeRootSeqno, 10))
 	return b.String()
 }
 

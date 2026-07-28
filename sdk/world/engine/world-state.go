@@ -356,6 +356,21 @@ func (ws *SDKWorldState) GetObjectMetadataBatch(ctx context.Context, keys []stri
 	return metadata, nil
 }
 
+// ForEachObjectBodyPage calls cb with each page of serialized object bodies.
+// The callback must finish with the page before the next RPC response is read.
+func (ws *SDKWorldState) ForEachObjectBodyPage(
+	ctx context.Context,
+	keys []string,
+	cb func([]*world.ObjectBody) error,
+) error {
+	return s4wave_world.ForEachObjectBodyPage(ctx, ws.service, keys, cb)
+}
+
+// GetObjectBodiesBatch returns serialized object bodies for object keys.
+func (ws *SDKWorldState) GetObjectBodiesBatch(ctx context.Context, keys []string) ([]*world.ObjectBody, error) {
+	return s4wave_world.GetObjectBodiesBatch(ctx, ws.service, keys)
+}
+
 // QueryGraphPath executes a bounded server-side graph path query.
 func (ws *SDKWorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
 	req, err := graphPathQueryToProto(query)
@@ -413,6 +428,9 @@ func (ws *SDKWorldState) ApplyWorldOp(ctx context.Context, op world.Operation, s
 		OpSender: sender.String(),
 	})
 	if err != nil {
+		return 0, false, err
+	}
+	if err := s4wave_world.ErrorFromCode(resp.GetErrorCode()); err != nil {
 		return 0, false, err
 	}
 	return resp.Seqno, resp.SysErr, nil

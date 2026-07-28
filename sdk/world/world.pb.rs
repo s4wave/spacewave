@@ -435,6 +435,47 @@ pub struct GetObjectMetadataBatchResponse {
     #[prost(message, repeated, tag="1")]
     pub metadata: ::prost::alloc::vec::Vec<ObjectMetadata>,
 }
+/// ObjectBody contains the serialized root body for one object key.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ObjectBody {
+    /// ObjectKey is the requested object key.
+    #[prost(string, tag="1")]
+    pub object_key: ::prost::alloc::string::String,
+    /// Body is the transformed root block data when the object exists.
+    #[prost(bytes="vec", tag="2")]
+    pub body: ::prost::alloc::vec::Vec<u8>,
+    /// Exists indicates whether the object key exists.
+    #[prost(bool, tag="3")]
+    pub exists: bool,
+    /// Rev is the object revision observed with body.
+    #[prost(uint64, tag="4")]
+    pub rev: u64,
+}
+/// GetObjectBodiesBatchRequest is the request type for
+/// GetObjectBodiesBatch.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetObjectBodiesBatchRequest {
+    /// ObjectKeys is the list of object keys to inspect.
+    #[prost(string, repeated, tag="1")]
+    pub object_keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// StartKeyIndex is the first object key index to include in this page.
+    #[prost(uint32, tag="2")]
+    pub start_key_index: u32,
+}
+/// GetObjectBodiesBatchResponse is the response type for
+/// GetObjectBodiesBatch.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetObjectBodiesBatchResponse {
+    /// Bodies preserves the request object key order.
+    #[prost(message, repeated, tag="1")]
+    pub bodies: ::prost::alloc::vec::Vec<ObjectBody>,
+    /// NextKeyIndex is the next key index to request. Zero means complete.
+    #[prost(uint32, tag="2")]
+    pub next_key_index: u32,
+    /// WorldSeqno is the World sequence number observed for this page.
+    #[prost(uint64, tag="3")]
+    pub world_seqno: u64,
+}
 /// GraphPathStep is one bounded predicate traversal step.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GraphPathStep {
@@ -509,6 +550,9 @@ pub struct ApplyWorldOpResponse {
     /// SysErr indicates if the error is a transient system error.
     #[prost(bool, tag="2")]
     pub sys_err: bool,
+    /// ErrorCode identifies a typed operation error when the RPC succeeds.
+    #[prost(enumeration="WorldErrorCode", tag="3")]
+    pub error_code: i32,
 }
 /// WatchWorldStateRequest is the request type for WatchWorldState.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -698,6 +742,9 @@ pub struct ApplyObjectOpResponse {
     /// SysErr indicates if the error is a transient system error.
     #[prost(bool, tag="2")]
     pub sys_err: bool,
+    /// ErrorCode identifies a typed operation error when the RPC succeeds.
+    #[prost(enumeration="WorldErrorCode", tag="3")]
+    pub error_code: i32,
 }
 /// IncrementRevRequest is the request type for IncrementRev.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -815,6 +862,33 @@ impl GraphPathDirection {
             "GRAPH_PATH_DIRECTION_OUT" => Some(Self::Out),
             "GRAPH_PATH_DIRECTION_IN" => Some(Self::In),
             "GRAPH_PATH_DIRECTION_BOTH" => Some(Self::Both),
+            _ => None,
+        }
+    }
+}
+/// WorldErrorCode identifies a typed error returned in a World RPC response.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum WorldErrorCode {
+    Unspecified = 0,
+    UnhandledOp = 1,
+}
+impl WorldErrorCode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "WORLD_ERROR_CODE_UNSPECIFIED",
+            Self::UnhandledOp => "WORLD_ERROR_CODE_UNHANDLED_OP",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "WORLD_ERROR_CODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "WORLD_ERROR_CODE_UNHANDLED_OP" => Some(Self::UnhandledOp),
             _ => None,
         }
     }

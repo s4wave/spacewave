@@ -109,7 +109,9 @@ export function VerifyEmailPage() {
                 />
               ))}
 
-              {hasVerified && visibleEmails.length === 0 && <VerifiedEmailCard />}
+              {hasVerified && visibleEmails.length === 0 && (
+                <VerifiedEmailCard />
+              )}
 
               {/* Prompt to send code if there's an unverified email but user
                   hasn't clicked send yet. */}
@@ -192,7 +194,7 @@ export function VerifyEmailPage() {
                   >
                     <LuSend className="text-foreground size-4" />
                     <span className="text-foreground text-sm">
-                      {busy ? 'Adding...' : 'Add & send code'}
+                      {busy ? 'Adding…' : 'Add & send code'}
                     </span>
                   </button>
                 </div>
@@ -352,7 +354,7 @@ function EmailCard({
             )}
           >
             <span className="text-foreground text-sm">
-              {busy ? 'Verifying...' : 'Verify email'}
+              {busy ? 'Verifying…' : 'Verify email'}
             </span>
             {!busy && <LuArrowRight className="text-foreground-alt size-4" />}
           </button>
@@ -362,7 +364,7 @@ function EmailCard({
             className="text-foreground-alt hover:text-foreground w-full text-center text-xs transition-colors disabled:opacity-50"
           >
             {sending
-              ? 'Sending...'
+              ? 'Sending…'
               : retryAfter > 0
                 ? 'Resend in ' + retryAfter + 's'
                 : "Didn't get it? Send again"}

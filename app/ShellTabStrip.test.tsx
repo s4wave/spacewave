@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   act,
@@ -10,11 +10,55 @@ import {
 } from '@testing-library/react'
 
 import { getAppPath } from '@s4wave/web/router/app-path.js'
+import { APP_DRAG_MIME } from '@s4wave/web/dnd/app-drag.js'
 import type * as WebState from '@s4wave/web/state/index.js'
-import { SHELL_TABS_STORAGE_KEY, useShellTabs } from './ShellTabContext.js'
+import {
+  getBrowserShellTabsStore,
+  resetBrowserShellTabsStoreForTests,
+} from './BrowserShellTabsStore.js'
+import { useShellTabs } from './ShellTabContext.js'
+import {
+  installShellTabTestBrowser,
+  readShellTabsSnapshot,
+  seedShellTabs,
+  type ShellTabTestBrowser,
+} from './ShellTabTestHarness.js'
 import { ShellTabStrip } from './ShellFlexLayout.js'
+import type { ShellDocumentEntry } from './ShellDocumentEntry.js'
+import { buildUnixFSEntryAppDragEnvelope } from './unixfs/unixfs-app-drag.js'
 
 const mockOptimizedLayoutProps = vi.hoisted(() => vi.fn())
+const mockCreateSpace = vi.hoisted(() => vi.fn())
+const continuationEntry: ShellDocumentEntry = {
+  kind: 'continuation',
+  path: '/',
+  params: {},
+  incarnation: 'test-document',
+}
+
+function createUnixFSRowDragEvent() {
+  const envelope = buildUnixFSEntryAppDragEnvelope({
+    entry: {
+      id: 'report',
+      name: 'report.md',
+      isDir: false,
+    },
+    currentPath: '/docs',
+    sessionIndex: 7,
+    spaceId: 'space-1',
+    unixfsId: 'files',
+  })
+  if (!envelope) {
+    throw new Error('failed to build UnixFS row drag envelope')
+  }
+  return {
+    dataTransfer: {
+      types: [APP_DRAG_MIME],
+      getData: (format: string) =>
+        format === APP_DRAG_MIME ? JSON.stringify(envelope) : '',
+    },
+  }
+}
 
 vi.mock('@s4wave/web/state/index.js', async () => {
   const [React, actual] = await Promise.all([
@@ -28,11 +72,15 @@ vi.mock('@s4wave/web/state/index.js', async () => {
   }
 })
 
-vi.mock('./ShellTabContent.js', () => ({
-  ShellTabContent: ({ tabId, path }: { tabId: string; path: string }) => (
-    <div data-testid={`tab-content-${tabId}`}>{path}</div>
-  ),
-}))
+vi.mock('./ShellTabContent.js', () => {
+  function ShellTabContent({ tabId, path }: { tabId: string; path: string }) {
+    useEffect(() => {
+      if (path === '/quickstart/drive') mockCreateSpace()
+    }, [path])
+    return <div data-testid={`tab-content-${tabId}`}>{path}</div>
+  }
+  return { ShellTabContent }
+})
 
 vi.mock('./ShellTabLabel.js', () => ({
   ShellTabLabel: ({ tab }: { tab: { name: string } }) => (
@@ -44,9 +92,12 @@ vi.mock('./ShellTabContextMenu.js', () => ({
   ShellTabContextMenu: () => null,
 }))
 
-vi.mock('./shell-grid-utils.js', () => ({
+vi.mock('./shell-grid-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   encodeGridLayout: () => 'grid-layout',
-  hasGridLayout: () => false,
+  getTabIdsFromModel: (model: { tabs: Array<{ id: string }> }) =>
+    model.tabs.map((tab) => tab.id),
+  hasGridLayout: (model: { isGrid?: boolean }) => model.isGrid === true,
 }))
 
 vi.mock('@aptre/flex-layout', () => {
@@ -72,6 +123,11 @@ vi.mock('@aptre/flex-layout', () => {
     getSelectedNode() {
       const tabId = this.selectedTabId ?? this.children[0]?.id ?? null
       return this.children.find((child) => child.id === tabId) ?? null
+    }
+
+    // The model only ever visits this tabset, so it is the active one.
+    isActive() {
+      return true
     }
   }
 
@@ -105,12 +161,18 @@ vi.mock('@aptre/flex-layout', () => {
 
   class MockModel {
     tabset: MockTabSetNode
+    tabsetDeleted = false
+    tabSetEnableDeleteWhenEmpty = true
+    isGrid = false
     tabs: MockTabNode[]
     actions: Array<{
       type: string
+      attributes?: { tabSetEnableDeleteWhenEmpty?: boolean }
       tabId?: string
       node?: { id: string; name: string }
+      select?: boolean
     }>
+    onModelChange?: (model: MockModel) => void
 
     constructor(json: {
       layout: {
@@ -147,7 +209,18 @@ vi.mock('@aptre/flex-layout', () => {
       return new MockModel(json)
     }
 
+    addExternalSplit(node: { id: string; name: string }) {
+      const tabset = new MockTabSetNode('shell-split', node.id)
+      const tab = new MockTabNode(node.id, node.name, tabset)
+      tabset.children.push(tab)
+      this.tabs.push(tab)
+      this.isGrid = true
+      this.onModelChange?.(this)
+      return tab
+    }
+
     visitNodes(callback: (node: MockTabSetNode | MockTabNode) => void) {
+      if (this.tabsetDeleted) return
       callback(this.tabset)
       for (const tab of this.tabs) {
         callback(tab)
@@ -155,6 +228,7 @@ vi.mock('@aptre/flex-layout', () => {
     }
 
     getNodeById(id: string) {
+      if (this.tabsetDeleted && id === this.tabset.id) return null
       return (
         this.tabs.find((tab) => tab.id === id) ??
         (this.tabset.id === id ? this.tabset : null)
@@ -188,11 +262,23 @@ vi.mock('@aptre/flex-layout', () => {
       type: string
       tabId?: string
       node?: { id: string; name: string }
+      select?: boolean
       name?: string
+      attributes?: { tabSetEnableDeleteWhenEmpty?: boolean }
     }) {
       this.actions.push(action)
 
-      if (action.type === 'addNode' && action.node) {
+      if (action.type === 'updateModelAttributes') {
+        const configured = action.attributes?.tabSetEnableDeleteWhenEmpty
+        if (configured !== undefined) {
+          this.tabSetEnableDeleteWhenEmpty = configured
+        }
+        if (this.tabs.length === 0 && this.tabSetEnableDeleteWhenEmpty) {
+          this.tabsetDeleted = true
+        }
+      }
+
+      if (action.type === 'addNode' && action.node && !this.tabsetDeleted) {
         const tab = new MockTabNode(
           action.node.id,
           action.node.name,
@@ -200,6 +286,9 @@ vi.mock('@aptre/flex-layout', () => {
         )
         this.tabset.children.push(tab)
         this.tabs.push(tab)
+        if (action.select !== false) {
+          this.tabset.selectedTabId = tab.id
+        }
       }
       if (action.type === 'deleteTab' && action.tabId) {
         this.tabs = this.tabs.filter((tab) => tab.id !== action.tabId)
@@ -219,29 +308,56 @@ vi.mock('@aptre/flex-layout', () => {
       if (action.type === 'selectTab' && action.tabId) {
         this.tabset.selectedTabId = action.tabId
       }
+      this.onModelChange?.(this)
     }
   }
 
   function OptimizedLayout({
     model,
+    onExternalDrag,
     onModelChange,
+    renderTab,
   }: {
     model: MockModel
+    onExternalDrag?: (event: unknown) => unknown
     onModelChange?: (model: MockModel) => void
+    renderTab?: (node: MockTabNode) => React.ReactNode
   }) {
-    mockOptimizedLayoutProps({ model, onModelChange })
-    return <div data-testid="layout-tab-count">{model.tabs.length}</div>
+    model.onModelChange = onModelChange
+    mockOptimizedLayoutProps({
+      model,
+      onExternalDrag,
+      onModelChange,
+      renderTab,
+    })
+    return (
+      <>
+        <div data-testid="layout-tab-count">{model.tabs.length}</div>
+        {model.tabs.map((tab) => (
+          <div key={tab.id}>{renderTab?.(tab)}</div>
+        ))}
+      </>
+    )
   }
 
   return {
     Actions: {
-      addNode: (node: { id: string; name: string }) => ({
+      addNode: (
+        node: { id: string; name: string },
+        _tabsetId: string,
+        _location: string,
+        _index: number,
+        select?: boolean,
+      ) => ({
         type: 'addNode',
         node,
+        select,
       }),
       deleteTab: (tabId: string) => ({ type: 'deleteTab', tabId }),
       selectTab: (tabId: string) => ({ type: 'selectTab', tabId }),
-      updateModelAttributes: () => ({ type: 'updateModelAttributes' }),
+      updateModelAttributes: (attributes: {
+        tabSetEnableDeleteWhenEmpty?: boolean
+      }) => ({ type: 'updateModelAttributes', attributes }),
       updateNodeAttributes: (tabId: string, attrs: { name?: string }) => ({
         type: 'updateNodeAttributes',
         tabId,
@@ -298,36 +414,37 @@ function FlexCliCommandProbe() {
     </button>
   )
 }
+function ActiveTabProbe() {
+  const { activeTabId } = useShellTabs()
+  return <output data-testid="active-tab">{activeTabId}</output>
+}
 
 describe('ShellTabStrip', () => {
+  let restoreTestBrowser: ShellTabTestBrowser | undefined
+
   beforeEach(() => {
+    restoreTestBrowser = installShellTabTestBrowser()
     class ResizeObserverMock {
       observe() {}
       disconnect() {}
     }
     vi.stubGlobal('ResizeObserver', ResizeObserverMock)
   })
-
   afterEach(() => {
     cleanup()
     localStorage.clear()
     sessionStorage.clear()
     window.location.hash = ''
+    restoreTestBrowser?.()
+    restoreTestBrowser = undefined
     vi.unstubAllGlobals()
     mockOptimizedLayoutProps.mockReset()
   })
-
   it('materializes and selects a state-only docs tab in the flex layout model', async () => {
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [{ id: 'home', name: 'Home', path: '/' }],
-        activeTabId: 'home',
-      }),
-    )
+    seedShellTabs([{ id: 'home', name: 'Home', path: '/' }])
 
     render(
-      <ShellTabStrip>
+      <ShellTabStrip entry={continuationEntry}>
         <StateOnlyDocsOpener />
       </ShellTabStrip>,
     )
@@ -351,15 +468,10 @@ describe('ShellTabStrip', () => {
           ]
         | undefined
       const model = call?.[0].model
-      const stored = JSON.parse(
-        sessionStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
-      ) as {
-        activeTabId: string
-        tabs: Array<{ id: string; path: string }>
-      }
-      const activeTabId = stored.activeTabId
-      expect(stored.tabs).toHaveLength(2)
-      expect(stored.tabs.some((tab) => tab.path === '/docs')).toBe(true)
+      const stored = readShellTabsSnapshot()
+      const activeTabId = model?.selectedTabId
+      expect(stored.records).toHaveLength(2)
+      expect(stored.records.some((tab) => tab.path === '/docs')).toBe(true)
       expect(activeTabId).not.toBe('home')
       expect(model?.tabs.some((tab) => tab.id === activeTabId)).toBe(true)
       expect(model?.selectedTabId).toBe(activeTabId)
@@ -378,25 +490,157 @@ describe('ShellTabStrip', () => {
     })
   })
 
-  it('opens and selects the command-line terminal in the active flex tabset with the Terminal name', async () => {
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [
-          { id: 'home', name: 'Home', path: '/' },
-          { id: 'blog', name: 'Blog', path: '/blog' },
-        ],
-        activeTabId: 'home',
-      }),
-    )
+  it('activates a committed fresh record before the Web Lock releases', async () => {
+    seedShellTabs([{ id: 'existing', name: 'Files', path: '/files' }])
+    let releaseMutation!: () => void
+    const mutationRelease = new Promise<void>((resolve) => {
+      releaseMutation = resolve
+    })
+    let mutationCommitted!: () => void
+    const committed = new Promise<void>((resolve) => {
+      mutationCommitted = resolve
+    })
+    Object.defineProperty(navigator, 'locks', {
+      configurable: true,
+      value: {
+        request: async (
+          _name: string,
+          _options: unknown,
+          callback: (lock: object) => unknown,
+        ) => {
+          const result = await callback({})
+          mutationCommitted()
+          await mutationRelease
+          return result
+        },
+      },
+    })
 
     render(
-      <ShellTabStrip>
-        <FlexCliCommandProbe />
+      <ShellTabStrip
+        entry={{
+          kind: 'fresh',
+          path: '/files',
+          params: {},
+          incarnation: 'fresh-document',
+        }}
+      >
+        <ActiveTabProbe />
       </ShellTabStrip>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open CLI terminal' }))
+    await committed
+    const created = readShellTabsSnapshot().records.find(
+      (record) => record.id !== 'existing',
+    )
+    expect(created).toBeDefined()
+    await waitFor(() => {
+      const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
+      expect(props.model.tabs).toHaveLength(2)
+      expect(props.model.selectedTabId).toBe(created?.id)
+      expect(screen.getByTestId('active-tab').textContent).toBe(created?.id)
+    })
+
+    releaseMutation()
+    await waitFor(() => {
+      expect(screen.getByTestId('active-tab').textContent).toBe(created?.id)
+    })
+  })
+
+  it('fences stale model feedback while a local hash path mutation is pending', async () => {
+    seedShellTabs([
+      { id: 'other', name: 'Other', path: '/other' },
+      { id: 'files', name: 'Files', path: '/files' },
+    ])
+    const browser = restoreTestBrowser
+    if (!browser) throw new Error('Shell Tab test browser is not installed.')
+
+    render(
+      <ShellTabStrip entry={continuationEntry}>
+        <ActiveTabProbe />
+      </ShellTabStrip>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('active-tab').textContent).toBe('other')
+    })
+    const initialCall = mockOptimizedLayoutProps.mock.calls[0] as
+      | [
+          {
+            model: {
+              doAction: (action: { type: string; tabId?: string }) => void
+            }
+            onModelChange?: (model: unknown) => void
+          },
+        ]
+      | undefined
+    const staleModelChange = initialCall?.[0].onModelChange
+    const model = initialCall?.[0].model
+    expect(staleModelChange).toBeTypeOf('function')
+    expect(model).toBeDefined()
+
+    await act(async () => {
+      model?.doAction({ type: 'selectTab', tabId: 'files' })
+    })
+    await waitFor(() => {
+      expect(screen.getByTestId('active-tab').textContent).toBe('files')
+      expect(getAppPath()).toBe('/files')
+    })
+
+    const navigations: string[] = []
+    const onHashChange = () => navigations.push(getAppPath())
+    window.addEventListener('hashchange', onHashChange)
+    const blockedMutation = browser.blockNextMutation()
+    act(() => {
+      window.location.hash = '#/docs'
+    })
+    await blockedMutation
+
+    await act(async () => {
+      staleModelChange?.(model)
+    })
+    expect(getAppPath()).toBe('/docs')
+
+    browser.releaseBlockedMutation()
+    await waitFor(() => {
+      expect(
+        readShellTabsSnapshot().records.find((record) => record.id === 'files')
+          ?.path,
+      ).toBe('/docs')
+      expect(getAppPath()).toBe('/docs')
+    })
+    window.removeEventListener('hashchange', onHashChange)
+    expect(navigations).not.toContain('/files')
+  })
+
+  it('preserves every shared record while projecting an empty stored model', async () => {
+    seedShellTabs([
+      { id: 'home', name: 'Home', path: '/' },
+      { id: 'blog', name: 'Blog', path: '/blog' },
+    ])
+    sessionStorage.setItem(
+      'shell-tabs-layout',
+      JSON.stringify({
+        nonce: 4,
+        model: {
+          global: {},
+          layout: {
+            type: 'row',
+            weight: 100,
+            children: [
+              {
+                type: 'tabset',
+                id: 'shell-tabset',
+                selected: 0,
+                children: [],
+              },
+            ],
+          },
+        },
+      }),
+    )
+
+    render(<ShellTabStrip entry={continuationEntry} />)
 
     await waitFor(() => {
       const call = mockOptimizedLayoutProps.mock.calls.at(-1) as
@@ -409,43 +653,86 @@ describe('ShellTabStrip', () => {
             },
           ]
         | undefined
-      const model = call?.[0].model
-      const stored = JSON.parse(
-        sessionStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
-      ) as {
-        activeTabId: string
-        tabs: Array<{ id: string; name: string; path: string }>
-      }
-      const activeTab = stored.tabs.find((tab) => tab.id === stored.activeTabId)
-
-      expect(stored.tabs.map((tab) => tab.path)).toEqual([
-        '/',
-        '/u/7/settings/cli/terminal',
-        '/blog',
+      expect(call?.[0].model.tabs.map((tab) => tab.id)).toEqual([
+        'home',
+        'blog',
       ])
-      expect(activeTab).toMatchObject({
-        name: 'Terminal',
-        path: '/u/7/settings/cli/terminal',
-      })
-      expect(model?.tabs.some((tab) => tab.id === stored.activeTabId)).toBe(
-        true,
+      expect(readShellTabsSnapshot().records).toHaveLength(2)
+      expect(call?.[0].model.selectedTabId).toBe('home')
+    })
+  })
+
+  it('reconciles a hash change received during fresh tab creation', async () => {
+    const browser = restoreTestBrowser
+    if (!browser) throw new Error('Shell Tab test browser is not installed.')
+    const blockedMutation = browser.blockNextMutation()
+
+    render(<ShellTabStrip entry={continuationEntry} />)
+
+    await blockedMutation
+    act(() => {
+      window.location.hash = '#/changelog'
+    })
+    browser.releaseBlockedMutation()
+
+    await waitFor(() => {
+      expect(readShellTabsSnapshot().records).toEqual([
+        expect.objectContaining({ path: '/changelog' }),
+      ])
+    })
+  })
+
+  it('retains the shell tabset while records hydrate asynchronously', async () => {
+    localStorage.clear()
+    resetBrowserShellTabsStoreForTests()
+
+    render(<ShellTabStrip entry={continuationEntry} />)
+
+    const store = getBrowserShellTabsStore()
+    await waitFor(() => {
+      expect(store.getSnapshot().records).toHaveLength(1)
+    })
+
+    await store.create({ id: 'blog', path: '/blog', name: 'Blog' })
+
+    await waitFor(() => {
+      const call = mockOptimizedLayoutProps.mock.calls.at(-1) as
+        | [{ model: { tabs: Array<{ id: string }> } }]
+        | undefined
+      expect(call?.[0].model.tabs.map((tab) => tab.id)).toHaveLength(2)
+      expect(readShellTabsSnapshot().records).toHaveLength(2)
+    })
+  })
+
+  it('opens and selects the command-line terminal in the active flex tabset with the Terminal name', async () => {
+    seedShellTabs([
+      { id: 'home', name: 'Home', path: '/' },
+      { id: 'blog', name: 'Blog', path: '/blog' },
+    ])
+
+    render(
+      <ShellTabStrip entry={continuationEntry}>
+        <FlexCliCommandProbe />
+      </ShellTabStrip>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open CLI terminal' }))
+
+    await waitFor(() => {
+      const stored = readShellTabsSnapshot()
+      expect(stored.records).toHaveLength(3)
+      expect(stored.records.map((tab) => tab.path)).toEqual(
+        expect.arrayContaining(['/', '/u/7/settings/cli/terminal', '/blog']),
       )
-      expect(model?.selectedTabId).toBe(stored.activeTabId)
       expect(getAppPath()).toBe('/u/7/settings/cli/terminal')
       expect(window.location.hash).toBe('#/u/7/settings/cli/terminal')
     })
   })
 
   it('does not synthesize blank shell routes from model-only flex tabs', async () => {
-    sessionStorage.setItem(
-      SHELL_TABS_STORAGE_KEY,
-      JSON.stringify({
-        tabs: [{ id: 'home', name: 'Home', path: '/' }],
-        activeTabId: 'home',
-      }),
-    )
+    seedShellTabs([{ id: 'home', name: 'Home', path: '/' }])
 
-    render(<ShellTabStrip />)
+    render(<ShellTabStrip entry={continuationEntry} />)
 
     const call = mockOptimizedLayoutProps.mock.calls.at(-1) as
       | [
@@ -476,14 +763,81 @@ describe('ShellTabStrip', () => {
     })
 
     await waitFor(() => {
-      const stored = JSON.parse(
-        sessionStorage.getItem(SHELL_TABS_STORAGE_KEY) ?? 'null',
-      ) as {
-        activeTabId: string
-        tabs: Array<{ id: string; path: string }>
-      }
-      expect(stored.activeTabId).toBe('home')
-      expect(stored.tabs).toEqual([{ id: 'home', name: 'Home', path: '/' }])
+      const stored = readShellTabsSnapshot()
+      expect(stored.records).toEqual([
+        { id: 'home', name: 'Home', path: '/', creationSequence: 1 },
+      ])
     })
+  })
+  it('commits one file drop before publishing its right-side split', async () => {
+    window.location.hash = '#/quickstart/drive'
+    seedShellTabs([
+      {
+        id: 'quickstart',
+        name: 'Drive',
+        path: '/quickstart/drive',
+      },
+    ])
+    const navigations: string[] = []
+    const onHashChange = () => {
+      navigations.push(getAppPath())
+    }
+    window.addEventListener('hashchange', onHashChange)
+
+    render(<ShellTabStrip entry={continuationEntry} />)
+    await waitFor(() => expect(mockCreateSpace).toHaveBeenCalledTimes(1))
+    const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0] as
+      | {
+          model: {
+            isGrid: boolean
+            tabs: Array<{ id: string }>
+            actions: Array<{ type: string; tabId?: string }>
+            addExternalSplit: (node: { id: string; name: string }) => {
+              getId: () => string
+            }
+          }
+          onExternalDrag?: (event: unknown) => unknown
+        }
+      | undefined
+    if (typeof props?.onExternalDrag !== 'function') {
+      throw new Error('shell layout did not provide onExternalDrag')
+    }
+
+    const externalDrag = props.onExternalDrag(createUnixFSRowDragEvent()) as {
+      json: { id: string; name: string }
+      onDrop?: (node?: { getId: () => string }) => void
+    }
+    navigations.length = 0
+    mockCreateSpace.mockClear()
+    act(() => {
+      const droppedNode = props.model.addExternalSplit(externalDrag.json)
+      externalDrag.onDrop?.(droppedNode)
+    })
+
+    await waitFor(() => {
+      const stored = readShellTabsSnapshot()
+      expect(props.model.isGrid).toBe(true)
+      expect(props.model.tabs).toHaveLength(2)
+      expect(stored.records).toHaveLength(2)
+      expect(
+        stored.records.filter((tab) => tab.path === '/quickstart/drive'),
+      ).toHaveLength(1)
+      expect(
+        stored.records.filter(
+          (tab) => tab.path === '/u/7/so/space-1/-/files/-/docs/report.md',
+        ),
+      ).toHaveLength(1)
+      expect(
+        props.model.actions.some(
+          (action) =>
+            action.type === 'selectTab' &&
+            action.tabId === externalDrag.json.id,
+        ),
+      ).toBe(true)
+    })
+    expect(getAppPath()).toBe('/g/grid-layout')
+    window.removeEventListener('hashchange', onHashChange)
+    expect(navigations).not.toContain('/quickstart/drive')
+    expect(mockCreateSpace).not.toHaveBeenCalled()
   })
 })

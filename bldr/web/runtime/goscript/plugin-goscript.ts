@@ -1,7 +1,7 @@
 import { pipe } from 'it-pipe'
 import { pushable } from 'it-pushable'
 import type { PacketStream } from 'starpc'
-import { BackendAPI } from '@aptre/bldr-sdk'
+import type { BackendAPI, BackendEntrypointLifecycle } from '@aptre/bldr-sdk'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 
 type GoPushableSink = {
@@ -15,7 +15,6 @@ export type GoScriptPluginMainLoader = () => Promise<GoScriptPluginMain>
 declare global {
   var BLDR_BASE_URL: string
   var BLDR_PLUGIN_START_INFO: string | undefined
-  var BLDR_PLUGIN_REPORT_RUNTIME_FAILURE: ((err: unknown) => void) | undefined
   var BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME:
     | ((
         onMessage: (message: Uint8Array) => void,
@@ -24,6 +23,7 @@ declare global {
         onReject: (errMsg: string) => void,
       ) => void)
     | undefined
+  var BLDR_PLUGIN_MARK_READY: (() => void) | undefined
   var BLDR_PLUGIN_SET_ACCEPT_STREAM:
     | ((acceptStream?: (localPort: MessagePort) => void) => void)
     | undefined
@@ -35,14 +35,19 @@ globalScope.BLDR_BASE_URL = baseURL
 
 class GoScriptPluginGeneration {
   private readonly activeAcceptedStreams = new Set<BrowserMessagePortDuplex>()
+  private readonly startup = Promise.withResolvers<void>()
+  private readonly done = Promise.withResolvers<void>()
   private terminalError?: Error
 
-  public constructor(private readonly api: BackendAPI) {}
+  public constructor(private readonly api: BackendAPI) {
+    void this.startup.promise.catch(() => {})
+    void this.done.promise.catch(() => {})
+  }
 
   public start(
     startInfo: PluginStartInfo,
     loadPluginMain: GoScriptPluginMainLoader,
-  ) {
+  ): BackendEntrypointLifecycle {
     const pluginStartInfoJsonB64 = btoa(PluginStartInfo.toJsonString(startInfo))
     globalScope.BLDR_PLUGIN_START_INFO = pluginStartInfoJsonB64
 
@@ -53,6 +58,18 @@ class GoScriptPluginGeneration {
         () => this.fail(new Error('GoScript plugin process exited')),
         (err) => this.fail(err),
       )
+
+    return {
+      startup: this.startup.promise,
+      done: this.done.promise,
+    }
+  }
+
+  public markReady() {
+    if (this.terminalError) {
+      return
+    }
+    this.startup.resolve()
   }
 
   public setAcceptStream(acceptStrm?: (localPort: MessagePort) => void) {
@@ -91,6 +108,7 @@ class GoScriptPluginGeneration {
         closeMessagePortDuplex(duplex)
       }
     })
+    this.markReady()
   }
 
   private fail(err: unknown) {
@@ -100,13 +118,14 @@ class GoScriptPluginGeneration {
 
     const terminalError = castToError(err, 'GoScript plugin process failed')
     this.terminalError = terminalError
+    this.startup.reject(terminalError)
+    this.done.reject(terminalError)
     console.warn(
       'plugin-goscript: GoScript plugin process exited',
       terminalError,
     )
     this.closeActiveAcceptedStreams()
     this.installTerminalAcceptHandler(terminalError)
-    globalScope.BLDR_PLUGIN_REPORT_RUNTIME_FAILURE?.(terminalError)
   }
 
   private closeActiveAcceptedStreams() {
@@ -123,10 +142,10 @@ class GoScriptPluginGeneration {
   }
 }
 
-export default async function main(
+export default function main(
   api: BackendAPI,
   loadPluginMain: GoScriptPluginMainLoader,
-): Promise<void> {
+): BackendEntrypointLifecycle {
   const generation = new GoScriptPluginGeneration(api)
 
   globalScope.BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME = (
@@ -191,13 +210,17 @@ export default async function main(
     )
   }
 
+  globalScope.BLDR_PLUGIN_MARK_READY = () => {
+    generation.markReady()
+  }
+
   globalScope.BLDR_PLUGIN_SET_ACCEPT_STREAM = (
     acceptStrm?: (localPort: MessagePort) => void,
   ) => {
     generation.setAcceptStream(acceptStrm)
   }
 
-  generation.start(api.startInfo, loadPluginMain)
+  return generation.start(api.startInfo, loadPluginMain)
 }
 
 class BrowserMessagePortDuplex {

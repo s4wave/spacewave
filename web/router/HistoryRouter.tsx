@@ -23,6 +23,8 @@ interface HistoryState {
 interface HistoryContextType {
   canGoBack: boolean
   canGoForward: boolean
+  enterFlow: (key: string) => void
+  exitFlow: (key: string) => void
   goBack: () => void
   goForward: () => void
 }
@@ -43,6 +45,7 @@ export function HistoryRouter({
 }: HistoryRouterProps) {
   // Use ref to track history state to avoid re-renders on history changes
   const historyRef = useRef<HistoryState>({ stack: [path], index: 0 })
+  const flowEntriesRef = useRef(new Map<string, string>())
   // Track the last path we saw to detect external navigation
   const lastPathRef = useRef(path)
   // Flag to skip pushing when doing history navigation
@@ -72,6 +75,11 @@ export function HistoryRouter({
         index: newStack.length - 1,
       }
     }
+    for (const [key, entryPath] of flowEntriesRef.current) {
+      if (path === key || path === entryPath) {
+        flowEntriesRef.current.delete(key)
+      }
+    }
 
     setCanGoBack(historyRef.current.index > 0)
     setCanGoForward(
@@ -94,6 +102,49 @@ export function HistoryRouter({
     onNavigateRef.current({ path: targetPath })
   }, [])
 
+  const goBackTo = useCallback((targetPath: string) => {
+    const history = historyRef.current
+    const newIndex = history.stack.lastIndexOf(targetPath, history.index - 1)
+
+    if (newIndex < 0) {
+      const stack = [...history.stack]
+      stack[history.index] = targetPath
+      historyRef.current = { stack, index: history.index }
+      isHistoryNavRef.current = true
+      onNavigateRef.current({ path: targetPath, replace: true })
+      return
+    }
+
+    historyRef.current = { ...history, index: newIndex }
+    isHistoryNavRef.current = true
+    setCanGoBack(newIndex > 0)
+    setCanGoForward(newIndex < history.stack.length - 1)
+    onNavigateRef.current({ path: targetPath })
+  }, [])
+
+  const enterFlow = useCallback(
+    (key: string) => {
+      if (flowEntriesRef.current.has(key)) return
+
+      const history = historyRef.current
+      const entryPath =
+        path !== lastPathRef.current
+          ? history.stack[history.index]
+          : history.stack[history.index - 1]
+      flowEntriesRef.current.set(key, entryPath ?? key)
+    },
+    [path],
+  )
+
+  const exitFlow = useCallback(
+    (key: string) => {
+      const targetPath = flowEntriesRef.current.get(key) ?? key
+      flowEntriesRef.current.delete(key)
+      goBackTo(targetPath)
+    },
+    [goBackTo],
+  )
+
   const goForward = useCallback(() => {
     const history = historyRef.current
     if (history.index >= history.stack.length - 1) return
@@ -110,8 +161,15 @@ export function HistoryRouter({
   }, [])
 
   const historyValue = useMemo(
-    () => ({ canGoBack, canGoForward, goBack, goForward }),
-    [canGoBack, canGoForward, goBack, goForward],
+    () => ({
+      canGoBack,
+      canGoForward,
+      enterFlow,
+      exitFlow,
+      goBack,
+      goForward,
+    }),
+    [canGoBack, canGoForward, enterFlow, exitFlow, goBack, goForward],
   )
 
   return (

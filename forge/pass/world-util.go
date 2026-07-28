@@ -24,8 +24,10 @@ func CheckPassType(ctx context.Context, ws world.WorldState, objKey string) erro
 func LookupPass(ctx context.Context, ws world.WorldState, objKey string) (*Pass, *forge_target.Target, error) {
 	obj, err := world.MustGetObject(ctx, ws, objKey)
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, nil, err
 	}
+	defer world.ReleaseObjectState(obj)
 	var pass *Pass
 	var tgt *forge_target.Target
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
@@ -65,7 +67,8 @@ func WaitPassComplete(
 				if nextState != lastState {
 					lastState = nextState
 					le.Debugf("pass is in state: %s", nextState.String())
-					if ferr := pass.GetResult().GetFailError(); ferr != "" {
+					result := pass.GetResult()
+					if ferr := result.GetFailError(); ferr != "" && !result.GetCanceled() {
 						le.WithError(errors.New(ferr)).Warn("pass failed")
 					}
 				}

@@ -14,14 +14,37 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/fastjson"
 	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
+	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
+	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
+	cdn_world_controller "github.com/s4wave/spacewave/core/cdn/world/controller"
 	"github.com/sirupsen/logrus"
 )
+
+type releaseWorldConfigValues struct {
+	spaceID string
+	cdnBase string
+}
+
+const cliTerminalTextExpression = `(() => {
+	const terminal = document.querySelector('.xterm')
+	if (!terminal) return ''
+	const parts = []
+	const pushText = (node) => {
+		const text = node?.textContent ?? ''
+		if (text) parts.push(text)
+	}
+	pushText(terminal.querySelector('.xterm-accessibility-tree'))
+	pushText(terminal.querySelector('.live-region'))
+	pushText(terminal.querySelector('.xterm-rows'))
+	return parts.join('\n').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim()
+})()`
 
 var testHarness *harness
 
@@ -42,6 +65,10 @@ func TestMain(m *testing.M) {
 	if !E2EReleaseWasmEnabled() {
 		le.Info("skipping e2e/releasewasm package; set ENABLE_E2E_RELEASE_WASM=true to run")
 		os.Exit(0)
+	}
+
+	if err := applyReleaseStartupTraceEnv(); err != nil {
+		le.WithError(err).Fatal("apply release wasm startup trace env")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
@@ -339,6 +366,297 @@ func TestGoScriptServiceWorkerPluginDistModuleIntegrity(t *testing.T) {
 		t.Fatalf("probe ServiceWorker plugin dist module integrity: %v", err)
 	}
 	t.Logf("ServiceWorker plugin dist module integrity probe: %#v", raw)
+}
+
+func TestBrowserReleaseLazyPluginRemoteSupplyAndDurableRestart(t *testing.T) {
+	if os.Getenv("E2E_RELEASE_WASM_LAZY_PLUGIN_FIXTURE") != "1" {
+		t.Skip("set E2E_RELEASE_WASM_LAZY_PLUGIN_FIXTURE=1 to run the release-world lazy-plugin fixture")
+	}
+
+	releaseWorld, err := releaseWorldFixtureConfig(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	releasePackPrefix := strings.TrimRight(releaseWorld.cdnBase, "/") + "/" + releaseWorld.spaceID + "/packs/"
+	desc, err := testHarness.browserRelease(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, asset := range desc.RequiredStaticAssets {
+		if strings.Contains(asset, "spacewave-cli-plugin") {
+			t.Fatalf("lazy fixture descriptor embeds CLI plugin asset %q", asset)
+		}
+	}
+
+	page, mutePageDiagnostics := testHarness.newPageWithDiagnosticsControl(t)
+	ctx := page.Context()
+	type releaseWorldRequest struct {
+		url         string
+		rangeHeader string
+	}
+	var requestsMu sync.Mutex
+	var releaseWorldRequests []releaseWorldRequest
+	var routeAbortErrors []error
+	ctx.OnRequest(func(req playwright.Request) {
+		if !strings.HasPrefix(req.URL(), releasePackPrefix) {
+			return
+		}
+		rangeHeader, _ := req.HeaderValue("Range")
+		requestsMu.Lock()
+		releaseWorldRequests = append(releaseWorldRequests, releaseWorldRequest{url: req.URL(), rangeHeader: rangeHeader})
+		requestsMu.Unlock()
+	})
+	abortPackRoute := func(route playwright.Route) {
+		if err := route.Abort(); err != nil {
+			requestsMu.Lock()
+			routeAbortErrors = append(routeAbortErrors, errors.Wrapf(err, "abort Release World pack request %s", route.Request().URL()))
+			requestsMu.Unlock()
+		}
+	}
+
+	if _, err := page.Goto(testHarness.getBaseURL() + "/"); err != nil {
+		t.Fatalf("goto lazy-plugin fixture root: %v", err)
+	}
+	waitForPrerenderRoot(t, page)
+	waitForBootFunction(t, page)
+	if _, err := page.Evaluate(`() => globalThis.__swBoot('#/')`); err != nil {
+		t.Fatalf("boot lazy-plugin fixture: %v", err)
+	}
+	waitForLiveApp(t, page)
+	waitForPluginWorkersRunning(t, page, []string{
+		"plugin/spacewave-cli-plugin",
+	})
+	waitForCliTerminalPrompt(t, page)
+	waitForPluginManifestCopyDone(t, page, "spacewave-cli-plugin")
+
+	requestsMu.Lock()
+	firstRequests := slices.Clone(releaseWorldRequests)
+	requestsMu.Unlock()
+	firstRangeCount := 0
+	for _, request := range firstRequests {
+		if request.rangeHeader != "" {
+			firstRangeCount++
+		}
+	}
+	if firstRangeCount == 0 {
+		t.Fatal("lazy plugin became ready without a Release World CDN Range request")
+	}
+
+	mutePageDiagnostics()
+	if err := page.Close(); err != nil {
+		t.Fatalf("close first lazy-plugin fixture page: %v", err)
+	}
+
+	restartPage, err := ctx.NewPage()
+	if err != nil {
+		t.Fatalf("create lazy-plugin restart page: %v", err)
+	}
+	muteRestartPageDiagnostics := testHarness.attachPageDiagnostics(t, restartPage)
+	t.Cleanup(func() {
+		muteRestartPageDiagnostics()
+		_ = restartPage.Close()
+	})
+	cdp, err := ctx.NewCDPSession(restartPage)
+	if err != nil {
+		t.Fatalf("create restart CDP session: %v", err)
+	}
+	if _, err := cdp.Send("Network.clearBrowserCache", nil); err != nil {
+		t.Fatalf("clear restart browser HTTP cache: %v", err)
+	}
+	if err := ctx.Route(releasePackPrefix+"**/*.kvf", abortPackRoute); err != nil {
+		t.Fatalf("abort Release World pack requests on restart: %v", err)
+	}
+	if _, err := restartPage.Goto(testHarness.getBaseURL() + "/"); err != nil {
+		dumpPageState(t, restartPage)
+		t.Fatalf("durable local restart failed with Release World pack requests aborted: %v", err)
+	}
+	waitForPrerenderRoot(t, restartPage)
+	waitForBootFunction(t, restartPage)
+	if _, err := restartPage.Evaluate(`() => globalThis.__swBoot('#/')`); err != nil {
+		t.Fatalf("boot lazy-plugin fixture after Release World pack route: %v", err)
+	}
+	waitForLiveApp(t, restartPage)
+	waitForPluginWorkersRunning(t, restartPage, []string{
+		"plugin/spacewave-cli-plugin",
+	})
+	waitForCliTerminalPrompt(t, restartPage)
+
+	requestsMu.Lock()
+	restartRequests := slices.Clone(releaseWorldRequests)
+	routeErrors := slices.Clone(routeAbortErrors)
+	requestsMu.Unlock()
+	if len(routeErrors) != 0 {
+		t.Fatalf("abort Release World pack request route failed: %v", routeErrors)
+	}
+	if len(restartRequests) != len(firstRequests) {
+		t.Fatalf(
+			"lazy plugin restart attempted %d additional exact Release World CDN requests; local durable cache proof failed",
+			len(restartRequests)-len(firstRequests),
+		)
+	}
+	muteRestartPageDiagnostics()
+	if err := restartPage.Close(); err != nil {
+		t.Fatalf("close restart lazy-plugin fixture page: %v", err)
+	}
+	freshContext, err := testHarness.browser.NewContext(testHarness.newContextOptions(t))
+	if err != nil {
+		t.Fatalf("create fresh quickstart browser context: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := freshContext.Close(); err != nil {
+			t.Logf("close fresh quickstart browser context: %v", err)
+		}
+	})
+	freshPage, err := freshContext.NewPage()
+	if err != nil {
+		t.Fatalf("create fresh quickstart page: %v", err)
+	}
+	muteFreshPageDiagnostics := testHarness.attachPageDiagnostics(t, freshPage)
+	if _, err := freshPage.Goto(testHarness.getBaseURL() + "/quickstart/drive"); err != nil {
+		dumpPageState(t, freshPage)
+		t.Fatalf("goto fresh quickstart drive: %v", err)
+	}
+	waitForPrerenderRoot(t, freshPage)
+	waitForBootFunction(t, freshPage)
+	waitForLiveApp(t, freshPage)
+	waitForQuickstartAppRoute(t, freshPage)
+	completeQuickstartDriveIntroIfPresent(t, freshPage)
+	if err := freshPage.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
+	); err != nil {
+		dumpPageState(t, freshPage)
+		t.Fatalf("wait for fresh quickstart frame-ready: %v", err)
+	}
+	if _, err := waitForQuickstartDriveContentReady(t, freshPage); err != "" {
+		dumpPageState(t, freshPage)
+		t.Fatalf("fresh quickstart Drive content-ready failed: %s", err)
+	}
+	muteFreshPageDiagnostics()
+	if err := freshPage.Close(); err != nil {
+		t.Fatalf("close fresh quickstart page: %v", err)
+	}
+}
+
+func releaseWorldFixtureConfig(t *testing.T) (releaseWorldConfigValues, error) {
+	t.Helper()
+	result, err := bldr_project_starlark.Evaluate(filepath.Join(testHarness.repoRoot, "bldr.star"))
+	if err != nil {
+		return releaseWorldConfigValues{}, err
+	}
+	build := result.Config.GetBuild()["release-web-lazy-plugin-fixture"]
+	if build == nil {
+		return releaseWorldConfigValues{}, errors.New("missing release-web-lazy-plugin-fixture build")
+	}
+	launcherOverride := build.GetManifestOverrides()["spacewave-launcher"]
+	if launcherOverride == nil {
+		return releaseWorldConfigValues{}, errors.New("missing lazy fixture launcher override")
+	}
+	var launcherConf bldr_plugin_compiler_go.Config
+	if err := launcherConf.UnmarshalJSON(launcherOverride.GetConfig()); err != nil {
+		return releaseWorldConfigValues{}, errors.Wrap(err, "decode lazy fixture launcher config")
+	}
+	hostConfig := launcherConf.GetHostConfigSet()["release-world"]
+	if hostConfig == nil {
+		return releaseWorldConfigValues{}, errors.New("missing lazy fixture Release World host config")
+	}
+	var worldConf cdn_world_controller.Config
+	if err := worldConf.UnmarshalJSON(hostConfig.GetConfig()); err != nil {
+		return releaseWorldConfigValues{}, errors.Wrap(err, "decode lazy fixture Release World config")
+	}
+	return releaseWorldConfigValues{
+		spaceID: worldConf.GetSpaceId(),
+		cdnBase: worldConf.GetCdnBaseUrl(),
+	}, nil
+}
+
+func waitForCliTerminalPrompt(t *testing.T, page playwright.Page) {
+	t.Helper()
+	if _, err := page.Goto(testHarness.getBaseURL() + "/#/quickstart/local"); err != nil {
+		t.Fatalf("open local quickstart for CLI terminal proof: %v", err)
+	}
+	if _, err := page.WaitForFunction(`() => /^#\/u\/\d+\/?$/.test(window.location.hash)`, nil, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	}); err != nil {
+		t.Fatalf("local quickstart did not create a session for CLI RPC proof: %v", err)
+	}
+	hash, err := page.Evaluate(`() => window.location.hash`)
+	if err != nil {
+		t.Fatalf("read local session route for CLI RPC proof: %v", err)
+	}
+	hashString, ok := hash.(string)
+	if !ok {
+		t.Fatalf("local session route has unexpected type %T", hash)
+	}
+	sessionIndex := strings.TrimSuffix(strings.TrimPrefix(hashString, "#/u/"), "/")
+	if sessionIndex == "" {
+		t.Fatalf("local session route %q has no session index for CLI RPC proof", hashString)
+	}
+	if _, err := page.Goto(testHarness.getBaseURL() + "/#/u/" + sessionIndex + "/settings/cli"); err != nil {
+		t.Fatalf("open CLI settings for session %s: %v", sessionIndex, err)
+	}
+	openCLIButton := page.Locator("button:has-text('Open CLI terminal')").First()
+	if err := openCLIButton.WaitFor(playwright.LocatorWaitForOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	}); err != nil {
+		t.Fatalf("CLI settings did not expose Open CLI terminal: %v", err)
+	}
+	if err := openCLIButton.Click(playwright.LocatorClickOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	}); err != nil {
+		t.Fatalf("open CLI terminal for RPC proof: %v", err)
+	}
+	if _, err := page.WaitForFunction(`() => window.location.hash.includes('/settings/cli/terminal')`, nil, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	}); err != nil {
+		t.Fatalf("CLI terminal route did not open: %v", err)
+	}
+	terminalScreen := page.Locator(".xterm:visible .xterm-screen").First()
+	if err := terminalScreen.WaitFor(playwright.LocatorWaitForOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	}); err != nil {
+		t.Fatalf("CLI terminal screen did not mount: %v", err)
+	}
+	if _, err := page.WaitForFunction(`() => (`+cliTerminalTextExpression+`).includes('spacewave>')`, nil, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	}); err != nil {
+		t.Fatalf("CLI RunCli stream did not reach spacewave prompt: %v", err)
+	}
+}
+
+func waitForPluginManifestCopyDone(t *testing.T, page playwright.Page, pluginID string) {
+	t.Helper()
+	raw, err := page.WaitForFunction(`(pluginId) => {
+		const marks = globalThis.__swStartupMarks ?? []
+		if (marks.some((mark) =>
+			mark.label === 'manifest-copy.failed' &&
+			mark.detail?.pluginId === pluginId
+		)) {
+			return 'failed'
+		}
+		if (marks.some((mark) =>
+			mark.label === 'manifest-copy.done' &&
+			mark.detail?.pluginId === pluginId
+		)) {
+			return 'done'
+		}
+		return false
+	}`, pluginID, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	})
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("manifest copy completion wait failed for %s: %v", pluginID, err)
+	}
+	stateValue, err := raw.JSONValue()
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("read manifest copy completion state for %s: %v", pluginID, err)
+	}
+	state, ok := stateValue.(string)
+	if !ok || state != "done" {
+		dumpPageState(t, page)
+		t.Fatalf("manifest copy failed for %s: state=%v", pluginID, stateValue)
+	}
 }
 
 func TestGoScriptQuickstartDriveLoadsAppModule(t *testing.T) {
@@ -1009,6 +1327,1273 @@ func TestQuickstartSecondTabReusesRuntimeAndCloseKeepsFirstTab(t *testing.T) {
 	}
 }
 
+func TestQuickstartShellTabsComposedBrowserProof(t *testing.T) {
+	pageA := testHarness.newDedicatedWorkerPage(t)
+	ctx := pageA.Context()
+	legacyShellState := `() => {
+		sessionStorage.setItem('shell-tabs-state', JSON.stringify({
+			tabs: [{ id: 'legacy-tab', path: '/legacy', name: 'Legacy' }],
+			activeTabId: 'legacy-tab',
+		}))
+	}`
+	if err := pageA.AddInitScript(playwright.Script{Content: &legacyShellState}); err != nil {
+		t.Fatalf("seed explicit old Shell snapshot reset case: %v", err)
+	}
+
+	quickstartURL := testHarness.getBaseURL() + "/quickstart/drive"
+	openQuickstartReleasePage(t, pageA, quickstartURL)
+	assertRuntimeWorkerMode(t, pageA, "dedicated-worker")
+	hostGeneration, hostDocumentID := assertDedicatedWorkerHost(t, pageA)
+	assertWarmPresentation(t, pageA, hostGeneration, hostDocumentID, false)
+	waitForShellRecordCount(t, pageA, 1)
+	initialSnapshot := readBrowserShellTabsSnapshot(t, pageA)
+	if len(initialSnapshot.Records) != 1 {
+		t.Fatalf("old Shell state was not cleanly initialized: %#v", initialSnapshot)
+	}
+	if initialSnapshot.Records[0].ID == "legacy-tab" || initialSnapshot.Records[0].Path == "/legacy" {
+		t.Fatalf("legacy Shell record was imported instead of reset: %#v", initialSnapshot.Records[0])
+	}
+	legacyAfterInit, err := pageA.Evaluate(`() => sessionStorage.getItem('shell-tabs-state')`)
+	if err != nil {
+		t.Fatalf("read obsolete Shell snapshot after clean initialization: %v", err)
+	}
+	if legacyAfterInit != nil {
+		t.Fatalf("obsolete shell-tabs-state survived clean initialization: %#v", legacyAfterInit)
+	}
+	firstURL := pageA.URL()
+
+	pageB := testHarness.newPageInContext(t, ctx)
+	openQuickstartReleasePage(t, pageB, quickstartURL)
+	assertRuntimeWorkerMode(t, pageB, "dedicated-worker")
+	assertWarmPresentation(t, pageB, hostGeneration, hostDocumentID, true)
+	waitForShellRecordCount(t, pageA, 2)
+	waitForShellRecordCount(t, pageB, 2)
+	logWarmAttachCorrectnessMetrics(t, pageB, hostGeneration)
+	afterB := readBrowserShellTabsSnapshot(t, pageB)
+	if len(afterB.Records) != 2 {
+		t.Fatalf("fresh second document did not create exactly one shared record: %#v", afterB)
+	}
+	secondRecordID := findNewBrowserShellRecord(initialSnapshot, afterB)
+	if secondRecordID == "" {
+		t.Fatalf("fresh second document did not add one new record: before=%#v after=%#v", initialSnapshot, afterB)
+	}
+	if pageA.URL() != firstURL {
+		dumpPageState(t, pageA)
+		dumpPageState(t, pageB)
+		t.Fatalf("second document stole first document URL: got %s want %s", pageA.URL(), firstURL)
+	}
+	assertNoRuntimeWorkerCreated(t, pageB)
+
+	logShellDiagnostic(t, pageA, "before_docs_hash_page_a")
+	logShellDiagnostic(t, pageB, "before_docs_hash_page_b")
+	setShellHash(t, pageB, "#/docs")
+	logShellDiagnostic(t, pageB, "after_docs_hash_page_b")
+	waitForBrowserShellRecordPath(t, pageB, secondRecordID, "/docs")
+	if pageA.URL() != firstURL {
+		t.Fatalf("inactive shared path update changed first document hash: got %s want %s", pageA.URL(), firstURL)
+	}
+	renameActiveShellTab(t, pageB, "Shared Docs")
+	waitForShellLabel(t, pageA, "Shared Docs")
+	sharedSnapshot := readBrowserShellTabsSnapshot(t, pageA)
+	sharedRecord := findBrowserShellRecord(sharedSnapshot, secondRecordID)
+	if sharedRecord == nil || sharedRecord.Path != "/docs" || sharedRecord.CustomName != "Shared Docs" {
+		t.Fatalf("shared path/name/customName did not converge: %#v", sharedSnapshot)
+	}
+
+	beforeConcurrentA := readComposedShellProjection(t, pageA)
+	beforeConcurrentB := readComposedShellProjection(t, pageB)
+	concurrentCreateShellTabs(t, pageA, pageB)
+	waitForShellRecordCount(t, pageA, 4)
+	waitForShellRecordCount(t, pageB, 4)
+	concurrentSnapshot := readBrowserShellTabsSnapshot(t, pageA)
+	if len(concurrentSnapshot.Records) != 4 {
+		t.Fatalf("concurrent Shell creation lost a record: %#v", concurrentSnapshot)
+	}
+	if !sameBrowserShellRecordIDs(t, concurrentSnapshot, readBrowserShellTabsSnapshot(t, pageB)) {
+		t.Fatalf("A/B shared record inventories diverged after concurrent creation")
+	}
+	waitForBrowserShellActiveRecordChange(t, pageA, beforeConcurrentA.ActiveTabID)
+	waitForBrowserShellActiveRecordChange(t, pageB, beforeConcurrentB.ActiveTabID)
+	setShellHash(t, pageA, "#/a-only")
+	setShellHash(t, pageB, "#/b-only")
+	waitForBrowserShellActivePath(t, pageA, "/a-only")
+	waitForBrowserShellActivePath(t, pageB, "/b-only")
+	if pageA.URL() == pageB.URL() {
+		t.Fatalf("A/B active selection and hash are not independent: A=%s B=%s", pageA.URL(), pageB.URL())
+	}
+	assertDifferentShellProjectionOrder(t, pageA, pageB)
+	waitForShellLabel(t, pageA, "Shared Docs")
+	waitForShellLabel(t, pageB, "Shared Docs")
+	independentProjectionA := readComposedShellProjection(t, pageA)
+
+	selectShellTabByText(t, pageB, "Shared Docs")
+	retainedURL := ""
+	popup, err := ctx.ExpectPage(func() error {
+		return pageB.Locator("button[title='Open in new tab']").First().Click()
+	})
+	if err != nil {
+		t.Fatalf("open retained-ID Shell popout: %v", err)
+	}
+	if _, err := popup.WaitForFunction(`() => location.href !== 'about:blank'`, nil, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	}); err != nil {
+		t.Fatalf("wait for retained-ID popup navigation: %v", err)
+	}
+	openQuickstartReleasePage(t, popup, popup.URL())
+	retainedURL = popup.URL()
+	if !strings.Contains(retainedURL, "shellTabId="+secondRecordID) {
+		t.Fatalf("popout URL lost retained Shell Tab ID: %s", retainedURL)
+	}
+	waitForShellRecordCount(t, popup, 4)
+	waitForShellLabel(t, popup, "Shared Docs")
+
+	copied := testHarness.newPageInContext(t, ctx)
+	if _, err := copied.Goto(retainedURL); err != nil {
+		t.Fatalf("goto copied retained-ID URL: %v", err)
+	}
+	openQuickstartReleasePage(t, copied, retainedURL)
+	waitForShellRecordCount(t, copied, 4)
+	waitForShellLabel(t, copied, "Shared Docs")
+	if _, err := copied.Reload(); err != nil {
+		t.Fatalf("reload copied retained-ID URL: %v", err)
+	}
+	waitForPrerenderRootOrLiveApp(t, copied)
+	waitForLiveApp(t, copied)
+	waitForShellTabButtons(t, copied)
+	waitForShellRecordCount(t, copied, 4)
+	waitForShellLabel(t, copied, "Shared Docs")
+
+	beforeCloseA := readComposedShellProjection(t, pageA)
+	assertSameComposedShellProjection(
+		t,
+		beforeCloseA,
+		independentProjectionA,
+		"retained-ID transitions changed page A",
+	)
+	closeShellTabByText(t, pageB, "Shared Docs")
+	waitForShellRecordCount(t, pageA, 3)
+	waitForShellRecordCount(t, pageB, 3)
+	afterCloseA := readComposedShellProjection(t, pageA)
+	assertInactiveClosePreservedProjection(t, beforeCloseA, afterCloseA, "Shared Docs")
+	assertShellLabelAbsent(t, pageA, "Shared Docs")
+	assertShellLabelAbsent(t, pageB, "Shared Docs")
+
+	removedIDURL := retainedURL
+	removed := testHarness.newPageInContext(t, ctx)
+	if _, err := removed.Goto(removedIDURL); err != nil {
+		t.Fatalf("goto removed-ID URL: %v", err)
+	}
+	openQuickstartReleasePage(t, removed, removedIDURL)
+	waitForShellRecordCount(t, removed, 4)
+	removedSnapshot := readBrowserShellTabsSnapshot(t, removed)
+	if findBrowserShellRecord(removedSnapshot, secondRecordID) != nil {
+		t.Fatalf("removed-ID handoff resurrected the closed record: %#v", removedSnapshot)
+	}
+	if removedSnapshot.Records[len(removedSnapshot.Records)-1].Path != "/docs" {
+		t.Fatalf("removed-ID fallback did not create a fresh /docs record: %#v", removedSnapshot)
+	}
+	invalidURL := strings.Replace(retainedURL, "shellTabId="+secondRecordID, "shellTabId=!malformed", 1)
+	invalid := testHarness.newPageInContext(t, ctx)
+	if _, err := invalid.Goto(invalidURL); err != nil {
+		t.Fatalf("goto malformed-ID URL: %v", err)
+	}
+	openQuickstartReleasePage(t, invalid, invalidURL)
+	waitForShellRecordCount(t, invalid, 5)
+	invalidHash := invalid.URL()
+	if _, err := invalid.Reload(); err != nil {
+		t.Fatalf("reload malformed-ID fallback: %v", err)
+	}
+	waitForPrerenderRootOrLiveApp(t, invalid)
+	waitForLiveApp(t, invalid)
+	waitForShellTabButtons(t, invalid)
+	waitForShellRecordCount(t, invalid, 5)
+	if invalid.URL() != invalidHash {
+		t.Fatalf("malformed-ID fallback reload changed stable URL: got %s want %s", invalid.URL(), invalidHash)
+	}
+
+	for _, page := range []playwright.Page{popup, copied, removed, invalid} {
+		if err := page.Close(); err != nil {
+			t.Fatalf("close completed retained-ID proof page: %v", err)
+		}
+	}
+	pageFail := testHarness.newPageInContext(t, ctx)
+	if _, err := pageFail.Goto(retainedURL); err != nil {
+		t.Fatalf("goto retained URL for relay-failure proof: %v", err)
+	}
+	waitForPrerenderRootOrLiveApp(t, pageFail)
+	waitForBootFunction(t, pageFail)
+	waitForLiveApp(t, pageFail)
+	waitForStartupMark(t, pageFail, "dedicated-host.attach-open-start")
+	if err := pageA.Close(); err != nil {
+		t.Fatalf("close elected host document: %v", err)
+	}
+	waitForStartupMark(t, pageFail, "dedicated-host.attach-open-failed")
+	assertRelayFailureStayedCold(t, pageFail)
+	promotionGeneration := assertWarmPromotion(t, pageB, hostGeneration)
+	assertWarmPresentation(t, pageB, promotionGeneration, "", false)
+	waitForShellRecordCount(t, pageFail, 6)
+	expectedInventory := browserShellRecordIDs(readBrowserShellTabsSnapshot(t, pageFail))
+	if !sameStringSet(browserShellRecordIDs(readBrowserShellTabsSnapshot(t, pageB)), expectedInventory) {
+		t.Fatalf("Shell inventory did not survive host loss/promotion")
+	}
+	if err := pageB.BringToFront(); err != nil {
+		t.Fatalf("bring survivor document to front: %v", err)
+	}
+	if err := pageB.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
+		playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
+	); err != nil {
+		t.Fatalf("wait for promoted survivor usability: %v", err)
+	}
+	preservedSnapshot := readBrowserShellTabsSnapshot(t, pageB)
+	for _, page := range ctx.Pages() {
+		if page.IsClosed() {
+			continue
+		}
+		if err := page.Close(); err != nil {
+			t.Fatalf("close document before zero-document retention check: %v", err)
+		}
+	}
+	reopen := testHarness.newPageInContext(t, ctx)
+	openQuickstartReleasePage(t, reopen, quickstartURL)
+	waitForShellRecordCount(t, reopen, len(preservedSnapshot.Records)+1)
+	reopenedSnapshot := readBrowserShellTabsSnapshot(t, reopen)
+	if findNewBrowserShellRecord(preservedSnapshot, reopenedSnapshot) == "" {
+		t.Fatalf("fresh zero-document reopen did not add exactly one route record: before=%#v after=%#v", preservedSnapshot, reopenedSnapshot)
+	}
+	if !sameBrowserShellRecordValues(preservedSnapshot, reopenedSnapshot) {
+		t.Fatalf("zero-document reopen changed existing Shell record fields: before=%#v after=%#v", preservedSnapshot, reopenedSnapshot)
+	}
+	beforeReset := reopenedSnapshot
+	resetShellTabsVisibly(t, reopen)
+	waitForShellRecordCount(t, reopen, 1)
+	afterReset := readBrowserShellTabsSnapshot(t, reopen)
+	if afterReset.Epoch <= beforeReset.Epoch || len(afterReset.Records) != 1 {
+		t.Fatalf("visible Shell reset did not advance epoch and replace inventory: before=%#v after=%#v", beforeReset, afterReset)
+	}
+	waitForShellTabButtons(t, reopen)
+}
+
+func TestQuickstartShellTabsPersistentProfileRestart(t *testing.T) {
+	if testHarness.browserName != "chromium" {
+		t.Skip("persistent-profile release proof requires Chromium")
+	}
+
+	userDataDir := t.TempDir()
+	firstContext := testHarness.newPersistentBrowserContext(t, userDataDir)
+	firstContextClosed := false
+	t.Cleanup(func() {
+		if firstContextClosed {
+			return
+		}
+		if err := firstContext.Close(); err != nil {
+			t.Logf("close first persistent browser context during cleanup: %v", err)
+		}
+	})
+	firstPage := testHarness.newPageInContext(t, firstContext)
+	quickstartURL := testHarness.getBaseURL() + "/quickstart/drive"
+	openQuickstartReleasePage(t, firstPage, quickstartURL)
+	waitForShellRecordCount(t, firstPage, 1)
+	if err := firstPage.Locator("button[title='New tab']").First().Click(); err != nil {
+		t.Fatalf("create persistent-profile Shell record: %v", err)
+	}
+	waitForShellRecordCount(t, firstPage, 2)
+	beforeRestart := readBrowserShellTabsSnapshot(t, firstPage)
+	if len(beforeRestart.Records) != 2 {
+		t.Fatalf("persistent-profile setup did not create two records: %#v", beforeRestart)
+	}
+	if err := firstContext.Close(); err != nil {
+		t.Fatalf("close persistent browser context for restart: %v", err)
+	}
+	firstContextClosed = true
+
+	secondContext := testHarness.newPersistentBrowserContext(t, userDataDir)
+	t.Cleanup(func() {
+		if err := secondContext.Close(); err != nil {
+			t.Logf("close relaunched persistent browser context: %v", err)
+		}
+	})
+	secondPage := testHarness.newPageInContext(t, secondContext)
+	openQuickstartReleasePage(t, secondPage, quickstartURL)
+	waitForShellRecordCount(t, secondPage, len(beforeRestart.Records)+1)
+	afterRestart := readBrowserShellTabsSnapshot(t, secondPage)
+	if findNewBrowserShellRecord(beforeRestart, afterRestart) == "" ||
+		!sameBrowserShellRecordValues(beforeRestart, afterRestart) {
+		t.Fatalf("persistent-profile browser restart did not preserve records while creating fresh entry: before=%#v after=%#v", beforeRestart, afterRestart)
+	}
+	waitForShellLabel(t, secondPage, beforeRestart.Records[0].Name)
+
+	beforeReset := afterRestart
+	resetShellTabsVisibly(t, secondPage)
+	waitForShellRecordCount(t, secondPage, 1)
+	afterReset := readBrowserShellTabsSnapshot(t, secondPage)
+	if afterReset.Epoch <= beforeReset.Epoch || len(afterReset.Records) != 1 {
+		t.Fatalf("persistent-profile visible reset did not advance epoch: before=%#v after=%#v", beforeReset, afterReset)
+	}
+	waitForShellTabButtons(t, secondPage)
+}
+
+type composedShellRecord struct {
+	ID               string
+	Path             string
+	Name             string
+	CustomName       string
+	CreationSequence float64
+}
+
+type composedShellSnapshot struct {
+	SchemaVersion float64
+	Epoch         float64
+	Revision      float64
+	Records       []composedShellRecord
+}
+
+type composedShellProjection struct {
+	URL            string
+	Hash           string
+	ActiveTabID    string
+	VisiblePanelID string
+	Labels         []string
+}
+
+type shellDiagnosticStorage struct {
+	Present bool
+	Raw     string
+}
+
+type shellDiagnosticRecord struct {
+	LocationHref         string
+	LocationHash         string
+	SessionDocumentState shellDiagnosticStorage
+	BrowserShellTabs     shellDiagnosticStorage
+	VisibleActivePanelID string
+}
+
+func logShellDiagnostic(t *testing.T, page playwright.Page, label string) shellDiagnosticRecord {
+	t.Helper()
+
+	raw, err := page.Evaluate(`() => {
+		const readStorage = (storage, key) => {
+			const raw = storage.getItem(key)
+			return { present: raw !== null, raw }
+		}
+		const visiblePanel = [...document.querySelectorAll('[data-tab-id]')].find((element) => {
+			const style = getComputedStyle(element)
+			const rect = element.getBoundingClientRect()
+			return style.display !== 'none' &&
+				style.visibility !== 'hidden' &&
+				rect.width > 0 &&
+				rect.height > 0
+		})
+		return {
+			locationHref: location.href,
+			locationHash: location.hash,
+			sessionDocumentState: readStorage(sessionStorage, 'shell-document-state'),
+			browserShellTabs: readStorage(localStorage, 'browser-shell-tabs'),
+			visibleActivePanelID: visiblePanel?.getAttribute('data-tab-id') ?? '',
+		}
+	}`)
+	if err != nil {
+		t.Fatalf("shell_diagnostic label=%s collection_error=%v", label, err)
+	}
+	record, err := decodeShellDiagnosticRecord(raw)
+	if err != nil {
+		t.Fatalf("shell_diagnostic label=%s decode_error=%v payload_type=%T", label, err, raw)
+	}
+	t.Logf(
+		"shell_diagnostic label=%s location_href=%q location_hash=%q "+
+			"session_storage_shell_document_state_present=%t "+
+			"session_storage_shell_document_state_raw=%q "+
+			"local_storage_browser_shell_tabs_present=%t "+
+			"local_storage_browser_shell_tabs_raw=%q "+
+			"visible_active_panel_id=%q",
+		label,
+		record.LocationHref,
+		record.LocationHash,
+		record.SessionDocumentState.Present,
+		record.SessionDocumentState.Raw,
+		record.BrowserShellTabs.Present,
+		record.BrowserShellTabs.Raw,
+		record.VisibleActivePanelID,
+	)
+	return record
+}
+
+func decodeShellDiagnosticRecord(raw any) (shellDiagnosticRecord, error) {
+	value, ok := raw.(map[string]any)
+	if !ok {
+		return shellDiagnosticRecord{}, errors.Errorf("expected object, got %T", raw)
+	}
+	locationHref, err := requiredShellDiagnosticString(value, "locationHref", true)
+	if err != nil {
+		return shellDiagnosticRecord{}, err
+	}
+	locationHash, err := requiredShellDiagnosticString(value, "locationHash", false)
+	if err != nil {
+		return shellDiagnosticRecord{}, err
+	}
+	sessionDocumentState, err := decodeShellDiagnosticStorage(value, "sessionDocumentState")
+	if err != nil {
+		return shellDiagnosticRecord{}, err
+	}
+	browserShellTabs, err := decodeShellDiagnosticStorage(value, "browserShellTabs")
+	if err != nil {
+		return shellDiagnosticRecord{}, err
+	}
+	visibleActivePanelID, err := requiredShellDiagnosticString(value, "visibleActivePanelID", false)
+	if err != nil {
+		return shellDiagnosticRecord{}, err
+	}
+	return shellDiagnosticRecord{
+		LocationHref:         locationHref,
+		LocationHash:         locationHash,
+		SessionDocumentState: sessionDocumentState,
+		BrowserShellTabs:     browserShellTabs,
+		VisibleActivePanelID: visibleActivePanelID,
+	}, nil
+}
+
+func requiredShellDiagnosticString(value map[string]any, field string, nonEmpty bool) (string, error) {
+	raw, ok := value[field]
+	if !ok {
+		return "", errors.Errorf("missing %s", field)
+	}
+	text, ok := raw.(string)
+	if !ok {
+		return "", errors.Errorf("%s has type %T, want string", field, raw)
+	}
+	if nonEmpty && text == "" {
+		return "", errors.Errorf("%s is empty", field)
+	}
+	return text, nil
+}
+
+func decodeShellDiagnosticStorage(value map[string]any, field string) (shellDiagnosticStorage, error) {
+	raw, ok := value[field]
+	if !ok {
+		return shellDiagnosticStorage{}, errors.Errorf("missing %s", field)
+	}
+	storage, ok := raw.(map[string]any)
+	if !ok {
+		return shellDiagnosticStorage{}, errors.Errorf("%s has type %T, want object", field, raw)
+	}
+	present, ok := storage["present"].(bool)
+	if !ok {
+		return shellDiagnosticStorage{}, errors.Errorf("%s.present has type %T, want bool", field, storage["present"])
+	}
+	rawValue, ok := storage["raw"]
+	if !ok {
+		return shellDiagnosticStorage{}, errors.Errorf("missing %s.raw", field)
+	}
+	if rawValue == nil {
+		if present {
+			return shellDiagnosticStorage{}, errors.Errorf("%s.raw is null while present", field)
+		}
+		return shellDiagnosticStorage{}, nil
+	}
+	text, ok := rawValue.(string)
+	if !ok {
+		return shellDiagnosticStorage{}, errors.Errorf("%s.raw has type %T, want string or null", field, rawValue)
+	}
+	if !present {
+		return shellDiagnosticStorage{}, errors.Errorf("%s.raw is non-null while absent", field)
+	}
+	return shellDiagnosticStorage{Present: true, Raw: text}, nil
+}
+
+type composedStartupMark struct {
+	Label    string
+	Sequence float64
+	Detail   map[string]any
+}
+
+func openQuickstartReleasePage(t *testing.T, page playwright.Page, targetURL string) {
+	t.Helper()
+
+	if _, err := page.Goto(targetURL); err != nil {
+		t.Fatalf("goto composed Shell page %s: %v", targetURL, err)
+	}
+	waitForPrerenderRootOrLiveApp(t, page)
+	waitForBootFunction(t, page)
+	waitForLiveApp(t, page)
+	if strings.Contains(targetURL, "/quickstart/drive") ||
+		strings.Contains(targetURL, "#/quickstart/drive") {
+		waitForQuickstartAppRoute(t, page)
+		completeQuickstartDriveIntroIfPresent(t, page)
+		if err := page.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(
+			playwright.LocatorWaitForOptions{Timeout: playwright.Float(browserWaitMS)},
+		); err != nil {
+			dumpPageState(t, page)
+			t.Fatalf("wait for composed quickstart frame: %v", err)
+		}
+		return
+	}
+	waitForShellTabButtons(t, page)
+}
+
+func readBrowserShellTabsSnapshot(t *testing.T, page playwright.Page) composedShellSnapshot {
+	t.Helper()
+
+	raw, err := page.Evaluate(`() => {
+		const value = localStorage.getItem('browser-shell-tabs')
+		return value ? JSON.parse(value) : null
+	}`)
+	if err != nil {
+		t.Fatalf("read browser Shell Tabs snapshot: %v", err)
+	}
+	value, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("browser Shell Tabs snapshot missing or invalid: %#v", raw)
+	}
+	snapshot := composedShellSnapshot{
+		SchemaVersion: composedNumber(value["schemaVersion"]),
+		Epoch:         composedNumber(value["epoch"]),
+		Revision:      composedNumber(value["revision"]),
+	}
+	rawRecords, ok := value["records"].([]any)
+	if !ok {
+		t.Fatalf("browser Shell Tabs records missing or invalid: %#v", value)
+	}
+	snapshot.Records = make([]composedShellRecord, 0, len(rawRecords))
+	for _, rawRecord := range rawRecords {
+		record, ok := rawRecord.(map[string]any)
+		if !ok {
+			t.Fatalf("browser Shell Tabs record invalid: %#v", rawRecord)
+		}
+		snapshot.Records = append(snapshot.Records, composedShellRecord{
+			ID:               composedString(record["id"]),
+			Path:             composedString(record["path"]),
+			Name:             composedString(record["name"]),
+			CustomName:       composedString(record["customName"]),
+			CreationSequence: composedNumber(record["creationSequence"]),
+		})
+	}
+	if snapshot.SchemaVersion != 1 {
+		t.Fatalf("browser Shell Tabs schema version=%v want 1: %#v", snapshot.SchemaVersion, snapshot)
+	}
+	return snapshot
+}
+
+func composedNumber(value any) float64 {
+	switch typed := value.(type) {
+	case float64:
+		return typed
+	case int:
+		return float64(typed)
+	default:
+		return 0
+	}
+}
+
+func composedString(value any) string {
+	text, _ := value.(string)
+	return text
+}
+
+func findNewBrowserShellRecord(before, after composedShellSnapshot) string {
+	beforeIDs := make(map[string]bool, len(before.Records))
+	for _, record := range before.Records {
+		beforeIDs[record.ID] = true
+	}
+	var added string
+	for _, record := range after.Records {
+		if !beforeIDs[record.ID] {
+			if added != "" {
+				return ""
+			}
+			added = record.ID
+		}
+	}
+	if len(after.Records) != len(before.Records)+1 {
+		return ""
+	}
+	return added
+}
+
+func findBrowserShellRecord(snapshot composedShellSnapshot, id string) *composedShellRecord {
+	for index := range snapshot.Records {
+		if snapshot.Records[index].ID == id {
+			return &snapshot.Records[index]
+		}
+	}
+	return nil
+}
+
+func browserShellRecordIDs(snapshot composedShellSnapshot) []string {
+	ids := make([]string, 0, len(snapshot.Records))
+	for _, record := range snapshot.Records {
+		ids = append(ids, record.ID)
+	}
+	return ids
+}
+
+func sameBrowserShellRecordIDs(t *testing.T, left, right composedShellSnapshot) bool {
+	t.Helper()
+
+	leftIDs := browserShellRecordIDs(left)
+	rightIDs := browserShellRecordIDs(right)
+	return sameStringSet(leftIDs, rightIDs)
+}
+
+func sameBrowserShellRecordValues(before, after composedShellSnapshot) bool {
+	afterByID := make(map[string]composedShellRecord, len(after.Records))
+	for _, record := range after.Records {
+		afterByID[record.ID] = record
+	}
+	for _, record := range before.Records {
+		if afterRecord, ok := afterByID[record.ID]; !ok || afterRecord != record {
+			return false
+		}
+	}
+	return true
+}
+
+func sameStringSet(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	values := make(map[string]bool, len(left))
+	for _, value := range left {
+		values[value] = true
+	}
+	for _, value := range right {
+		if !values[value] {
+			return false
+		}
+	}
+	return true
+}
+
+func waitForShellRecordCount(t *testing.T, page playwright.Page, count int) {
+	t.Helper()
+
+	_, err := page.WaitForFunction(`(want) => {
+		try {
+			const value = localStorage.getItem('browser-shell-tabs')
+			return value && JSON.parse(value).records?.length === want
+		} catch {
+			return false
+		}
+	}`, count, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	})
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("wait for %d shared Shell records: %v", count, err)
+	}
+}
+
+func waitForBrowserShellRecordPath(t *testing.T, page playwright.Page, id, path string) {
+	t.Helper()
+
+	t.Logf("shell_record_path_wait phase=before target_id=%q target_path=%q", id, path)
+	logShellDiagnostic(t, page, "browser_shell_record_path_wait_before")
+
+	_, err := page.WaitForFunction(`(args) => {
+		try {
+			const value = localStorage.getItem('browser-shell-tabs')
+			const records = value ? JSON.parse(value).records : []
+			return records.some((record) => record.id === args.id && record.path === args.path)
+		} catch {
+			return false
+		}
+	}`, map[string]any{"id": id, "path": path}, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	})
+	if err != nil {
+		t.Logf("shell_record_path_wait phase=failure target_id=%q target_path=%q error=%v", id, path, err)
+		logShellDiagnostic(t, page, "browser_shell_record_path_wait_failure")
+		t.Fatalf("wait for shared Shell record %s path %s: %v", id, path, err)
+	}
+	t.Logf("shell_record_path_wait phase=success target_id=%q target_path=%q", id, path)
+	logShellDiagnostic(t, page, "browser_shell_record_path_wait_success")
+}
+
+func waitForBrowserShellActiveRecordChange(t *testing.T, page playwright.Page, previousID string) {
+	t.Helper()
+
+	_, err := page.WaitForFunction(`(previousID) => {
+		try {
+			const documentState = JSON.parse(sessionStorage.getItem('shell-document-state') ?? 'null')
+			const snapshot = JSON.parse(localStorage.getItem('browser-shell-tabs') ?? 'null')
+			const active = snapshot?.records?.find((record) => record.id === documentState?.activeTabId)
+			return active &&
+				active.id !== previousID &&
+				location.hash === '#' + active.path
+		} catch {
+			return false
+		}
+	}`, previousID, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	})
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("wait for created Shell record selection after %s: %v", previousID, err)
+	}
+}
+
+func waitForBrowserShellActivePath(t *testing.T, page playwright.Page, path string) {
+	t.Helper()
+
+	_, err := page.WaitForFunction(`(want) => {
+		try {
+			const documentState = JSON.parse(sessionStorage.getItem('shell-document-state') ?? 'null')
+			const snapshot = JSON.parse(localStorage.getItem('browser-shell-tabs') ?? 'null')
+			const active = snapshot?.records?.find((record) => record.id === documentState?.activeTabId)
+			return active?.path === want && location.hash.startsWith('#' + want)
+		} catch {
+			return false
+		}
+	}`, path, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	})
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("wait for active Shell path %s: %v", path, err)
+	}
+}
+
+func waitForShellTabButtons(t *testing.T, page playwright.Page) {
+	t.Helper()
+
+	tabs := page.Locator(".flexlayout__tab_button:visible").First()
+	if err := tabs.WaitFor(playwright.LocatorWaitForOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	}); err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("wait for visible Shell tab buttons: %v", err)
+	}
+	enabled, err := tabs.IsEnabled()
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("check visible Shell tab button interactivity: %v", err)
+	}
+	if !enabled {
+		dumpPageState(t, page)
+		t.Fatalf("visible Shell tab button is disabled")
+	}
+}
+
+func setShellHash(t *testing.T, page playwright.Page, hash string) {
+	t.Helper()
+
+	if _, err := page.Evaluate(`(next) => {
+		window.location.hash = next
+		return window.location.hash
+	}`, hash); err != nil {
+		t.Fatalf("navigate visible Shell hash %s: %v", hash, err)
+	}
+}
+
+func readComposedShellProjection(t *testing.T, page playwright.Page) composedShellProjection {
+	t.Helper()
+
+	raw, err := page.Evaluate(`() => {
+		const documentState = JSON.parse(sessionStorage.getItem('shell-document-state') ?? 'null')
+		const visiblePanel = [...document.querySelectorAll('[data-tab-id]')].find((element) => {
+			const style = getComputedStyle(element)
+			const rect = element.getBoundingClientRect()
+			return style.display !== 'none' &&
+				style.visibility !== 'hidden' &&
+				rect.width > 0 &&
+				rect.height > 0
+		})
+		return {
+			url: location.href,
+			hash: location.hash,
+			activeTabId: documentState?.activeTabId ?? '',
+			visiblePanelId: visiblePanel?.getAttribute('data-tab-id') ?? '',
+			labels: [...document.querySelectorAll('.flexlayout__tab_button')].map((button) => button.textContent?.trim() || ''),
+		}
+	}`)
+	if err != nil {
+		t.Fatalf("read visible Shell projection: %v", err)
+	}
+	value, ok := raw.(map[string]any)
+	if !ok {
+		t.Fatalf("visible Shell projection invalid: %#v", raw)
+	}
+	rawLabels, ok := value["labels"].([]any)
+	if !ok {
+		t.Fatalf("visible Shell labels invalid: %#v", value)
+	}
+	labels := make([]string, 0, len(rawLabels))
+	for _, rawLabel := range rawLabels {
+		labels = append(labels, composedString(rawLabel))
+	}
+	return composedShellProjection{
+		URL:            composedString(value["url"]),
+		Hash:           composedString(value["hash"]),
+		ActiveTabID:    composedString(value["activeTabId"]),
+		VisiblePanelID: composedString(value["visiblePanelId"]),
+		Labels:         labels,
+	}
+}
+
+func assertSameComposedShellProjection(
+	t *testing.T,
+	got, want composedShellProjection,
+	message string,
+) {
+	t.Helper()
+
+	if got.URL != want.URL ||
+		got.Hash != want.Hash ||
+		got.ActiveTabID != want.ActiveTabID ||
+		got.VisiblePanelID != want.VisiblePanelID ||
+		!slices.Equal(got.Labels, want.Labels) {
+		t.Fatalf("%s: got=%#v want=%#v", message, got, want)
+	}
+}
+
+func assertInactiveClosePreservedProjection(
+	t *testing.T,
+	before, after composedShellProjection,
+	removedLabel string,
+) {
+	t.Helper()
+
+	expectedLabels := make([]string, 0, len(before.Labels))
+	removed := false
+	for _, label := range before.Labels {
+		if label == removedLabel && !removed {
+			removed = true
+			continue
+		}
+		expectedLabels = append(expectedLabels, label)
+	}
+	if !removed {
+		t.Fatalf("inactive close precondition lacks label %q: %#v", removedLabel, before)
+	}
+	assertSameComposedShellProjection(
+		t,
+		after,
+		composedShellProjection{
+			URL:            before.URL,
+			Hash:           before.Hash,
+			ActiveTabID:    before.ActiveTabID,
+			VisiblePanelID: before.VisiblePanelID,
+			Labels:         expectedLabels,
+		},
+		"closing inactive shared record changed page A projection",
+	)
+}
+
+func assertDifferentShellProjectionOrder(t *testing.T, pageA, pageB playwright.Page) {
+	t.Helper()
+
+	projectionA := readComposedShellProjection(t, pageA)
+	projectionB := readComposedShellProjection(t, pageB)
+	if strings.Join(projectionA.Labels, "\x00") == strings.Join(projectionB.Labels, "\x00") {
+		t.Fatalf("A/B visible Shell order unexpectedly converged: A=%v B=%v", projectionA.Labels, projectionB.Labels)
+	}
+}
+
+func waitForShellLabel(t *testing.T, page playwright.Page, label string) {
+	t.Helper()
+
+	if err := page.Locator(".flexlayout__tab_button").Filter(playwright.LocatorFilterOptions{
+		HasText: label,
+	}).First().WaitFor(playwright.LocatorWaitForOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	}); err != nil {
+		t.Fatalf("wait for visible Shell label %q: %v", label, err)
+	}
+}
+
+func assertShellLabelAbsent(t *testing.T, page playwright.Page, label string) {
+	t.Helper()
+
+	count, err := page.Locator(".flexlayout__tab_button").Filter(playwright.LocatorFilterOptions{
+		HasText: label,
+	}).Count()
+	if err != nil {
+		t.Fatalf("count visible Shell label %q: %v", label, err)
+	}
+	if count != 0 {
+		t.Fatalf("removed Shell label %q remains visible: count=%d", label, count)
+	}
+}
+
+func renameActiveShellTab(t *testing.T, page playwright.Page, customName string) {
+	t.Helper()
+
+	tabs := page.Locator(".flexlayout__tab_button")
+	if err := tabs.Last().Dblclick(); err != nil {
+		t.Fatalf("start visible Shell tab rename: %v", err)
+	}
+	input := tabs.Last().Locator("input:visible").First()
+	if err := input.Fill(customName); err != nil {
+		t.Fatalf("fill visible Shell custom name: %v", err)
+	}
+	if err := input.Press("Enter"); err != nil {
+		t.Fatalf("commit visible Shell custom name: %v", err)
+	}
+}
+
+func selectShellTabByText(t *testing.T, page playwright.Page, label string) {
+	t.Helper()
+
+	tab := page.Locator(".flexlayout__tab_button").Filter(playwright.LocatorFilterOptions{
+		HasText: label,
+	}).First()
+	if err := tab.Click(); err != nil {
+		t.Fatalf("select visible Shell tab %q: %v", label, err)
+	}
+}
+
+func closeShellTabByText(t *testing.T, page playwright.Page, label string) {
+	t.Helper()
+
+	tab := page.Locator(".flexlayout__tab_button").Filter(playwright.LocatorFilterOptions{
+		HasText: label,
+	}).First()
+	if err := tab.Click(playwright.LocatorClickOptions{Button: playwright.MouseButtonRight}); err != nil {
+		t.Fatalf("open Shell tab context menu %q: %v", label, err)
+	}
+	closeItem := page.Locator("[role='menuitem']:visible").Filter(playwright.LocatorFilterOptions{
+		HasText: "Close Tab",
+	}).First()
+	if err := closeItem.Click(); err != nil {
+		t.Fatalf("close shared Shell tab %q: %v", label, err)
+	}
+}
+
+func concurrentCreateShellTabs(t *testing.T, pageA, pageB playwright.Page) {
+	t.Helper()
+
+	errs := make(chan error, 2)
+	var waitGroup sync.WaitGroup
+	for _, page := range []playwright.Page{pageA, pageB} {
+		waitGroup.Add(1)
+		go func(page playwright.Page) {
+			defer waitGroup.Done()
+			_, err := page.Evaluate(`() => {
+				const button = [...document.querySelectorAll("button[title='New tab']")]
+					.find((candidate) => candidate instanceof HTMLElement && candidate.offsetParent !== null)
+				if (!button) throw new Error('visible New tab button is missing')
+				button.click()
+				return true
+			}`)
+			errs <- err
+		}(page)
+	}
+	waitGroup.Wait()
+	close(errs)
+	for err := range errs {
+		if err != nil {
+			t.Fatalf("concurrent visible Shell record creation: %v", err)
+		}
+	}
+}
+
+func resetShellTabsVisibly(t *testing.T, page playwright.Page) {
+	t.Helper()
+
+	if err := page.Locator("button:visible:has-text('View')").First().Click(); err != nil {
+		t.Fatalf("open visible View menu: %v", err)
+	}
+	reset := page.Locator("[role='menuitem']:visible:has-text('Reset Shell Tabs')").First()
+	if err := reset.Click(); err != nil {
+		t.Fatalf("invoke visible Shell reset: %v", err)
+	}
+}
+
+func readComposedStartupMarks(t *testing.T, page playwright.Page) []composedStartupMark {
+	t.Helper()
+
+	raw, err := page.Evaluate(`() => (globalThis.__swStartupMarks ?? []).map((mark) => ({
+		label: mark.label,
+		sequence: mark.sequence,
+		detail: mark.detail ?? {},
+	}))`)
+	if err != nil {
+		t.Fatalf("read production startup marks: %v", err)
+	}
+	items, ok := raw.([]any)
+	if !ok {
+		t.Fatalf("production startup marks invalid: %#v", raw)
+	}
+	marks := make([]composedStartupMark, 0, len(items))
+	for _, item := range items {
+		value, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		detail, _ := value["detail"].(map[string]any)
+		marks = append(marks, composedStartupMark{
+			Label:    composedString(value["label"]),
+			Sequence: composedNumber(value["sequence"]),
+			Detail:   detail,
+		})
+	}
+	return marks
+}
+
+func lastComposedStartupMark(t *testing.T, page playwright.Page, label string) composedStartupMark {
+	t.Helper()
+
+	marks := readComposedStartupMarks(t, page)
+	for index := len(marks) - 1; index >= 0; index-- {
+		if marks[index].Label == label {
+			return marks[index]
+		}
+	}
+	t.Fatalf("production startup mark %q is missing", label)
+	return composedStartupMark{}
+}
+
+func waitForStartupMark(t *testing.T, page playwright.Page, label string) {
+	t.Helper()
+
+	_, err := page.WaitForFunction(`(want) =>
+		(globalThis.__swStartupMarks ?? []).some((mark) => mark.label === want)`,
+		label, playwright.PageWaitForFunctionOptions{
+			Timeout: playwright.Float(browserWaitMS),
+		})
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("wait for production startup mark %q: %v", label, err)
+	}
+}
+
+func assertDedicatedWorkerHost(t *testing.T, page playwright.Page) (string, string) {
+	t.Helper()
+
+	lease := lastComposedStartupMark(t, page, "dedicated-host.lease-acquired")
+	generation := composedString(lease.Detail["generation"])
+	documentID := composedString(lease.Detail["documentId"])
+	if generation == "" || documentID == "" {
+		t.Fatalf("host lease mark lacks generation/document identity: %#v", lease)
+	}
+	marks := readComposedStartupMarks(t, page)
+	workerCount := 0
+	for _, mark := range marks {
+		if mark.Label == "runtime.worker-created" &&
+			composedString(mark.Detail["mode"]) == "dedicated-worker" {
+			workerCount++
+		}
+	}
+	if workerCount != 1 {
+		t.Fatalf("supported DedicatedWorker path created %d runtime Workers in host document: %#v", workerCount, marks)
+	}
+	return generation, documentID
+}
+
+func assertNoRuntimeWorkerCreated(t *testing.T, page playwright.Page) {
+	t.Helper()
+
+	for _, mark := range readComposedStartupMarks(t, page) {
+		if mark.Label == "runtime.worker-created" &&
+			composedString(mark.Detail["mode"]) == "dedicated-worker" {
+			t.Fatalf("attached document created a runtime Worker: %#v", mark)
+		}
+	}
+}
+
+func assertWarmPresentation(t *testing.T, page playwright.Page, generation, hostDocumentID string, requireAttachment bool) {
+	t.Helper()
+
+	marks := readComposedStartupMarks(t, page)
+	if requireAttachment {
+		ready := lastComposedStartupMark(t, page, "dedicated-host.attach-open-ready")
+		if composedString(ready.Detail["hostGeneration"]) != generation ||
+			composedString(ready.Detail["hostDocumentId"]) != hostDocumentID {
+			t.Fatalf("attach acknowledged an unexpected runtime generation/host: %#v want generation=%q host=%q", ready, generation, hostDocumentID)
+		}
+	}
+	var connected composedStartupMark
+	for index := len(marks) - 1; index >= 0; index-- {
+		if marks[index].Label == "runtime.connected" &&
+			composedString(marks[index].Detail["runtimeGeneration"]) == generation {
+			connected = marks[index]
+			break
+		}
+	}
+	if connected.Label == "" {
+		t.Fatalf("runtime.connected did not carry current generation %q: %#v", generation, marks)
+	}
+	var neutral, reveal composedStartupMark
+	for _, mark := range marks {
+		if mark.Label == "webview.neutral-frame" &&
+			composedString(mark.Detail["runtimeGeneration"]) == generation &&
+			mark.Sequence > connected.Sequence {
+			neutral = mark
+			break
+		}
+	}
+	for _, mark := range marks {
+		if mark.Label == "webview.revealed" &&
+			composedString(mark.Detail["runtimeGeneration"]) == generation &&
+			mark.Sequence > neutral.Sequence {
+			reveal = mark
+			break
+		}
+	}
+	if neutral.Label == "" || reveal.Label == "" || neutral.Sequence >= reveal.Sequence {
+		t.Fatalf("generation-matched neutral/reveal order missing for %q: connected=%#v neutral=%#v reveal=%#v marks=%#v", generation, connected, neutral, reveal, marks)
+	}
+	for _, mark := range marks {
+		if mark.Label == "runtime.connection-invalidated" && mark.Sequence >= connected.Sequence {
+			t.Fatalf("runtime presentation advanced before obsolete generation invalidation: invalidated=%#v connected=%#v", mark, connected)
+		}
+	}
+	raw, err := page.Evaluate(`() => globalThis.__swWebDocumentResumeReady ?? null`)
+	if err != nil {
+		t.Fatalf("read production resume-ready state: %v", err)
+	}
+	resume, ok := raw.(map[string]any)
+	if !ok || resume["ready"] != true {
+		t.Fatalf("production resume-ready surface is not ready: %#v", raw)
+	}
+	runtimeMark := lastComposedStartupMark(t, page, "runtime.mode-selected")
+	if composedString(resume["runtimeId"]) != composedString(runtimeMark.Detail["runtimeId"]) {
+		t.Fatalf("resume-ready runtime identity drifted: resume=%#v mode=%#v", resume, runtimeMark)
+	}
+}
+
+func assertWarmPromotion(t *testing.T, page playwright.Page, oldGeneration string) string {
+	t.Helper()
+
+	waitForStartupMark(t, page, "dedicated-host.promoted")
+	promoted := lastComposedStartupMark(t, page, "dedicated-host.promoted")
+	generation := composedString(promoted.Detail["generation"])
+	if generation == "" || generation == oldGeneration {
+		t.Fatalf("promotion did not replace runtime generation: old=%q mark=%#v", oldGeneration, promoted)
+	}
+	_, err := page.WaitForFunction(`(args) => {
+		const marks = globalThis.__swStartupMarks ?? []
+		return marks.some((mark) =>
+			mark.label === 'runtime.connection-invalidated' &&
+			mark.detail?.runtimeGeneration === args.oldGeneration &&
+			mark.sequence > args.promotedSequence,
+		) && marks.some((mark) =>
+			mark.label === 'runtime.connected' &&
+			mark.detail?.runtimeGeneration === args.generation &&
+			mark.sequence > args.promotedSequence,
+		)
+	}`, map[string]any{
+		"oldGeneration":    oldGeneration,
+		"generation":       generation,
+		"promotedSequence": promoted.Sequence,
+	}, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(browserWaitMS),
+	})
+	if err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("wait for old-generation invalidation and new-generation connection after promotion: %v", err)
+	}
+	marks := readComposedStartupMarks(t, page)
+	var invalidated, connected composedStartupMark
+	for _, mark := range marks {
+		if mark.Label == "runtime.connection-invalidated" &&
+			composedString(mark.Detail["runtimeGeneration"]) == oldGeneration &&
+			mark.Sequence > promoted.Sequence &&
+			(invalidated.Label == "" || mark.Sequence < invalidated.Sequence) {
+			invalidated = mark
+		}
+		if mark.Label == "runtime.connected" &&
+			composedString(mark.Detail["runtimeGeneration"]) == generation &&
+			mark.Sequence > promoted.Sequence &&
+			(connected.Label == "" || mark.Sequence < connected.Sequence) {
+			connected = mark
+		}
+	}
+	if invalidated.Label == "" || connected.Label == "" || invalidated.Sequence >= connected.Sequence {
+		t.Fatalf("promotion did not invalidate old runtime before new connection: old=%q new=%q promoted=%#v invalidated=%#v connected=%#v marks=%#v", oldGeneration, generation, promoted, invalidated, connected, marks)
+	}
+	for _, mark := range marks {
+		if mark.Sequence <= promoted.Sequence {
+			continue
+		}
+		if (mark.Label == "webview.revealed" || mark.Label == "runtime.connected") &&
+			composedString(mark.Detail["runtimeGeneration"]) == oldGeneration {
+			t.Fatalf("obsolete runtime generation advanced presentation after promotion: %#v", mark)
+		}
+	}
+	return generation
+}
+
+func assertRelayFailureStayedCold(t *testing.T, page playwright.Page) {
+	t.Helper()
+
+	marks := readComposedStartupMarks(t, page)
+	var failed composedStartupMark
+	for index := len(marks) - 1; index >= 0; index-- {
+		if marks[index].Label == "dedicated-host.attach-open-failed" {
+			failed = marks[index]
+			break
+		}
+	}
+	if failed.Label == "" {
+		t.Fatalf("relay failure mark is missing")
+	}
+	var start composedStartupMark
+	for index := len(marks) - 1; index >= 0; index-- {
+		if marks[index].Label == "dedicated-host.attach-open-start" &&
+			marks[index].Sequence < failed.Sequence {
+			start = marks[index]
+			break
+		}
+	}
+	if start.Label == "" {
+		t.Fatalf("relay failure has no preceding attach-open-start: %#v", marks)
+	}
+	for _, mark := range marks {
+		if mark.Sequence <= start.Sequence || mark.Sequence > failed.Sequence {
+			continue
+		}
+		if mark.Label == "dedicated-host.attach-open-ready" ||
+			mark.Label == "runtime.connected" ||
+			mark.Label == "webview.neutral-frame" ||
+			mark.Label == "webview.revealed" {
+			t.Fatalf("relay failure was silently accepted as warm presentation: start=%#v failed=%#v mark=%#v", start, failed, mark)
+		}
+	}
+}
+
+func logWarmAttachCorrectnessMetrics(t *testing.T, page playwright.Page, generation string) {
+	t.Helper()
+
+	raw, err := page.Evaluate(`(generation) => {
+		const entries = performance.getEntriesByType('mark')
+			.filter((entry) => entry.name.startsWith('spacewave.startup.'))
+			.map((entry) => ({
+				label: entry.name.slice('spacewave.startup.'.length),
+				startTime: entry.startTime,
+				detail: entry.detail ?? {},
+			}))
+		const find = (label) => entries.find((entry) =>
+			entry.label === label &&
+			(entry.detail.runtimeGeneration === generation ||
+				entry.detail.hostGeneration === generation),
+		)
+		const navigation = performance.getEntriesByType('navigation')[0]
+		const neutral = find('webview.neutral-frame')
+		const attachReady = find('dedicated-host.attach-open-ready')
+		const connected = find('runtime.connected')
+		const reveal = find('webview.revealed')
+		return {
+			generation,
+			navigationToNeutralMs: neutral && navigation
+				? neutral.startTime - navigation.startTime
+				: null,
+			attachReadyToConnectedMs: attachReady && connected
+				? connected.startTime - attachReady.startTime
+				: null,
+			connectedToRevealMs: connected && reveal
+				? reveal.startTime - connected.startTime
+				: null,
+			navigationToRevealMs: reveal && navigation
+				? reveal.startTime - navigation.startTime
+				: null,
+		}
+	}`, generation)
+	if err != nil {
+		t.Fatalf("read warm-attach correctness metrics: %v", err)
+	}
+	t.Logf("warm-attach correctness metrics (no speed claim): %#v", raw)
+}
+
 func TestGoScriptQuickstartReturnVisitorMountsBodyRoute(t *testing.T) {
 	if compiler, err := resolveReleaseWasmCompiler(); err != nil {
 		t.Fatalf("resolve release wasm compiler: %v", err)
@@ -1314,6 +2899,12 @@ func dumpPageState(t *testing.T, page playwright.Page) {
 				globalThis.__s4waveQuickstartTiming ??
 				globalThis.__s4wave_debug?.quickstartTiming ??
 				null,
+			browserShellTabs: localStorage.getItem('browser-shell-tabs'),
+			shellLayout: sessionStorage.getItem('shell-tabs-layout'),
+			layoutTabs: Array.from(document.querySelectorAll('[data-tab-id]')).map((el) => ({
+				id: el.getAttribute('data-tab-id'),
+				text: el.textContent?.slice(0, 200) ?? '',
+			})),
 			testIds: Array.from(document.querySelectorAll('[data-testid]')).map((el) => ({
 				testid: el.getAttribute('data-testid'),
 				text: el.textContent?.slice(0, 200) ?? '',
@@ -1586,22 +3177,30 @@ func completeQuickstartDriveIntroIfPresent(t *testing.T, page playwright.Page) {
 
 	_, err := page.Evaluate(`async () => {
 		const deadline = Date.now() + 120000
-		const state = { readyDeadline: 0 }
+		const actionLabels = ['Next', 'Got it, start exploring', 'Open files']
 		for (;;) {
-			if (document.querySelector('[data-testid="unixfs-browser"]')) return null
-			const text = document.body.textContent ?? ''
-			if (text.includes('Your Drive is ready')) {
-				if (!state.readyDeadline) state.readyDeadline = Date.now() + 5000
-				const buttons = Array.from(document.querySelectorAll('button'))
-				const open = buttons.find((button) => button.textContent?.includes('Open files'))
-				if (open instanceof HTMLButtonElement) {
-					open.click()
-					return null
-				}
-				if (Date.now() > state.readyDeadline) {
-					throw new Error('Drive intro ready text appeared without Open files button')
+			let action = null
+			for (const button of document.querySelectorAll('button')) {
+				if (!button.disabled && actionLabels.includes(button.textContent?.trim() ?? '')) {
+					action = button
+					break
 				}
 			}
+			// Finish only after quickstart has seeded the starter file. The
+			// wizard and seed writes otherwise race on a fresh profile.
+			if (
+				action?.textContent?.trim() === 'Got it, start exploring' &&
+				!document.body?.innerText?.includes('getting-started.md')
+			) {
+				action = null
+			}
+			if (action) {
+				action.click()
+				await new Promise((resolve) => requestAnimationFrame(resolve))
+				continue
+			}
+			const browser = document.querySelector('[data-testid="unixfs-browser"]')
+			if (browser && !window.location.hash.includes('/wizard/')) return null
 			if (Date.now() > deadline) {
 				throw new Error('Drive intro or file browser did not appear')
 			}

@@ -13,6 +13,7 @@ import {
   Plugin as SRPCPlugin,
   PluginDefinition,
 } from '../../../plugin/plugin_srpc.pb.js'
+import { PluginHostResourceServiceClient } from '../../../sdk/plugin/host/host_srpc.pb.js'
 import { WebPluginBrowserHostClient } from './browser_srpc.pb.js'
 
 // Plugin implements the bldr.plugin.Plugin service.
@@ -50,7 +51,10 @@ class Plugin implements SRPCPlugin {
  * Main execution function for the browser plugin entrypoint.
  * Initializes the connection to the host and sets up RPC handling.
  */
-export default async function main(backendAPI: BackendAPI) {
+export default async function main(
+  backendAPI: BackendAPI,
+  abortSignal: AbortSignal,
+) {
   console.log('Starting web plugin for browser...')
 
   // Initialize the client for the host service.
@@ -63,6 +67,9 @@ export default async function main(backendAPI: BackendAPI) {
   backendAPI.handleStreamCtr.set(async (channel: PacketStream) => {
     plugin.rpcServer.handlePacketStream(channel)
   })
+  using rootRef = await backendAPI.resourceClient.accessRootResource()
+  const pluginHost = new PluginHostResourceServiceClient(rootRef.client)
+  await pluginHost.CompleteInitialCapabilityRegistration({}, abortSignal)
 
   console.log('Web plugin for browser started.')
 }

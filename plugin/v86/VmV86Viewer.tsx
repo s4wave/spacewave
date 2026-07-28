@@ -575,7 +575,7 @@ function VmSettingsPanel({
       </div>
       {!overrides && (
         <div className="text-muted-foreground">
-          {loading ? 'loading...' : '-'}
+          {loading ? 'loading…' : '-'}
         </div>
       )}
       {overrides && (

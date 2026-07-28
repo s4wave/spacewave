@@ -155,7 +155,7 @@ export function OrganizationsSection({
                   'disabled:cursor-not-allowed disabled:opacity-50',
                 )}
               >
-                {creating ? 'Creating...' : 'Create'}
+                {creating ? 'Creating…' : 'Create'}
               </button>
               <button
                 onClick={() => {
@@ -164,7 +164,7 @@ export function OrganizationsSection({
                   setError(null)
                 }}
                 disabled={creating}
-                className="border-foreground/10 hover:bg-foreground/5 flex-1 rounded-md border py-1.5 text-xs transition-all"
+                className="border-foreground/10 hover:bg-foreground/5 flex-1 rounded-md border py-1.5 text-xs transition"
               >
                 Cancel
               </button>

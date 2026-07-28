@@ -2,8 +2,8 @@ package forge_world
 
 import (
 	"context"
+	"slices"
 
-	"github.com/aperturerobotics/cayley"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
@@ -14,6 +14,8 @@ import (
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	identity_world "github.com/s4wave/spacewave/identity/world"
 )
+
+const keypairObjectGraphPathLimit uint32 = 1_000_000
 
 // The world is used for managing objects, i.e.:
 // Cluster, Job, Target, Task, Pass, Execution
@@ -27,19 +29,30 @@ var ForgeObjectTypeIDs = []string{
 }
 
 // ListKeypairObjects lists all Forge objects linked to by the Keypair.
-// returns: Cluster, Pass, Task, Execution
-// returns list of object keys
+// It returns the object keys in graph traversal order.
 func ListKeypairObjects(ctx context.Context, w world.WorldState, keypairKeys ...string) ([]string, error) {
-	return world.CollectPathWithKeys(
+	objKeys, err := world.CollectGraphPathStepWithKeys(
 		ctx,
 		w,
 		keypairKeys,
-		func(p *cayley.Path) (*cayley.Path, error) {
-			// In: traverse to all objects linking to the keypair.
-			p = p.In(identity_world.PredObjectToKeypair)
-			// Limit to types recognized as Forge types
-			p = world_types.LimitNodesToTypes(p, ForgeObjectTypeIDs...)
-			return p, nil
-		},
+		world.GraphPathDirectionIn,
+		identity_world.PredObjectToKeypair.String(),
+		keypairObjectGraphPathLimit,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	metadata, err := world_types.GetObjectMetadataBatch(ctx, w, objKeys)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []string
+	for _, md := range metadata {
+		if slices.Contains(ForgeObjectTypeIDs, md.TypeID) {
+			result = append(result, md.ObjectKey)
+		}
+	}
+	return result, nil
 }

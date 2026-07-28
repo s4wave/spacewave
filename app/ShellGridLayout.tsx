@@ -68,6 +68,7 @@ export function ShellGridLayout() {
     addShellTab,
     selectShellTab,
     retainShellTabs,
+    closeShellTab,
     startRenaming,
     registerActiveTabsetPathOpener,
   } = useShellTabs()
@@ -97,6 +98,7 @@ export function ShellGridLayout() {
   const structureRef = useRef<string | null>(
     initialModelResult?.structure ?? null,
   )
+  const decodedLayoutDataRef = useRef(layoutData)
   // Track if we've done initial setup
   const initializedRef = useRef(initialModelResult !== null)
 
@@ -108,6 +110,8 @@ export function ShellGridLayout() {
   // Handle URL changes from external sources (back/forward navigation)
   useEffect(() => {
     if (!initializedRef.current || !layoutData || !initialDecodeResult) return
+    if (layoutData === decodedLayoutDataRef.current) return
+    decodedLayoutDataRef.current = layoutData
 
     // Decode the new URL's structure to compare
     const newModel = Model.fromJson(initialDecodeResult.model)
@@ -194,9 +198,11 @@ export function ShellGridLayout() {
     // Create new tab with home path
     const newTab = buildPathTab('/')
 
-    addShellTab(newTab, { select: true })
-
-    addAndSelectShellModelTab(model, activeTabsetId, newTab, 'shell-panel')
+    addShellTab(newTab, {
+      select: true,
+      onCommitted: () =>
+        addAndSelectShellModelTab(model, activeTabsetId, newTab, 'shell-panel'),
+    })
   }, [model, addShellTab])
 
   const handleAddTabAtTab = useCallback(
@@ -209,9 +215,11 @@ export function ShellGridLayout() {
 
       const sourceTab = findShellTab(tabs, tabId)
       const newTab = buildContextualShellTab(sourceTab?.path)
-
-      addShellTab(newTab, { select: true })
-      addAndSelectShellModelTab(model, tabsetId, newTab, 'shell-panel')
+      addShellTab(newTab, {
+        select: true,
+        onCommitted: () =>
+          addAndSelectShellModelTab(model, tabsetId, newTab, 'shell-panel'),
+      })
     },
     [model, tabs, addShellTab],
   )
@@ -234,17 +242,23 @@ export function ShellGridLayout() {
 
       const activeTabsetId = getActiveTabsetId(model)
       if (!activeTabsetId) return null
-
       const newTab = buildPathTab(path)
       addShellTab(newTab, {
         afterTabId: options.afterTabId,
         select,
+        onCommitted: () => {
+          if (select) {
+            addAndSelectShellModelTab(
+              model,
+              activeTabsetId,
+              newTab,
+              'shell-panel',
+            )
+          } else {
+            addShellModelTab(model, activeTabsetId, newTab, 'shell-panel')
+          }
+        },
       })
-      if (select) {
-        addAndSelectShellModelTab(model, activeTabsetId, newTab, 'shell-panel')
-      } else {
-        addShellModelTab(model, activeTabsetId, newTab, 'shell-panel')
-      }
       return newTab.id
     },
     [addShellTab, model, selectShellTab, tabs],
@@ -255,30 +269,26 @@ export function ShellGridLayout() {
     [openPathInGridTabset, registerActiveTabsetPathOpener],
   )
 
-  // Handle closing a tab
+  // Explicit Shell close removes the shared record; the local model then
+  // prunes it through the shared snapshot projection.
   const handleCloseTab = useCallback(
     (tabId: string) => {
       if (!model) return
-
-      // Don't allow closing the last tab
       let tabCount = 0
       model.visitNodes((node) => {
         if (node.getType() === 'tab') tabCount++
       })
       if (tabCount <= 1) return
-
-      // Remove from FlexLayout - tabs state sync happens in handleModelChange
-      model.doAction(Actions.deleteTab(tabId))
+      closeShellTab(tabId)
     },
-    [model],
+    [model, closeShellTab],
   )
 
-  // Handle popping out current tab to a new browser tab
   const handlePopoutTab = useCallback(
     (tabId: string) => {
       const tab = findShellTab(tabs, tabId)
       if (!tab) return
-      openShellTabInNewTab(tab.path)
+      openShellTabInNewTab(tab.path, tab.id)
     },
     [tabs],
   )
@@ -295,23 +305,22 @@ export function ShellGridLayout() {
       if (!tabsetId) return
 
       const nextTab = cloneShellTab(tab)
-      addShellTab(nextTab, { select: true })
-      addAndSelectShellModelTab(model, tabsetId, nextTab, 'shell-panel')
+      addShellTab(nextTab, {
+        select: true,
+        onCommitted: () =>
+          addAndSelectShellModelTab(model, tabsetId, nextTab, 'shell-panel'),
+      })
     },
     [model, tabs, addShellTab],
   )
 
   const handleCloseOtherTabs = useCallback(
     (keepTabId: string) => {
-      if (!model) return
-
       tabs.forEach((tab) => {
-        if (tab.id !== keepTabId) {
-          model.doAction(Actions.deleteTab(tab.id))
-        }
+        if (tab.id !== keepTabId) closeShellTab(tab.id)
       })
     },
-    [model, tabs],
+    [tabs, closeShellTab],
   )
 
   // Render tab with name from global state, supporting inline rename.
@@ -408,18 +417,24 @@ export function ShellGridLayout() {
             ? { ...firstTab, id: droppedTabId }
             : firstTab
 
-        if (!droppedTab) {
-          addShellModelTab(model, tabsetId, activeTab, 'shell-panel')
+        const commitActiveTab = () => {
+          if (!droppedTab) {
+            addShellModelTab(model, tabsetId, activeTab, 'shell-panel')
+          }
+          selectShellTab(activeTab.id)
+          model.doAction(Actions.selectTab(activeTab.id))
         }
-        addShellTab(activeTab, { select: true })
+        addShellTab(activeTab, {
+          select: true,
+          onCommitted: commitActiveTab,
+        })
 
         for (const tab of remainingTabs) {
-          addShellTab(tab)
-          addShellModelTab(model, tabsetId, tab, 'shell-panel')
+          addShellTab(tab, {
+            onCommitted: () =>
+              addShellModelTab(model, tabsetId, tab, 'shell-panel'),
+          })
         }
-
-        selectShellTab(activeTab.id)
-        model.doAction(Actions.selectTab(activeTab.id))
       }),
     [addShellTab, model, selectShellTab],
   )
@@ -475,7 +490,7 @@ function normalizeSelectedIndex(
 // reconcileModelWithTabs ensures all tabs in the model exist in global state.
 // Shell tab paths and display names are owned by ShellTabsContext, so decoded
 // grid URL tabs with no global state entry cannot be rendered correctly.
-function reconcileModelWithTabs(
+export function reconcileModelWithTabs(
   model: IJsonModel,
   tabs: ShellTab[],
 ): IJsonModel {

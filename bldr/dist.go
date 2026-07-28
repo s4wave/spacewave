@@ -37,7 +37,7 @@ import (
 //go:embed plugin/plugin.pb.ts plugin/plugin_srpc.pb.ts
 //go:embed manifest/manifest.pb.ts manifest/manifest_srpc.pb.ts
 //go:embed devtool/status/status.pb.ts devtool/status/status_srpc.pb.ts
-//go:embed devtool/deps.go devtool/web/entrypoint/web.go
+//go:embed devtool/deps.go devtool/web/entrypoint/web.go devtool/web/entrypoint/startup-trace_js.go
 //go:embed dist/deps/deps.go dist/deps/package.json dist/deps/bun.lock
 //go:embed web/bundler/bundler.pb.ts
 //go:embed web/bundler/vite/build.ts web/bundler/vite/run-build.ts

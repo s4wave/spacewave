@@ -6,7 +6,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
-	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/s4wave/spacewave/net/signaling"
 )
@@ -65,6 +64,9 @@ func (c *WebRTCSignalHandler) Close() error {
 type handleSignalPeerResolver struct {
 	t    *WebRTC
 	sess signaling.SignalPeerSession
+	// held indicates this resolver has held the peer's ingress lease.
+	// guarded by t.bcast.
+	held bool
 }
 
 // Resolve resolves the directive.
@@ -72,23 +74,7 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 	remotePeerID := r.sess.GetRemotePeerID()
 	remotePeerIDStr := remotePeerID.String()
 	r.t.le.Debugf("started signaling session with %v", remotePeerIDStr)
-
-	// Wait for the remote peer to indicate they want a session before starting one.
-	// If the link is lost with this nonce, the ref will also be released.
-	// The ref is then added back if the remote peer sends a request to start the session again.
-	var tkr *sessionTracker
-	var ref *keyed.KeyedRef[string, *sessionTracker]
-	defer func() {
-		if ref != nil {
-			r.t.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-				if r.t.incomingSessions[remotePeerIDStr] == ref {
-					delete(r.t.incomingSessions, remotePeerIDStr)
-					broadcast()
-				}
-			})
-			ref.Release()
-		}
-	}()
+	defer r.t.closeSignalIngress(remotePeerIDStr, r)
 
 	for {
 		// Wait for an incoming message.
@@ -113,47 +99,12 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 			}
 		*/
 
-		// Loop until we manage to process this message.
-	ProcessLoop:
-		for {
-			// Ensure our reference is still valid or create one if not.
-			var waitCh <-chan struct{}
-			r.t.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-				// Check if ref is still valid if it's set.
-				if ref != nil {
-					// Reference was released due to a link closing.
-					if currRef := r.t.incomingSessions[remotePeerIDStr]; currRef != ref {
-						ref = nil
-					}
-				}
-
-				// Add the reference if it doesn't exist anymore
-				if ref == nil {
-					ref, tkr, _, err = r.t.addSessionTrackerRef(remotePeerIDStr)
-					if err == nil && ref != nil {
-						r.t.incomingSessions[remotePeerIDStr] = ref
-						broadcast()
-					}
-				}
-
-				// Get next wait channel
-				waitCh = getWaitCh()
-			})
-			if err != nil {
-				return err
-			}
-
-			// Push the message to the tracker
-			select {
-			case <-ctx.Done():
-				return context.Canceled
-			case <-waitCh:
-				// recheck
-				continue ProcessLoop
-			case tkr.rxSignal <- sig:
-				// Received
-				break ProcessLoop
-			}
+		incoming := &incomingSignal{
+			sig:      sig,
+			accepted: make(chan struct{}),
+		}
+		if err := r.t.deliverSignal(ctx, remotePeerIDStr, r, incoming); err != nil {
+			return err
 		}
 	}
 }

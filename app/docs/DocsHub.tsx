@@ -38,7 +38,7 @@ export function DocsHub() {
             <button
               key={site.id}
               onClick={() => goToSite(site.id)}
-              className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-3 rounded-xl border p-6 text-left transition-all duration-200"
+              className="border-foreground/6 hover:border-foreground/12 hover:bg-background-card/30 group flex cursor-pointer flex-col items-start gap-3 rounded-xl border p-6 text-left transition duration-200"
             >
               <div className="bg-brand/10 text-brand flex size-10 items-center justify-center rounded-lg">
                 <Icon className="size-5" />

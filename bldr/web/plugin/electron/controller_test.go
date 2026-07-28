@@ -34,6 +34,7 @@ func TestOpenPluginHostDesktopTrayUsesPluginHostResourceBoundary(t *testing.T) {
 
 	hostRoot := plugin_host_root.NewRoot()
 	pluginRoot := plugin_host_resource.NewPluginHostRoot(
+		ctx,
 		le,
 		b,
 		"web",
@@ -44,6 +45,7 @@ func TestOpenPluginHostDesktopTrayUsesPluginHostResourceBoundary(t *testing.T) {
 		hostRoot,
 		"state-atoms",
 		bldr_plugin.PluginVolumeID,
+		nil,
 	)
 	defer pluginRoot.Release()
 
@@ -118,6 +120,7 @@ func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *
 
 	hostRoot := plugin_host_root.NewRoot()
 	pluginRoot := plugin_host_resource.NewPluginHostRoot(
+		ctx,
 		le,
 		b,
 		"web",
@@ -128,6 +131,7 @@ func TestDesktopTrayReconcilerPublishesHostTrayToElectronMainWithoutRenderer(t *
 		hostRoot,
 		"state-atoms",
 		bldr_plugin.PluginVolumeID,
+		nil,
 	)
 	defer pluginRoot.Release()
 

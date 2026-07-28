@@ -20,6 +20,7 @@ import (
 	manifest_fetch_world "github.com/s4wave/spacewave/bldr/manifest/fetch/world"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
@@ -74,6 +75,8 @@ type DistBus struct {
 	worldState world.WorldState
 	// rel is the release func
 	rel func()
+	// addRelease appends cleanup after bus-owned resources.
+	addRelease func(func())
 }
 
 // BuildDistBus builds the storage and bus for the distribution entrypoint.
@@ -103,6 +106,11 @@ func BuildDistBus(
 			}
 		}
 	}
+	addRelease := func(release func()) {
+		if release != nil {
+			rels = append(rels, release)
+		}
+	}
 
 	b, sr, err := NewCoreBus(ctx, le)
 	if err != nil {
@@ -120,6 +128,7 @@ func BuildDistBus(
 		platformID: platformID,
 		stateRoot:  stateRoot,
 		rel:        rel,
+		addRelease: addRelease,
 	}
 
 	// add the configset controller
@@ -377,29 +386,37 @@ func BuildDistBus(
 	}
 
 	// build the plugin scheduler
-	pluginSchedCtrl, pluginSchedCtrlRel, err := plugin_host_default.StartPluginScheduler(
-		ctx,
-		b,
+	pluginSchedConf := plugin_host_default.NewSchedulerConfig(
 		engineID,
 		pluginHostObjectKey,
 		vol.GetID(),
 		vol.GetPeerID().String(),
 		true,  // Watch FetchManifest on the bus so we can do auto-update via plugins.
-		false, // Enable copying the manifest root to the plugin host storage.
+		false, // Enable storing the manifest root in the plugin host world.
 
-		// Enable copying the manifest contents to the plugin host storage.
-		//
-		// This is particularly necessary since the plugin that provided the
-		// manifest might exit before being restarted, thereby creating a
-		// situation where we depend on that plugin for the data to start it,
-		// but that plugin is not running, so nothing happens (stuck).
+		// Dynamic providers can exit before a dependent plugin restarts, so
+		// their manifest contents still need a complete local copy.
 		false,
+	)
+	// The embedded distribution bucket remains mounted for the entrypoint
+	// lifetime and stays authoritative without a complete local copy.
+	pluginSchedConf.NoCopyBucketIds = []string{bldr_dist.GetDistBucketID(projectID)}
+	pluginSchedCtrl, _, pluginSchedCtrlRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_scheduler.Controller](
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(pluginSchedConf),
+		nil,
 	)
 	if err != nil {
 		rel()
 		return nil, err
 	}
-	rels = append(rels, pluginSchedCtrlRel)
+	rels = append(rels, pluginSchedCtrlRef.Release)
+	startupGroup := plugin_entrypoint_controller.NewStartupGroupCoordinator(
+		distMeta.GetStartupPlugins(),
+		pluginSchedCtrl,
+	)
+	pluginSchedCtrl.SetManifestCopyGate(startupGroup)
 
 	// build the plugin host controller
 	pluginHostCtrl, pluginHostRel, err := plugin_host_default.StartPluginHost(
@@ -423,6 +440,10 @@ func BuildDistBus(
 			continue
 		}
 		rels = append(rels, pluginRef.Release)
+	}
+	if err := startupGroup.Start(ctx); err != nil {
+		rel()
+		return nil, err
 	}
 
 	distBus.worldEngineID = engineID
@@ -516,6 +537,12 @@ func (d *DistBus) GetWorldState() world.WorldState {
 // GetPluginHostObjectKey returns the object key for the plugin host.
 func (d *DistBus) GetPluginHostObjectKey() string {
 	return d.pluginHostObjectKey
+}
+
+// AddRelease registers cleanup to run after the bus-owned resources.
+// Callers register cleanup before Release begins.
+func (d *DistBus) AddRelease(release func()) {
+	d.addRelease(release)
 }
 
 // Release releases the devtool bus.

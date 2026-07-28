@@ -133,7 +133,7 @@ export function KeyboardShortcutsDialog({
         <input
           ref={handleFilterRef}
           className="bg-background border-foreground/8 text-foreground mb-3 w-full rounded border px-3 py-1.5 text-sm outline-none"
-          placeholder="Filter shortcuts..."
+          placeholder="Filter shortcuts…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />

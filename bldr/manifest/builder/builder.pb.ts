@@ -436,6 +436,13 @@ export interface BuilderResult {
    * @generated from field: bldr.manifest.builder.InputManifest input_manifest = 3;
    */
   inputManifest?: InputManifest
+  /**
+   * SubManifestResults contains child builder results keyed by sub-manifest ID.
+   * Persisting child provenance lets startup validation reuse nested builders.
+   *
+   * @generated from field: map<string, bldr.manifest.builder.BuilderResult> sub_manifest_results = 4;
+   */
+  subManifestResults?: { [key: string]: BuilderResult }
 }
 
 export const BuilderResult: MessageType<BuilderResult> =
@@ -449,6 +456,13 @@ export const BuilderResult: MessageType<BuilderResult> =
         name: 'input_manifest',
         kind: 'message',
         T: () => InputManifest,
+      },
+      {
+        no: 4,
+        name: 'sub_manifest_results',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'message', T: () => BuilderResult },
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,

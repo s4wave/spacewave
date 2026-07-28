@@ -36,7 +36,7 @@ export function MessageInput({
         value={state.text}
         onChange={(e) => setState((s) => ({ ...s, text: e.target.value }))}
         onKeyDown={handleKeyDown}
-        placeholder="Type a message..."
+        placeholder="Type a message…"
         rows={1}
         disabled={state.sending}
         className="bg-background-primary text-foreground w-full resize-none rounded border p-2 text-sm"

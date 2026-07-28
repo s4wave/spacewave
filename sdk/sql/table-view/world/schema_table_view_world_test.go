@@ -1,5 +1,3 @@
-//go:build !sql_lite
-
 package s4wave_sql_table_view_world_test
 
 import (

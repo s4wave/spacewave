@@ -52,37 +52,15 @@ func (t *TxComplete) ExecuteTx(
 	bcs *block.Cursor,
 	root *forge_pass.Pass,
 ) error {
-	// unmarshal the target
-	tgt, _, err := root.FollowTargetRef(ctx, bcs)
+	executions, _, err := forge_pass.CollectPassExecutions(ctx, worldState, objKey)
 	if err != nil {
 		return err
 	}
-
-	// ensure CHECKING state if the result is not failed
-	passState := root.GetPassState()
-	isSuccess := t.GetResult().IsSuccessful()
-	if isSuccess {
-		if passState != forge_pass.State_PassState_CHECKING {
+	for _, execution := range executions {
+		if !execution.IsComplete() {
 			return errors.Errorf(
-				"%s: must be in CHECKING state if completing successfully",
-				passState.String(),
-			)
-		}
-
-		outputs := tgt.GetOutputs()
-		outpVals, err := forge_pass.ComputeOutputsWithStates(outputs, root.GetExecStates(), int(root.GetReplicas()))
-		if err != nil {
-			return err
-		}
-		if root.ValueSet == nil {
-			root.ValueSet = &forge_target.ValueSet{}
-		}
-		root.ValueSet.Outputs = outpVals
-	} else {
-		if passState == forge_pass.State_PassState_COMPLETE {
-			return errors.Wrapf(
-				forge_value.ErrUnknownState,
-				"%s", passState.String(),
+				"cannot complete pass while execution is %s",
+				execution.GetExecutionState().String(),
 			)
 		}
 	}
@@ -93,7 +71,40 @@ func (t *TxComplete) ExecuteTx(
 	}
 	result.FillFailError()
 
-	// promote to COMPLETE
+	passState := root.GetPassState()
+	if passState == forge_pass.State_PassState_COMPLETE {
+		return nil
+	}
+	if result.GetCanceled() {
+		if passState != forge_pass.State_PassState_CANCELING {
+			return errors.Errorf(
+				"%s: canceled completion requires CANCELING state",
+				passState.String(),
+			)
+		}
+	} else if passState != forge_pass.State_PassState_CHECKING {
+		return errors.Errorf(
+			"%s: non-canceled completion requires CHECKING state",
+			passState.String(),
+		)
+	}
+
+	if result.IsSuccessful() {
+		tgt, _, err := root.FollowTargetRef(ctx, bcs)
+		if err != nil {
+			return err
+		}
+		outputs := tgt.GetOutputs()
+		outpVals, err := forge_pass.ComputeOutputsWithStates(outputs, root.GetExecStates(), int(root.GetReplicas()))
+		if err != nil {
+			return err
+		}
+		if root.ValueSet == nil {
+			root.ValueSet = &forge_target.ValueSet{}
+		}
+		root.ValueSet.Outputs = outpVals
+	}
+
 	root.PassState = forge_pass.State_PassState_COMPLETE
 	root.Result = result
 	bcs.SetBlock(root, true)

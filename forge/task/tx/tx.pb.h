@@ -70,6 +70,10 @@ class TxComplete;
 struct TxCompleteDefaultTypeInternal;
 extern TxCompleteDefaultTypeInternal _TxComplete_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull TxComplete_class_data_;
+class TxRetry;
+struct TxRetryDefaultTypeInternal;
+extern TxRetryDefaultTypeInternal _TxRetry_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull TxRetry_class_data_;
 class TxStart;
 struct TxStartDefaultTypeInternal;
 extern TxStartDefaultTypeInternal _TxStart_default_instance_;
@@ -100,6 +104,7 @@ enum TxType : int {
   TxType_START = 2,
   TxType_UPDATE_WITH_PASS_STATE = 3,
   TxType_COMPLETE = 4,
+  TxType_RETRY = 5,
   TxType_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   TxType_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -110,11 +115,11 @@ extern const uint32_t TxType_internal_data_[];
 inline constexpr TxType TxType_MIN =
     static_cast<TxType>(0);
 inline constexpr TxType TxType_MAX =
-    static_cast<TxType>(4);
+    static_cast<TxType>(5);
 inline bool TxType_IsValid(int value) {
-  return 0 <= value && value <= 4;
+  return 0 <= value && value <= 5;
 }
-inline constexpr int TxType_ARRAYSIZE = 4 + 1;
+inline constexpr int TxType_ARRAYSIZE = 5 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL TxType_descriptor();
 template <typename T>
 const ::std::string& TxType_Name(T value) {
@@ -125,7 +130,7 @@ const ::std::string& TxType_Name(T value) {
 }
 template <>
 inline const ::std::string& TxType_Name(TxType value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<TxType_descriptor, 0, 4>(
+  return ::google::protobuf::internal::NameOfDenseEnum<TxType_descriptor, 0, 5>(
       static_cast<int>(value));
 }
 inline bool TxType_Parse(
@@ -193,7 +198,7 @@ class TxUpdateWithPassState final : public ::google::protobuf::internal::ZeroFie
     return *reinterpret_cast<const TxUpdateWithPassState*>(
         &_TxUpdateWithPassState_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 3;
+  static constexpr int kIndexInFileMessages = 4;
   friend void swap(TxUpdateWithPassState& a, TxUpdateWithPassState& b) { a.Swap(&b); }
   inline void Swap(TxUpdateWithPassState* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -328,7 +333,7 @@ class TxStart final : public ::google::protobuf::Message
     return *reinterpret_cast<const TxStart*>(
         &_TxStart_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 2;
+  static constexpr int kIndexInFileMessages = 3;
   friend void swap(TxStart& a, TxStart& b) { a.Swap(&b); }
   inline void Swap(TxStart* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -518,7 +523,7 @@ class TxUpdateInputs final : public ::google::protobuf::Message
     return *reinterpret_cast<const TxUpdateInputs*>(
         &_TxUpdateInputs_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 1;
+  static constexpr int kIndexInFileMessages = 2;
   friend void swap(TxUpdateInputs& a, TxUpdateInputs& b) { a.Swap(&b); }
   inline void Swap(TxUpdateInputs* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -682,6 +687,213 @@ class TxUpdateInputs final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull TxUpdateInputs_class_data_;
 // -------------------------------------------------------------------
 
+class TxRetry final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:task.tx.TxRetry) */ {
+ public:
+  inline TxRetry() : TxRetry(nullptr) {}
+  ~TxRetry() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(TxRetry* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(TxRetry));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR TxRetry(::google::protobuf::internal::ConstantInitialized);
+
+  inline TxRetry(const TxRetry& from) : TxRetry(nullptr, from) {}
+  inline TxRetry(TxRetry&& from) noexcept
+      : TxRetry(nullptr, ::std::move(from)) {}
+  inline TxRetry& operator=(const TxRetry& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline TxRetry& operator=(TxRetry&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const TxRetry& default_instance() {
+    return *reinterpret_cast<const TxRetry*>(
+        &_TxRetry_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 1;
+  friend void swap(TxRetry& a, TxRetry& b) { a.Swap(&b); }
+  inline void Swap(TxRetry* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(TxRetry* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  TxRetry* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<TxRetry>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const TxRetry& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const TxRetry& from) { TxRetry::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(TxRetry* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "task.tx.TxRetry"; }
+
+  explicit TxRetry(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  TxRetry(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const TxRetry& from);
+  TxRetry(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, TxRetry&& from) noexcept
+      : TxRetry(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kNextInputsFieldNumber = 2,
+    kExpectedPassNonceFieldNumber = 1,
+  };
+  // .forge.target.ValueSet next_inputs = 2;
+  bool has_next_inputs() const;
+  void clear_next_inputs() ;
+  const ::forge::target::ValueSet& next_inputs() const;
+  [[nodiscard]] ::forge::target::ValueSet* PROTOBUF_NULLABLE release_next_inputs();
+  ::forge::target::ValueSet* PROTOBUF_NONNULL mutable_next_inputs();
+  void set_allocated_next_inputs(::forge::target::ValueSet* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_next_inputs(::forge::target::ValueSet* PROTOBUF_NULLABLE value);
+  ::forge::target::ValueSet* PROTOBUF_NULLABLE unsafe_arena_release_next_inputs();
+
+  private:
+  const ::forge::target::ValueSet& _internal_next_inputs() const;
+  ::forge::target::ValueSet* PROTOBUF_NONNULL _internal_mutable_next_inputs();
+
+  public:
+  // uint64 expected_pass_nonce = 1;
+  void clear_expected_pass_nonce() ;
+  ::uint64_t expected_pass_nonce() const;
+  void set_expected_pass_nonce(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_expected_pass_nonce() const;
+  void _internal_set_expected_pass_nonce(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:task.tx.TxRetry)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<1, 2,
+                                   1, 0,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const TxRetry& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::forge::target::ValueSet* PROTOBUF_NULLABLE next_inputs_;
+    ::uint64_t expected_pass_nonce_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fforge_2ftask_2ftx_2ftx_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull TxRetry_class_data_;
+// -------------------------------------------------------------------
+
 class TxComplete final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:task.tx.TxComplete) */ {
  public:
@@ -737,7 +949,7 @@ class TxComplete final : public ::google::protobuf::Message
     return *reinterpret_cast<const TxComplete*>(
         &_TxComplete_default_instance_);
   }
-  static constexpr int kIndexInFileMessages = 4;
+  static constexpr int kIndexInFileMessages = 5;
   friend void swap(TxComplete& a, TxComplete& b) { a.Swap(&b); }
   inline void Swap(TxComplete* PROTOBUF_NONNULL other) {
     if (other == this) return;
@@ -1041,6 +1253,7 @@ class Tx final : public ::google::protobuf::Message
     kTxStartFieldNumber = 4,
     kTxUpdateWithPassStateFieldNumber = 5,
     kTxCompleteFieldNumber = 6,
+    kTxRetryFieldNumber = 7,
     kTxTypeFieldNumber = 1,
   };
   // string task_object_key = 2;
@@ -1118,6 +1331,21 @@ class Tx final : public ::google::protobuf::Message
   ::task::tx::TxComplete* PROTOBUF_NONNULL _internal_mutable_tx_complete();
 
   public:
+  // .task.tx.TxRetry tx_retry = 7;
+  bool has_tx_retry() const;
+  void clear_tx_retry() ;
+  const ::task::tx::TxRetry& tx_retry() const;
+  [[nodiscard]] ::task::tx::TxRetry* PROTOBUF_NULLABLE release_tx_retry();
+  ::task::tx::TxRetry* PROTOBUF_NONNULL mutable_tx_retry();
+  void set_allocated_tx_retry(::task::tx::TxRetry* PROTOBUF_NULLABLE value);
+  void unsafe_arena_set_allocated_tx_retry(::task::tx::TxRetry* PROTOBUF_NULLABLE value);
+  ::task::tx::TxRetry* PROTOBUF_NULLABLE unsafe_arena_release_tx_retry();
+
+  private:
+  const ::task::tx::TxRetry& _internal_tx_retry() const;
+  ::task::tx::TxRetry* PROTOBUF_NONNULL _internal_mutable_tx_retry();
+
+  public:
   // .task.tx.TxType tx_type = 1;
   void clear_tx_type() ;
   ::task::tx::TxType tx_type() const;
@@ -1132,8 +1360,8 @@ class Tx final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
-                                   4, 34,
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   5, 34,
                                    2>
       _table_;
 
@@ -1159,6 +1387,7 @@ class Tx final : public ::google::protobuf::Message
     ::task::tx::TxStart* PROTOBUF_NULLABLE tx_start_;
     ::task::tx::TxUpdateWithPassState* PROTOBUF_NULLABLE tx_update_with_pass_state_;
     ::task::tx::TxComplete* PROTOBUF_NULLABLE tx_complete_;
+    ::task::tx::TxRetry* PROTOBUF_NULLABLE tx_retry_;
     int tx_type_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -1189,7 +1418,7 @@ inline void Tx::clear_tx_type() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.tx_type_ = 0;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline ::task::tx::TxType Tx::tx_type() const {
   // @@protoc_insertion_point(field_get:task.tx.Tx.tx_type)
@@ -1197,7 +1426,7 @@ inline ::task::tx::TxType Tx::tx_type() const {
 }
 inline void Tx::set_tx_type(::task::tx::TxType value) {
   _internal_set_tx_type(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:task.tx.Tx.tx_type)
 }
 inline ::task::tx::TxType Tx::_internal_tx_type() const {
@@ -1668,6 +1897,227 @@ inline void Tx::set_allocated_tx_complete(::task::tx::TxComplete* PROTOBUF_NULLA
 
   _impl_.tx_complete_ = reinterpret_cast<::task::tx::TxComplete*>(value);
   // @@protoc_insertion_point(field_set_allocated:task.tx.Tx.tx_complete)
+}
+
+// .task.tx.TxRetry tx_retry = 7;
+inline bool Tx::has_tx_retry() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
+  PROTOBUF_ASSUME(!value || _impl_.tx_retry_ != nullptr);
+  return value;
+}
+inline void Tx::clear_tx_retry() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.tx_retry_ != nullptr) _impl_.tx_retry_->Clear();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline const ::task::tx::TxRetry& Tx::_internal_tx_retry() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::task::tx::TxRetry* p = _impl_.tx_retry_;
+  return p != nullptr ? *p : reinterpret_cast<const ::task::tx::TxRetry&>(::task::tx::_TxRetry_default_instance_);
+}
+inline const ::task::tx::TxRetry& Tx::tx_retry() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:task.tx.Tx.tx_retry)
+  return _internal_tx_retry();
+}
+inline void Tx::unsafe_arena_set_allocated_tx_retry(
+    ::task::tx::TxRetry* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.tx_retry_);
+  }
+  _impl_.tx_retry_ = reinterpret_cast<::task::tx::TxRetry*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:task.tx.Tx.tx_retry)
+}
+inline ::task::tx::TxRetry* PROTOBUF_NULLABLE Tx::release_tx_retry() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::task::tx::TxRetry* released = _impl_.tx_retry_;
+  _impl_.tx_retry_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::task::tx::TxRetry* PROTOBUF_NULLABLE Tx::unsafe_arena_release_tx_retry() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:task.tx.Tx.tx_retry)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::task::tx::TxRetry* temp = _impl_.tx_retry_;
+  _impl_.tx_retry_ = nullptr;
+  return temp;
+}
+inline ::task::tx::TxRetry* PROTOBUF_NONNULL Tx::_internal_mutable_tx_retry() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.tx_retry_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::task::tx::TxRetry>(GetArena());
+    _impl_.tx_retry_ = reinterpret_cast<::task::tx::TxRetry*>(p);
+  }
+  return _impl_.tx_retry_;
+}
+inline ::task::tx::TxRetry* PROTOBUF_NONNULL Tx::mutable_tx_retry()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ::task::tx::TxRetry* _msg = _internal_mutable_tx_retry();
+  // @@protoc_insertion_point(field_mutable:task.tx.Tx.tx_retry)
+  return _msg;
+}
+inline void Tx::set_allocated_tx_retry(::task::tx::TxRetry* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.tx_retry_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = value->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  }
+
+  _impl_.tx_retry_ = reinterpret_cast<::task::tx::TxRetry*>(value);
+  // @@protoc_insertion_point(field_set_allocated:task.tx.Tx.tx_retry)
+}
+
+// -------------------------------------------------------------------
+
+// TxRetry
+
+// uint64 expected_pass_nonce = 1;
+inline void TxRetry::clear_expected_pass_nonce() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expected_pass_nonce_ = ::uint64_t{0u};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::uint64_t TxRetry::expected_pass_nonce() const {
+  // @@protoc_insertion_point(field_get:task.tx.TxRetry.expected_pass_nonce)
+  return _internal_expected_pass_nonce();
+}
+inline void TxRetry::set_expected_pass_nonce(::uint64_t value) {
+  _internal_set_expected_pass_nonce(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:task.tx.TxRetry.expected_pass_nonce)
+}
+inline ::uint64_t TxRetry::_internal_expected_pass_nonce() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.expected_pass_nonce_;
+}
+inline void TxRetry::_internal_set_expected_pass_nonce(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.expected_pass_nonce_ = value;
+}
+
+// .forge.target.ValueSet next_inputs = 2;
+inline bool TxRetry::has_next_inputs() const {
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000001U);
+  PROTOBUF_ASSUME(!value || _impl_.next_inputs_ != nullptr);
+  return value;
+}
+inline const ::forge::target::ValueSet& TxRetry::_internal_next_inputs() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::forge::target::ValueSet* p = _impl_.next_inputs_;
+  return p != nullptr ? *p : reinterpret_cast<const ::forge::target::ValueSet&>(::forge::target::_ValueSet_default_instance_);
+}
+inline const ::forge::target::ValueSet& TxRetry::next_inputs() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:task.tx.TxRetry.next_inputs)
+  return _internal_next_inputs();
+}
+inline void TxRetry::unsafe_arena_set_allocated_next_inputs(
+    ::forge::target::ValueSet* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.next_inputs_);
+  }
+  _impl_.next_inputs_ = reinterpret_cast<::forge::target::ValueSet*>(value);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:task.tx.TxRetry.next_inputs)
+}
+inline ::forge::target::ValueSet* PROTOBUF_NULLABLE TxRetry::release_next_inputs() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::forge::target::ValueSet* released = _impl_.next_inputs_;
+  _impl_.next_inputs_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::forge::target::ValueSet* PROTOBUF_NULLABLE TxRetry::unsafe_arena_release_next_inputs() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:task.tx.TxRetry.next_inputs)
+
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::forge::target::ValueSet* temp = _impl_.next_inputs_;
+  _impl_.next_inputs_ = nullptr;
+  return temp;
+}
+inline ::forge::target::ValueSet* PROTOBUF_NONNULL TxRetry::_internal_mutable_next_inputs() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.next_inputs_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::forge::target::ValueSet>(GetArena());
+    _impl_.next_inputs_ = reinterpret_cast<::forge::target::ValueSet*>(p);
+  }
+  return _impl_.next_inputs_;
+}
+inline ::forge::target::ValueSet* PROTOBUF_NONNULL TxRetry::mutable_next_inputs()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::forge::target::ValueSet* _msg = _internal_mutable_next_inputs();
+  // @@protoc_insertion_point(field_mutable:task.tx.TxRetry.next_inputs)
+  return _msg;
+}
+inline void TxRetry::set_allocated_next_inputs(::forge::target::ValueSet* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.next_inputs_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::google::protobuf::Message*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+
+  _impl_.next_inputs_ = reinterpret_cast<::forge::target::ValueSet*>(value);
+  // @@protoc_insertion_point(field_set_allocated:task.tx.TxRetry.next_inputs)
 }
 
 // -------------------------------------------------------------------

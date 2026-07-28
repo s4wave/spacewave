@@ -218,7 +218,7 @@ export function Licenses() {
             <LuSearch className="text-foreground-alt/40 pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Filter packages..."
+              placeholder="Filter packages…"
               value={filter}
               onChange={onFilterChange}
               className="border-foreground/10 bg-background-card/50 text-foreground placeholder:text-foreground-alt/40 w-full rounded-md border py-1.5 pr-3 pl-8 text-sm backdrop-blur-sm focus:ring-1 focus:ring-white/20 focus:outline-none @md:w-64"

@@ -2,6 +2,7 @@ package execution_controller
 
 import (
 	"context"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -43,6 +44,8 @@ type Controller struct {
 	conf *Config
 	// uniqueID is the derived unique id
 	uniqueID string
+	// claimID identifies this controller instance across Execute retries
+	claimID string
 	// peerID is the parsed peer id
 	peerID peer.ID
 	// busEngine is the bus world engine handle
@@ -54,6 +57,9 @@ type Controller struct {
 	// execRoutine is the execution routine resolving execResult
 	// note: value_set and result are set to nil
 	execRoutine *routine.StateRoutineContainer[*ExecConfig]
+	// cancelCh closes after durable cancellation is observed.
+	cancelCh   chan struct{}
+	cancelOnce sync.Once
 }
 
 // NewController constructs a new Execution controller.
@@ -65,12 +71,18 @@ func NewController(
 ) *Controller {
 	peerID, _ := conf.ParsePeerID()
 	uniqueID := conf.BuildUniqueID()
+	claimID := conf.GetClaimId()
+	if claimID == "" {
+		claimID = uniqueID
+	}
 	c := &Controller{
 		le:       le,
 		bus:      bus,
 		conf:     conf,
 		uniqueID: uniqueID,
 		peerID:   peerID,
+		claimID:  claimID,
+		cancelCh: make(chan struct{}),
 	}
 	c.busEngine = world.NewBusEngine(nil, bus, conf.GetEngineId())
 	c.ws = world.NewEngineWorldState(c.busEngine, true)
@@ -126,7 +138,11 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 func (c *Controller) Execute(ctx context.Context) error {
 	c.execRoutine.SetContext(ctx, true)
 	c.busEngine.SetContext(ctx)
-	return c.objLoop.Execute(ctx, c.ws)
+	err := c.objLoop.Execute(ctx, c.ws)
+	if ctx.Err() != nil && errors.Is(err, context.Canceled) {
+		return context.Canceled
+	}
+	return err
 }
 
 // ProcessState implements the state reconciliation loop.
@@ -146,20 +162,9 @@ func (c *Controller) ProcessState(
 		return true, nil
 	}
 
-	// get latest root ref
-	objRef, _, err := obj.GetRootRef(ctx)
-	if err != nil {
-		if err == world.ErrObjectNotFound {
-			le.Debug("object does not exist, waiting")
-			c.execRoutine.SetState(nil)
-			return true, nil
-		}
-		return false, err
-	}
-
 	// unmarshal Execution state + build read cursor
 	var exState *forge_execution.Execution
-	_, err = world.AccessObject(ctx, ws.AccessWorldState, objRef, func(bcs *block.Cursor) error {
+	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
 		exState, berr = forge_execution.UnmarshalExecution(ctx, bcs)
 		return berr
@@ -188,6 +193,11 @@ func (c *Controller) ProcessState(
 
 	// check if completed
 	currState := exState.GetExecutionState()
+	if currState == forge_execution.State_ExecutionState_CANCELING {
+		c.cancelOnce.Do(func() {
+			close(c.cancelCh)
+		})
+	}
 	if currState == forge_execution.State_ExecutionState_COMPLETE {
 		le.Debug("execution is marked as complete")
 		c.execRoutine.SetState(nil)
@@ -208,24 +218,35 @@ func (c *Controller) ProcessState(
 	}
 	defer peerRef.Release()
 
-	// promote pending -> running
-	if currState == forge_execution.State_ExecutionState_PENDING {
+	// Claim pending executions and adopt active pre-claim executions without
+	// starting side effects until this controller observes its durable claim.
+	if currState == forge_execution.State_ExecutionState_PENDING ||
+		exState.GetClaim() == nil {
 		c.execRoutine.SetState(nil)
-		le.Debugf(
-			"marking execution as running with peer id: %s",
-			peerID.String(),
-		)
-		txd := execution_transaction.NewTxStart(peerID)
+		le.Debugf("claiming execution with peer id: %s", peerID.String())
+		txd := execution_transaction.NewTxStart(peerID, c.claimID)
 		_, _, err = obj.ApplyObjectOp(ctx, txd, peerID)
 		if err != nil {
+			var heldErr *execution_transaction.ClaimHeldError
+			if errors.As(err, &heldErr) {
+				return true, nil
+			}
 			return false, err
 		}
-		// the control loop will see the change & run ProcessState again
+		// The control loop observes the durable claim before starting work.
 		return true, nil
 	}
 
-	// check if running, otherwise, this is some unknown state
-	if currState != forge_execution.State_ExecutionState_RUNNING {
+	if exState.GetClaim().GetClaimId() != c.claimID {
+		le.Debug("observing execution owned by another controller")
+		c.execRoutine.SetState(nil)
+		return true, nil
+	}
+
+	// RUNNING and CANCELING both retain adapter custody. Cancellation is
+	// delivered without tearing down the routine context.
+	if currState != forge_execution.State_ExecutionState_RUNNING &&
+		currState != forge_execution.State_ExecutionState_CANCELING {
 		c.execRoutine.SetState(nil)
 		return true, errors.Wrapf(
 			forge_value.ErrUnknownState,
@@ -236,6 +257,7 @@ func (c *Controller) ProcessState(
 	// check if equivalent to the current
 	execConfigState := exState.CloneVT()
 	execConfigState.Result = nil
+	execConfigState.ExecutionState = forge_execution.State_ExecutionState_RUNNING
 	execConfigState.LogEntries = nil
 	if execConfigState.ValueSet == nil {
 		execConfigState.ValueSet = &forge_target.ValueSet{}

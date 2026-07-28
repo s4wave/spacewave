@@ -445,6 +445,7 @@ class Config final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kPlatformSelectionPoliciesFieldNumber = 12,
+    kNoCopyBucketIdsFieldNumber = 13,
     kEngineIdFieldNumber = 1,
     kObjectKeyFieldNumber = 2,
     kPeerIdFieldNumber = 3,
@@ -474,6 +475,28 @@ class Config final : public ::google::protobuf::Message
   const ::plugin::host::scheduler::PlatformSelectionPolicy& platform_selection_policies(int index) const;
   ::plugin::host::scheduler::PlatformSelectionPolicy* PROTOBUF_NONNULL add_platform_selection_policies();
   const ::google::protobuf::RepeatedPtrField<::plugin::host::scheduler::PlatformSelectionPolicy>& platform_selection_policies() const;
+  // repeated string no_copy_bucket_ids = 13;
+  int no_copy_bucket_ids_size() const;
+  private:
+  int _internal_no_copy_bucket_ids_size() const;
+
+  public:
+  void clear_no_copy_bucket_ids() ;
+  const ::std::string& no_copy_bucket_ids(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_no_copy_bucket_ids(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_no_copy_bucket_ids(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_no_copy_bucket_ids();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_no_copy_bucket_ids(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& no_copy_bucket_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_no_copy_bucket_ids();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_no_copy_bucket_ids() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_no_copy_bucket_ids();
+
+  public:
   // string engine_id = 1;
   void clear_engine_id() ;
   const ::std::string& engine_id() const;
@@ -618,8 +641,8 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 12,
-                                   3, 80,
+  static const ::google::protobuf::internal::TcParseTable<4, 13,
+                                   3, 98,
                                    2>
       _table_;
 
@@ -641,6 +664,7 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::RepeatedPtrField< ::plugin::host::scheduler::PlatformSelectionPolicy > platform_selection_policies_;
+    ::google::protobuf::RepeatedPtrField<::std::string> no_copy_bucket_ids_;
     ::google::protobuf::internal::ArenaStringPtr engine_id_;
     ::google::protobuf::internal::ArenaStringPtr object_key_;
     ::google::protobuf::internal::ArenaStringPtr peer_id_;
@@ -681,7 +705,7 @@ inline void Config::clear_engine_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.engine_id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 inline const ::std::string& Config::engine_id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -691,13 +715,13 @@ inline const ::std::string& Config::engine_id() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void Config::set_engine_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   _impl_.engine_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:plugin.host.scheduler.Config.engine_id)
 }
 inline ::std::string* PROTOBUF_NONNULL Config::mutable_engine_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::std::string* _s = _internal_mutable_engine_id();
   // @@protoc_insertion_point(field_mutable:plugin.host.scheduler.Config.engine_id)
   return _s;
@@ -717,10 +741,10 @@ inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_engine_id() {
 inline ::std::string* PROTOBUF_NULLABLE Config::release_engine_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:plugin.host.scheduler.Config.engine_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   auto* released = _impl_.engine_id_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.engine_id_.Set("", GetArena());
@@ -730,9 +754,9 @@ inline ::std::string* PROTOBUF_NULLABLE Config::release_engine_id() {
 inline void Config::set_allocated_engine_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
   _impl_.engine_id_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.engine_id_.IsDefault()) {
@@ -746,7 +770,7 @@ inline void Config::clear_object_key() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.object_key_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 inline const ::std::string& Config::object_key() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -756,13 +780,13 @@ inline const ::std::string& Config::object_key() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void Config::set_object_key(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   _impl_.object_key_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:plugin.host.scheduler.Config.object_key)
 }
 inline ::std::string* PROTOBUF_NONNULL Config::mutable_object_key()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::std::string* _s = _internal_mutable_object_key();
   // @@protoc_insertion_point(field_mutable:plugin.host.scheduler.Config.object_key)
   return _s;
@@ -782,10 +806,10 @@ inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_object_key() {
 inline ::std::string* PROTOBUF_NULLABLE Config::release_object_key() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:plugin.host.scheduler.Config.object_key)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   auto* released = _impl_.object_key_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.object_key_.Set("", GetArena());
@@ -795,9 +819,9 @@ inline ::std::string* PROTOBUF_NULLABLE Config::release_object_key() {
 inline void Config::set_allocated_object_key(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   }
   _impl_.object_key_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.object_key_.IsDefault()) {
@@ -811,7 +835,7 @@ inline void Config::clear_peer_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.peer_id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline const ::std::string& Config::peer_id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -821,13 +845,13 @@ inline const ::std::string& Config::peer_id() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void Config::set_peer_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   _impl_.peer_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:plugin.host.scheduler.Config.peer_id)
 }
 inline ::std::string* PROTOBUF_NONNULL Config::mutable_peer_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::std::string* _s = _internal_mutable_peer_id();
   // @@protoc_insertion_point(field_mutable:plugin.host.scheduler.Config.peer_id)
   return _s;
@@ -847,10 +871,10 @@ inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_peer_id() {
 inline ::std::string* PROTOBUF_NULLABLE Config::release_peer_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:plugin.host.scheduler.Config.peer_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   auto* released = _impl_.peer_id_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.peer_id_.Set("", GetArena());
@@ -860,9 +884,9 @@ inline ::std::string* PROTOBUF_NULLABLE Config::release_peer_id() {
 inline void Config::set_allocated_peer_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
   _impl_.peer_id_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.peer_id_.IsDefault()) {
@@ -876,7 +900,7 @@ inline void Config::clear_volume_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.volume_id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000020U);
 }
 inline const ::std::string& Config::volume_id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -886,13 +910,13 @@ inline const ::std::string& Config::volume_id() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void Config::set_volume_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   _impl_.volume_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:plugin.host.scheduler.Config.volume_id)
 }
 inline ::std::string* PROTOBUF_NONNULL Config::mutable_volume_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::std::string* _s = _internal_mutable_volume_id();
   // @@protoc_insertion_point(field_mutable:plugin.host.scheduler.Config.volume_id)
   return _s;
@@ -912,10 +936,10 @@ inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_volume_id() {
 inline ::std::string* PROTOBUF_NULLABLE Config::release_volume_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:plugin.host.scheduler.Config.volume_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   auto* released = _impl_.volume_id_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.volume_id_.Set("", GetArena());
@@ -925,9 +949,9 @@ inline ::std::string* PROTOBUF_NULLABLE Config::release_volume_id() {
 inline void Config::set_allocated_volume_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   }
   _impl_.volume_id_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.volume_id_.IsDefault()) {
@@ -941,7 +965,7 @@ inline void Config::clear_watch_fetch_manifest() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.watch_fetch_manifest_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000100U);
+                  0x00000200U);
 }
 inline bool Config::watch_fetch_manifest() const {
   // @@protoc_insertion_point(field_get:plugin.host.scheduler.Config.watch_fetch_manifest)
@@ -949,7 +973,7 @@ inline bool Config::watch_fetch_manifest() const {
 }
 inline void Config::set_watch_fetch_manifest(bool value) {
   _internal_set_watch_fetch_manifest(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   // @@protoc_insertion_point(field_set:plugin.host.scheduler.Config.watch_fetch_manifest)
 }
 inline bool Config::_internal_watch_fetch_manifest() const {
@@ -966,7 +990,7 @@ inline void Config::clear_disable_store_manifest() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_store_manifest_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000200U);
+                  0x00000400U);
 }
 inline bool Config::disable_store_manifest() const {
   // @@protoc_insertion_point(field_get:plugin.host.scheduler.Config.disable_store_manifest)
@@ -974,7 +998,7 @@ inline bool Config::disable_store_manifest() const {
 }
 inline void Config::set_disable_store_manifest(bool value) {
   _internal_set_disable_store_manifest(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
   // @@protoc_insertion_point(field_set:plugin.host.scheduler.Config.disable_store_manifest)
 }
 inline bool Config::_internal_disable_store_manifest() const {
@@ -991,7 +1015,7 @@ inline void Config::clear_disable_copy_manifest() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.disable_copy_manifest_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000400U);
+                  0x00000800U);
 }
 inline bool Config::disable_copy_manifest() const {
   // @@protoc_insertion_point(field_get:plugin.host.scheduler.Config.disable_copy_manifest)
@@ -999,7 +1023,7 @@ inline bool Config::disable_copy_manifest() const {
 }
 inline void Config::set_disable_copy_manifest(bool value) {
   _internal_set_disable_copy_manifest(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
   // @@protoc_insertion_point(field_set:plugin.host.scheduler.Config.disable_copy_manifest)
 }
 inline bool Config::_internal_disable_copy_manifest() const {
@@ -1011,12 +1035,84 @@ inline void Config::_internal_set_disable_copy_manifest(bool value) {
   _impl_.disable_copy_manifest_ = value;
 }
 
+// repeated string no_copy_bucket_ids = 13;
+inline int Config::_internal_no_copy_bucket_ids_size() const {
+  return _internal_no_copy_bucket_ids().size();
+}
+inline int Config::no_copy_bucket_ids_size() const {
+  return _internal_no_copy_bucket_ids_size();
+}
+inline void Config::clear_no_copy_bucket_ids() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.no_copy_bucket_ids_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::std::string* PROTOBUF_NONNULL Config::add_no_copy_bucket_ids()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_no_copy_bucket_ids()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add_mutable:plugin.host.scheduler.Config.no_copy_bucket_ids)
+  return _s;
+}
+inline const ::std::string& Config::no_copy_bucket_ids(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:plugin.host.scheduler.Config.no_copy_bucket_ids)
+  return _internal_no_copy_bucket_ids().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_no_copy_bucket_ids(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:plugin.host.scheduler.Config.no_copy_bucket_ids)
+  return _internal_mutable_no_copy_bucket_ids()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void Config::set_no_copy_bucket_ids(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_no_copy_bucket_ids()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:plugin.host.scheduler.Config.no_copy_bucket_ids)
+}
+template <typename Arg_, typename... Args_>
+inline void Config::add_no_copy_bucket_ids(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_no_copy_bucket_ids(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:plugin.host.scheduler.Config.no_copy_bucket_ids)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& Config::no_copy_bucket_ids()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:plugin.host.scheduler.Config.no_copy_bucket_ids)
+  return _internal_no_copy_bucket_ids();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+Config::mutable_no_copy_bucket_ids() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:plugin.host.scheduler.Config.no_copy_bucket_ids)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_no_copy_bucket_ids();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+Config::_internal_no_copy_bucket_ids() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.no_copy_bucket_ids_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+Config::_internal_mutable_no_copy_bucket_ids() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.no_copy_bucket_ids_;
+}
+
 // uint32 fetch_concurrency = 7;
 inline void Config::clear_fetch_concurrency() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.fetch_concurrency_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000100U);
 }
 inline ::uint32_t Config::fetch_concurrency() const {
   // @@protoc_insertion_point(field_get:plugin.host.scheduler.Config.fetch_concurrency)
@@ -1024,7 +1120,7 @@ inline ::uint32_t Config::fetch_concurrency() const {
 }
 inline void Config::set_fetch_concurrency(::uint32_t value) {
   _internal_set_fetch_concurrency(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:plugin.host.scheduler.Config.fetch_concurrency)
 }
 inline ::uint32_t Config::_internal_fetch_concurrency() const {
@@ -1038,7 +1134,7 @@ inline void Config::_internal_set_fetch_concurrency(::uint32_t value) {
 
 // .backoff.Backoff fetch_backoff = 8;
 inline bool Config::has_fetch_backoff() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000040U);
   PROTOBUF_ASSUME(!value || _impl_.fetch_backoff_ != nullptr);
   return value;
 }
@@ -1059,16 +1155,16 @@ inline void Config::unsafe_arena_set_allocated_fetch_backoff(
   }
   _impl_.fetch_backoff_ = reinterpret_cast<::backoff::Backoff*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:plugin.host.scheduler.Config.fetch_backoff)
 }
 inline ::backoff::Backoff* PROTOBUF_NULLABLE Config::release_fetch_backoff() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
   ::backoff::Backoff* released = _impl_.fetch_backoff_;
   _impl_.fetch_backoff_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -1088,7 +1184,7 @@ inline ::backoff::Backoff* PROTOBUF_NULLABLE Config::unsafe_arena_release_fetch_
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:plugin.host.scheduler.Config.fetch_backoff)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
   ::backoff::Backoff* temp = _impl_.fetch_backoff_;
   _impl_.fetch_backoff_ = nullptr;
   return temp;
@@ -1103,7 +1199,7 @@ inline ::backoff::Backoff* PROTOBUF_NONNULL Config::_internal_mutable_fetch_back
 }
 inline ::backoff::Backoff* PROTOBUF_NONNULL Config::mutable_fetch_backoff()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   ::backoff::Backoff* _msg = _internal_mutable_fetch_backoff();
   // @@protoc_insertion_point(field_mutable:plugin.host.scheduler.Config.fetch_backoff)
   return _msg;
@@ -1120,9 +1216,9 @@ inline void Config::set_allocated_fetch_backoff(::backoff::Backoff* PROTOBUF_NUL
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
   }
 
   _impl_.fetch_backoff_ = reinterpret_cast<::backoff::Backoff*>(value);
@@ -1131,7 +1227,7 @@ inline void Config::set_allocated_fetch_backoff(::backoff::Backoff* PROTOBUF_NUL
 
 // .backoff.Backoff exec_backoff = 9;
 inline bool Config::has_exec_backoff() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000040U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000080U);
   PROTOBUF_ASSUME(!value || _impl_.exec_backoff_ != nullptr);
   return value;
 }
@@ -1152,16 +1248,16 @@ inline void Config::unsafe_arena_set_allocated_exec_backoff(
   }
   _impl_.exec_backoff_ = reinterpret_cast<::backoff::Backoff*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:plugin.host.scheduler.Config.exec_backoff)
 }
 inline ::backoff::Backoff* PROTOBUF_NULLABLE Config::release_exec_backoff() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   ::backoff::Backoff* released = _impl_.exec_backoff_;
   _impl_.exec_backoff_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -1181,7 +1277,7 @@ inline ::backoff::Backoff* PROTOBUF_NULLABLE Config::unsafe_arena_release_exec_b
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:plugin.host.scheduler.Config.exec_backoff)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   ::backoff::Backoff* temp = _impl_.exec_backoff_;
   _impl_.exec_backoff_ = nullptr;
   return temp;
@@ -1196,7 +1292,7 @@ inline ::backoff::Backoff* PROTOBUF_NONNULL Config::_internal_mutable_exec_backo
 }
 inline ::backoff::Backoff* PROTOBUF_NONNULL Config::mutable_exec_backoff()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   ::backoff::Backoff* _msg = _internal_mutable_exec_backoff();
   // @@protoc_insertion_point(field_mutable:plugin.host.scheduler.Config.exec_backoff)
   return _msg;
@@ -1213,9 +1309,9 @@ inline void Config::set_allocated_exec_backoff(::backoff::Backoff* PROTOBUF_NULL
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   }
 
   _impl_.exec_backoff_ = reinterpret_cast<::backoff::Backoff*>(value);
@@ -1227,7 +1323,7 @@ inline void Config::clear_verbose() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.verbose_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000800U);
+                  0x00001000U);
 }
 inline bool Config::verbose() const {
   // @@protoc_insertion_point(field_get:plugin.host.scheduler.Config.verbose)
@@ -1235,7 +1331,7 @@ inline bool Config::verbose() const {
 }
 inline void Config::set_verbose(bool value) {
   _internal_set_verbose(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000800U);
+  SetHasBit(_impl_._has_bits_[0], 0x00001000U);
   // @@protoc_insertion_point(field_set:plugin.host.scheduler.Config.verbose)
 }
 inline bool Config::_internal_verbose() const {

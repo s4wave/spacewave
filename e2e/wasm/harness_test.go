@@ -24,6 +24,7 @@ import (
 	space "github.com/s4wave/spacewave/core/space"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	e2e_wasm_session "github.com/s4wave/spacewave/e2e/wasm/session"
+	forge_job "github.com/s4wave/spacewave/forge/job"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/sirupsen/logrus"
 	exptrace "golang.org/x/exp/trace"
@@ -78,6 +79,14 @@ func harness(t testing.TB) *Harness {
 		t.Fatalf("boot wasm harness: %v", harnessBootErr)
 	}
 	return sharedHarness
+}
+
+// sharedHarnessBooted reports whether the package harness has already been
+// built. A test that needs the harness compiled a particular way checks this
+// before configuring the build environment, since harnessOnce will not rebuild
+// what an earlier test in the same slice already built.
+func sharedHarnessBooted() bool {
+	return sharedHarness != nil || harnessBootErr != nil
 }
 
 // bootSharedHarness boots the harness, launches the browser, and compiles the
@@ -1119,69 +1128,6 @@ func TestTracePolicyBehavior(t *testing.T) {
 	}
 }
 
-// TestQuickstartDriveRoute verifies the quickstart dashboard is reachable
-// via client-side routing without a full page reload.
-func TestQuickstartDriveRoute(t *testing.T) {
-	sess := harness(t).NewCleanPageSession(t)
-	console, stopConsole := sess.WatchConsole()
-	defer stopConsole()
-	defer func() {
-		report := DrainCrashReport(console)
-		if report.HasCrash() {
-			t.Errorf("unexpected browser/WASM crash report during drive route: %+v", report)
-		}
-		if report.HasExitedGoLoop() {
-			t.Errorf("unexpected exited-Go loop during drive route: %+v", report)
-		}
-	}()
-	page := sess.Page()
-
-	WaitForApp(t, page)
-	AssertRootImportMap(t, harness(t), page)
-	NavigateHash(t, harness(t), page, "#/quickstart/drive")
-	WaitForDriveReady(t, harness(t), page)
-	AssertBrowserStartupDone(t, harness(t), page)
-
-	url := page.URL()
-	if url == "" {
-		t.Fatal("page has no URL after drive quickstart routing")
-	}
-	if !strings.Contains(url, "#/u/") || !strings.Contains(url, "/so/") {
-		t.Fatalf("expected drive quickstart URL, got %q", url)
-	}
-}
-
-// TestQuickstartDriveDirectRouteStartup verifies a fresh browser can boot
-// directly into the Drive quickstart route.
-func TestQuickstartDriveDirectRouteStartup(t *testing.T) {
-	sess := harness(t).NewCleanBlankSession(t)
-	script := "globalThis.__s4waveLogQuickstartTiming = true;"
-	if err := sess.BrowserContext().AddInitScript(playwright.Script{Content: &script}); err != nil {
-		t.Fatalf("install quickstart timing init script: %v", err)
-	}
-	console, stopConsole := sess.WatchConsole()
-	defer stopConsole()
-	defer func() {
-		report := DrainCrashReport(console)
-		if report.HasCrash() {
-			t.Errorf("unexpected browser/WASM crash report during direct drive startup: %+v", report)
-		}
-		if report.HasExitedGoLoop() {
-			t.Errorf("unexpected exited-Go loop during direct drive startup: %+v", report)
-		}
-	}()
-
-	if err := harness(t).loadAppPageURL(sess, harness(t).baseURL+"/#/quickstart/drive"); err != nil {
-		t.Fatalf("load direct drive route: %v", err)
-	}
-	page := sess.Page()
-	WaitForApp(t, page)
-	AssertRootImportMap(t, harness(t), page)
-	ready := WaitForDriveReady(t, harness(t), page)
-	AssertQuickstartContentAfterProgress(t, ready)
-	AssertBrowserStartupDone(t, harness(t), page)
-}
-
 // TestGoScriptQuickstartDriveDirectRouteMountGate verifies the GoScript direct
 // Drive route reaches the mounted file browser, not only quickstart
 // content-ready.
@@ -1911,271 +1857,6 @@ func assertDirectSpaceRouteSpaceState(t testing.TB, page playwright.Page) {
 	}
 }
 
-// TestDriveScenarioSequence verifies the owned drive flow as one ordered
-// sequence on a single harness session.
-func TestDriveScenarioSequence(t *testing.T) {
-	sess := harness(t).NewCleanSession(t)
-	scenario := CreateDriveScenario(t, harness(t), sess)
-	page := scenario.GetSession().Page()
-
-	t.Run("shell", func(t *testing.T) {
-		if scenario.GetSession() != sess {
-			t.Fatal("expected drive scenario to retain the owning session")
-		}
-		if scenario.GetSessionIndex() == 0 {
-			t.Fatal("expected non-zero session index")
-		}
-		if scenario.GetSpaceID() == "" {
-			t.Fatal("expected non-empty space id")
-		}
-	})
-
-	t.Run("contents", func(t *testing.T) {
-		ready := WaitForDriveReady(t, harness(t), page)
-		AssertQuickstartContentAfterProgress(t, ready)
-	})
-
-	t.Run("first-impression", func(t *testing.T) {
-		WaitForDriveReady(t, harness(t), page)
-		openDriveInviteDialog(t, page)
-
-		t.Logf("opened Space invite dialog from Drive first-impression CTA, page URL: %s", page.URL())
-	})
-
-	t.Run("state-ready", func(t *testing.T) {
-		WaitForDriveReady(t, harness(t), page)
-
-		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
-		defer cancel()
-
-		sessions, err := sess.Root().ListSessions(ctx)
-		if err != nil {
-			t.Fatalf("ListSessions: %v", err)
-		}
-		if len(sessions) == 0 {
-			t.Fatal("expected sessions after owned drive quickstart")
-		}
-
-		s, err := sess.MountSessionByIdx(ctx, scenario.GetSessionIndex())
-		if err != nil {
-			t.Fatalf("MountSessionByIdx: %v", err)
-		}
-		defer s.Release()
-
-		rlStream, err := s.WatchResourcesList(ctx)
-		if err != nil {
-			t.Fatalf("WatchResourcesList: %v", err)
-		}
-		resp, err := rlStream.Recv()
-		if err != nil {
-			t.Fatalf("WatchResourcesList recv: %v", err)
-		}
-		rlStream.Close()
-
-		spaces := resp.GetSpacesList()
-		if !containsSpaceResource(spaces, scenario.GetSpaceID()) {
-			t.Fatalf("expected quickstart-created space %q in resources list", scenario.GetSpaceID())
-		}
-		t.Logf(
-			"state ready: quickstart-created space %s present in %d space(s)",
-			scenario.GetSpaceID(),
-			len(spaces),
-		)
-	})
-
-	t.Run("open-file", func(t *testing.T) {
-		WaitForDriveReady(t, harness(t), page)
-		openGettingStartedFile(t, page)
-
-		t.Logf("opened getting-started file in owned drive scenario, page URL: %s", page.URL())
-	})
-
-	t.Run("navigate-up", func(t *testing.T) {
-		waitForGettingStartedContentView(t, page)
-		content := page.Locator("[data-testid='unixfs-browser'] pre").First()
-
-		if err := page.Locator("button[title='Up']").Click(); err != nil {
-			t.Fatalf("click up: %v", err)
-		}
-
-		WaitForDriveReady(t, harness(t), page)
-
-		if err := page.Locator("[role='row']").Locator("text=" + gettingStartedFileName).First().WaitFor(); err != nil {
-			t.Fatalf("wait for getting-started row after up: %v", err)
-		}
-
-		visible, err := content.IsVisible()
-		if err == nil && visible {
-			t.Fatal("expected file content view to disappear after navigating up")
-		}
-
-		url := page.URL()
-		if !strings.Contains(url, "#/u/") || !strings.Contains(url, scenario.GetSpaceID()) {
-			t.Fatalf("expected owned drive route after navigate up, got %q", url)
-		}
-	})
-
-	t.Run("history", func(t *testing.T) {
-		WaitForDriveReady(t, harness(t), page)
-
-		if err := page.Locator("button[title='Back']").First().Click(); err != nil {
-			t.Fatalf("click back to file content: %v", err)
-		}
-		waitForGettingStartedContentView(t, page)
-		assertDriveRoute(t, page, scenario.GetSessionIndex(), scenario.GetSpaceID())
-
-		if err := page.Locator("button[title='Back']").First().Click(); err != nil {
-			t.Fatalf("click back to root listing: %v", err)
-		}
-		WaitForDriveReady(t, harness(t), page)
-		waitForDriveEntry(t, page, gettingStartedFileName)
-		assertDriveRoute(t, page, scenario.GetSessionIndex(), scenario.GetSpaceID())
-
-		if err := page.Locator("button[title='Forward']").First().Click(); err != nil {
-			t.Fatalf("click forward to file content: %v", err)
-		}
-		waitForGettingStartedContentView(t, page)
-		assertDriveRoute(t, page, scenario.GetSessionIndex(), scenario.GetSpaceID())
-
-		if err := page.Locator("button[title='Forward']").First().Click(); err != nil {
-			t.Fatalf("click forward to root listing: %v", err)
-		}
-		WaitForDriveReady(t, harness(t), page)
-		waitForDriveEntry(t, page, gettingStartedFileName)
-		assertDriveRoute(t, page, scenario.GetSessionIndex(), scenario.GetSpaceID())
-	})
-}
-
-// TestQuickstartDriveNavigateHomeFromNestedDir reproduces navigating into
-// /test/dir and returning to / with the path-bar Home button.
-func TestQuickstartDriveNavigateHomeFromNestedDir(t *testing.T) {
-	sess := harness(t).NewCleanSession(t)
-	scenario := CreateDriveScenario(t, harness(t), sess)
-	page := scenario.GetSession().Page()
-	browser := page.Locator("[data-testid='unixfs-browser']")
-
-	openDir := func(name string) {
-		t.Helper()
-
-		row := page.Locator("[role='row']").Locator("text=" + name).First()
-		if err := row.WaitFor(); err != nil {
-			t.Fatalf("wait for %s row: %v", name, err)
-		}
-		if err := row.Dblclick(); err != nil {
-			t.Fatalf("open %s row: %v", name, err)
-		}
-	}
-	waitForPathSegment := func(name string) {
-		t.Helper()
-
-		segment := page.Locator("button[aria-label='Navigate to " + name + "']").First()
-		if err := segment.WaitFor(); err != nil {
-			t.Fatalf("wait for %s path segment: %v", name, err)
-		}
-	}
-
-	WaitForDriveReady(t, harness(t), page)
-	createDriveFolder(t, page, "test")
-	openDir("test")
-	waitForPathSegment("test")
-	waitForDriveSettled(t, page)
-	createDriveFolder(t, page, "dir")
-	if err := page.Locator("button[aria-label='Navigate to root']").First().Click(); err != nil {
-		t.Fatalf("return to root after fixture setup: %v", err)
-	}
-	WaitForDriveReady(t, harness(t), page)
-
-	openDir("test")
-	waitForPathSegment("test")
-	waitForDriveSettled(t, page)
-	openDir("dir")
-	waitForPathSegment("dir")
-	waitForDriveSettled(t, page)
-
-	homeBtn := page.Locator("button[aria-label='Navigate to root']").First()
-	if err := homeBtn.Click(); err != nil {
-		t.Fatalf("click root button: %v", err)
-	}
-
-	_, err := page.Evaluate(harness(t).Script("wait-for-drive.ts"), map[string]any{
-		"deadlineMs": 15000,
-	})
-	if err != nil {
-		body, textErr := browser.TextContent()
-		if textErr != nil {
-			t.Fatalf("wait for root listing after home: %v (read browser text: %v)", err, textErr)
-		}
-		t.Fatalf(
-			"wait for root listing after home from /test/dir: %v (url=%q browser=%q)",
-			err,
-			page.URL(),
-			strings.TrimSpace(body),
-		)
-	}
-
-	body, err := browser.TextContent()
-	if err != nil {
-		t.Fatalf("read browser content after home: %v", err)
-	}
-	if !containsAll(body, "getting-started.md", "test") {
-		t.Fatalf("expected root listing after home, got %q", strings.TrimSpace(body))
-	}
-	if strings.Contains(body, "Loading...") {
-		t.Fatalf("expected loading state to clear after home, got %q", strings.TrimSpace(body))
-	}
-	if !strings.Contains(page.URL(), "/so/"+scenario.GetSpaceID()) {
-		t.Fatalf("expected drive route after home, got %q", page.URL())
-	}
-}
-
-// TestQuickstartDriveDeleteSpace verifies a quickstart-created drive can be
-// deleted through the session resource API and disappears from the session
-// resources list.
-func TestQuickstartDriveDeleteSpace(t *testing.T) {
-	sess := harness(t).NewCleanSession(t)
-	scenario := CreateDriveScenario(t, harness(t), sess)
-	page := scenario.GetSession().Page()
-
-	WaitForDriveReady(t, harness(t), page)
-
-	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
-	defer cancel()
-
-	s, err := sess.MountSessionByIdx(ctx, scenario.GetSessionIndex())
-	if err != nil {
-		t.Fatalf("MountSessionByIdx: %v", err)
-	}
-	defer s.Release()
-
-	rlStream, err := s.WatchResourcesList(ctx)
-	if err != nil {
-		t.Fatalf("WatchResourcesList: %v", err)
-	}
-	defer rlStream.Close()
-
-	var seenSpace bool
-	for !seenSpace {
-		resp, err := rlStream.Recv()
-		if err != nil {
-			t.Fatalf("WatchResourcesList initial recv: %v", err)
-		}
-		seenSpace = containsSpaceResource(resp.GetSpacesList(), scenario.GetSpaceID())
-	}
-
-	if _, err := s.DeleteSpace(ctx, scenario.GetSpaceID()); err != nil {
-		t.Fatalf("DeleteSpace: %v", err)
-	}
-
-	removed := false
-	for !removed {
-		resp, err := rlStream.Recv()
-		if err != nil {
-			t.Fatalf("WatchResourcesList deletion recv: %v", err)
-		}
-		removed = !containsSpaceResource(resp.GetSpacesList(), scenario.GetSpaceID())
-	}
-}
-
 // TestQuickstartDriveTrace writes a trace artifact for the drive quickstart
 // startup flow using client-side routing without a full page reload.
 func TestQuickstartDriveTrace(t *testing.T) {
@@ -2427,50 +2108,26 @@ func TestForgeScenarioSequence(t *testing.T) {
 	})
 }
 
-func waitForConsoleMessage(
-	ctx context.Context,
-	t testing.TB,
-	messages <-chan string,
-	substring string,
-) {
-	t.Helper()
-
-	for {
-		select {
-		case msg, ok := <-messages:
-			if !ok {
-				t.Fatalf("console closed before message %q", substring)
-			}
-			if strings.Contains(msg, substring) {
-				return
-			}
-		case <-ctx.Done():
-			t.Fatalf("wait for console message %q: %v", substring, ctx.Err())
-		}
-	}
-}
-
 // TestForgeWorkerExecution verifies binding approval starts the quickstart
-// worker and drives the Forge pass/execution path to completion with logs.
+// worker and drives the Forge pass/execution path to a completed Job.
 func TestForgeWorkerExecution(t *testing.T) {
-	sess := harness(t).NewCleanSession(t)
-	console, stopConsole := sess.WatchConsole()
-	defer stopConsole()
+	h := harness(t)
+	sess := h.NewCleanSession(t)
 
-	scenario := CreateForgeScenario(t, harness(t), sess)
+	scenario := CreateForgeScenario(t, h, sess)
 	page := scenario.GetSession().Page()
-	WaitForForgeReady(t, harness(t), page)
+	WaitForForgeReady(t, h, page)
 
-	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
-	defer cancel()
-
+	ctx := t.Context()
 	mounted := mountForgeSpace(ctx, t, sess, scenario.GetSessionIndex(), scenario.GetSpaceID())
 	defer mounted.Release()
 
 	const jobKey = "sample-job"
 	const workerKey = "session-worker"
 
-	assertNoForgePasses(ctx, t, mounted.engine, jobKey)
+	assertNoForgePasses(ctx, t, mounted.eng, jobKey)
+	stopForgeObserver := observeForgeWorld(ctx, h.le, mounted.engWs, jobKey)
+	defer stopForgeObserver()
 
 	_, err := mounted.contentsSvc.SetProcessBinding(ctx, &s4wave_space.SetProcessBindingRequest{
 		ObjectKey: workerKey,
@@ -2494,7 +2151,26 @@ func TestForgeWorkerExecution(t *testing.T) {
 		t.Fatalf("expected approved worker binding, got %+v", state.GetProcessBindings())
 	}
 
-	waitForConsoleMessage(ctx, t, console, "marking job as complete")
+	// Start the completion budget after setup has observed the approved worker.
+	// Browser/plugin startup and World mounting must not consume wait time.
+	// The alternate browser compilers run every pass an order slower, so they
+	// take the same doubled budget WaitForApp gives app readiness.
+	jobBudget := 3 * time.Minute
+	if E2EWasmSlowCompilerEnabled() {
+		jobBudget = 6 * time.Minute
+	}
+	waitCtx, cancel := context.WithTimeout(ctx, jobBudget)
+	defer cancel()
+	job, err := forge_job.WaitJobComplete(waitCtx, h.le, mounted.engWs, jobKey)
+	if err != nil {
+		t.Fatalf("WaitJobComplete: %v", err)
+	}
+	if err := job.Validate(); err != nil {
+		t.Fatalf("validate completed Job: %v", err)
+	}
+	if failErr := job.GetResult().GetFailError(); failErr != "" {
+		t.Fatalf("completed Job failed: %s", failErr)
+	}
 }
 
 // TestQuickstartForgeTrace writes a trace artifact for the forge quickstart

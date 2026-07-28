@@ -82,9 +82,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 	iconPath := resolveIconPath(c.conf.GetIconPath())
 	client, err := launcher_helper.NewLoadingClient(ctx, c.le, rootDir, helperPath, iconPath)
 	if err != nil {
-		return errors.Wrap(err, "start loader helper")
+		c.le.WithError(err).Warn("loader helper unavailable; skipping loader UI")
+		return nil
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			c.le.WithError(err).Warn("close loader helper")
+		}
+	}()
 
 	pluginIDs := c.conf.ResolvedWatchPluginIDs()
 	progress := ui.NewTracker(client, c.le, pluginIDs)

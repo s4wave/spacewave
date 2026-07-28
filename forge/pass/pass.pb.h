@@ -90,6 +90,7 @@ enum State : int {
   PassState_RUNNING = 2,
   PassState_CHECKING = 3,
   PassState_COMPLETE = 4,
+  PassState_CANCELING = 5,
   State_INT_MIN_SENTINEL_DO_NOT_USE_ =
       ::std::numeric_limits<::int32_t>::min(),
   State_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -100,11 +101,11 @@ extern const uint32_t State_internal_data_[];
 inline constexpr State State_MIN =
     static_cast<State>(0);
 inline constexpr State State_MAX =
-    static_cast<State>(4);
+    static_cast<State>(5);
 inline bool State_IsValid(int value) {
-  return 0 <= value && value <= 4;
+  return 0 <= value && value <= 5;
 }
-inline constexpr int State_ARRAYSIZE = 4 + 1;
+inline constexpr int State_ARRAYSIZE = 5 + 1;
 const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL State_descriptor();
 template <typename T>
 const ::std::string& State_Name(T value) {
@@ -115,7 +116,7 @@ const ::std::string& State_Name(T value) {
 }
 template <>
 inline const ::std::string& State_Name(State value) {
-  return ::google::protobuf::internal::NameOfDenseEnum<State_descriptor, 0, 4>(
+  return ::google::protobuf::internal::NameOfDenseEnum<State_descriptor, 0, 5>(
       static_cast<int>(value));
 }
 inline bool State_Parse(

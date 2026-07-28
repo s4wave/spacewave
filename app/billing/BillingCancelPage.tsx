@@ -286,7 +286,7 @@ export function BillingCancelPage() {
                 )}
               />
               {action === 'reactivating'
-                ? 'Keeping subscription...'
+                ? 'Keeping subscription…'
                 : 'Keep subscription active'}
             </button>
           ) : (
@@ -300,12 +300,12 @@ export function BillingCancelPage() {
               )}
             >
               <LuCalendarX className="size-4" />
-              {action === 'canceling' ? 'Canceling...' : 'Cancel at period end'}
+              {action === 'canceling' ? 'Canceling…' : 'Cancel at period end'}
             </button>
           )}
           <button
             onClick={handleBack}
-            className="border-foreground/15 bg-background/40 text-foreground hover:border-brand/30 hover:bg-brand/10 flex cursor-pointer items-center justify-center rounded-md border px-5 py-2.5 text-sm font-medium transition-all duration-300"
+            className="border-foreground/15 bg-background/40 text-foreground hover:border-brand/30 hover:bg-brand/10 flex cursor-pointer items-center justify-center rounded-md border px-5 py-2.5 text-sm font-medium transition duration-300"
           >
             {isCancelScheduled ? 'Back to billing' : 'Keep my plan'}
           </button>

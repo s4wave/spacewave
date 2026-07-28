@@ -3,52 +3,51 @@
     <img width="324" src="./doc/img/spacewave-github.png" alt="Spacewave">
   </a>
 
-  <h3>Your own cloud, built for humans and agents</h3>
+  <h3>Effortless self-hosted cloud with peer-to-peer sync</h3>
 
   <p>
-    Private workspace that runs on your computers, syncs peer-to-peer, and keeps working offline.
+    Open it in your browser: no account, no server, working offline in one click.
   </p>
 </div>
 
 --------
 
-**Spacewave** turns your computers into a local-first cloud you control. Start
-with a private workspace, use it from the browser or desktop app, sync it
-peer-to-peer, and keep working even when you are offline.
+**Spacewave** runs [in your browser] with no servers: a private, encrypted workspace 
+running entirely on your own machine: no account, no setup, no server to run. Syncs 
+peer-to-peer between your devices and works offline.
 
-As your work grows, that workspace becomes a Space: shared encrypted state for
-files, notes, apps, layouts, devices, workflows, and plugin data without putting
-everything inside someone else's database.
+As your work grows, the workspace becomes a Space: shared encrypted state for
+files, notes, apps, layouts, devices, and workflows. Spaces are multiplayer:
+invite people into one and work in it together, live.
 
-People, apps, devices, and AI agents can all work against the same Space. That
-means automation can operate on durable state you can inspect, edit, share, and
-recover, instead of disappearing into a chat transcript.
+You choose where your data lives and how it moves. Store it on your machines,
+in your browser, on your own server, or in a cloud you pick, and sync over any
+network your devices can reach. A paid account adds managed cloud storage and
+relay, $8/month for 100 GB; the app works without one, and the cloud never
+owns your work.
 
-Spacewave combines the convenience of cloud apps with the freedom of
-open-source software. The cloud can help with accounts, relay, backup, storage,
-and networking, but it does not become the owner of your work.
-
-When you want to go deeper, Spacewave is also a full-stack for local-first apps
-and plugins, built with Go, TypeScript, React, and WebAssembly - a home for your
-personal operating system.
+Make it your own with the same machinery the app is made of: a Go, TypeScript,
+React, and WebAssembly stack where every app is local-first, multiplayer, and
+encrypted by default.
 
 Features:
 
-- **Spaces**: Shared local-first state for files, apps, devices, and workflows
-- **Peer-to-Peer Sync**: Work offline and sync directly when peers are available
-- **Human and Agent Ready**: Give people, plugins, and AI agents the same durable state
-- **Open-Source Full Stack**: Build apps and plugins with Go, TypeScript, React, and WebAssembly
-- **Pluggable Storage**: Store data in local, browser, cloud, or self-hosted backends
-- **End-to-End Encrypted**: Keep storage, sync, and collaboration private by default
+- **Spaces**: One shared place for your files, notes, apps, devices, and workflows
+- **Multiplayer**: Invite people into a Space and work in it together, live
+- **Peer-to-Peer Sync**: Sync directly between your devices and keep working offline
+- **Any Network**: Connect over WebRTC, WebSocket, LAN, or relay - whatever your devices can reach
+- **Pluggable Storage**: Keep data on your machines, in your browser, or in any backend you choose
+- **End-to-End Encrypted**: Storage, sync, and collaboration are private by default
+- **Open-Source Full Stack**: Build your own apps and plugins with Go, TypeScript, React, and WebAssembly
 
-**Plugin Ecosystem**: Extend workspaces with community plugins:
+**Plugin Ecosystem**: Extend a Space with plugins:
 
-  - File, database, code, and document collaboration
-  - Chat, communications, forums, and messaging
-  - Remote command and control of your devices
-  - [SkiffOS] for running and managing Linux hosts
-  - ...and more!
+  - Files, databases, notes, and document collaboration
+  - Chat and messaging
+  - Terminal access and remote control of your devices
+  - [SkiffOS] for building and managing Linux devices
 
+[in your browser]: https://spacewave.app
 [Spacewave App]: https://spacewave.app
 [SkiffOS]: https://skiffos.com
 

@@ -12,6 +12,7 @@ import {
 } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import type { SOReceiptState } from '../../../sobject/sobject.pb.js'
 import {
   SharedObjectConfig,
   SharedObjectList,
@@ -20,10 +21,14 @@ import {
   SOInvite,
   SOJoinResponse,
   SOKeyEpoch,
+  SOMutationKey,
   SOOperationRejection,
+  SOReceiptState_Enum,
   SORoot,
   SOState,
+  SOTerminalReceipt,
 } from '../../../sobject/sobject.pb.js'
+import { Signature } from '../../../../net/peer/peer.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type {
   BillingInterval,
@@ -858,6 +863,13 @@ export interface SOStateMessage {
    * @generated from field: sobject.SOConfigChainResponse config_chain = 6;
    */
   configChain?: SOConfigChainResponse
+  /**
+   * ReceiptProtocolEpoch advertises the per-SharedObject receipt-v1 activation.
+   * Zero keeps receipt-v1 disabled; one marks the receipt owner active.
+   *
+   * @generated from field: uint32 receipt_protocol_epoch = 7;
+   */
+  receiptProtocolEpoch?: number
 
   /**
    * Content is the message payload.
@@ -946,6 +958,12 @@ export const SOStateMessage: MessageType<SOStateMessage> =
         kind: 'message',
         T: () => SOConfigChainResponse,
       },
+      {
+        no: 7,
+        name: 'receipt_protocol_epoch',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -968,6 +986,20 @@ export interface PostRootRequest {
    * @generated from field: repeated sobject.SOOperationRejection rejected_ops = 2;
    */
   rejectedOps?: SOOperationRejection[]
+  /**
+   * TerminalReceipts are validator-signed terminal receipts for every accepted or rejected attempt terminalized by Root.
+   * Receipt signatures are separate from Root signatures and cover each receipt's deterministic inner bytes.
+   *
+   * @generated from field: repeated sobject.SOTerminalReceipt terminal_receipts = 3;
+   */
+  terminalReceipts?: SOTerminalReceipt[]
+  /**
+   * ReceiptProtocolEpoch binds root terminalization to the per-SharedObject receipt-v1 activation.
+   * Zero keeps receipt-v1 disabled; an active object requires its advertised epoch.
+   *
+   * @generated from field: uint32 receipt_protocol_epoch = 4;
+   */
+  receiptProtocolEpoch?: number
 }
 
 export const PostRootRequest: MessageType<PostRootRequest> =
@@ -982,6 +1014,265 @@ export const PostRootRequest: MessageType<PostRootRequest> =
         T: () => SOOperationRejection,
         repeated: true,
       },
+      {
+        no: 3,
+        name: 'terminal_receipts',
+        kind: 'message',
+        T: () => SOTerminalReceipt,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'receipt_protocol_epoch',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SubmitOperationV1Request is the exact-key body for receipt-v1 operation admission.
+ *
+ * @generated from message provider.spacewave.api.SubmitOperationV1Request
+ */
+export interface SubmitOperationV1Request {
+  /**
+   * Key identifies the immutable participant attempt.
+   *
+   * @generated from field: sobject.SOMutationKey key = 1;
+   */
+  key?: SOMutationKey
+  /**
+   * ExactEnvelope is the exact serialized signed SOOperation envelope.
+   * Its digest is DigestSOOperationEnvelope(exact_envelope); callers must not decode or reserialize it.
+   *
+   * @generated from field: bytes exact_envelope = 2;
+   */
+  exactEnvelope?: Uint8Array
+}
+
+export const SubmitOperationV1Request: MessageType<SubmitOperationV1Request> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.SubmitOperationV1Request',
+    fields: [
+      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 2, name: 'exact_envelope', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SubmitOperationV1Response is the receipt-v1 admission result.
+ *
+ * @generated from message provider.spacewave.api.SubmitOperationV1Response
+ */
+export interface SubmitOperationV1Response {
+  /**
+   * State is the authoritative state of the submitted exact key.
+   *
+   * @generated from field: sobject.SOReceiptState state = 1;
+   */
+  state?: SOReceiptState
+  /**
+   * TerminalReceipt is present only when State is accepted or rejected.
+   *
+   * @generated from field: sobject.SOTerminalReceipt terminal_receipt = 2;
+   */
+  terminalReceipt?: SOTerminalReceipt
+}
+
+export const SubmitOperationV1Response: MessageType<SubmitOperationV1Response> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.SubmitOperationV1Response',
+    fields: [
+      { no: 1, name: 'state', kind: 'enum', T: SOReceiptState_Enum },
+      {
+        no: 2,
+        name: 'terminal_receipt',
+        kind: 'message',
+        T: () => SOTerminalReceipt,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * LookupOperationReceiptInner is the deterministic signed lookup payload.
+ *
+ * @generated from message provider.spacewave.api.LookupOperationReceiptInner
+ */
+export interface LookupOperationReceiptInner {
+  /**
+   * Key identifies the exact participant attempt to look up.
+   *
+   * @generated from field: sobject.SOMutationKey key = 1;
+   */
+  key?: SOMutationKey
+}
+
+export const LookupOperationReceiptInner: MessageType<LookupOperationReceiptInner> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.LookupOperationReceiptInner',
+    fields: [
+      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * LookupOperationReceiptRequest is a participant-signed exact-key lookup.
+ *
+ * @generated from message provider.spacewave.api.LookupOperationReceiptRequest
+ */
+export interface LookupOperationReceiptRequest {
+  /**
+   * Inner is the deterministic serialized LookupOperationReceiptInner bytes.
+   *
+   * @generated from field: bytes inner = 1;
+   */
+  inner?: Uint8Array
+  /**
+   * Signature covers the deterministic Inner bytes using
+   * BuildSOReceiptLookupSignatureContext(Inner.key.shared_object_id,
+   * Inner.key.participant_peer_id, Inner.key.local_id).
+   * The participant_peer_id extracted from Inner.key must sign; this domain is
+   * separate from operation, acknowledgement, terminal-receipt, and root signatures.
+   *
+   * @generated from field: peer.Signature signature = 2;
+   */
+  signature?: Signature
+}
+
+export const LookupOperationReceiptRequest: MessageType<LookupOperationReceiptRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.LookupOperationReceiptRequest',
+    fields: [
+      { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'signature', kind: 'message', T: () => Signature },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * LookupOperationReceiptResponse is the authoritative exact-key lookup result.
+ *
+ * @generated from message provider.spacewave.api.LookupOperationReceiptResponse
+ */
+export interface LookupOperationReceiptResponse {
+  /**
+   * State is exactly NO_RECORD, PENDING, ACCEPTED, or REJECTED.
+   *
+   * @generated from field: sobject.SOReceiptState state = 1;
+   */
+  state?: SOReceiptState
+  /**
+   * TerminalReceipt is present only when State is accepted or rejected.
+   *
+   * @generated from field: sobject.SOTerminalReceipt terminal_receipt = 2;
+   */
+  terminalReceipt?: SOTerminalReceipt
+}
+
+export const LookupOperationReceiptResponse: MessageType<LookupOperationReceiptResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.LookupOperationReceiptResponse',
+    fields: [
+      { no: 1, name: 'state', kind: 'enum', T: SOReceiptState_Enum },
+      {
+        no: 2,
+        name: 'terminal_receipt',
+        kind: 'message',
+        T: () => SOTerminalReceipt,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AcknowledgeOperationReceiptInner is the deterministic signed acknowledgement payload.
+ *
+ * @generated from message provider.spacewave.api.AcknowledgeOperationReceiptInner
+ */
+export interface AcknowledgeOperationReceiptInner {
+  /**
+   * Key identifies the exact participant attempt being acknowledged.
+   *
+   * @generated from field: sobject.SOMutationKey key = 1;
+   */
+  key?: SOMutationKey
+  /**
+   * ReceiptDigest binds acknowledgement to the exact terminal receipt bytes.
+   * It is DigestSOTerminalReceipt(terminal_receipt), not a digest of Inner alone.
+   *
+   * @generated from field: bytes receipt_digest = 2;
+   */
+  receiptDigest?: Uint8Array
+}
+
+export const AcknowledgeOperationReceiptInner: MessageType<AcknowledgeOperationReceiptInner> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.AcknowledgeOperationReceiptInner',
+    fields: [
+      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 2, name: 'receipt_digest', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AcknowledgeOperationReceiptRequest is a participant-signed receipt acknowledgement.
+ *
+ * @generated from message provider.spacewave.api.AcknowledgeOperationReceiptRequest
+ */
+export interface AcknowledgeOperationReceiptRequest {
+  /**
+   * Inner is the deterministic serialized AcknowledgeOperationReceiptInner bytes.
+   *
+   * @generated from field: bytes inner = 1;
+   */
+  inner?: Uint8Array
+  /**
+   * Signature covers the deterministic Inner bytes using
+   * BuildSOReceiptAcknowledgementSignatureContext(Inner.key.shared_object_id,
+   * Inner.key.participant_peer_id, Inner.key.local_id).
+   * The participant_peer_id extracted from Inner.key must sign; this domain is
+   * separate from operation, lookup, terminal-receipt, and root signatures.
+   *
+   * @generated from field: peer.Signature signature = 2;
+   */
+  signature?: Signature
+}
+
+export const AcknowledgeOperationReceiptRequest: MessageType<AcknowledgeOperationReceiptRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.AcknowledgeOperationReceiptRequest',
+    fields: [
+      { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'signature', kind: 'message', T: () => Signature },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AcknowledgeOperationReceiptResponse reports durable acknowledgement.
+ *
+ * @generated from message provider.spacewave.api.AcknowledgeOperationReceiptResponse
+ */
+export interface AcknowledgeOperationReceiptResponse {
+  /**
+   * Acknowledged is true when the matching terminal receipt became prune-eligible.
+   *
+   * @generated from field: bool acknowledged = 1;
+   */
+  acknowledged?: boolean
+}
+
+export const AcknowledgeOperationReceiptResponse: MessageType<AcknowledgeOperationReceiptResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.AcknowledgeOperationReceiptResponse',
+    fields: [
+      { no: 1, name: 'acknowledged', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

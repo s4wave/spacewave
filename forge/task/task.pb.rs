@@ -42,7 +42,8 @@ pub struct Task {
     /// ValueSet is the set of inputs and outputs for the Task.
     /// The output set is updated when transitioning from CHECKING -> COMPLETE.
     /// Can be initially empty.
-    /// Task transitions to PENDING when inputs are changed.
+    /// If inputs change while a Pass is live, the Task remains RUNNING until the
+    /// Pass completes canceled, then transitions to PENDING.
     #[prost(message, optional, tag="8")]
     pub value_set: ::core::option::Option<super::target::ValueSet>,
     /// Result is information about the outcome of a completed Pass.

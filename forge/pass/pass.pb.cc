@@ -176,10 +176,11 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2
     "\030\003 \001(\t\022-\n\ttimestamp\030\004 \001(\0132\032.google.proto"
     "buf.Timestamp\022)\n\tvalue_set\030\005 \001(\0132\026.forge"
     ".target.ValueSet\022#\n\006result\030\006 \001(\0132\023.forge"
-    ".value.Result*|\n\005State\022\025\n\021PassState_UNKN"
-    "OWN\020\000\022\025\n\021PassState_PENDING\020\001\022\025\n\021PassStat"
-    "e_RUNNING\020\002\022\026\n\022PassState_CHECKING\020\003\022\026\n\022P"
-    "assState_COMPLETE\020\004b\006proto3"
+    ".value.Result*\225\001\n\005State\022\025\n\021PassState_UNK"
+    "NOWN\020\000\022\025\n\021PassState_PENDING\020\001\022\025\n\021PassSta"
+    "te_RUNNING\020\002\022\026\n\022PassState_CHECKING\020\003\022\026\n\022"
+    "PassState_COMPLETE\020\004\022\027\n\023PassState_CANCEL"
+    "ING\020\005b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2fpass_2eproto_deps[5] = {
@@ -193,7 +194,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2ffo
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2fpass_2eproto = {
     false,
     false,
-    987,
+    1013,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2fpass_2eproto,
     "github.com/s4wave/spacewave/forge/pass/pass.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2fpass_2eproto_once,
@@ -213,7 +214,7 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL State_descriptor() {
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fforge_2fpass_2fpass_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t State_internal_data_[] = {
-    327680u, 0u, };
+    393216u, 0u, };
 // ===================================================================
 
 class Pass::_Internal {

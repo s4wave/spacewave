@@ -25,6 +25,19 @@ func NewConsoleHook(w io.Writer, formatter logrus.Formatter, level logrus.Level)
 	}
 }
 
+// DiscardConsoleOutput silences direct and level-filtered console sinks while
+// leaving non-console hooks active.
+func DiscardConsoleOutput(logger *logrus.Logger) {
+	logger.SetOutput(io.Discard)
+	for _, hooks := range logger.Hooks {
+		for _, hook := range hooks {
+			if consoleHook, ok := hook.(*ConsoleHook); ok {
+				consoleHook.setWriter(io.Discard)
+			}
+		}
+	}
+}
+
 // Levels returns the log levels this hook is interested in.
 func (h *ConsoleHook) Levels() []logrus.Level {
 	var levels []logrus.Level
@@ -34,6 +47,12 @@ func (h *ConsoleHook) Levels() []logrus.Level {
 		}
 	}
 	return levels
+}
+
+func (h *ConsoleHook) setWriter(writer io.Writer) {
+	h.mu.Lock()
+	h.writer = writer
+	h.mu.Unlock()
 }
 
 // Fire formats and writes the entry synchronously.

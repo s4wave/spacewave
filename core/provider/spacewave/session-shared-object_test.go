@@ -4,73 +4,25 @@ import (
 	"context"
 	"sync/atomic"
 	"testing"
+	"time"
 
-	"github.com/aperturerobotics/controllerbus/bus"
 	bus_inmem "github.com/aperturerobotics/controllerbus/bus/inmem"
-	bus_controller "github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/controllerbus/directive"
 	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/sobject"
-	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
-	"github.com/s4wave/spacewave/db/dex"
-	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 
-type sessionLookupTestController struct {
-	values   map[string][]byte
-	requests atomic.Int32
-}
-
-func (c *sessionLookupTestController) GetControllerInfo() *bus_controller.Info {
-	return bus_controller.NewInfo(
-		"test/session-lookup",
-		bus_controller.MustParseVersion("0.0.1"),
-		"session lookup test controller",
-	)
-}
-
-func (c *sessionLookupTestController) Execute(ctx context.Context) error {
-	<-ctx.Done()
-	return ctx.Err()
-}
-
-func (c *sessionLookupTestController) HandleDirective(
-	_ context.Context,
-	inst directive.Instance,
-) ([]directive.Resolver, error) {
-	dir, ok := inst.GetDirective().(dex.LookupBlockFromNetwork)
-	if !ok {
-		return nil, nil
-	}
-	return directive.R(directive.NewAccessResolver(func(
-		_ context.Context,
-		released func(),
-	) (dex.LookupBlockFromNetworkValue, func(), error) {
-		c.requests.Add(1)
-		data := c.values[dir.LookupBlockFromNetworkRef().MarshalString()]
-		return dex.NewLookupBlockFromNetworkValue(data, nil), func() {
-			if released != nil {
-				released()
-			}
-		}, nil
-	}), nil)
-}
-
-func (c *sessionLookupTestController) Close() error { return nil }
-
-var _ bus_controller.Controller = ((*sessionLookupTestController)(nil))
-
 type sessionLookupTestLower struct {
-	data     []byte
-	blocks   map[string][]byte
-	getCalls atomic.Int32
-	putCalls atomic.Int32
-	writable bool
+	data      []byte
+	blocks    map[string][]byte
+	getCalls  atomic.Int32
+	putCalls  atomic.Int32
+	writable  bool
+	beforeGet func()
 }
 
 func (s *sessionLookupTestLower) GetHashType() hash.HashType {
@@ -103,6 +55,9 @@ func (s *sessionLookupTestLower) RmBlock(context.Context, *block.BlockRef) error
 }
 func (s *sessionLookupTestLower) Sync(context.Context) (bool, error) { return true, nil }
 func (s *sessionLookupTestLower) GetBlock(_ context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	if s.beforeGet != nil {
+		s.beforeGet()
+	}
 	s.getCalls.Add(1)
 	var data []byte
 	if s.blocks != nil {
@@ -140,23 +95,10 @@ func (s *sessionLookupTestLower) StatBlock(ctx context.Context, ref *block.Block
 
 var _ block.StoreOps = ((*sessionLookupTestLower)(nil))
 
-func newSessionLookupTestBus(
-	ctx context.Context,
-	values map[string][]byte,
-) (bus.Bus, *sessionLookupTestController, func(), error) {
-	dc := directive_controller.NewController(ctx, logrus.NewEntry(logrus.New()))
-	b := bus_inmem.NewBus(dc)
-	ctrl := &sessionLookupTestController{values: values}
-	release, err := b.AddController(ctx, ctrl, nil)
-	return b, ctrl, release, err
-}
-
 func newProductionSessionStore(
-	ctx context.Context,
 	account *ProviderAccount,
 	id string,
-	childBus bus.Bus,
-	cache, cloud *sessionLookupTestLower,
+	direct, cache, cloud *sessionLookupTestLower,
 ) (*sessionBlockStore, error) {
 	cacheOwner := &sourceTrackingStore{
 		StoreOps:   cache,
@@ -164,6 +106,14 @@ func newProductionSessionStore(
 		bstoreID:   id,
 		source:     SyncTelemetryBlockSourceDirect,
 		upperCache: true,
+	}
+	directOwner := &sourceTrackingStore{
+		StoreOps:       direct,
+		account:        account,
+		bstoreID:       id,
+		source:         SyncTelemetryBlockSourceDirect,
+		demandStarted:  func() { account.directDemandStarted(id) },
+		demandFinished: func() { account.directDemandFinished(id) },
 	}
 	cloudOwner := &sourceTrackingStore{
 		StoreOps: cloud,
@@ -176,14 +126,9 @@ func newProductionSessionStore(
 		cacheStore: cacheOwner,
 		cloudStore: cloudOwner,
 	}
-	direct := &sessionDirectLookupStore{
-		bus:      childBus,
-		bucketID: id,
-		hashType: cache.GetHashType(),
-		account:  account,
-		bstoreID: id,
-	}
-	store, err := accountStore.newSessionBlockStore(ctx, logrus.NewEntry(logrus.New()), direct)
+	store, err := accountStore.newSessionBlockStore(func() block.StoreOps {
+		return directOwner
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -219,20 +164,12 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	child1, ctrl1, release1, err := newSessionLookupTestBus(ctx, map[string][]byte{
-		refDirect.MarshalString(): []byte("session-one"),
-	})
-	if err != nil {
-		t.Fatal(err)
+	direct1 := &sessionLookupTestLower{
+		blocks: map[string][]byte{refDirect.MarshalString(): []byte("session-one")},
 	}
-	defer release1()
-	child2, ctrl2, release2, err := newSessionLookupTestBus(ctx, map[string][]byte{
-		refDirect.MarshalString(): []byte("session-two"),
-	})
-	if err != nil {
-		t.Fatal(err)
+	direct2 := &sessionLookupTestLower{
+		blocks: map[string][]byte{refDirect.MarshalString(): []byte("session-two")},
 	}
-	defer release2()
 
 	cache1 := &sessionLookupTestLower{
 		blocks:   map[string][]byte{refCache.MarshalString(): []byte("cached-one")},
@@ -244,11 +181,11 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 	cache2 := &sessionLookupTestLower{blocks: map[string][]byte{}, writable: true}
 	cloud2 := &sessionLookupTestLower{blocks: map[string][]byte{}}
 	account := &ProviderAccount{}
-	store1, err := newProductionSessionStore(ctx, account, "session-one", child1, cache1, cloud1)
+	store1, err := newProductionSessionStore(account, "session-one", direct1, cache1, cloud1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	store2, err := newProductionSessionStore(ctx, account, "session-two", child2, cache2, cloud2)
+	store2, err := newProductionSessionStore(account, "session-two", direct2, cache2, cloud2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,31 +194,31 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 	if err != nil || !found || string(data) != "cached-one" {
 		t.Fatalf("local cache read = %q/%v/%v", data, found, err)
 	}
-	if ctrl1.requests.Load() != 0 || cloud1.getCalls.Load() != 0 {
-		t.Fatalf("local cache hit touched DEX/Cloud: %d/%d", ctrl1.requests.Load(), cloud1.getCalls.Load())
+	if direct1.getCalls.Load() != 0 || cloud1.getCalls.Load() != 0 {
+		t.Fatalf("local cache hit touched DEX/Cloud: %d/%d", direct1.getCalls.Load(), cloud1.getCalls.Load())
 	}
 
 	data, found, err = store1.GetBlock(ctx, refDirect)
 	if err != nil || !found || string(data) != "session-one" {
 		t.Fatalf("session one direct read = %q/%v/%v", data, found, err)
 	}
-	if ctrl1.requests.Load() != 1 || cloud1.getCalls.Load() != 0 || cache1.putCalls.Load() != 1 {
-		t.Fatalf("direct hit calls = dex %d/cloud %d/cache puts %d, want 1/0/1", ctrl1.requests.Load(), cloud1.getCalls.Load(), cache1.putCalls.Load())
+	if direct1.getCalls.Load() != 1 || cloud1.getCalls.Load() != 0 || cache1.putCalls.Load() != 1 {
+		t.Fatalf("direct hit calls = dex %d/cloud %d/cache puts %d, want 1/0/1", direct1.getCalls.Load(), cloud1.getCalls.Load(), cache1.putCalls.Load())
 	}
 	data, found, err = store1.GetBlock(ctx, refDirect)
 	if err != nil || !found || string(data) != "session-one" {
 		t.Fatalf("session one cached direct read = %q/%v/%v", data, found, err)
 	}
-	if ctrl1.requests.Load() != 1 || cloud1.getCalls.Load() != 0 {
-		t.Fatalf("cached direct read touched DEX/Cloud: %d/%d", ctrl1.requests.Load(), cloud1.getCalls.Load())
+	if direct1.getCalls.Load() != 1 || cloud1.getCalls.Load() != 0 {
+		t.Fatalf("cached direct read touched DEX/Cloud: %d/%d", direct1.getCalls.Load(), cloud1.getCalls.Load())
 	}
 
 	data, found, err = store1.GetBlock(ctx, refFallback)
 	if err != nil || !found || string(data) != "cloud-one" {
 		t.Fatalf("Cloud fallback read = %q/%v/%v", data, found, err)
 	}
-	if ctrl1.requests.Load() != 2 || cloud1.getCalls.Load() != 1 {
-		t.Fatalf("fallback calls = dex %d/cloud %d, want 2/1", ctrl1.requests.Load(), cloud1.getCalls.Load())
+	if direct1.getCalls.Load() != 2 || cloud1.getCalls.Load() != 1 {
+		t.Fatalf("fallback calls = dex %d/cloud %d, want 2/1", direct1.getCalls.Load(), cloud1.getCalls.Load())
 	}
 
 	data, found, err = store2.GetBlock(ctx, refDirect)
@@ -292,17 +229,8 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 	if err != nil || !found || string(data) != "session-two" {
 		t.Fatalf("session two cached direct read = %q/%v/%v", data, found, err)
 	}
-	if ctrl2.requests.Load() != 1 || cloud2.getCalls.Load() != 0 {
-		t.Fatalf("session two cache routing = dex %d/cloud %d, want 1/0", ctrl2.requests.Load(), cloud2.getCalls.Load())
-	}
-
-	release1()
-	data, found, err = store2.GetBlock(ctx, refDirect)
-	if err != nil || !found || string(data) != "session-two" {
-		t.Fatalf("session two survived session one teardown = %q/%v/%v", data, found, err)
-	}
-	if ctrl2.requests.Load() != 1 {
-		t.Fatalf("session two request count after session one teardown = %d, want 1", ctrl2.requests.Load())
+	if direct2.getCalls.Load() != 1 || cloud2.getCalls.Load() != 0 {
+		t.Fatalf("session two cache routing = dex %d/cloud %d, want 1/0", direct2.getCalls.Load(), cloud2.getCalls.Load())
 	}
 
 	one := telemetryStore(t, account, "session-one")
@@ -311,10 +239,88 @@ func TestSessionDirectLookupRoutesPerChildAndFallsBackOnce(t *testing.T) {
 	}
 
 	two := telemetryStore(t, account, "session-two")
-	if two.DirectHitCount != 1 || two.CloudHitCount != 0 || two.CacheHitCount != 2 {
-		t.Fatalf("session two telemetry = %+v, want direct=1 cloud=0 cache=2", two)
+	if two.DirectHitCount != 1 || two.CloudHitCount != 0 || two.CacheHitCount != 1 {
+		t.Fatalf("session two telemetry = %+v, want direct=1 cloud=0 cache=1", two)
 	}
 }
+
+func TestSessionDirectLookupTracksActiveDemand(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+
+	account := &ProviderAccount{}
+	owner := &account.transportComposition
+	owner.init(account)
+	state := newTransportCompositionSession()
+	state.snapshot = TransportCompositionSnapshot{
+		DirectP2PEnabled: true,
+		P2PState:         TransportCompositionP2PStateIdle,
+		ActivePeerCount:  1,
+	}
+	owner.mtx.Lock()
+	owner.sessions["session"] = state
+	owner.mtx.Unlock()
+
+	data := []byte("active direct")
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	started := make(chan struct{})
+	release := make(chan struct{})
+	direct := &sessionLookupTestLower{
+		blocks: map[string][]byte{ref.MarshalString(): data},
+		beforeGet: func() {
+			close(started)
+			<-release
+		},
+	}
+	cache := &sessionLookupTestLower{writable: true}
+	cloud := &sessionLookupTestLower{}
+	store, err := newProductionSessionStore(account, "session", direct, cache, cloud)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resultCh := make(chan struct {
+		data  []byte
+		found bool
+		err   error
+	}, 1)
+	go func() {
+		got, found, getErr := store.GetBlock(ctx, ref)
+		resultCh <- struct {
+			data  []byte
+			found bool
+			err   error
+		}{data: got, found: found, err: getErr}
+	}()
+
+	select {
+	case <-started:
+	case <-ctx.Done():
+		t.Fatal("direct lookup did not start")
+	}
+	snapshot, _ := account.GetTransportCompositionSnapshotWithWait("session")
+	if snapshot.P2PState != TransportCompositionP2PStateActive {
+		t.Fatalf("demand state while reading = %v, want active", snapshot.P2PState)
+	}
+	close(release)
+
+	select {
+	case result := <-resultCh:
+		if result.err != nil || !result.found || string(result.data) != string(data) {
+			t.Fatalf("direct lookup = %q/%v/%v", result.data, result.found, result.err)
+		}
+	case <-ctx.Done():
+		t.Fatal("direct lookup did not finish")
+	}
+	snapshot, _ = account.GetTransportCompositionSnapshotWithWait("session")
+	if snapshot.P2PState != TransportCompositionP2PStateIdle {
+		t.Fatalf("demand state after reading = %v, want idle", snapshot.P2PState)
+	}
+}
+
 func TestSessionFacadeMountDisabledThenEnablesDirectRoute(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -332,10 +338,13 @@ func TestSessionFacadeMountDisabledThenEnablesDirectRoute(t *testing.T) {
 	}
 	cache := &sessionLookupTestLower{blocks: map[string][]byte{}, writable: true}
 	cloud := &sessionLookupTestLower{blocks: map[string][]byte{}}
+	direct := &sessionLookupTestLower{
+		blocks: map[string][]byte{refDirect.MarshalString(): []byte("enabled-direct")},
+	}
 	account := &ProviderAccount{
-		accountID:         "account",
-		le:                logrus.NewEntry(logrus.New()),
-		sessionTransports: make(map[string]*sessionTransportState),
+		accountID: "account",
+		le:        logrus.NewEntry(logrus.New()),
+		p2pSyncs:  make(map[string]*p2pSyncState),
 	}
 	cacheOwner := &sourceTrackingStore{
 		StoreOps:   cache,
@@ -356,52 +365,25 @@ func TestSessionFacadeMountDisabledThenEnablesDirectRoute(t *testing.T) {
 		cloudStore: cloudOwner,
 	}
 	base := &SharedObject{blkStore: baseStore}
-	facade, err := account.newSessionSharedObject(ctx, "A", ref, base)
+	facade, err := account.newSessionSharedObject("A", ref, base)
 	if err != nil {
 		t.Fatalf("mount while direct disabled: %v", err)
 	}
 
-	parentBus, _, releaseParent, err := newSessionLookupTestBus(ctx, nil)
-	if err != nil {
-		t.Fatal(err)
+	account.p2pSyncMtx.Lock()
+	account.p2pSyncs["A"] = &p2pSyncState{
+		stores: map[string]block.StoreOps{
+			BlockStoreBucketID("account", "store"): direct,
+		},
 	}
-	defer releaseParent()
-	priv, _, err := bifrost_crypto.GenerateKeyPair(bifrost_crypto.KeyType_Ed25519, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	st, err := transport.NewSessionTransport(logrus.NewEntry(logrus.New()), parentBus, priv, "", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	transportCtx, cancelTransport := context.WithCancel(ctx)
-	defer cancelTransport()
-	go func() { _ = st.Execute(transportCtx) }()
-	if err := st.AwaitReady(ctx); err != nil {
-		t.Fatal(err)
-	}
-	ctrl := &sessionLookupTestController{values: map[string][]byte{
-		refDirect.MarshalString(): []byte("enabled-direct"),
-	}}
-	releaseCtrl, err := st.GetChildBus().AddController(ctx, ctrl, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer releaseCtrl()
-	account.transportBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		account.sessionTransports["A"] = &sessionTransportState{
-			sessionID: "A",
-			transport: st,
-		}
-		broadcast()
-	})
+	account.p2pSyncMtx.Unlock()
 
 	data, found, err := facade.GetBlockStore().GetBlock(ctx, refDirect)
 	if err != nil || !found || string(data) != "enabled-direct" {
 		t.Fatalf("enabled direct read on stable facade = %q/%v/%v", data, found, err)
 	}
-	if ctrl.requests.Load() != 1 {
-		t.Fatalf("enabled direct requests = %d, want 1", ctrl.requests.Load())
+	if direct.getCalls.Load() != 1 {
+		t.Fatalf("enabled direct requests = %d, want 1", direct.getCalls.Load())
 	}
 }
 

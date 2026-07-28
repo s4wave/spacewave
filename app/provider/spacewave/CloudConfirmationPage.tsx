@@ -196,17 +196,17 @@ export function CloudConfirmationPage({
               <>
                 <Spinner />
                 {polling
-                  ? 'Activating subscription...'
-                  : 'Continuing with Stripe...'}
+                  ? 'Activating subscription…'
+                  : 'Continuing with Stripe…'}
               </>
             ) : (
-              'Continue with Stripe...'
+              'Continue with Stripe…'
             )}
           </button>
           {showRetry && (
             <button
               onClick={onRetry}
-              className="border-brand bg-brand/10 text-foreground hover:bg-brand/20 flex cursor-pointer items-center justify-center rounded-r-md border border-l-0 px-3 transition-all duration-300"
+              className="border-brand bg-brand/10 text-foreground hover:bg-brand/20 flex cursor-pointer items-center justify-center rounded-r-md border border-l-0 px-3 transition duration-300"
               title="Retry"
             >
               <LuRefreshCw className="size-4" />
@@ -251,7 +251,7 @@ export function CloudConfirmationPage({
           href="https://github.com/aperturerobotics"
           target="_blank"
           rel="noopener noreferrer"
-          className="group border-foreground/15 bg-background/50 text-foreground hover:border-brand/30 hover:bg-brand/10 flex items-center rounded-md border px-4 py-1.5 text-xs font-medium transition-all duration-300"
+          className="group border-foreground/15 bg-background/50 text-foreground hover:border-brand/30 hover:bg-brand/10 flex items-center rounded-md border px-4 py-1.5 text-xs font-medium transition duration-300"
         >
           <LuGithub className="mr-1.5 size-3.5 transition-transform duration-300 group-hover:scale-110" />
           <span className="select-none">View on GitHub</span>

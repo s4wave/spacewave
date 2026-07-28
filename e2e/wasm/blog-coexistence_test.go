@@ -95,7 +95,7 @@ func waitForNotebookReady(t testing.TB, page playwright.Page, noteTitle string) 
 	t.Helper()
 
 	wait := playwright.LocatorWaitForOptions{Timeout: playwright.Float(blogCoexistenceWaitMS)}
-	if err := page.Locator("input[placeholder='Search notes...']").First().WaitFor(wait); err != nil {
+	if err := page.Locator("input[placeholder='Search notes…']").First().WaitFor(wait); err != nil {
 		debug, debugErr := page.Evaluate(`() => JSON.stringify({
 			url: window.location.href,
 			hash: window.location.hash,

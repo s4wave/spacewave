@@ -61,6 +61,13 @@ export enum State {
    * @generated from enum value: PassState_COMPLETE = 4;
    */
   PassState_COMPLETE = 4,
+
+  /**
+   * PassState_CANCELING is the state while linked Executions drain.
+   *
+   * @generated from enum value: PassState_CANCELING = 5;
+   */
+  PassState_CANCELING = 5,
 }
 
 export const State_Enum = /* @__PURE__ */ createEnumType('forge.pass.State', [
@@ -69,6 +76,7 @@ export const State_Enum = /* @__PURE__ */ createEnumType('forge.pass.State', [
   [2, 'PassState_RUNNING'],
   [3, 'PassState_CHECKING'],
   [4, 'PassState_COMPLETE'],
+  [5, 'PassState_CANCELING'],
 ])
 
 /**
@@ -139,8 +147,8 @@ export const ExecState: MessageType<ExecState> =
  * Contains snapshots of the execution instance states.
  * Execution instances can be added / removed.
  *
- * The Pass is complete when len(exec_states) == replicas and all exec states
- * are in the completed (terminal) state, or when a fatal error occurs.
+ * The Pass is complete only when every linked Execution is terminal. Successful
+ * passes also require len(exec_states) == replicas.
  *
  * If the Target object changes (in the world) or inputs change, a new Pass
  * should be created (these fields are immutable).
@@ -184,7 +192,8 @@ export interface Pass {
    */
   valueSet?: ValueSet
   /**
-   * Result is information about the outcome of a completed Pass.
+   * Result is the cancellation request while CANCELING, or the outcome of a
+   * completed Pass.
    *
    * @generated from field: forge.value.Result result = 5;
    */
@@ -207,8 +216,8 @@ export interface Pass {
    * ExecStates contains the most recent snapshot of the execution states.
    * Updated when:
    *  - PENDING to RUNNING: contains initial execution states (PENDING)
-   *  - RUNNING: can add and remove execution states as needed.
-   *  - RUNNING to CHECKING or COMPLETE: contains final states (COMPLETE)
+   *  - RUNNING or CANCELING: updated as linked Executions change.
+   *  - RUNNING to CHECKING or COMPLETE: contains final states (COMPLETE).
    *  - Any to PENDING: cleared (set to len=0).
    *
    * @generated from field: repeated forge.pass.ExecState exec_states = 8;

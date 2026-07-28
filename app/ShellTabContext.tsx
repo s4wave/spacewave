@@ -3,18 +3,23 @@ import {
   use,
   useMemo,
   ReactNode,
-  useReducer,
   useState,
   useCallback,
   useEffect,
+  useSyncExternalStore,
+  useRef,
 } from 'react'
 import { useIsStaticMode } from '@s4wave/app/prerender/StaticContext.js'
 import { TabActiveProvider } from '@s4wave/web/contexts/TabActiveContext.js'
+import { getAppNavigation, setAppPath } from '@s4wave/web/router/app-path.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
+import { useTabId as useTabContextTabId } from '@s4wave/web/object/TabContext.js'
 import {
   StateNamespaceProvider,
-  atomWithLocalStorage,
+  StorageAtom,
   type Atom,
   type StateType,
+  type Storage as StateStorage,
 } from '@s4wave/web/state/index.js'
 import {
   ShellTab,
@@ -22,37 +27,51 @@ import {
   getTabNameFromPath,
   generateTabId,
 } from '@s4wave/app/shell-tab.js'
-import { setAppPath } from '@s4wave/web/router/app-path.js'
-import { useTabId as useTabContextTabId } from '@s4wave/web/object/TabContext.js'
+import {
+  BrowserShellTabsStore,
+  BrowserShellTabsStoreError,
+  getBrowserShellTabsStore,
+  type BrowserShellTabRecord,
+} from './BrowserShellTabsStore.js'
+import {
+  classifyShellDocumentEntry,
+  type ShellDocumentEntry,
+} from './ShellDocumentEntry.js'
+import {
+  clearObsoleteShellTabsState,
+  readShellDocumentState,
+  removeObsoleteShellTabState,
+  removeShellTabDocumentState,
+  shellTabStateStorageKey,
+  writeShellDocumentState,
+} from './ShellDocumentState.js'
 
-// TAB_STATE_PREFIX is the localStorage key prefix for tab-specific state.
-export const TAB_STATE_PREFIX = 'tab-state-'
+const sessionStorageBackend: StateStorage = {
+  getItem: (key) =>
+    typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem(key),
+  setItem: (key, value) => {
+    if (typeof sessionStorage !== 'undefined')
+      sessionStorage.setItem(key, value)
+  },
+  removeItem: (key) => {
+    if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(key)
+  },
+}
 
-// SHELL_TABS_STORAGE_KEY is the sessionStorage key for shell tabs state.
-export const SHELL_TABS_STORAGE_KEY = 'shell-tabs-state'
-
-// ShellTabContextValue provides tab information to descendant components.
 export interface ShellTabContextValue {
   tabId: string
 }
 
-// ShellTabContext provides the active tab info to descendant components.
 const ShellTabContext = createContext<ShellTabContextValue | null>(null)
 
-// useShellTab returns the current tab context.
 export function useShellTab(): ShellTabContextValue | null {
   return use(ShellTabContext)
 }
 
-// useTabId returns the current tab ID from context.
 export function useTabId(): string | null {
   return use(ShellTabContext)?.tabId ?? null
 }
 
-// useIsTabActive returns whether the current tab is the active tab.
-// Returns true if there's no tab context (not in a tab), if this is
-// the active tab, or if in static prerender mode. Falls back to
-// TabContext's tabId when ShellTabContext is not available.
 export function useIsTabActive(): boolean {
   const isStatic = useIsStaticMode()
   const shellTabId = use(ShellTabContext)?.tabId
@@ -64,14 +83,9 @@ export function useIsTabActive(): boolean {
   return tabsContext.activeTabId === tabId
 }
 
-// ShellTabsState contains the global shell tabs state.
 export interface ShellTabsState {
   tabs: ShellTab[]
   activeTabId: string
-}
-
-interface ShellTabsProviderState extends ShellTabsState {
-  renamingTabId: string | null
 }
 
 export interface OpenShellTabOptions {
@@ -88,257 +102,58 @@ export type ActiveTabsetPathOpener = (
 export interface AddShellTabOptions {
   afterTabId?: string
   select?: boolean
+  onCommitted?: () => void
 }
 
-type ShellTabsProviderAction =
-  | { type: 'set_tabs'; update: React.SetStateAction<ShellTab[]> }
-  | { type: 'set_active_tab_id'; update: React.SetStateAction<string> }
-  | {
-      type: 'open_path_in_new_tab'
-      path: string
-      tabId: string
-      afterTabId?: string
-      select: boolean
-      focusExisting: boolean
-    }
-  | {
-      type: 'add_shell_tab'
-      tab: ShellTab
-      afterTabId?: string
-      select: boolean
-    }
-  | { type: 'select_tab'; tabId: string }
-  | { type: 'update_tab_path'; tabId: string; path: string }
-  | { type: 'update_tab_auto_name'; tabId: string; name: string }
-  | { type: 'update_tab_custom_name'; tabId: string; customName?: string }
-  | { type: 'retain_tabs'; tabIds: Set<string>; fallbackActiveTabId?: string }
-  | { type: 'start_renaming'; tabId: string }
-  | { type: 'stop_renaming' }
-
-function isStateUpdater<T>(
-  update: React.SetStateAction<T>,
-): update is (prevState: T) => T {
-  return typeof update === 'function'
-}
-
-function applyStateUpdate<T>(state: T, update: React.SetStateAction<T>): T {
-  if (isStateUpdater(update)) {
-    return update(state)
-  }
-  return update
-}
-
-function shellTabsEqual(a: ShellTab[], b: ShellTab[]): boolean {
-  return (
-    a.length === b.length &&
-    a.every((tab, idx) => {
-      const other = b[idx]
-      return (
-        other !== undefined &&
-        tab.id === other.id &&
-        tab.name === other.name &&
-        tab.path === other.path &&
-        tab.customName === other.customName
-      )
-    })
-  )
-}
-
-function normalizeShellTabsState(state: ShellTabsState): ShellTabsState {
-  const seen = new Set<string>()
-  const tabs = state.tabs.flatMap((tab) => {
-    if (
-      !tab ||
-      typeof tab.id !== 'string' ||
-      tab.id === '' ||
-      typeof tab.path !== 'string' ||
-      seen.has(tab.id)
-    ) {
-      return []
-    }
-    seen.add(tab.id)
-    const name =
-      typeof tab.name === 'string' && tab.name !== ''
-        ? tab.name
-        : getTabNameFromPath(tab.path)
-    const customName =
-      typeof tab.customName === 'string' && tab.customName !== ''
-        ? tab.customName
-        : undefined
-    return [{ id: tab.id, name, path: tab.path, customName }]
-  })
-
-  const normalizedTabs = tabs.length > 0 ? tabs : [DEFAULT_HOME_TAB]
-  const activeTab = normalizedTabs.find((tab) => tab.id === state.activeTabId)
-  return {
-    tabs: normalizedTabs,
-    activeTabId: activeTab?.id ?? normalizedTabs[0].id,
-  }
-}
-
-function applyShellTabsState(
-  state: ShellTabsProviderState,
-  nextState: ShellTabsState,
-): ShellTabsProviderState {
-  const normalized = normalizeShellTabsState(nextState)
-  const renamingTabId = normalized.tabs.some(
-    (t) => t.id === state.renamingTabId,
-  )
-    ? state.renamingTabId
-    : null
-  if (
-    normalized.activeTabId === state.activeTabId &&
-    renamingTabId === state.renamingTabId &&
-    shellTabsEqual(normalized.tabs, state.tabs)
-  ) {
-    return state
-  }
-  return {
-    ...state,
-    tabs: normalized.tabs,
-    activeTabId: normalized.activeTabId,
-    renamingTabId,
-  }
-}
-
-function insertShellTab(
-  tabs: ShellTab[],
-  tab: ShellTab,
+function insertTabId(
+  order: string[],
+  id: string,
   afterTabId?: string,
-): ShellTab[] {
-  const existingIdx = tabs.findIndex((t) => t.id === tab.id)
-  if (existingIdx >= 0) {
-    const next = [...tabs]
-    next[existingIdx] = tab
-    return next
-  }
+): string[] {
+  const withoutId = order.filter((candidate) => candidate !== id)
   if (afterTabId) {
-    const idx = tabs.findIndex((t) => t.id === afterTabId)
-    if (idx >= 0) {
-      const next = [...tabs]
-      next.splice(idx + 1, 0, tab)
-      return next
+    const index = withoutId.indexOf(afterTabId)
+    if (index >= 0) {
+      withoutId.splice(index + 1, 0, id)
+      return withoutId
     }
   }
-  return [...tabs, tab]
+  withoutId.push(id)
+  return withoutId
 }
 
-function shellTabsProviderReducer(
-  state: ShellTabsProviderState,
-  action: ShellTabsProviderAction,
-): ShellTabsProviderState {
-  switch (action.type) {
-    case 'set_tabs': {
-      const tabs = applyStateUpdate(state.tabs, action.update)
-      return applyShellTabsState(state, {
-        tabs,
-        activeTabId: state.activeTabId,
-      })
+function normalizeLocalOrder(
+  order: string[],
+  records: BrowserShellTabRecord[],
+): string[] {
+  const ids = new Set(records.map((record) => record.id))
+  const seen = new Set<string>()
+  const normalized: string[] = []
+  for (const id of order) {
+    if (ids.has(id) && !seen.has(id)) {
+      normalized.push(id)
+      seen.add(id)
     }
-    case 'set_active_tab_id': {
-      const activeTabId = applyStateUpdate(state.activeTabId, action.update)
-      if (
-        activeTabId === state.activeTabId ||
-        !state.tabs.some((tab) => tab.id === activeTabId)
-      ) {
-        return state
-      }
-      return { ...state, activeTabId }
-    }
-    case 'open_path_in_new_tab': {
-      const existingTab = action.focusExisting
-        ? state.tabs.find((tab) => tab.path === action.path)
-        : undefined
-      if (existingTab) {
-        const nextTabs = state.tabs.map((tab) =>
-          tab.id === existingTab.id
-            ? { ...tab, name: getTabNameFromPath(action.path) }
-            : tab,
-        )
-        return applyShellTabsState(state, {
-          tabs: nextTabs,
-          activeTabId: action.select ? existingTab.id : state.activeTabId,
-        })
-      }
-
-      const newTab: ShellTab = {
-        id: action.tabId,
-        name: getTabNameFromPath(action.path),
-        path: action.path,
-      }
-      const tabs = insertShellTab(state.tabs, newTab, action.afterTabId)
-      return applyShellTabsState(state, {
-        tabs,
-        activeTabId: action.select ? newTab.id : state.activeTabId,
-      })
-    }
-    case 'add_shell_tab': {
-      const tabs = insertShellTab(state.tabs, action.tab, action.afterTabId)
-      return applyShellTabsState(state, {
-        tabs,
-        activeTabId: action.select ? action.tab.id : state.activeTabId,
-      })
-    }
-    case 'select_tab':
-      if (!state.tabs.some((tab) => tab.id === action.tabId)) return state
-      return { ...state, activeTabId: action.tabId }
-    case 'update_tab_path': {
-      const name = getTabNameFromPath(action.path)
-      const tabs = state.tabs.map((tab) =>
-        tab.id === action.tabId ? { ...tab, path: action.path, name } : tab,
-      )
-      return applyShellTabsState(state, {
-        tabs,
-        activeTabId: state.activeTabId,
-      })
-    }
-    case 'update_tab_auto_name': {
-      const tabs = state.tabs.map((tab) =>
-        tab.id === action.tabId ? { ...tab, name: action.name } : tab,
-      )
-      return applyShellTabsState(state, {
-        tabs,
-        activeTabId: state.activeTabId,
-      })
-    }
-    case 'update_tab_custom_name': {
-      const tabs = state.tabs.map((tab) =>
-        tab.id === action.tabId
-          ? { ...tab, customName: action.customName }
-          : tab,
-      )
-      return applyShellTabsState(state, {
-        tabs,
-        activeTabId: state.activeTabId,
-      })
-    }
-    case 'retain_tabs': {
-      const tabs = state.tabs.filter((tab) => action.tabIds.has(tab.id))
-      return applyShellTabsState(state, {
-        tabs,
-        activeTabId: action.tabIds.has(state.activeTabId)
-          ? state.activeTabId
-          : (action.fallbackActiveTabId ?? state.activeTabId),
-      })
-    }
-    case 'start_renaming':
-      return { ...state, renamingTabId: action.tabId }
-    case 'stop_renaming':
-      return { ...state, renamingTabId: null }
   }
+  for (const record of records.toSorted(
+    (a, b) => a.creationSequence - b.creationSequence,
+  )) {
+    if (!seen.has(record.id)) {
+      normalized.push(record.id)
+      seen.add(record.id)
+    }
+  }
+  return normalized
 }
+// SHELL_TAB_PATH_COMMITTED_EVENT fires after shared tab storage commits a path.
+export const SHELL_TAB_PATH_COMMITTED_EVENT = 's4wave:shell-tab-path-committed'
 
-function initializeShellTabsProviderState(): ShellTabsProviderState {
-  const stored = loadTabsFromStorage()
-  return { ...stored, renamingTabId: null }
-}
-
-// ShellTabsContextValue provides access to global tabs state.
 export interface ShellTabsContextValue {
   tabs: ShellTab[]
   setTabs: React.Dispatch<React.SetStateAction<ShellTab[]>>
   activeTabId: string
   setActiveTabId: React.Dispatch<React.SetStateAction<string>>
+  documentIncarnation: string
   openPathInNewTab: (path: string, options?: OpenShellTabOptions) => string
   openPathInActiveTabset: (
     path: string,
@@ -348,24 +163,23 @@ export interface ShellTabsContextValue {
   addShellTab: (tab: ShellTab, options?: AddShellTabOptions) => string
   selectShellTab: (tabId: string) => void
   retainShellTabs: (tabIds: Set<string>, fallbackActiveTabId?: string) => void
-  updateTabPath: (tabId: string, path: string) => void
-  // updateTabName sets a custom name for a tab. Empty string clears it.
+  closeShellTab: (tabId: string) => void
+  resetShellTabs: () => void
+  updateTabPath: (
+    tabId: string,
+    path: string,
+    onCommitted?: () => void,
+  ) => Promise<boolean>
   updateTabName: (tabId: string, customName: string) => void
-  // updateTabAutoName updates the auto-derived name for a tab without
-  // overriding a user-set customName.
   updateTabAutoName: (tabId: string, name: string) => void
-  // renamingTabId is the ID of the tab currently being renamed, or null.
   renamingTabId: string | null
-  // startRenaming triggers inline rename for the given tab ID.
   startRenaming: (tabId: string) => void
-  // stopRenaming clears the renaming state.
   stopRenaming: () => void
+  mutationError: BrowserShellTabsStoreError | null
 }
 
-// ShellTabsContext provides global tabs state to all components.
 const ShellTabsContext = createContext<ShellTabsContextValue | null>(null)
 
-// useShellTabs returns the global tabs state context.
 export function useShellTabs(): ShellTabsContextValue {
   const context = use(ShellTabsContext)
   if (!context) {
@@ -374,58 +188,342 @@ export function useShellTabs(): ShellTabsContextValue {
   return context
 }
 
-// loadTabsFromStorage loads tabs state from sessionStorage.
-function loadTabsFromStorage(): ShellTabsState {
-  try {
-    const stored = sessionStorage.getItem(SHELL_TABS_STORAGE_KEY)
-    if (stored) {
-      const parsed = JSON.parse(stored) as ShellTabsState
-      if (parsed.tabs?.length > 0) {
-        return normalizeShellTabsState(parsed)
-      }
-    }
-  } catch {
-    // Ignore parse errors
-  }
-  return { tabs: [DEFAULT_HOME_TAB], activeTabId: DEFAULT_HOME_TAB.id }
-}
-
-// saveTabsToStorage saves tabs state to sessionStorage.
-function saveTabsToStorage(state: ShellTabsState): void {
-  try {
-    sessionStorage.setItem(SHELL_TABS_STORAGE_KEY, JSON.stringify(state))
-  } catch {
-    // Ignore storage errors
+function recordAsShellTab(record: BrowserShellTabRecord): ShellTab {
+  return {
+    id: record.id,
+    name: record.name,
+    path: record.path,
+    customName: record.customName,
   }
 }
 
-// ShellTabsProvider provides global tabs state to all components.
-export function ShellTabsProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(
-    shellTabsProviderReducer,
-    undefined,
-    initializeShellTabsProviderState,
+function useProviderStore(store: BrowserShellTabsStore) {
+  return useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getSnapshot,
   )
-  const { tabs, activeTabId, renamingTabId } = state
+}
+
+function removeShellTabLocalState(
+  incarnation: string,
+  tabId: string,
+  removeObsoleteState = false,
+): void {
+  removeShellTabDocumentState(incarnation, tabId)
+  if (removeObsoleteState) removeObsoleteShellTabState(tabId)
+}
+
+export interface ShellTabsProviderProps {
+  children: ReactNode
+  store?: BrowserShellTabsStore
+  entry?: ShellDocumentEntry
+}
+
+// ShellTabsProvider owns only this document's active ID, visible order, URL,
+// focus/rename interaction, and layout projection. BrowserShellTabsStore owns
+// shared record identity, membership, paths, and names.
+export function ShellTabsProvider({
+  children,
+  store: providedStore,
+  entry: providedEntry,
+}: ShellTabsProviderProps) {
+  const store = providedStore ?? getBrowserShellTabsStore()
+  const snapshot = useProviderStore(store)
+  const entry = useMemo(
+    () => providedEntry ?? classifyShellDocumentEntry(),
+    [providedEntry],
+  )
+  const persistedDocumentState = useMemo(
+    () => (entry.kind === 'continuation' ? readShellDocumentState() : null),
+    [entry],
+  )
+  const [localOrder, setLocalOrder] = useState<string[]>(() =>
+    normalizeLocalOrder([], snapshot.records),
+  )
+  const [activeTabId, setActiveTabIdState] = useState<string>(() => {
+    if (entry.kind === 'handoff' && entry.tabId) {
+      return snapshot.records.some((record) => record.id === entry.tabId)
+        ? entry.tabId
+        : ''
+    }
+    if (entry.kind === 'continuation') {
+      if (
+        persistedDocumentState?.incarnation === entry.incarnation &&
+        persistedDocumentState?.pendingCreatedTabId &&
+        snapshot.records.some(
+          (record) => record.id === persistedDocumentState.pendingCreatedTabId,
+        )
+      ) {
+        return persistedDocumentState.pendingCreatedTabId
+      }
+      if (
+        persistedDocumentState?.incarnation === entry.incarnation &&
+        persistedDocumentState.activeTabId &&
+        snapshot.records.some(
+          (record) => record.id === persistedDocumentState.activeTabId,
+        )
+      ) {
+        return persistedDocumentState.activeTabId
+      }
+      return snapshot.records[0]?.id ?? ''
+    }
+    return ''
+  })
+  const [mutationError, setMutationError] =
+    useState<BrowserShellTabsStoreError | null>(null)
+  const [renamingTabId, setRenamingTabId] = useState<string | null>(null)
   const [activeTabsetPathOpener, setActiveTabsetPathOpener] =
     useState<ActiveTabsetPathOpener | null>(null)
+  const initializedRef = useRef(false)
+  const activeTabIdRef = useRef(activeTabId)
+  activeTabIdRef.current = activeTabId
+  const pendingCreatedTabIdRef = useRef<string | null>(
+    persistedDocumentState?.incarnation === entry.incarnation
+      ? (persistedDocumentState.pendingCreatedTabId ?? null)
+      : null,
+  )
+  const localOrderRef = useRef(localOrder)
+  localOrderRef.current = localOrder
+  const previousRecordIdsRef = useRef(
+    new Set(snapshot.records.map((record) => record.id)),
+  )
 
-  const setTabs = useCallback((update: React.SetStateAction<ShellTab[]>) => {
-    dispatch({ type: 'set_tabs', update })
-  }, [])
-  const setActiveTabId = useCallback((update: React.SetStateAction<string>) => {
-    dispatch({ type: 'set_active_tab_id', update })
-  }, [])
-  const startRenaming = useCallback((tabId: string) => {
-    dispatch({ type: 'start_renaming', tabId })
-  }, [])
-  const stopRenaming = useCallback(() => {
-    dispatch({ type: 'stop_renaming' })
-  }, [])
+  const recordsById = useMemo(
+    () => new Map(snapshot.records.map((record) => [record.id, record])),
+    [snapshot.records],
+  )
+  const tabs = useMemo(() => {
+    const order = normalizeLocalOrder(localOrder, snapshot.records)
+    return order
+      .map((id) => recordsById.get(id))
+      .filter((record): record is BrowserShellTabRecord => record !== undefined)
+      .map(recordAsShellTab)
+  }, [localOrder, recordsById, snapshot.records])
 
-  const selectShellTab = useCallback((tabId: string) => {
-    dispatch({ type: 'select_tab', tabId })
-  }, [])
+  useEffect(() => {
+    const currentRecordIds = new Set(
+      snapshot.records.map((record) => record.id),
+    )
+    for (const id of previousRecordIdsRef.current) {
+      if (!currentRecordIds.has(id)) {
+        removeShellTabLocalState(entry.incarnation, id)
+      }
+    }
+    previousRecordIdsRef.current = currentRecordIds
+    setLocalOrder((current) => {
+      const next = normalizeLocalOrder(current, snapshot.records)
+      return current.length === next.length &&
+        current.every((id, index) => id === next[index])
+        ? current
+        : next
+    })
+    setActiveTabIdState((current) => {
+      const pendingCreatedTabId = pendingCreatedTabIdRef.current
+      if (pendingCreatedTabId && currentRecordIds.has(pendingCreatedTabId)) {
+        return pendingCreatedTabId
+      }
+      if (current && currentRecordIds.has(current)) return current
+      if (!current && (entry.kind === 'fresh' || entry.kind === 'handoff')) {
+        return current
+      }
+      return snapshot.records[0]?.id ?? ''
+    })
+    setRenamingTabId((current) =>
+      current && currentRecordIds.has(current) ? current : null,
+    )
+  }, [entry, snapshot])
+
+  useEffect(() => {
+    if (!activeTabId) return
+    const pendingCreatedTabId = pendingCreatedTabIdRef.current
+    writeShellDocumentState({
+      incarnation: entry.incarnation,
+      activeTabId,
+      ...(pendingCreatedTabId && pendingCreatedTabId !== activeTabId
+        ? { pendingCreatedTabId }
+        : {}),
+    })
+    if (pendingCreatedTabId === activeTabId) {
+      pendingCreatedTabIdRef.current = null
+    }
+  }, [activeTabId, entry.incarnation])
+
+  useEffect(() => {
+    if (
+      !activeTabId ||
+      !Object.prototype.hasOwnProperty.call(entry.params, 'shellTabId')
+    ) {
+      return
+    }
+    const navigation = getAppNavigation()
+    if (navigation.params.shellTabId === activeTabId) return
+    setAppPath(navigation.path, {
+      ...navigation.params,
+      shellTabId: activeTabId,
+    })
+  }, [activeTabId, entry.params])
+  const reportMutation = useCallback(
+    (operation: Promise<unknown>, isCancelled?: () => boolean) => {
+      setMutationError(null)
+      void operation.catch((error: unknown) => {
+        if (isCancelled?.()) return
+        const nextError =
+          error instanceof BrowserShellTabsStoreError
+            ? error
+            : new BrowserShellTabsStoreError(
+                'storage-write',
+                error instanceof Error
+                  ? error.message
+                  : 'Shell Tab mutation failed.',
+              )
+        setMutationError(nextError)
+        toast.error('Shell tab update failed', {
+          description: nextError.message,
+        })
+      })
+    },
+    [],
+  )
+  const stageCreatedTabSelection = useCallback(
+    (tabId: string) => {
+      pendingCreatedTabIdRef.current = tabId
+      writeShellDocumentState({
+        incarnation: entry.incarnation,
+        activeTabId: activeTabIdRef.current,
+        pendingCreatedTabId: tabId,
+      })
+    },
+    [entry.incarnation],
+  )
+  const clearCreatedTabSelection = useCallback(
+    (tabId: string) => {
+      if (pendingCreatedTabIdRef.current !== tabId) return
+      pendingCreatedTabIdRef.current = null
+      writeShellDocumentState({
+        incarnation: entry.incarnation,
+        activeTabId: activeTabIdRef.current,
+      })
+    },
+    [entry.incarnation],
+  )
+
+  useEffect(() => {
+    if (initializedRef.current) return
+    initializedRef.current = true
+    let cancelled = false
+
+    const initialize = async () => {
+      clearObsoleteShellTabsState()
+      const current = store.read()
+      if (entry.kind === 'handoff' && entry.tabId) {
+        if (current.records.some((record) => record.id === entry.tabId)) {
+          if (!cancelled) setActiveTabIdState(entry.tabId)
+          return
+        }
+      }
+
+      if (entry.kind === 'continuation' && current.records.length > 0) return
+
+      const path = entry.path || '/'
+      const id = generateTabId()
+      stageCreatedTabSelection(id)
+      try {
+        await store.create({ id, path, name: getTabNameFromPath(path) })
+      } catch (error) {
+        clearCreatedTabSelection(id)
+        throw error
+      }
+      if (cancelled) return
+      setLocalOrder((order) => insertTabId(order, id, order.at(-1)))
+      setActiveTabIdState(id)
+      if (Object.prototype.hasOwnProperty.call(entry.params, 'shellTabId')) {
+        setAppPath(path, { ...entry.params, shellTabId: id })
+      }
+    }
+    reportMutation(initialize(), () => cancelled)
+    return () => {
+      cancelled = true
+    }
+  }, [
+    clearCreatedTabSelection,
+    entry,
+    reportMutation,
+    stageCreatedTabSelection,
+    store,
+  ])
+
+  const setTabs = useCallback<React.Dispatch<React.SetStateAction<ShellTab[]>>>(
+    (update) => {
+      setLocalOrder((currentOrder) => {
+        const currentTabs = currentOrder.flatMap((id) => {
+          const record = recordsById.get(id)
+          return record ? [recordAsShellTab(record)] : []
+        })
+        const nextTabs =
+          typeof update === 'function' ? update(currentTabs) : update
+        const nextIds = nextTabs.flatMap((tab) =>
+          recordsById.has(tab.id) ? [tab.id] : [],
+        )
+        return normalizeLocalOrder(nextIds, snapshot.records)
+      })
+    },
+    [recordsById, snapshot.records],
+  )
+
+  const setActiveTabId = useCallback<
+    React.Dispatch<React.SetStateAction<string>>
+  >(
+    (update) => {
+      setActiveTabIdState((current) => {
+        const next = typeof update === 'function' ? update(current) : update
+        return snapshot.records.some((record) => record.id === next)
+          ? next
+          : current
+      })
+    },
+    [snapshot.records],
+  )
+
+  const selectShellTab = useCallback(
+    (tabId: string) => {
+      if (snapshot.records.some((record) => record.id === tabId)) {
+        setActiveTabIdState(tabId)
+      }
+    },
+    [snapshot.records],
+  )
+
+  const addShellTab = useCallback(
+    (tab: ShellTab, options: AddShellTabOptions = {}) => {
+      if (options.select) {
+        stageCreatedTabSelection(tab.id)
+      }
+      const operation = store
+        .create({
+          id: tab.id,
+          path: tab.path,
+          name: tab.name,
+          customName: tab.customName,
+        })
+        .then(() => {
+          setLocalOrder((order) =>
+            insertTabId(order, tab.id, options.afterTabId),
+          )
+          if (options.select) setActiveTabIdState(tab.id)
+          options.onCommitted?.()
+        })
+        .catch((error: unknown) => {
+          if (options.select) {
+            clearCreatedTabSelection(tab.id)
+          }
+          throw error
+        })
+      reportMutation(operation)
+      return tab.id
+    },
+    [clearCreatedTabSelection, reportMutation, stageCreatedTabSelection, store],
+  )
 
   const openPathInNewTab = useCallback(
     (path: string, options: OpenShellTabOptions = {}) => {
@@ -433,21 +531,26 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
       const existingTab = options.focusExisting
         ? tabs.find((tab) => tab.path === path)
         : undefined
-      const tabId = existingTab?.id ?? generateTabId()
-      dispatch({
-        type: 'open_path_in_new_tab',
+      if (existingTab) {
+        if (select) {
+          setActiveTabIdState(existingTab.id)
+          setAppPath(path)
+        }
+        return existingTab.id
+      }
+      const tab: ShellTab = {
+        id: generateTabId(),
+        name: getTabNameFromPath(path),
         path,
-        tabId,
+      }
+      addShellTab(tab, {
         afterTabId: options.afterTabId,
         select,
-        focusExisting: options.focusExisting ?? false,
+        onCommitted: select ? () => setAppPath(path) : undefined,
       })
-      if (select) {
-        setAppPath(path)
-      }
-      return tabId
+      return tab.id
     },
-    [tabs],
+    [addShellTab, tabs],
   )
 
   const registerActiveTabsetPathOpener = useCallback(
@@ -463,57 +566,116 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
   )
 
   const openPathInActiveTabset = useCallback(
-    (path: string, options: OpenShellTabOptions = {}) => {
-      const tabId = activeTabsetPathOpener?.(path, options)
-      if (tabId) return tabId
-      return openPathInNewTab(path, options)
-    },
+    (path: string, options: OpenShellTabOptions = {}) =>
+      activeTabsetPathOpener?.(path, options) ??
+      openPathInNewTab(path, options),
     [activeTabsetPathOpener, openPathInNewTab],
-  )
-
-  const addShellTab = useCallback(
-    (tab: ShellTab, options: AddShellTabOptions = {}) => {
-      dispatch({
-        type: 'add_shell_tab',
-        tab,
-        afterTabId: options.afterTabId,
-        select: options.select ?? false,
-      })
-      return tab.id
-    },
-    [],
   )
 
   const retainShellTabs = useCallback(
     (tabIds: Set<string>, fallbackActiveTabId?: string) => {
-      dispatch({ type: 'retain_tabs', tabIds, fallbackActiveTabId })
+      setLocalOrder((order) => order.filter((id) => tabIds.has(id)))
+      setActiveTabIdState((current) => {
+        if (tabIds.has(current)) return current
+        if (fallbackActiveTabId && tabIds.has(fallbackActiveTabId)) {
+          return fallbackActiveTabId
+        }
+        return (
+          [...tabIds].find((id) =>
+            snapshot.records.some((record) => record.id === id),
+          ) ?? ''
+        )
+      })
     },
-    [],
+    [snapshot.records],
   )
 
-  // Persist to sessionStorage when state changes.
-  useEffect(() => {
-    saveTabsToStorage({ tabs, activeTabId })
-  }, [tabs, activeTabId])
+  const closeShellTab = useCallback(
+    (tabId: string) => {
+      reportMutation(
+        store.close(tabId).then(() => {
+          removeShellTabLocalState(entry.incarnation, tabId, true)
+          const committedRecords = store.getSnapshot().records
+          const nextOrder = normalizeLocalOrder(
+            localOrderRef.current.filter((id) => id !== tabId),
+            committedRecords,
+          )
+          setLocalOrder(nextOrder)
+          setActiveTabIdState((current) => {
+            if (
+              current !== tabId &&
+              committedRecords.some((record) => record.id === current)
+            ) {
+              return current
+            }
+            return nextOrder[0] ?? committedRecords[0]?.id ?? ''
+          })
+        }),
+      )
+    },
+    [entry.incarnation, reportMutation, store],
+  )
 
-  // Helper to update a specific tab's path
-  const updateTabPath = useCallback((tabId: string, path: string) => {
-    dispatch({ type: 'update_tab_path', tabId, path })
-  }, [])
+  const resetShellTabs = useCallback(() => {
+    const oldIds = snapshot.records.map((record) => record.id)
+    reportMutation(
+      store.reset().then((record) => {
+        for (const id of oldIds) {
+          removeShellTabLocalState(entry.incarnation, id, true)
+        }
+        setLocalOrder([record.id])
+        setActiveTabIdState(record.id)
+      }),
+    )
+  }, [entry.incarnation, reportMutation, snapshot.records, store])
 
-  const updateTabAutoName = useCallback((tabId: string, name: string) => {
-    dispatch({ type: 'update_tab_auto_name', tabId, name })
-  }, [])
+  const updateTabPath = useCallback(
+    (tabId: string, path: string, onCommitted?: () => void) => {
+      const record = snapshot.records.find(
+        (candidate) => candidate.id === tabId,
+      )
+      if (!record || record.path === path) return Promise.resolve(false)
+      const operation = store.updatePath(tabId, path).then((updated) => {
+        window.dispatchEvent(
+          new CustomEvent(SHELL_TAB_PATH_COMMITTED_EVENT, {
+            detail: { tabId, path },
+          }),
+        )
+        onCommitted?.()
+        return updated
+      })
+      reportMutation(operation)
+      return operation.then(
+        () => true,
+        () => false,
+      )
+    },
+    [reportMutation, snapshot.records, store],
+  )
 
-  // Helper to update a specific tab's custom name
-  const updateTabName = useCallback((tabId: string, customName: string) => {
-    const nextCustomName = customName || undefined
-    dispatch({
-      type: 'update_tab_custom_name',
-      tabId,
-      customName: nextCustomName,
-    })
-  }, [])
+  const updateTabAutoName = useCallback(
+    (tabId: string, name: string) => {
+      const record = snapshot.records.find(
+        (candidate) => candidate.id === tabId,
+      )
+      if (!record || record.name === name) return
+      reportMutation(store.updateName(tabId, name))
+    },
+    [reportMutation, snapshot.records, store],
+  )
+
+  const updateTabName = useCallback(
+    (tabId: string, customName: string) => {
+      reportMutation(store.rename(tabId, customName || undefined))
+    },
+    [reportMutation, store],
+  )
+
+  const startRenaming = useCallback(
+    (tabId: string) => setRenamingTabId(tabId),
+    [],
+  )
+  const stopRenaming = useCallback(() => setRenamingTabId(null), [])
 
   const value = useMemo<ShellTabsContextValue>(
     () => ({
@@ -521,36 +683,44 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
       setTabs,
       activeTabId,
       setActiveTabId,
+      documentIncarnation: entry.incarnation,
       openPathInNewTab,
       openPathInActiveTabset,
       registerActiveTabsetPathOpener,
       addShellTab,
       selectShellTab,
       retainShellTabs,
+      closeShellTab,
+      resetShellTabs,
       updateTabPath,
       updateTabName,
       updateTabAutoName,
       renamingTabId,
       startRenaming,
       stopRenaming,
+      mutationError,
     }),
     [
       tabs,
       setTabs,
       activeTabId,
       setActiveTabId,
+      entry.incarnation,
       openPathInNewTab,
       openPathInActiveTabset,
       registerActiveTabsetPathOpener,
       addShellTab,
       selectShellTab,
       retainShellTabs,
+      closeShellTab,
+      resetShellTabs,
       updateTabPath,
       updateTabName,
       updateTabAutoName,
       renamingTabId,
       startRenaming,
       stopRenaming,
+      mutationError,
     ],
   )
 
@@ -561,8 +731,6 @@ export function ShellTabsProvider({ children }: { children: ReactNode }) {
   )
 }
 
-// ShellTabStateProvider provides tab-specific state to descendant components.
-// Each tab gets its own localStorage-backed atom for persistent state.
 export function ShellTabStateProvider({
   tabId,
   children,
@@ -570,28 +738,24 @@ export function ShellTabStateProvider({
   tabId: string
   children: ReactNode
 }) {
-  // Cache atoms by tab ID using useState with lazy initialization
-  // This avoids accessing refs during render
+  const { documentIncarnation } = useShellTabs()
   const [atomCache] = useState(() => new Map<string, Atom<StateType>>())
-
   const tabStateAtom = useMemo(() => {
-    const cached = atomCache.get(tabId)
+    const key = shellTabStateStorageKey(documentIncarnation, tabId)
+    const cached = atomCache.get(key)
     if (cached) return cached
-
-    const atom = atomWithLocalStorage<StateType>(
-      `${TAB_STATE_PREFIX}${tabId}`,
-      {},
-    )
-    atomCache.set(tabId, atom)
+    const atom = new StorageAtom<StateType>(sessionStorageBackend, key, {})
+    atomCache.set(key, atom)
     return atom
-  }, [atomCache, tabId])
-
+  }, [atomCache, documentIncarnation, tabId])
   const contextValue = useMemo<ShellTabContextValue>(() => ({ tabId }), [tabId])
-
   return (
     <ShellTabContext.Provider value={contextValue}>
       <TabActiveBridge>
-        <StateNamespaceProvider rootAtom={tabStateAtom}>
+        <StateNamespaceProvider
+          rootAtom={tabStateAtom}
+          inheritStateAtomAccessor={false}
+        >
           {children}
         </StateNamespaceProvider>
       </TabActiveBridge>
@@ -599,42 +763,18 @@ export function ShellTabStateProvider({
   )
 }
 
-// TabActiveBridge reads the shell tab context and provides tab-active state
-// to web/ components via TabActiveProvider.
 function TabActiveBridge({ children }: { children: ReactNode }) {
   const isActive = useIsTabActive()
   return <TabActiveProvider value={isActive}>{children}</TabActiveProvider>
 }
 
-// cleanupOrphanedTabStorage removes localStorage entries for tabs that no longer exist.
-export function cleanupOrphanedTabStorage(activeTabIds: string[]): void {
-  const activeSet = new Set(activeTabIds)
-  const keysToRemove: string[] = []
-
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i)
-    if (key?.startsWith(TAB_STATE_PREFIX)) {
-      const tabId = key.slice(TAB_STATE_PREFIX.length)
-      if (!activeSet.has(tabId)) {
-        keysToRemove.push(key)
-      }
-    }
-  }
-
-  for (const key of keysToRemove) {
-    localStorage.removeItem(key)
-  }
-}
-
-// getTabById returns the tab with the given ID, or undefined if not found.
 export function getTabById(
   tabs: ShellTab[],
   tabId: string,
 ): ShellTab | undefined {
-  return tabs.find((t) => t.id === tabId)
+  return tabs.find((tab) => tab.id === tabId)
 }
 
-// addTab creates a new tab and adds it to the tabs list.
 export function addTab(
   tabs: ShellTab[],
   path: string,
@@ -645,15 +785,13 @@ export function addTab(
     name: getTabNameFromPath(path),
     path,
   }
-
-  if (afterTabId) {
-    const index = tabs.findIndex((t) => t.id === afterTabId)
-    if (index >= 0) {
-      const newTabs = [...tabs]
-      newTabs.splice(index + 1, 0, newTab)
-      return { tabs: newTabs, newTab }
-    }
+  const index = afterTabId ? tabs.findIndex((tab) => tab.id === afterTabId) : -1
+  if (index >= 0) {
+    const nextTabs = [...tabs]
+    nextTabs.splice(index + 1, 0, newTab)
+    return { tabs: nextTabs, newTab }
   }
-
   return { tabs: [...tabs, newTab], newTab }
 }
+
+export { DEFAULT_HOME_TAB }

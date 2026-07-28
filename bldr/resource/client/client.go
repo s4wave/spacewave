@@ -55,7 +55,9 @@ func NewClient(ctx context.Context, service resource.SRPCResourceServiceClient) 
 	clientCtx, clientCancel := context.WithCancel(ctx)
 
 	// Start ResourceClient stream
-	stream, err := service.ResourceClient(clientCtx, &resource.ResourceClientRequest{})
+	stream, err := service.ResourceClient(clientCtx, &resource.ResourceClientRequest{
+		SupportsResourceAdoptionAck: true,
+	})
 	if err != nil {
 		ctxErr := clientCtx.Err()
 		clientCancel()
@@ -100,12 +102,17 @@ func NewClient(ctx context.Context, service resource.SRPCResourceServiceClient) 
 	}
 
 	client := &Client{
-		ctx:              clientCtx,
-		cancel:           clientCancel,
-		service:          service,
-		clientHandleID:   clientHandleID,
-		rootResourceID:   rootResourceID,
-		resourceLifetime: newResourceLifetime(clientCtx, service, clientHandleID),
+		ctx:            clientCtx,
+		cancel:         clientCancel,
+		service:        service,
+		clientHandleID: clientHandleID,
+		rootResourceID: rootResourceID,
+		resourceLifetime: newResourceLifetime(
+			clientCtx,
+			service,
+			clientHandleID,
+			initMsg.Init.GetSupportsResourceAdoptionAck(),
+		),
 	}
 	client.attach = newAttachLifetime(client)
 

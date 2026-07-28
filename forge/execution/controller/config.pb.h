@@ -227,6 +227,7 @@ class Config final : public ::google::protobuf::Message
     kObjectKeyFieldNumber = 2,
     kPeerIdFieldNumber = 3,
     kResolveControllerConfigTimeoutFieldNumber = 4,
+    kClaimIdFieldNumber = 7,
     kInputWorldFieldNumber = 6,
     kAllowNonExecControllerFieldNumber = 5,
   };
@@ -290,6 +291,21 @@ class Config final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_resolve_controller_config_timeout();
 
   public:
+  // string claim_id = 7;
+  void clear_claim_id() ;
+  const ::std::string& claim_id() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_claim_id(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_claim_id();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_claim_id();
+  void set_allocated_claim_id(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_claim_id() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_claim_id(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_claim_id();
+
+  public:
   // .forge.target.InputWorld input_world = 6;
   bool has_input_world() const;
   void clear_input_world() ;
@@ -319,8 +335,8 @@ class Config final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
-                                   1, 95,
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   1, 103,
                                    2>
       _table_;
 
@@ -345,6 +361,7 @@ class Config final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr object_key_;
     ::google::protobuf::internal::ArenaStringPtr peer_id_;
     ::google::protobuf::internal::ArenaStringPtr resolve_controller_config_timeout_;
+    ::google::protobuf::internal::ArenaStringPtr claim_id_;
     ::forge::target::InputWorld* PROTOBUF_NULLABLE input_world_;
     bool allow_non_exec_controller_;
     PROTOBUF_TSAN_DECLARE_MEMBER
@@ -848,7 +865,7 @@ inline void Config::clear_allow_non_exec_controller() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.allow_non_exec_controller_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline bool Config::allow_non_exec_controller() const {
   // @@protoc_insertion_point(field_get:execution.controller.Config.allow_non_exec_controller)
@@ -856,7 +873,7 @@ inline bool Config::allow_non_exec_controller() const {
 }
 inline void Config::set_allow_non_exec_controller(bool value) {
   _internal_set_allow_non_exec_controller(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   // @@protoc_insertion_point(field_set:execution.controller.Config.allow_non_exec_controller)
 }
 inline bool Config::_internal_allow_non_exec_controller() const {
@@ -870,7 +887,7 @@ inline void Config::_internal_set_allow_non_exec_controller(bool value) {
 
 // .forge.target.InputWorld input_world = 6;
 inline bool Config::has_input_world() const {
-  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000010U);
+  bool value = CheckHasBit(_impl_._has_bits_[0], 0x00000020U);
   PROTOBUF_ASSUME(!value || _impl_.input_world_ != nullptr);
   return value;
 }
@@ -891,16 +908,16 @@ inline void Config::unsafe_arena_set_allocated_input_world(
   }
   _impl_.input_world_ = reinterpret_cast<::forge::target::InputWorld*>(value);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   }
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:execution.controller.Config.input_world)
 }
 inline ::forge::target::InputWorld* PROTOBUF_NULLABLE Config::release_input_world() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::forge::target::InputWorld* released = _impl_.input_world_;
   _impl_.input_world_ = nullptr;
   if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
@@ -920,7 +937,7 @@ inline ::forge::target::InputWorld* PROTOBUF_NULLABLE Config::unsafe_arena_relea
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:execution.controller.Config.input_world)
 
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::forge::target::InputWorld* temp = _impl_.input_world_;
   _impl_.input_world_ = nullptr;
   return temp;
@@ -935,7 +952,7 @@ inline ::forge::target::InputWorld* PROTOBUF_NONNULL Config::_internal_mutable_i
 }
 inline ::forge::target::InputWorld* PROTOBUF_NONNULL Config::mutable_input_world()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::forge::target::InputWorld* _msg = _internal_mutable_input_world();
   // @@protoc_insertion_point(field_mutable:execution.controller.Config.input_world)
   return _msg;
@@ -952,13 +969,78 @@ inline void Config::set_allocated_input_world(::forge::target::InputWorld* PROTO
     if (message_arena != submessage_arena) {
       value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
     }
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   }
 
   _impl_.input_world_ = reinterpret_cast<::forge::target::InputWorld*>(value);
   // @@protoc_insertion_point(field_set_allocated:execution.controller.Config.input_world)
+}
+
+// string claim_id = 7;
+inline void Config::clear_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_id_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline const ::std::string& Config::claim_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:execution.controller.Config.claim_id)
+  return _internal_claim_id();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void Config::set_claim_id(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  _impl_.claim_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:execution.controller.Config.claim_id)
+}
+inline ::std::string* PROTOBUF_NONNULL Config::mutable_claim_id()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ::std::string* _s = _internal_mutable_claim_id();
+  // @@protoc_insertion_point(field_mutable:execution.controller.Config.claim_id)
+  return _s;
+}
+inline const ::std::string& Config::_internal_claim_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.claim_id_.Get();
+}
+inline void Config::_internal_set_claim_id(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.claim_id_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL Config::_internal_mutable_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.claim_id_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE Config::release_claim_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:execution.controller.Config.claim_id)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  auto* released = _impl_.claim_id_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.claim_id_.Set("", GetArena());
+  }
+  return released;
+}
+inline void Config::set_allocated_claim_id(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  }
+  _impl_.claim_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.claim_id_.IsDefault()) {
+    _impl_.claim_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:execution.controller.Config.claim_id)
 }
 
 // -------------------------------------------------------------------

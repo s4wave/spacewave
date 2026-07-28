@@ -3,6 +3,9 @@
 /// ResourceClientRequest is the request body for ResourceClient.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ResourceClientRequest {
+    /// SupportsResourceAdoptionAck requests the held ResourceRpc receipt protocol.
+    #[prost(bool, tag="1")]
+    pub supports_resource_adoption_ack: bool,
 }
 /// ResourceClientResponse contains a server-client message for a ResourceClient request.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -46,6 +49,10 @@ pub struct ResourceClientInit {
     /// RootResourceId is the ID of the root resource for this client.
     #[prost(uint32, tag="2")]
     pub root_resource_id: u32,
+    /// SupportsResourceAdoptionAck is true when held ResourceRpc receipts and
+    /// per-resource adoption acknowledgments are implemented.
+    #[prost(bool, tag="3")]
+    pub supports_resource_adoption_ack: bool,
 }
 /// ResourceRefReleaseRequest is the request for ResourceRefRelease.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -60,6 +67,21 @@ pub struct ResourceRefReleaseRequest {
 /// ResourceRefReleaseResponse is the response for ResourceRefRelease.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ResourceRefReleaseResponse {
+}
+/// ResourceRefAdoptRequest acknowledges adoption of a resource returned by a
+/// held ResourceRpc invocation.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResourceRefAdoptRequest {
+    /// ClientHandleId identifies the persistent ResourceClient session.
+    #[prost(uint32, tag="1")]
+    pub client_handle_id: u32,
+    /// ResourceId identifies the pending resource to adopt.
+    #[prost(uint32, tag="2")]
+    pub resource_id: u32,
+}
+/// ResourceRefAdoptResponse confirms a pending resource was adopted.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResourceRefAdoptResponse {
 }
 /// ResourceAttachRequest is a client-to-server message on the ResourceAttach stream.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -147,6 +169,7 @@ pub struct ResourceAttachAddAck {
     #[prost(string, tag="2")]
     pub error: ::prost::alloc::string::String,
     /// ResourceId is the server-assigned ID for the attached resource.
+    /// @resource-adoption-id
     #[prost(uint32, tag="3")]
     pub resource_id: u32,
 }

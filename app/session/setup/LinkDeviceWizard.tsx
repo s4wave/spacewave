@@ -1404,7 +1404,7 @@ function DirectOfferStep({
           <textarea
             value={answerInput}
             onChange={(e) => setAnswerInput(e.target.value)}
-            placeholder="Paste answer payload here..."
+            placeholder="Paste answer payload here…"
             rows={3}
             className={cn(
               'border-foreground/20 bg-foreground/5 text-foreground w-full resize-none rounded-md border px-2 py-1.5 font-mono text-xs',
@@ -1558,7 +1558,7 @@ function DirectAnswerStep({
           <textarea
             value={offerInput}
             onChange={(e) => setOfferInput(e.target.value)}
-            placeholder="Paste offer payload here..."
+            placeholder="Paste offer payload here…"
             rows={3}
             className={cn(
               'border-foreground/20 bg-foreground/5 text-foreground w-full resize-none rounded-md border px-2 py-1.5 font-mono text-xs',

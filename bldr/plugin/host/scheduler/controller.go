@@ -68,6 +68,12 @@ type Controller struct {
 	hostVolumeCtr *ccontainer.CContainer[*hostVol]
 	// pluginHostsCtr is a container with the set of available plugin hosts.
 	pluginHostsCtr *ccontainer.CContainer[*pluginHostSet]
+	// manifestCopyGate delays startup copies until runtime readiness.
+	manifestCopyGateCtr *ccontainer.CContainer[ManifestCopyGate]
+	// manifestCommitOnce initializes manifestCommitSlots.
+	manifestCommitOnce sync.Once
+	// manifestCommitSlots serializes world manifest publication and sync.
+	manifestCommitSlots chan struct{}
 
 	// pluginInstances manages the list of running plugins by plugin ID.
 	// key: plugin ID
@@ -150,15 +156,16 @@ func NewController(
 ) *Controller {
 	peerID, _ := conf.ParsePeerID()
 	c := &Controller{
-		le:             le,
-		bus:            bus,
-		conf:           conf,
-		objKey:         conf.GetObjectKey(),
-		peerID:         peerID,
-		peerIDStr:      peerID.String(),
-		worldStateCtr:  ccontainer.NewCContainer[world.WorldState](nil),
-		hostVolumeCtr:  ccontainer.NewCContainer[*hostVol](nil),
-		pluginHostsCtr: ccontainer.NewCContainerWithEqual(nil, pluginHostSetEqual),
+		le:                  le,
+		bus:                 bus,
+		conf:                conf,
+		objKey:              conf.GetObjectKey(),
+		peerID:              peerID,
+		peerIDStr:           peerID.String(),
+		worldStateCtr:       ccontainer.NewCContainer[world.WorldState](nil),
+		hostVolumeCtr:       ccontainer.NewCContainer[*hostVol](nil),
+		pluginHostsCtr:      ccontainer.NewCContainerWithEqual(nil, pluginHostSetEqual),
+		manifestCopyGateCtr: ccontainer.NewCContainer[ManifestCopyGate](nil),
 		pluginStatusCtr: ccontainer.NewCContainerWithEqual(
 			&PluginStatusSnapshot{},
 			pluginStatusSnapshotEqual,
@@ -169,6 +176,36 @@ func NewController(
 	c.pluginInstances = keyed.NewKeyedRefCountWithLogger(c.newPluginInstance, le.WithField("tracker", "running-plugin"))
 	c.hostClient = srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(bifrost_rpc.NewInvoker(bus, "plugin-host", true))))
 	return c
+}
+
+// SetManifestCopyGate sets the runtime readiness gate for startup manifest copies.
+// A nil gate preserves immediate copy behavior.
+func (c *Controller) SetManifestCopyGate(gate ManifestCopyGate) {
+	c.manifestCopyGateCtr.SetValue(gate)
+}
+
+func (c *Controller) getManifestCopyGate() ManifestCopyGate {
+	if c == nil || c.manifestCopyGateCtr == nil {
+		return nil
+	}
+	return c.manifestCopyGateCtr.GetValue()
+}
+
+func (c *Controller) acquireManifestCommit(ctx context.Context) (func(), error) {
+	if c == nil {
+		return func() {}, nil
+	}
+	c.manifestCommitOnce.Do(func() {
+		c.manifestCommitSlots = make(chan struct{}, 1)
+	})
+	select {
+	case c.manifestCommitSlots <- struct{}{}:
+		return func() {
+			<-c.manifestCommitSlots
+		}, nil
+	case <-ctx.Done():
+		return nil, context.Canceled
+	}
 }
 
 // GetControllerInfo returns information about the controller.
@@ -366,6 +403,7 @@ func (c *Controller) buildPluginMux(
 	distFS,
 	assetsFS *unixfs.FSHandle,
 	hostRoot *plugin_host_root.Root,
+	registrationDone plugin_host_resource.InitialCapabilityRegistrationDoneFunc,
 ) (srpc.Mux, func()) {
 	// fallback to a LookupRpcService on the bus
 	mux := srpc.NewMux(bifrost_rpc.NewInvoker(c.bus, bldr_plugin.PluginServerID(pluginID, ""), true))
@@ -393,11 +431,13 @@ func (c *Controller) buildPluginMux(
 
 	// register resource server for plugin resource access
 	pluginHostRoot := plugin_host_resource.NewPluginHostRoot(
+		ctx,
 		c.le, c.bus, pluginID, manifest.GetManifest().GetEntrypoint(),
 		distFS, assetsFS, proxyHostVol,
 		hostRoot,
 		"plugin-state-atoms",
 		bldr_plugin.PluginVolumeID,
+		registrationDone,
 	)
 	resourceSrv := resource_server.NewResourceServer(pluginHostRoot.GetMux())
 	_ = resourceSrv.Register(mux)
@@ -439,13 +479,13 @@ func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldSt
 		return nil
 	}
 
-	c.le.Infof("clearing %d unknown / out of date plugins", len(unknownPlugins))
+	c.le.WithField("count", len(unknownPlugins)).Info("clearing unknown or out-of-date plugins")
 	for _, unknownPlugin := range unknownPlugins {
 		if err := host.DeletePlugin(ctx, unknownPlugin); err != nil {
 			if err == context.Canceled {
 				return err
 			}
-			c.le.WithError(err).Warnf("unable to clear old plugin: %s", unknownPlugin)
+			c.le.WithError(err).WithField("plugin-id", unknownPlugin).Warn("unable to clear old plugin")
 		}
 	}
 

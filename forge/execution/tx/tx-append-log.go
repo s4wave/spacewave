@@ -6,13 +6,16 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
-	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
 // NewTxAppendLog constructs an APPEND_LOG transaction.
 // Clones the entries when building the Tx object.
-func NewTxAppendLog(entries []*forge_execution.LogEntry) (*Tx, error) {
+func NewTxAppendLog(
+	entries []*forge_execution.LogEntry,
+	claims ...*forge_execution.Claim,
+) (*Tx, error) {
+	claim := claimOrImplicit(claims)
 	if len(entries) == 0 {
 		return nil, errors.New("entries cannot be empty")
 	}
@@ -26,7 +29,9 @@ func NewTxAppendLog(entries []*forge_execution.LogEntry) (*Tx, error) {
 	return &Tx{
 		TxType: TxType_TxType_APPEND_LOG,
 		TxAppendLog: &TxAppendLog{
-			Entries: cloned,
+			Entries:    cloned,
+			ClaimId:    claim.GetClaimId(),
+			ClaimEpoch: claim.GetEpoch(),
 		},
 	}, nil
 }
@@ -40,6 +45,12 @@ func (t *TxAppendLog) GetTxType() TxType {
 func (t *TxAppendLog) Validate() error {
 	if len(t.GetEntries()) == 0 {
 		return errors.New("entries cannot be empty")
+	}
+	if t.GetClaimId() == "" {
+		return errors.New("claim_id cannot be empty")
+	}
+	if t.GetClaimEpoch() == 0 {
+		return &StaleClaimEpochError{}
 	}
 	return nil
 }
@@ -57,13 +68,16 @@ func (t *TxAppendLog) ExecuteTx(
 			return err
 		}
 	}
+	if err := checkClaim(root.GetClaim(), t.GetClaimId(), t.GetClaimEpoch()); err != nil {
+		return err
+	}
 
-	// ensure RUNNING state
-	if state := root.GetExecutionState(); state != forge_execution.State_ExecutionState_RUNNING {
-		return errors.Wrapf(
-			forge_value.ErrUnknownState,
-			"%s", state.String(),
-		)
+	// The executor may record cleanup progress while draining.
+	if err := root.GetExecutionState().EnsureMatches(
+		forge_execution.State_ExecutionState_RUNNING,
+		forge_execution.State_ExecutionState_CANCELING,
+	); err != nil {
+		return err
 	}
 
 	root.LogEntries = append(root.LogEntries, t.GetEntries()...)

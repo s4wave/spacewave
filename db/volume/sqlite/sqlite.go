@@ -3,6 +3,7 @@ package volume_sqlite
 import (
 	"context"
 	"os"
+	"path/filepath"
 
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	skvtx "github.com/s4wave/spacewave/db/store/kvtx"
@@ -43,9 +44,9 @@ func NewSqlite(
 		vstore = kvtx_vlogger.NewVLogger(le, vstore)
 	}
 
-	path := conf.GetPath()
 	db := store.GetDB()
-	return kvtx.NewVolume(
+	path := conf.GetPath()
+	return kvtx.NewVolumeWithWorldEngineLeaseProvider(
 		ctx,
 		ControllerID,
 		kvkey,
@@ -75,6 +76,7 @@ func NewSqlite(
 				BlockCount: count,
 			}, nil
 		},
+		volume.NewFileWorldEngineLeaseProvider(filepath.Dir(path), path+"\x00"+conf.GetTable()),
 		db.Close,
 		func() error { return os.Remove(path) },
 	)

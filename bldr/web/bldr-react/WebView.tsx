@@ -84,6 +84,12 @@ interface IWebViewState {
   cssLoaded?: boolean
 }
 
+interface IWebViewRuntimePresentation {
+  generation: string
+  neutralFrame: boolean
+  revealed: boolean
+}
+
 // canCloseWindow checks if window.close will (probably) work.
 // https://stackoverflow.com/a/50593730
 export function canCloseWindow() {
@@ -146,6 +152,10 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
   // parentUuid is the parent web view uuid
   const parentUuid = bldrContext?.webView?.getUuid() || undefined
 
+  const [runtimePresentation, setRuntimePresentation] =
+    useState<IWebViewRuntimePresentation>()
+  const runtimePresentationRef = useRef(runtimePresentation)
+  runtimePresentationRef.current = runtimePresentation
   // parentUuidRef is the current parent uuid ref.
   const parentUuidRef = useLatestRef(parentUuid)
   const setHtmlLinksSeenRef = useRef(false)
@@ -210,6 +220,94 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     [parentUuid, props.startupProgress, uuid],
   )
 
+  const readRuntimePresentation = useCallback(
+    (reset = false) => {
+      if (props.startupProgress !== true) {
+        return
+      }
+      const documentWithPresentation = bldrWebDocument as
+        | (BldrWebDocument & {
+            getRuntimePresentationState?: () => {
+              connected: boolean
+              generation?: string
+            }
+          })
+        | undefined
+      const state = documentWithPresentation?.getRuntimePresentationState?.()
+      if (!state?.connected || !state.generation) {
+        setRuntimePresentation(undefined)
+        return
+      }
+      const generation = state.generation
+      setRuntimePresentation((previous) =>
+        !reset && previous?.generation === generation
+          ? previous
+          : {
+              generation,
+              neutralFrame: false,
+              revealed: false,
+            },
+      )
+    },
+    [bldrWebDocument, props.startupProgress],
+  )
+
+  const resetRuntimePresentation = useCallback(() => {
+    markedRevealedRef.current = false
+    readRuntimePresentation(true)
+  }, [readRuntimePresentation])
+
+  useEffect(() => {
+    const documentWithEvents = bldrWebDocument as
+      | (BldrWebDocument & {
+          on?: BldrWebDocument['on']
+          removeListener?: BldrWebDocument['removeListener']
+        })
+      | undefined
+    if (
+      !documentWithEvents ||
+      typeof documentWithEvents.on !== 'function' ||
+      typeof documentWithEvents.removeListener !== 'function'
+    ) {
+      return
+    }
+    const onRuntimeConnected = () => readRuntimePresentation()
+    const onRuntimeInvalidated = (generation?: string) => {
+      const current = runtimePresentationRef.current
+      if (!current || !generation || current.generation === generation) {
+        markedRevealedRef.current = false
+        setRuntimePresentation(undefined)
+      }
+    }
+    documentWithEvents.on('runtimeconnected', onRuntimeConnected)
+    documentWithEvents.on('runtimeinvalidated', onRuntimeInvalidated)
+    readRuntimePresentation()
+    return () => {
+      documentWithEvents.removeListener?.(
+        'runtimeconnected',
+        onRuntimeConnected,
+      )
+      documentWithEvents.removeListener?.(
+        'runtimeinvalidated',
+        onRuntimeInvalidated,
+      )
+    }
+  }, [bldrWebDocument, readRuntimePresentation])
+
+  useEffect(() => {
+    if (!runtimePresentation || runtimePresentation.neutralFrame) {
+      return
+    }
+    setRuntimePresentation((previous) =>
+      previous?.generation === runtimePresentation.generation
+        ? { ...previous, neutralFrame: true }
+        : previous,
+    )
+    markWebViewStartupBoundary('neutral-frame', {
+      runtimeGeneration: runtimePresentation.generation,
+    })
+  }, [markWebViewStartupBoundary, runtimePresentation])
+
   const bldrWebViewRef = useRef<BldrWebView | null>(null)
   const bldrWebView: BldrWebView = useMemoManual(
     () => ({
@@ -244,6 +342,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         if (renderTargetChanged) {
           setIsComponentReady(false)
           resetComponentRevealStartupMarks()
+          resetRuntimePresentation()
           if (options.refresh) {
             resetStylesheetStartupMarks()
           }
@@ -251,8 +350,9 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         setWebViewState((prev) => ({
           ...prev,
           renderMode: options.renderMode,
-          refreshNonce:
-            options.refresh ? prev.refreshNonce + 1 : prev.refreshNonce,
+          refreshNonce: options.refresh
+            ? prev.refreshNonce + 1
+            : prev.refreshNonce,
           scriptPath,
           props: options.props,
         }))
@@ -264,6 +364,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         console.log(`WebView: set html links: ${uuid}`, options)
         setHtmlLinksSeenRef.current = true
         if (options.clear) {
+          resetRuntimePresentation()
           resetStylesheetStartupMarks()
           markedRevealedRef.current = false
         }
@@ -318,6 +419,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         setHtmlLinksSeenRef.current = false
         resetComponentRevealStartupMarks()
         resetStylesheetStartupMarks()
+        resetRuntimePresentation()
         setWebViewState((prev) => {
           const next = { ...prev }
           next.refreshNonce++
@@ -358,6 +460,7 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
       setHtmlLinksSeenRef,
       resetComponentRevealStartupMarks,
       resetStylesheetStartupMarks,
+      resetRuntimePresentation,
       webViewStateRef,
     ],
   )
@@ -456,12 +559,22 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     webViewState.scriptPath,
   ])
 
+  const runtimePresentationOwner =
+    props.startupProgress === true &&
+    typeof (
+      bldrWebDocument as
+        | (BldrWebDocument & {
+            getRuntimePresentationState?: unknown
+          })
+        | undefined
+    )?.getRuntimePresentationState === 'function'
   useEffect(() => {
     if (
       markedRevealedRef.current ||
       !webViewState.ready ||
       !webViewState.cssLoaded ||
-      !isComponentReady
+      !isComponentReady ||
+      (runtimePresentationOwner && !runtimePresentation?.neutralFrame)
     ) {
       return
     }
@@ -469,16 +582,33 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     markWebViewStartupBoundary('revealed', {
       renderMode: webViewState.renderMode,
       stylesheetCount,
+      ...(runtimePresentation
+        ? { runtimeGeneration: runtimePresentation.generation }
+        : {}),
     })
+    if (runtimePresentation) {
+      setRuntimePresentation((previous) =>
+        previous?.generation === runtimePresentation.generation
+          ? { ...previous, revealed: true }
+          : previous,
+      )
+    }
   }, [
+    bldrWebDocument,
     isComponentReady,
     markWebViewStartupBoundary,
+    runtimePresentation,
+    runtimePresentationOwner,
     stylesheetCount,
     webViewState.cssLoaded,
     webViewState.ready,
     webViewState.renderMode,
   ])
 
+  const runtimeTransitionActive = runtimePresentation?.revealed === true
+  const activityVisible = runtimePresentationOwner
+    ? runtimePresentation?.neutralFrame === true
+    : webViewState.cssLoaded
   return (
     <BldrContext.Provider value={childContext}>
       {props.showDebugInfo ? (
@@ -505,8 +635,11 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         </DebugInfo>
       ) : undefined}
       {/* Show loading while CSS is loading or component not ready */}
-      {(!webViewState.ready || !webViewState.cssLoaded || !isComponentReady) &&
-      props.loading
+      {(runtimePresentationOwner
+        ? !runtimeTransitionActive
+        : !webViewState.ready ||
+          !webViewState.cssLoaded ||
+          !isComponentReady) && props.loading
         ? props.loading
         : null}
       {/* Render stylesheets immediately when ready with onload tracking */}
@@ -540,21 +673,21 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
         : undefined}
       {/* Render component inside Activity - hidden until CSS loads */}
       {webViewState.ready &&
-        webViewState.renderMode === RenderMode.RenderMode_REACT_COMPONENT &&
-        !!webViewState.scriptPath && (
-          <Activity mode={webViewState.cssLoaded ? 'visible' : 'hidden'}>
-            <ReactComponentContainer
-              key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
-              scriptPath={webViewState.scriptPath}
-              componentProps={webViewState.props}
-              onReady={handleComponentReady}
-            />
-          </Activity>
-        )}
+      webViewState.renderMode === RenderMode.RenderMode_REACT_COMPONENT &&
+      webViewState.scriptPath ? (
+        <Activity mode={activityVisible ? 'visible' : 'hidden'}>
+          <ReactComponentContainer
+            key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
+            scriptPath={webViewState.scriptPath}
+            componentProps={webViewState.props}
+            onReady={handleComponentReady}
+          />
+        </Activity>
+      ) : undefined}
       {webViewState.ready &&
       webViewState.renderMode === RenderMode.RenderMode_FUNCTION &&
       webViewState.scriptPath ? (
-        <Activity mode={webViewState.cssLoaded ? 'visible' : 'hidden'}>
+        <Activity mode={activityVisible ? 'visible' : 'hidden'}>
           <FunctionComponentContainer
             key={`${webViewState.refreshNonce} -> ${webViewState.scriptPath}`}
             scriptPath={webViewState.scriptPath}

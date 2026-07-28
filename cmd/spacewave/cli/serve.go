@@ -4,12 +4,12 @@ package spacewave_cli
 
 import (
 	"context"
-	stderrors "errors"
 	"net"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -96,18 +96,36 @@ func runServeCommand(
 	}()
 
 	sockPath := filepath.Join(resolved, socketName)
+	handoffBroker := resource_listener.GetProcessYieldBroker()
+	handoffBroker.BeginHandoff("spacewave serve", sockPath)
+	defer handoffBroker.Reclaim()
+
+	statePathLease, err := prepareDaemonRuntime(ctx, nil, resolved, takeover)
+	if err != nil {
+		return err
+	}
+	leaseOwned := true
+	defer func() {
+		if leaseOwned {
+			if err := statePathLease.release(); err != nil && retErr == nil {
+				retErr = errors.Wrap(err, "release writable state path lease")
+			}
+		}
+	}()
+
 	cliBus := getBus()
 	if cliBus == nil {
 		return errors.New("bus not initialized")
 	}
 	le := cliBus.GetLogger()
+	cliBus.AddRelease(func() {
+		if err := statePathLease.release(); err != nil {
+			le.WithError(err).Error("failed to release writable state path lease")
+		}
+	})
+	leaseOwned = false
 	serveCtx, serveCancel := context.WithCancel(ctx)
-	handoffBroker := resource_listener.GetProcessYieldBroker()
-	handoffBroker.BeginHandoff("spacewave serve", sockPath)
-	defer func() {
-		serveCancel()
-		handoffBroker.Reclaim()
-	}()
+	defer serveCancel()
 	releasePluginRuntime, err := startDaemonPluginRuntime(serveCtx, resolved, cliBus)
 	if err != nil {
 		return err
@@ -138,24 +156,11 @@ func runServeCommand(
 	releaseDeviceRemoteShell := terminal_remoteshell.StartHandler(serveCtx, le, cliBus.GetBus(), devicePolicy)
 	defer releaseDeviceRemoteShell()
 
-	if takeover {
-		if err := takeoverDaemonSocket(ctx, le, sockPath); err != nil {
-			return err
-		}
-		_ = os.Remove(sockPath)
-	}
-	if err := os.MkdirAll(resolved, 0o755); err != nil {
-		return err
-	}
-
-	lis, err := net.Listen("unix", sockPath)
+	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sockPath, Net: "unix"})
 	if err != nil {
 		return errors.Wrapf(err, "listen on daemon socket %s; use --takeover only if you intend to ask another runtime to yield", sockPath)
 	}
-	defer func() {
-		lis.Close()
-		_ = os.Remove(sockPath)
-	}()
+	defer lis.Close()
 
 	if err := os.Chmod(sockPath, 0o600); err != nil {
 		le.WithError(err).Warn("failed to chmod socket")
@@ -175,10 +180,13 @@ func runServeCommand(
 	defer releaseWebKeepalive()
 
 	mux := srpc.NewMux(invoker)
-	if err := mux.Register(newDaemonControlHandler(func() {
-		serveCancel()
+	shutdownCh := make(chan struct{})
+	var shutdownOnce sync.Once
+	controlHandler := newDaemonControlHandler(func() {
+		shutdownOnce.Do(func() { close(shutdownCh) })
 		lis.Close()
-	})); err != nil {
+	})
+	if err := mux.Register(controlHandler); err != nil {
 		return err
 	}
 	if err := mux.Register(newDevicePolicyControlHandler(devicePolicy.Reload)); err != nil {
@@ -187,20 +195,12 @@ func runServeCommand(
 	if err := s4wave_trace.SRPCRegisterTraceService(mux, trace_service.NewService()); err != nil {
 		return err
 	}
-	go func() {
-		<-serveCtx.Done()
-		lis.Close()
-	}()
 
 	srv := srpc.NewServer(mux)
 	if err := startupNotifier.reportReady(); err != nil {
 		return err
 	}
-	err = acceptDaemonListener(serveCtx, lis, srv, idleTracker)
-	if err != nil && (serveCtx.Err() != nil || stderrors.Is(err, net.ErrClosed)) {
-		return nil
-	}
-	return err
+	return serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, shutdownCh, idleTracker)
 }
 
 func startDaemonPluginRuntime(

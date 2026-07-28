@@ -91,7 +91,8 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 			if err != nil {
 				return errors.Wrapf(err, "executions[%d]: %s", i, execObjKey)
 			}
-			if execObj.GetExecutionState() == forge_execution.State_ExecutionState_RUNNING {
+			if state := execObj.GetExecutionState(); state == forge_execution.State_ExecutionState_RUNNING ||
+				state == forge_execution.State_ExecutionState_CANCELING {
 				skipExecs[execObj.GetPeerId()] = struct{}{}
 				continue
 			}

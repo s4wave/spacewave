@@ -187,6 +187,7 @@ func (a *ProviderAccount) runConfirmExchangeOnStream(
 		a.pairing.remotePeerID = remotePeerID
 		a.pairing.emoji = emoji
 		a.pairing.confirmCh = make(chan bool, 1)
+		a.pairing.confirmationConsumed = false
 		a.pairing.status = PairingStatusVerifyingEmoji
 		bcast()
 	})
@@ -250,9 +251,10 @@ func (a *ProviderAccount) runConfirmExchangeOnStream(
 		return
 	}
 
-	// Both confirmed.
-	a.setPairingStatus(PairingStatusBothConfirmed)
-	le.Debug("both sides confirmed pairing")
+	// Bind the completed exchange to the peer and exchange channel that produced it.
+	if a.setPairingBothConfirmed(remotePeerID, confirmCh) {
+		le.Debug("both sides confirmed pairing")
+	}
 }
 
 func recvPairingConfirm(ctx context.Context, sess *stream_packet.Session) (PairingConfirmMessage, error, bool) {

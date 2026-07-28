@@ -17,6 +17,34 @@ func LogLevelEnvVar(projectID string) string {
 	return projectIDPrefix(projectID) + "_LOG_LEVEL"
 }
 
+// StatePathEnvVar returns the environment variable that carries the resolved
+// project state path (e.g. "spacewave" -> "SPACEWAVE_STATE_PATH").
+func StatePathEnvVar(projectID string) string {
+	return projectIDPrefix(projectID) + "_STATE_PATH"
+}
+
+// SocketPathEnvVar returns the environment variable that overrides the
+// daemon socket path (e.g. "spacewave" -> "SPACEWAVE_SOCKET_PATH").
+func SocketPathEnvVar(projectID string) string {
+	return projectIDPrefix(projectID) + "_SOCKET_PATH"
+}
+
+// PublishResolvedPaths publishes the resolved state root and optional
+// explicit socket path to the project's environment variables so
+// bus-hosted components (such as the resource listener) scope their
+// default paths to the invocation's state root instead of the shared
+// process default. socketPath may be empty when no explicit socket
+// path was requested.
+func PublishResolvedPaths(projectID, stateRoot, socketPath string) error {
+	if err := os.Setenv(StatePathEnvVar(projectID), stateRoot); err != nil {
+		return err
+	}
+	if socketPath == "" {
+		return nil
+	}
+	return os.Setenv(SocketPathEnvVar(projectID), socketPath)
+}
+
 // LogRetentionDaysEnvVar returns the environment variable that overrides
 // the on-disk log retention duration (in days) for the given project.
 func LogRetentionDaysEnvVar(projectID string) string {

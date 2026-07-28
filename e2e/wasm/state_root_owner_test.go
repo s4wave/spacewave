@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	bldr_statepath "github.com/s4wave/spacewave/bldr/statepath"
 )
 
 const harnessStateRootDeadPID = 999999999
@@ -31,6 +33,137 @@ func TestHarnessStateRootOwnerMarkerRoundTrip(t *testing.T) {
 	if got != owner {
 		t.Fatalf("owner marker round trip = %+v, want %+v", got, owner)
 	}
+}
+
+func TestHarnessStateRootConcurrentOwnersUseDistinctRoots(t *testing.T) {
+	repoRoot := t.TempDir()
+	stableStateRoot, err := buildHarnessStateRoot(repoRoot, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	privateStateRoot, err := buildHarnessStateRoot(repoRoot, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stableStateRoot == privateStateRoot {
+		t.Fatalf("stable and private state roots both resolved to %s", stableStateRoot)
+	}
+
+	stableLock := acquireTestHarnessStateRootLock(t, stableStateRoot)
+	t.Cleanup(func() {
+		closeTestHarnessStateRootLock(t, stableLock)
+	})
+	assertHarnessStateRootPathMissing(t, filepath.Join(stableStateRoot, harnessStateRootOwnerName))
+
+	stableSentinel := filepath.Join(stableStateRoot, "src", "live")
+	if err := os.MkdirAll(filepath.Dir(stableSentinel), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(stableSentinel, []byte("live"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	contendedLock, acquired, err := acquireHarnessStateRootLock(stableStateRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if acquired {
+		closeTestHarnessStateRootLock(t, contendedLock)
+		t.Fatal("second owner acquired the live stable state root")
+	}
+
+	privateLock := acquireTestHarnessStateRootLock(t, privateStateRoot)
+	privateOwner, err := newHarnessStateRootOwner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeHarnessStateRootOwner(privateStateRoot, privateOwner); err != nil {
+		t.Fatal(err)
+	}
+	privateSentinel := filepath.Join(privateStateRoot, "src", "private")
+	if err := os.MkdirAll(filepath.Dir(privateSentinel), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(privateSentinel, []byte("private"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	(&Harness{
+		stateRoot:                 privateStateRoot,
+		preserveStartupBuildCache: false,
+		stateRootOwner:            privateOwner,
+		stateRootLock:             privateLock,
+	}).Release()
+
+	assertHarnessStateRootPathMissing(t, privateStateRoot)
+	assertHarnessStateRootPathExists(t, stableSentinel)
+	assertHarnessStateRootPathMissing(t, filepath.Join(stableStateRoot, harnessStateRootOwnerName))
+}
+
+func TestHarnessStateRootSerialOwnersReuseStableRoot(t *testing.T) {
+	repoRoot := t.TempDir()
+	stableStateRoot, err := buildHarnessStateRoot(repoRoot, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstLock := acquireTestHarnessStateRootLock(t, stableStateRoot)
+	assertHarnessStateRootPathMissing(t, filepath.Join(stableStateRoot, harnessStateRootOwnerName))
+
+	durable := filepath.Join(stableStateRoot, "build", "cached")
+	transient := filepath.Join(stableStateRoot, "src", "stale")
+	for _, path := range []string{durable, transient} {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("state"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	closeTestHarnessStateRootLock(t, firstLock)
+
+	secondLock := acquireTestHarnessStateRootLock(t, stableStateRoot)
+	if err := bldr_statepath.ClearBuildState(stableStateRoot, true); err != nil {
+		t.Fatal(err)
+	}
+	assertHarnessStateRootPathExists(t, durable)
+	assertHarnessStateRootPathMissing(t, transient)
+	assertHarnessStateRootPathExists(t, filepath.Join(stableStateRoot, harnessStateRootLockName))
+
+	(&Harness{
+		stateRoot:                 stableStateRoot,
+		preserveStartupBuildCache: true,
+		stateRootLock:             secondLock,
+	}).Release()
+
+	assertHarnessStateRootPathExists(t, stableStateRoot)
+	assertHarnessStateRootPathMissing(t, filepath.Join(stableStateRoot, harnessStateRootOwnerName))
+	thirdLock := acquireTestHarnessStateRootLock(t, stableStateRoot)
+	closeTestHarnessStateRootLock(t, thirdLock)
+}
+
+func TestHarnessStateRootReleaseStopsConsumersBeforeUnlock(t *testing.T) {
+	stateRoot := filepath.Join(t.TempDir(), "wasm-stable")
+	lock := acquireTestHarnessStateRootLock(t, stateRoot)
+	h := &Harness{
+		stateRoot:                 stateRoot,
+		preserveStartupBuildCache: true,
+		stateRootLock:             lock,
+		cloudEndpointClose: func() {
+			consumerLock, acquired, err := acquireHarnessStateRootLock(stateRoot)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if acquired {
+				closeTestHarnessStateRootLock(t, consumerLock)
+				t.Fatal("state root unlocked before consumer cleanup")
+			}
+		},
+	}
+
+	h.Release()
+
+	reacquiredLock := acquireTestHarnessStateRootLock(t, stateRoot)
+	closeTestHarnessStateRootLock(t, reacquiredLock)
 }
 
 func TestReapHarnessCacheOffStateRootsDeletesDeadPIDMarker(t *testing.T) {
@@ -124,6 +257,28 @@ func TestReapHarnessCacheOffStateRootsPreservesYoungMarkerlessStateRoot(t *testi
 	})
 
 	assertHarnessStateRootPathExists(t, stateRoot)
+}
+
+func acquireTestHarnessStateRootLock(t *testing.T, stateRoot string) *os.File {
+	t.Helper()
+	if err := os.MkdirAll(stateRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lock, acquired, err := acquireHarnessStateRootLock(stateRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !acquired {
+		t.Fatalf("state root lock is contended: %s", stateRoot)
+	}
+	return lock
+}
+
+func closeTestHarnessStateRootLock(t *testing.T, lock *os.File) {
+	t.Helper()
+	if err := lock.Close(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func makeHarnessStateRootDir(t *testing.T, parent, name string) string {

@@ -336,7 +336,7 @@ function LoadingCard({ view }: { view: LoadingView }) {
                 <button
                   type="button"
                   onClick={view.onRetry}
-                  className="border-foreground/8 bg-foreground/5 hover:bg-foreground/10 hover:border-foreground/15 text-foreground-alt hover:text-foreground rounded-md border px-2 py-1 text-[0.65rem] font-medium transition-all duration-150"
+                  className="border-foreground/8 bg-foreground/5 hover:bg-foreground/10 hover:border-foreground/15 text-foreground-alt hover:text-foreground rounded-md border px-2 py-1 text-[0.65rem] font-medium transition duration-150"
                 >
                   Retry
                 </button>

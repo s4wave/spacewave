@@ -20,9 +20,9 @@ type startupManifestGraphEdge struct {
 	label string
 }
 
-// DumpStartupManifestGraphForManifestID builds a non-mutating diagnostic dump
+// dumpStartupManifestGraphForManifestID builds a non-mutating diagnostic dump
 // of the retained manifest graph followed during startup selection.
-func DumpStartupManifestGraphForManifestID(
+func dumpStartupManifestGraphForManifestID(
 	ctx context.Context,
 	ws world.WorldState,
 	manifestID string,
@@ -187,7 +187,7 @@ func describeStartupManifestGraphCandidate(
 	}
 
 	if objType == ManifestTypeID {
-		manifest, _, err := LookupManifest(ctx, ws, objKey)
+		manifest, _, err := lookupStartupManifestObjectLocal(ctx, ws, objKey)
 		if err != nil {
 			parts = append(parts, "skip="+err.Error())
 			return strings.Join(parts, " ")
@@ -201,7 +201,7 @@ func describeStartupManifestGraphCandidate(
 
 	manifestRef, _, err := LookupManifestRef(ctx, ws, objKey)
 	if err != nil {
-		manifest, _, manifestErr := LookupManifest(ctx, ws, objKey)
+		manifest, _, manifestErr := lookupStartupManifestObjectLocal(ctx, ws, objKey)
 		if manifestErr == nil && manifest != nil {
 			parts = append(parts, "manifest_meta="+startupManifestGraphMeta(manifest.GetMeta()))
 			if err := manifest.Validate(); err != nil {
@@ -234,7 +234,7 @@ func describeStartupManifestGraphCandidate(
 		return strings.Join(parts, " ")
 	}
 
-	manifest, err := lookupStartupManifestObjectRef(ctx, ws, manifestObjRef)
+	manifest, err := lookupStartupManifestObjectRefLocal(ctx, ws, manifestObjRef)
 	if err != nil {
 		parts = append(parts, "skip="+err.Error())
 		return strings.Join(parts, " ")

@@ -93,6 +93,7 @@ import {
 import { markStartupBoundary } from './startup-marks.js'
 import {
   StorageDurabilityOwner,
+  type PersistenceStatus,
   type StorageManagerLike,
 } from './storage-durability-owner.js'
 
@@ -169,6 +170,7 @@ function isOpfsWorkerReadyMessage(data: unknown): boolean {
 
 interface DedicatedRuntimeHostLostMessage {
   webDocumentId: string
+  hostGeneration?: string
   reason?: string
 }
 
@@ -605,8 +607,16 @@ type WebDocumentEvents = {
   visibilitychange: (hidden: boolean) => void
   webdocumentstatuschange: (snapshot: WebDocumentStatus) => void
   runtimeconnected: () => void
+  runtimeinvalidated: (generation?: string) => void
   resumeready: () => void
   closed: (err?: Error) => void
+}
+
+export interface WebDocumentRuntimePresentationState {
+  connected: boolean
+  mode?: 'dedicated-host' | 'dedicated-attached' | 'shared-worker'
+  generation?: string
+  hostDocumentId?: string
 }
 
 interface RuntimeEnvGlobal {
@@ -725,6 +735,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private forceDedicatedWorkers?: boolean
   // dedicatedRuntimeHost owns the temporary DedicatedWorker host election.
   private dedicatedRuntimeHost?: DedicatedWorkerHostOwner
+  // startRuntimeOnce starts the runtime worker and its connection the first
+  // time it is called. The runtime start waits for ServiceWorker control, and
+  // control arrives by several routes, so every route that observes control
+  // calls this rather than starting the runtime itself.
+  private startRuntimeOnce?: () => void
   // forceMessagePortWorkerComms forces MessagePort-only worker communication.
   private forceMessagePortWorkerComms?: boolean
   // webRuntimePort is the Port connected to the WebRuntime (Shared Worker or Electron Main).
@@ -787,6 +802,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   private firstWorkerReadyMarked = false
   // runtimeConnected records that this document has a live runtime channel.
   private runtimeConnected = false
+  // runtimePresentationGeneration identifies the host generation whose usable
+  // channel may advance this document's loading transition.
+  private runtimePresentationGeneration?: string
+  private runtimePresentationMode?: WebDocumentRuntimePresentationState['mode']
+  private runtimePresentationHostDocumentId?: string
   // resumeReady records that this foreground document has reached a stable point
   // where resume-sensitive startup collectors can treat it as usable.
   private resumeReady = false
@@ -808,12 +828,34 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     return this.hidden
   }
 
+  // readStoragePersistenceStatus refreshes browser cleanup protection through
+  // the document-owned durability owner.
+  public readStoragePersistenceStatus(): Promise<PersistenceStatus> {
+    return this.storageDurabilityOwner.readStatus()
+  }
+
+  // requestStoragePersistence requests browser cleanup protection through the
+  // document-owned durability owner.
+  public requestStoragePersistence(): Promise<void> {
+    return this.storageDurabilityOwner.requestProtection()
+  }
+
   public getResumeReadyState(): WebDocumentResumeReadyState | null {
     const state = globalThis.__swWebDocumentResumeReady
     if (state?.documentId !== this.webDocumentUuid) {
       return null
     }
     return state
+  }
+  // getRuntimePresentationState exposes only the current-generation gate used
+  // by the owning WebView; Web-Lock and ServiceWorker telemetry stay private.
+  public getRuntimePresentationState(): WebDocumentRuntimePresentationState {
+    return {
+      connected: this.runtimeConnected,
+      mode: this.runtimePresentationMode,
+      generation: this.runtimePresentationGeneration,
+      hostDocumentId: this.runtimePresentationHostDocumentId,
+    }
   }
 
   // waitConn waits for the WebRuntime connection to become ready.
@@ -1023,6 +1065,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         this.webRuntimeId,
         this.webDocumentUuid,
       )
+      // Every dedicated document participates in plugin singleton ownership.
+      // Attached documents must wait for the elected runtime host's workers
+      // instead of starting a private plugin host that cannot join the runtime.
+      this.enablePluginSingletonLock()
     }
 
     const startWebRuntimeWorker = () => {
@@ -1126,14 +1172,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         })
       }
 
-      // In DedicatedWorker runtime mode, only the elected host document reaches
-      // plugin worker creation. It still holds the plugin singleton lock so the
-      // fallback preserves SharedWorker's one active plugin-host owner shape.
-      const usePluginSingletonLock = useDedicatedRuntime && !this.isElectron
-      if (usePluginSingletonLock) {
-        this.enablePluginSingletonLock()
-      }
-
       // we don't expect any messages directly from the main worker port.
       this.webRuntimePort.start()
     }
@@ -1219,37 +1257,39 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     const wb = new Workbox(swUrl) // Not supported in Firefox: {type: 'module'}
     this.serviceWorker = wb
 
-    if (useDedicatedRuntime) {
-      void this.initServiceWorker(wb, swUrl, () => {
-        queueMicrotask(startDedicatedRuntime)
-      })
-    } else {
-      // Shared-worker mode: the shared worker imports /b/* runtime and plugin
-      // bundle paths, which only resolve once the ServiceWorker is controlling
-      // this page. Starting the worker before control means those imports hit the
-      // origin, which serves the SPA index.html for unmatched paths, so the
-      // module loads fail and the runtime never comes up. Gate
-      // the start on SW control like the dedicated branch, with a bounded fallback
-      // so a browser whose SW never reaches controlling state still loads
-      // (degraded) instead of hanging forever.
-      let runtimeStarted = false
-      const startRuntimeOnce = () => {
-        if (runtimeStarted || this.closed) {
-          return
-        }
-        runtimeStarted = true
-        startWebRuntimeWorker()
-        this.startWebRuntimeConnection()
+    // Both runtime modes import /b/* runtime and plugin bundle paths, which
+    // only resolve once the ServiceWorker is controlling this page. Starting a
+    // worker before control means those imports hit the origin, which serves
+    // the SPA index.html for unmatched paths, so the module loads fail and the
+    // runtime never comes up. So both modes gate the start on SW control, and
+    // neither may gate on it forever: a document that never starts a runtime
+    // has nothing left scheduled to start one, and the boot parks silently for
+    // as long as the tab stays open. The bounded fallback starts the runtime
+    // anyway, degraded, rather than hanging.
+    let runtimeStarted = false
+    const startRuntimeOnce = () => {
+      if (runtimeStarted || this.closed) {
+        return
       }
-      const controlFallback = globalThis.setTimeout(
-        startRuntimeOnce,
-        sharedWorkerControlFallbackMs,
-      )
-      void this.initServiceWorker(wb, swUrl, () => {
-        globalThis.clearTimeout(controlFallback)
-        startRuntimeOnce()
-      })
+      runtimeStarted = true
+      if (useDedicatedRuntime) {
+        // The dedicated host election reads the ServiceWorker tracker, so let
+        // the caller finish binding its port before the election starts.
+        queueMicrotask(startDedicatedRuntime)
+        return
+      }
+      startWebRuntimeWorker()
+      this.startWebRuntimeConnection()
     }
+    this.startRuntimeOnce = startRuntimeOnce
+    const controlFallback = globalThis.setTimeout(
+      startRuntimeOnce,
+      sharedWorkerControlFallbackMs,
+    )
+    void this.initServiceWorker(wb, swUrl, () => {
+      globalThis.clearTimeout(controlFallback)
+      startRuntimeOnce()
+    })
   }
 
   // openWebDocumentHostStream opens an RPC stream with the WebDocumentHost.
@@ -1729,6 +1769,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       const currSw = navigator.serviceWorker.controller || sw
       // the service worker wants a new message port for requests
       this.initServiceWorkerPort(currSw)
+      // A service worker talking to this document is proof that one controls
+      // it, which is the condition the runtime start is waiting for.
+      this.startRuntimeOnce?.()
       if (!this.runtimeConnected) {
         this.taskEnsureWebRuntimeConn()
       }
@@ -1753,6 +1796,11 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       // the still-live host without waiting for a failed connection to solicit
       // another registration.
       this.initServiceWorkerPort(controller)
+      // controllerchange is the event form of the condition the runtime start
+      // gate waits for. The awaited path below can return early or never
+      // settle, so this route must start the runtime rather than only rebind
+      // the port to it.
+      this.startRuntimeOnce?.()
       if (!this.runtimeConnected) {
         this.taskEnsureWebRuntimeConn()
       }
@@ -1912,13 +1960,27 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   }
 
   private handleDedicatedRuntimeHostLost(
-    _lost: DedicatedRuntimeHostLostMessage,
+    lost: DedicatedRuntimeHostLostMessage,
   ): void {
     const host = this.dedicatedRuntimeHost
     if (!host || host.role !== 'attached') {
       return
     }
+    if (
+      lost.webDocumentId !== host.connectedHostDocumentId ||
+      lost.hostGeneration !== host.connectedHostGeneration
+    ) {
+      return
+    }
     this.setRuntimeConnected(false)
+    markStartupBoundary('dedicated-host.lost', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      hostDocumentId: lost.webDocumentId,
+      hostGeneration: lost.hostGeneration,
+      reason: lost.reason,
+    })
     this.clearResumeReadyState('dedicated-runtime-host-lost')
     if ('rerouteChannel' in this.webRuntimeClient) {
       void this.webRuntimeClient
@@ -1938,7 +2000,13 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     init: WebRuntimeClientInit,
   ): Promise<MessagePort> {
     if (this.dedicatedRuntimeHost?.role === 'attached') {
-      return this.dedicatedRuntimeHost.openClientChannel(init)
+      const port = await this.dedicatedRuntimeHost.openClientChannel(init)
+      this.setRuntimePresentationRoute(
+        'dedicated-attached',
+        this.dedicatedRuntimeHost.connectedHostGeneration,
+        this.dedicatedRuntimeHost.connectedHostDocumentId,
+      )
+      return port
     }
 
     const { port1: localPort, port2: remotePort } = new MessageChannel()
@@ -1952,6 +2020,13 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       this.webDocumentUuid,
       WebRuntimeClientInit.toBinary(init),
       remotePort,
+    )
+    const mode = this.dedicatedRuntimeHost ? 'dedicated-host' : 'shared-worker'
+    this.setRuntimePresentationRoute(
+      mode,
+      this.dedicatedRuntimeHost?.generation ??
+        `shared-worker-${this.webRuntimeId}`,
+      this.dedicatedRuntimeHost ? this.webDocumentUuid : undefined,
     )
     return localPort
   }
@@ -2834,6 +2909,12 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     const ack: ConnectWebRuntimeAck = {
       from: this.webDocumentUuid,
       webRuntimePort: clientPort,
+      ...(this.dedicatedRuntimeHost?.role === 'host'
+        ? {
+            hostDocumentId: this.webDocumentUuid,
+            hostGeneration: this.dedicatedRuntimeHost.generation,
+          }
+        : {}),
     }
     port.postMessage(ack, [clientPort])
     port.close()
@@ -2916,11 +2997,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           if (this.closed) {
             return
           }
-          markStartupBoundary('runtime.connected', {
-            source: 'browser',
-            documentId: this.webDocumentUuid,
-            runtimeId: this.webRuntimeId,
-          })
           this.setRuntimeConnected(true)
           this.scheduleResumeReadySeed()
         },
@@ -3083,15 +3159,60 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     port.postMessage(msg)
   }
 
+  private setRuntimePresentationRoute(
+    mode: WebDocumentRuntimePresentationState['mode'],
+    generation: string | undefined,
+    hostDocumentId: string | undefined,
+  ): void {
+    if (
+      this.runtimePresentationGeneration &&
+      generation &&
+      this.runtimePresentationGeneration !== generation
+    ) {
+      this.setRuntimeConnected(false)
+    }
+    this.runtimePresentationMode = mode
+    this.runtimePresentationGeneration = generation
+    this.runtimePresentationHostDocumentId = hostDocumentId
+  }
+
+  private invalidateRuntimePresentation(reason: string): void {
+    const generation = this.runtimePresentationGeneration
+    this.runtimeConnected = false
+    this.notifyResumeReadyClients()
+    markStartupBoundary('runtime.connection-invalidated', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      runtimeGeneration: generation,
+      connectionMode: this.runtimePresentationMode,
+      reason,
+    })
+    this.emit('runtimeinvalidated', generation)
+  }
+
   private setRuntimeConnected(connected: boolean) {
-    if (this.runtimeConnected === connected) {
+    if (!connected) {
+      if (!this.runtimeConnected && !this.runtimePresentationGeneration) {
+        return
+      }
+      this.invalidateRuntimePresentation('runtime-disconnected')
       return
     }
-    this.runtimeConnected = connected
-    this.notifyResumeReadyClients()
-    if (connected) {
-      this.emit('runtimeconnected')
+    if (this.runtimeConnected) {
+      return
     }
+    this.runtimeConnected = true
+    this.notifyResumeReadyClients()
+    markStartupBoundary('runtime.connected', {
+      source: 'browser',
+      documentId: this.webDocumentUuid,
+      runtimeId: this.webRuntimeId,
+      runtimeGeneration: this.runtimePresentationGeneration,
+      connectionMode: this.runtimePresentationMode,
+      hostDocumentId: this.runtimePresentationHostDocumentId,
+    })
+    this.emit('runtimeconnected')
   }
 
   // waitForRuntimeConnected gates stream opens on the runtime channel, not on

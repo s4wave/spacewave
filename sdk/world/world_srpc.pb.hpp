@@ -232,6 +232,8 @@ class SRPCWorldStateResourceServiceClient {
   virtual starpc::Error GetObjectRootRefsBatch(const s4wave::world::GetObjectRootRefsBatchRequest& in, s4wave::world::GetObjectRootRefsBatchResponse* out) = 0;
   // GetObjectMetadataBatch
   virtual starpc::Error GetObjectMetadataBatch(const s4wave::world::GetObjectMetadataBatchRequest& in, s4wave::world::GetObjectMetadataBatchResponse* out) = 0;
+  // GetObjectBodiesBatch
+  virtual starpc::Error GetObjectBodiesBatch(const s4wave::world::GetObjectBodiesBatchRequest& in, s4wave::world::GetObjectBodiesBatchResponse* out) = 0;
   // QueryGraphPath
   virtual starpc::Error QueryGraphPath(const s4wave::world::QueryGraphPathRequest& in, s4wave::world::QueryGraphPathResponse* out) = 0;
   // DeleteGraphObject
@@ -286,6 +288,8 @@ class SRPCWorldStateResourceServiceClientImpl : public SRPCWorldStateResourceSer
   virtual starpc::Error GetObjectRootRefsBatch(const s4wave::world::GetObjectRootRefsBatchRequest& in, s4wave::world::GetObjectRootRefsBatchResponse* out) override;
   // GetObjectMetadataBatch
   virtual starpc::Error GetObjectMetadataBatch(const s4wave::world::GetObjectMetadataBatchRequest& in, s4wave::world::GetObjectMetadataBatchResponse* out) override;
+  // GetObjectBodiesBatch
+  virtual starpc::Error GetObjectBodiesBatch(const s4wave::world::GetObjectBodiesBatchRequest& in, s4wave::world::GetObjectBodiesBatchResponse* out) override;
   // QueryGraphPath
   virtual starpc::Error QueryGraphPath(const s4wave::world::QueryGraphPathRequest& in, s4wave::world::QueryGraphPathResponse* out) override;
   // DeleteGraphObject
@@ -346,6 +350,8 @@ class SRPCWorldStateResourceServiceServer {
   virtual starpc::Error GetObjectRootRefsBatch(const s4wave::world::GetObjectRootRefsBatchRequest& req, s4wave::world::GetObjectRootRefsBatchResponse* resp) = 0;
   // GetObjectMetadataBatch
   virtual starpc::Error GetObjectMetadataBatch(const s4wave::world::GetObjectMetadataBatchRequest& req, s4wave::world::GetObjectMetadataBatchResponse* resp) = 0;
+  // GetObjectBodiesBatch
+  virtual starpc::Error GetObjectBodiesBatch(const s4wave::world::GetObjectBodiesBatchRequest& req, s4wave::world::GetObjectBodiesBatchResponse* resp) = 0;
   // QueryGraphPath
   virtual starpc::Error QueryGraphPath(const s4wave::world::QueryGraphPathRequest& req, s4wave::world::QueryGraphPathResponse* resp) = 0;
   // DeleteGraphObject

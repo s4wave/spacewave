@@ -98,6 +98,13 @@ func (sentinelResourceService) ResourceRefRelease(
 	return &resource.ResourceRefReleaseResponse{}, nil
 }
 
+func (sentinelResourceService) ResourceRefAdopt(
+	context.Context,
+	*resource.ResourceRefAdoptRequest,
+) (*resource.ResourceRefAdoptResponse, error) {
+	return &resource.ResourceRefAdoptResponse{}, nil
+}
+
 func (sentinelResourceService) ResourceAttach(resource.SRPCResourceService_ResourceAttachStream) error {
 	return errors.New("unexpected resource attach")
 }

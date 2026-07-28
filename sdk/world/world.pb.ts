@@ -106,6 +106,31 @@ export const GraphPathDirection_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * WorldErrorCode identifies a typed error returned in a World RPC response.
+ *
+ * @generated from enum s4wave.world.WorldErrorCode
+ */
+export enum WorldErrorCode {
+  /**
+   * @generated from enum value: WORLD_ERROR_CODE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: WORLD_ERROR_CODE_UNHANDLED_OP = 1;
+   */
+  UNHANDLED_OP = 1,
+}
+
+export const WorldErrorCode_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.world.WorldErrorCode',
+  [
+    [0, 'WORLD_ERROR_CODE_UNSPECIFIED'],
+    [1, 'WORLD_ERROR_CODE_UNHANDLED_OP'],
+  ],
+)
+
+/**
  * SyncRequest is the request type for Sync.
  *
  * @generated from message s4wave.world.SyncRequest
@@ -1508,6 +1533,131 @@ export const GetObjectMetadataBatchResponse: MessageType<GetObjectMetadataBatchR
   })
 
 /**
+ * ObjectBody contains the serialized root body for one object key.
+ *
+ * @generated from message s4wave.world.ObjectBody
+ */
+export interface ObjectBody {
+  /**
+   * ObjectKey is the requested object key.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * Body is the transformed root block data when the object exists.
+   *
+   * @generated from field: bytes body = 2;
+   */
+  body?: Uint8Array
+  /**
+   * Exists indicates whether the object key exists.
+   *
+   * @generated from field: bool exists = 3;
+   */
+  exists?: boolean
+  /**
+   * Rev is the object revision observed with body.
+   *
+   * @generated from field: uint64 rev = 4;
+   */
+  rev?: bigint
+}
+
+export const ObjectBody: MessageType<ObjectBody> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.ObjectBody',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'body', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'exists', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetObjectBodiesBatchRequest is the request type for
+ * GetObjectBodiesBatch.
+ *
+ * @generated from message s4wave.world.GetObjectBodiesBatchRequest
+ */
+export interface GetObjectBodiesBatchRequest {
+  /**
+   * ObjectKeys is the list of object keys to inspect.
+   *
+   * @generated from field: repeated string object_keys = 1;
+   */
+  objectKeys?: string[]
+  /**
+   * StartKeyIndex is the first object key index to include in this page.
+   *
+   * @generated from field: uint32 start_key_index = 2;
+   */
+  startKeyIndex?: number
+}
+
+export const GetObjectBodiesBatchRequest: MessageType<GetObjectBodiesBatchRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.GetObjectBodiesBatchRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'object_keys',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 2, name: 'start_key_index', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetObjectBodiesBatchResponse is the response type for
+ * GetObjectBodiesBatch.
+ *
+ * @generated from message s4wave.world.GetObjectBodiesBatchResponse
+ */
+export interface GetObjectBodiesBatchResponse {
+  /**
+   * Bodies preserves the request object key order.
+   *
+   * @generated from field: repeated s4wave.world.ObjectBody bodies = 1;
+   */
+  bodies?: ObjectBody[]
+  /**
+   * NextKeyIndex is the next key index to request. Zero means complete.
+   *
+   * @generated from field: uint32 next_key_index = 2;
+   */
+  nextKeyIndex?: number
+  /**
+   * WorldSeqno is the World sequence number observed for this page.
+   *
+   * @generated from field: uint64 world_seqno = 3;
+   */
+  worldSeqno?: bigint
+}
+
+export const GetObjectBodiesBatchResponse: MessageType<GetObjectBodiesBatchResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.GetObjectBodiesBatchResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'bodies',
+        kind: 'message',
+        T: () => ObjectBody,
+        repeated: true,
+      },
+      { no: 2, name: 'next_key_index', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 3, name: 'world_seqno', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * GraphPathStep is one bounded predicate traversal step.
  *
  * @generated from message s4wave.world.GraphPathStep
@@ -1723,6 +1873,12 @@ export interface ApplyWorldOpResponse {
    * @generated from field: bool sys_err = 2;
    */
   sysErr?: boolean
+  /**
+   * ErrorCode identifies a typed operation error when the RPC succeeds.
+   *
+   * @generated from field: s4wave.world.WorldErrorCode error_code = 3;
+   */
+  errorCode?: WorldErrorCode
 }
 
 export const ApplyWorldOpResponse: MessageType<ApplyWorldOpResponse> =
@@ -1731,6 +1887,7 @@ export const ApplyWorldOpResponse: MessageType<ApplyWorldOpResponse> =
     fields: [
       { no: 1, name: 'seqno', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'sys_err', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'error_code', kind: 'enum', T: WorldErrorCode_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -2314,6 +2471,12 @@ export interface ApplyObjectOpResponse {
    * @generated from field: bool sys_err = 2;
    */
   sysErr?: boolean
+  /**
+   * ErrorCode identifies a typed operation error when the RPC succeeds.
+   *
+   * @generated from field: s4wave.world.WorldErrorCode error_code = 3;
+   */
+  errorCode?: WorldErrorCode
 }
 
 export const ApplyObjectOpResponse: MessageType<ApplyObjectOpResponse> =
@@ -2322,6 +2485,7 @@ export const ApplyObjectOpResponse: MessageType<ApplyObjectOpResponse> =
     fields: [
       { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'sys_err', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'error_code', kind: 'enum', T: WorldErrorCode_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

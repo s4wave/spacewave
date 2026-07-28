@@ -47,6 +47,17 @@ func (r *BuilderResult) Validate() error {
 	if err := r.GetInputManifest().Validate(); err != nil {
 		return errors.Wrap(err, "input_manifest")
 	}
+	for subManifestID, subManifestResult := range r.GetSubManifestResults() {
+		if err := manifest.ValidateManifestID(subManifestID, false); err != nil {
+			return errors.Wrapf(err, "sub_manifest_results[%q]", subManifestID)
+		}
+		if subManifestResult == nil {
+			return errors.Errorf("sub_manifest_results[%q]: result cannot be nil", subManifestID)
+		}
+		if err := subManifestResult.Validate(); err != nil {
+			return errors.Wrapf(err, "sub_manifest_results[%q]", subManifestID)
+		}
+	}
 	return nil
 }
 

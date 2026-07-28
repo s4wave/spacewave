@@ -5,7 +5,10 @@
 import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { ProviderResourceRef } from '../provider/provider.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
-import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import {
+  createEmptyMessageType,
+  createMessageType,
+} from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
@@ -435,6 +438,328 @@ export const SORevocationReason_Enum = /* @__PURE__ */ createEnumType(
     [2, 'SO_REVOCATION_REASON_ORG_REMOVED'],
     [3, 'SO_REVOCATION_REASON_OWNER_REMOVED'],
     [4, 'SO_REVOCATION_REASON_INVITE_REVOKED'],
+  ],
+)
+
+/**
+ * SOJournalRecordKind identifies the durable event in a mutation journal.
+ *
+ * @generated from enum sobject.SOJournalRecordKind
+ */
+export enum SOJournalRecordKind {
+  /**
+   * @generated from enum value: SO_JOURNAL_RECORD_KIND_UNSPECIFIED = 0;
+   */
+  SO_JOURNAL_RECORD_KIND_UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECORD_KIND_INTENT = 1;
+   */
+  SO_JOURNAL_RECORD_KIND_INTENT = 1,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECORD_KIND_SIGNED_ENVELOPE = 2;
+   */
+  SO_JOURNAL_RECORD_KIND_SIGNED_ENVELOPE = 2,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECORD_KIND_SENT = 3;
+   */
+  SO_JOURNAL_RECORD_KIND_SENT = 3,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECORD_KIND_RECEIPT = 4;
+   */
+  SO_JOURNAL_RECORD_KIND_RECEIPT = 4,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECORD_KIND_ACKNOWLEDGEMENT = 5;
+   */
+  SO_JOURNAL_RECORD_KIND_ACKNOWLEDGEMENT = 5,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECORD_KIND_BODY_PROJECTION = 6;
+   */
+  SO_JOURNAL_RECORD_KIND_BODY_PROJECTION = 6,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECORD_KIND_STALE_TRANSFORM_EPOCH = 7;
+   */
+  SO_JOURNAL_RECORD_KIND_STALE_TRANSFORM_EPOCH = 7,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECORD_KIND_RECOVERY_BLOCKED = 8;
+   */
+  SO_JOURNAL_RECORD_KIND_RECOVERY_BLOCKED = 8,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECORD_KIND_LINEAGE_RECOVERY_BLOCKED = 9;
+   */
+  SO_JOURNAL_RECORD_KIND_LINEAGE_RECOVERY_BLOCKED = 9,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECORD_KIND_RECEIPT_LOOKUP = 10;
+   */
+  SO_JOURNAL_RECORD_KIND_RECEIPT_LOOKUP = 10,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECORD_KIND_RESEND_AUTHORIZED = 11;
+   */
+  SO_JOURNAL_RECORD_KIND_RESEND_AUTHORIZED = 11,
+}
+
+export const SOJournalRecordKind_Enum = /* @__PURE__ */ createEnumType(
+  'sobject.SOJournalRecordKind',
+  [
+    [0, 'SO_JOURNAL_RECORD_KIND_UNSPECIFIED'],
+    [1, 'SO_JOURNAL_RECORD_KIND_INTENT'],
+    [2, 'SO_JOURNAL_RECORD_KIND_SIGNED_ENVELOPE'],
+    [3, 'SO_JOURNAL_RECORD_KIND_SENT'],
+    [4, 'SO_JOURNAL_RECORD_KIND_RECEIPT'],
+    [5, 'SO_JOURNAL_RECORD_KIND_ACKNOWLEDGEMENT'],
+    [6, 'SO_JOURNAL_RECORD_KIND_BODY_PROJECTION'],
+    [7, 'SO_JOURNAL_RECORD_KIND_STALE_TRANSFORM_EPOCH'],
+    [8, 'SO_JOURNAL_RECORD_KIND_RECOVERY_BLOCKED'],
+    [9, 'SO_JOURNAL_RECORD_KIND_LINEAGE_RECOVERY_BLOCKED'],
+    [10, 'SO_JOURNAL_RECORD_KIND_RECEIPT_LOOKUP'],
+    [11, 'SO_JOURNAL_RECORD_KIND_RESEND_AUTHORIZED'],
+  ],
+)
+
+/**
+ * SOJournalAttemptState identifies the attempt lifecycle state.
+ *
+ * @generated from enum sobject.SOJournalAttemptState
+ */
+export enum SOJournalAttemptState {
+  /**
+   * @generated from enum value: SO_JOURNAL_ATTEMPT_STATE_UNSPECIFIED = 0;
+   */
+  SO_JOURNAL_ATTEMPT_STATE_UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_ATTEMPT_STATE_INTENT_DURABLE = 1;
+   */
+  SO_JOURNAL_ATTEMPT_STATE_INTENT_DURABLE = 1,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_ATTEMPT_STATE_ENVELOPE_DURABLE = 2;
+   */
+  SO_JOURNAL_ATTEMPT_STATE_ENVELOPE_DURABLE = 2,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_ATTEMPT_STATE_SENT = 3;
+   */
+  SO_JOURNAL_ATTEMPT_STATE_SENT = 3,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURABLE = 4;
+   */
+  SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURABLE = 4,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_ATTEMPT_STATE_STALE_TRANSFORM_EPOCH = 5;
+   */
+  SO_JOURNAL_ATTEMPT_STATE_STALE_TRANSFORM_EPOCH = 5,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_ATTEMPT_STATE_RECOVERY_BLOCKED = 6;
+   */
+  SO_JOURNAL_ATTEMPT_STATE_RECOVERY_BLOCKED = 6,
+}
+
+export const SOJournalAttemptState_Enum = /* @__PURE__ */ createEnumType(
+  'sobject.SOJournalAttemptState',
+  [
+    [0, 'SO_JOURNAL_ATTEMPT_STATE_UNSPECIFIED'],
+    [1, 'SO_JOURNAL_ATTEMPT_STATE_INTENT_DURABLE'],
+    [2, 'SO_JOURNAL_ATTEMPT_STATE_ENVELOPE_DURABLE'],
+    [3, 'SO_JOURNAL_ATTEMPT_STATE_SENT'],
+    [4, 'SO_JOURNAL_ATTEMPT_STATE_RECEIPT_DURABLE'],
+    [5, 'SO_JOURNAL_ATTEMPT_STATE_STALE_TRANSFORM_EPOCH'],
+    [6, 'SO_JOURNAL_ATTEMPT_STATE_RECOVERY_BLOCKED'],
+  ],
+)
+
+/**
+ * SOJournalOutcome identifies the authenticated terminal result of an attempt.
+ *
+ * @generated from enum sobject.SOJournalOutcome
+ */
+export enum SOJournalOutcome {
+  /**
+   * @generated from enum value: SO_JOURNAL_OUTCOME_UNSPECIFIED = 0;
+   */
+  SO_JOURNAL_OUTCOME_UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_OUTCOME_ACCEPTED = 1;
+   */
+  SO_JOURNAL_OUTCOME_ACCEPTED = 1,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_OUTCOME_REJECTED = 2;
+   */
+  SO_JOURNAL_OUTCOME_REJECTED = 2,
+}
+
+export const SOJournalOutcome_Enum = /* @__PURE__ */ createEnumType(
+  'sobject.SOJournalOutcome',
+  [
+    [0, 'SO_JOURNAL_OUTCOME_UNSPECIFIED'],
+    [1, 'SO_JOURNAL_OUTCOME_ACCEPTED'],
+    [2, 'SO_JOURNAL_OUTCOME_REJECTED'],
+  ],
+)
+
+/**
+ * SOJournalReadiness identifies whether the body owner can supply dependencies.
+ *
+ * @generated from enum sobject.SOJournalReadiness
+ */
+export enum SOJournalReadiness {
+  /**
+   * @generated from enum value: SO_JOURNAL_READINESS_UNSPECIFIED = 0;
+   */
+  SO_JOURNAL_READINESS_UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_READINESS_READY = 1;
+   */
+  SO_JOURNAL_READINESS_READY = 1,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_READINESS_MISSING = 2;
+   */
+  SO_JOURNAL_READINESS_MISSING = 2,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_READINESS_CORRUPT = 3;
+   */
+  SO_JOURNAL_READINESS_CORRUPT = 3,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_READINESS_OBSOLETE = 4;
+   */
+  SO_JOURNAL_READINESS_OBSOLETE = 4,
+}
+
+export const SOJournalReadiness_Enum = /* @__PURE__ */ createEnumType(
+  'sobject.SOJournalReadiness',
+  [
+    [0, 'SO_JOURNAL_READINESS_UNSPECIFIED'],
+    [1, 'SO_JOURNAL_READINESS_READY'],
+    [2, 'SO_JOURNAL_READINESS_MISSING'],
+    [3, 'SO_JOURNAL_READINESS_CORRUPT'],
+    [4, 'SO_JOURNAL_READINESS_OBSOLETE'],
+  ],
+)
+
+/**
+ * SOJournalRecoveryReason identifies a typed recovery stop.
+ *
+ * @generated from enum sobject.SOJournalRecoveryReason
+ */
+export enum SOJournalRecoveryReason {
+  /**
+   * @generated from enum value: SO_JOURNAL_RECOVERY_REASON_UNSPECIFIED = 0;
+   */
+  SO_JOURNAL_RECOVERY_REASON_UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECOVERY_REASON_STALE_TRANSFORM_EPOCH = 1;
+   */
+  SO_JOURNAL_RECOVERY_REASON_STALE_TRANSFORM_EPOCH = 1,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECOVERY_REASON_KEY_UNAVAILABLE = 2;
+   */
+  SO_JOURNAL_RECOVERY_REASON_KEY_UNAVAILABLE = 2,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECOVERY_REASON_AUTHORITY_FAILURE = 3;
+   */
+  SO_JOURNAL_RECOVERY_REASON_AUTHORITY_FAILURE = 3,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECOVERY_REASON_BODY_MISSING = 4;
+   */
+  SO_JOURNAL_RECOVERY_REASON_BODY_MISSING = 4,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECOVERY_REASON_BODY_CORRUPT = 5;
+   */
+  SO_JOURNAL_RECOVERY_REASON_BODY_CORRUPT = 5,
+
+  /**
+   * @generated from enum value: SO_JOURNAL_RECOVERY_REASON_BODY_OBSOLETE = 6;
+   */
+  SO_JOURNAL_RECOVERY_REASON_BODY_OBSOLETE = 6,
+}
+
+export const SOJournalRecoveryReason_Enum = /* @__PURE__ */ createEnumType(
+  'sobject.SOJournalRecoveryReason',
+  [
+    [0, 'SO_JOURNAL_RECOVERY_REASON_UNSPECIFIED'],
+    [1, 'SO_JOURNAL_RECOVERY_REASON_STALE_TRANSFORM_EPOCH'],
+    [2, 'SO_JOURNAL_RECOVERY_REASON_KEY_UNAVAILABLE'],
+    [3, 'SO_JOURNAL_RECOVERY_REASON_AUTHORITY_FAILURE'],
+    [4, 'SO_JOURNAL_RECOVERY_REASON_BODY_MISSING'],
+    [5, 'SO_JOURNAL_RECOVERY_REASON_BODY_CORRUPT'],
+    [6, 'SO_JOURNAL_RECOVERY_REASON_BODY_OBSOLETE'],
+  ],
+)
+
+/**
+ * SOReceiptState identifies the authoritative state of one exact mutation key.
+ *
+ * @generated from enum sobject.SOReceiptState
+ */
+export enum SOReceiptState {
+  /**
+   * SO_RECEIPT_STATE_UNSPECIFIED is the zero value.
+   *
+   * @generated from enum value: SO_RECEIPT_STATE_UNSPECIFIED = 0;
+   */
+  SO_RECEIPT_STATE_UNSPECIFIED = 0,
+
+  /**
+   * SO_RECEIPT_STATE_NO_RECORD means no pending or terminal record exists at the lookup linearization point.
+   *
+   * @generated from enum value: SO_RECEIPT_STATE_NO_RECORD = 1;
+   */
+  SO_RECEIPT_STATE_NO_RECORD = 1,
+
+  /**
+   * SO_RECEIPT_STATE_PENDING means the exact mutation has been durably admitted but not terminalized.
+   *
+   * @generated from enum value: SO_RECEIPT_STATE_PENDING = 2;
+   */
+  SO_RECEIPT_STATE_PENDING = 2,
+
+  /**
+   * SO_RECEIPT_STATE_ACCEPTED means the exact mutation has an accepted terminal receipt.
+   *
+   * @generated from enum value: SO_RECEIPT_STATE_ACCEPTED = 3;
+   */
+  SO_RECEIPT_STATE_ACCEPTED = 3,
+
+  /**
+   * SO_RECEIPT_STATE_REJECTED means the exact mutation has a rejected terminal receipt.
+   *
+   * @generated from enum value: SO_RECEIPT_STATE_REJECTED = 4;
+   */
+  SO_RECEIPT_STATE_REJECTED = 4,
+}
+
+export const SOReceiptState_Enum = /* @__PURE__ */ createEnumType(
+  'sobject.SOReceiptState',
+  [
+    [0, 'SO_RECEIPT_STATE_UNSPECIFIED'],
+    [1, 'SO_RECEIPT_STATE_NO_RECORD'],
+    [2, 'SO_RECEIPT_STATE_PENDING'],
+    [3, 'SO_RECEIPT_STATE_ACCEPTED'],
+    [4, 'SO_RECEIPT_STATE_REJECTED'],
   ],
 )
 
@@ -1963,6 +2288,1089 @@ export const SOJoinResponse: MessageType<SOJoinResponse> =
       },
       { no: 3, name: 'responder_pubkey', kind: 'scalar', T: ScalarType.BYTES },
       { no: 4, name: 'signature', kind: 'message', T: () => Signature },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOMutationKey identifies one immutable exact participant attempt.
+ *
+ * @generated from message sobject.SOMutationKey
+ */
+export interface SOMutationKey {
+  /**
+   * OriginScopeId is the stable opaque account/store scope identifier.
+   *
+   * @generated from field: bytes origin_scope_id = 1;
+   */
+  originScopeId?: Uint8Array
+  /**
+   * SharedObjectId is the object identity within the origin scope.
+   *
+   * @generated from field: string shared_object_id = 2;
+   */
+  sharedObjectId?: string
+  /**
+   * ParticipantPeerId is the submitting participant identity.
+   *
+   * @generated from field: string participant_peer_id = 3;
+   */
+  participantPeerId?: string
+  /**
+   * LocalId is allocated once for this exact attempt.
+   *
+   * @generated from field: string local_id = 4;
+   */
+  localId?: string
+}
+
+export const SOMutationKey: MessageType<SOMutationKey> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOMutationKey',
+    fields: [
+      { no: 1, name: 'origin_scope_id', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'participant_peer_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 4, name: 'local_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOJournalLineage links an immutable attempt to an optional predecessor.
+ *
+ * @generated from message sobject.SOJournalLineage
+ */
+export interface SOJournalLineage {
+  /**
+   * RootKey is the exact key carried by this lineage record.
+   *
+   * @generated from field: sobject.SOMutationKey root_key = 1;
+   */
+  rootKey?: SOMutationKey
+  /**
+   * Supersedes links a changed attempt to its predecessor.
+   *
+   * @generated from field: sobject.SOMutationKey supersedes = 2;
+   */
+  supersedes?: SOMutationKey
+}
+
+export const SOJournalLineage: MessageType<SOJournalLineage> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOJournalLineage',
+    fields: [
+      { no: 1, name: 'root_key', kind: 'message', T: () => SOMutationKey },
+      { no: 2, name: 'supersedes', kind: 'message', T: () => SOMutationKey },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOJournalVersionTuple carries local and remote observations needed for replay.
+ *
+ * @generated from message sobject.SOJournalVersionTuple
+ */
+export interface SOJournalVersionTuple {
+  /**
+   * LocalVersion is the local journal version at preparation.
+   *
+   * @generated from field: uint64 local_version = 1;
+   */
+  localVersion?: bigint
+  /**
+   * RemoteVersion is the authoritative remote version observed at preparation.
+   *
+   * @generated from field: uint64 remote_version = 2;
+   */
+  remoteVersion?: bigint
+  /**
+   * TransformEpoch is the verified transform epoch used by the envelope.
+   *
+   * @generated from field: uint64 transform_epoch = 3;
+   */
+  transformEpoch?: bigint
+  /**
+   * ConfigChainDigest identifies the verified configuration chain.
+   *
+   * @generated from field: bytes config_chain_digest = 4;
+   */
+  configChainDigest?: Uint8Array
+}
+
+export const SOJournalVersionTuple: MessageType<SOJournalVersionTuple> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOJournalVersionTuple',
+    fields: [
+      { no: 1, name: 'local_version', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'remote_version', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'transform_epoch', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 4,
+        name: 'config_chain_digest',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOJournalIntent is the canonical body-neutral operation before signing.
+ *
+ * @generated from message sobject.SOJournalIntent
+ */
+export interface SOJournalIntent {
+  /**
+   * Key identifies the exact operation attempt.
+   *
+   * @generated from field: sobject.SOMutationKey key = 1;
+   */
+  key?: SOMutationKey
+  /**
+   * Lineage records the immutable predecessor relation.
+   *
+   * @generated from field: sobject.SOJournalLineage lineage = 2;
+   */
+  lineage?: SOJournalLineage
+  /**
+   * Version records the observations used to construct the operation.
+   *
+   * @generated from field: sobject.SOJournalVersionTuple version = 3;
+   */
+  version?: SOJournalVersionTuple
+  /**
+   * CanonicalOperation contains operation input without body-specific metadata.
+   *
+   * @generated from field: bytes canonical_operation = 4;
+   */
+  canonicalOperation?: Uint8Array
+}
+
+export const SOJournalIntent: MessageType<SOJournalIntent> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOJournalIntent',
+    fields: [
+      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 2, name: 'lineage', kind: 'message', T: () => SOJournalLineage },
+      {
+        no: 3,
+        name: 'version',
+        kind: 'message',
+        T: () => SOJournalVersionTuple,
+      },
+      {
+        no: 4,
+        name: 'canonical_operation',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOJournalEncryptedPayload contains authenticated ciphertext and its nonce.
+ *
+ * @generated from message sobject.SOJournalEncryptedPayload
+ */
+export interface SOJournalEncryptedPayload {
+  /**
+   * Nonce is unique within the derived journal key domain.
+   *
+   * @generated from field: bytes nonce = 1;
+   */
+  nonce?: Uint8Array
+  /**
+   * Ciphertext contains the encrypted staged payload and authentication tag.
+   *
+   * @generated from field: bytes ciphertext = 2;
+   */
+  ciphertext?: Uint8Array
+}
+
+export const SOJournalEncryptedPayload: MessageType<SOJournalEncryptedPayload> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOJournalEncryptedPayload',
+    fields: [
+      { no: 1, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'ciphertext', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOJournalReceipt records terminal evidence without making projection implicit.
+ *
+ * @generated from message sobject.SOJournalReceipt
+ */
+export interface SOJournalReceipt {
+  /**
+   * Key identifies the exact terminal attempt.
+   *
+   * @generated from field: sobject.SOMutationKey key = 1;
+   */
+  key?: SOMutationKey
+  /**
+   * EnvelopeDigest binds the receipt to the immutable signed envelope using DigestSOOperationEnvelope.
+   *
+   * @generated from field: bytes envelope_digest = 2;
+   */
+  envelopeDigest?: Uint8Array
+  /**
+   * Outcome is the authenticated terminal result.
+   *
+   * @generated from field: sobject.SOJournalOutcome outcome = 3;
+   */
+  outcome?: SOJournalOutcome
+  /**
+   * TerminalReceipt contains the verified signed remote receipt.
+   *
+   * @generated from field: bytes terminal_receipt = 4;
+   */
+  terminalReceipt?: Uint8Array
+  /**
+   * TerminalReceiptDigest is DigestSOTerminalReceipt over the durable signed receipt bytes.
+   *
+   * @generated from field: bytes terminal_receipt_digest = 5;
+   */
+  terminalReceiptDigest?: Uint8Array
+  /**
+   * AuthoritativeRootSeqno is the root sequence named by the receipt.
+   *
+   * @generated from field: uint64 authoritative_root_seqno = 6;
+   */
+  authoritativeRootSeqno?: bigint
+  /**
+   * AuthoritativeRootDigest is DigestSOAuthoritativeRoot of the root named by the receipt.
+   *
+   * @generated from field: bytes authoritative_root_digest = 7;
+   */
+  authoritativeRootDigest?: Uint8Array
+  /**
+   * ConfigChainDigest identifies the matching historical SharedObjectConfig.config_chain_hash.
+   *
+   * @generated from field: bytes config_chain_digest = 8;
+   */
+  configChainDigest?: Uint8Array
+  /**
+   * TerminalUnixMillis is the remote terminal timestamp.
+   *
+   * @generated from field: uint64 terminal_unix_millis = 9;
+   */
+  terminalUnixMillis?: bigint
+  /**
+   * Supersedes links this receipt to a predecessor when applicable.
+   *
+   * @generated from field: sobject.SOMutationKey supersedes = 10;
+   */
+  supersedes?: SOMutationKey
+}
+
+export const SOJournalReceipt: MessageType<SOJournalReceipt> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOJournalReceipt',
+    fields: [
+      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 2, name: 'envelope_digest', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'outcome', kind: 'enum', T: SOJournalOutcome_Enum },
+      { no: 4, name: 'terminal_receipt', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 5,
+        name: 'terminal_receipt_digest',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      {
+        no: 6,
+        name: 'authoritative_root_seqno',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      {
+        no: 7,
+        name: 'authoritative_root_digest',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      {
+        no: 8,
+        name: 'config_chain_digest',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      {
+        no: 9,
+        name: 'terminal_unix_millis',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      { no: 10, name: 'supersedes', kind: 'message', T: () => SOMutationKey },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOJournalLookup records one serialized exact-key receipt lookup.
+ *
+ * @generated from message sobject.SOJournalLookup
+ */
+export interface SOJournalLookup {
+  /**
+   * Key identifies the exact lookup attempt.
+   *
+   * @generated from field: sobject.SOMutationKey key = 1;
+   */
+  key?: SOMutationKey
+  /**
+   * State is the authoritative lookup result.
+   *
+   * @generated from field: sobject.SOReceiptState state = 2;
+   */
+  state?: SOReceiptState
+  /**
+   * Receipt carries terminal evidence when state is accepted or rejected.
+   *
+   * @generated from field: sobject.SOJournalReceipt receipt = 3;
+   */
+  receipt?: SOJournalReceipt
+  /**
+   * Response contains the opaque authenticated lookup response bytes.
+   *
+   * @generated from field: bytes response = 4;
+   */
+  response?: Uint8Array
+  /**
+   * ResponseDigest binds the retained response bytes.
+   *
+   * @generated from field: bytes response_digest = 5;
+   */
+  responseDigest?: Uint8Array
+  /**
+   * ConfigChainDigest identifies the verified lookup configuration.
+   *
+   * @generated from field: bytes config_chain_digest = 6;
+   */
+  configChainDigest?: Uint8Array
+}
+
+export const SOJournalLookup: MessageType<SOJournalLookup> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOJournalLookup',
+    fields: [
+      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 2, name: 'state', kind: 'enum', T: SOReceiptState_Enum },
+      { no: 3, name: 'receipt', kind: 'message', T: () => SOJournalReceipt },
+      { no: 4, name: 'response', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 5, name: 'response_digest', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 6,
+        name: 'config_chain_digest',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOJournalAcknowledgement records remote receipt acknowledgement.
+ *
+ * @generated from message sobject.SOJournalAcknowledgement
+ */
+export interface SOJournalAcknowledgement {
+  /**
+   * Key identifies the exact acknowledged attempt.
+   *
+   * @generated from field: sobject.SOMutationKey key = 1;
+   */
+  key?: SOMutationKey
+  /**
+   * ReceiptDigest binds acknowledgement to one terminal receipt using DigestSOTerminalReceipt.
+   *
+   * @generated from field: bytes receipt_digest = 2;
+   */
+  receiptDigest?: Uint8Array
+  /**
+   * AcknowledgedUnixMillis records when acknowledgement became durable.
+   *
+   * @generated from field: uint64 acknowledged_unix_millis = 3;
+   */
+  acknowledgedUnixMillis?: bigint
+}
+
+export const SOJournalAcknowledgement: MessageType<SOJournalAcknowledgement> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOJournalAcknowledgement',
+    fields: [
+      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 2, name: 'receipt_digest', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 3,
+        name: 'acknowledged_unix_millis',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOJournalProjection records the body's exact authoritative-root observation.
+ *
+ * @generated from message sobject.SOJournalProjection
+ */
+export interface SOJournalProjection {
+  /**
+   * Key identifies the projected attempt.
+   *
+   * @generated from field: sobject.SOMutationKey key = 1;
+   */
+  key?: SOMutationKey
+  /**
+   * ReceiptDigest binds projection to the terminal receipt.
+   *
+   * @generated from field: bytes receipt_digest = 2;
+   */
+  receiptDigest?: Uint8Array
+  /**
+   * AuthoritativeRootSeqno is the exact root sequence projected by the body.
+   *
+   * @generated from field: uint64 authoritative_root_seqno = 3;
+   */
+  authoritativeRootSeqno?: bigint
+  /**
+   * AuthoritativeRootDigest is the exact root identity projected by the body.
+   *
+   * @generated from field: bytes authoritative_root_digest = 4;
+   */
+  authoritativeRootDigest?: Uint8Array
+}
+
+export const SOJournalProjection: MessageType<SOJournalProjection> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOJournalProjection',
+    fields: [
+      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 2, name: 'receipt_digest', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 3,
+        name: 'authoritative_root_seqno',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      {
+        no: 4,
+        name: 'authoritative_root_digest',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOJournalRecord is the generated body-neutral durable journal payload.
+ *
+ * @generated from message sobject.SOJournalRecord
+ */
+export interface SOJournalRecord {
+  /**
+   * FormatVersion identifies the journal payload schema.
+   *
+   * @generated from field: uint32 format_version = 1;
+   */
+  formatVersion?: number
+  /**
+   * Sequence is the strictly increasing journal record sequence.
+   *
+   * @generated from field: uint64 sequence = 2;
+   */
+  sequence?: bigint
+  /**
+   * Kind identifies which durable transition this record represents.
+   *
+   * @generated from field: sobject.SOJournalRecordKind kind = 3;
+   */
+  kind?: SOJournalRecordKind
+  /**
+   * Key is the immutable exact mutation identity.
+   *
+   * @generated from field: sobject.SOMutationKey key = 4;
+   */
+  key?: SOMutationKey
+  /**
+   * Lineage carries the immutable supersession relation.
+   *
+   * @generated from field: sobject.SOJournalLineage lineage = 5;
+   */
+  lineage?: SOJournalLineage
+  /**
+   * Version carries local/remote and transform observations.
+   *
+   * @generated from field: sobject.SOJournalVersionTuple version = 6;
+   */
+  version?: SOJournalVersionTuple
+  /**
+   * Intent is encrypted canonical intent for an intent record.
+   *
+   * @generated from field: sobject.SOJournalEncryptedPayload intent = 7;
+   */
+  intent?: SOJournalEncryptedPayload
+  /**
+   * Envelope is encrypted immutable signed bytes for an envelope record.
+   *
+   * @generated from field: sobject.SOJournalEncryptedPayload envelope = 8;
+   */
+  envelope?: SOJournalEncryptedPayload
+  /**
+   * Receipt is terminal evidence for a receipt record.
+   *
+   * @generated from field: sobject.SOJournalReceipt receipt = 9;
+   */
+  receipt?: SOJournalReceipt
+  /**
+   * Acknowledgement is remote receipt acknowledgement.
+   *
+   * @generated from field: sobject.SOJournalAcknowledgement acknowledgement = 10;
+   */
+  acknowledgement?: SOJournalAcknowledgement
+  /**
+   * Projection is the body owner's exact-root observation.
+   *
+   * @generated from field: sobject.SOJournalProjection projection = 11;
+   */
+  projection?: SOJournalProjection
+  /**
+   * Readiness is the body-owned preparation result.
+   *
+   * @generated from field: sobject.SOJournalReadiness readiness = 12;
+   */
+  readiness?: SOJournalReadiness
+  /**
+   * RecoveryReason carries a typed recovery stop.
+   *
+   * @generated from field: sobject.SOJournalRecoveryReason recovery_reason = 13;
+   */
+  recoveryReason?: SOJournalRecoveryReason
+  /**
+   * AttemptState records the legal lifecycle state after this transition.
+   *
+   * @generated from field: sobject.SOJournalAttemptState attempt_state = 14;
+   */
+  attemptState?: SOJournalAttemptState
+  /**
+   * EnvelopeDigest identifies the immutable signed-envelope plaintext.
+   *
+   * @generated from field: bytes envelope_digest = 15;
+   */
+  envelopeDigest?: Uint8Array
+  /**
+   * Lookup is the serialized exact-key receipt observation.
+   *
+   * @generated from field: sobject.SOJournalLookup lookup = 16;
+   */
+  lookup?: SOJournalLookup
+}
+
+export const SOJournalRecord: MessageType<SOJournalRecord> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOJournalRecord',
+    fields: [
+      { no: 1, name: 'format_version', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'sequence', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'kind', kind: 'enum', T: SOJournalRecordKind_Enum },
+      { no: 4, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 5, name: 'lineage', kind: 'message', T: () => SOJournalLineage },
+      {
+        no: 6,
+        name: 'version',
+        kind: 'message',
+        T: () => SOJournalVersionTuple,
+      },
+      {
+        no: 7,
+        name: 'intent',
+        kind: 'message',
+        T: () => SOJournalEncryptedPayload,
+      },
+      {
+        no: 8,
+        name: 'envelope',
+        kind: 'message',
+        T: () => SOJournalEncryptedPayload,
+      },
+      { no: 9, name: 'receipt', kind: 'message', T: () => SOJournalReceipt },
+      {
+        no: 10,
+        name: 'acknowledgement',
+        kind: 'message',
+        T: () => SOJournalAcknowledgement,
+      },
+      {
+        no: 11,
+        name: 'projection',
+        kind: 'message',
+        T: () => SOJournalProjection,
+      },
+      { no: 12, name: 'readiness', kind: 'enum', T: SOJournalReadiness_Enum },
+      {
+        no: 13,
+        name: 'recovery_reason',
+        kind: 'enum',
+        T: SOJournalRecoveryReason_Enum,
+      },
+      {
+        no: 14,
+        name: 'attempt_state',
+        kind: 'enum',
+        T: SOJournalAttemptState_Enum,
+      },
+      { no: 15, name: 'envelope_digest', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 16, name: 'lookup', kind: 'message', T: () => SOJournalLookup },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOJournalCheckpointAttempt is the bounded reducer state for one exact key.
+ *
+ * @generated from message sobject.SOJournalCheckpointAttempt
+ */
+export interface SOJournalCheckpointAttempt {
+  /**
+   * Key identifies the exact checkpointed mutation attempt.
+   *
+   * @generated from field: sobject.SOMutationKey key = 1;
+   */
+  key?: SOMutationKey
+  /**
+   * Lineage carries the immutable supersession relation.
+   *
+   * @generated from field: sobject.SOJournalLineage lineage = 2;
+   */
+  lineage?: SOJournalLineage
+  /**
+   * Version carries local/remote and transform observations.
+   *
+   * @generated from field: sobject.SOJournalVersionTuple version = 3;
+   */
+  version?: SOJournalVersionTuple
+  /**
+   * State is the legal lifecycle state at checkpoint publication.
+   *
+   * @generated from field: sobject.SOJournalAttemptState state = 4;
+   */
+  state?: SOJournalAttemptState
+  /**
+   * Readiness records body-owned preparation status.
+   *
+   * @generated from field: sobject.SOJournalReadiness readiness = 5;
+   */
+  readiness?: SOJournalReadiness
+  /**
+   * Intent is the retained encrypted canonical operation.
+   *
+   * @generated from field: sobject.SOJournalEncryptedPayload intent = 6;
+   */
+  intent?: SOJournalEncryptedPayload
+  /**
+   * Envelope is the retained encrypted immutable signed bytes.
+   *
+   * @generated from field: sobject.SOJournalEncryptedPayload envelope = 7;
+   */
+  envelope?: SOJournalEncryptedPayload
+  /**
+   * EnvelopeDigest binds the retained envelope plaintext.
+   *
+   * @generated from field: bytes envelope_digest = 8;
+   */
+  envelopeDigest?: Uint8Array
+  /**
+   * Receipt is terminal remote evidence kept separate from projection.
+   *
+   * @generated from field: sobject.SOJournalReceipt receipt = 9;
+   */
+  receipt?: SOJournalReceipt
+  /**
+   * Acknowledgement records remote acknowledgement of the receipt.
+   *
+   * @generated from field: sobject.SOJournalAcknowledgement acknowledgement = 10;
+   */
+  acknowledgement?: SOJournalAcknowledgement
+  /**
+   * Projection records the body's exact authoritative-root observation.
+   *
+   * @generated from field: sobject.SOJournalProjection projection = 11;
+   */
+  projection?: SOJournalProjection
+  /**
+   * Lookup records the retained exact-key receipt lookup.
+   *
+   * @generated from field: sobject.SOJournalLookup lookup = 12;
+   */
+  lookup?: SOJournalLookup
+  /**
+   * SendAttempted records that transport crossed the durable send boundary.
+   *
+   * @generated from field: bool send_attempted = 13;
+   */
+  sendAttempted?: boolean
+  /**
+   * ResendAuthorized records authoritative no-record resend permission.
+   *
+   * @generated from field: bool resend_authorized = 14;
+   */
+  resendAuthorized?: boolean
+  /**
+   * LineageRecoveryBlocked records that successor recovery is blocked.
+   *
+   * @generated from field: bool lineage_recovery_blocked = 15;
+   */
+  lineageRecoveryBlocked?: boolean
+  /**
+   * IntentSequence is the exact journal sequence used by the retained intent ciphertext.
+   *
+   * @generated from field: uint64 intent_sequence = 16;
+   */
+  intentSequence?: bigint
+  /**
+   * EnvelopeSequence is the exact journal sequence used by the retained envelope ciphertext.
+   *
+   * @generated from field: uint64 envelope_sequence = 17;
+   */
+  envelopeSequence?: bigint
+  /**
+   * CheckpointEligible is the derived receipt-plus-projection eligibility bit.
+   *
+   * @generated from field: bool checkpoint_eligible = 18;
+   */
+  checkpointEligible?: boolean
+}
+
+export const SOJournalCheckpointAttempt: MessageType<SOJournalCheckpointAttempt> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOJournalCheckpointAttempt',
+    fields: [
+      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 2, name: 'lineage', kind: 'message', T: () => SOJournalLineage },
+      {
+        no: 3,
+        name: 'version',
+        kind: 'message',
+        T: () => SOJournalVersionTuple,
+      },
+      { no: 4, name: 'state', kind: 'enum', T: SOJournalAttemptState_Enum },
+      { no: 5, name: 'readiness', kind: 'enum', T: SOJournalReadiness_Enum },
+      {
+        no: 6,
+        name: 'intent',
+        kind: 'message',
+        T: () => SOJournalEncryptedPayload,
+      },
+      {
+        no: 7,
+        name: 'envelope',
+        kind: 'message',
+        T: () => SOJournalEncryptedPayload,
+      },
+      { no: 8, name: 'envelope_digest', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 9, name: 'receipt', kind: 'message', T: () => SOJournalReceipt },
+      {
+        no: 10,
+        name: 'acknowledgement',
+        kind: 'message',
+        T: () => SOJournalAcknowledgement,
+      },
+      {
+        no: 11,
+        name: 'projection',
+        kind: 'message',
+        T: () => SOJournalProjection,
+      },
+      { no: 12, name: 'lookup', kind: 'message', T: () => SOJournalLookup },
+      { no: 13, name: 'send_attempted', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 14, name: 'resend_authorized', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 15,
+        name: 'lineage_recovery_blocked',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
+      { no: 16, name: 'intent_sequence', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 17,
+        name: 'envelope_sequence',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      {
+        no: 18,
+        name: 'checkpoint_eligible',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOJournalCheckpoint is a deterministic compact reducer snapshot.
+ *
+ * @generated from message sobject.SOJournalCheckpoint
+ */
+export interface SOJournalCheckpoint {
+  /**
+   * JournalIdentity is the stable identity of the journal storage.
+   *
+   * @generated from field: bytes journal_identity = 1;
+   */
+  journalIdentity?: Uint8Array
+  /**
+   * Generation identifies this compact snapshot publication.
+   *
+   * @generated from field: uint64 generation = 2;
+   */
+  generation?: bigint
+  /**
+   * NextSequence is the first sequence expected in the append tail.
+   *
+   * @generated from field: uint64 next_sequence = 3;
+   */
+  nextSequence?: bigint
+  /**
+   * Attempts contains one bounded state snapshot per exact mutation key.
+   *
+   * @generated from field: repeated sobject.SOJournalCheckpointAttempt attempts = 4;
+   */
+  attempts?: SOJournalCheckpointAttempt[]
+}
+
+export const SOJournalCheckpoint: MessageType<SOJournalCheckpoint> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOJournalCheckpoint',
+    fields: [
+      { no: 1, name: 'journal_identity', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'next_sequence', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 4,
+        name: 'attempts',
+        kind: 'message',
+        T: () => SOJournalCheckpointAttempt,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOTerminalReceiptAccepted marks an accepted terminal mutation outcome.
+ *
+ * @generated from message sobject.SOTerminalReceiptAccepted
+ */
+export interface SOTerminalReceiptAccepted {}
+
+export const SOTerminalReceiptAccepted: MessageType<SOTerminalReceiptAccepted> =
+  /* @__PURE__ */ createEmptyMessageType<SOTerminalReceiptAccepted>(
+    'sobject.SOTerminalReceiptAccepted',
+    true,
+  )
+
+/**
+ * SOTerminalReceiptInner is the deterministic signed evidence for one terminal mutation outcome.
+ *
+ * @generated from message sobject.SOTerminalReceiptInner
+ */
+export interface SOTerminalReceiptInner {
+  /**
+   * Key identifies the exact immutable participant attempt.
+   *
+   * @generated from field: sobject.SOMutationKey key = 1;
+   */
+  key?: SOMutationKey
+  /**
+   * EnvelopeDigest is DigestSOOperationEnvelope of the exact serialized signed SOOperation bytes.
+   * The owner must compare this digest before decoding or reserializing the admitted envelope.
+   *
+   * @generated from field: bytes envelope_digest = 2;
+   */
+  envelopeDigest?: Uint8Array
+  /**
+   * AuthoritativeRootSeqno is the sequence number of the authoritative root terminalizing this mutation.
+   *
+   * @generated from field: uint64 authoritative_root_seqno = 5;
+   */
+  authoritativeRootSeqno?: bigint
+  /**
+   * AuthoritativeRootDigest is DigestSOAuthoritativeRoot of the terminalizing SORoot.
+   * Its preimage includes BuildSignatureData only (inner and account nonces), never root signatures.
+   *
+   * @generated from field: bytes authoritative_root_digest = 6;
+   */
+  authoritativeRootDigest?: Uint8Array
+  /**
+   * ConfigChainDigest equals the matching historical SharedObjectConfig.config_chain_hash.
+   * That hash is produced by HashSOConfigChange over signature-cleared deterministic SOConfigChange bytes.
+   *
+   * @generated from field: bytes config_chain_digest = 7;
+   */
+  configChainDigest?: Uint8Array
+  /**
+   * ConsensusMode records the signature-set rule required for this receipt.
+   *
+   * @generated from field: sobject.SOConsensusMode consensus_mode = 8;
+   */
+  consensusMode?: SOConsensusMode
+  /**
+   * ValidatorSetDigest is DigestSOValidatorSet of the historical SharedObjectConfig.
+   * It filters role >= VALIDATOR and hashes sorted, unique, length-framed peer IDs.
+   *
+   * @generated from field: bytes validator_set_digest = 9;
+   */
+  validatorSetDigest?: Uint8Array
+  /**
+   * TerminalUnixMillis is the authoritative terminalization time in Unix milliseconds.
+   *
+   * @generated from field: uint64 terminal_unix_millis = 10;
+   */
+  terminalUnixMillis?: bigint
+  /**
+   * Supersedes links this mutation to an optional predecessor attempt.
+   *
+   * @generated from field: sobject.SOMutationKey supersedes = 11;
+   */
+  supersedes?: SOMutationKey
+
+  /**
+   * Outcome distinguishes acceptance from the existing signed rejection payload.
+   *
+   * @generated from oneof sobject.SOTerminalReceiptInner.outcome
+   */
+  outcome?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * Accepted indicates that the mutation was applied by the authoritative root.
+         *
+         * @generated from field: sobject.SOTerminalReceiptAccepted accepted = 3;
+         */
+        value: SOTerminalReceiptAccepted
+        case: 'accepted'
+      }
+    | {
+        /**
+         * SignedRejection is the existing validator-signed rejection for this mutation.
+         *
+         * @generated from field: sobject.SOOperationRejection signed_rejection = 4;
+         */
+        value: SOOperationRejection
+        case: 'signedRejection'
+      }
+}
+
+export const SOTerminalReceiptInner: MessageType<SOTerminalReceiptInner> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOTerminalReceiptInner',
+    fields: [
+      { no: 1, name: 'key', kind: 'message', T: () => SOMutationKey },
+      { no: 2, name: 'envelope_digest', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 3,
+        name: 'accepted',
+        kind: 'message',
+        T: () => SOTerminalReceiptAccepted,
+        oneof: 'outcome',
+      },
+      {
+        no: 4,
+        name: 'signed_rejection',
+        kind: 'message',
+        T: () => SOOperationRejection,
+        oneof: 'outcome',
+      },
+      {
+        no: 5,
+        name: 'authoritative_root_seqno',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      {
+        no: 6,
+        name: 'authoritative_root_digest',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      {
+        no: 7,
+        name: 'config_chain_digest',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      { no: 8, name: 'consensus_mode', kind: 'enum', T: SOConsensusMode_Enum },
+      {
+        no: 9,
+        name: 'validator_set_digest',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      {
+        no: 10,
+        name: 'terminal_unix_millis',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+      { no: 11, name: 'supersedes', kind: 'message', T: () => SOMutationKey },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SOTerminalReceipt is the signed terminal evidence for one exact mutation outcome.
+ *
+ * @generated from message sobject.SOTerminalReceipt
+ */
+export interface SOTerminalReceipt {
+  /**
+   * Inner is the deterministic serialized SOTerminalReceiptInner covered by every validator signature.
+   *
+   * @generated from field: bytes inner = 1;
+   */
+  inner?: Uint8Array
+  /**
+   * ValidatorSignatures cover the deterministic Inner bytes using
+   * BuildSOTerminalReceiptSignatureContext(Inner.key.shared_object_id,
+   * Inner.key.participant_peer_id, Inner.key.local_id,
+   * Inner.authoritative_root_seqno).
+   * These signatures are separate from SORoot validator signatures. Signers
+   * must belong to the validator set identified by Inner.validator_set_digest
+   * and satisfy Inner.consensus_mode.
+   *
+   * @generated from field: repeated peer.Signature validator_signatures = 2;
+   */
+  validatorSignatures?: Signature[]
+}
+
+export const SOTerminalReceipt: MessageType<SOTerminalReceipt> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'sobject.SOTerminalReceipt',
+    fields: [
+      { no: 1, name: 'inner', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 2,
+        name: 'validator_signatures',
+        kind: 'message',
+        T: () => Signature,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

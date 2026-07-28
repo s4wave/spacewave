@@ -72,4 +72,64 @@ var (
 
 	// ErrSharedObjectRecoveryEntityMismatch is returned if recovery material does not match the current entity.
 	ErrSharedObjectRecoveryEntityMismatch = errors.New("shared object recovery entity mismatch")
+
+	// ErrJournalInvalidKey is returned for an incomplete or malformed mutation key.
+	ErrJournalInvalidKey = errors.New("invalid shared object journal mutation key")
+
+	// ErrJournalInvalidTransition is returned when a journal record violates the reducer state machine.
+	ErrJournalInvalidTransition = errors.New("invalid shared object journal transition")
+
+	// ErrJournalCorrupt is returned when a complete journal frame or payload is invalid.
+	ErrJournalCorrupt = errors.New("corrupt shared object journal")
+
+	// ErrJournalWriterPoisoned is returned after a journal writer fails and cannot accept more appends.
+	ErrJournalWriterPoisoned = errors.New("shared object journal writer is poisoned")
+
+	// ErrJournalKeyUnavailable is returned when the journal-at-rest key cannot be loaded.
+	ErrJournalKeyUnavailable = errors.New("shared object journal key unavailable")
+
+	// ErrJournalKeyAuthority is returned when the key authority rejects a journal key request.
+	ErrJournalKeyAuthority = errors.New("shared object journal key authority failure")
+
+	// ErrJournalStaleTransformEpoch is returned before sending an envelope recorded under an old epoch.
+	ErrJournalStaleTransformEpoch = errors.New("stale shared object transform epoch")
+
+	// ErrJournalRecoveryBlocked is returned when body or signing authority cannot continue recovery.
+	ErrJournalRecoveryBlocked = errors.New("shared object journal recovery blocked")
+
+	// ErrJournalSupersessionImmutable is returned when a lineage successor changes its predecessor.
+	ErrJournalSupersessionImmutable = errors.New("shared object journal supersession is immutable")
+
+	// ErrJournalStorageRequired is returned when a journal storage owner is missing.
+	ErrJournalStorageRequired = errors.New("shared object journal storage is required")
+
+	// ErrJournalScopeMismatch is returned when a key belongs to another journal scope.
+	ErrJournalScopeMismatch = errors.New("shared object journal scope mismatch")
+
+	// ErrJournalLookupRequired is returned before replaying an ambiguous send.
+	ErrJournalLookupRequired = errors.New("shared object journal receipt lookup required")
+
+	// ErrJournalLookupPending is returned when a lookup adopts an in-flight remote attempt.
+	ErrJournalLookupPending = errors.New("shared object journal receipt is pending")
+
+	// ErrJournalTerminalAdopted is returned when lookup adopts terminal receipt evidence.
+	ErrJournalTerminalAdopted = errors.New("shared object journal terminal receipt adopted")
+
+	// ErrJournalInsecureFileMode is returned when journal storage permissions are too broad.
+	ErrJournalInsecureFileMode = errors.New("shared object journal file mode is insecure")
+
+	// ErrJournalCheckpointCorrupt is returned when generation metadata cannot be validated.
+	ErrJournalCheckpointCorrupt = errors.New("corrupt shared object journal checkpoint")
+
+	// ErrJournalReceiptVerifierRequired is returned when receipt authority is not injected.
+	ErrJournalReceiptVerifierRequired = errors.New("shared object journal receipt verifier is required")
+
+	// ErrJournalReceiptVerification is returned when terminal receipt authentication fails.
+	ErrJournalReceiptVerification = errors.New("shared object journal receipt verification failed")
+
+	// ErrJournalLookupVerifierRequired is returned when lookup authority is not injected.
+	ErrJournalLookupVerifierRequired = errors.New("shared object journal lookup verifier is required")
+
+	// ErrJournalLookupVerification is returned when an opaque lookup response fails authentication.
+	ErrJournalLookupVerification = errors.New("shared object journal lookup verification failed")
 )

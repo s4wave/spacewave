@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
+	stderrors "errors"
 	"io"
 	"math"
 	"net"
@@ -23,12 +24,13 @@ const maxMessageSize uint32 = 10 * 1024 * 1024
 
 // Client manages a spacewave-helper subprocess with framed proto IPC.
 type Client struct {
-	le       *logrus.Entry
-	cmd      *exec.Cmd
-	conn     net.Conn
-	listener net.Listener
-	pipeID   string
-	rootDir  string
+	le            *logrus.Entry
+	cmd           *exec.Cmd
+	conn          net.Conn
+	listener      net.Listener
+	pipeID        string
+	helperCleanup func() error
+	rootDir       string
 
 	readMtx  sync.Mutex
 	writeMtx sync.Mutex
@@ -101,32 +103,51 @@ func (c *Client) startHelper(ctx context.Context, helperPath string, args ...str
 	// Pass the root dir and pipe ID so the helper can connect via pipesock conventions.
 	args = append(args, "--pipe-root", c.rootDir, "--pipe-id", c.pipeID)
 
+	helperPath, cleanup, err := prepareHelperExecutable(c.rootDir, helperPath)
+	if err != nil {
+		closeErr := c.listener.Close()
+		c.listener = nil
+		return stderrors.Join(
+			errors.Wrap(err, "prepare helper"),
+			errors.Wrap(closeErr, "close helper listener"),
+		)
+	}
+	c.helperCleanup = cleanup
+
 	// Spawn the helper process.
 	c.cmd = exec.CommandContext(ctx, helperPath, args...)
+	prepareHelperCommand(c.cmd)
 	c.cmd.Stdout = os.Stdout
 	c.cmd.Stderr = os.Stderr
 	if err := c.cmd.Start(); err != nil {
-		c.listener.Close()
-		return errors.Wrap(err, "start helper")
+		return stderrors.Join(
+			errors.Wrap(err, "start helper"),
+			errors.Wrap(c.Close(), "clean up helper"),
+		)
 	}
 
 	// Accept the helper connection.
 	c.conn, err = c.listener.Accept()
 	if err != nil {
-		c.cmd.Process.Kill()
-		c.listener.Close()
-		return errors.Wrap(err, "accept helper connection")
+		return stderrors.Join(
+			errors.Wrap(err, "accept helper connection"),
+			errors.Wrap(c.Close(), "clean up helper"),
+		)
 	}
 
 	// Wait for HelperReady.
 	evt, err := c.RecvEvent(ctx)
 	if err != nil {
-		c.Close()
-		return errors.Wrap(err, "wait for helper ready")
+		return stderrors.Join(
+			errors.Wrap(err, "wait for helper ready"),
+			errors.Wrap(c.Close(), "clean up helper"),
+		)
 	}
 	if evt.GetReady() == nil {
-		c.Close()
-		return errors.New("expected HelperReady, got different event")
+		return stderrors.Join(
+			errors.New("expected HelperReady, got different event"),
+			errors.Wrap(c.Close(), "clean up helper"),
+		)
 	}
 
 	c.le.Debug("helper connected and ready")
@@ -193,17 +214,32 @@ func (c *Client) RecvEvent(ctx context.Context) (*HelperEvent, error) {
 
 // Close terminates the helper subprocess and cleans up.
 func (c *Client) Close() error {
+	var closeErr error
 	if c.conn != nil {
-		c.conn.Close()
+		if err := c.conn.Close(); err != nil && !stderrors.Is(err, net.ErrClosed) {
+			closeErr = stderrors.Join(closeErr, errors.Wrap(err, "close helper connection"))
+		}
 	}
 	if c.listener != nil {
-		c.listener.Close()
+		if err := c.listener.Close(); err != nil && !stderrors.Is(err, net.ErrClosed) {
+			closeErr = stderrors.Join(closeErr, errors.Wrap(err, "close helper listener"))
+		}
+		c.listener = nil
 	}
 	if c.cmd != nil && c.cmd.Process != nil {
-		c.cmd.Process.Kill()
-		c.cmd.Wait()
+		if err := c.cmd.Process.Kill(); err != nil && !stderrors.Is(err, os.ErrProcessDone) {
+			closeErr = stderrors.Join(closeErr, errors.Wrap(err, "kill helper process"))
+		}
+		if err := c.cmd.Wait(); err != nil {
+			c.le.WithError(err).Debug("helper process exited")
+		}
+		c.cmd = nil
 	}
-	return nil
+	if c.helperCleanup != nil {
+		closeErr = stderrors.Join(closeErr, c.helperCleanup())
+		c.helperCleanup = nil
+	}
+	return closeErr
 }
 
 // sendMessage marshals and writes a framed HelperMessage.

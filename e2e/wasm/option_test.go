@@ -585,29 +585,25 @@ func mustMarshalGoPluginConfig(t *testing.T, conf *bldr_plugin_compiler_go.Confi
 	return data
 }
 
-func TestStartupBuildCacheDefaultsToTinyGo(t *testing.T) {
+func TestStartupBuildCacheDefaultsOnWithExplicitFreshBuildEscape(t *testing.T) {
 	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "")
-	t.Setenv(E2EWasmLegacyTinyGoEnv, "")
-	t.Setenv(E2EWasmCompilerEnv, "")
-	if E2EWasmStartupBuildCacheEnabled() {
-		t.Fatal("startup build cache should default off with GoScript")
-	}
-	t.Setenv(E2EWasmCompilerEnv, "tinygo")
 	if !E2EWasmStartupBuildCacheEnabled() {
-		t.Fatal("startup build cache should default on with TinyGo")
+		t.Fatal("startup build cache should default on")
 	}
-	t.Setenv(E2EWasmCompilerEnv, "goscript")
-	if E2EWasmStartupBuildCacheEnabled() {
-		t.Fatal("startup build cache should default off with GoScript")
-	}
+
 	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "false")
 	if E2EWasmStartupBuildCacheEnabled() {
-		t.Fatal("explicit startup build cache false should override compiler defaults")
+		t.Fatal("explicit startup build cache false should force a fresh build")
 	}
+
 	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "true")
-	t.Setenv(E2EWasmCompilerEnv, "")
 	if !E2EWasmStartupBuildCacheEnabled() {
 		t.Fatal("explicit startup build cache true should enable cache")
+	}
+
+	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "invalid")
+	if _, err := ResolveE2EWasmStartupBuildCacheEnabled(); err == nil {
+		t.Fatal("invalid startup build cache value should fail")
 	}
 }
 
@@ -745,60 +741,6 @@ func TestApplyE2EWasmTinyGoCompilerEnvCopiesExplicitDebugKnobs(t *testing.T) {
 	}
 	if got := os.Getenv(gocompiler.TinyGoInterpTimeoutEnv); got != "12m" {
 		t.Fatalf("%s=%q, want 12m", gocompiler.TinyGoInterpTimeoutEnv, got)
-	}
-}
-
-func TestClearHarnessStateRootPreservesStartupBuildCache(t *testing.T) {
-	root := t.TempDir()
-	mustWriteHarnessStateFile(t, root, "devtool.s4wave")
-	mustWriteHarnessStateFile(t, root, "devtool.s4wave-lock")
-	mustWriteHarnessStateFile(t, root, "devtool.db")
-	mustWriteHarnessStateFile(t, root, "logs/current.log")
-	mustWriteHarnessStateFile(t, root, "src/go.mod")
-	mustWriteHarnessStateFile(t, root, "plugin/state/state.bin")
-	mustWriteHarnessStateFile(t, root, "build/web/js/wasm/spacewave-core/out")
-	mustWriteHarnessStateFile(t, root, "cli/out")
-
-	if err := clearHarnessStateRoot(root, true); err != nil {
-		t.Fatal(err)
-	}
-	for _, rel := range []string{"devtool.s4wave", "devtool.s4wave-lock", "devtool.db"} {
-		if _, err := os.Stat(filepath.Join(root, rel)); err != nil {
-			t.Fatalf("expected %s to be preserved: %v", rel, err)
-		}
-	}
-	for _, rel := range []string{"logs", "src", "plugin", "build", "cli"} {
-		if _, err := os.Stat(filepath.Join(root, rel)); !os.IsNotExist(err) {
-			t.Fatalf("expected %s to be removed, err=%v", rel, err)
-		}
-	}
-}
-
-func TestClearHarnessStateRootRemovesStartupBuildCache(t *testing.T) {
-	root := t.TempDir()
-	mustWriteHarnessStateFile(t, root, "devtool.s4wave")
-	mustWriteHarnessStateFile(t, root, "devtool.s4wave-lock")
-	mustWriteHarnessStateFile(t, root, "devtool.db")
-	mustWriteHarnessStateFile(t, root, "src/go.mod")
-
-	if err := clearHarnessStateRoot(root, false); err != nil {
-		t.Fatal(err)
-	}
-	for _, rel := range []string{"devtool.s4wave", "devtool.s4wave-lock", "devtool.db", "src"} {
-		if _, err := os.Stat(filepath.Join(root, rel)); !os.IsNotExist(err) {
-			t.Fatalf("expected %s to be removed, err=%v", rel, err)
-		}
-	}
-}
-
-func mustWriteHarnessStateFile(t *testing.T, root, rel string) {
-	t.Helper()
-	path := filepath.Join(root, rel)
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
-		t.Fatal(err)
 	}
 }
 

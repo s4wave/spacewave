@@ -92,6 +92,24 @@ struct SharedObjectHealthDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SharedObjectHealthDefaultTypeInternal _SharedObjectHealth_default_instance_;
+template <typename>
+PROTOBUF_CONSTEXPR SOTerminalReceiptAccepted::SOTerminalReceiptAccepted(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(SOTerminalReceiptAccepted_class_data_.base()){}
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase() {
+}
+#endif  // PROTOBUF_CUSTOM_VTABLE
+struct SOTerminalReceiptAcceptedDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOTerminalReceiptAcceptedDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOTerminalReceiptAcceptedDefaultTypeInternal() {}
+  union {
+    SOTerminalReceiptAccepted _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOTerminalReceiptAcceptedDefaultTypeInternal _SOTerminalReceiptAccepted_default_instance_;
 
 inline constexpr SORootInner::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -275,6 +293,102 @@ struct SOOperationInnerDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOOperationInnerDefaultTypeInternal _SOOperationInner_default_instance_;
 
+inline constexpr SOMutationKey::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        origin_scope_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        shared_object_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        participant_peer_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        local_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOMutationKey::SOMutationKey(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOMutationKey_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOMutationKeyDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOMutationKeyDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOMutationKeyDefaultTypeInternal() {}
+  union {
+    SOMutationKey _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOMutationKeyDefaultTypeInternal _SOMutationKey_default_instance_;
+
+inline constexpr SOJournalVersionTuple::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        config_chain_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        local_version_{::uint64_t{0u}},
+        remote_version_{::uint64_t{0u}},
+        transform_epoch_{::uint64_t{0u}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOJournalVersionTuple::SOJournalVersionTuple(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOJournalVersionTuple_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOJournalVersionTupleDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOJournalVersionTupleDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOJournalVersionTupleDefaultTypeInternal() {}
+  union {
+    SOJournalVersionTuple _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOJournalVersionTupleDefaultTypeInternal _SOJournalVersionTuple_default_instance_;
+
+inline constexpr SOJournalEncryptedPayload::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        nonce_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        ciphertext_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOJournalEncryptedPayload::SOJournalEncryptedPayload(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOJournalEncryptedPayload_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOJournalEncryptedPayloadDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOJournalEncryptedPayloadDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOJournalEncryptedPayloadDefaultTypeInternal() {}
+  union {
+    SOJournalEncryptedPayload _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOJournalEncryptedPayloadDefaultTypeInternal _SOJournalEncryptedPayload_default_instance_;
+
 inline constexpr SOEntityRecoveryEnvelope::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -456,6 +570,34 @@ struct SharedObjectConfigDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SharedObjectConfigDefaultTypeInternal _SharedObjectConfig_default_instance_;
 
+inline constexpr SOTerminalReceipt::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        validator_signatures_{},
+        inner_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOTerminalReceipt::SOTerminalReceipt(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOTerminalReceipt_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOTerminalReceiptDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOTerminalReceiptDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOTerminalReceiptDefaultTypeInternal() {}
+  union {
+    SOTerminalReceipt _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOTerminalReceiptDefaultTypeInternal _SOTerminalReceipt_default_instance_;
+
 inline constexpr SORoot::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -595,6 +737,137 @@ struct SOOperationDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOOperationDefaultTypeInternal _SOOperation_default_instance_;
+
+inline constexpr SOJournalReceipt::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        envelope_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        terminal_receipt_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        terminal_receipt_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        authoritative_root_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        config_chain_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        key_{nullptr},
+        supersedes_{nullptr},
+        authoritative_root_seqno_{::uint64_t{0u}},
+        terminal_unix_millis_{::uint64_t{0u}},
+        outcome_{static_cast< ::sobject::SOJournalOutcome >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOJournalReceipt::SOJournalReceipt(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOJournalReceipt_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOJournalReceiptDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOJournalReceiptDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOJournalReceiptDefaultTypeInternal() {}
+  union {
+    SOJournalReceipt _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOJournalReceiptDefaultTypeInternal _SOJournalReceipt_default_instance_;
+
+inline constexpr SOJournalProjection::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        receipt_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        authoritative_root_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        key_{nullptr},
+        authoritative_root_seqno_{::uint64_t{0u}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOJournalProjection::SOJournalProjection(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOJournalProjection_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOJournalProjectionDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOJournalProjectionDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOJournalProjectionDefaultTypeInternal() {}
+  union {
+    SOJournalProjection _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOJournalProjectionDefaultTypeInternal _SOJournalProjection_default_instance_;
+
+inline constexpr SOJournalLineage::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        root_key_{nullptr},
+        supersedes_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOJournalLineage::SOJournalLineage(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOJournalLineage_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOJournalLineageDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOJournalLineageDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOJournalLineageDefaultTypeInternal() {}
+  union {
+    SOJournalLineage _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOJournalLineageDefaultTypeInternal _SOJournalLineage_default_instance_;
+
+inline constexpr SOJournalAcknowledgement::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        receipt_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        key_{nullptr},
+        acknowledged_unix_millis_{::uint64_t{0u}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOJournalAcknowledgement::SOJournalAcknowledgement(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOJournalAcknowledgement_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOJournalAcknowledgementDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOJournalAcknowledgementDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOJournalAcknowledgementDefaultTypeInternal() {}
+  union {
+    SOJournalAcknowledgement _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOJournalAcknowledgementDefaultTypeInternal _SOJournalAcknowledgement_default_instance_;
 
 inline constexpr SOJoinResponse::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -805,6 +1078,49 @@ struct SharedObjectListEntryDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SharedObjectListEntryDefaultTypeInternal _SharedObjectListEntry_default_instance_;
 
+inline constexpr SOTerminalReceiptInner::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        envelope_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        authoritative_root_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        config_chain_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        validator_set_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        key_{nullptr},
+        supersedes_{nullptr},
+        authoritative_root_seqno_{::uint64_t{0u}},
+        terminal_unix_millis_{::uint64_t{0u}},
+        consensus_mode_{static_cast< ::sobject::SOConsensusMode >(0)},
+        outcome_{},
+        _oneof_case_{} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOTerminalReceiptInner::SOTerminalReceiptInner(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOTerminalReceiptInner_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOTerminalReceiptInnerDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOTerminalReceiptInnerDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOTerminalReceiptInnerDefaultTypeInternal() {}
+  union {
+    SOTerminalReceiptInner _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOTerminalReceiptInnerDefaultTypeInternal _SOTerminalReceiptInner_default_instance_;
+
 inline constexpr SOPeerOpRejections::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -860,6 +1176,72 @@ struct SOKeyEpochDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOKeyEpochDefaultTypeInternal _SOKeyEpoch_default_instance_;
+
+inline constexpr SOJournalLookup::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        response_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        response_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        config_chain_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        key_{nullptr},
+        receipt_{nullptr},
+        state_{static_cast< ::sobject::SOReceiptState >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOJournalLookup::SOJournalLookup(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOJournalLookup_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOJournalLookupDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOJournalLookupDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOJournalLookupDefaultTypeInternal() {}
+  union {
+    SOJournalLookup _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOJournalLookupDefaultTypeInternal _SOJournalLookup_default_instance_;
+
+inline constexpr SOJournalIntent::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        canonical_operation_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        key_{nullptr},
+        lineage_{nullptr},
+        version_{nullptr} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOJournalIntent::SOJournalIntent(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOJournalIntent_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOJournalIntentDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOJournalIntentDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOJournalIntentDefaultTypeInternal() {}
+  union {
+    SOJournalIntent _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOJournalIntentDefaultTypeInternal _SOJournalIntent_default_instance_;
 
 inline constexpr SOGrantInner::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -977,6 +1359,92 @@ struct SOStateDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOStateDefaultTypeInternal _SOState_default_instance_;
 
+inline constexpr SOJournalRecord::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        envelope_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        key_{nullptr},
+        lineage_{nullptr},
+        version_{nullptr},
+        intent_{nullptr},
+        envelope_{nullptr},
+        receipt_{nullptr},
+        acknowledgement_{nullptr},
+        projection_{nullptr},
+        lookup_{nullptr},
+        sequence_{::uint64_t{0u}},
+        format_version_{0u},
+        kind_{static_cast< ::sobject::SOJournalRecordKind >(0)},
+        readiness_{static_cast< ::sobject::SOJournalReadiness >(0)},
+        recovery_reason_{static_cast< ::sobject::SOJournalRecoveryReason >(0)},
+        attempt_state_{static_cast< ::sobject::SOJournalAttemptState >(0)} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOJournalRecord::SOJournalRecord(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOJournalRecord_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOJournalRecordDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOJournalRecordDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOJournalRecordDefaultTypeInternal() {}
+  union {
+    SOJournalRecord _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOJournalRecordDefaultTypeInternal _SOJournalRecord_default_instance_;
+
+inline constexpr SOJournalCheckpointAttempt::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        envelope_digest_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        key_{nullptr},
+        lineage_{nullptr},
+        version_{nullptr},
+        intent_{nullptr},
+        envelope_{nullptr},
+        receipt_{nullptr},
+        acknowledgement_{nullptr},
+        projection_{nullptr},
+        lookup_{nullptr},
+        state_{static_cast< ::sobject::SOJournalAttemptState >(0)},
+        readiness_{static_cast< ::sobject::SOJournalReadiness >(0)},
+        intent_sequence_{::uint64_t{0u}},
+        envelope_sequence_{::uint64_t{0u}},
+        send_attempted_{false},
+        resend_authorized_{false},
+        lineage_recovery_blocked_{false},
+        checkpoint_eligible_{false} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOJournalCheckpointAttempt::SOJournalCheckpointAttempt(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOJournalCheckpointAttempt_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOJournalCheckpointAttemptDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOJournalCheckpointAttemptDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOJournalCheckpointAttemptDefaultTypeInternal() {}
+  union {
+    SOJournalCheckpointAttempt _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOJournalCheckpointAttemptDefaultTypeInternal _SOJournalCheckpointAttempt_default_instance_;
+
 inline constexpr SOEntityRecoveryMaterial::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -1031,9 +1499,39 @@ struct SOConfigChainResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOConfigChainResponseDefaultTypeInternal _SOConfigChainResponse_default_instance_;
+
+inline constexpr SOJournalCheckpoint::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        attempts_{},
+        journal_identity_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        generation_{::uint64_t{0u}},
+        next_sequence_{::uint64_t{0u}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR SOJournalCheckpoint::SOJournalCheckpoint(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(SOJournalCheckpoint_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct SOJournalCheckpointDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SOJournalCheckpointDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SOJournalCheckpointDefaultTypeInternal() {}
+  union {
+    SOJournalCheckpoint _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SOJournalCheckpointDefaultTypeInternal _SOJournalCheckpoint_default_instance_;
 }  // namespace sobject
 static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[8];
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[14];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto = nullptr;
 const ::uint32_t
@@ -1368,6 +1866,231 @@ const ::uint32_t
         1,
         2,
         3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOMutationKey, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOMutationKey, _impl_.origin_scope_id_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOMutationKey, _impl_.shared_object_id_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOMutationKey, _impl_.participant_peer_id_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOMutationKey, _impl_.local_id_),
+        0,
+        1,
+        2,
+        3,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalLineage, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalLineage, _impl_.root_key_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalLineage, _impl_.supersedes_),
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalVersionTuple, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalVersionTuple, _impl_.local_version_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalVersionTuple, _impl_.remote_version_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalVersionTuple, _impl_.transform_epoch_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalVersionTuple, _impl_.config_chain_digest_),
+        1,
+        2,
+        3,
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalIntent, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalIntent, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalIntent, _impl_.lineage_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalIntent, _impl_.version_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalIntent, _impl_.canonical_operation_),
+        1,
+        2,
+        3,
+        0,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalEncryptedPayload, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalEncryptedPayload, _impl_.nonce_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalEncryptedPayload, _impl_.ciphertext_),
+        0,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalLookup, _impl_._has_bits_),
+        9, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalLookup, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalLookup, _impl_.state_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalLookup, _impl_.receipt_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalLookup, _impl_.response_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalLookup, _impl_.response_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalLookup, _impl_.config_chain_digest_),
+        3,
+        5,
+        4,
+        0,
+        1,
+        2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalReceipt, _impl_._has_bits_),
+        13, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalReceipt, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalReceipt, _impl_.envelope_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalReceipt, _impl_.outcome_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalReceipt, _impl_.terminal_receipt_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalReceipt, _impl_.terminal_receipt_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalReceipt, _impl_.authoritative_root_seqno_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalReceipt, _impl_.authoritative_root_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalReceipt, _impl_.config_chain_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalReceipt, _impl_.terminal_unix_millis_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalReceipt, _impl_.supersedes_),
+        5,
+        0,
+        9,
+        1,
+        2,
+        7,
+        3,
+        4,
+        8,
+        6,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalAcknowledgement, _impl_._has_bits_),
+        6, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalAcknowledgement, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalAcknowledgement, _impl_.receipt_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalAcknowledgement, _impl_.acknowledged_unix_millis_),
+        1,
+        0,
+        2,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalProjection, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalProjection, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalProjection, _impl_.receipt_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalProjection, _impl_.authoritative_root_seqno_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalProjection, _impl_.authoritative_root_digest_),
+        2,
+        0,
+        3,
+        1,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_._has_bits_),
+        19, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.format_version_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.sequence_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.kind_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.lineage_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.version_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.intent_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.envelope_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.receipt_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.acknowledgement_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.projection_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.readiness_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.recovery_reason_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.attempt_state_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.envelope_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalRecord, _impl_.lookup_),
+        11,
+        10,
+        12,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        13,
+        14,
+        15,
+        0,
+        9,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_._has_bits_),
+        21, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.lineage_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.version_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.state_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.readiness_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.intent_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.envelope_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.envelope_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.receipt_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.acknowledgement_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.projection_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.lookup_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.send_attempted_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.resend_authorized_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.lineage_recovery_blocked_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.intent_sequence_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.envelope_sequence_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpointAttempt, _impl_.checkpoint_eligible_),
+        1,
+        2,
+        3,
+        10,
+        11,
+        4,
+        5,
+        0,
+        6,
+        7,
+        8,
+        9,
+        14,
+        15,
+        16,
+        12,
+        13,
+        17,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpoint, _impl_._has_bits_),
+        7, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpoint, _impl_.journal_identity_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpoint, _impl_.generation_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpoint, _impl_.next_sequence_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOJournalCheckpoint, _impl_.attempts_),
+        1,
+        2,
+        3,
+        0,
+        0x000, // bitmap
+        0x085, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_._has_bits_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_._oneof_case_[0]),
+        16, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.key_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.envelope_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.outcome_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.outcome_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.authoritative_root_seqno_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.authoritative_root_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.config_chain_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.consensus_mode_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.validator_set_digest_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.terminal_unix_millis_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.supersedes_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_.outcome_),
+        4,
+        0,
+        ~0u,
+        ~0u,
+        6,
+        1,
+        2,
+        8,
+        3,
+        7,
+        5,
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceipt, _impl_._has_bits_),
+        5, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceipt, _impl_.inner_),
+        PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceipt, _impl_.validator_signatures_),
+        1,
+        0,
 };
 
 static const ::_pbi::MigrationSchema
@@ -1405,6 +2128,21 @@ static const ::_pbi::MigrationSchema
         {288, sizeof(::sobject::QueuedSOOperation)},
         {295, sizeof(::sobject::SOInviteMessage)},
         {318, sizeof(::sobject::SOJoinResponse)},
+        {329, sizeof(::sobject::SOMutationKey)},
+        {340, sizeof(::sobject::SOJournalLineage)},
+        {347, sizeof(::sobject::SOJournalVersionTuple)},
+        {358, sizeof(::sobject::SOJournalIntent)},
+        {369, sizeof(::sobject::SOJournalEncryptedPayload)},
+        {376, sizeof(::sobject::SOJournalLookup)},
+        {391, sizeof(::sobject::SOJournalReceipt)},
+        {414, sizeof(::sobject::SOJournalAcknowledgement)},
+        {423, sizeof(::sobject::SOJournalProjection)},
+        {434, sizeof(::sobject::SOJournalRecord)},
+        {469, sizeof(::sobject::SOJournalCheckpointAttempt)},
+        {508, sizeof(::sobject::SOJournalCheckpoint)},
+        {519, sizeof(::sobject::SOTerminalReceiptAccepted)},
+        {520, sizeof(::sobject::SOTerminalReceiptInner)},
+        {547, sizeof(::sobject::SOTerminalReceipt)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::sobject::_SharedObjectRef_default_instance_._instance,
@@ -1440,6 +2178,21 @@ static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::sobject::_QueuedSOOperation_default_instance_._instance,
     &::sobject::_SOInviteMessage_default_instance_._instance,
     &::sobject::_SOJoinResponse_default_instance_._instance,
+    &::sobject::_SOMutationKey_default_instance_._instance,
+    &::sobject::_SOJournalLineage_default_instance_._instance,
+    &::sobject::_SOJournalVersionTuple_default_instance_._instance,
+    &::sobject::_SOJournalIntent_default_instance_._instance,
+    &::sobject::_SOJournalEncryptedPayload_default_instance_._instance,
+    &::sobject::_SOJournalLookup_default_instance_._instance,
+    &::sobject::_SOJournalReceipt_default_instance_._instance,
+    &::sobject::_SOJournalAcknowledgement_default_instance_._instance,
+    &::sobject::_SOJournalProjection_default_instance_._instance,
+    &::sobject::_SOJournalRecord_default_instance_._instance,
+    &::sobject::_SOJournalCheckpointAttempt_default_instance_._instance,
+    &::sobject::_SOJournalCheckpoint_default_instance_._instance,
+    &::sobject::_SOTerminalReceiptAccepted_default_instance_._instance,
+    &::sobject::_SOTerminalReceiptInner_default_instance_._instance,
+    &::sobject::_SOTerminalReceipt_default_instance_._instance,
 };
 const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -1552,57 +2305,191 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2f
     "\n\016SOJoinResponse\022\021\n\tinvite_id\030\001 \001(\t\022\031\n\021r"
     "esponder_peer_id\030\002 \001(\t\022\030\n\020responder_pubk"
     "ey\030\003 \001(\014\022\"\n\tsignature\030\004 \001(\0132\017.peer.Signa"
-    "ture*\345\001\n\030SharedObjectHealthStatus\022\'\n#SHA"
-    "RED_OBJECT_HEALTH_STATUS_UNKNOWN\020\000\022\'\n#SH"
-    "ARED_OBJECT_HEALTH_STATUS_LOADING\020\001\022%\n!S"
-    "HARED_OBJECT_HEALTH_STATUS_READY\020\002\022(\n$SH"
-    "ARED_OBJECT_HEALTH_STATUS_DEGRADED\020\003\022&\n\""
-    "SHARED_OBJECT_HEALTH_STATUS_CLOSED\020\004*\224\001\n"
-    "\027SharedObjectHealthLayer\022&\n\"SHARED_OBJEC"
-    "T_HEALTH_LAYER_UNKNOWN\020\000\022,\n(SHARED_OBJEC"
-    "T_HEALTH_LAYER_SHARED_OBJECT\020\001\022#\n\037SHARED"
-    "_OBJECT_HEALTH_LAYER_BODY\020\002*\271\003\n\036SharedOb"
-    "jectHealthCommonReason\022.\n*SHARED_OBJECT_"
-    "HEALTH_COMMON_REASON_UNKNOWN\020\000\0220\n,SHARED"
-    "_OBJECT_HEALTH_COMMON_REASON_NOT_FOUND\020\001"
-    "\0225\n1SHARED_OBJECT_HEALTH_COMMON_REASON_A"
-    "CCESS_REVOKED\020\002\022=\n9SHARED_OBJECT_HEALTH_"
-    "COMMON_REASON_INITIAL_STATE_REJECTED\020\003\0226"
-    "\n2SHARED_OBJECT_HEALTH_COMMON_REASON_BLO"
-    "CK_NOT_FOUND\020\004\022E\nASHARED_OBJECT_HEALTH_C"
-    "OMMON_REASON_TRANSFORM_CONFIG_DECODE_FAI"
-    "LED\020\005\022@\n<SHARED_OBJECT_HEALTH_COMMON_REA"
-    "SON_BODY_CONFIG_DECODE_FAILED\020\006*\350\002\n!Shar"
-    "edObjectHealthRemediationHint\0221\n-SHARED_"
-    "OBJECT_HEALTH_REMEDIATION_HINT_UNKNOWN\020\000"
-    "\022.\n*SHARED_OBJECT_HEALTH_REMEDIATION_HIN"
-    "T_NONE\020\001\022/\n+SHARED_OBJECT_HEALTH_REMEDIA"
-    "TION_HINT_RETRY\020\002\0228\n4SHARED_OBJECT_HEALT"
-    "H_REMEDIATION_HINT_REQUEST_ACCESS\020\003\0227\n3S"
-    "HARED_OBJECT_HEALTH_REMEDIATION_HINT_CON"
-    "TACT_OWNER\020\004\022<\n8SHARED_OBJECT_HEALTH_REM"
-    "EDIATION_HINT_REPAIR_SOURCE_DATA\020\005*\254\001\n\021S"
-    "OParticipantRole\022\035\n\031SOParticipantRole_UN"
-    "KNOWN\020\000\022\034\n\030SOParticipantRole_READER\020\001\022\034\n"
-    "\030SOParticipantRole_WRITER\020\002\022\037\n\033SOPartici"
-    "pantRole_VALIDATOR\020\003\022\033\n\027SOParticipantRol"
-    "e_OWNER\020\004*9\n\017SOConsensusMode\022&\n\"SO_CONSE"
-    "NSUS_MODE_SINGLE_VALIDATOR\020\000*\337\002\n\022SOConfi"
-    "gChangeType\022!\n\035SO_CONFIG_CHANGE_TYPE_UNK"
-    "NOWN\020\000\022!\n\035SO_CONFIG_CHANGE_TYPE_GENESIS\020"
-    "\001\022)\n%SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPA"
-    "NT\020\002\022,\n(SO_CONFIG_CHANGE_TYPE_REMOVE_PAR"
-    "TICIPANT\020\003\022$\n SO_CONFIG_CHANGE_TYPE_ADD_"
-    "INVITE\020\004\022\'\n#SO_CONFIG_CHANGE_TYPE_REVOKE"
-    "_INVITE\020\005\022/\n+SO_CONFIG_CHANGE_TYPE_INCRE"
-    "MENT_INVITE_USES\020\006\022*\n&SO_CONFIG_CHANGE_T"
-    "YPE_SELF_ENROLL_PEER\020\007*\327\001\n\022SORevocationR"
-    "eason\022 \n\034SO_REVOCATION_REASON_UNKNOWN\020\000\022"
-    "(\n$SO_REVOCATION_REASON_SESSION_REVOKED\020"
-    "\001\022$\n SO_REVOCATION_REASON_ORG_REMOVED\020\002\022"
-    "&\n\"SO_REVOCATION_REASON_OWNER_REMOVED\020\003\022"
-    "\'\n#SO_REVOCATION_REASON_INVITE_REVOKED\020\004"
-    "b\006proto3"
+    "ture\"q\n\rSOMutationKey\022\027\n\017origin_scope_id"
+    "\030\001 \001(\014\022\030\n\020shared_object_id\030\002 \001(\t\022\033\n\023part"
+    "icipant_peer_id\030\003 \001(\t\022\020\n\010local_id\030\004 \001(\t\""
+    "h\n\020SOJournalLineage\022(\n\010root_key\030\001 \001(\0132\026."
+    "sobject.SOMutationKey\022*\n\nsupersedes\030\002 \001("
+    "\0132\026.sobject.SOMutationKey\"|\n\025SOJournalVe"
+    "rsionTuple\022\025\n\rlocal_version\030\001 \001(\004\022\026\n\016rem"
+    "ote_version\030\002 \001(\004\022\027\n\017transform_epoch\030\003 \001"
+    "(\004\022\033\n\023config_chain_digest\030\004 \001(\014\"\260\001\n\017SOJo"
+    "urnalIntent\022#\n\003key\030\001 \001(\0132\026.sobject.SOMut"
+    "ationKey\022*\n\007lineage\030\002 \001(\0132\031.sobject.SOJo"
+    "urnalLineage\022/\n\007version\030\003 \001(\0132\036.sobject."
+    "SOJournalVersionTuple\022\033\n\023canonical_opera"
+    "tion\030\004 \001(\014\">\n\031SOJournalEncryptedPayload\022"
+    "\r\n\005nonce\030\001 \001(\014\022\022\n\nciphertext\030\002 \001(\014\"\322\001\n\017S"
+    "OJournalLookup\022#\n\003key\030\001 \001(\0132\026.sobject.SO"
+    "MutationKey\022&\n\005state\030\002 \001(\0162\027.sobject.SOR"
+    "eceiptState\022*\n\007receipt\030\003 \001(\0132\031.sobject.S"
+    "OJournalReceipt\022\020\n\010response\030\004 \001(\014\022\027\n\017res"
+    "ponse_digest\030\005 \001(\014\022\033\n\023config_chain_diges"
+    "t\030\006 \001(\014\"\343\002\n\020SOJournalReceipt\022#\n\003key\030\001 \001("
+    "\0132\026.sobject.SOMutationKey\022\027\n\017envelope_di"
+    "gest\030\002 \001(\014\022*\n\007outcome\030\003 \001(\0162\031.sobject.SO"
+    "JournalOutcome\022\030\n\020terminal_receipt\030\004 \001(\014"
+    "\022\037\n\027terminal_receipt_digest\030\005 \001(\014\022 \n\030aut"
+    "horitative_root_seqno\030\006 \001(\004\022!\n\031authorita"
+    "tive_root_digest\030\007 \001(\014\022\033\n\023config_chain_d"
+    "igest\030\010 \001(\014\022\034\n\024terminal_unix_millis\030\t \001("
+    "\004\022*\n\nsupersedes\030\n \001(\0132\026.sobject.SOMutati"
+    "onKey\"y\n\030SOJournalAcknowledgement\022#\n\003key"
+    "\030\001 \001(\0132\026.sobject.SOMutationKey\022\026\n\016receip"
+    "t_digest\030\002 \001(\014\022 \n\030acknowledged_unix_mill"
+    "is\030\003 \001(\004\"\227\001\n\023SOJournalProjection\022#\n\003key\030"
+    "\001 \001(\0132\026.sobject.SOMutationKey\022\026\n\016receipt"
+    "_digest\030\002 \001(\014\022 \n\030authoritative_root_seqn"
+    "o\030\003 \001(\004\022!\n\031authoritative_root_digest\030\004 \001"
+    "(\014\"\322\005\n\017SOJournalRecord\022\026\n\016format_version"
+    "\030\001 \001(\r\022\020\n\010sequence\030\002 \001(\004\022*\n\004kind\030\003 \001(\0162\034"
+    ".sobject.SOJournalRecordKind\022#\n\003key\030\004 \001("
+    "\0132\026.sobject.SOMutationKey\022*\n\007lineage\030\005 \001"
+    "(\0132\031.sobject.SOJournalLineage\022/\n\007version"
+    "\030\006 \001(\0132\036.sobject.SOJournalVersionTuple\0222"
+    "\n\006intent\030\007 \001(\0132\".sobject.SOJournalEncryp"
+    "tedPayload\0224\n\010envelope\030\010 \001(\0132\".sobject.S"
+    "OJournalEncryptedPayload\022*\n\007receipt\030\t \001("
+    "\0132\031.sobject.SOJournalReceipt\022:\n\017acknowle"
+    "dgement\030\n \001(\0132!.sobject.SOJournalAcknowl"
+    "edgement\0220\n\nprojection\030\013 \001(\0132\034.sobject.S"
+    "OJournalProjection\022.\n\treadiness\030\014 \001(\0162\033."
+    "sobject.SOJournalReadiness\0229\n\017recovery_r"
+    "eason\030\r \001(\0162 .sobject.SOJournalRecoveryR"
+    "eason\0225\n\rattempt_state\030\016 \001(\0162\036.sobject.S"
+    "OJournalAttemptState\022\027\n\017envelope_digest\030"
+    "\017 \001(\014\022(\n\006lookup\030\020 \001(\0132\030.sobject.SOJourna"
+    "lLookup\"\352\005\n\032SOJournalCheckpointAttempt\022#"
+    "\n\003key\030\001 \001(\0132\026.sobject.SOMutationKey\022*\n\007l"
+    "ineage\030\002 \001(\0132\031.sobject.SOJournalLineage\022"
+    "/\n\007version\030\003 \001(\0132\036.sobject.SOJournalVers"
+    "ionTuple\022-\n\005state\030\004 \001(\0162\036.sobject.SOJour"
+    "nalAttemptState\022.\n\treadiness\030\005 \001(\0162\033.sob"
+    "ject.SOJournalReadiness\0222\n\006intent\030\006 \001(\0132"
+    "\".sobject.SOJournalEncryptedPayload\0224\n\010e"
+    "nvelope\030\007 \001(\0132\".sobject.SOJournalEncrypt"
+    "edPayload\022\027\n\017envelope_digest\030\010 \001(\014\022*\n\007re"
+    "ceipt\030\t \001(\0132\031.sobject.SOJournalReceipt\022:"
+    "\n\017acknowledgement\030\n \001(\0132!.sobject.SOJour"
+    "nalAcknowledgement\0220\n\nprojection\030\013 \001(\0132\034"
+    ".sobject.SOJournalProjection\022(\n\006lookup\030\014"
+    " \001(\0132\030.sobject.SOJournalLookup\022\026\n\016send_a"
+    "ttempted\030\r \001(\010\022\031\n\021resend_authorized\030\016 \001("
+    "\010\022 \n\030lineage_recovery_blocked\030\017 \001(\010\022\027\n\017i"
+    "ntent_sequence\030\020 \001(\004\022\031\n\021envelope_sequenc"
+    "e\030\021 \001(\004\022\033\n\023checkpoint_eligible\030\022 \001(\010\"\221\001\n"
+    "\023SOJournalCheckpoint\022\030\n\020journal_identity"
+    "\030\001 \001(\014\022\022\n\ngeneration\030\002 \001(\004\022\025\n\rnext_seque"
+    "nce\030\003 \001(\004\0225\n\010attempts\030\004 \003(\0132#.sobject.SO"
+    "JournalCheckpointAttempt\"\033\n\031SOTerminalRe"
+    "ceiptAccepted\"\320\003\n\026SOTerminalReceiptInner"
+    "\022#\n\003key\030\001 \001(\0132\026.sobject.SOMutationKey\022\027\n"
+    "\017envelope_digest\030\002 \001(\014\0226\n\010accepted\030\003 \001(\013"
+    "2\".sobject.SOTerminalReceiptAcceptedH\000\0229"
+    "\n\020signed_rejection\030\004 \001(\0132\035.sobject.SOOpe"
+    "rationRejectionH\000\022 \n\030authoritative_root_"
+    "seqno\030\005 \001(\004\022!\n\031authoritative_root_digest"
+    "\030\006 \001(\014\022\033\n\023config_chain_digest\030\007 \001(\014\0220\n\016c"
+    "onsensus_mode\030\010 \001(\0162\030.sobject.SOConsensu"
+    "sMode\022\034\n\024validator_set_digest\030\t \001(\014\022\034\n\024t"
+    "erminal_unix_millis\030\n \001(\004\022*\n\nsupersedes\030"
+    "\013 \001(\0132\026.sobject.SOMutationKeyB\t\n\007outcome"
+    "\"Q\n\021SOTerminalReceipt\022\r\n\005inner\030\001 \001(\014\022-\n\024"
+    "validator_signatures\030\002 \003(\0132\017.peer.Signat"
+    "ure*\345\001\n\030SharedObjectHealthStatus\022\'\n#SHAR"
+    "ED_OBJECT_HEALTH_STATUS_UNKNOWN\020\000\022\'\n#SHA"
+    "RED_OBJECT_HEALTH_STATUS_LOADING\020\001\022%\n!SH"
+    "ARED_OBJECT_HEALTH_STATUS_READY\020\002\022(\n$SHA"
+    "RED_OBJECT_HEALTH_STATUS_DEGRADED\020\003\022&\n\"S"
+    "HARED_OBJECT_HEALTH_STATUS_CLOSED\020\004*\224\001\n\027"
+    "SharedObjectHealthLayer\022&\n\"SHARED_OBJECT"
+    "_HEALTH_LAYER_UNKNOWN\020\000\022,\n(SHARED_OBJECT"
+    "_HEALTH_LAYER_SHARED_OBJECT\020\001\022#\n\037SHARED_"
+    "OBJECT_HEALTH_LAYER_BODY\020\002*\271\003\n\036SharedObj"
+    "ectHealthCommonReason\022.\n*SHARED_OBJECT_H"
+    "EALTH_COMMON_REASON_UNKNOWN\020\000\0220\n,SHARED_"
+    "OBJECT_HEALTH_COMMON_REASON_NOT_FOUND\020\001\022"
+    "5\n1SHARED_OBJECT_HEALTH_COMMON_REASON_AC"
+    "CESS_REVOKED\020\002\022=\n9SHARED_OBJECT_HEALTH_C"
+    "OMMON_REASON_INITIAL_STATE_REJECTED\020\003\0226\n"
+    "2SHARED_OBJECT_HEALTH_COMMON_REASON_BLOC"
+    "K_NOT_FOUND\020\004\022E\nASHARED_OBJECT_HEALTH_CO"
+    "MMON_REASON_TRANSFORM_CONFIG_DECODE_FAIL"
+    "ED\020\005\022@\n<SHARED_OBJECT_HEALTH_COMMON_REAS"
+    "ON_BODY_CONFIG_DECODE_FAILED\020\006*\350\002\n!Share"
+    "dObjectHealthRemediationHint\0221\n-SHARED_O"
+    "BJECT_HEALTH_REMEDIATION_HINT_UNKNOWN\020\000\022"
+    ".\n*SHARED_OBJECT_HEALTH_REMEDIATION_HINT"
+    "_NONE\020\001\022/\n+SHARED_OBJECT_HEALTH_REMEDIAT"
+    "ION_HINT_RETRY\020\002\0228\n4SHARED_OBJECT_HEALTH"
+    "_REMEDIATION_HINT_REQUEST_ACCESS\020\003\0227\n3SH"
+    "ARED_OBJECT_HEALTH_REMEDIATION_HINT_CONT"
+    "ACT_OWNER\020\004\022<\n8SHARED_OBJECT_HEALTH_REME"
+    "DIATION_HINT_REPAIR_SOURCE_DATA\020\005*\254\001\n\021SO"
+    "ParticipantRole\022\035\n\031SOParticipantRole_UNK"
+    "NOWN\020\000\022\034\n\030SOParticipantRole_READER\020\001\022\034\n\030"
+    "SOParticipantRole_WRITER\020\002\022\037\n\033SOParticip"
+    "antRole_VALIDATOR\020\003\022\033\n\027SOParticipantRole"
+    "_OWNER\020\004*9\n\017SOConsensusMode\022&\n\"SO_CONSEN"
+    "SUS_MODE_SINGLE_VALIDATOR\020\000*\337\002\n\022SOConfig"
+    "ChangeType\022!\n\035SO_CONFIG_CHANGE_TYPE_UNKN"
+    "OWN\020\000\022!\n\035SO_CONFIG_CHANGE_TYPE_GENESIS\020\001"
+    "\022)\n%SO_CONFIG_CHANGE_TYPE_ADD_PARTICIPAN"
+    "T\020\002\022,\n(SO_CONFIG_CHANGE_TYPE_REMOVE_PART"
+    "ICIPANT\020\003\022$\n SO_CONFIG_CHANGE_TYPE_ADD_I"
+    "NVITE\020\004\022\'\n#SO_CONFIG_CHANGE_TYPE_REVOKE_"
+    "INVITE\020\005\022/\n+SO_CONFIG_CHANGE_TYPE_INCREM"
+    "ENT_INVITE_USES\020\006\022*\n&SO_CONFIG_CHANGE_TY"
+    "PE_SELF_ENROLL_PEER\020\007*\327\001\n\022SORevocationRe"
+    "ason\022 \n\034SO_REVOCATION_REASON_UNKNOWN\020\000\022("
+    "\n$SO_REVOCATION_REASON_SESSION_REVOKED\020\001"
+    "\022$\n SO_REVOCATION_REASON_ORG_REMOVED\020\002\022&"
+    "\n\"SO_REVOCATION_REASON_OWNER_REMOVED\020\003\022\'"
+    "\n#SO_REVOCATION_REASON_INVITE_REVOKED\020\004*"
+    "\226\004\n\023SOJournalRecordKind\022&\n\"SO_JOURNAL_RE"
+    "CORD_KIND_UNSPECIFIED\020\000\022!\n\035SO_JOURNAL_RE"
+    "CORD_KIND_INTENT\020\001\022*\n&SO_JOURNAL_RECORD_"
+    "KIND_SIGNED_ENVELOPE\020\002\022\037\n\033SO_JOURNAL_REC"
+    "ORD_KIND_SENT\020\003\022\"\n\036SO_JOURNAL_RECORD_KIN"
+    "D_RECEIPT\020\004\022*\n&SO_JOURNAL_RECORD_KIND_AC"
+    "KNOWLEDGEMENT\020\005\022*\n&SO_JOURNAL_RECORD_KIN"
+    "D_BODY_PROJECTION\020\006\0220\n,SO_JOURNAL_RECORD"
+    "_KIND_STALE_TRANSFORM_EPOCH\020\007\022+\n\'SO_JOUR"
+    "NAL_RECORD_KIND_RECOVERY_BLOCKED\020\010\0223\n/SO"
+    "_JOURNAL_RECORD_KIND_LINEAGE_RECOVERY_BL"
+    "OCKED\020\t\022)\n%SO_JOURNAL_RECORD_KIND_RECEIP"
+    "T_LOOKUP\020\n\022,\n(SO_JOURNAL_RECORD_KIND_RES"
+    "END_AUTHORIZED\020\013*\321\002\n\025SOJournalAttemptSta"
+    "te\022(\n$SO_JOURNAL_ATTEMPT_STATE_UNSPECIFI"
+    "ED\020\000\022+\n\'SO_JOURNAL_ATTEMPT_STATE_INTENT_"
+    "DURABLE\020\001\022-\n)SO_JOURNAL_ATTEMPT_STATE_EN"
+    "VELOPE_DURABLE\020\002\022!\n\035SO_JOURNAL_ATTEMPT_S"
+    "TATE_SENT\020\003\022,\n(SO_JOURNAL_ATTEMPT_STATE_"
+    "RECEIPT_DURABLE\020\004\0222\n.SO_JOURNAL_ATTEMPT_"
+    "STATE_STALE_TRANSFORM_EPOCH\020\005\022-\n)SO_JOUR"
+    "NAL_ATTEMPT_STATE_RECOVERY_BLOCKED\020\006*x\n\020"
+    "SOJournalOutcome\022\"\n\036SO_JOURNAL_OUTCOME_U"
+    "NSPECIFIED\020\000\022\037\n\033SO_JOURNAL_OUTCOME_ACCEP"
+    "TED\020\001\022\037\n\033SO_JOURNAL_OUTCOME_REJECTED\020\002*\301"
+    "\001\n\022SOJournalReadiness\022$\n SO_JOURNAL_READ"
+    "INESS_UNSPECIFIED\020\000\022\036\n\032SO_JOURNAL_READIN"
+    "ESS_READY\020\001\022 \n\034SO_JOURNAL_READINESS_MISS"
+    "ING\020\002\022 \n\034SO_JOURNAL_READINESS_CORRUPT\020\003\022"
+    "!\n\035SO_JOURNAL_READINESS_OBSOLETE\020\004*\345\002\n\027S"
+    "OJournalRecoveryReason\022*\n&SO_JOURNAL_REC"
+    "OVERY_REASON_UNSPECIFIED\020\000\0224\n0SO_JOURNAL"
+    "_RECOVERY_REASON_STALE_TRANSFORM_EPOCH\020\001"
+    "\022.\n*SO_JOURNAL_RECOVERY_REASON_KEY_UNAVA"
+    "ILABLE\020\002\0220\n,SO_JOURNAL_RECOVERY_REASON_A"
+    "UTHORITY_FAILURE\020\003\022+\n\'SO_JOURNAL_RECOVER"
+    "Y_REASON_BODY_MISSING\020\004\022+\n\'SO_JOURNAL_RE"
+    "COVERY_REASON_BODY_CORRUPT\020\005\022,\n(SO_JOURN"
+    "AL_RECOVERY_REASON_BODY_OBSOLETE\020\006*\256\001\n\016S"
+    "OReceiptState\022 \n\034SO_RECEIPT_STATE_UNSPEC"
+    "IFIED\020\000\022\036\n\032SO_RECEIPT_STATE_NO_RECORD\020\001\022"
+    "\034\n\030SO_RECEIPT_STATE_PENDING\020\002\022\035\n\031SO_RECE"
+    "IPT_STATE_ACCEPTED\020\003\022\035\n\031SO_RECEIPT_STATE"
+    "_REJECTED\020\004b\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto_deps[4] = {
@@ -1615,13 +2502,13 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fco
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto = {
     false,
     false,
-    6368,
+    11739,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
     "github.com/s4wave/spacewave/core/sobject/sobject.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto_once,
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto_deps,
     4,
-    33,
+    48,
     schemas,
     file_default_instances,
     TableStruct_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto::offsets,
@@ -1676,6 +2563,42 @@ const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SORevocationReason_de
   return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[7];
 }
 PROTOBUF_CONSTINIT const uint32_t SORevocationReason_internal_data_[] = {
+    327680u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOJournalRecordKind_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[8];
+}
+PROTOBUF_CONSTINIT const uint32_t SOJournalRecordKind_internal_data_[] = {
+    786432u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOJournalAttemptState_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[9];
+}
+PROTOBUF_CONSTINIT const uint32_t SOJournalAttemptState_internal_data_[] = {
+    458752u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOJournalOutcome_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[10];
+}
+PROTOBUF_CONSTINIT const uint32_t SOJournalOutcome_internal_data_[] = {
+    196608u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOJournalReadiness_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[11];
+}
+PROTOBUF_CONSTINIT const uint32_t SOJournalReadiness_internal_data_[] = {
+    327680u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOJournalRecoveryReason_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[12];
+}
+PROTOBUF_CONSTINIT const uint32_t SOJournalRecoveryReason_internal_data_[] = {
+    458752u, 0u, };
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL SOReceiptState_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto[13];
+}
+PROTOBUF_CONSTINIT const uint32_t SOReceiptState_internal_data_[] = {
     327680u, 0u, };
 // ===================================================================
 
@@ -14104,6 +15027,6843 @@ void SOJoinResponse::InternalSwap(SOJoinResponse* PROTOBUF_RESTRICT PROTOBUF_NON
 }
 
 ::google::protobuf::Metadata SOJoinResponse::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOMutationKey::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOMutationKey>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOMutationKey, _impl_._has_bits_);
+};
+
+SOMutationKey::SOMutationKey(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOMutationKey_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOMutationKey)
+}
+PROTOBUF_NDEBUG_INLINE SOMutationKey::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOMutationKey& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        origin_scope_id_(arena, from.origin_scope_id_),
+        shared_object_id_(arena, from.shared_object_id_),
+        participant_peer_id_(arena, from.participant_peer_id_),
+        local_id_(arena, from.local_id_) {}
+
+SOMutationKey::SOMutationKey(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOMutationKey& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOMutationKey_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOMutationKey* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOMutationKey)
+}
+PROTOBUF_NDEBUG_INLINE SOMutationKey::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        origin_scope_id_(arena),
+        shared_object_id_(arena),
+        participant_peer_id_(arena),
+        local_id_(arena) {}
+
+inline void SOMutationKey::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+SOMutationKey::~SOMutationKey() {
+  // @@protoc_insertion_point(destructor:sobject.SOMutationKey)
+  SharedDtor(*this);
+}
+inline void SOMutationKey::SharedDtor(MessageLite& self) {
+  SOMutationKey& this_ = static_cast<SOMutationKey&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.origin_scope_id_.Destroy();
+  this_._impl_.shared_object_id_.Destroy();
+  this_._impl_.participant_peer_id_.Destroy();
+  this_._impl_.local_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SOMutationKey::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOMutationKey(arena);
+}
+constexpr auto SOMutationKey::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SOMutationKey),
+                                            alignof(SOMutationKey));
+}
+constexpr auto SOMutationKey::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOMutationKey_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOMutationKey::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOMutationKey>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOMutationKey::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOMutationKey>(), &SOMutationKey::ByteSizeLong,
+              &SOMutationKey::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOMutationKey, _impl_._cached_size_),
+          false,
+      },
+      &SOMutationKey::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOMutationKey_class_data_ =
+        SOMutationKey::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOMutationKey::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOMutationKey_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOMutationKey_class_data_.tc_table);
+  return SOMutationKey_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 0, 73, 2>
+SOMutationKey::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOMutationKey, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    SOMutationKey_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOMutationKey>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string local_id = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 3, 0,
+      PROTOBUF_FIELD_OFFSET(SOMutationKey, _impl_.local_id_)}},
+    // bytes origin_scope_id = 1;
+    {::_pbi::TcParser::FastBS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOMutationKey, _impl_.origin_scope_id_)}},
+    // string shared_object_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SOMutationKey, _impl_.shared_object_id_)}},
+    // string participant_peer_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SOMutationKey, _impl_.participant_peer_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bytes origin_scope_id = 1;
+    {PROTOBUF_FIELD_OFFSET(SOMutationKey, _impl_.origin_scope_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // string shared_object_id = 2;
+    {PROTOBUF_FIELD_OFFSET(SOMutationKey, _impl_.shared_object_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string participant_peer_id = 3;
+    {PROTOBUF_FIELD_OFFSET(SOMutationKey, _impl_.participant_peer_id_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string local_id = 4;
+    {PROTOBUF_FIELD_OFFSET(SOMutationKey, _impl_.local_id_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\25\0\20\23\10\0\0\0"
+    "sobject.SOMutationKey"
+    "shared_object_id"
+    "participant_peer_id"
+    "local_id"
+  }},
+};
+PROTOBUF_NOINLINE void SOMutationKey::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOMutationKey)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.origin_scope_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.shared_object_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.participant_peer_id_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.local_id_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOMutationKey::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOMutationKey& this_ = static_cast<const SOMutationKey&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOMutationKey::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOMutationKey& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOMutationKey)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bytes origin_scope_id = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_origin_scope_id().empty()) {
+      const ::std::string& _s = this_._internal_origin_scope_id();
+      target = stream->WriteBytesMaybeAliased(1, _s, target);
+    }
+  }
+
+  // string shared_object_id = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_shared_object_id().empty()) {
+      const ::std::string& _s = this_._internal_shared_object_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "sobject.SOMutationKey.shared_object_id");
+      target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
+  }
+
+  // string participant_peer_id = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_participant_peer_id().empty()) {
+      const ::std::string& _s = this_._internal_participant_peer_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "sobject.SOMutationKey.participant_peer_id");
+      target = stream->WriteStringMaybeAliased(3, _s, target);
+    }
+  }
+
+  // string local_id = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_local_id().empty()) {
+      const ::std::string& _s = this_._internal_local_id();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "sobject.SOMutationKey.local_id");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOMutationKey)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOMutationKey::ByteSizeLong(const MessageLite& base) {
+  const SOMutationKey& this_ = static_cast<const SOMutationKey&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOMutationKey::ByteSizeLong() const {
+  const SOMutationKey& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOMutationKey)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // bytes origin_scope_id = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_origin_scope_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_origin_scope_id());
+      }
+    }
+    // string shared_object_id = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_shared_object_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_shared_object_id());
+      }
+    }
+    // string participant_peer_id = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_participant_peer_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_participant_peer_id());
+      }
+    }
+    // string local_id = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_local_id().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_local_id());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOMutationKey::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOMutationKey*>(&to_msg);
+  auto& from = static_cast<const SOMutationKey&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOMutationKey)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_origin_scope_id().empty()) {
+        _this->_internal_set_origin_scope_id(from._internal_origin_scope_id());
+      } else {
+        if (_this->_impl_.origin_scope_id_.IsDefault()) {
+          _this->_internal_set_origin_scope_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_shared_object_id().empty()) {
+        _this->_internal_set_shared_object_id(from._internal_shared_object_id());
+      } else {
+        if (_this->_impl_.shared_object_id_.IsDefault()) {
+          _this->_internal_set_shared_object_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_participant_peer_id().empty()) {
+        _this->_internal_set_participant_peer_id(from._internal_participant_peer_id());
+      } else {
+        if (_this->_impl_.participant_peer_id_.IsDefault()) {
+          _this->_internal_set_participant_peer_id("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_local_id().empty()) {
+        _this->_internal_set_local_id(from._internal_local_id());
+      } else {
+        if (_this->_impl_.local_id_.IsDefault()) {
+          _this->_internal_set_local_id("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOMutationKey::CopyFrom(const SOMutationKey& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOMutationKey)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOMutationKey::InternalSwap(SOMutationKey* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.origin_scope_id_, &other->_impl_.origin_scope_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.shared_object_id_, &other->_impl_.shared_object_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.participant_peer_id_, &other->_impl_.participant_peer_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.local_id_, &other->_impl_.local_id_, arena);
+}
+
+::google::protobuf::Metadata SOMutationKey::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOJournalLineage::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOJournalLineage>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOJournalLineage, _impl_._has_bits_);
+};
+
+SOJournalLineage::SOJournalLineage(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalLineage_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOJournalLineage)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalLineage::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOJournalLineage& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0} {}
+
+SOJournalLineage::SOJournalLineage(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOJournalLineage& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalLineage_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOJournalLineage* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.root_key_ = (CheckHasBit(cached_has_bits, 0x00000001U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.root_key_)
+                : nullptr;
+  _impl_.supersedes_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.supersedes_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOJournalLineage)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalLineage::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
+
+inline void SOJournalLineage::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, root_key_),
+           0,
+           offsetof(Impl_, supersedes_) -
+               offsetof(Impl_, root_key_) +
+               sizeof(Impl_::supersedes_));
+}
+SOJournalLineage::~SOJournalLineage() {
+  // @@protoc_insertion_point(destructor:sobject.SOJournalLineage)
+  SharedDtor(*this);
+}
+inline void SOJournalLineage::SharedDtor(MessageLite& self) {
+  SOJournalLineage& this_ = static_cast<SOJournalLineage&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  delete this_._impl_.root_key_;
+  delete this_._impl_.supersedes_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SOJournalLineage::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOJournalLineage(arena);
+}
+constexpr auto SOJournalLineage::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(SOJournalLineage),
+                                            alignof(SOJournalLineage));
+}
+constexpr auto SOJournalLineage::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOJournalLineage_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOJournalLineage::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOJournalLineage>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOJournalLineage::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOJournalLineage>(), &SOJournalLineage::ByteSizeLong,
+              &SOJournalLineage::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOJournalLineage, _impl_._cached_size_),
+          false,
+      },
+      &SOJournalLineage::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOJournalLineage_class_data_ =
+        SOJournalLineage::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOJournalLineage::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOJournalLineage_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOJournalLineage_class_data_.tc_table);
+  return SOJournalLineage_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 2, 0, 2>
+SOJournalLineage::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOJournalLineage, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SOJournalLineage_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOJournalLineage>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .sobject.SOMutationKey supersedes = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 1, 1,
+      PROTOBUF_FIELD_OFFSET(SOJournalLineage, _impl_.supersedes_)}},
+    // .sobject.SOMutationKey root_key = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalLineage, _impl_.root_key_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .sobject.SOMutationKey root_key = 1;
+    {PROTOBUF_FIELD_OFFSET(SOJournalLineage, _impl_.root_key_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOMutationKey supersedes = 2;
+    {PROTOBUF_FIELD_OFFSET(SOJournalLineage, _impl_.supersedes_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::sobject::SOMutationKey>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOMutationKey>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SOJournalLineage::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOJournalLineage)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      ABSL_DCHECK(_impl_.root_key_ != nullptr);
+      _impl_.root_key_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.supersedes_ != nullptr);
+      _impl_.supersedes_->Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOJournalLineage::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOJournalLineage& this_ = static_cast<const SOJournalLineage&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOJournalLineage::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOJournalLineage& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOJournalLineage)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .sobject.SOMutationKey root_key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.root_key_, this_._impl_.root_key_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOMutationKey supersedes = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.supersedes_, this_._impl_.supersedes_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOJournalLineage)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOJournalLineage::ByteSizeLong(const MessageLite& base) {
+  const SOJournalLineage& this_ = static_cast<const SOJournalLineage&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOJournalLineage::ByteSizeLong() const {
+  const SOJournalLineage& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOJournalLineage)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // .sobject.SOMutationKey root_key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.root_key_);
+    }
+    // .sobject.SOMutationKey supersedes = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.supersedes_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOJournalLineage::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOJournalLineage*>(&to_msg);
+  auto& from = static_cast<const SOJournalLineage&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOJournalLineage)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      ABSL_DCHECK(from._impl_.root_key_ != nullptr);
+      if (_this->_impl_.root_key_ == nullptr) {
+        _this->_impl_.root_key_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.root_key_);
+      } else {
+        _this->_impl_.root_key_->MergeFrom(*from._impl_.root_key_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.supersedes_ != nullptr);
+      if (_this->_impl_.supersedes_ == nullptr) {
+        _this->_impl_.supersedes_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.supersedes_);
+      } else {
+        _this->_impl_.supersedes_->MergeFrom(*from._impl_.supersedes_);
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOJournalLineage::CopyFrom(const SOJournalLineage& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOJournalLineage)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOJournalLineage::InternalSwap(SOJournalLineage* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SOJournalLineage, _impl_.supersedes_)
+      + sizeof(SOJournalLineage::_impl_.supersedes_)
+      - PROTOBUF_FIELD_OFFSET(SOJournalLineage, _impl_.root_key_)>(
+          reinterpret_cast<char*>(&_impl_.root_key_),
+          reinterpret_cast<char*>(&other->_impl_.root_key_));
+}
+
+::google::protobuf::Metadata SOJournalLineage::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOJournalVersionTuple::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOJournalVersionTuple>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOJournalVersionTuple, _impl_._has_bits_);
+};
+
+SOJournalVersionTuple::SOJournalVersionTuple(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalVersionTuple_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOJournalVersionTuple)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalVersionTuple::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOJournalVersionTuple& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        config_chain_digest_(arena, from.config_chain_digest_) {}
+
+SOJournalVersionTuple::SOJournalVersionTuple(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOJournalVersionTuple& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalVersionTuple_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOJournalVersionTuple* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, local_version_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, local_version_),
+           offsetof(Impl_, transform_epoch_) -
+               offsetof(Impl_, local_version_) +
+               sizeof(Impl_::transform_epoch_));
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOJournalVersionTuple)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalVersionTuple::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        config_chain_digest_(arena) {}
+
+inline void SOJournalVersionTuple::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, local_version_),
+           0,
+           offsetof(Impl_, transform_epoch_) -
+               offsetof(Impl_, local_version_) +
+               sizeof(Impl_::transform_epoch_));
+}
+SOJournalVersionTuple::~SOJournalVersionTuple() {
+  // @@protoc_insertion_point(destructor:sobject.SOJournalVersionTuple)
+  SharedDtor(*this);
+}
+inline void SOJournalVersionTuple::SharedDtor(MessageLite& self) {
+  SOJournalVersionTuple& this_ = static_cast<SOJournalVersionTuple&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.config_chain_digest_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SOJournalVersionTuple::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOJournalVersionTuple(arena);
+}
+constexpr auto SOJournalVersionTuple::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SOJournalVersionTuple),
+                                            alignof(SOJournalVersionTuple));
+}
+constexpr auto SOJournalVersionTuple::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOJournalVersionTuple_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOJournalVersionTuple::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOJournalVersionTuple>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOJournalVersionTuple::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOJournalVersionTuple>(), &SOJournalVersionTuple::ByteSizeLong,
+              &SOJournalVersionTuple::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOJournalVersionTuple, _impl_._cached_size_),
+          false,
+      },
+      &SOJournalVersionTuple::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOJournalVersionTuple_class_data_ =
+        SOJournalVersionTuple::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOJournalVersionTuple::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOJournalVersionTuple_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOJournalVersionTuple_class_data_.tc_table);
+  return SOJournalVersionTuple_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 0, 0, 2>
+SOJournalVersionTuple::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOJournalVersionTuple, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    SOJournalVersionTuple_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOJournalVersionTuple>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // bytes config_chain_digest = 4;
+    {::_pbi::TcParser::FastBS1,
+     {34, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalVersionTuple, _impl_.config_chain_digest_)}},
+    // uint64 local_version = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOJournalVersionTuple, _impl_.local_version_), 1>(),
+     {8, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalVersionTuple, _impl_.local_version_)}},
+    // uint64 remote_version = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOJournalVersionTuple, _impl_.remote_version_), 2>(),
+     {16, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalVersionTuple, _impl_.remote_version_)}},
+    // uint64 transform_epoch = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOJournalVersionTuple, _impl_.transform_epoch_), 3>(),
+     {24, 3, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalVersionTuple, _impl_.transform_epoch_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // uint64 local_version = 1;
+    {PROTOBUF_FIELD_OFFSET(SOJournalVersionTuple, _impl_.local_version_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // uint64 remote_version = 2;
+    {PROTOBUF_FIELD_OFFSET(SOJournalVersionTuple, _impl_.remote_version_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // uint64 transform_epoch = 3;
+    {PROTOBUF_FIELD_OFFSET(SOJournalVersionTuple, _impl_.transform_epoch_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // bytes config_chain_digest = 4;
+    {PROTOBUF_FIELD_OFFSET(SOJournalVersionTuple, _impl_.config_chain_digest_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SOJournalVersionTuple::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOJournalVersionTuple)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.config_chain_digest_.ClearNonDefaultToEmpty();
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000eU)) {
+    ::memset(&_impl_.local_version_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.transform_epoch_) -
+        reinterpret_cast<char*>(&_impl_.local_version_)) + sizeof(_impl_.transform_epoch_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOJournalVersionTuple::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOJournalVersionTuple& this_ = static_cast<const SOJournalVersionTuple&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOJournalVersionTuple::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOJournalVersionTuple& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOJournalVersionTuple)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // uint64 local_version = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_local_version() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          1, this_._internal_local_version(), target);
+    }
+  }
+
+  // uint64 remote_version = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_remote_version() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          2, this_._internal_remote_version(), target);
+    }
+  }
+
+  // uint64 transform_epoch = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_transform_epoch() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          3, this_._internal_transform_epoch(), target);
+    }
+  }
+
+  // bytes config_chain_digest = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_config_chain_digest().empty()) {
+      const ::std::string& _s = this_._internal_config_chain_digest();
+      target = stream->WriteBytesMaybeAliased(4, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOJournalVersionTuple)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOJournalVersionTuple::ByteSizeLong(const MessageLite& base) {
+  const SOJournalVersionTuple& this_ = static_cast<const SOJournalVersionTuple&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOJournalVersionTuple::ByteSizeLong() const {
+  const SOJournalVersionTuple& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOJournalVersionTuple)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // bytes config_chain_digest = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_config_chain_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_config_chain_digest());
+      }
+    }
+    // uint64 local_version = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_local_version() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_local_version());
+      }
+    }
+    // uint64 remote_version = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_remote_version() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_remote_version());
+      }
+    }
+    // uint64 transform_epoch = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_transform_epoch() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_transform_epoch());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOJournalVersionTuple::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOJournalVersionTuple*>(&to_msg);
+  auto& from = static_cast<const SOJournalVersionTuple&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOJournalVersionTuple)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_config_chain_digest().empty()) {
+        _this->_internal_set_config_chain_digest(from._internal_config_chain_digest());
+      } else {
+        if (_this->_impl_.config_chain_digest_.IsDefault()) {
+          _this->_internal_set_config_chain_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_local_version() != 0) {
+        _this->_impl_.local_version_ = from._impl_.local_version_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_remote_version() != 0) {
+        _this->_impl_.remote_version_ = from._impl_.remote_version_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_transform_epoch() != 0) {
+        _this->_impl_.transform_epoch_ = from._impl_.transform_epoch_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOJournalVersionTuple::CopyFrom(const SOJournalVersionTuple& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOJournalVersionTuple)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOJournalVersionTuple::InternalSwap(SOJournalVersionTuple* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.config_chain_digest_, &other->_impl_.config_chain_digest_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SOJournalVersionTuple, _impl_.transform_epoch_)
+      + sizeof(SOJournalVersionTuple::_impl_.transform_epoch_)
+      - PROTOBUF_FIELD_OFFSET(SOJournalVersionTuple, _impl_.local_version_)>(
+          reinterpret_cast<char*>(&_impl_.local_version_),
+          reinterpret_cast<char*>(&other->_impl_.local_version_));
+}
+
+::google::protobuf::Metadata SOJournalVersionTuple::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOJournalIntent::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOJournalIntent>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOJournalIntent, _impl_._has_bits_);
+};
+
+SOJournalIntent::SOJournalIntent(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalIntent_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOJournalIntent)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalIntent::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOJournalIntent& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        canonical_operation_(arena, from.canonical_operation_) {}
+
+SOJournalIntent::SOJournalIntent(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOJournalIntent& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalIntent_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOJournalIntent* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.key_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_)
+                : nullptr;
+  _impl_.lineage_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.lineage_)
+                : nullptr;
+  _impl_.version_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.version_)
+                : nullptr;
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOJournalIntent)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalIntent::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        canonical_operation_(arena) {}
+
+inline void SOJournalIntent::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, key_),
+           0,
+           offsetof(Impl_, version_) -
+               offsetof(Impl_, key_) +
+               sizeof(Impl_::version_));
+}
+SOJournalIntent::~SOJournalIntent() {
+  // @@protoc_insertion_point(destructor:sobject.SOJournalIntent)
+  SharedDtor(*this);
+}
+inline void SOJournalIntent::SharedDtor(MessageLite& self) {
+  SOJournalIntent& this_ = static_cast<SOJournalIntent&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.canonical_operation_.Destroy();
+  delete this_._impl_.key_;
+  delete this_._impl_.lineage_;
+  delete this_._impl_.version_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SOJournalIntent::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOJournalIntent(arena);
+}
+constexpr auto SOJournalIntent::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SOJournalIntent),
+                                            alignof(SOJournalIntent));
+}
+constexpr auto SOJournalIntent::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOJournalIntent_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOJournalIntent::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOJournalIntent>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOJournalIntent::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOJournalIntent>(), &SOJournalIntent::ByteSizeLong,
+              &SOJournalIntent::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOJournalIntent, _impl_._cached_size_),
+          false,
+      },
+      &SOJournalIntent::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOJournalIntent_class_data_ =
+        SOJournalIntent::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOJournalIntent::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOJournalIntent_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOJournalIntent_class_data_.tc_table);
+  return SOJournalIntent_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 3, 0, 2>
+SOJournalIntent::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOJournalIntent, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    3,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SOJournalIntent_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOJournalIntent>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // bytes canonical_operation = 4;
+    {::_pbi::TcParser::FastBS1,
+     {34, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalIntent, _impl_.canonical_operation_)}},
+    // .sobject.SOMutationKey key = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalIntent, _impl_.key_)}},
+    // .sobject.SOJournalLineage lineage = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 2, 1,
+      PROTOBUF_FIELD_OFFSET(SOJournalIntent, _impl_.lineage_)}},
+    // .sobject.SOJournalVersionTuple version = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 3, 2,
+      PROTOBUF_FIELD_OFFSET(SOJournalIntent, _impl_.version_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .sobject.SOMutationKey key = 1;
+    {PROTOBUF_FIELD_OFFSET(SOJournalIntent, _impl_.key_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalLineage lineage = 2;
+    {PROTOBUF_FIELD_OFFSET(SOJournalIntent, _impl_.lineage_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalVersionTuple version = 3;
+    {PROTOBUF_FIELD_OFFSET(SOJournalIntent, _impl_.version_), _Internal::kHasBitsOffset + 3, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bytes canonical_operation = 4;
+    {PROTOBUF_FIELD_OFFSET(SOJournalIntent, _impl_.canonical_operation_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::sobject::SOMutationKey>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalLineage>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalVersionTuple>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SOJournalIntent::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOJournalIntent)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.canonical_operation_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.key_ != nullptr);
+      _impl_.key_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.lineage_ != nullptr);
+      _impl_.lineage_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.version_ != nullptr);
+      _impl_.version_->Clear();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOJournalIntent::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOJournalIntent& this_ = static_cast<const SOJournalIntent&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOJournalIntent::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOJournalIntent& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOJournalIntent)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .sobject.SOMutationKey key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.key_, this_._impl_.key_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalLineage lineage = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.lineage_, this_._impl_.lineage_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalVersionTuple version = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.version_, this_._impl_.version_->GetCachedSize(), target,
+        stream);
+  }
+
+  // bytes canonical_operation = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_canonical_operation().empty()) {
+      const ::std::string& _s = this_._internal_canonical_operation();
+      target = stream->WriteBytesMaybeAliased(4, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOJournalIntent)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOJournalIntent::ByteSizeLong(const MessageLite& base) {
+  const SOJournalIntent& this_ = static_cast<const SOJournalIntent&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOJournalIntent::ByteSizeLong() const {
+  const SOJournalIntent& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOJournalIntent)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // bytes canonical_operation = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_canonical_operation().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_canonical_operation());
+      }
+    }
+    // .sobject.SOMutationKey key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.key_);
+    }
+    // .sobject.SOJournalLineage lineage = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.lineage_);
+    }
+    // .sobject.SOJournalVersionTuple version = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.version_);
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOJournalIntent::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOJournalIntent*>(&to_msg);
+  auto& from = static_cast<const SOJournalIntent&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOJournalIntent)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_canonical_operation().empty()) {
+        _this->_internal_set_canonical_operation(from._internal_canonical_operation());
+      } else {
+        if (_this->_impl_.canonical_operation_.IsDefault()) {
+          _this->_internal_set_canonical_operation("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.key_ != nullptr);
+      if (_this->_impl_.key_ == nullptr) {
+        _this->_impl_.key_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_);
+      } else {
+        _this->_impl_.key_->MergeFrom(*from._impl_.key_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.lineage_ != nullptr);
+      if (_this->_impl_.lineage_ == nullptr) {
+        _this->_impl_.lineage_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.lineage_);
+      } else {
+        _this->_impl_.lineage_->MergeFrom(*from._impl_.lineage_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.version_ != nullptr);
+      if (_this->_impl_.version_ == nullptr) {
+        _this->_impl_.version_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.version_);
+      } else {
+        _this->_impl_.version_->MergeFrom(*from._impl_.version_);
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOJournalIntent::CopyFrom(const SOJournalIntent& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOJournalIntent)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOJournalIntent::InternalSwap(SOJournalIntent* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.canonical_operation_, &other->_impl_.canonical_operation_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SOJournalIntent, _impl_.version_)
+      + sizeof(SOJournalIntent::_impl_.version_)
+      - PROTOBUF_FIELD_OFFSET(SOJournalIntent, _impl_.key_)>(
+          reinterpret_cast<char*>(&_impl_.key_),
+          reinterpret_cast<char*>(&other->_impl_.key_));
+}
+
+::google::protobuf::Metadata SOJournalIntent::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOJournalEncryptedPayload::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOJournalEncryptedPayload>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOJournalEncryptedPayload, _impl_._has_bits_);
+};
+
+SOJournalEncryptedPayload::SOJournalEncryptedPayload(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalEncryptedPayload_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOJournalEncryptedPayload)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalEncryptedPayload::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOJournalEncryptedPayload& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        nonce_(arena, from.nonce_),
+        ciphertext_(arena, from.ciphertext_) {}
+
+SOJournalEncryptedPayload::SOJournalEncryptedPayload(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOJournalEncryptedPayload& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalEncryptedPayload_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOJournalEncryptedPayload* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOJournalEncryptedPayload)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalEncryptedPayload::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        nonce_(arena),
+        ciphertext_(arena) {}
+
+inline void SOJournalEncryptedPayload::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+SOJournalEncryptedPayload::~SOJournalEncryptedPayload() {
+  // @@protoc_insertion_point(destructor:sobject.SOJournalEncryptedPayload)
+  SharedDtor(*this);
+}
+inline void SOJournalEncryptedPayload::SharedDtor(MessageLite& self) {
+  SOJournalEncryptedPayload& this_ = static_cast<SOJournalEncryptedPayload&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.nonce_.Destroy();
+  this_._impl_.ciphertext_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SOJournalEncryptedPayload::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOJournalEncryptedPayload(arena);
+}
+constexpr auto SOJournalEncryptedPayload::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SOJournalEncryptedPayload),
+                                            alignof(SOJournalEncryptedPayload));
+}
+constexpr auto SOJournalEncryptedPayload::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOJournalEncryptedPayload_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOJournalEncryptedPayload::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOJournalEncryptedPayload>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOJournalEncryptedPayload::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOJournalEncryptedPayload>(), &SOJournalEncryptedPayload::ByteSizeLong,
+              &SOJournalEncryptedPayload::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOJournalEncryptedPayload, _impl_._cached_size_),
+          false,
+      },
+      &SOJournalEncryptedPayload::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOJournalEncryptedPayload_class_data_ =
+        SOJournalEncryptedPayload::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOJournalEncryptedPayload::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOJournalEncryptedPayload_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOJournalEncryptedPayload_class_data_.tc_table);
+  return SOJournalEncryptedPayload_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 0, 2>
+SOJournalEncryptedPayload::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOJournalEncryptedPayload, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    SOJournalEncryptedPayload_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOJournalEncryptedPayload>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // bytes ciphertext = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalEncryptedPayload, _impl_.ciphertext_)}},
+    // bytes nonce = 1;
+    {::_pbi::TcParser::FastBS1,
+     {10, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalEncryptedPayload, _impl_.nonce_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bytes nonce = 1;
+    {PROTOBUF_FIELD_OFFSET(SOJournalEncryptedPayload, _impl_.nonce_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes ciphertext = 2;
+    {PROTOBUF_FIELD_OFFSET(SOJournalEncryptedPayload, _impl_.ciphertext_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SOJournalEncryptedPayload::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOJournalEncryptedPayload)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.nonce_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.ciphertext_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOJournalEncryptedPayload::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOJournalEncryptedPayload& this_ = static_cast<const SOJournalEncryptedPayload&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOJournalEncryptedPayload::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOJournalEncryptedPayload& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOJournalEncryptedPayload)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bytes nonce = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_nonce().empty()) {
+      const ::std::string& _s = this_._internal_nonce();
+      target = stream->WriteBytesMaybeAliased(1, _s, target);
+    }
+  }
+
+  // bytes ciphertext = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_ciphertext().empty()) {
+      const ::std::string& _s = this_._internal_ciphertext();
+      target = stream->WriteBytesMaybeAliased(2, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOJournalEncryptedPayload)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOJournalEncryptedPayload::ByteSizeLong(const MessageLite& base) {
+  const SOJournalEncryptedPayload& this_ = static_cast<const SOJournalEncryptedPayload&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOJournalEncryptedPayload::ByteSizeLong() const {
+  const SOJournalEncryptedPayload& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOJournalEncryptedPayload)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // bytes nonce = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_nonce().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_nonce());
+      }
+    }
+    // bytes ciphertext = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_ciphertext().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_ciphertext());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOJournalEncryptedPayload::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOJournalEncryptedPayload*>(&to_msg);
+  auto& from = static_cast<const SOJournalEncryptedPayload&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOJournalEncryptedPayload)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_nonce().empty()) {
+        _this->_internal_set_nonce(from._internal_nonce());
+      } else {
+        if (_this->_impl_.nonce_.IsDefault()) {
+          _this->_internal_set_nonce("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_ciphertext().empty()) {
+        _this->_internal_set_ciphertext(from._internal_ciphertext());
+      } else {
+        if (_this->_impl_.ciphertext_.IsDefault()) {
+          _this->_internal_set_ciphertext("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOJournalEncryptedPayload::CopyFrom(const SOJournalEncryptedPayload& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOJournalEncryptedPayload)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOJournalEncryptedPayload::InternalSwap(SOJournalEncryptedPayload* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.nonce_, &other->_impl_.nonce_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.ciphertext_, &other->_impl_.ciphertext_, arena);
+}
+
+::google::protobuf::Metadata SOJournalEncryptedPayload::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOJournalLookup::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOJournalLookup>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_._has_bits_);
+};
+
+SOJournalLookup::SOJournalLookup(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalLookup_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOJournalLookup)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalLookup::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOJournalLookup& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        response_(arena, from.response_),
+        response_digest_(arena, from.response_digest_),
+        config_chain_digest_(arena, from.config_chain_digest_) {}
+
+SOJournalLookup::SOJournalLookup(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOJournalLookup& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalLookup_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOJournalLookup* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.key_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_)
+                : nullptr;
+  _impl_.receipt_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.receipt_)
+                : nullptr;
+  _impl_.state_ = from._impl_.state_;
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOJournalLookup)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalLookup::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        response_(arena),
+        response_digest_(arena),
+        config_chain_digest_(arena) {}
+
+inline void SOJournalLookup::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, key_),
+           0,
+           offsetof(Impl_, state_) -
+               offsetof(Impl_, key_) +
+               sizeof(Impl_::state_));
+}
+SOJournalLookup::~SOJournalLookup() {
+  // @@protoc_insertion_point(destructor:sobject.SOJournalLookup)
+  SharedDtor(*this);
+}
+inline void SOJournalLookup::SharedDtor(MessageLite& self) {
+  SOJournalLookup& this_ = static_cast<SOJournalLookup&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.response_.Destroy();
+  this_._impl_.response_digest_.Destroy();
+  this_._impl_.config_chain_digest_.Destroy();
+  delete this_._impl_.key_;
+  delete this_._impl_.receipt_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SOJournalLookup::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOJournalLookup(arena);
+}
+constexpr auto SOJournalLookup::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SOJournalLookup),
+                                            alignof(SOJournalLookup));
+}
+constexpr auto SOJournalLookup::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOJournalLookup_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOJournalLookup::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOJournalLookup>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOJournalLookup::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOJournalLookup>(), &SOJournalLookup::ByteSizeLong,
+              &SOJournalLookup::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_._cached_size_),
+          false,
+      },
+      &SOJournalLookup::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOJournalLookup_class_data_ =
+        SOJournalLookup::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOJournalLookup::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOJournalLookup_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOJournalLookup_class_data_.tc_table);
+  return SOJournalLookup_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 6, 2, 0, 2>
+SOJournalLookup::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_._has_bits_),
+    0, // no _extensions_
+    6, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967232,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    6,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SOJournalLookup_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOJournalLookup>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .sobject.SOMutationKey key = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 3, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.key_)}},
+    // .sobject.SOReceiptState state = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOJournalLookup, _impl_.state_), 5>(),
+     {16, 5, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.state_)}},
+    // .sobject.SOJournalReceipt receipt = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 4, 1,
+      PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.receipt_)}},
+    // bytes response = 4;
+    {::_pbi::TcParser::FastBS1,
+     {34, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.response_)}},
+    // bytes response_digest = 5;
+    {::_pbi::TcParser::FastBS1,
+     {42, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.response_digest_)}},
+    // bytes config_chain_digest = 6;
+    {::_pbi::TcParser::FastBS1,
+     {50, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.config_chain_digest_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .sobject.SOMutationKey key = 1;
+    {PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.key_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOReceiptState state = 2;
+    {PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.state_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .sobject.SOJournalReceipt receipt = 3;
+    {PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.receipt_), _Internal::kHasBitsOffset + 4, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bytes response = 4;
+    {PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.response_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes response_digest = 5;
+    {PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.response_digest_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes config_chain_digest = 6;
+    {PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.config_chain_digest_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::sobject::SOMutationKey>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalReceipt>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SOJournalLookup::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOJournalLookup)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.response_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.response_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.config_chain_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.key_ != nullptr);
+      _impl_.key_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(_impl_.receipt_ != nullptr);
+      _impl_.receipt_->Clear();
+    }
+  }
+  _impl_.state_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOJournalLookup::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOJournalLookup& this_ = static_cast<const SOJournalLookup&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOJournalLookup::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOJournalLookup& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOJournalLookup)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .sobject.SOMutationKey key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.key_, this_._impl_.key_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOReceiptState state = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_state() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          2, this_._internal_state(), target);
+    }
+  }
+
+  // .sobject.SOJournalReceipt receipt = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.receipt_, this_._impl_.receipt_->GetCachedSize(), target,
+        stream);
+  }
+
+  // bytes response = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_response().empty()) {
+      const ::std::string& _s = this_._internal_response();
+      target = stream->WriteBytesMaybeAliased(4, _s, target);
+    }
+  }
+
+  // bytes response_digest = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_response_digest().empty()) {
+      const ::std::string& _s = this_._internal_response_digest();
+      target = stream->WriteBytesMaybeAliased(5, _s, target);
+    }
+  }
+
+  // bytes config_chain_digest = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_config_chain_digest().empty()) {
+      const ::std::string& _s = this_._internal_config_chain_digest();
+      target = stream->WriteBytesMaybeAliased(6, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOJournalLookup)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOJournalLookup::ByteSizeLong(const MessageLite& base) {
+  const SOJournalLookup& this_ = static_cast<const SOJournalLookup&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOJournalLookup::ByteSizeLong() const {
+  const SOJournalLookup& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOJournalLookup)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    // bytes response = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_response().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_response());
+      }
+    }
+    // bytes response_digest = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_response_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_response_digest());
+      }
+    }
+    // bytes config_chain_digest = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_config_chain_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_config_chain_digest());
+      }
+    }
+    // .sobject.SOMutationKey key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.key_);
+    }
+    // .sobject.SOJournalReceipt receipt = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.receipt_);
+    }
+    // .sobject.SOReceiptState state = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_state() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_state());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOJournalLookup::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOJournalLookup*>(&to_msg);
+  auto& from = static_cast<const SOJournalLookup&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOJournalLookup)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_response().empty()) {
+        _this->_internal_set_response(from._internal_response());
+      } else {
+        if (_this->_impl_.response_.IsDefault()) {
+          _this->_internal_set_response("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_response_digest().empty()) {
+        _this->_internal_set_response_digest(from._internal_response_digest());
+      } else {
+        if (_this->_impl_.response_digest_.IsDefault()) {
+          _this->_internal_set_response_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_config_chain_digest().empty()) {
+        _this->_internal_set_config_chain_digest(from._internal_config_chain_digest());
+      } else {
+        if (_this->_impl_.config_chain_digest_.IsDefault()) {
+          _this->_internal_set_config_chain_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.key_ != nullptr);
+      if (_this->_impl_.key_ == nullptr) {
+        _this->_impl_.key_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_);
+      } else {
+        _this->_impl_.key_->MergeFrom(*from._impl_.key_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(from._impl_.receipt_ != nullptr);
+      if (_this->_impl_.receipt_ == nullptr) {
+        _this->_impl_.receipt_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.receipt_);
+      } else {
+        _this->_impl_.receipt_->MergeFrom(*from._impl_.receipt_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_state() != 0) {
+        _this->_impl_.state_ = from._impl_.state_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOJournalLookup::CopyFrom(const SOJournalLookup& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOJournalLookup)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOJournalLookup::InternalSwap(SOJournalLookup* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.response_, &other->_impl_.response_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.response_digest_, &other->_impl_.response_digest_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.config_chain_digest_, &other->_impl_.config_chain_digest_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.state_)
+      + sizeof(SOJournalLookup::_impl_.state_)
+      - PROTOBUF_FIELD_OFFSET(SOJournalLookup, _impl_.key_)>(
+          reinterpret_cast<char*>(&_impl_.key_),
+          reinterpret_cast<char*>(&other->_impl_.key_));
+}
+
+::google::protobuf::Metadata SOJournalLookup::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOJournalReceipt::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOJournalReceipt>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_._has_bits_);
+};
+
+SOJournalReceipt::SOJournalReceipt(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalReceipt_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOJournalReceipt)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalReceipt::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOJournalReceipt& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        envelope_digest_(arena, from.envelope_digest_),
+        terminal_receipt_(arena, from.terminal_receipt_),
+        terminal_receipt_digest_(arena, from.terminal_receipt_digest_),
+        authoritative_root_digest_(arena, from.authoritative_root_digest_),
+        config_chain_digest_(arena, from.config_chain_digest_) {}
+
+SOJournalReceipt::SOJournalReceipt(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOJournalReceipt& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalReceipt_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOJournalReceipt* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.key_ = (CheckHasBit(cached_has_bits, 0x00000020U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_)
+                : nullptr;
+  _impl_.supersedes_ = (CheckHasBit(cached_has_bits, 0x00000040U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.supersedes_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, authoritative_root_seqno_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, authoritative_root_seqno_),
+           offsetof(Impl_, outcome_) -
+               offsetof(Impl_, authoritative_root_seqno_) +
+               sizeof(Impl_::outcome_));
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOJournalReceipt)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalReceipt::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        envelope_digest_(arena),
+        terminal_receipt_(arena),
+        terminal_receipt_digest_(arena),
+        authoritative_root_digest_(arena),
+        config_chain_digest_(arena) {}
+
+inline void SOJournalReceipt::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, key_),
+           0,
+           offsetof(Impl_, outcome_) -
+               offsetof(Impl_, key_) +
+               sizeof(Impl_::outcome_));
+}
+SOJournalReceipt::~SOJournalReceipt() {
+  // @@protoc_insertion_point(destructor:sobject.SOJournalReceipt)
+  SharedDtor(*this);
+}
+inline void SOJournalReceipt::SharedDtor(MessageLite& self) {
+  SOJournalReceipt& this_ = static_cast<SOJournalReceipt&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.envelope_digest_.Destroy();
+  this_._impl_.terminal_receipt_.Destroy();
+  this_._impl_.terminal_receipt_digest_.Destroy();
+  this_._impl_.authoritative_root_digest_.Destroy();
+  this_._impl_.config_chain_digest_.Destroy();
+  delete this_._impl_.key_;
+  delete this_._impl_.supersedes_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SOJournalReceipt::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOJournalReceipt(arena);
+}
+constexpr auto SOJournalReceipt::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SOJournalReceipt),
+                                            alignof(SOJournalReceipt));
+}
+constexpr auto SOJournalReceipt::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOJournalReceipt_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOJournalReceipt::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOJournalReceipt>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOJournalReceipt::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOJournalReceipt>(), &SOJournalReceipt::ByteSizeLong,
+              &SOJournalReceipt::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_._cached_size_),
+          false,
+      },
+      &SOJournalReceipt::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOJournalReceipt_class_data_ =
+        SOJournalReceipt::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOJournalReceipt::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOJournalReceipt_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOJournalReceipt_class_data_.tc_table);
+  return SOJournalReceipt_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 10, 2, 0, 2>
+SOJournalReceipt::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_._has_bits_),
+    0, // no _extensions_
+    10, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294966272,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    10,  // num_field_entries
+    2,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SOJournalReceipt_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOJournalReceipt>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .sobject.SOMutationKey key = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 5, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.key_)}},
+    // bytes envelope_digest = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.envelope_digest_)}},
+    // .sobject.SOJournalOutcome outcome = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOJournalReceipt, _impl_.outcome_), 9>(),
+     {24, 9, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.outcome_)}},
+    // bytes terminal_receipt = 4;
+    {::_pbi::TcParser::FastBS1,
+     {34, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.terminal_receipt_)}},
+    // bytes terminal_receipt_digest = 5;
+    {::_pbi::TcParser::FastBS1,
+     {42, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.terminal_receipt_digest_)}},
+    // uint64 authoritative_root_seqno = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOJournalReceipt, _impl_.authoritative_root_seqno_), 7>(),
+     {48, 7, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.authoritative_root_seqno_)}},
+    // bytes authoritative_root_digest = 7;
+    {::_pbi::TcParser::FastBS1,
+     {58, 3, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.authoritative_root_digest_)}},
+    // bytes config_chain_digest = 8;
+    {::_pbi::TcParser::FastBS1,
+     {66, 4, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.config_chain_digest_)}},
+    // uint64 terminal_unix_millis = 9;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOJournalReceipt, _impl_.terminal_unix_millis_), 8>(),
+     {72, 8, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.terminal_unix_millis_)}},
+    // .sobject.SOMutationKey supersedes = 10;
+    {::_pbi::TcParser::FastMtS1,
+     {82, 6, 1,
+      PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.supersedes_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .sobject.SOMutationKey key = 1;
+    {PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.key_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bytes envelope_digest = 2;
+    {PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.envelope_digest_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // .sobject.SOJournalOutcome outcome = 3;
+    {PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.outcome_), _Internal::kHasBitsOffset + 9, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // bytes terminal_receipt = 4;
+    {PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.terminal_receipt_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes terminal_receipt_digest = 5;
+    {PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.terminal_receipt_digest_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // uint64 authoritative_root_seqno = 6;
+    {PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.authoritative_root_seqno_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // bytes authoritative_root_digest = 7;
+    {PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.authoritative_root_digest_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes config_chain_digest = 8;
+    {PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.config_chain_digest_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // uint64 terminal_unix_millis = 9;
+    {PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.terminal_unix_millis_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // .sobject.SOMutationKey supersedes = 10;
+    {PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.supersedes_), _Internal::kHasBitsOffset + 6, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::sobject::SOMutationKey>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOMutationKey>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SOJournalReceipt::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOJournalReceipt)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.envelope_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.terminal_receipt_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.terminal_receipt_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.authoritative_root_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      _impl_.config_chain_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(_impl_.key_ != nullptr);
+      _impl_.key_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      ABSL_DCHECK(_impl_.supersedes_ != nullptr);
+      _impl_.supersedes_->Clear();
+    }
+  }
+  _impl_.authoritative_root_seqno_ = ::uint64_t{0u};
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    ::memset(&_impl_.terminal_unix_millis_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.outcome_) -
+        reinterpret_cast<char*>(&_impl_.terminal_unix_millis_)) + sizeof(_impl_.outcome_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOJournalReceipt::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOJournalReceipt& this_ = static_cast<const SOJournalReceipt&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOJournalReceipt::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOJournalReceipt& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOJournalReceipt)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .sobject.SOMutationKey key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.key_, this_._impl_.key_->GetCachedSize(), target,
+        stream);
+  }
+
+  // bytes envelope_digest = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_envelope_digest().empty()) {
+      const ::std::string& _s = this_._internal_envelope_digest();
+      target = stream->WriteBytesMaybeAliased(2, _s, target);
+    }
+  }
+
+  // .sobject.SOJournalOutcome outcome = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    if (this_._internal_outcome() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          3, this_._internal_outcome(), target);
+    }
+  }
+
+  // bytes terminal_receipt = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_terminal_receipt().empty()) {
+      const ::std::string& _s = this_._internal_terminal_receipt();
+      target = stream->WriteBytesMaybeAliased(4, _s, target);
+    }
+  }
+
+  // bytes terminal_receipt_digest = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_terminal_receipt_digest().empty()) {
+      const ::std::string& _s = this_._internal_terminal_receipt_digest();
+      target = stream->WriteBytesMaybeAliased(5, _s, target);
+    }
+  }
+
+  // uint64 authoritative_root_seqno = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (this_._internal_authoritative_root_seqno() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          6, this_._internal_authoritative_root_seqno(), target);
+    }
+  }
+
+  // bytes authoritative_root_digest = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_authoritative_root_digest().empty()) {
+      const ::std::string& _s = this_._internal_authoritative_root_digest();
+      target = stream->WriteBytesMaybeAliased(7, _s, target);
+    }
+  }
+
+  // bytes config_chain_digest = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (!this_._internal_config_chain_digest().empty()) {
+      const ::std::string& _s = this_._internal_config_chain_digest();
+      target = stream->WriteBytesMaybeAliased(8, _s, target);
+    }
+  }
+
+  // uint64 terminal_unix_millis = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (this_._internal_terminal_unix_millis() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          9, this_._internal_terminal_unix_millis(), target);
+    }
+  }
+
+  // .sobject.SOMutationKey supersedes = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        10, *this_._impl_.supersedes_, this_._impl_.supersedes_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOJournalReceipt)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOJournalReceipt::ByteSizeLong(const MessageLite& base) {
+  const SOJournalReceipt& this_ = static_cast<const SOJournalReceipt&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOJournalReceipt::ByteSizeLong() const {
+  const SOJournalReceipt& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOJournalReceipt)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // bytes envelope_digest = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_envelope_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_envelope_digest());
+      }
+    }
+    // bytes terminal_receipt = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_terminal_receipt().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_terminal_receipt());
+      }
+    }
+    // bytes terminal_receipt_digest = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_terminal_receipt_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_terminal_receipt_digest());
+      }
+    }
+    // bytes authoritative_root_digest = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_authoritative_root_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_authoritative_root_digest());
+      }
+    }
+    // bytes config_chain_digest = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!this_._internal_config_chain_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_config_chain_digest());
+      }
+    }
+    // .sobject.SOMutationKey key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.key_);
+    }
+    // .sobject.SOMutationKey supersedes = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.supersedes_);
+    }
+    // uint64 authoritative_root_seqno = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (this_._internal_authoritative_root_seqno() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_authoritative_root_seqno());
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    // uint64 terminal_unix_millis = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (this_._internal_terminal_unix_millis() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_terminal_unix_millis());
+      }
+    }
+    // .sobject.SOJournalOutcome outcome = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (this_._internal_outcome() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_outcome());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOJournalReceipt::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOJournalReceipt*>(&to_msg);
+  auto& from = static_cast<const SOJournalReceipt&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOJournalReceipt)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_envelope_digest().empty()) {
+        _this->_internal_set_envelope_digest(from._internal_envelope_digest());
+      } else {
+        if (_this->_impl_.envelope_digest_.IsDefault()) {
+          _this->_internal_set_envelope_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_terminal_receipt().empty()) {
+        _this->_internal_set_terminal_receipt(from._internal_terminal_receipt());
+      } else {
+        if (_this->_impl_.terminal_receipt_.IsDefault()) {
+          _this->_internal_set_terminal_receipt("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_terminal_receipt_digest().empty()) {
+        _this->_internal_set_terminal_receipt_digest(from._internal_terminal_receipt_digest());
+      } else {
+        if (_this->_impl_.terminal_receipt_digest_.IsDefault()) {
+          _this->_internal_set_terminal_receipt_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_authoritative_root_digest().empty()) {
+        _this->_internal_set_authoritative_root_digest(from._internal_authoritative_root_digest());
+      } else {
+        if (_this->_impl_.authoritative_root_digest_.IsDefault()) {
+          _this->_internal_set_authoritative_root_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (!from._internal_config_chain_digest().empty()) {
+        _this->_internal_set_config_chain_digest(from._internal_config_chain_digest());
+      } else {
+        if (_this->_impl_.config_chain_digest_.IsDefault()) {
+          _this->_internal_set_config_chain_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(from._impl_.key_ != nullptr);
+      if (_this->_impl_.key_ == nullptr) {
+        _this->_impl_.key_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_);
+      } else {
+        _this->_impl_.key_->MergeFrom(*from._impl_.key_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      ABSL_DCHECK(from._impl_.supersedes_ != nullptr);
+      if (_this->_impl_.supersedes_ == nullptr) {
+        _this->_impl_.supersedes_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.supersedes_);
+      } else {
+        _this->_impl_.supersedes_->MergeFrom(*from._impl_.supersedes_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (from._internal_authoritative_root_seqno() != 0) {
+        _this->_impl_.authoritative_root_seqno_ = from._impl_.authoritative_root_seqno_;
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (from._internal_terminal_unix_millis() != 0) {
+        _this->_impl_.terminal_unix_millis_ = from._impl_.terminal_unix_millis_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      if (from._internal_outcome() != 0) {
+        _this->_impl_.outcome_ = from._impl_.outcome_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOJournalReceipt::CopyFrom(const SOJournalReceipt& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOJournalReceipt)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOJournalReceipt::InternalSwap(SOJournalReceipt* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.envelope_digest_, &other->_impl_.envelope_digest_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.terminal_receipt_, &other->_impl_.terminal_receipt_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.terminal_receipt_digest_, &other->_impl_.terminal_receipt_digest_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.authoritative_root_digest_, &other->_impl_.authoritative_root_digest_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.config_chain_digest_, &other->_impl_.config_chain_digest_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.outcome_)
+      + sizeof(SOJournalReceipt::_impl_.outcome_)
+      - PROTOBUF_FIELD_OFFSET(SOJournalReceipt, _impl_.key_)>(
+          reinterpret_cast<char*>(&_impl_.key_),
+          reinterpret_cast<char*>(&other->_impl_.key_));
+}
+
+::google::protobuf::Metadata SOJournalReceipt::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOJournalAcknowledgement::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOJournalAcknowledgement>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOJournalAcknowledgement, _impl_._has_bits_);
+};
+
+SOJournalAcknowledgement::SOJournalAcknowledgement(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalAcknowledgement_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOJournalAcknowledgement)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalAcknowledgement::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOJournalAcknowledgement& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        receipt_digest_(arena, from.receipt_digest_) {}
+
+SOJournalAcknowledgement::SOJournalAcknowledgement(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOJournalAcknowledgement& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalAcknowledgement_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOJournalAcknowledgement* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.key_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_)
+                : nullptr;
+  _impl_.acknowledged_unix_millis_ = from._impl_.acknowledged_unix_millis_;
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOJournalAcknowledgement)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalAcknowledgement::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        receipt_digest_(arena) {}
+
+inline void SOJournalAcknowledgement::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, key_),
+           0,
+           offsetof(Impl_, acknowledged_unix_millis_) -
+               offsetof(Impl_, key_) +
+               sizeof(Impl_::acknowledged_unix_millis_));
+}
+SOJournalAcknowledgement::~SOJournalAcknowledgement() {
+  // @@protoc_insertion_point(destructor:sobject.SOJournalAcknowledgement)
+  SharedDtor(*this);
+}
+inline void SOJournalAcknowledgement::SharedDtor(MessageLite& self) {
+  SOJournalAcknowledgement& this_ = static_cast<SOJournalAcknowledgement&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.receipt_digest_.Destroy();
+  delete this_._impl_.key_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SOJournalAcknowledgement::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOJournalAcknowledgement(arena);
+}
+constexpr auto SOJournalAcknowledgement::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SOJournalAcknowledgement),
+                                            alignof(SOJournalAcknowledgement));
+}
+constexpr auto SOJournalAcknowledgement::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOJournalAcknowledgement_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOJournalAcknowledgement::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOJournalAcknowledgement>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOJournalAcknowledgement::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOJournalAcknowledgement>(), &SOJournalAcknowledgement::ByteSizeLong,
+              &SOJournalAcknowledgement::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOJournalAcknowledgement, _impl_._cached_size_),
+          false,
+      },
+      &SOJournalAcknowledgement::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOJournalAcknowledgement_class_data_ =
+        SOJournalAcknowledgement::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOJournalAcknowledgement::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOJournalAcknowledgement_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOJournalAcknowledgement_class_data_.tc_table);
+  return SOJournalAcknowledgement_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 1, 0, 2>
+SOJournalAcknowledgement::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOJournalAcknowledgement, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SOJournalAcknowledgement_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOJournalAcknowledgement>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .sobject.SOMutationKey key = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalAcknowledgement, _impl_.key_)}},
+    // bytes receipt_digest = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalAcknowledgement, _impl_.receipt_digest_)}},
+    // uint64 acknowledged_unix_millis = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOJournalAcknowledgement, _impl_.acknowledged_unix_millis_), 2>(),
+     {24, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalAcknowledgement, _impl_.acknowledged_unix_millis_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .sobject.SOMutationKey key = 1;
+    {PROTOBUF_FIELD_OFFSET(SOJournalAcknowledgement, _impl_.key_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bytes receipt_digest = 2;
+    {PROTOBUF_FIELD_OFFSET(SOJournalAcknowledgement, _impl_.receipt_digest_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // uint64 acknowledged_unix_millis = 3;
+    {PROTOBUF_FIELD_OFFSET(SOJournalAcknowledgement, _impl_.acknowledged_unix_millis_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::sobject::SOMutationKey>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SOJournalAcknowledgement::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOJournalAcknowledgement)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.receipt_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.key_ != nullptr);
+      _impl_.key_->Clear();
+    }
+  }
+  _impl_.acknowledged_unix_millis_ = ::uint64_t{0u};
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOJournalAcknowledgement::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOJournalAcknowledgement& this_ = static_cast<const SOJournalAcknowledgement&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOJournalAcknowledgement::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOJournalAcknowledgement& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOJournalAcknowledgement)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .sobject.SOMutationKey key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.key_, this_._impl_.key_->GetCachedSize(), target,
+        stream);
+  }
+
+  // bytes receipt_digest = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_receipt_digest().empty()) {
+      const ::std::string& _s = this_._internal_receipt_digest();
+      target = stream->WriteBytesMaybeAliased(2, _s, target);
+    }
+  }
+
+  // uint64 acknowledged_unix_millis = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_acknowledged_unix_millis() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          3, this_._internal_acknowledged_unix_millis(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOJournalAcknowledgement)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOJournalAcknowledgement::ByteSizeLong(const MessageLite& base) {
+  const SOJournalAcknowledgement& this_ = static_cast<const SOJournalAcknowledgement&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOJournalAcknowledgement::ByteSizeLong() const {
+  const SOJournalAcknowledgement& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOJournalAcknowledgement)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    // bytes receipt_digest = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_receipt_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_receipt_digest());
+      }
+    }
+    // .sobject.SOMutationKey key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.key_);
+    }
+    // uint64 acknowledged_unix_millis = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_acknowledged_unix_millis() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_acknowledged_unix_millis());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOJournalAcknowledgement::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOJournalAcknowledgement*>(&to_msg);
+  auto& from = static_cast<const SOJournalAcknowledgement&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOJournalAcknowledgement)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_receipt_digest().empty()) {
+        _this->_internal_set_receipt_digest(from._internal_receipt_digest());
+      } else {
+        if (_this->_impl_.receipt_digest_.IsDefault()) {
+          _this->_internal_set_receipt_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.key_ != nullptr);
+      if (_this->_impl_.key_ == nullptr) {
+        _this->_impl_.key_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_);
+      } else {
+        _this->_impl_.key_->MergeFrom(*from._impl_.key_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_acknowledged_unix_millis() != 0) {
+        _this->_impl_.acknowledged_unix_millis_ = from._impl_.acknowledged_unix_millis_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOJournalAcknowledgement::CopyFrom(const SOJournalAcknowledgement& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOJournalAcknowledgement)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOJournalAcknowledgement::InternalSwap(SOJournalAcknowledgement* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.receipt_digest_, &other->_impl_.receipt_digest_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SOJournalAcknowledgement, _impl_.acknowledged_unix_millis_)
+      + sizeof(SOJournalAcknowledgement::_impl_.acknowledged_unix_millis_)
+      - PROTOBUF_FIELD_OFFSET(SOJournalAcknowledgement, _impl_.key_)>(
+          reinterpret_cast<char*>(&_impl_.key_),
+          reinterpret_cast<char*>(&other->_impl_.key_));
+}
+
+::google::protobuf::Metadata SOJournalAcknowledgement::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOJournalProjection::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOJournalProjection>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOJournalProjection, _impl_._has_bits_);
+};
+
+SOJournalProjection::SOJournalProjection(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalProjection_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOJournalProjection)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalProjection::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOJournalProjection& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        receipt_digest_(arena, from.receipt_digest_),
+        authoritative_root_digest_(arena, from.authoritative_root_digest_) {}
+
+SOJournalProjection::SOJournalProjection(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOJournalProjection& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalProjection_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOJournalProjection* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.key_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_)
+                : nullptr;
+  _impl_.authoritative_root_seqno_ = from._impl_.authoritative_root_seqno_;
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOJournalProjection)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalProjection::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        receipt_digest_(arena),
+        authoritative_root_digest_(arena) {}
+
+inline void SOJournalProjection::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, key_),
+           0,
+           offsetof(Impl_, authoritative_root_seqno_) -
+               offsetof(Impl_, key_) +
+               sizeof(Impl_::authoritative_root_seqno_));
+}
+SOJournalProjection::~SOJournalProjection() {
+  // @@protoc_insertion_point(destructor:sobject.SOJournalProjection)
+  SharedDtor(*this);
+}
+inline void SOJournalProjection::SharedDtor(MessageLite& self) {
+  SOJournalProjection& this_ = static_cast<SOJournalProjection&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.receipt_digest_.Destroy();
+  this_._impl_.authoritative_root_digest_.Destroy();
+  delete this_._impl_.key_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SOJournalProjection::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOJournalProjection(arena);
+}
+constexpr auto SOJournalProjection::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SOJournalProjection),
+                                            alignof(SOJournalProjection));
+}
+constexpr auto SOJournalProjection::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOJournalProjection_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOJournalProjection::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOJournalProjection>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOJournalProjection::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOJournalProjection>(), &SOJournalProjection::ByteSizeLong,
+              &SOJournalProjection::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOJournalProjection, _impl_._cached_size_),
+          false,
+      },
+      &SOJournalProjection::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOJournalProjection_class_data_ =
+        SOJournalProjection::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOJournalProjection::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOJournalProjection_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOJournalProjection_class_data_.tc_table);
+  return SOJournalProjection_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 1, 0, 2>
+SOJournalProjection::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOJournalProjection, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SOJournalProjection_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOJournalProjection>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // bytes authoritative_root_digest = 4;
+    {::_pbi::TcParser::FastBS1,
+     {34, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalProjection, _impl_.authoritative_root_digest_)}},
+    // .sobject.SOMutationKey key = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalProjection, _impl_.key_)}},
+    // bytes receipt_digest = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalProjection, _impl_.receipt_digest_)}},
+    // uint64 authoritative_root_seqno = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOJournalProjection, _impl_.authoritative_root_seqno_), 3>(),
+     {24, 3, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalProjection, _impl_.authoritative_root_seqno_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .sobject.SOMutationKey key = 1;
+    {PROTOBUF_FIELD_OFFSET(SOJournalProjection, _impl_.key_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bytes receipt_digest = 2;
+    {PROTOBUF_FIELD_OFFSET(SOJournalProjection, _impl_.receipt_digest_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // uint64 authoritative_root_seqno = 3;
+    {PROTOBUF_FIELD_OFFSET(SOJournalProjection, _impl_.authoritative_root_seqno_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // bytes authoritative_root_digest = 4;
+    {PROTOBUF_FIELD_OFFSET(SOJournalProjection, _impl_.authoritative_root_digest_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::sobject::SOMutationKey>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SOJournalProjection::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOJournalProjection)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.receipt_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.authoritative_root_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.key_ != nullptr);
+      _impl_.key_->Clear();
+    }
+  }
+  _impl_.authoritative_root_seqno_ = ::uint64_t{0u};
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOJournalProjection::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOJournalProjection& this_ = static_cast<const SOJournalProjection&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOJournalProjection::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOJournalProjection& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOJournalProjection)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .sobject.SOMutationKey key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.key_, this_._impl_.key_->GetCachedSize(), target,
+        stream);
+  }
+
+  // bytes receipt_digest = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_receipt_digest().empty()) {
+      const ::std::string& _s = this_._internal_receipt_digest();
+      target = stream->WriteBytesMaybeAliased(2, _s, target);
+    }
+  }
+
+  // uint64 authoritative_root_seqno = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_authoritative_root_seqno() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          3, this_._internal_authoritative_root_seqno(), target);
+    }
+  }
+
+  // bytes authoritative_root_digest = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_authoritative_root_digest().empty()) {
+      const ::std::string& _s = this_._internal_authoritative_root_digest();
+      target = stream->WriteBytesMaybeAliased(4, _s, target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOJournalProjection)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOJournalProjection::ByteSizeLong(const MessageLite& base) {
+  const SOJournalProjection& this_ = static_cast<const SOJournalProjection&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOJournalProjection::ByteSizeLong() const {
+  const SOJournalProjection& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOJournalProjection)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // bytes receipt_digest = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_receipt_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_receipt_digest());
+      }
+    }
+    // bytes authoritative_root_digest = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_authoritative_root_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_authoritative_root_digest());
+      }
+    }
+    // .sobject.SOMutationKey key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.key_);
+    }
+    // uint64 authoritative_root_seqno = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_authoritative_root_seqno() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_authoritative_root_seqno());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOJournalProjection::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOJournalProjection*>(&to_msg);
+  auto& from = static_cast<const SOJournalProjection&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOJournalProjection)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_receipt_digest().empty()) {
+        _this->_internal_set_receipt_digest(from._internal_receipt_digest());
+      } else {
+        if (_this->_impl_.receipt_digest_.IsDefault()) {
+          _this->_internal_set_receipt_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_authoritative_root_digest().empty()) {
+        _this->_internal_set_authoritative_root_digest(from._internal_authoritative_root_digest());
+      } else {
+        if (_this->_impl_.authoritative_root_digest_.IsDefault()) {
+          _this->_internal_set_authoritative_root_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.key_ != nullptr);
+      if (_this->_impl_.key_ == nullptr) {
+        _this->_impl_.key_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_);
+      } else {
+        _this->_impl_.key_->MergeFrom(*from._impl_.key_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_authoritative_root_seqno() != 0) {
+        _this->_impl_.authoritative_root_seqno_ = from._impl_.authoritative_root_seqno_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOJournalProjection::CopyFrom(const SOJournalProjection& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOJournalProjection)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOJournalProjection::InternalSwap(SOJournalProjection* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.receipt_digest_, &other->_impl_.receipt_digest_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.authoritative_root_digest_, &other->_impl_.authoritative_root_digest_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SOJournalProjection, _impl_.authoritative_root_seqno_)
+      + sizeof(SOJournalProjection::_impl_.authoritative_root_seqno_)
+      - PROTOBUF_FIELD_OFFSET(SOJournalProjection, _impl_.key_)>(
+          reinterpret_cast<char*>(&_impl_.key_),
+          reinterpret_cast<char*>(&other->_impl_.key_));
+}
+
+::google::protobuf::Metadata SOJournalProjection::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOJournalRecord::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOJournalRecord>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_._has_bits_);
+};
+
+SOJournalRecord::SOJournalRecord(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalRecord_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOJournalRecord)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalRecord::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOJournalRecord& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        envelope_digest_(arena, from.envelope_digest_) {}
+
+SOJournalRecord::SOJournalRecord(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOJournalRecord& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalRecord_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOJournalRecord* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.key_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_)
+                : nullptr;
+  _impl_.lineage_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.lineage_)
+                : nullptr;
+  _impl_.version_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.version_)
+                : nullptr;
+  _impl_.intent_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.intent_)
+                : nullptr;
+  _impl_.envelope_ = (CheckHasBit(cached_has_bits, 0x00000020U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.envelope_)
+                : nullptr;
+  _impl_.receipt_ = (CheckHasBit(cached_has_bits, 0x00000040U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.receipt_)
+                : nullptr;
+  _impl_.acknowledgement_ = (CheckHasBit(cached_has_bits, 0x00000080U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.acknowledgement_)
+                : nullptr;
+  _impl_.projection_ = (CheckHasBit(cached_has_bits, 0x00000100U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.projection_)
+                : nullptr;
+  _impl_.lookup_ = (CheckHasBit(cached_has_bits, 0x00000200U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.lookup_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, sequence_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, sequence_),
+           offsetof(Impl_, attempt_state_) -
+               offsetof(Impl_, sequence_) +
+               sizeof(Impl_::attempt_state_));
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOJournalRecord)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalRecord::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        envelope_digest_(arena) {}
+
+inline void SOJournalRecord::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, key_),
+           0,
+           offsetof(Impl_, attempt_state_) -
+               offsetof(Impl_, key_) +
+               sizeof(Impl_::attempt_state_));
+}
+SOJournalRecord::~SOJournalRecord() {
+  // @@protoc_insertion_point(destructor:sobject.SOJournalRecord)
+  SharedDtor(*this);
+}
+inline void SOJournalRecord::SharedDtor(MessageLite& self) {
+  SOJournalRecord& this_ = static_cast<SOJournalRecord&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.envelope_digest_.Destroy();
+  delete this_._impl_.key_;
+  delete this_._impl_.lineage_;
+  delete this_._impl_.version_;
+  delete this_._impl_.intent_;
+  delete this_._impl_.envelope_;
+  delete this_._impl_.receipt_;
+  delete this_._impl_.acknowledgement_;
+  delete this_._impl_.projection_;
+  delete this_._impl_.lookup_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SOJournalRecord::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOJournalRecord(arena);
+}
+constexpr auto SOJournalRecord::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SOJournalRecord),
+                                            alignof(SOJournalRecord));
+}
+constexpr auto SOJournalRecord::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOJournalRecord_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOJournalRecord::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOJournalRecord>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOJournalRecord::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOJournalRecord>(), &SOJournalRecord::ByteSizeLong,
+              &SOJournalRecord::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_._cached_size_),
+          false,
+      },
+      &SOJournalRecord::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOJournalRecord_class_data_ =
+        SOJournalRecord::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOJournalRecord::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOJournalRecord_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOJournalRecord_class_data_.tc_table);
+  return SOJournalRecord_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 16, 9, 0, 2>
+SOJournalRecord::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_._has_bits_),
+    0, // no _extensions_
+    16, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294901760,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    16,  // num_field_entries
+    9,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SOJournalRecord_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOJournalRecord>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // .sobject.SOJournalLookup lookup = 16;
+    {::_pbi::TcParser::FastMtS2,
+     {386, 9, 8,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.lookup_)}},
+    // uint32 format_version = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOJournalRecord, _impl_.format_version_), 11>(),
+     {8, 11, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.format_version_)}},
+    // uint64 sequence = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOJournalRecord, _impl_.sequence_), 10>(),
+     {16, 10, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.sequence_)}},
+    // .sobject.SOJournalRecordKind kind = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOJournalRecord, _impl_.kind_), 12>(),
+     {24, 12, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.kind_)}},
+    // .sobject.SOMutationKey key = 4;
+    {::_pbi::TcParser::FastMtS1,
+     {34, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.key_)}},
+    // .sobject.SOJournalLineage lineage = 5;
+    {::_pbi::TcParser::FastMtS1,
+     {42, 2, 1,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.lineage_)}},
+    // .sobject.SOJournalVersionTuple version = 6;
+    {::_pbi::TcParser::FastMtS1,
+     {50, 3, 2,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.version_)}},
+    // .sobject.SOJournalEncryptedPayload intent = 7;
+    {::_pbi::TcParser::FastMtS1,
+     {58, 4, 3,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.intent_)}},
+    // .sobject.SOJournalEncryptedPayload envelope = 8;
+    {::_pbi::TcParser::FastMtS1,
+     {66, 5, 4,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.envelope_)}},
+    // .sobject.SOJournalReceipt receipt = 9;
+    {::_pbi::TcParser::FastMtS1,
+     {74, 6, 5,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.receipt_)}},
+    // .sobject.SOJournalAcknowledgement acknowledgement = 10;
+    {::_pbi::TcParser::FastMtS1,
+     {82, 7, 6,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.acknowledgement_)}},
+    // .sobject.SOJournalProjection projection = 11;
+    {::_pbi::TcParser::FastMtS1,
+     {90, 8, 7,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.projection_)}},
+    // .sobject.SOJournalReadiness readiness = 12;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOJournalRecord, _impl_.readiness_), 13>(),
+     {96, 13, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.readiness_)}},
+    // .sobject.SOJournalRecoveryReason recovery_reason = 13;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOJournalRecord, _impl_.recovery_reason_), 14>(),
+     {104, 14, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.recovery_reason_)}},
+    // .sobject.SOJournalAttemptState attempt_state = 14;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOJournalRecord, _impl_.attempt_state_), 15>(),
+     {112, 15, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.attempt_state_)}},
+    // bytes envelope_digest = 15;
+    {::_pbi::TcParser::FastBS1,
+     {122, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.envelope_digest_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // uint32 format_version = 1;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.format_version_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // uint64 sequence = 2;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.sequence_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // .sobject.SOJournalRecordKind kind = 3;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.kind_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .sobject.SOMutationKey key = 4;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.key_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalLineage lineage = 5;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.lineage_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalVersionTuple version = 6;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.version_), _Internal::kHasBitsOffset + 3, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalEncryptedPayload intent = 7;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.intent_), _Internal::kHasBitsOffset + 4, 3, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalEncryptedPayload envelope = 8;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.envelope_), _Internal::kHasBitsOffset + 5, 4, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalReceipt receipt = 9;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.receipt_), _Internal::kHasBitsOffset + 6, 5, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalAcknowledgement acknowledgement = 10;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.acknowledgement_), _Internal::kHasBitsOffset + 7, 6, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalProjection projection = 11;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.projection_), _Internal::kHasBitsOffset + 8, 7, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalReadiness readiness = 12;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.readiness_), _Internal::kHasBitsOffset + 13, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .sobject.SOJournalRecoveryReason recovery_reason = 13;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.recovery_reason_), _Internal::kHasBitsOffset + 14, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .sobject.SOJournalAttemptState attempt_state = 14;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.attempt_state_), _Internal::kHasBitsOffset + 15, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // bytes envelope_digest = 15;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.envelope_digest_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // .sobject.SOJournalLookup lookup = 16;
+    {PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.lookup_), _Internal::kHasBitsOffset + 9, 8, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::sobject::SOMutationKey>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalLineage>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalVersionTuple>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalEncryptedPayload>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalEncryptedPayload>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalReceipt>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalAcknowledgement>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalProjection>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalLookup>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SOJournalRecord::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOJournalRecord)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.envelope_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.key_ != nullptr);
+      _impl_.key_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.lineage_ != nullptr);
+      _impl_.lineage_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.version_ != nullptr);
+      _impl_.version_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(_impl_.intent_ != nullptr);
+      _impl_.intent_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(_impl_.envelope_ != nullptr);
+      _impl_.envelope_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      ABSL_DCHECK(_impl_.receipt_ != nullptr);
+      _impl_.receipt_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      ABSL_DCHECK(_impl_.acknowledgement_ != nullptr);
+      _impl_.acknowledgement_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      ABSL_DCHECK(_impl_.projection_ != nullptr);
+      _impl_.projection_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      ABSL_DCHECK(_impl_.lookup_ != nullptr);
+      _impl_.lookup_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000fc00U)) {
+    ::memset(&_impl_.sequence_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.attempt_state_) -
+        reinterpret_cast<char*>(&_impl_.sequence_)) + sizeof(_impl_.attempt_state_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOJournalRecord::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOJournalRecord& this_ = static_cast<const SOJournalRecord&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOJournalRecord::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOJournalRecord& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOJournalRecord)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // uint32 format_version = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (this_._internal_format_version() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+          1, this_._internal_format_version(), target);
+    }
+  }
+
+  // uint64 sequence = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (this_._internal_sequence() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          2, this_._internal_sequence(), target);
+    }
+  }
+
+  // .sobject.SOJournalRecordKind kind = 3;
+  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+    if (this_._internal_kind() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          3, this_._internal_kind(), target);
+    }
+  }
+
+  // .sobject.SOMutationKey key = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        4, *this_._impl_.key_, this_._impl_.key_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalLineage lineage = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        5, *this_._impl_.lineage_, this_._impl_.lineage_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalVersionTuple version = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        6, *this_._impl_.version_, this_._impl_.version_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalEncryptedPayload intent = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        7, *this_._impl_.intent_, this_._impl_.intent_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalEncryptedPayload envelope = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        8, *this_._impl_.envelope_, this_._impl_.envelope_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalReceipt receipt = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        9, *this_._impl_.receipt_, this_._impl_.receipt_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalAcknowledgement acknowledgement = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        10, *this_._impl_.acknowledgement_, this_._impl_.acknowledgement_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalProjection projection = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        11, *this_._impl_.projection_, this_._impl_.projection_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalReadiness readiness = 12;
+  if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+    if (this_._internal_readiness() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          12, this_._internal_readiness(), target);
+    }
+  }
+
+  // .sobject.SOJournalRecoveryReason recovery_reason = 13;
+  if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+    if (this_._internal_recovery_reason() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          13, this_._internal_recovery_reason(), target);
+    }
+  }
+
+  // .sobject.SOJournalAttemptState attempt_state = 14;
+  if (CheckHasBit(cached_has_bits, 0x00008000U)) {
+    if (this_._internal_attempt_state() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          14, this_._internal_attempt_state(), target);
+    }
+  }
+
+  // bytes envelope_digest = 15;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_envelope_digest().empty()) {
+      const ::std::string& _s = this_._internal_envelope_digest();
+      target = stream->WriteBytesMaybeAliased(15, _s, target);
+    }
+  }
+
+  // .sobject.SOJournalLookup lookup = 16;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        16, *this_._impl_.lookup_, this_._impl_.lookup_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOJournalRecord)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOJournalRecord::ByteSizeLong(const MessageLite& base) {
+  const SOJournalRecord& this_ = static_cast<const SOJournalRecord&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOJournalRecord::ByteSizeLong() const {
+  const SOJournalRecord& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOJournalRecord)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // bytes envelope_digest = 15;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_envelope_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_envelope_digest());
+      }
+    }
+    // .sobject.SOMutationKey key = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.key_);
+    }
+    // .sobject.SOJournalLineage lineage = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.lineage_);
+    }
+    // .sobject.SOJournalVersionTuple version = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.version_);
+    }
+    // .sobject.SOJournalEncryptedPayload intent = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.intent_);
+    }
+    // .sobject.SOJournalEncryptedPayload envelope = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.envelope_);
+    }
+    // .sobject.SOJournalReceipt receipt = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.receipt_);
+    }
+    // .sobject.SOJournalAcknowledgement acknowledgement = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.acknowledgement_);
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
+    // .sobject.SOJournalProjection projection = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.projection_);
+    }
+    // .sobject.SOJournalLookup lookup = 16;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      total_size += 2 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.lookup_);
+    }
+    // uint64 sequence = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (this_._internal_sequence() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_sequence());
+      }
+    }
+    // uint32 format_version = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (this_._internal_format_version() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+            this_._internal_format_version());
+      }
+    }
+    // .sobject.SOJournalRecordKind kind = 3;
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (this_._internal_kind() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_kind());
+      }
+    }
+    // .sobject.SOJournalReadiness readiness = 12;
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (this_._internal_readiness() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_readiness());
+      }
+    }
+    // .sobject.SOJournalRecoveryReason recovery_reason = 13;
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+      if (this_._internal_recovery_reason() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_recovery_reason());
+      }
+    }
+    // .sobject.SOJournalAttemptState attempt_state = 14;
+    if (CheckHasBit(cached_has_bits, 0x00008000U)) {
+      if (this_._internal_attempt_state() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_attempt_state());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOJournalRecord::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOJournalRecord*>(&to_msg);
+  auto& from = static_cast<const SOJournalRecord&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOJournalRecord)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_envelope_digest().empty()) {
+        _this->_internal_set_envelope_digest(from._internal_envelope_digest());
+      } else {
+        if (_this->_impl_.envelope_digest_.IsDefault()) {
+          _this->_internal_set_envelope_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.key_ != nullptr);
+      if (_this->_impl_.key_ == nullptr) {
+        _this->_impl_.key_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_);
+      } else {
+        _this->_impl_.key_->MergeFrom(*from._impl_.key_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.lineage_ != nullptr);
+      if (_this->_impl_.lineage_ == nullptr) {
+        _this->_impl_.lineage_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.lineage_);
+      } else {
+        _this->_impl_.lineage_->MergeFrom(*from._impl_.lineage_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.version_ != nullptr);
+      if (_this->_impl_.version_ == nullptr) {
+        _this->_impl_.version_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.version_);
+      } else {
+        _this->_impl_.version_->MergeFrom(*from._impl_.version_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(from._impl_.intent_ != nullptr);
+      if (_this->_impl_.intent_ == nullptr) {
+        _this->_impl_.intent_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.intent_);
+      } else {
+        _this->_impl_.intent_->MergeFrom(*from._impl_.intent_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(from._impl_.envelope_ != nullptr);
+      if (_this->_impl_.envelope_ == nullptr) {
+        _this->_impl_.envelope_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.envelope_);
+      } else {
+        _this->_impl_.envelope_->MergeFrom(*from._impl_.envelope_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      ABSL_DCHECK(from._impl_.receipt_ != nullptr);
+      if (_this->_impl_.receipt_ == nullptr) {
+        _this->_impl_.receipt_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.receipt_);
+      } else {
+        _this->_impl_.receipt_->MergeFrom(*from._impl_.receipt_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      ABSL_DCHECK(from._impl_.acknowledgement_ != nullptr);
+      if (_this->_impl_.acknowledgement_ == nullptr) {
+        _this->_impl_.acknowledgement_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.acknowledgement_);
+      } else {
+        _this->_impl_.acknowledgement_->MergeFrom(*from._impl_.acknowledgement_);
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      ABSL_DCHECK(from._impl_.projection_ != nullptr);
+      if (_this->_impl_.projection_ == nullptr) {
+        _this->_impl_.projection_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.projection_);
+      } else {
+        _this->_impl_.projection_->MergeFrom(*from._impl_.projection_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      ABSL_DCHECK(from._impl_.lookup_ != nullptr);
+      if (_this->_impl_.lookup_ == nullptr) {
+        _this->_impl_.lookup_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.lookup_);
+      } else {
+        _this->_impl_.lookup_->MergeFrom(*from._impl_.lookup_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (from._internal_sequence() != 0) {
+        _this->_impl_.sequence_ = from._impl_.sequence_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (from._internal_format_version() != 0) {
+        _this->_impl_.format_version_ = from._impl_.format_version_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (from._internal_kind() != 0) {
+        _this->_impl_.kind_ = from._impl_.kind_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (from._internal_readiness() != 0) {
+        _this->_impl_.readiness_ = from._impl_.readiness_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+      if (from._internal_recovery_reason() != 0) {
+        _this->_impl_.recovery_reason_ = from._impl_.recovery_reason_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00008000U)) {
+      if (from._internal_attempt_state() != 0) {
+        _this->_impl_.attempt_state_ = from._impl_.attempt_state_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOJournalRecord::CopyFrom(const SOJournalRecord& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOJournalRecord)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOJournalRecord::InternalSwap(SOJournalRecord* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.envelope_digest_, &other->_impl_.envelope_digest_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.attempt_state_)
+      + sizeof(SOJournalRecord::_impl_.attempt_state_)
+      - PROTOBUF_FIELD_OFFSET(SOJournalRecord, _impl_.key_)>(
+          reinterpret_cast<char*>(&_impl_.key_),
+          reinterpret_cast<char*>(&other->_impl_.key_));
+}
+
+::google::protobuf::Metadata SOJournalRecord::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOJournalCheckpointAttempt::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOJournalCheckpointAttempt>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_._has_bits_);
+};
+
+SOJournalCheckpointAttempt::SOJournalCheckpointAttempt(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalCheckpointAttempt_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOJournalCheckpointAttempt)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalCheckpointAttempt::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOJournalCheckpointAttempt& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        envelope_digest_(arena, from.envelope_digest_) {}
+
+SOJournalCheckpointAttempt::SOJournalCheckpointAttempt(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOJournalCheckpointAttempt& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalCheckpointAttempt_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOJournalCheckpointAttempt* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.key_ = (CheckHasBit(cached_has_bits, 0x00000002U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_)
+                : nullptr;
+  _impl_.lineage_ = (CheckHasBit(cached_has_bits, 0x00000004U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.lineage_)
+                : nullptr;
+  _impl_.version_ = (CheckHasBit(cached_has_bits, 0x00000008U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.version_)
+                : nullptr;
+  _impl_.intent_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.intent_)
+                : nullptr;
+  _impl_.envelope_ = (CheckHasBit(cached_has_bits, 0x00000020U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.envelope_)
+                : nullptr;
+  _impl_.receipt_ = (CheckHasBit(cached_has_bits, 0x00000040U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.receipt_)
+                : nullptr;
+  _impl_.acknowledgement_ = (CheckHasBit(cached_has_bits, 0x00000080U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.acknowledgement_)
+                : nullptr;
+  _impl_.projection_ = (CheckHasBit(cached_has_bits, 0x00000100U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.projection_)
+                : nullptr;
+  _impl_.lookup_ = (CheckHasBit(cached_has_bits, 0x00000200U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.lookup_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, state_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, state_),
+           offsetof(Impl_, checkpoint_eligible_) -
+               offsetof(Impl_, state_) +
+               sizeof(Impl_::checkpoint_eligible_));
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOJournalCheckpointAttempt)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalCheckpointAttempt::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        envelope_digest_(arena) {}
+
+inline void SOJournalCheckpointAttempt::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, key_),
+           0,
+           offsetof(Impl_, checkpoint_eligible_) -
+               offsetof(Impl_, key_) +
+               sizeof(Impl_::checkpoint_eligible_));
+}
+SOJournalCheckpointAttempt::~SOJournalCheckpointAttempt() {
+  // @@protoc_insertion_point(destructor:sobject.SOJournalCheckpointAttempt)
+  SharedDtor(*this);
+}
+inline void SOJournalCheckpointAttempt::SharedDtor(MessageLite& self) {
+  SOJournalCheckpointAttempt& this_ = static_cast<SOJournalCheckpointAttempt&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.envelope_digest_.Destroy();
+  delete this_._impl_.key_;
+  delete this_._impl_.lineage_;
+  delete this_._impl_.version_;
+  delete this_._impl_.intent_;
+  delete this_._impl_.envelope_;
+  delete this_._impl_.receipt_;
+  delete this_._impl_.acknowledgement_;
+  delete this_._impl_.projection_;
+  delete this_._impl_.lookup_;
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SOJournalCheckpointAttempt::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOJournalCheckpointAttempt(arena);
+}
+constexpr auto SOJournalCheckpointAttempt::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SOJournalCheckpointAttempt),
+                                            alignof(SOJournalCheckpointAttempt));
+}
+constexpr auto SOJournalCheckpointAttempt::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOJournalCheckpointAttempt_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOJournalCheckpointAttempt::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOJournalCheckpointAttempt>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOJournalCheckpointAttempt::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOJournalCheckpointAttempt>(), &SOJournalCheckpointAttempt::ByteSizeLong,
+              &SOJournalCheckpointAttempt::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_._cached_size_),
+          false,
+      },
+      &SOJournalCheckpointAttempt::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOJournalCheckpointAttempt_class_data_ =
+        SOJournalCheckpointAttempt::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOJournalCheckpointAttempt::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOJournalCheckpointAttempt_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOJournalCheckpointAttempt_class_data_.tc_table);
+  return SOJournalCheckpointAttempt_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<5, 18, 9, 0, 2>
+SOJournalCheckpointAttempt::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_._has_bits_),
+    0, // no _extensions_
+    18, 248,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294705152,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    18,  // num_field_entries
+    9,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SOJournalCheckpointAttempt_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOJournalCheckpointAttempt>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .sobject.SOMutationKey key = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.key_)}},
+    // .sobject.SOJournalLineage lineage = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 2, 1,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.lineage_)}},
+    // .sobject.SOJournalVersionTuple version = 3;
+    {::_pbi::TcParser::FastMtS1,
+     {26, 3, 2,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.version_)}},
+    // .sobject.SOJournalAttemptState state = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOJournalCheckpointAttempt, _impl_.state_), 10>(),
+     {32, 10, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.state_)}},
+    // .sobject.SOJournalReadiness readiness = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOJournalCheckpointAttempt, _impl_.readiness_), 11>(),
+     {40, 11, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.readiness_)}},
+    // .sobject.SOJournalEncryptedPayload intent = 6;
+    {::_pbi::TcParser::FastMtS1,
+     {50, 4, 3,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.intent_)}},
+    // .sobject.SOJournalEncryptedPayload envelope = 7;
+    {::_pbi::TcParser::FastMtS1,
+     {58, 5, 4,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.envelope_)}},
+    // bytes envelope_digest = 8;
+    {::_pbi::TcParser::FastBS1,
+     {66, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.envelope_digest_)}},
+    // .sobject.SOJournalReceipt receipt = 9;
+    {::_pbi::TcParser::FastMtS1,
+     {74, 6, 5,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.receipt_)}},
+    // .sobject.SOJournalAcknowledgement acknowledgement = 10;
+    {::_pbi::TcParser::FastMtS1,
+     {82, 7, 6,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.acknowledgement_)}},
+    // .sobject.SOJournalProjection projection = 11;
+    {::_pbi::TcParser::FastMtS1,
+     {90, 8, 7,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.projection_)}},
+    // .sobject.SOJournalLookup lookup = 12;
+    {::_pbi::TcParser::FastMtS1,
+     {98, 9, 8,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.lookup_)}},
+    // bool send_attempted = 13;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SOJournalCheckpointAttempt, _impl_.send_attempted_), 14>(),
+     {104, 14, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.send_attempted_)}},
+    // bool resend_authorized = 14;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SOJournalCheckpointAttempt, _impl_.resend_authorized_), 15>(),
+     {112, 15, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.resend_authorized_)}},
+    // bool lineage_recovery_blocked = 15;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SOJournalCheckpointAttempt, _impl_.lineage_recovery_blocked_), 16>(),
+     {120, 16, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.lineage_recovery_blocked_)}},
+    // uint64 intent_sequence = 16;
+    {::_pbi::TcParser::FastV64S2,
+     {384, 12, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.intent_sequence_)}},
+    // uint64 envelope_sequence = 17;
+    {::_pbi::TcParser::FastV64S2,
+     {392, 13, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.envelope_sequence_)}},
+    // bool checkpoint_eligible = 18;
+    {::_pbi::TcParser::FastV8S2,
+     {400, 17, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.checkpoint_eligible_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .sobject.SOMutationKey key = 1;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.key_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalLineage lineage = 2;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.lineage_), _Internal::kHasBitsOffset + 2, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalVersionTuple version = 3;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.version_), _Internal::kHasBitsOffset + 3, 2, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalAttemptState state = 4;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.state_), _Internal::kHasBitsOffset + 10, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .sobject.SOJournalReadiness readiness = 5;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.readiness_), _Internal::kHasBitsOffset + 11, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // .sobject.SOJournalEncryptedPayload intent = 6;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.intent_), _Internal::kHasBitsOffset + 4, 3, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalEncryptedPayload envelope = 7;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.envelope_), _Internal::kHasBitsOffset + 5, 4, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bytes envelope_digest = 8;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.envelope_digest_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // .sobject.SOJournalReceipt receipt = 9;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.receipt_), _Internal::kHasBitsOffset + 6, 5, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalAcknowledgement acknowledgement = 10;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.acknowledgement_), _Internal::kHasBitsOffset + 7, 6, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalProjection projection = 11;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.projection_), _Internal::kHasBitsOffset + 8, 7, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOJournalLookup lookup = 12;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.lookup_), _Internal::kHasBitsOffset + 9, 8, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bool send_attempted = 13;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.send_attempted_), _Internal::kHasBitsOffset + 14, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool resend_authorized = 14;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.resend_authorized_), _Internal::kHasBitsOffset + 15, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // bool lineage_recovery_blocked = 15;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.lineage_recovery_blocked_), _Internal::kHasBitsOffset + 16, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // uint64 intent_sequence = 16;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.intent_sequence_), _Internal::kHasBitsOffset + 12, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // uint64 envelope_sequence = 17;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.envelope_sequence_), _Internal::kHasBitsOffset + 13, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // bool checkpoint_eligible = 18;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.checkpoint_eligible_), _Internal::kHasBitsOffset + 17, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::sobject::SOMutationKey>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalLineage>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalVersionTuple>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalEncryptedPayload>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalEncryptedPayload>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalReceipt>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalAcknowledgement>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalProjection>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalLookup>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SOJournalCheckpointAttempt::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOJournalCheckpointAttempt)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.envelope_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(_impl_.key_ != nullptr);
+      _impl_.key_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(_impl_.lineage_ != nullptr);
+      _impl_.lineage_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(_impl_.version_ != nullptr);
+      _impl_.version_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(_impl_.intent_ != nullptr);
+      _impl_.intent_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(_impl_.envelope_ != nullptr);
+      _impl_.envelope_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      ABSL_DCHECK(_impl_.receipt_ != nullptr);
+      _impl_.receipt_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      ABSL_DCHECK(_impl_.acknowledgement_ != nullptr);
+      _impl_.acknowledgement_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000300U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      ABSL_DCHECK(_impl_.projection_ != nullptr);
+      _impl_.projection_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      ABSL_DCHECK(_impl_.lookup_ != nullptr);
+      _impl_.lookup_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000fc00U)) {
+    ::memset(&_impl_.state_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.resend_authorized_) -
+        reinterpret_cast<char*>(&_impl_.state_)) + sizeof(_impl_.resend_authorized_));
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00030000U)) {
+    ::memset(&_impl_.lineage_recovery_blocked_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.checkpoint_eligible_) -
+        reinterpret_cast<char*>(&_impl_.lineage_recovery_blocked_)) + sizeof(_impl_.checkpoint_eligible_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOJournalCheckpointAttempt::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOJournalCheckpointAttempt& this_ = static_cast<const SOJournalCheckpointAttempt&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOJournalCheckpointAttempt::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOJournalCheckpointAttempt& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOJournalCheckpointAttempt)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .sobject.SOMutationKey key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.key_, this_._impl_.key_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalLineage lineage = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        2, *this_._impl_.lineage_, this_._impl_.lineage_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalVersionTuple version = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        3, *this_._impl_.version_, this_._impl_.version_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalAttemptState state = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+    if (this_._internal_state() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          4, this_._internal_state(), target);
+    }
+  }
+
+  // .sobject.SOJournalReadiness readiness = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+    if (this_._internal_readiness() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          5, this_._internal_readiness(), target);
+    }
+  }
+
+  // .sobject.SOJournalEncryptedPayload intent = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        6, *this_._impl_.intent_, this_._impl_.intent_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalEncryptedPayload envelope = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        7, *this_._impl_.envelope_, this_._impl_.envelope_->GetCachedSize(), target,
+        stream);
+  }
+
+  // bytes envelope_digest = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_envelope_digest().empty()) {
+      const ::std::string& _s = this_._internal_envelope_digest();
+      target = stream->WriteBytesMaybeAliased(8, _s, target);
+    }
+  }
+
+  // .sobject.SOJournalReceipt receipt = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        9, *this_._impl_.receipt_, this_._impl_.receipt_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalAcknowledgement acknowledgement = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        10, *this_._impl_.acknowledgement_, this_._impl_.acknowledgement_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalProjection projection = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        11, *this_._impl_.projection_, this_._impl_.projection_->GetCachedSize(), target,
+        stream);
+  }
+
+  // .sobject.SOJournalLookup lookup = 12;
+  if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        12, *this_._impl_.lookup_, this_._impl_.lookup_->GetCachedSize(), target,
+        stream);
+  }
+
+  // bool send_attempted = 13;
+  if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+    if (this_._internal_send_attempted() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          13, this_._internal_send_attempted(), target);
+    }
+  }
+
+  // bool resend_authorized = 14;
+  if (CheckHasBit(cached_has_bits, 0x00008000U)) {
+    if (this_._internal_resend_authorized() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          14, this_._internal_resend_authorized(), target);
+    }
+  }
+
+  // bool lineage_recovery_blocked = 15;
+  if (CheckHasBit(cached_has_bits, 0x00010000U)) {
+    if (this_._internal_lineage_recovery_blocked() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          15, this_._internal_lineage_recovery_blocked(), target);
+    }
+  }
+
+  // uint64 intent_sequence = 16;
+  if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+    if (this_._internal_intent_sequence() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          16, this_._internal_intent_sequence(), target);
+    }
+  }
+
+  // uint64 envelope_sequence = 17;
+  if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+    if (this_._internal_envelope_sequence() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          17, this_._internal_envelope_sequence(), target);
+    }
+  }
+
+  // bool checkpoint_eligible = 18;
+  if (CheckHasBit(cached_has_bits, 0x00020000U)) {
+    if (this_._internal_checkpoint_eligible() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteBoolToArray(
+          18, this_._internal_checkpoint_eligible(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOJournalCheckpointAttempt)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOJournalCheckpointAttempt::ByteSizeLong(const MessageLite& base) {
+  const SOJournalCheckpointAttempt& this_ = static_cast<const SOJournalCheckpointAttempt&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOJournalCheckpointAttempt::ByteSizeLong() const {
+  const SOJournalCheckpointAttempt& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOJournalCheckpointAttempt)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // bytes envelope_digest = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_envelope_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_envelope_digest());
+      }
+    }
+    // .sobject.SOMutationKey key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.key_);
+    }
+    // .sobject.SOJournalLineage lineage = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.lineage_);
+    }
+    // .sobject.SOJournalVersionTuple version = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.version_);
+    }
+    // .sobject.SOJournalEncryptedPayload intent = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.intent_);
+    }
+    // .sobject.SOJournalEncryptedPayload envelope = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.envelope_);
+    }
+    // .sobject.SOJournalReceipt receipt = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.receipt_);
+    }
+    // .sobject.SOJournalAcknowledgement acknowledgement = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.acknowledgement_);
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
+    // .sobject.SOJournalProjection projection = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.projection_);
+    }
+    // .sobject.SOJournalLookup lookup = 12;
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.lookup_);
+    }
+    // .sobject.SOJournalAttemptState state = 4;
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (this_._internal_state() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_state());
+      }
+    }
+    // .sobject.SOJournalReadiness readiness = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (this_._internal_readiness() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_readiness());
+      }
+    }
+    // uint64 intent_sequence = 16;
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (this_._internal_intent_sequence() != 0) {
+        total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                        this_._internal_intent_sequence());
+      }
+    }
+    // uint64 envelope_sequence = 17;
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (this_._internal_envelope_sequence() != 0) {
+        total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                        this_._internal_envelope_sequence());
+      }
+    }
+    // bool send_attempted = 13;
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+      if (this_._internal_send_attempted() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool resend_authorized = 14;
+    if (CheckHasBit(cached_has_bits, 0x00008000U)) {
+      if (this_._internal_resend_authorized() != 0) {
+        total_size += 2;
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00030000U)) {
+    // bool lineage_recovery_blocked = 15;
+    if (CheckHasBit(cached_has_bits, 0x00010000U)) {
+      if (this_._internal_lineage_recovery_blocked() != 0) {
+        total_size += 2;
+      }
+    }
+    // bool checkpoint_eligible = 18;
+    if (CheckHasBit(cached_has_bits, 0x00020000U)) {
+      if (this_._internal_checkpoint_eligible() != 0) {
+        total_size += 3;
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOJournalCheckpointAttempt::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOJournalCheckpointAttempt*>(&to_msg);
+  auto& from = static_cast<const SOJournalCheckpointAttempt&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOJournalCheckpointAttempt)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_envelope_digest().empty()) {
+        _this->_internal_set_envelope_digest(from._internal_envelope_digest());
+      } else {
+        if (_this->_impl_.envelope_digest_.IsDefault()) {
+          _this->_internal_set_envelope_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      ABSL_DCHECK(from._impl_.key_ != nullptr);
+      if (_this->_impl_.key_ == nullptr) {
+        _this->_impl_.key_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_);
+      } else {
+        _this->_impl_.key_->MergeFrom(*from._impl_.key_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      ABSL_DCHECK(from._impl_.lineage_ != nullptr);
+      if (_this->_impl_.lineage_ == nullptr) {
+        _this->_impl_.lineage_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.lineage_);
+      } else {
+        _this->_impl_.lineage_->MergeFrom(*from._impl_.lineage_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      ABSL_DCHECK(from._impl_.version_ != nullptr);
+      if (_this->_impl_.version_ == nullptr) {
+        _this->_impl_.version_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.version_);
+      } else {
+        _this->_impl_.version_->MergeFrom(*from._impl_.version_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(from._impl_.intent_ != nullptr);
+      if (_this->_impl_.intent_ == nullptr) {
+        _this->_impl_.intent_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.intent_);
+      } else {
+        _this->_impl_.intent_->MergeFrom(*from._impl_.intent_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(from._impl_.envelope_ != nullptr);
+      if (_this->_impl_.envelope_ == nullptr) {
+        _this->_impl_.envelope_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.envelope_);
+      } else {
+        _this->_impl_.envelope_->MergeFrom(*from._impl_.envelope_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      ABSL_DCHECK(from._impl_.receipt_ != nullptr);
+      if (_this->_impl_.receipt_ == nullptr) {
+        _this->_impl_.receipt_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.receipt_);
+      } else {
+        _this->_impl_.receipt_->MergeFrom(*from._impl_.receipt_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      ABSL_DCHECK(from._impl_.acknowledgement_ != nullptr);
+      if (_this->_impl_.acknowledgement_ == nullptr) {
+        _this->_impl_.acknowledgement_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.acknowledgement_);
+      } else {
+        _this->_impl_.acknowledgement_->MergeFrom(*from._impl_.acknowledgement_);
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000ff00U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      ABSL_DCHECK(from._impl_.projection_ != nullptr);
+      if (_this->_impl_.projection_ == nullptr) {
+        _this->_impl_.projection_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.projection_);
+      } else {
+        _this->_impl_.projection_->MergeFrom(*from._impl_.projection_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000200U)) {
+      ABSL_DCHECK(from._impl_.lookup_ != nullptr);
+      if (_this->_impl_.lookup_ == nullptr) {
+        _this->_impl_.lookup_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.lookup_);
+      } else {
+        _this->_impl_.lookup_->MergeFrom(*from._impl_.lookup_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000400U)) {
+      if (from._internal_state() != 0) {
+        _this->_impl_.state_ = from._impl_.state_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000800U)) {
+      if (from._internal_readiness() != 0) {
+        _this->_impl_.readiness_ = from._impl_.readiness_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00001000U)) {
+      if (from._internal_intent_sequence() != 0) {
+        _this->_impl_.intent_sequence_ = from._impl_.intent_sequence_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00002000U)) {
+      if (from._internal_envelope_sequence() != 0) {
+        _this->_impl_.envelope_sequence_ = from._impl_.envelope_sequence_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00004000U)) {
+      if (from._internal_send_attempted() != 0) {
+        _this->_impl_.send_attempted_ = from._impl_.send_attempted_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00008000U)) {
+      if (from._internal_resend_authorized() != 0) {
+        _this->_impl_.resend_authorized_ = from._impl_.resend_authorized_;
+      }
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00030000U)) {
+    if (CheckHasBit(cached_has_bits, 0x00010000U)) {
+      if (from._internal_lineage_recovery_blocked() != 0) {
+        _this->_impl_.lineage_recovery_blocked_ = from._impl_.lineage_recovery_blocked_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00020000U)) {
+      if (from._internal_checkpoint_eligible() != 0) {
+        _this->_impl_.checkpoint_eligible_ = from._impl_.checkpoint_eligible_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOJournalCheckpointAttempt::CopyFrom(const SOJournalCheckpointAttempt& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOJournalCheckpointAttempt)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOJournalCheckpointAttempt::InternalSwap(SOJournalCheckpointAttempt* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.envelope_digest_, &other->_impl_.envelope_digest_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.checkpoint_eligible_)
+      + sizeof(SOJournalCheckpointAttempt::_impl_.checkpoint_eligible_)
+      - PROTOBUF_FIELD_OFFSET(SOJournalCheckpointAttempt, _impl_.key_)>(
+          reinterpret_cast<char*>(&_impl_.key_),
+          reinterpret_cast<char*>(&other->_impl_.key_));
+}
+
+::google::protobuf::Metadata SOJournalCheckpointAttempt::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOJournalCheckpoint::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOJournalCheckpoint>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOJournalCheckpoint, _impl_._has_bits_);
+};
+
+SOJournalCheckpoint::SOJournalCheckpoint(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalCheckpoint_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOJournalCheckpoint)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalCheckpoint::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOJournalCheckpoint& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        attempts_{visibility, arena, from.attempts_},
+        journal_identity_(arena, from.journal_identity_) {}
+
+SOJournalCheckpoint::SOJournalCheckpoint(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOJournalCheckpoint& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOJournalCheckpoint_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOJournalCheckpoint* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, generation_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, generation_),
+           offsetof(Impl_, next_sequence_) -
+               offsetof(Impl_, generation_) +
+               sizeof(Impl_::next_sequence_));
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOJournalCheckpoint)
+}
+PROTOBUF_NDEBUG_INLINE SOJournalCheckpoint::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        attempts_{visibility, arena},
+        journal_identity_(arena) {}
+
+inline void SOJournalCheckpoint::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, generation_),
+           0,
+           offsetof(Impl_, next_sequence_) -
+               offsetof(Impl_, generation_) +
+               sizeof(Impl_::next_sequence_));
+}
+SOJournalCheckpoint::~SOJournalCheckpoint() {
+  // @@protoc_insertion_point(destructor:sobject.SOJournalCheckpoint)
+  SharedDtor(*this);
+}
+inline void SOJournalCheckpoint::SharedDtor(MessageLite& self) {
+  SOJournalCheckpoint& this_ = static_cast<SOJournalCheckpoint&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.journal_identity_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SOJournalCheckpoint::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOJournalCheckpoint(arena);
+}
+constexpr auto SOJournalCheckpoint::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpoint, _impl_.attempts_) +
+          decltype(SOJournalCheckpoint::_impl_.attempts_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(SOJournalCheckpoint), alignof(SOJournalCheckpoint), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&SOJournalCheckpoint::PlacementNew_,
+                                 sizeof(SOJournalCheckpoint),
+                                 alignof(SOJournalCheckpoint));
+  }
+}
+constexpr auto SOJournalCheckpoint::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOJournalCheckpoint_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOJournalCheckpoint::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOJournalCheckpoint>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOJournalCheckpoint::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOJournalCheckpoint>(), &SOJournalCheckpoint::ByteSizeLong,
+              &SOJournalCheckpoint::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOJournalCheckpoint, _impl_._cached_size_),
+          false,
+      },
+      &SOJournalCheckpoint::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOJournalCheckpoint_class_data_ =
+        SOJournalCheckpoint::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOJournalCheckpoint::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOJournalCheckpoint_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOJournalCheckpoint_class_data_.tc_table);
+  return SOJournalCheckpoint_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 1, 0, 2>
+SOJournalCheckpoint::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOJournalCheckpoint, _impl_._has_bits_),
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SOJournalCheckpoint_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOJournalCheckpoint>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated .sobject.SOJournalCheckpointAttempt attempts = 4;
+    {::_pbi::TcParser::FastMtR1,
+     {34, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpoint, _impl_.attempts_)}},
+    // bytes journal_identity = 1;
+    {::_pbi::TcParser::FastBS1,
+     {10, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpoint, _impl_.journal_identity_)}},
+    // uint64 generation = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOJournalCheckpoint, _impl_.generation_), 2>(),
+     {16, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpoint, _impl_.generation_)}},
+    // uint64 next_sequence = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOJournalCheckpoint, _impl_.next_sequence_), 3>(),
+     {24, 3, 0,
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpoint, _impl_.next_sequence_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bytes journal_identity = 1;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpoint, _impl_.journal_identity_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // uint64 generation = 2;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpoint, _impl_.generation_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // uint64 next_sequence = 3;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpoint, _impl_.next_sequence_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // repeated .sobject.SOJournalCheckpointAttempt attempts = 4;
+    {PROTOBUF_FIELD_OFFSET(SOJournalCheckpoint, _impl_.attempts_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::sobject::SOJournalCheckpointAttempt>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SOJournalCheckpoint::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOJournalCheckpoint)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.attempts_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.journal_identity_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000cU)) {
+    ::memset(&_impl_.generation_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.next_sequence_) -
+        reinterpret_cast<char*>(&_impl_.generation_)) + sizeof(_impl_.next_sequence_));
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOJournalCheckpoint::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOJournalCheckpoint& this_ = static_cast<const SOJournalCheckpoint&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOJournalCheckpoint::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOJournalCheckpoint& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOJournalCheckpoint)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bytes journal_identity = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_journal_identity().empty()) {
+      const ::std::string& _s = this_._internal_journal_identity();
+      target = stream->WriteBytesMaybeAliased(1, _s, target);
+    }
+  }
+
+  // uint64 generation = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_generation() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          2, this_._internal_generation(), target);
+    }
+  }
+
+  // uint64 next_sequence = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (this_._internal_next_sequence() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          3, this_._internal_next_sequence(), target);
+    }
+  }
+
+  // repeated .sobject.SOJournalCheckpointAttempt attempts = 4;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_attempts_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_attempts().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              4, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOJournalCheckpoint)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOJournalCheckpoint::ByteSizeLong(const MessageLite& base) {
+  const SOJournalCheckpoint& this_ = static_cast<const SOJournalCheckpoint&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOJournalCheckpoint::ByteSizeLong() const {
+  const SOJournalCheckpoint& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOJournalCheckpoint)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    // repeated .sobject.SOJournalCheckpointAttempt attempts = 4;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_attempts_size();
+      for (const auto& msg : this_._internal_attempts()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // bytes journal_identity = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_journal_identity().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_journal_identity());
+      }
+    }
+    // uint64 generation = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_generation() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_generation());
+      }
+    }
+    // uint64 next_sequence = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (this_._internal_next_sequence() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_next_sequence());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOJournalCheckpoint::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOJournalCheckpoint*>(&to_msg);
+  auto& from = static_cast<const SOJournalCheckpoint&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOJournalCheckpoint)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_attempts()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_attempts());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_journal_identity().empty()) {
+        _this->_internal_set_journal_identity(from._internal_journal_identity());
+      } else {
+        if (_this->_impl_.journal_identity_.IsDefault()) {
+          _this->_internal_set_journal_identity("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_generation() != 0) {
+        _this->_impl_.generation_ = from._impl_.generation_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (from._internal_next_sequence() != 0) {
+        _this->_impl_.next_sequence_ = from._impl_.next_sequence_;
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOJournalCheckpoint::CopyFrom(const SOJournalCheckpoint& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOJournalCheckpoint)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOJournalCheckpoint::InternalSwap(SOJournalCheckpoint* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.attempts_.InternalSwap(&other->_impl_.attempts_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.journal_identity_, &other->_impl_.journal_identity_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SOJournalCheckpoint, _impl_.next_sequence_)
+      + sizeof(SOJournalCheckpoint::_impl_.next_sequence_)
+      - PROTOBUF_FIELD_OFFSET(SOJournalCheckpoint, _impl_.generation_)>(
+          reinterpret_cast<char*>(&_impl_.generation_),
+          reinterpret_cast<char*>(&other->_impl_.generation_));
+}
+
+::google::protobuf::Metadata SOJournalCheckpoint::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOTerminalReceiptAccepted::_Internal {
+ public:
+};
+
+SOTerminalReceiptAccepted::SOTerminalReceiptAccepted(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, SOTerminalReceiptAccepted_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(arena_constructor:sobject.SOTerminalReceiptAccepted)
+}
+SOTerminalReceiptAccepted::SOTerminalReceiptAccepted(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOTerminalReceiptAccepted& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena, SOTerminalReceiptAccepted_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOTerminalReceiptAccepted* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOTerminalReceiptAccepted)
+}
+
+inline void* PROTOBUF_NONNULL SOTerminalReceiptAccepted::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOTerminalReceiptAccepted(arena);
+}
+constexpr auto SOTerminalReceiptAccepted::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(SOTerminalReceiptAccepted),
+                                            alignof(SOTerminalReceiptAccepted));
+}
+constexpr auto SOTerminalReceiptAccepted::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOTerminalReceiptAccepted_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOTerminalReceiptAccepted::MergeImpl,
+          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<SOTerminalReceiptAccepted>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOTerminalReceiptAccepted::SharedDtor,
+          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<SOTerminalReceiptAccepted>(), &SOTerminalReceiptAccepted::ByteSizeLong,
+              &SOTerminalReceiptAccepted::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOTerminalReceiptAccepted, _impl_._cached_size_),
+          false,
+      },
+      &SOTerminalReceiptAccepted::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOTerminalReceiptAccepted_class_data_ =
+        SOTerminalReceiptAccepted::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOTerminalReceiptAccepted::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOTerminalReceiptAccepted_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOTerminalReceiptAccepted_class_data_.tc_table);
+  return SOTerminalReceiptAccepted_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+SOTerminalReceiptAccepted::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    0, 0,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967295,  // skipmap
+    offsetof(decltype(_table_), field_names),  // no field_entries
+    0,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    SOTerminalReceiptAccepted_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOTerminalReceiptAccepted>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, // no field_entries, or aux_entries
+  {{
+  }},
+};
+
+
+
+
+
+
+
+::google::protobuf::Metadata SOTerminalReceiptAccepted::GetMetadata() const {
+  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOTerminalReceiptInner::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOTerminalReceiptInner>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_._has_bits_);
+  static constexpr ::int32_t kOneofCaseOffset =
+      PROTOBUF_FIELD_OFFSET(::sobject::SOTerminalReceiptInner, _impl_._oneof_case_);
+};
+
+void SOTerminalReceiptInner::set_allocated_accepted(::sobject::SOTerminalReceiptAccepted* PROTOBUF_NULLABLE accepted) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  clear_outcome();
+  if (accepted) {
+    ::google::protobuf::Arena* submessage_arena = accepted->GetArena();
+    if (message_arena != submessage_arena) {
+      accepted = ::google::protobuf::internal::GetOwnedMessage(message_arena, accepted, submessage_arena);
+    }
+    set_has_accepted();
+    _impl_.outcome_.accepted_ = accepted;
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.accepted)
+}
+void SOTerminalReceiptInner::set_allocated_signed_rejection(::sobject::SOOperationRejection* PROTOBUF_NULLABLE signed_rejection) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  clear_outcome();
+  if (signed_rejection) {
+    ::google::protobuf::Arena* submessage_arena = signed_rejection->GetArena();
+    if (message_arena != submessage_arena) {
+      signed_rejection = ::google::protobuf::internal::GetOwnedMessage(message_arena, signed_rejection, submessage_arena);
+    }
+    set_has_signed_rejection();
+    _impl_.outcome_.signed_rejection_ = signed_rejection;
+  }
+  // @@protoc_insertion_point(field_set_allocated:sobject.SOTerminalReceiptInner.signed_rejection)
+}
+SOTerminalReceiptInner::SOTerminalReceiptInner(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOTerminalReceiptInner_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOTerminalReceiptInner)
+}
+PROTOBUF_NDEBUG_INLINE SOTerminalReceiptInner::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOTerminalReceiptInner& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        envelope_digest_(arena, from.envelope_digest_),
+        authoritative_root_digest_(arena, from.authoritative_root_digest_),
+        config_chain_digest_(arena, from.config_chain_digest_),
+        validator_set_digest_(arena, from.validator_set_digest_),
+        outcome_{},
+        _oneof_case_{from._oneof_case_[0]} {}
+
+SOTerminalReceiptInner::SOTerminalReceiptInner(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOTerminalReceiptInner& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOTerminalReceiptInner_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOTerminalReceiptInner* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.key_ = (CheckHasBit(cached_has_bits, 0x00000010U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_)
+                : nullptr;
+  _impl_.supersedes_ = (CheckHasBit(cached_has_bits, 0x00000020U))
+                ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.supersedes_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, authoritative_root_seqno_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, authoritative_root_seqno_),
+           offsetof(Impl_, consensus_mode_) -
+               offsetof(Impl_, authoritative_root_seqno_) +
+               sizeof(Impl_::consensus_mode_));
+  switch (outcome_case()) {
+    case OUTCOME_NOT_SET:
+      break;
+      case kAccepted:
+        _impl_.outcome_.accepted_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.outcome_.accepted_);
+        break;
+      case kSignedRejection:
+        _impl_.outcome_.signed_rejection_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.outcome_.signed_rejection_);
+        break;
+  }
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOTerminalReceiptInner)
+}
+PROTOBUF_NDEBUG_INLINE SOTerminalReceiptInner::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        envelope_digest_(arena),
+        authoritative_root_digest_(arena),
+        config_chain_digest_(arena),
+        validator_set_digest_(arena),
+        outcome_{},
+        _oneof_case_{} {}
+
+inline void SOTerminalReceiptInner::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, key_),
+           0,
+           offsetof(Impl_, consensus_mode_) -
+               offsetof(Impl_, key_) +
+               sizeof(Impl_::consensus_mode_));
+}
+SOTerminalReceiptInner::~SOTerminalReceiptInner() {
+  // @@protoc_insertion_point(destructor:sobject.SOTerminalReceiptInner)
+  SharedDtor(*this);
+}
+inline void SOTerminalReceiptInner::SharedDtor(MessageLite& self) {
+  SOTerminalReceiptInner& this_ = static_cast<SOTerminalReceiptInner&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.envelope_digest_.Destroy();
+  this_._impl_.authoritative_root_digest_.Destroy();
+  this_._impl_.config_chain_digest_.Destroy();
+  this_._impl_.validator_set_digest_.Destroy();
+  delete this_._impl_.key_;
+  delete this_._impl_.supersedes_;
+  if (this_.has_outcome()) {
+    this_.clear_outcome();
+  }
+  this_._impl_.~Impl_();
+}
+
+void SOTerminalReceiptInner::clear_outcome() {
+// @@protoc_insertion_point(one_of_clear_start:sobject.SOTerminalReceiptInner)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  switch (outcome_case()) {
+    case kAccepted: {
+      if (GetArena() == nullptr) {
+        delete _impl_.outcome_.accepted_;
+      } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+        ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.outcome_.accepted_);
+      }
+      break;
+    }
+    case kSignedRejection: {
+      if (GetArena() == nullptr) {
+        delete _impl_.outcome_.signed_rejection_;
+      } else if (::google::protobuf::internal::DebugHardenClearOneofMessageOnArena()) {
+        ::google::protobuf::internal::MaybePoisonAfterClear(_impl_.outcome_.signed_rejection_);
+      }
+      break;
+    }
+    case OUTCOME_NOT_SET: {
+      break;
+    }
+  }
+  _impl_._oneof_case_[0] = OUTCOME_NOT_SET;
+}
+
+
+inline void* PROTOBUF_NONNULL SOTerminalReceiptInner::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOTerminalReceiptInner(arena);
+}
+constexpr auto SOTerminalReceiptInner::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(SOTerminalReceiptInner),
+                                            alignof(SOTerminalReceiptInner));
+}
+constexpr auto SOTerminalReceiptInner::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOTerminalReceiptInner_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOTerminalReceiptInner::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOTerminalReceiptInner>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOTerminalReceiptInner::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOTerminalReceiptInner>(), &SOTerminalReceiptInner::ByteSizeLong,
+              &SOTerminalReceiptInner::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_._cached_size_),
+          false,
+      },
+      &SOTerminalReceiptInner::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOTerminalReceiptInner_class_data_ =
+        SOTerminalReceiptInner::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOTerminalReceiptInner::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOTerminalReceiptInner_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOTerminalReceiptInner_class_data_.tc_table);
+  return SOTerminalReceiptInner_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 11, 4, 0, 2>
+SOTerminalReceiptInner::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_._has_bits_),
+    0, // no _extensions_
+    11, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294965248,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    11,  // num_field_entries
+    4,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SOTerminalReceiptInner_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOTerminalReceiptInner>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // .sobject.SOMutationKey key = 1;
+    {::_pbi::TcParser::FastMtS1,
+     {10, 4, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.key_)}},
+    // bytes envelope_digest = 2;
+    {::_pbi::TcParser::FastBS1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.envelope_digest_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    // uint64 authoritative_root_seqno = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOTerminalReceiptInner, _impl_.authoritative_root_seqno_), 6>(),
+     {40, 6, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.authoritative_root_seqno_)}},
+    // bytes authoritative_root_digest = 6;
+    {::_pbi::TcParser::FastBS1,
+     {50, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.authoritative_root_digest_)}},
+    // bytes config_chain_digest = 7;
+    {::_pbi::TcParser::FastBS1,
+     {58, 2, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.config_chain_digest_)}},
+    // .sobject.SOConsensusMode consensus_mode = 8;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SOTerminalReceiptInner, _impl_.consensus_mode_), 8>(),
+     {64, 8, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.consensus_mode_)}},
+    // bytes validator_set_digest = 9;
+    {::_pbi::TcParser::FastBS1,
+     {74, 3, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.validator_set_digest_)}},
+    // uint64 terminal_unix_millis = 10;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SOTerminalReceiptInner, _impl_.terminal_unix_millis_), 7>(),
+     {80, 7, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.terminal_unix_millis_)}},
+    // .sobject.SOMutationKey supersedes = 11;
+    {::_pbi::TcParser::FastMtS1,
+     {90, 5, 3,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.supersedes_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // .sobject.SOMutationKey key = 1;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.key_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // bytes envelope_digest = 2;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.envelope_digest_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // .sobject.SOTerminalReceiptAccepted accepted = 3;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.outcome_.accepted_), _Internal::kOneofCaseOffset + 0, 1, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
+    // .sobject.SOOperationRejection signed_rejection = 4;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.outcome_.signed_rejection_), _Internal::kOneofCaseOffset + 0, 2, (0 | ::_fl::kFcOneof | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint64 authoritative_root_seqno = 5;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.authoritative_root_seqno_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // bytes authoritative_root_digest = 6;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.authoritative_root_digest_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // bytes config_chain_digest = 7;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.config_chain_digest_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // .sobject.SOConsensusMode consensus_mode = 8;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.consensus_mode_), _Internal::kHasBitsOffset + 8, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+    // bytes validator_set_digest = 9;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.validator_set_digest_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // uint64 terminal_unix_millis = 10;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.terminal_unix_millis_), _Internal::kHasBitsOffset + 7, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt64)},
+    // .sobject.SOMutationKey supersedes = 11;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.supersedes_), _Internal::kHasBitsOffset + 5, 3, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::sobject::SOMutationKey>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOTerminalReceiptAccepted>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOOperationRejection>()},
+      {::_pbi::TcParser::GetTable<::sobject::SOMutationKey>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SOTerminalReceiptInner::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOTerminalReceiptInner)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.envelope_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.authoritative_root_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.config_chain_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.validator_set_digest_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(_impl_.key_ != nullptr);
+      _impl_.key_->Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(_impl_.supersedes_ != nullptr);
+      _impl_.supersedes_->Clear();
+    }
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x000000c0U)) {
+    ::memset(&_impl_.authoritative_root_seqno_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.terminal_unix_millis_) -
+        reinterpret_cast<char*>(&_impl_.authoritative_root_seqno_)) + sizeof(_impl_.terminal_unix_millis_));
+  }
+  _impl_.consensus_mode_ = 0;
+  clear_outcome();
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOTerminalReceiptInner::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOTerminalReceiptInner& this_ = static_cast<const SOTerminalReceiptInner&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOTerminalReceiptInner::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOTerminalReceiptInner& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOTerminalReceiptInner)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .sobject.SOMutationKey key = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        1, *this_._impl_.key_, this_._impl_.key_->GetCachedSize(), target,
+        stream);
+  }
+
+  // bytes envelope_digest = 2;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_envelope_digest().empty()) {
+      const ::std::string& _s = this_._internal_envelope_digest();
+      target = stream->WriteBytesMaybeAliased(2, _s, target);
+    }
+  }
+
+  switch (this_.outcome_case()) {
+    case kAccepted: {
+      target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+          3, *this_._impl_.outcome_.accepted_, this_._impl_.outcome_.accepted_->GetCachedSize(), target,
+          stream);
+      break;
+    }
+    case kSignedRejection: {
+      target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+          4, *this_._impl_.outcome_.signed_rejection_, this_._impl_.outcome_.signed_rejection_->GetCachedSize(), target,
+          stream);
+      break;
+    }
+    default:
+      break;
+  }
+  // uint64 authoritative_root_seqno = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_authoritative_root_seqno() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          5, this_._internal_authoritative_root_seqno(), target);
+    }
+  }
+
+  // bytes authoritative_root_digest = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_authoritative_root_digest().empty()) {
+      const ::std::string& _s = this_._internal_authoritative_root_digest();
+      target = stream->WriteBytesMaybeAliased(6, _s, target);
+    }
+  }
+
+  // bytes config_chain_digest = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_config_chain_digest().empty()) {
+      const ::std::string& _s = this_._internal_config_chain_digest();
+      target = stream->WriteBytesMaybeAliased(7, _s, target);
+    }
+  }
+
+  // .sobject.SOConsensusMode consensus_mode = 8;
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (this_._internal_consensus_mode() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          8, this_._internal_consensus_mode(), target);
+    }
+  }
+
+  // bytes validator_set_digest = 9;
+  if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_validator_set_digest().empty()) {
+      const ::std::string& _s = this_._internal_validator_set_digest();
+      target = stream->WriteBytesMaybeAliased(9, _s, target);
+    }
+  }
+
+  // uint64 terminal_unix_millis = 10;
+  if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+    if (this_._internal_terminal_unix_millis() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+          10, this_._internal_terminal_unix_millis(), target);
+    }
+  }
+
+  // .sobject.SOMutationKey supersedes = 11;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        11, *this_._impl_.supersedes_, this_._impl_.supersedes_->GetCachedSize(), target,
+        stream);
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOTerminalReceiptInner)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOTerminalReceiptInner::ByteSizeLong(const MessageLite& base) {
+  const SOTerminalReceiptInner& this_ = static_cast<const SOTerminalReceiptInner&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOTerminalReceiptInner::ByteSizeLong() const {
+  const SOTerminalReceiptInner& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOTerminalReceiptInner)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    // bytes envelope_digest = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_envelope_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_envelope_digest());
+      }
+    }
+    // bytes authoritative_root_digest = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_authoritative_root_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_authoritative_root_digest());
+      }
+    }
+    // bytes config_chain_digest = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_config_chain_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_config_chain_digest());
+      }
+    }
+    // bytes validator_set_digest = 9;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_validator_set_digest().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_validator_set_digest());
+      }
+    }
+    // .sobject.SOMutationKey key = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.key_);
+    }
+    // .sobject.SOMutationKey supersedes = 11;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.supersedes_);
+    }
+    // uint64 authoritative_root_seqno = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_authoritative_root_seqno() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_authoritative_root_seqno());
+      }
+    }
+    // uint64 terminal_unix_millis = 10;
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (this_._internal_terminal_unix_millis() != 0) {
+        total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+            this_._internal_terminal_unix_millis());
+      }
+    }
+  }
+   {
+    // .sobject.SOConsensusMode consensus_mode = 8;
+    if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+      if (this_._internal_consensus_mode() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_consensus_mode());
+      }
+    }
+  }
+  switch (this_.outcome_case()) {
+    // .sobject.SOTerminalReceiptAccepted accepted = 3;
+    case kAccepted: {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.outcome_.accepted_);
+      break;
+    }
+    // .sobject.SOOperationRejection signed_rejection = 4;
+    case kSignedRejection: {
+      total_size += 1 +
+                    ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.outcome_.signed_rejection_);
+      break;
+    }
+    case OUTCOME_NOT_SET: {
+      break;
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOTerminalReceiptInner::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOTerminalReceiptInner*>(&to_msg);
+  auto& from = static_cast<const SOTerminalReceiptInner&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOTerminalReceiptInner)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x000000ffU)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_envelope_digest().empty()) {
+        _this->_internal_set_envelope_digest(from._internal_envelope_digest());
+      } else {
+        if (_this->_impl_.envelope_digest_.IsDefault()) {
+          _this->_internal_set_envelope_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_authoritative_root_digest().empty()) {
+        _this->_internal_set_authoritative_root_digest(from._internal_authoritative_root_digest());
+      } else {
+        if (_this->_impl_.authoritative_root_digest_.IsDefault()) {
+          _this->_internal_set_authoritative_root_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_config_chain_digest().empty()) {
+        _this->_internal_set_config_chain_digest(from._internal_config_chain_digest());
+      } else {
+        if (_this->_impl_.config_chain_digest_.IsDefault()) {
+          _this->_internal_set_config_chain_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_validator_set_digest().empty()) {
+        _this->_internal_set_validator_set_digest(from._internal_validator_set_digest());
+      } else {
+        if (_this->_impl_.validator_set_digest_.IsDefault()) {
+          _this->_internal_set_validator_set_digest("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      ABSL_DCHECK(from._impl_.key_ != nullptr);
+      if (_this->_impl_.key_ == nullptr) {
+        _this->_impl_.key_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.key_);
+      } else {
+        _this->_impl_.key_->MergeFrom(*from._impl_.key_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      ABSL_DCHECK(from._impl_.supersedes_ != nullptr);
+      if (_this->_impl_.supersedes_ == nullptr) {
+        _this->_impl_.supersedes_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.supersedes_);
+      } else {
+        _this->_impl_.supersedes_->MergeFrom(*from._impl_.supersedes_);
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_authoritative_root_seqno() != 0) {
+        _this->_impl_.authoritative_root_seqno_ = from._impl_.authoritative_root_seqno_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000080U)) {
+      if (from._internal_terminal_unix_millis() != 0) {
+        _this->_impl_.terminal_unix_millis_ = from._impl_.terminal_unix_millis_;
+      }
+    }
+  }
+  if (CheckHasBit(cached_has_bits, 0x00000100U)) {
+    if (from._internal_consensus_mode() != 0) {
+      _this->_impl_.consensus_mode_ = from._impl_.consensus_mode_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  if (const uint32_t oneof_from_case =
+          from._impl_._oneof_case_[0]) {
+    const uint32_t oneof_to_case = _this->_impl_._oneof_case_[0];
+    const bool oneof_needs_init = oneof_to_case != oneof_from_case;
+    if (oneof_needs_init) {
+      if (oneof_to_case != 0) {
+        _this->clear_outcome();
+      }
+      _this->_impl_._oneof_case_[0] = oneof_from_case;
+    }
+
+    switch (oneof_from_case) {
+      case kAccepted: {
+        if (oneof_needs_init) {
+          _this->_impl_.outcome_.accepted_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.outcome_.accepted_);
+        } else {
+          _this->_impl_.outcome_.accepted_->MergeFrom(*from._impl_.outcome_.accepted_);
+        }
+        break;
+      }
+      case kSignedRejection: {
+        if (oneof_needs_init) {
+          _this->_impl_.outcome_.signed_rejection_ = ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.outcome_.signed_rejection_);
+        } else {
+          _this->_impl_.outcome_.signed_rejection_->MergeFrom(*from._impl_.outcome_.signed_rejection_);
+        }
+        break;
+      }
+      case OUTCOME_NOT_SET:
+        break;
+    }
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOTerminalReceiptInner::CopyFrom(const SOTerminalReceiptInner& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOTerminalReceiptInner)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOTerminalReceiptInner::InternalSwap(SOTerminalReceiptInner* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.envelope_digest_, &other->_impl_.envelope_digest_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.authoritative_root_digest_, &other->_impl_.authoritative_root_digest_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.config_chain_digest_, &other->_impl_.config_chain_digest_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.validator_set_digest_, &other->_impl_.validator_set_digest_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.consensus_mode_)
+      + sizeof(SOTerminalReceiptInner::_impl_.consensus_mode_)
+      - PROTOBUF_FIELD_OFFSET(SOTerminalReceiptInner, _impl_.key_)>(
+          reinterpret_cast<char*>(&_impl_.key_),
+          reinterpret_cast<char*>(&other->_impl_.key_));
+  swap(_impl_.outcome_, other->_impl_.outcome_);
+  swap(_impl_._oneof_case_[0], other->_impl_._oneof_case_[0]);
+}
+
+::google::protobuf::Metadata SOTerminalReceiptInner::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class SOTerminalReceipt::_Internal {
+ public:
+  using HasBits =
+      decltype(::std::declval<SOTerminalReceipt>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_._has_bits_);
+};
+
+void SOTerminalReceipt::clear_validator_signatures() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.validator_signatures_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+SOTerminalReceipt::SOTerminalReceipt(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOTerminalReceipt_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:sobject.SOTerminalReceipt)
+}
+PROTOBUF_NDEBUG_INLINE SOTerminalReceipt::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+    [[maybe_unused]] const ::sobject::SOTerminalReceipt& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        validator_signatures_{visibility, arena, from.validator_signatures_},
+        inner_(arena, from.inner_) {}
+
+SOTerminalReceipt::SOTerminalReceipt(
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
+    const SOTerminalReceipt& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, SOTerminalReceipt_class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SOTerminalReceipt* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:sobject.SOTerminalReceipt)
+}
+PROTOBUF_NDEBUG_INLINE SOTerminalReceipt::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0},
+        validator_signatures_{visibility, arena},
+        inner_(arena) {}
+
+inline void SOTerminalReceipt::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+SOTerminalReceipt::~SOTerminalReceipt() {
+  // @@protoc_insertion_point(destructor:sobject.SOTerminalReceipt)
+  SharedDtor(*this);
+}
+inline void SOTerminalReceipt::SharedDtor(MessageLite& self) {
+  SOTerminalReceipt& this_ = static_cast<SOTerminalReceipt&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.inner_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* PROTOBUF_NONNULL SOTerminalReceipt::PlacementNew_(
+    const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena) {
+  return ::new (mem) SOTerminalReceipt(arena);
+}
+constexpr auto SOTerminalReceipt::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_.validator_signatures_) +
+          decltype(SOTerminalReceipt::_impl_.validator_signatures_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(SOTerminalReceipt), alignof(SOTerminalReceipt), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&SOTerminalReceipt::PlacementNew_,
+                                 sizeof(SOTerminalReceipt),
+                                 alignof(SOTerminalReceipt));
+  }
+}
+constexpr auto SOTerminalReceipt::InternalGenerateClassData_() {
+  return ::google::protobuf::internal::ClassDataFull{
+      ::google::protobuf::internal::ClassData{
+          &_SOTerminalReceipt_default_instance_._instance,
+          &_table_.header,
+          nullptr,  // OnDemandRegisterArenaDtor
+          nullptr,  // IsInitialized
+          &SOTerminalReceipt::MergeImpl,
+          ::google::protobuf::Message::GetNewImpl<SOTerminalReceipt>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+          &SOTerminalReceipt::SharedDtor,
+          ::google::protobuf::Message::GetClearImpl<SOTerminalReceipt>(), &SOTerminalReceipt::ByteSizeLong,
+              &SOTerminalReceipt::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_._cached_size_),
+          false,
+      },
+      &SOTerminalReceipt::kDescriptorMethods,
+      &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fcore_2fsobject_2fsobject_2eproto,
+      nullptr,  // tracker
+  };
+}
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const
+    ::google::protobuf::internal::ClassDataFull SOTerminalReceipt_class_data_ =
+        SOTerminalReceipt::InternalGenerateClassData_();
+
+PROTOBUF_ATTRIBUTE_WEAK const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL
+SOTerminalReceipt::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&SOTerminalReceipt_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(SOTerminalReceipt_class_data_.tc_table);
+  return SOTerminalReceipt_class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 1, 0, 2>
+SOTerminalReceipt::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_._has_bits_),
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    SOTerminalReceipt_class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::sobject::SOTerminalReceipt>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // repeated .peer.Signature validator_signatures = 2;
+    {::_pbi::TcParser::FastMtR1,
+     {18, 0, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_.validator_signatures_)}},
+    // bytes inner = 1;
+    {::_pbi::TcParser::FastBS1,
+     {10, 1, 0,
+      PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_.inner_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // bytes inner = 1;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_.inner_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kBytes | ::_fl::kRepAString)},
+    // repeated .peer.Signature validator_signatures = 2;
+    {PROTOBUF_FIELD_OFFSET(SOTerminalReceipt, _impl_.validator_signatures_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }},
+  {{
+      {::_pbi::TcParser::GetTable<::peer::Signature>()},
+  }},
+  {{
+  }},
+};
+PROTOBUF_NOINLINE void SOTerminalReceipt::Clear() {
+// @@protoc_insertion_point(message_clear_start:sobject.SOTerminalReceipt)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _impl_.validator_signatures_.Clear();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.inner_.ClearNonDefaultToEmpty();
+    }
+  }
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL SOTerminalReceipt::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const SOTerminalReceipt& this_ = static_cast<const SOTerminalReceipt&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL SOTerminalReceipt::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const SOTerminalReceipt& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:sobject.SOTerminalReceipt)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // bytes inner = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (!this_._internal_inner().empty()) {
+      const ::std::string& _s = this_._internal_inner();
+      target = stream->WriteBytesMaybeAliased(1, _s, target);
+    }
+  }
+
+  // repeated .peer.Signature validator_signatures = 2;
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+    for (unsigned i = 0, n = static_cast<unsigned>(
+                             this_._internal_validator_signatures_size());
+         i < n; i++) {
+      const auto& repfield = this_._internal_validator_signatures().Get(i);
+      target =
+          ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+              2, repfield, repfield.GetCachedSize(),
+              target, stream);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:sobject.SOTerminalReceipt)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t SOTerminalReceipt::ByteSizeLong(const MessageLite& base) {
+  const SOTerminalReceipt& this_ = static_cast<const SOTerminalReceipt&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t SOTerminalReceipt::ByteSizeLong() const {
+  const SOTerminalReceipt& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:sobject.SOTerminalReceipt)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+  ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+  cached_has_bits = this_._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    // repeated .peer.Signature validator_signatures = 2;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      total_size += 1UL * this_._internal_validator_signatures_size();
+      for (const auto& msg : this_._internal_validator_signatures()) {
+        total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+      }
+    }
+    // bytes inner = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!this_._internal_inner().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::BytesSize(
+                                        this_._internal_inner());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void SOTerminalReceipt::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<SOTerminalReceipt*>(&to_msg);
+  auto& from = static_cast<const SOTerminalReceipt&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:sobject.SOTerminalReceipt)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000001U)) {
+      _this->_internal_mutable_validator_signatures()->InternalMergeFromWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), arena,
+          from._internal_validator_signatures());
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (!from._internal_inner().empty()) {
+        _this->_internal_set_inner(from._internal_inner());
+      } else {
+        if (_this->_impl_.inner_.IsDefault()) {
+          _this->_internal_set_inner("");
+        }
+      }
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void SOTerminalReceipt::CopyFrom(const SOTerminalReceipt& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:sobject.SOTerminalReceipt)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void SOTerminalReceipt::InternalSwap(SOTerminalReceipt* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  _impl_.validator_signatures_.InternalSwap(&other->_impl_.validator_signatures_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.inner_, &other->_impl_.inner_, arena);
+}
+
+::google::protobuf::Metadata SOTerminalReceipt::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

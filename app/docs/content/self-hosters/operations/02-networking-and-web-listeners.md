@@ -2,38 +2,46 @@
 title: Networking and Web Listeners
 section: operations
 order: 2
-summary: Use local listeners and pairing transports without overclaiming public relay controls.
+summary: What Spacewave listens on, what it does not, and how devices reach each other.
 ---
 
-Current user-facing networking has three practical surfaces: the daemon socket,
-local web listeners, and device pairing transports.
+Three things carry traffic in a self-hosted setup: the local socket, the web
+address you can open in a browser, and the direct connection two devices make
+when you pair them.
 
-## Daemon socket
+## The local socket
 
-CLI commands use a local Unix socket. This is local process communication, not a
-public network listener. Keep the state path and socket path explicit when
-running multiple runtimes.
+Commands reach Spacewave over a Unix socket on the same machine. Nothing about
+it is on the network. If you run more than one copy of Spacewave, name the
+directory or the socket explicitly so a command cannot reach the wrong one.
 
-## Local web listener
+## The local web address
 
-`spacewave web` asks the root resource for a web listener. The default listener
-binds to localhost on an available port and returns a URL with a single-use
-bootstrap secret. You can pass host/port or a listen multiaddr, run foreground,
-or keep the listener in the daemon with `--background`.
+```sh
+spacewave web
+```
 
-This listener is for access to the native runtime from your local browser. The
-current docs source does not show a stable public listener or admin-facing TURN
-or STUN configuration surface.
+By default this binds to localhost on a free port and prints a URL carrying a
+one-time secret, which is what lets the browser in. You can give it a host and
+port, or a full listen address, run it in the foreground, or keep it with the
+service using `--background`.
 
-## WebRTC pairing
+It is for reaching this machine from a browser on this machine. There is no
+supported way today to expose it publicly, and no place to configure relay
+servers for it.
 
-Local direct pairing exchanges complete WebRTC offer and answer payloads by
-copy/paste or QR-style transfer. It gathers candidates before returning the
-payload, then both sides verify the same emoji sequence. This direct path is
-local-provider only in the current UI.
+## Pairing two devices
 
-## WebSocket and embedded streams
+Pairing over the local network has the two devices exchange connection details
+directly, by copy and paste or by scanning a code. Each side collects its
+possible network routes first, then both sides confirm the same row of emoji
+before the link is made.
 
-The browser app and tests use SRPC streams over WebView host streams or test
-WebSockets. Treat those as runtime plumbing unless a user-facing command exposes
-them.
+This direct form is only offered for accounts kept on the device. Cloud accounts
+pair with a code instead.
+
+## Everything else
+
+Other connections you may notice, between the app and its embedded browser or
+inside the test suite, are internal plumbing. Nothing there is a surface to
+configure, and no command exposes it.

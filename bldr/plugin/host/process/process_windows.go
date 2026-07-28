@@ -4,12 +4,18 @@ package plugin_host_process
 
 import (
 	"os/exec"
+	"syscall"
 
 	winjob "github.com/aperturerobotics/go-winjob"
+	"golang.org/x/sys/windows"
 )
 
-// preStartCmd does nothing on windows.
+// preStartCmd prevents native plugin processes from allocating console windows.
 func preStartCmd(cmd *exec.Cmd) (struct{}, error) {
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		CreationFlags: windows.CREATE_NO_WINDOW,
+		HideWindow:    true,
+	}
 	return struct{}{}, nil
 }
 

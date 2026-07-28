@@ -316,11 +316,15 @@ function SpaceRootRuntimePanel(props: {
               </div>
               {runtimeSession.spaces && runtimeSession.spaces.length > 0 && (
                 <div className="mt-2 space-y-1 pl-6">
-                  {runtimeSession.spaces.map((space, index) => (
+                  {runtimeSession.spaces.map((space) => (
                     <div
                       key={
                         space.entry?.ref?.providerResourceRef?.id ??
-                        `${runtimeSession.session?.sessionIndex}-space-${index}`
+                        [
+                          runtimeSession.session?.sessionIndex,
+                          space.entry?.source,
+                          space.spaceMeta?.name,
+                        ].join(':')
                       }
                       className="text-foreground-alt/80 flex items-center gap-2 text-xs"
                     >

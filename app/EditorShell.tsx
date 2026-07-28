@@ -5,39 +5,32 @@ import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { getAppPath } from '@s4wave/web/router/app-path.js'
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
-import { HashRouter } from '@s4wave/web/router/HashRouter.js'
-import { Routes, Route } from '@s4wave/web/router/router.js'
-import { NavigatePath } from '@s4wave/web/router/NavigatePath.js'
 import { KeyDispatcher } from '@s4wave/web/command/KeyDispatcher.js'
 import { CommandPalette } from '@s4wave/web/command/CommandPalette.js'
 import { WhichKeyPanel } from '@s4wave/web/command/WhichKeyPanel.js'
 import { ShellTabFocusContextProvider } from '@s4wave/web/command/FocusContext.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
+import {
+  DocumentTitleProvider,
+  getRouteDocumentTitleParts,
+  useDocumentTitle,
+} from '@s4wave/web/title/DocumentTitleContext.js'
 import { BuiltinCommands } from '@s4wave/app/BuiltinCommands.js'
 import { CliTerminalSessionProvider } from '@s4wave/app/terminal/CliTerminalSessionProvider.js'
 import { DebugCommands } from '@s4wave/app/DebugCommands.js'
-import {
-  TabContextProvider,
-  type TabContextValue,
-} from '@s4wave/web/object/TabContext.js'
-
+import { getTabDisplayName } from './shell-tab.js'
 import { ShellTabStrip } from './ShellFlexLayout.js'
-import { ShellGridLayout } from './ShellGridLayout.js'
 import { ShellMenuBar } from './ShellMenuBar.js'
+import { useShellTabs } from './ShellTabContext.js'
 import {
-  ShellTabsProvider,
-  useShellTabs,
-  ShellTabStateProvider,
-} from './ShellTabContext.js'
+  classifyShellDocumentEntry,
+  type ShellDocumentEntry,
+} from './ShellDocumentEntry.js'
 import { ShellProvider } from './ShellContext.js'
 
 // isDebug is true in debug builds (BLDR_DEBUG injected by esbuild).
 const isDebug = typeof BLDR_DEBUG === 'boolean' && BLDR_DEBUG
-
-// noop stubs for TabContextValue in the command scope.
-const noopAddTab = () => Promise.resolve({ tabId: '' })
-const noopNavigateTab = () => Promise.resolve({})
 
 function CommandSessionScope({ children }: { children: ReactNode }) {
   const rootResource = useRootResource()
@@ -86,26 +79,16 @@ function CommandRuntime({ children }: { children?: ReactNode }) {
   )
 }
 
-// ActiveTabCommandScope provides command system components scoped to
-// the currently active tab. Wraps children in ShellTabStateProvider
-// and TabContextProvider so useTabId() works from either context.
-function ActiveTabCommandScope({ children }: { children: ReactNode }) {
-  const { activeTabId } = useShellTabs()
-  const tabContext = useMemo<TabContextValue>(
-    () => ({
-      tabId: activeTabId,
-      addTab: noopAddTab,
-      navigateTab: noopNavigateTab,
-    }),
-    [activeTabId],
+function ShellDocumentTitle() {
+  const { tabs, activeTabId } = useShellTabs()
+  const activeTab = tabs.find((tab) => tab.id === activeTabId)
+  useDocumentTitle(
+    getRouteDocumentTitleParts(
+      activeTab?.path ?? '/',
+      activeTab ? getTabDisplayName(activeTab) : '',
+    ),
   )
-  return (
-    <ShellTabStateProvider tabId={activeTabId}>
-      <TabContextProvider value={tabContext}>
-        <CommandRuntime>{children}</CommandRuntime>
-      </TabContextProvider>
-    </ShellTabStateProvider>
-  )
+  return null
 }
 
 // EditorShell is the main application shell with FlexLayout draggable tabs.
@@ -113,13 +96,20 @@ function ActiveTabCommandScope({ children }: { children: ReactNode }) {
 // When splits are created, it transitions to grid mode via URL.
 export function EditorShell() {
   return (
-    <CliTerminalSessionProvider>
-      <EditorShellContent />
-    </CliTerminalSessionProvider>
+    <DocumentTitleProvider>
+      <CliTerminalSessionProvider>
+        <EditorShellContent />
+      </CliTerminalSessionProvider>
+    </DocumentTitleProvider>
   )
+}
+function useShellDocumentEntry(): ShellDocumentEntry {
+  const [entry] = useState(() => classifyShellDocumentEntry())
+  return entry
 }
 
 function EditorShellContent() {
+  const documentEntry = useShellDocumentEntry()
   const namespace = useStateNamespace(['shell'])
 
   const [openMenu, setOpenMenu] = useStateAtom<string>(
@@ -142,46 +132,14 @@ function EditorShellContent() {
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
-  // In grid mode, render ShellGridLayout directly without ShellTabStrip's Layout.
-  // ShellTabStateProvider scopes command components to the active tab so
-  // useTabId() works for the command runtime.
-  if (isGridMode) {
-    return (
-      <ShellProvider isGridMode={true}>
-        <ShellTabsProvider>
-          <ActiveTabCommandScope>
-            <BottomBarRoot openMenu={openMenu} setOpenMenu={setOpenMenu}>
-              <div className="flex h-full flex-1 flex-col overflow-hidden">
-                {/* Header: menu bar */}
-                <div className="bg-topbar-back h-shell-header relative flex shrink-0 items-center">
-                  <ShellMenuBar />
-                </div>
-                {/* Grid layout */}
-                <HashRouter>
-                  <Routes>
-                    <Route path="/g/:layoutData">
-                      <ShellGridLayout />
-                    </Route>
-                    <Route path="*">
-                      <NavigatePath to="/" replace />
-                    </Route>
-                  </Routes>
-                </HashRouter>
-              </div>
-            </BottomBarRoot>
-          </ActiveTabCommandScope>
-        </ShellTabsProvider>
-      </ShellProvider>
-    )
-  }
-
-  // Normal mode: ShellTabStrip handles routing via FlexLayout.
-  // ShellTabStrip provides ShellTabsProvider and ShellTabStateProvider internally,
-  // so command components placed as children have access to useTabId().
+  // Keep ShellTabStrip (and its single OptimizedLayout owner) mounted for
+  // both URL modes. Its model handoff preserves FlexLayout's tab nodes and
+  // therefore the mounted per-tab application trees.
   return (
-    <ShellProvider isGridMode={false}>
+    <ShellProvider isGridMode={isGridMode}>
       <BottomBarRoot openMenu={openMenu} setOpenMenu={setOpenMenu}>
-        <ShellTabStrip>
+        <ShellTabStrip entry={documentEntry}>
+          <ShellDocumentTitle />
           <CommandRuntime>
             <ShellMenuBar />
           </CommandRuntime>

@@ -35,6 +35,10 @@ pub struct Config {
     /// If unset, we will copy manifests to the same bucket as the plugin host world.
     #[prost(bool, tag="10")]
     pub disable_copy_manifest: bool,
+    /// NoCopyBucketIds lists source buckets that remain authoritative without a
+    /// full-DAG copy.
+    #[prost(string, repeated, tag="13")]
+    pub no_copy_bucket_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     /// FetchConcurrency limits the number of blocks fetched concurrently per-manifest.
     /// If zero, uses no limit to the number of concurrent fetches.
     ///

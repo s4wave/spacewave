@@ -167,7 +167,7 @@ export function PinUnlockOverlay({
                 >
                   <LuLockOpen className="size-4" />
                   <span className="text-foreground text-sm">
-                    {unlocking ? 'Unlocking...' : 'Unlock'}
+                    {unlocking ? 'Unlocking…' : 'Unlock'}
                   </span>
                 </button>
 
@@ -228,7 +228,7 @@ export function PinUnlockOverlay({
                   )}
                 >
                   <span className="text-foreground text-sm">
-                    {resetting ? 'Resetting...' : 'Reset session'}
+                    {resetting ? 'Resetting…' : 'Reset session'}
                   </span>
                 </button>
 

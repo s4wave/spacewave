@@ -337,7 +337,7 @@ describe('PlanSelectionPage', () => {
     it('renders activating subscription view when checkoutResult is success', () => {
       render(<PlanSelectionPage checkoutResult="success" />)
 
-      expect(screen.getByText('Activating subscription...')).toBeDefined()
+      expect(screen.getByText('Activating subscription…')).toBeDefined()
     })
   })
 

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
@@ -13,17 +14,26 @@ import (
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
 	sobject_sync "github.com/s4wave/spacewave/core/sobject/sync"
 	"github.com/s4wave/spacewave/core/transport"
+	"github.com/s4wave/spacewave/db/block"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// p2pSyncState holds running P2P sync state for a provider account.
+// p2pSyncState holds running P2P sync and DEX stores for a provider account.
 type p2pSyncState struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 	refs   []directive.Reference
 	relFns []func()
+	stores map[string]block.StoreOps
+}
+
+func (s *p2pSyncState) addStore(bucketID string, store block.StoreOps) {
+	if s.stores == nil {
+		s.stores = make(map[string]block.StoreOps)
+	}
+	s.stores[bucketID] = store
 }
 
 // StartP2PSync starts SO sync and DEX block exchange for all mounted
@@ -48,6 +58,7 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 
 	syncCtx, syncCancel := context.WithCancel(ctx)
 	state := &p2pSyncState{cancel: syncCancel}
+	a.p2pSync = state
 
 	soList := a.soListCtr.GetValue()
 	for _, entry := range soList.GetSharedObjects() {
@@ -56,25 +67,25 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 		soID := provRef.GetId()
 		blockStoreID := ref.GetBlockStoreId()
 
-		if err := a.startSOSync(syncCtx, childBus, ref, soID, state); err != nil {
-			if ctx.Err() != nil {
-				a.stopP2PSyncState(state)
-				return ctx.Err()
-			}
-			a.le.WithError(err).WithField("so-id", soID).Warn("failed to start so sync")
-			continue
-		}
-
 		providerID := provRef.GetProviderId()
 		providerAccountID := provRef.GetProviderAccountId()
 		bucketID := BlockStoreBucketID(providerID, providerAccountID, blockStoreID)
 		if err := a.startDEXSolicit(syncCtx, childBus, bucketID, state); err != nil {
 			if ctx.Err() != nil {
+				a.p2pSync = nil
 				a.stopP2PSyncState(state)
 				return ctx.Err()
 			}
 			a.le.WithError(err).WithField("bucket-id", bucketID).Warn("failed to start dex solicit")
-			continue
+		}
+
+		if err := a.startSOSync(syncCtx, childBus, ref, soID, state); err != nil {
+			if ctx.Err() != nil {
+				a.p2pSync = nil
+				a.stopP2PSyncState(state)
+				return ctx.Err()
+			}
+			a.le.WithError(err).WithField("so-id", soID).Warn("failed to start so sync")
 		}
 	}
 
@@ -82,8 +93,6 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 	if err := a.startInviteServer(syncCtx, childBus, sessionTransport, state); err != nil {
 		a.le.WithError(err).Warn("failed to start invite server")
 	}
-
-	a.p2pSync = state
 	return nil
 }
 
@@ -103,6 +112,17 @@ func (a *ProviderAccount) StopP2PSync() {
 	defer a.p2pSyncMtx.Unlock()
 
 	a.stopP2PSyncLocked()
+}
+
+func (a *ProviderAccount) getP2PStore(bucketID string) block.StoreOps {
+	a.p2pSyncMtx.Lock()
+	state := a.p2pSync
+	var store block.StoreOps
+	if state != nil {
+		store = state.stores[bucketID]
+	}
+	a.p2pSyncMtx.Unlock()
+	return store
 }
 
 func (a *ProviderAccount) stopP2PSyncLocked() {
@@ -248,7 +268,9 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 // startDEXSolicit loads a DEX solicit controller on the child bus for
 // the given block store bucket.
 func (a *ProviderAccount) startDEXSolicit(ctx context.Context, childBus bus.Bus, bucketID string, state *p2pSyncState) error {
-	_, dexRef, err := childBus.AddDirective(
+	ctrl, _, dexRef, err := loader.WaitExecControllerRunningTyped[*dex_solicit.Controller](
+		ctx,
+		childBus,
 		resolver.NewLoadControllerWithConfig(&dex_solicit.Config{
 			BucketId: bucketID,
 		}),
@@ -258,5 +280,6 @@ func (a *ProviderAccount) startDEXSolicit(ctx context.Context, childBus bus.Bus,
 		return err
 	}
 	state.refs = append(state.refs, dexRef)
+	state.addStore(bucketID, dex_solicit.NewStore(ctrl))
 	return nil
 }

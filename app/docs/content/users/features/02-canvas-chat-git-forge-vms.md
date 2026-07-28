@@ -2,41 +2,46 @@
 title: Canvas, Chat, Git, Forge, and VMs
 section: features
 order: 2
-summary: See which secondary work surfaces are stable, experimental, or plugin-owned.
+summary: The other things you can put in a Space, and how finished each one is.
 ---
 
-Spacewave can open more than file and documentation objects. Availability depends
-on whether a surface is a normal Quickstart, an experimental Quickstart, or a
-plugin-owned viewer.
+A Space holds more than files and writing. These are the other surfaces, roughly
+in order of how settled they are.
 
 ## Canvas
 
-Canvas is a normal visible Quickstart. It creates a Space, initializes UnixFS,
-seeds a canvas demo, and opens the canvas viewer. Use it for visual planning and
-object organization.
+A visual workspace. Drag things around, group them, lay out an idea in space
+rather than in a list. The Canvas Quickstart makes a Space with a small demo in
+it so the board is not blank.
 
 ## Git
 
-Git is a normal visible Quickstart. It creates a persistent Git repository
-wizard, then opens the wizard so you can create or clone a repository. The app
-has static viewers for Git repositories and worktrees.
+Create a new repository or clone an existing one, and it lives in the Space like
+anything else. The Quickstart walks you through it. You can browse the
+repository and its branches from Spacewave once it exists.
 
 ## Chat
 
-Chat channels are visible in the Create Object palette. The Chat Quickstart is
-experimental in the current visibility policy; when enabled, it creates a Space
-with a chat channel and opens that channel.
+A chat channel inside a Space, for conversation that belongs with the work
+rather than in a separate app. Add one to any Space. The Chat Quickstart, which
+makes a Space with a channel already in it, is still experimental and may not
+appear.
 
 ## Forge
 
-Forge objects are visible in the Create Object palette. The Forge Quickstart is
-experimental; when enabled, it seeds a dashboard, cluster, sample work, and a
-worker tied to the creating session. The app has static Forge viewers for
-dashboards, clusters, jobs, tasks, workers, passes, and executions.
+Forge runs work for you: a dashboard, a pool of machines, and the jobs moving
+through them. You can add Forge pieces to a Space, and the Forge Quickstart sets
+up a whole working example at once. Forge is experimental and may not be
+available in your copy.
 
-## V86 virtual machines
+## Virtual machines
 
-V86 VM wizards are visible in the Create Object palette. The V86 Quickstart and
-VM object viewer are plugin-owned; the Quickstart can copy a default image and
-create a VM object, and the VM object viewer requires the relevant dynamic plugin
-viewer.
+Run a whole machine in a tab, inside a Space. Adding one copies a starter disk
+image for you. This one depends on an add-on: without it, the machine appears in
+the Space but will not open.
+
+## If something is missing
+
+A greyed-out or absent Quickstart means that feature is not available in this
+copy of Spacewave. It is not a problem with your Space, and nothing you already
+made is affected.

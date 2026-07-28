@@ -660,6 +660,71 @@ describe('WebDocumentTracker resume-ready gate', () => {
     documentPort.close()
     runtimeChannel.port1.close()
   })
+  it('retries when runtime readiness is reported before the waiter parks', async () => {
+    const onWebDocumentsExhausted = vi.fn().mockResolvedValue(undefined)
+    const tracker = new WebDocumentTracker(
+      'service-worker',
+      WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
+      onWebDocumentsExhausted,
+      null,
+    )
+    const { port1: trackerPort, port2: documentPort } = new MessageChannel()
+    tracker.handleWebDocumentMessage({
+      from: 'document-1',
+      initPort: trackerPort,
+    })
+    const connectResolvers: Array<(msg: ClientToWebDocument) => void> = []
+    const nextConnectMsg = () =>
+      new Promise<ClientToWebDocument>((resolve) => {
+        connectResolvers.push(resolve)
+      })
+    documentPort.onmessage = (ev) => {
+      connectResolvers.shift()?.(ev.data)
+    }
+    documentPort.start()
+
+    const firstConnectMsg = nextConnectMsg()
+    const waitConn = tracker.waitConn()
+    const msg = await firstConnectMsg
+    const ackPort = msg.connectWebRuntime?.port
+    if (!ackPort) {
+      throw new Error('connectWebRuntime ack port missing')
+    }
+    trackerPort.onmessage?.call(
+      trackerPort,
+      new MessageEvent('message', {
+        data: {
+          from: 'document-1',
+          runtimeConnected: true,
+        },
+      }),
+    )
+    ackPort.postMessage({
+      from: 'document-1',
+      error: 'webRuntimePort not initialized',
+    })
+
+    const retryMsg = await nextConnectMsg()
+    const retryAckPort = retryMsg.connectWebRuntime?.port
+    if (!retryAckPort) {
+      throw new Error('retry connectWebRuntime ack port missing')
+    }
+    const runtimeChannel = new MessageChannel()
+    retryAckPort.postMessage(
+      {
+        from: 'document-1',
+        webRuntimePort: runtimeChannel.port2,
+      },
+      [runtimeChannel.port2],
+    )
+    runtimeChannel.port1.postMessage({ connected: true })
+
+    await expect(waitConn).resolves.toBeUndefined()
+
+    tracker.close()
+    documentPort.close()
+    runtimeChannel.port1.close()
+  })
 
   it('retries an already-ready replacement WebDocument after a stale pre-ack disconnect', async () => {
     const webLock = installControllableWebLock()
@@ -1048,6 +1113,91 @@ describe('WebDocumentTracker resume-ready gate', () => {
     hostPort.close()
     openedPort.close()
     runtimeChannel.port2.close()
+  })
+
+  it('reuses the elected DedicatedWorker host for a second attached client', async () => {
+    const tracker = new WebDocumentTracker(
+      'service-worker',
+      WebRuntimeClientType.WebRuntimeClientType_SERVICE_WORKER,
+      vi.fn().mockResolvedValue(undefined),
+      null,
+    )
+    const hostPort = attachWebDocument(tracker, 'host-document')
+    const firstAttachedPort = attachWebDocument(tracker, 'attached-document-1')
+    const runtimePorts: MessagePort[] = []
+    let hostRequests = 0
+    let attachedRequests = 0
+
+    hostPort.onmessage = (ev: MessageEvent<ClientToWebDocument>) => {
+      const ackPort = ev.data.connectWebRuntime?.port ?? ev.ports?.[0]
+      expect(ackPort).toBeDefined()
+      if (!ackPort) {
+        throw new Error('host relay ack port missing')
+      }
+      hostRequests++
+      const runtimeChannel = new MessageChannel()
+      runtimePorts.push(runtimeChannel.port2)
+      ackPort.postMessage(
+        {
+          from: 'host-document',
+          webRuntimePort: runtimeChannel.port1,
+          hostDocumentId: 'host-document',
+          hostGeneration: 'generation-1',
+        },
+        [runtimeChannel.port1],
+      )
+    }
+    hostPort.start()
+    firstAttachedPort.onmessage = (ev: MessageEvent<ClientToWebDocument>) => {
+      const ackPort = ev.data.connectWebRuntime?.port ?? ev.ports?.[0]
+      if (!ackPort) {
+        return
+      }
+      attachedRequests++
+      ackPort.postMessage({
+        from: 'attached-document-1',
+        error: 'dedicated runtime host role is attached',
+      })
+    }
+    firstAttachedPort.start()
+
+    const init = WebRuntimeClientInit.toBinary({
+      webRuntimeId: 'runtime-1',
+      clientUuid: 'attached-client',
+      clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_DOCUMENT,
+    })
+    const firstClient = await tracker.openWebRuntimePort(
+      init,
+      'attached-document-1',
+    )
+    firstAttachedPort.postMessage({
+      from: 'attached-document-1',
+      resumeReady: true,
+    })
+    await vi.waitFor(() => {
+      expect(Reflect.get(tracker, 'preferredRuntimeWebDocumentId')).toBe(
+        'attached-document-1',
+      )
+    })
+    const secondAttachedPort = attachWebDocument(tracker, 'attached-document-2')
+
+    const secondClient = await tracker.openWebRuntimePort(
+      init,
+      'attached-document-2',
+    )
+
+    expect(hostRequests).toBe(2)
+    expect(attachedRequests).toBe(0)
+
+    tracker.close()
+    hostPort.close()
+    firstAttachedPort.close()
+    secondAttachedPort.close()
+    firstClient.close()
+    secondClient.close()
+    for (const port of runtimePorts) {
+      port.close()
+    }
   })
 
   it('solicits and waits for the elected host when only the requester is registered', async () => {

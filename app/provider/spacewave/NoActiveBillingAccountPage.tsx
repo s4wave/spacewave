@@ -341,7 +341,7 @@ export function NoActiveBillingAccountPage() {
                     ) : (
                       <LuZap className="size-3.5" />
                     )}
-                    <span>{isBusy ? 'Starting...' : activateLabel}</span>
+                    <span>{isBusy ? 'Starting…' : activateLabel}</span>
                   </button>
                 </div>
               </li>
@@ -363,7 +363,7 @@ export function NoActiveBillingAccountPage() {
           )}
         >
           {creating ? <Spinner /> : <LuPlus className="size-4" />}
-          <span>{creating ? 'Creating...' : 'Create new billing account'}</span>
+          <span>{creating ? 'Creating…' : 'Create new billing account'}</span>
         </button>
       </div>
 

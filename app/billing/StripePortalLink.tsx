@@ -36,7 +36,7 @@ export function StripePortalLink() {
         onClick={() => void handleClick()}
         disabled={loading}
       >
-        {loading ? 'Opening...' : 'Manage on Stripe'}
+        {loading ? 'Opening…' : 'Manage on Stripe'}
       </DashboardButton>
       <div className="text-foreground-alt/40 text-xs">
         Payment methods, invoices, and billing history.

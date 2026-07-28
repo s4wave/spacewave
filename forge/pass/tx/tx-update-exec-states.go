@@ -6,7 +6,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
+	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	forge_pass "github.com/s4wave/spacewave/forge/pass"
+	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -46,9 +48,11 @@ func (t *TxUpdateExecStates) ExecuteTx(
 	bcs *block.Cursor,
 	root *forge_pass.Pass,
 ) error {
-	// ensure RUNNING state
-	err := root.GetPassState().EnsureMatches(forge_pass.State_PassState_RUNNING)
-	if err != nil {
+	passState := root.GetPassState()
+	if err := passState.EnsureMatches(
+		forge_pass.State_PassState_RUNNING,
+		forge_pass.State_PassState_CANCELING,
+	); err != nil {
 		return err
 	}
 
@@ -65,6 +69,26 @@ func (t *TxUpdateExecStates) ExecuteTx(
 		return err
 	}
 
+	if passState == forge_pass.State_PassState_CANCELING {
+		for _, execution := range execObjs {
+			if !execution.IsComplete() {
+				if bcs != nil {
+					bcs.SetBlock(root, true)
+				}
+				return nil
+			}
+		}
+		complete := NewTxComplete(objKey, root.GetResult())
+		return complete.GetTxComplete().ExecuteTx(
+			ctx,
+			worldState,
+			sender,
+			objKey,
+			bcs,
+			root,
+		)
+	}
+
 	// if there are no exec states, stop here.
 	execStates := root.GetExecStates()
 	nstates := len(execStates)
@@ -75,10 +99,13 @@ func (t *TxUpdateExecStates) ExecuteTx(
 		return nil
 	}
 
-	// check the number of completed / failed states
-	var nsuccess, nfailed int
+	// check the number of terminal, completed, and failed states
+	var nterminal, nsuccess, nfailed int
 	var failErr error
 	for _, execState := range execStates {
+		if execState.GetExecutionState() == forge_execution.State_ExecutionState_COMPLETE {
+			nterminal++
+		}
 		execResult := execState.GetResult()
 		if !execResult.IsEmpty() {
 			if execResult.IsSuccessful() {
@@ -102,14 +129,41 @@ func (t *TxUpdateExecStates) ExecuteTx(
 		}
 		failErr = errors.Wrap(failErr, "execution failed")
 
+		// A failed pass may publish declared outputs only when all executions
+		// agree. Divergent values remain on their ExecState snapshots.
+		if bcs != nil {
+			tgt, _, err := root.FollowTargetRef(ctx, bcs)
+			if err != nil {
+				return err
+			}
+			outputs, outputErr := forge_pass.ComputeOutputsWithStates(
+				tgt.GetOutputs(),
+				execStates,
+				int(root.GetReplicas()),
+			)
+			if outputErr == nil {
+				valueSet := root.GetValueSet()
+				if valueSet == nil {
+					valueSet = forge_target.NewValueSet()
+				} else {
+					valueSet = valueSet.Clone()
+				}
+				valueSet.Outputs = outputs
+				root.ValueSet = valueSet
+			}
+		}
+
 		root.PassState = forge_pass.State_PassState_COMPLETE
 		root.Result = forge_value.NewResultWithError(failErr)
+		if bcs != nil {
+			bcs.SetBlock(root, true)
+		}
 		return nil
 	}
 
 	// transition to the CHECKING state if enough executions have succeeded
 	replicas := int(root.GetReplicas())
-	if nsuccess >= replicas {
+	if nterminal == nstates && nsuccess >= replicas {
 		root.PassState = forge_pass.State_PassState_CHECKING
 
 		// also remove any unsuccessful exec states from the list

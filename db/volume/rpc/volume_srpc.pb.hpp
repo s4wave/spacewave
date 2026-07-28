@@ -194,6 +194,8 @@ class SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseClient;
 class SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseStream;
 class SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseClient;
 class SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseStream;
+class SRPCProxyVolume_TryAcquireWorldEngineLeaseClient;
+class SRPCProxyVolume_TryAcquireWorldEngineLeaseStream;
 
 // SRPCProxyVolumeClient is the client API for ProxyVolume service.
 class SRPCProxyVolumeClient {
@@ -215,6 +217,10 @@ class SRPCProxyVolumeClient {
   virtual std::pair<std::unique_ptr<SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseClient>, starpc::Error> TryAcquireCoordinatorWriteLease(const volume::rpc::TryAcquireCoordinatorWriteLeaseRequest& in) = 0;
   // WaitAcquireCoordinatorWriteLease
   virtual std::pair<std::unique_ptr<SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseClient>, starpc::Error> WaitAcquireCoordinatorWriteLease(const volume::rpc::WaitAcquireCoordinatorWriteLeaseRequest& in) = 0;
+  // TryAcquireWorldEngineLease
+  virtual std::pair<std::unique_ptr<SRPCProxyVolume_TryAcquireWorldEngineLeaseClient>, starpc::Error> TryAcquireWorldEngineLease(const volume::rpc::TryAcquireWorldEngineLeaseRequest& in) = 0;
+  // ReleaseWorldEngineLease
+  virtual starpc::Error ReleaseWorldEngineLease(const volume::rpc::ReleaseWorldEngineLeaseRequest& in, volume::rpc::ReleaseWorldEngineLeaseResponse* out) = 0;
   // RefreshCoordinatorWriteLease
   virtual starpc::Error RefreshCoordinatorWriteLease(const volume::rpc::CoordinatorWriteLeaseRequest& in, volume::rpc::CoordinatorWriteLeaseSnapshotResponse* out) = 0;
   // PublishCoordinatorWriteLease
@@ -247,6 +253,10 @@ class SRPCProxyVolumeClientImpl : public SRPCProxyVolumeClient {
   virtual std::pair<std::unique_ptr<SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseClient>, starpc::Error> TryAcquireCoordinatorWriteLease(const volume::rpc::TryAcquireCoordinatorWriteLeaseRequest& in) override;
   // WaitAcquireCoordinatorWriteLease
   virtual std::pair<std::unique_ptr<SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseClient>, starpc::Error> WaitAcquireCoordinatorWriteLease(const volume::rpc::WaitAcquireCoordinatorWriteLeaseRequest& in) override;
+  // TryAcquireWorldEngineLease
+  virtual std::pair<std::unique_ptr<SRPCProxyVolume_TryAcquireWorldEngineLeaseClient>, starpc::Error> TryAcquireWorldEngineLease(const volume::rpc::TryAcquireWorldEngineLeaseRequest& in) override;
+  // ReleaseWorldEngineLease
+  virtual starpc::Error ReleaseWorldEngineLease(const volume::rpc::ReleaseWorldEngineLeaseRequest& in, volume::rpc::ReleaseWorldEngineLeaseResponse* out) override;
   // RefreshCoordinatorWriteLease
   virtual starpc::Error RefreshCoordinatorWriteLease(const volume::rpc::CoordinatorWriteLeaseRequest& in, volume::rpc::CoordinatorWriteLeaseSnapshotResponse* out) override;
   // PublishCoordinatorWriteLease
@@ -285,6 +295,10 @@ class SRPCProxyVolumeServer {
   virtual starpc::Error TryAcquireCoordinatorWriteLease(const volume::rpc::TryAcquireCoordinatorWriteLeaseRequest& req, SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseStream* strm) = 0;
   // WaitAcquireCoordinatorWriteLease
   virtual starpc::Error WaitAcquireCoordinatorWriteLease(const volume::rpc::WaitAcquireCoordinatorWriteLeaseRequest& req, SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseStream* strm) = 0;
+  // TryAcquireWorldEngineLease
+  virtual starpc::Error TryAcquireWorldEngineLease(const volume::rpc::TryAcquireWorldEngineLeaseRequest& req, SRPCProxyVolume_TryAcquireWorldEngineLeaseStream* strm) = 0;
+  // ReleaseWorldEngineLease
+  virtual starpc::Error ReleaseWorldEngineLease(const volume::rpc::ReleaseWorldEngineLeaseRequest& req, volume::rpc::ReleaseWorldEngineLeaseResponse* resp) = 0;
   // RefreshCoordinatorWriteLease
   virtual starpc::Error RefreshCoordinatorWriteLease(const volume::rpc::CoordinatorWriteLeaseRequest& req, volume::rpc::CoordinatorWriteLeaseSnapshotResponse* resp) = 0;
   // PublishCoordinatorWriteLease
@@ -427,6 +441,41 @@ class SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseStream {
   }
 
   starpc::Error SendAndClose(const volume::rpc::AcquireCoordinatorWriteLeaseResponse& msg) {
+    starpc::Error err = strm_->MsgSend(msg);
+    if (err != starpc::Error::OK) return err;
+    return strm_->CloseSend();
+  }
+
+ private:
+  starpc::Stream* strm_;
+};
+
+// SRPCProxyVolume_TryAcquireWorldEngineLeaseClient is the client stream for TryAcquireWorldEngineLease.
+class SRPCProxyVolume_TryAcquireWorldEngineLeaseClient {
+ public:
+  explicit SRPCProxyVolume_TryAcquireWorldEngineLeaseClient(std::unique_ptr<starpc::Stream> strm) : strm_(std::move(strm)) {}
+
+  starpc::Error Recv(volume::rpc::AcquireWorldEngineLeaseResponse* msg) {
+    return strm_->MsgRecv(msg);
+  }
+
+  starpc::Error CloseSend() { return strm_->CloseSend(); }
+  starpc::Error Close() { return strm_->Close(); }
+
+ private:
+  std::unique_ptr<starpc::Stream> strm_;
+};
+
+// SRPCProxyVolume_TryAcquireWorldEngineLeaseStream is the server stream for TryAcquireWorldEngineLease.
+class SRPCProxyVolume_TryAcquireWorldEngineLeaseStream {
+ public:
+  explicit SRPCProxyVolume_TryAcquireWorldEngineLeaseStream(starpc::Stream* strm) : strm_(strm) {}
+
+  starpc::Error Send(const volume::rpc::AcquireWorldEngineLeaseResponse& msg) {
+    return strm_->MsgSend(msg);
+  }
+
+  starpc::Error SendAndClose(const volume::rpc::AcquireWorldEngineLeaseResponse& msg) {
     starpc::Error err = strm_->MsgSend(msg);
     if (err != starpc::Error::OK) return err;
     return strm_->CloseSend();

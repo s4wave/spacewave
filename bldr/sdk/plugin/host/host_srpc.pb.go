@@ -26,6 +26,10 @@ type SRPCPluginHostResourceServiceClient interface {
 	AccessDesktopTray(ctx context.Context, in *AccessDesktopTrayRequest) (*AccessDesktopTrayResponse, error)
 	// GetPluginInfo returns information about the running plugin.
 	GetPluginInfo(ctx context.Context, in *GetPluginInfoRequest) (*GetPluginInfoResponse, error)
+	// RegisterObjectType registers an ObjectType served by the running plugin.
+	RegisterObjectType(ctx context.Context, in *RegisterObjectTypeRequest) (*RegisterObjectTypeResponse, error)
+	// CompleteInitialCapabilityRegistration marks the plugin's startup capability-registration pass complete.
+	CompleteInitialCapabilityRegistration(ctx context.Context, in *CompleteInitialCapabilityRegistrationRequest) (*CompleteInitialCapabilityRegistrationResponse, error)
 }
 
 type srpcPluginHostResourceServiceClient struct {
@@ -100,6 +104,24 @@ func (c *srpcPluginHostResourceServiceClient) GetPluginInfo(ctx context.Context,
 	return out, nil
 }
 
+func (c *srpcPluginHostResourceServiceClient) RegisterObjectType(ctx context.Context, in *RegisterObjectTypeRequest) (*RegisterObjectTypeResponse, error) {
+	out := new(RegisterObjectTypeResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "RegisterObjectType", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcPluginHostResourceServiceClient) CompleteInitialCapabilityRegistration(ctx context.Context, in *CompleteInitialCapabilityRegistrationRequest) (*CompleteInitialCapabilityRegistrationResponse, error) {
+	out := new(CompleteInitialCapabilityRegistrationResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "CompleteInitialCapabilityRegistration", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 type SRPCPluginHostResourceServiceServer interface {
 	// AccessAssetsFS returns a resource ID for the plugin's assets filesystem.
 	AccessAssetsFS(context.Context, *AccessAssetsFSRequest) (*AccessAssetsFSResponse, error)
@@ -113,6 +135,10 @@ type SRPCPluginHostResourceServiceServer interface {
 	AccessDesktopTray(context.Context, *AccessDesktopTrayRequest) (*AccessDesktopTrayResponse, error)
 	// GetPluginInfo returns information about the running plugin.
 	GetPluginInfo(context.Context, *GetPluginInfoRequest) (*GetPluginInfoResponse, error)
+	// RegisterObjectType registers an ObjectType served by the running plugin.
+	RegisterObjectType(context.Context, *RegisterObjectTypeRequest) (*RegisterObjectTypeResponse, error)
+	// CompleteInitialCapabilityRegistration marks the plugin's startup capability-registration pass complete.
+	CompleteInitialCapabilityRegistration(context.Context, *CompleteInitialCapabilityRegistrationRequest) (*CompleteInitialCapabilityRegistrationResponse, error)
 }
 
 const SRPCPluginHostResourceServiceServiceID = "bldr.plugin.host.PluginHostResourceService"
@@ -147,6 +173,8 @@ func (SRPCPluginHostResourceServiceHandler) GetMethodIDs() []string {
 		"AccessStateAtom",
 		"AccessDesktopTray",
 		"GetPluginInfo",
+		"RegisterObjectType",
+		"CompleteInitialCapabilityRegistration",
 	}
 }
 
@@ -171,6 +199,10 @@ func (d *SRPCPluginHostResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_AccessDesktopTray(d.impl, strm)
 	case "GetPluginInfo":
 		return true, d.InvokeMethod_GetPluginInfo(d.impl, strm)
+	case "RegisterObjectType":
+		return true, d.InvokeMethod_RegisterObjectType(d.impl, strm)
+	case "CompleteInitialCapabilityRegistration":
+		return true, d.InvokeMethod_CompleteInitialCapabilityRegistration(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -248,6 +280,30 @@ func (SRPCPluginHostResourceServiceHandler) InvokeMethod_GetPluginInfo(impl SRPC
 	return strm.MsgSend(out)
 }
 
+func (SRPCPluginHostResourceServiceHandler) InvokeMethod_RegisterObjectType(impl SRPCPluginHostResourceServiceServer, strm srpc.Stream) error {
+	req := new(RegisterObjectTypeRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.RegisterObjectType(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCPluginHostResourceServiceHandler) InvokeMethod_CompleteInitialCapabilityRegistration(impl SRPCPluginHostResourceServiceServer, strm srpc.Stream) error {
+	req := new(CompleteInitialCapabilityRegistrationRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.CompleteInitialCapabilityRegistration(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
 type SRPCPluginHostResourceService_AccessAssetsFSStream interface {
 	srpc.Stream
 }
@@ -293,5 +349,21 @@ type SRPCPluginHostResourceService_GetPluginInfoStream interface {
 }
 
 type srpcPluginHostResourceService_GetPluginInfoStream struct {
+	srpc.Stream
+}
+
+type SRPCPluginHostResourceService_RegisterObjectTypeStream interface {
+	srpc.Stream
+}
+
+type srpcPluginHostResourceService_RegisterObjectTypeStream struct {
+	srpc.Stream
+}
+
+type SRPCPluginHostResourceService_CompleteInitialCapabilityRegistrationStream interface {
+	srpc.Stream
+}
+
+type srpcPluginHostResourceService_CompleteInitialCapabilityRegistrationStream struct {
 	srpc.Stream
 }

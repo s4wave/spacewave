@@ -34,11 +34,20 @@ export default async function (args: {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + args.deadlineMs
     const readBrowserText = () => {
-      const root = document.querySelector('[data-testid="unixfs-browser"]')
-      if (!root) {
-        return ''
-      }
-      return root.textContent ?? ''
+      const roots = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          '[data-testid="unixfs-browser"]',
+        ),
+      )
+      const root = roots.find((candidate) => {
+        const style = getComputedStyle(candidate)
+        if (style.display === 'none' || style.visibility === 'hidden') {
+          return false
+        }
+        const rect = candidate.getBoundingClientRect()
+        return rect.width > 0 && rect.height > 0
+      })
+      return root?.textContent ?? ''
     }
     const hasDriveWelcome = () =>
       !!document.querySelector('[data-testid="drive-welcome"]')

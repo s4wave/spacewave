@@ -52,6 +52,26 @@ func TestFormatDistEntrypointWeb(t *testing.T) {
 	}
 }
 
+func TestDistEntrypointLDFlags(t *testing.T) {
+	for _, tc := range []struct {
+		platformID string
+		role       string
+		want       []string
+	}{
+		{"desktop/windows/amd64", bldr_dist.EntrypointRoleDesktop, []string{"-H=windowsgui"}},
+		{"desktop/windows/amd64", bldr_dist.EntrypointRoleCLI, nil},
+		{"desktop/darwin/arm64", bldr_dist.EntrypointRoleDesktop, nil},
+	} {
+		platform, err := bldr_platform.ParsePlatform(tc.platformID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := distEntrypointLDFlags(platform, tc.role); !slices.Equal(got, tc.want) {
+			t.Fatalf("dist entrypoint ldflags for %s/%s = %v, want %v", tc.platformID, tc.role, got, tc.want)
+		}
+	}
+}
+
 func TestResolveDistGoCompiler(t *testing.T) {
 	platform, err := bldr_platform.ParsePlatform("web/js/wasm")
 	if err != nil {
@@ -75,10 +95,21 @@ func TestResolveDistGoCompiler(t *testing.T) {
 	}
 }
 
-func TestNewDistGoScriptBuildFlagsAddsGoScriptTag(t *testing.T) {
+// TestNewDistGoScriptBuildFlags verifies opt-in startup trace propagation for GoScript.
+func TestNewDistGoScriptBuildFlags(t *testing.T) {
+	t.Setenv(gocompiler.RuntimeStartupTraceEnv, "")
 	flags := strings.Join(newDistGoScriptBuildFlags(bldr_manifest.BuildType_RELEASE, false), " ")
-	if !strings.Contains(flags, "goscript") {
-		t.Fatalf("flags = %q, want goscript tag", flags)
+	if !strings.Contains(flags, gocompiler.GoScriptBuildTag) {
+		t.Fatalf("flags = %q, want %s tag", flags, gocompiler.GoScriptBuildTag)
+	}
+	if strings.Contains(flags, gocompiler.RuntimeStartupTraceBuildTag) {
+		t.Fatalf("flags = %q, unexpected %s tag", flags, gocompiler.RuntimeStartupTraceBuildTag)
+	}
+
+	t.Setenv(gocompiler.RuntimeStartupTraceEnv, "1")
+	flags = strings.Join(newDistGoScriptBuildFlags(bldr_manifest.BuildType_RELEASE, false), " ")
+	if !strings.Contains(flags, gocompiler.RuntimeStartupTraceBuildTag) {
+		t.Fatalf("flags = %q, want %s tag", flags, gocompiler.RuntimeStartupTraceBuildTag)
 	}
 }
 

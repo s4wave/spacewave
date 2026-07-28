@@ -153,16 +153,18 @@ func (t *TxUpdateInputs) ExecuteTx(
 			return err
 		}
 
-		// if !COMPLETE mark as canceled
+		// Request cancellation and remain RUNNING until the Pass drains. The
+		// Pass watcher moves the Task back to PENDING after cancellation.
 		if passKey != "" && !currPass.IsComplete() {
-			passCompleteTx := pass_tx.NewTxComplete(
+			passCancelTx := pass_tx.NewTxCancel(
 				passKey,
 				forge_value.NewResultWithCanceled(errors.New("task inputs changed")),
 			)
-			_, _, err = worldState.ApplyWorldOp(ctx, passCompleteTx, sender)
+			_, _, err = worldState.ApplyWorldOp(ctx, passCancelTx, sender)
 			if err != nil {
 				return err
 			}
+			return nil
 		}
 	}
 

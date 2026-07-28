@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
+	"github.com/aperturerobotics/util/broadcast"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
 	"github.com/s4wave/spacewave/db/block"
@@ -24,8 +25,9 @@ import (
 // bytesTransport serves Fetch calls from a fixed byte slice, optionally
 // counting and gating calls for fault-injection style tests.
 type bytesTransport struct {
-	data []byte
-	mu   sync.Mutex
+	data  []byte
+	mu    sync.Mutex
+	bcast broadcast.Broadcast
 	// calls records each (off, len) pair.
 	calls []fetchCall
 	// blockFn optionally blocks Fetch until it returns.
@@ -40,12 +42,18 @@ type fetchCall struct {
 }
 
 func (t *bytesTransport) Fetch(_ context.Context, off int64, length int) ([]byte, error) {
-	t.mu.Lock()
-	t.calls = append(t.calls, fetchCall{off: off, length: length})
-	call := len(t.calls)
-	fn := t.blockFn
-	rewrite := t.rewriteFn
-	t.mu.Unlock()
+	var call int
+	var fn func()
+	var rewrite func(call int, off int64, data []byte) []byte
+	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		t.mu.Lock()
+		t.calls = append(t.calls, fetchCall{off: off, length: length})
+		call = len(t.calls)
+		fn = t.blockFn
+		rewrite = t.rewriteFn
+		t.mu.Unlock()
+		broadcast()
+	})
 	if fn != nil {
 		fn()
 	}
@@ -75,8 +83,9 @@ func (t *bytesTransport) callAt(i int) fetchCall {
 // writebackStore records PutBlock calls for testing co-block writeback.
 type writebackStore struct {
 	block.StoreOps
-	mu   sync.Mutex
-	puts []*block.PutBatchEntry
+	mu    sync.Mutex
+	bcast broadcast.Broadcast
+	puts  []*block.PutBatchEntry
 	// blockFn optionally gates PutBlock for concurrency tests.
 	blockFn func()
 }
@@ -102,8 +111,11 @@ func (w *writebackStore) PutBlock(ctx context.Context, data []byte, opts *block.
 		return nil, false, err
 	}
 	w.mu.Lock()
-	defer w.mu.Unlock()
 	w.puts = append(w.puts, &block.PutBatchEntry{Ref: ref, Data: bytes.Clone(data)})
+	w.mu.Unlock()
+	w.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		broadcast()
+	})
 	return ref, existed, nil
 }
 
@@ -111,6 +123,33 @@ func (w *writebackStore) putCount() int {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	return len(w.puts)
+}
+func (t *bytesTransport) callCountAtLeast(want int) (bool, <-chan struct{}) {
+	var ready bool
+	var waitCh <-chan struct{}
+	t.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		t.mu.Lock()
+		ready = len(t.calls) >= want
+		t.mu.Unlock()
+		if !ready {
+			waitCh = getWaitCh()
+		}
+	})
+	return ready, waitCh
+}
+
+func (w *writebackStore) putCountAtLeast(want int) (bool, <-chan struct{}) {
+	var ready bool
+	var waitCh <-chan struct{}
+	w.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		w.mu.Lock()
+		ready = len(w.puts) >= want
+		w.mu.Unlock()
+		if !ready {
+			waitCh = getWaitCh()
+		}
+	})
+	return ready, waitCh
 }
 
 func mustReadIndexTail(t *testing.T, data []byte) []byte {
@@ -132,16 +171,48 @@ func openerFromBytes(data []byte) (Opener, *bytesTransport) {
 	return opener, t
 }
 
-func waitFor(t *testing.T, d time.Duration, cond func() bool) bool {
+// waitFor retries a condition only after its owner broadcasts a state change.
+// The timeout is a hang backstop; successful waits depend on notifications.
+func waitFor(t *testing.T, cond func() (bool, <-chan struct{})) bool {
 	t.Helper()
-	deadline := time.Now().Add(d)
-	for time.Now().Before(deadline) {
-		if cond() {
+	waitCtx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+
+	for {
+		ready, waitCh := cond()
+		if ready {
 			return true
 		}
-		time.Sleep(5 * time.Millisecond)
+		select {
+		case <-waitCtx.Done():
+			return false
+		case <-waitCh:
+		}
 	}
-	return cond()
+}
+func TestWaitForUsesNotification(t *testing.T) {
+	var ready atomic.Bool
+
+	release := make(chan struct{})
+	waitCh := make(chan struct{})
+	started := make(chan struct{})
+	go func() {
+		close(started)
+		<-release
+		ready.Store(true)
+		close(waitCh)
+	}()
+	<-started
+	close(release)
+
+	if !waitFor(t, func() (bool, <-chan struct{}) {
+		if ready.Load() {
+			return true, nil
+		}
+		return false, waitCh
+	}) {
+		t.Fatal("expected notification to wake waitFor")
+	}
 }
 
 // TestPackfileStoreBasicReads verifies GetBlock found/not-found, GetBlockExists,
@@ -958,7 +1029,9 @@ func TestPackfileStoreCachedTailDrivesCoBlockWriteback(t *testing.T) {
 	if _, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash}); err != nil || !found {
 		t.Fatalf("GetBlock alpha: found=%v err=%v", found, err)
 	}
-	if !waitFor(t, time.Second, func() bool { return wb.putCount() >= len(ordered) }) {
+	if !waitFor(t, func() (bool, <-chan struct{}) {
+		return wb.putCountAtLeast(len(ordered))
+	}) {
 		t.Fatalf("expected %d cached-tail co-block writebacks, got %d", len(ordered), wb.putCount())
 	}
 	stats := store.SnapshotStats()
@@ -1110,7 +1183,9 @@ func TestPackfileStoreCoBlockWriteback(t *testing.T) {
 		t.Fatalf("GetBlock alpha: found=%v err=%v", found, err)
 	}
 
-	if !waitFor(t, time.Second, func() bool { return wb.putCount() >= len(ordered) }) {
+	if !waitFor(t, func() (bool, <-chan struct{}) {
+		return wb.putCountAtLeast(len(ordered))
+	}) {
 		t.Fatalf("expected %d co-block writebacks, got %d", len(ordered), wb.putCount())
 	}
 
@@ -1171,7 +1246,9 @@ func TestPackfileStoreTrailerPromotesBlocks(t *testing.T) {
 		t.Fatalf("GetBlock alpha: found=%v err=%v", found, err)
 	}
 
-	if !waitFor(t, time.Second, func() bool { return wb.putCount() >= len(ordered) }) {
+	if !waitFor(t, func() (bool, <-chan struct{}) {
+		return wb.putCountAtLeast(len(ordered))
+	}) {
 		t.Fatalf("expected %d trailer-promoted writebacks, got %d", len(ordered), wb.putCount())
 	}
 }
@@ -1241,10 +1318,23 @@ func TestPackfileStoreServesCachedBlock(t *testing.T) {
 	}
 	// Wait for the block to transition to Verified/Published so the second
 	// read can hit the fast path.
-	if !waitFor(t, time.Second, func() bool {
-		return transport.callCount() == firstCalls
+	eng, err := store.getOrOpenEngine("cache-pack", int64(len(packBytes)), 1)
+	if err != nil {
+		t.Fatalf("getOrOpenEngine: %v", err)
+	}
+	if !waitFor(t, func() (bool, <-chan struct{}) {
+		var ready bool
+		var waitCh <-chan struct{}
+		eng.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			rec := eng.blocks[alphaHash.MarshalString()]
+			ready = rec != nil && (rec.state == blockStateVerified || rec.state == blockStatePublished)
+			if !ready {
+				waitCh = getWaitCh()
+			}
+		})
+		return ready, waitCh
 	}) {
-		t.Fatalf("expected fetches to stop after first read, got %d -> %d", firstCalls, transport.callCount())
+		t.Fatalf("expected block verification to complete after %d fetches, got %d", firstCalls, transport.callCount())
 	}
 	if _, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash}); err != nil || !found {
 		t.Fatalf("second GetBlock: found=%v err=%v", found, err)
@@ -1363,21 +1453,25 @@ func TestPackfileStoreSecondReadWaitsForVerify(t *testing.T) {
 	alphaHash, _ := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
 
 	first := make(chan error, 1)
+	firstDone := make(chan struct{})
 	go func() {
 		_, _, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash})
 		first <- err
+		close(firstDone)
 	}()
 	// Let the first caller start and admit the block record.
-	if !waitFor(t, 500*time.Millisecond, func() bool {
+	if !waitFor(t, func() (bool, <-chan struct{}) {
 		select {
-		case err := <-first:
-			first <- err
-			return true
+		case <-firstDone:
+			return true, nil
 		default:
-			return false
+			return false, firstDone
 		}
 	}) {
 		t.Fatal("first caller did not return before verify")
+	}
+	if err := <-first; err != nil {
+		t.Fatalf("first GetBlock error: %v", err)
 	}
 
 	second := make(chan error, 1)
@@ -1442,24 +1536,28 @@ func TestPackfileStoreDedupesConcurrentFetch(t *testing.T) {
 		done1 <- err
 	}()
 	// Ensure first goroutine is in the transport before starting second.
-	if !waitFor(t, time.Second, func() bool { return transport.callCount() >= 1 }) {
+	if !waitFor(t, func() (bool, <-chan struct{}) {
+		return transport.callCountAtLeast(1)
+	}) {
 		t.Fatal("first caller did not start a transport fetch")
 	}
+	secondStarted := make(chan struct{})
 	go func() {
+		close(secondStarted)
 		_, _, err := store.GetBlock(ctx, &block.BlockRef{Hash: alphaHash})
 		done2 <- err
 	}()
+	<-secondStarted
 
-	time.Sleep(50 * time.Millisecond)
-	if got := transport.callCount(); got != 1 {
-		t.Fatalf("expected one in-flight transport fetch, got %d", got)
-	}
 	close(release)
 	if err := <-done1; err != nil {
 		t.Fatalf("first GetBlock error: %v", err)
 	}
 	if err := <-done2; err != nil {
 		t.Fatalf("second GetBlock error: %v", err)
+	}
+	if got := transport.callCount(); got != 1 {
+		t.Fatalf("expected one transport fetch for concurrent reads, got %d", got)
 	}
 }
 
@@ -1510,12 +1608,16 @@ func TestPackfileStoreVerifyFailureAllowsRetry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("getOrOpenEngine: %v", err)
 	}
-	if !waitFor(t, time.Second, func() bool {
+	if !waitFor(t, func() (bool, <-chan struct{}) {
 		var present bool
-		eng.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		var waitCh <-chan struct{}
+		eng.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			_, present = eng.blocks[alphaHash.MarshalString()]
+			if present {
+				waitCh = getWaitCh()
+			}
 		})
-		return !present
+		return !present, waitCh
 	}) {
 		t.Fatal("expected failed block to be evicted from catalog")
 	}

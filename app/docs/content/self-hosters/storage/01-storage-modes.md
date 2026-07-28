@@ -2,40 +2,44 @@
 title: Storage Modes
 section: storage
 order: 1
-summary: Tie each storage mode to the provider, state root, and backup owner.
+summary: Know which disk or account actually holds each Space, and who backs it up.
 ---
 
-Storage mode is an ownership choice. The important question is which provider or
-state root owns the blocks, sessions, and recovery path.
+Choosing a storage mode is choosing who holds the data. For each Space, one
+thing holds the bytes and one person is responsible for getting them back. This
+page tells you which is which.
 
-## Browser local storage
+## Browser storage
 
-Browser local sessions use the local provider and browser storage. They are easy
-to start and risky for irreplaceable data because the browser may clear storage
-under pressure.
+Work started in a browser without an account lives in that browser's storage.
+Nothing to set up, and nothing you can back up from outside the browser. The
+browser is allowed to clear it when disk runs low.
 
-## Desktop state roots
+Fine for trying Spacewave. Not a place to leave anything you would miss.
 
-Desktop can register a native directory state root. The current implemented kind
-is a native directory opened by the desktop app. The root runtime can be watched,
-autostarted, and selected by alias. Browser directory-grant roots and single-file
-state roots are reserved in the protocol but not current stable user features.
+## A directory on disk
 
-## Daemon state paths
+The desktop app keeps its data in a directory you can point at, back up, and
+copy. This is the mode where ordinary disk backups do what you expect. It can
+also open a directory that already holds Spacewave data.
 
-The CLI daemon resolves a state path from flags and environment, then listens on
-`spacewave.sock` in that directory. The socket is runtime access. The state path
-is data custody.
+Other kinds of storage location exist in the protocol, including a
+browser-granted directory and a single-file store, but neither is usable yet.
 
-## Cloud storage
+## The background service
 
-The Spacewave Cloud provider owns cloud-backed account resources, sessions, and
-block storage. User-facing copy describes Cloud as encrypted sync, backup, shared
-Spaces, and multi-device storage. Storage stats are provider-supported, so not
-every provider must report byte counts.
+`spacewave serve` picks a state directory from its flags and environment, then
+listens on `spacewave.sock` inside it. Keep those two apart in your head: the
+socket is how you reach the service, and the directory is where the data lives.
+Back up the directory.
 
-## Backup scope
+## Spacewave Cloud
 
-A backup key protects account or session authentication. It is not a full copy of
-every block. Full data custody follows the provider and state root that store the
-Space data.
+Cloud holds the blocks for you, encrypted, and gives you sync between devices,
+backup, and shared Spaces. Space usage figures come from whatever holds the
+data, so they appear for Cloud and may not appear elsewhere.
+
+## What a backup key is not
+
+A backup key gets you back into an account. It is not a copy of your Spaces.
+Whatever holds the blocks, a disk or Cloud, is what has to be backed up.

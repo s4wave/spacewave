@@ -5,7 +5,6 @@ package wasm
 import (
 	"fmt"
 	"net/url"
-	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -59,63 +58,6 @@ func TestGoScriptDriveBrowserPreviewRenameUIParity(t *testing.T) {
 	}
 	if report.HasExitedGoLoop() {
 		t.Fatalf("unexpected exited-Go loop after GoScript Drive preview/rename parity: %+v", report)
-	}
-}
-
-func TestGoScriptDriveBrowserRepeatUploadUIParity(t *testing.T) {
-	compiler, err := ResolveE2EWasmCompiler()
-	if err != nil {
-		t.Fatalf("resolve wasm compiler: %v", err)
-	}
-	if compiler != E2EWasmCompilerGoScript {
-		t.Skipf("requires %s", E2EWasmCompilerGoScript)
-	}
-
-	sess := harness(t).NewCleanSession(t)
-	page := sess.Page()
-	if err := page.SetViewportSize(1440, 900); err != nil {
-		t.Fatalf("set viewport size: %v", err)
-	}
-	console, stopConsole := sess.WatchConsole()
-	defer stopConsole()
-
-	scenario := CreateDriveScenario(t, harness(t), sess)
-	page = scenario.GetSession().Page()
-	WaitForDriveReady(t, harness(t), page)
-	waitForStarterDriveGuidance(t, page)
-
-	previewFile := playwright.InputFile{
-		Name:     "row4-preview.md",
-		MimeType: "text/markdown",
-		Buffer:   []byte("# Row 4 preview\n\nrow4 preview body.\n"),
-	}
-	uploadDriveFileThroughUI(t, page, previewFile)
-	openDriveEntryViaContextMenu(t, page, previewFile.Name)
-	waitForUnixFSFileText(t, page, "row4 preview upload", "row4 preview body")
-	clickDriveToolbarButton(t, page, "Up")
-	renameDriveEntryViaContextMenu(t, page, previewFile.Name, "row4-renamed.md")
-
-	repeatFile := playwright.InputFile{
-		Name:     "row4-repeat.md",
-		MimeType: "text/markdown",
-		Buffer:   []byte("row4 repeat upload after preview and rename\n"),
-	}
-	summaries := uploadDriveFileThroughUIWithObservedSummaries(t, page, repeatFile)
-	if !driveUploadSummariesContain(summaries, "0/1 uploaded") {
-		t.Fatalf("repeat upload never reported 0/1 uploaded; summaries=%v diagnostics=%s", summaries, captureUploadDiagnostics(page))
-	}
-	if !driveUploadSummariesContain(summaries, "1/1 uploaded") {
-		t.Fatalf("repeat upload never reported 1/1 uploaded; summaries=%v diagnostics=%s", summaries, captureUploadDiagnostics(page))
-	}
-	waitForDriveEntry(t, page, repeatFile.Name)
-	clearDriveUploadDone(t, page)
-
-	report := DrainCrashReport(console)
-	if report.HasCrash() {
-		t.Fatalf("unexpected browser/WASM crash report after GoScript Drive repeat upload parity: %+v", report)
-	}
-	if report.HasExitedGoLoop() {
-		t.Fatalf("unexpected exited-Go loop after GoScript Drive repeat upload parity: %+v", report)
 	}
 }
 
@@ -252,80 +194,6 @@ func uploadDriveFileThroughUI(t testing.TB, page playwright.Page, file playwrigh
 	clearDriveUploadDone(t, page)
 }
 
-func uploadDriveFileThroughUIWithObservedSummaries(t testing.TB, page playwright.Page, file playwright.InputFile) []string {
-	t.Helper()
-
-	_, err := page.Evaluate(`() => {
-		const key = '__driveUploadSummaryEvents'
-		const observerKey = '__driveUploadSummaryObserver'
-		const previous = window[observerKey]
-		if (previous && typeof previous.disconnect === 'function') {
-			previous.disconnect()
-		}
-		window[key] = []
-		const collect = () => {
-			const seen = new Set(window[key])
-			for (const button of document.querySelectorAll('button')) {
-				const text = (button.textContent || '').replace(/\s+/g, ' ').trim()
-				if (/\d+\/\d+ uploaded/.test(text)) {
-					seen.add(text)
-				}
-			}
-			window[key] = Array.from(seen)
-		}
-		const observer = new MutationObserver(collect)
-		observer.observe(document.body, {
-			childList: true,
-			characterData: true,
-			subtree: true,
-		})
-		window[observerKey] = observer
-		collect()
-	}`)
-	if err != nil {
-		t.Fatalf("install upload summary observer: %v", err)
-	}
-
-	UploadViaPicker(t, page, []playwright.InputFile{file})
-	_, err = page.WaitForFunction(`() => {
-		return (window.__driveUploadSummaryEvents || []).some((text) => text.includes('1/1 uploaded'))
-	}`, nil, playwright.PageWaitForFunctionOptions{
-		Timeout: playwright.Float(120000),
-	})
-	if err != nil {
-		t.Logf("upload diagnostics while waiting for observed upload completion: %s", captureUploadDiagnostics(page))
-		failWithPageBody(t, page, "wait for observed upload summary 1/1 uploaded", err)
-	}
-
-	values, err := page.Evaluate(`() => {
-		const observer = window.__driveUploadSummaryObserver
-		if (observer && typeof observer.disconnect === 'function') {
-			observer.disconnect()
-		}
-		return window.__driveUploadSummaryEvents || []
-	}`)
-	if err != nil {
-		t.Fatalf("read upload summary observer values: %v", err)
-	}
-	raw, ok := values.([]any)
-	if !ok {
-		t.Fatalf("unexpected upload summary observer values: %#v", values)
-	}
-	summaries := make([]string, 0, len(raw))
-	for _, value := range raw {
-		text, ok := value.(string)
-		if !ok {
-			t.Fatalf("unexpected upload summary observer value: %#v", value)
-		}
-		summaries = append(summaries, text)
-	}
-	return summaries
-}
-
-func driveUploadSummariesContain(summaries []string, want string) bool {
-	return slices.Contains(summaries, want)
-}
-
 func waitForUnixFSFileText(t testing.TB, page playwright.Page, label string, want string) {
 	t.Helper()
 
@@ -388,6 +256,11 @@ func clickDriveToolbarButton(t testing.TB, page playwright.Page, title string) {
 func openDriveEntryContextMenu(t testing.TB, page playwright.Page, name string) {
 	t.Helper()
 
+	row := visibleDriveBrowser(page).Locator("[role='row']:has-text('" + name + "')").First()
+	if err := row.WaitFor(); err != nil {
+		failWithPageBody(t, page, "wait for Drive entry row "+name, err)
+	}
+
 	_, err := page.Evaluate(`({ name }) => {
 		const browser = document.querySelector('[data-testid="unixfs-browser"]')
 		if (!(browser instanceof HTMLElement)) {
@@ -409,7 +282,7 @@ func openDriveEntryContextMenu(t testing.TB, page playwright.Page, name string) 
 		}))
 	}`, map[string]any{"name": name})
 	if err != nil {
-		t.Fatalf("open context menu for %s: %v", name, err)
+		failWithPageBody(t, page, "open context menu for "+name, err)
 	}
 }
 

@@ -23,6 +23,8 @@ message Config {
 
   // InputWorld is the default value for the "world" input.
   .forge.target.InputWorld input_world = 6;
+  // ClaimId is the stable owner token used across controller retries.
+  string claim_id = 7;
 }
 
 // ExecConfig is a configuration for the execution routine.

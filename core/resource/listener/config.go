@@ -1,6 +1,7 @@
 package resource_listener
 
 import (
+	"os"
 	"path/filepath"
 
 	"github.com/aperturerobotics/controllerbus/config"
@@ -16,8 +17,8 @@ func (c *Config) Validate() error {
 }
 
 // DetermineSocketPath returns the configured socket path. An explicit path
-// takes precedence; otherwise StorageProjectId uses the same project storage
-// root as the rest of the native runtime.
+// takes precedence; otherwise a project state path, when present, scopes the
+// socket before the shared storage root fallback.
 func (c *Config) DetermineSocketPath() (string, error) {
 	if socketPath := c.GetListenerSocketPath(); socketPath != "" {
 		return socketPath, nil
@@ -25,6 +26,12 @@ func (c *Config) DetermineSocketPath() (string, error) {
 	projectID := c.GetStorageProjectId()
 	if projectID == "" {
 		return "", nil
+	}
+	if socketPath := os.Getenv(storagepath.SocketPathEnvVar(projectID)); socketPath != "" {
+		return socketPath, nil
+	}
+	if statePath := os.Getenv(storagepath.StatePathEnvVar(projectID)); statePath != "" {
+		return filepath.Join(statePath, projectID+".sock"), nil
 	}
 	storageRoot, err := storagepath.DetermineStorageRoot(projectID)
 	if err != nil {

@@ -14,6 +14,7 @@ import {
 } from '@aptre/bldr'
 
 import { resetStartupMarksForTest } from '../bldr/startup-marks.js'
+import { SimpleEventEmitter } from '../bldr/simple-event-emitter.js'
 import { WebView } from './WebView.js'
 
 declare global {
@@ -43,10 +44,22 @@ vi.mock('./web-view-react.js', async () => {
     },
   }
 })
+interface RuntimePresentationEvents {
+  [event: string]: (...args: unknown[]) => void
+  runtimeconnected: () => void
+  runtimeinvalidated: (generation?: unknown) => void
+}
+
+interface RuntimePresentationTestState {
+  connected: boolean
+  generation?: string
+}
 
 interface CapturedRegistration {
   view?: BldrWebView
   release: ReturnType<typeof vi.fn>
+  presentation?: RuntimePresentationTestState
+  emitter?: RuntimePresentationEmitter
 }
 
 function makeWebDocument(captured: CapturedRegistration): BldrWebDocument {
@@ -58,6 +71,57 @@ function makeWebDocument(captured: CapturedRegistration): BldrWebDocument {
       return { release: captured.release }
     }),
   } as unknown as BldrWebDocument
+}
+
+class RuntimePresentationEmitter extends SimpleEventEmitter<RuntimePresentationEvents> {
+  public dispatch<K extends keyof RuntimePresentationEvents>(
+    event: K,
+    ...args: Parameters<RuntimePresentationEvents[K]>
+  ): void {
+    this.emit(event, ...args)
+  }
+}
+
+function makePresentationDocument(
+  captured: CapturedRegistration,
+): BldrWebDocument {
+  captured.presentation = { connected: false }
+  const emitter = new RuntimePresentationEmitter()
+  captured.emitter = emitter
+  const baseDocument = makeWebDocument(captured)
+  const document = {
+    ...baseDocument,
+    getRuntimePresentationState: () => ({
+      ...(captured.presentation as RuntimePresentationTestState),
+    }),
+    on: <K extends keyof RuntimePresentationEvents>(
+      event: K,
+      listener: RuntimePresentationEvents[K],
+    ): BldrWebDocument => {
+      emitter.on(event, listener)
+      return baseDocument
+    },
+    removeListener: <K extends keyof RuntimePresentationEvents>(
+      event: K,
+      listener: RuntimePresentationEvents[K],
+    ): BldrWebDocument => {
+      emitter.removeListener(event, listener)
+      return baseDocument
+    },
+  }
+  return document as unknown as BldrWebDocument
+}
+
+function emitRuntime(
+  captured: CapturedRegistration,
+  event: keyof RuntimePresentationEvents,
+  generation?: string,
+): void {
+  if (event === 'runtimeconnected') {
+    captured.emitter?.dispatch(event)
+    return
+  }
+  captured.emitter?.dispatch(event, generation)
 }
 
 function getStartupMarkLabels(): string[] {
@@ -396,5 +460,128 @@ describe('WebView startup boundaries', () => {
         webViewId: 'nested-view',
       })
     }
+  })
+  it('owns one generation-matched neutral/loading/reveal transition', async () => {
+    const captured: CapturedRegistration = { release: vi.fn() }
+    const webDocument = makePresentationDocument(captured)
+    const mounted = render(
+      React.createElement(WebView, {
+        loading: React.createElement('div', {}, 'Loading'),
+        startupProgress: true,
+        uuid: 'root-view',
+        webDocument,
+      }),
+    )
+
+    await waitFor(() => {
+      expect(captured.view).toBeTruthy()
+    })
+    await act(async () => {
+      await (captured.view as BldrWebView).setRenderMode({
+        renderMode: RenderMode.RenderMode_REACT_COMPONENT,
+        scriptPath: '/component-a.js',
+      })
+    })
+    await waitFor(() => {
+      expect(globalThis.__webViewReadyCallbacks?.length ?? 0).toBeGreaterThan(0)
+    })
+    expect(mounted.container.textContent).toContain('Loading')
+    expect(getStartupMarks('webview.revealed')).toHaveLength(0)
+
+    captured.presentation = {
+      connected: true,
+      generation: 'generation-1',
+    }
+    await act(async () => {
+      emitRuntime(captured, 'runtimeconnected')
+    })
+    await expectMarkCount('webview.neutral-frame', 1)
+    expect(mounted.container.textContent).toContain('Loading')
+    const mountedComponent = mounted.container.querySelector(
+      '[data-testid="react-component"]',
+    ) as HTMLElement | null
+    expect(mountedComponent).toBeTruthy()
+    expect(mountedComponent?.style.display).not.toBe('none')
+
+    await act(async () => {
+      globalThis.__webViewReadyCallbacks?.at(-1)?.()
+    })
+    await expectMarkCount('webview.revealed', 1)
+    expect(mounted.container.textContent).not.toContain('Loading')
+
+    await act(async () => {
+      emitRuntime(captured, 'runtimeconnected')
+    })
+    expect(getStartupMarks('webview.neutral-frame')).toHaveLength(1)
+    expect(getStartupMarks('webview.revealed')).toHaveLength(1)
+
+    captured.presentation = {
+      connected: false,
+      generation: 'generation-1',
+    }
+    await act(async () => {
+      emitRuntime(captured, 'runtimeinvalidated', 'generation-1')
+    })
+    await waitFor(() => {
+      expect(mounted.container.textContent).toContain('Loading')
+    })
+
+    captured.presentation = {
+      connected: true,
+      generation: 'generation-2',
+    }
+    await act(async () => {
+      emitRuntime(captured, 'runtimeconnected')
+    })
+    await expectMarkCount('webview.neutral-frame', 2)
+    await expectMarkCount('webview.revealed', 2)
+    await act(async () => {
+      emitRuntime(captured, 'runtimeinvalidated', 'generation-1')
+    })
+    expect(mounted.container.textContent).not.toContain('Loading')
+
+    await act(async () => {
+      await (captured.view as BldrWebView).resetView()
+    })
+    await act(async () => {
+      await (captured.view as BldrWebView).setRenderMode({
+        renderMode: RenderMode.RenderMode_REACT_COMPONENT,
+        scriptPath: '/component-b.js',
+      })
+    })
+    await waitFor(() => {
+      expect(globalThis.__webViewReadyCallbacks?.length ?? 0).toBeGreaterThan(1)
+    })
+    await act(async () => {
+      globalThis.__webViewReadyCallbacks?.at(-1)?.()
+    })
+    await expectMarkCount('webview.revealed', 3)
+
+    mounted.unmount()
+    const remounted = render(
+      React.createElement(WebView, {
+        loading: React.createElement('div', {}, 'Loading'),
+        startupProgress: true,
+        uuid: 'root-view',
+        webDocument,
+      }),
+    )
+    await waitFor(() => {
+      expect(captured.view).toBeTruthy()
+    })
+    await act(async () => {
+      await (captured.view as BldrWebView).setRenderMode({
+        renderMode: RenderMode.RenderMode_REACT_COMPONENT,
+        scriptPath: '/component-c.js',
+      })
+    })
+    await waitFor(() => {
+      expect(globalThis.__webViewReadyCallbacks?.length ?? 0).toBeGreaterThan(2)
+    })
+    await act(async () => {
+      globalThis.__webViewReadyCallbacks?.at(-1)?.()
+    })
+    await expectMarkCount('webview.revealed', 4)
+    remounted.unmount()
   })
 })

@@ -24,33 +24,49 @@ message Tx {
   // TxComplete contains the complete tx.
   // TxType_COMPLETE
   TxComplete tx_complete = 6;
+  // TxRetry contains the explicit retry transaction.
+  // TxType_RETRY
+  TxRetry tx_retry = 7;
+
 }
 
 // TxType indicates the kind of transaction.
 enum TxType {
   TxType_INVALID = 0;
   // TxType_UPDATE_INPUTS updates the ValueSet inputs and target.
-  // If the values are identical: does nothing.
-  // If changed: transitions to PENDING state and cancels any ongoing Pass.
+  // If changed outside a live Pass, transitions to PENDING.
+  // If a Pass is live, requests cancellation and stays RUNNING until drain.
   TxType_UPDATE_INPUTS = 1;
-  // TxType_START marks the pass as running.
-  // Transitions to state RUNNING from PENDING.
+  // TxType_START starts the Task when every predecessor Pass is complete.
+  // Transitions PENDING to RUNNING and creates the next Pass.
   TxType_START = 2;
-  // TxType_UPDATE_WITH_PASS_STATE updates the state of the Task based the Pass.
-  // If none or missing: can transition to PENDING.
-  // If failed: can transition to COMPLETE or RETRY.
-  // If success or complete: can transition to CHECKING state.
+  // TxType_UPDATE_WITH_PASS_STATE updates the Task from the current Pass.
+  // Canceled completion transitions to PENDING; other completion to CHECKING.
+  // A nonterminal Pass leaves the Task state unchanged.
   TxType_UPDATE_WITH_PASS_STATE = 3;
   // TxType_COMPLETE sets the result of the Task.
   // If failed, can transition from any state.
   // If success, must transition from CHECKING state.
   // If success, all Execution states must be Successful.
   TxType_COMPLETE = 4;
+  // TxType_RETRY authorizes one successor Pass for a failed predecessor.
+  // The expected pass nonce is the idempotency fence.
+  TxType_RETRY = 5;
+}
+
+// TxRetry authorizes a successor Pass after a terminal failed Pass.
+// The scheduler supplies the named inputs for the successor.
+message TxRetry {
+  // ExpectedPassNonce identifies the failed Pass being retried.
+  uint64 expected_pass_nonce = 1;
+  // NextInputs contains the named inputs for the successor Pass.
+  // Outputs must be empty.
+  .forge.target.ValueSet next_inputs = 2;
 }
 
 // TxUpdateInputs updates the Task with the latest Target and Inputs.
-// If the value is identical: does nothing.
-// If changed: transitions to PENDING state and cancels any ongoing Pass.
+// If changed outside a live Pass, transitions to PENDING.
+// If a Pass is live, requests cancellation and stays RUNNING until drain.
 //
 // TxType: TxType_UPDATE_INPUTS
 message TxUpdateInputs {
@@ -64,9 +80,9 @@ message TxUpdateInputs {
   .forge.target.ValueSet value_set = 3;
 }
 
-// TxStart starts the execution of the Task by creating a Pass.
-// Transitions from PENDING, RETRY, or COMPLETE to RUNNING.
-// Cancels any existing Pass.
+// TxStart starts a Task by creating a Pass.
+// Transitions PENDING to RUNNING only after every predecessor Pass is complete.
+// Requests cancellation without creating a successor while a predecessor lives.
 //
 // TxType: TxType_START
 message TxStart {
@@ -74,9 +90,9 @@ message TxStart {
   bool assign_self = 1;
 }
 
-// TxUpdateWithPassState updates the state of the Task based on the current Pass.
-// If none or not found: transitions to PENDING.
-// If complete or failed: transitions to CHECKING state.
+// TxUpdateWithPassState updates the Task from the current Pass.
+// Canceled completion transitions to PENDING; other completion to CHECKING.
+// A nonterminal Pass leaves the Task state unchanged.
 // TxType: TxType_UPDATE_WITH_PASS_STATE
 message TxUpdateWithPassState {
 }

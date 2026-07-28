@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "protocFlagsHash": "d0f658654dc166df98350660ad83c8740f15f2bedfe6abdbe0c6ffd9c32a8db5",
+  "protocFlagsHash": "d129d372e0bbd18b3ba43375a4e1bade24fb1c7918478ac7e3f58bb109d81102",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.15.1-0.20260716074925-e2a146f45568,starpc=v0.49.18,protobuf-es-lite=1.1.1",
   "packages": {
     "github.com/s4wave/spacewave/auth/derive": {
@@ -55,9 +55,8 @@
         "bldr/desktop/tray/tray.pb.h",
         "bldr/desktop/tray/tray.pb.rs",
         "bldr/desktop/tray/tray.pb.ts",
-        "bldr/desktop/tray/tray_srpc.pb.cpp",
+        "bldr/desktop/tray/tray_resource_ids.pb.go",
         "bldr/desktop/tray/tray_srpc.pb.go",
-        "bldr/desktop/tray/tray_srpc.pb.hpp",
         "bldr/desktop/tray/tray_srpc.pb.rs",
         "bldr/desktop/tray/tray_srpc.pb.ts"
       ],
@@ -71,9 +70,7 @@
         "bldr/devtool/status/status.pb.h",
         "bldr/devtool/status/status.pb.rs",
         "bldr/devtool/status/status.pb.ts",
-        "bldr/devtool/status/status_srpc.pb.cpp",
         "bldr/devtool/status/status_srpc.pb.go",
-        "bldr/devtool/status/status_srpc.pb.hpp",
         "bldr/devtool/status/status_srpc.pb.rs",
         "bldr/devtool/status/status_srpc.pb.ts"
       ],
@@ -131,9 +128,7 @@
         "bldr/manifest/manifest.pb.h",
         "bldr/manifest/manifest.pb.rs",
         "bldr/manifest/manifest.pb.ts",
-        "bldr/manifest/manifest_srpc.pb.cpp",
         "bldr/manifest/manifest_srpc.pb.go",
-        "bldr/manifest/manifest_srpc.pb.hpp",
         "bldr/manifest/manifest_srpc.pb.rs",
         "bldr/manifest/manifest_srpc.pb.ts"
       ],
@@ -151,7 +146,7 @@
       "protoFiles": ["bldr/manifest/build/policy.proto"]
     },
     "github.com/s4wave/spacewave/bldr/manifest/builder": {
-      "hash": "e2519f0d1c3b376c22be03ec212fa55533b37406e7cb5b3dac018c407378f181",
+      "hash": "84d8b6275c383e0828a1467ac218f1aaa2970406727c5ceab7880576211c5814",
       "generatedFiles": [
         "bldr/manifest/builder/builder.pb.cc",
         "bldr/manifest/builder/builder.pb.go",
@@ -235,9 +230,7 @@
         "bldr/plugin/plugin.pb.h",
         "bldr/plugin/plugin.pb.rs",
         "bldr/plugin/plugin.pb.ts",
-        "bldr/plugin/plugin_srpc.pb.cpp",
         "bldr/plugin/plugin_srpc.pb.go",
-        "bldr/plugin/plugin_srpc.pb.hpp",
         "bldr/plugin/plugin_srpc.pb.rs",
         "bldr/plugin/plugin_srpc.pb.ts"
       ],
@@ -343,7 +336,7 @@
       "protoFiles": ["bldr/plugin/host/process/config.proto"]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/scheduler": {
-      "hash": "a09728be2344b8c47ee4b851d175ca23a1495e7ec6870933df364b835b9167f1",
+      "hash": "95d5e1c13103d5176131cb2c612c493b33af46154228fb8380d9117e5e78dc75",
       "generatedFiles": [
         "bldr/plugin/host/scheduler/config.pb.cc",
         "bldr/plugin/host/scheduler/config.pb.go",
@@ -482,25 +475,22 @@
         "bldr/prototypes/webworker-rpcstream/common/common.pb.h",
         "bldr/prototypes/webworker-rpcstream/common/common.pb.rs",
         "bldr/prototypes/webworker-rpcstream/common/common.pb.ts",
-        "bldr/prototypes/webworker-rpcstream/common/common_srpc.pb.cpp",
         "bldr/prototypes/webworker-rpcstream/common/common_srpc.pb.go",
-        "bldr/prototypes/webworker-rpcstream/common/common_srpc.pb.hpp",
         "bldr/prototypes/webworker-rpcstream/common/common_srpc.pb.rs",
         "bldr/prototypes/webworker-rpcstream/common/common_srpc.pb.ts"
       ],
       "protoFiles": ["bldr/prototypes/webworker-rpcstream/common/common.proto"]
     },
     "github.com/s4wave/spacewave/bldr/resource": {
-      "hash": "eb4af5324bf410a3bb03eca471440826c6b9fdfcc62fee7517e0765848aef4a0",
+      "hash": "f4de2b07dcd957290cf08428f3e8b8369068b7431d6a6450a88c40a36972856a",
       "generatedFiles": [
         "bldr/resource/resource.pb.cc",
         "bldr/resource/resource.pb.go",
         "bldr/resource/resource.pb.h",
         "bldr/resource/resource.pb.rs",
         "bldr/resource/resource.pb.ts",
-        "bldr/resource/resource_srpc.pb.cpp",
+        "bldr/resource/resource_resource_ids.pb.go",
         "bldr/resource/resource_srpc.pb.go",
-        "bldr/resource/resource_srpc.pb.hpp",
         "bldr/resource/resource_srpc.pb.rs",
         "bldr/resource/resource_srpc.pb.ts"
       ],
@@ -514,25 +504,22 @@
         "bldr/resource/state/state.pb.h",
         "bldr/resource/state/state.pb.rs",
         "bldr/resource/state/state.pb.ts",
-        "bldr/resource/state/state_srpc.pb.cpp",
         "bldr/resource/state/state_srpc.pb.go",
-        "bldr/resource/state/state_srpc.pb.hpp",
         "bldr/resource/state/state_srpc.pb.rs",
         "bldr/resource/state/state_srpc.pb.ts"
       ],
       "protoFiles": ["bldr/resource/state/state.proto"]
     },
     "github.com/s4wave/spacewave/bldr/sdk/plugin/host": {
-      "hash": "7b74c0bbcd4b079f8347d30e30a1da1eb7c9473202d3818fed19c2147849280d",
+      "hash": "d9b0c7555d2c74157360ccea6c6db5f15fa5992f339b458c2bab01154a794b51",
       "generatedFiles": [
         "bldr/sdk/plugin/host/host.pb.cc",
         "bldr/sdk/plugin/host/host.pb.go",
         "bldr/sdk/plugin/host/host.pb.h",
         "bldr/sdk/plugin/host/host.pb.rs",
         "bldr/sdk/plugin/host/host.pb.ts",
-        "bldr/sdk/plugin/host/host_srpc.pb.cpp",
+        "bldr/sdk/plugin/host/host_resource_ids.pb.go",
         "bldr/sdk/plugin/host/host_srpc.pb.go",
-        "bldr/sdk/plugin/host/host_srpc.pb.hpp",
         "bldr/sdk/plugin/host/host_srpc.pb.rs",
         "bldr/sdk/plugin/host/host_srpc.pb.ts"
       ],
@@ -612,9 +599,7 @@
         "bldr/web/bundler/vite/vite.pb.h",
         "bldr/web/bundler/vite/vite.pb.rs",
         "bldr/web/bundler/vite/vite.pb.ts",
-        "bldr/web/bundler/vite/vite_srpc.pb.cpp",
         "bldr/web/bundler/vite/vite_srpc.pb.go",
-        "bldr/web/bundler/vite/vite_srpc.pb.hpp",
         "bldr/web/bundler/vite/vite_srpc.pb.rs",
         "bldr/web/bundler/vite/vite_srpc.pb.ts"
       ],
@@ -639,9 +624,7 @@
         "bldr/web/document/document.pb.h",
         "bldr/web/document/document.pb.rs",
         "bldr/web/document/document.pb.ts",
-        "bldr/web/document/document_srpc.pb.cpp",
         "bldr/web/document/document_srpc.pb.go",
-        "bldr/web/document/document_srpc.pb.hpp",
         "bldr/web/document/document_srpc.pb.rs",
         "bldr/web/document/document_srpc.pb.ts"
       ],
@@ -655,9 +638,7 @@
         "bldr/web/electron/desktop-runtime/desktop-runtime.pb.h",
         "bldr/web/electron/desktop-runtime/desktop-runtime.pb.rs",
         "bldr/web/electron/desktop-runtime/desktop-runtime.pb.ts",
-        "bldr/web/electron/desktop-runtime/desktop-runtime_srpc.pb.cpp",
         "bldr/web/electron/desktop-runtime/desktop-runtime_srpc.pb.go",
-        "bldr/web/electron/desktop-runtime/desktop-runtime_srpc.pb.hpp",
         "bldr/web/electron/desktop-runtime/desktop-runtime_srpc.pb.rs",
         "bldr/web/electron/desktop-runtime/desktop-runtime_srpc.pb.ts"
       ],
@@ -682,9 +663,7 @@
         "bldr/web/fetch/fetch.pb.h",
         "bldr/web/fetch/fetch.pb.rs",
         "bldr/web/fetch/fetch.pb.ts",
-        "bldr/web/fetch/fetch_srpc.pb.cpp",
         "bldr/web/fetch/fetch_srpc.pb.go",
-        "bldr/web/fetch/fetch_srpc.pb.hpp",
         "bldr/web/fetch/fetch_srpc.pb.rs",
         "bldr/web/fetch/fetch_srpc.pb.ts"
       ],
@@ -742,9 +721,7 @@
         "bldr/web/pkg/rpc/rpc.pb.h",
         "bldr/web/pkg/rpc/rpc.pb.rs",
         "bldr/web/pkg/rpc/rpc.pb.ts",
-        "bldr/web/pkg/rpc/rpc_srpc.pb.cpp",
         "bldr/web/pkg/rpc/rpc_srpc.pb.go",
-        "bldr/web/pkg/rpc/rpc_srpc.pb.hpp",
         "bldr/web/pkg/rpc/rpc_srpc.pb.rs",
         "bldr/web/pkg/rpc/rpc_srpc.pb.ts"
       ],
@@ -780,9 +757,7 @@
         "bldr/web/plugin/plugin.pb.h",
         "bldr/web/plugin/plugin.pb.rs",
         "bldr/web/plugin/plugin.pb.ts",
-        "bldr/web/plugin/plugin_srpc.pb.cpp",
         "bldr/web/plugin/plugin_srpc.pb.go",
-        "bldr/web/plugin/plugin_srpc.pb.hpp",
         "bldr/web/plugin/plugin_srpc.pb.rs",
         "bldr/web/plugin/plugin_srpc.pb.ts"
       ],
@@ -796,9 +771,7 @@
         "bldr/web/plugin/browser/browser.pb.h",
         "bldr/web/plugin/browser/browser.pb.rs",
         "bldr/web/plugin/browser/browser.pb.ts",
-        "bldr/web/plugin/browser/browser_srpc.pb.cpp",
         "bldr/web/plugin/browser/browser_srpc.pb.go",
-        "bldr/web/plugin/browser/browser_srpc.pb.hpp",
         "bldr/web/plugin/browser/browser_srpc.pb.rs",
         "bldr/web/plugin/browser/browser_srpc.pb.ts"
       ],
@@ -900,9 +873,7 @@
         "bldr/web/plugin/saucer/saucer.pb.h",
         "bldr/web/plugin/saucer/saucer.pb.rs",
         "bldr/web/plugin/saucer/saucer.pb.ts",
-        "bldr/web/plugin/saucer/saucer_srpc.pb.cpp",
         "bldr/web/plugin/saucer/saucer_srpc.pb.go",
-        "bldr/web/plugin/saucer/saucer_srpc.pb.hpp",
         "bldr/web/plugin/saucer/saucer_srpc.pb.rs",
         "bldr/web/plugin/saucer/saucer_srpc.pb.ts"
       ],
@@ -916,9 +887,7 @@
         "bldr/web/runtime/runtime.pb.h",
         "bldr/web/runtime/runtime.pb.rs",
         "bldr/web/runtime/runtime.pb.ts",
-        "bldr/web/runtime/runtime_srpc.pb.cpp",
         "bldr/web/runtime/runtime_srpc.pb.go",
-        "bldr/web/runtime/runtime_srpc.pb.hpp",
         "bldr/web/runtime/runtime_srpc.pb.rs",
         "bldr/web/runtime/runtime_srpc.pb.ts"
       ],
@@ -932,9 +901,7 @@
         "bldr/web/runtime/sw/sw.pb.h",
         "bldr/web/runtime/sw/sw.pb.rs",
         "bldr/web/runtime/sw/sw.pb.ts",
-        "bldr/web/runtime/sw/sw_srpc.pb.cpp",
         "bldr/web/runtime/sw/sw_srpc.pb.go",
-        "bldr/web/runtime/sw/sw_srpc.pb.hpp",
         "bldr/web/runtime/sw/sw_srpc.pb.rs",
         "bldr/web/runtime/sw/sw_srpc.pb.ts"
       ],
@@ -959,9 +926,7 @@
         "bldr/web/view/view.pb.h",
         "bldr/web/view/view.pb.rs",
         "bldr/web/view/view.pb.ts",
-        "bldr/web/view/view_srpc.pb.cpp",
         "bldr/web/view/view_srpc.pb.go",
-        "bldr/web/view/view_srpc.pb.hpp",
         "bldr/web/view/view_srpc.pb.rs",
         "bldr/web/view/view_srpc.pb.ts"
       ],
@@ -979,9 +944,7 @@
         "bldr/web/view/handler/rpc.pb.go",
         "bldr/web/view/handler/rpc.pb.h",
         "bldr/web/view/handler/rpc.pb.ts",
-        "bldr/web/view/handler/rpc_srpc.pb.cpp",
         "bldr/web/view/handler/rpc_srpc.pb.go",
-        "bldr/web/view/handler/rpc_srpc.pb.hpp",
         "bldr/web/view/handler/rpc_srpc.pb.rs",
         "bldr/web/view/handler/rpc_srpc.pb.ts"
       ],
@@ -1079,7 +1042,7 @@
       "protoFiles": ["core/cdn/bstore/controller/controller.proto"]
     },
     "github.com/s4wave/spacewave/core/cdn/world/controller": {
-      "hash": "3abf451564bf57b585c1c62d9fa6d84ee434839021873be8c79a88dc8de5e2be",
+      "hash": "41a2075ad6d843e2042c58bbd601b5a51f54b77e33578753e567535b529f0551",
       "generatedFiles": [
         "core/cdn/world/controller/controller.pb.cc",
         "core/cdn/world/controller/controller.pb.go",
@@ -1152,9 +1115,7 @@
         "core/forge/exec/plugin.pb.h",
         "core/forge/exec/plugin.pb.rs",
         "core/forge/exec/plugin.pb.ts",
-        "core/forge/exec/plugin_srpc.pb.cpp",
         "core/forge/exec/plugin_srpc.pb.go",
-        "core/forge/exec/plugin_srpc.pb.hpp",
         "core/forge/exec/plugin_srpc.pb.rs",
         "core/forge/exec/plugin_srpc.pb.ts"
       ],
@@ -1279,7 +1240,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/api": {
-      "hash": "d44c93f1c690b03a49ee71087125a13ecdf6ef401f07c04fe9f12b2862702a21",
+      "hash": "c4ee50909002a13f03575906047ec9f1d8c44de8a287bea3165099eb501de335",
       "generatedFiles": [
         "core/provider/spacewave/api/api.pb.cc",
         "core/provider/spacewave/api/api.pb.go",
@@ -1297,9 +1258,7 @@
         "core/provider/spacewave/cacheseed/cacheseed.pb.h",
         "core/provider/spacewave/cacheseed/cacheseed.pb.rs",
         "core/provider/spacewave/cacheseed/cacheseed.pb.ts",
-        "core/provider/spacewave/cacheseed/cacheseed_srpc.pb.cpp",
         "core/provider/spacewave/cacheseed/cacheseed_srpc.pb.go",
-        "core/provider/spacewave/cacheseed/cacheseed_srpc.pb.hpp",
         "core/provider/spacewave/cacheseed/cacheseed_srpc.pb.rs",
         "core/provider/spacewave/cacheseed/cacheseed_srpc.pb.ts"
       ],
@@ -1313,9 +1272,7 @@
         "core/provider/spacewave/launcher/launcher.pb.h",
         "core/provider/spacewave/launcher/launcher.pb.rs",
         "core/provider/spacewave/launcher/launcher.pb.ts",
-        "core/provider/spacewave/launcher/launcher_srpc.pb.cpp",
         "core/provider/spacewave/launcher/launcher_srpc.pb.go",
-        "core/provider/spacewave/launcher/launcher_srpc.pb.hpp",
         "core/provider/spacewave/launcher/launcher_srpc.pb.rs",
         "core/provider/spacewave/launcher/launcher_srpc.pb.ts"
       ],
@@ -1465,7 +1422,7 @@
       "protoFiles": ["core/session/handoff/handoff.proto"]
     },
     "github.com/s4wave/spacewave/core/sobject": {
-      "hash": "74e1b0b3ec3c0159fac80053c8b7cd2fa9adddb06555617be5fad77a96920753",
+      "hash": "fa5895f6018937523748b446f72a765eff9958a36fa4e01cdd80c32bdc7c49d8",
       "generatedFiles": [
         "core/sobject/sobject.pb.cc",
         "core/sobject/sobject.pb.go",
@@ -1483,9 +1440,7 @@
         "core/sobject/invite/invite.pb.h",
         "core/sobject/invite/invite.pb.rs",
         "core/sobject/invite/invite.pb.ts",
-        "core/sobject/invite/invite_srpc.pb.cpp",
         "core/sobject/invite/invite_srpc.pb.go",
-        "core/sobject/invite/invite_srpc.pb.hpp",
         "core/sobject/invite/invite_srpc.pb.rs",
         "core/sobject/invite/invite_srpc.pb.ts"
       ],
@@ -1675,9 +1630,7 @@
         "db/block/gc/rpc/refgraph.pb.h",
         "db/block/gc/rpc/refgraph.pb.rs",
         "db/block/gc/rpc/refgraph.pb.ts",
-        "db/block/gc/rpc/refgraph_srpc.pb.cpp",
         "db/block/gc/rpc/refgraph_srpc.pb.go",
-        "db/block/gc/rpc/refgraph_srpc.pb.hpp",
         "db/block/gc/rpc/refgraph_srpc.pb.rs",
         "db/block/gc/rpc/refgraph_srpc.pb.ts"
       ],
@@ -1735,9 +1688,7 @@
         "db/block/rpc/block.pb.h",
         "db/block/rpc/block.pb.rs",
         "db/block/rpc/block.pb.ts",
-        "db/block/rpc/block_srpc.pb.cpp",
         "db/block/rpc/block_srpc.pb.go",
-        "db/block/rpc/block_srpc.pb.hpp",
         "db/block/rpc/block_srpc.pb.rs",
         "db/block/rpc/block_srpc.pb.ts"
       ],
@@ -2070,9 +2021,7 @@
         "db/bucket/store/rpc/bucket.pb.h",
         "db/bucket/store/rpc/bucket.pb.rs",
         "db/bucket/store/rpc/bucket.pb.ts",
-        "db/bucket/store/rpc/bucket_srpc.pb.cpp",
         "db/bucket/store/rpc/bucket_srpc.pb.go",
-        "db/bucket/store/rpc/bucket_srpc.pb.hpp",
         "db/bucket/store/rpc/bucket_srpc.pb.rs",
         "db/bucket/store/rpc/bucket_srpc.pb.ts"
       ],
@@ -2086,9 +2035,7 @@
         "db/daemon/api/api.pb.h",
         "db/daemon/api/api.pb.rs",
         "db/daemon/api/api.pb.ts",
-        "db/daemon/api/api_srpc.pb.cpp",
         "db/daemon/api/api_srpc.pb.go",
-        "db/daemon/api/api_srpc.pb.hpp",
         "db/daemon/api/api_srpc.pb.rs",
         "db/daemon/api/api_srpc.pb.ts"
       ],
@@ -2239,9 +2186,7 @@
         "db/kvtx/rpc/kvtx.pb.h",
         "db/kvtx/rpc/kvtx.pb.rs",
         "db/kvtx/rpc/kvtx.pb.ts",
-        "db/kvtx/rpc/kvtx_srpc.pb.cpp",
         "db/kvtx/rpc/kvtx_srpc.pb.go",
-        "db/kvtx/rpc/kvtx_srpc.pb.hpp",
         "db/kvtx/rpc/kvtx_srpc.pb.rs",
         "db/kvtx/rpc/kvtx_srpc.pb.ts"
       ],
@@ -2277,9 +2222,7 @@
         "db/object/rpc/object.pb.h",
         "db/object/rpc/object.pb.rs",
         "db/object/rpc/object.pb.ts",
-        "db/object/rpc/object_srpc.pb.cpp",
         "db/object/rpc/object_srpc.pb.go",
-        "db/object/rpc/object_srpc.pb.hpp",
         "db/object/rpc/object_srpc.pb.rs",
         "db/object/rpc/object_srpc.pb.ts"
       ],
@@ -2326,9 +2269,7 @@
         "db/sql/rpc/sql.pb.h",
         "db/sql/rpc/sql.pb.rs",
         "db/sql/rpc/sql.pb.ts",
-        "db/sql/rpc/sql_srpc.pb.cpp",
         "db/sql/rpc/sql_srpc.pb.go",
-        "db/sql/rpc/sql_srpc.pb.hpp",
         "db/sql/rpc/sql_srpc.pb.rs",
         "db/sql/rpc/sql_srpc.pb.ts"
       ],
@@ -2342,9 +2283,7 @@
         "db/sql/sqlite-wasm/rpc/sqlite-bridge.pb.h",
         "db/sql/sqlite-wasm/rpc/sqlite-bridge.pb.rs",
         "db/sql/sqlite-wasm/rpc/sqlite-bridge.pb.ts",
-        "db/sql/sqlite-wasm/rpc/sqlite-bridge_srpc.pb.cpp",
         "db/sql/sqlite-wasm/rpc/sqlite-bridge_srpc.pb.go",
-        "db/sql/sqlite-wasm/rpc/sqlite-bridge_srpc.pb.hpp",
         "db/sql/sqlite-wasm/rpc/sqlite-bridge_srpc.pb.rs",
         "db/sql/sqlite-wasm/rpc/sqlite-bridge_srpc.pb.ts"
       ],
@@ -2457,9 +2396,7 @@
         "db/unixfs/rpc/rpc.pb.h",
         "db/unixfs/rpc/rpc.pb.rs",
         "db/unixfs/rpc/rpc.pb.ts",
-        "db/unixfs/rpc/rpc_srpc.pb.cpp",
         "db/unixfs/rpc/rpc_srpc.pb.go",
-        "db/unixfs/rpc/rpc_srpc.pb.hpp",
         "db/unixfs/rpc/rpc_srpc.pb.rs",
         "db/unixfs/rpc/rpc_srpc.pb.ts"
       ],
@@ -2484,9 +2421,7 @@
         "db/unixfs/v86fs/v86fs.pb.h",
         "db/unixfs/v86fs/v86fs.pb.rs",
         "db/unixfs/v86fs/v86fs.pb.ts",
-        "db/unixfs/v86fs/v86fs_srpc.pb.cpp",
         "db/unixfs/v86fs/v86fs_srpc.pb.go",
-        "db/unixfs/v86fs/v86fs_srpc.pb.hpp",
         "db/unixfs/v86fs/v86fs_srpc.pb.rs",
         "db/unixfs/v86fs/v86fs_srpc.pb.ts"
       ],
@@ -2647,16 +2582,14 @@
       "protoFiles": ["db/volume/redis/redis.proto"]
     },
     "github.com/s4wave/spacewave/db/volume/rpc": {
-      "hash": "a3039807420daeada81bb6f3ac6cf302e3e29e9c86538500e60716da95cd5f5b",
+      "hash": "2636b55406dc81fecb72481444281e146c15e5b16c4c80a8c31fa1a73530c444",
       "generatedFiles": [
         "db/volume/rpc/volume.pb.cc",
         "db/volume/rpc/volume.pb.go",
         "db/volume/rpc/volume.pb.h",
         "db/volume/rpc/volume.pb.rs",
         "db/volume/rpc/volume.pb.ts",
-        "db/volume/rpc/volume_srpc.pb.cpp",
         "db/volume/rpc/volume_srpc.pb.go",
-        "db/volume/rpc/volume_srpc.pb.hpp",
         "db/volume/rpc/volume_srpc.pb.rs",
         "db/volume/rpc/volume_srpc.pb.ts"
       ],
@@ -2763,9 +2696,7 @@
         "e2e/wasm/session/session.pb.h",
         "e2e/wasm/session/session.pb.rs",
         "e2e/wasm/session/session.pb.ts",
-        "e2e/wasm/session/session_srpc.pb.cpp",
         "e2e/wasm/session/session_srpc.pb.go",
-        "e2e/wasm/session/session_srpc.pb.hpp",
         "e2e/wasm/session/session_srpc.pb.rs",
         "e2e/wasm/session/session_srpc.pb.ts"
       ],
@@ -2815,9 +2746,7 @@
         "forge/daemon/api/api.pb.h",
         "forge/daemon/api/api.pb.rs",
         "forge/daemon/api/api.pb.ts",
-        "forge/daemon/api/api_srpc.pb.cpp",
         "forge/daemon/api/api_srpc.pb.go",
-        "forge/daemon/api/api_srpc.pb.hpp",
         "forge/daemon/api/api_srpc.pb.rs",
         "forge/daemon/api/api_srpc.pb.ts"
       ],
@@ -2835,7 +2764,7 @@
       "protoFiles": ["forge/daemon/api/controller/controller.proto"]
     },
     "github.com/s4wave/spacewave/forge/execution": {
-      "hash": "92a5e308a10cc3d686a6e0823982879654aafcf211aef905cb405173f8f3f3cf",
+      "hash": "968a70f891dbda775a0bfddc0fdcdae7ef16332129cd1ec8a12825699bbf5d4d",
       "generatedFiles": [
         "forge/execution/execution.pb.cc",
         "forge/execution/execution.pb.go",
@@ -2846,7 +2775,7 @@
       "protoFiles": ["forge/execution/execution.proto"]
     },
     "github.com/s4wave/spacewave/forge/execution/controller": {
-      "hash": "230113c1750ec64cb6f2f6715780208edbf3109e5a5c6bed9d4e61043004c6a1",
+      "hash": "62775bf9700e4ad285efa4e67db39e83da9c178e5eedafcbe1829e8698b7b3c3",
       "generatedFiles": [
         "forge/execution/controller/config.pb.cc",
         "forge/execution/controller/config.pb.go",
@@ -2857,7 +2786,7 @@
       "protoFiles": ["forge/execution/controller/config.proto"]
     },
     "github.com/s4wave/spacewave/forge/execution/tx": {
-      "hash": "56e2af90f94ade5d778944a18922cc8a5a545073213a35ada0beb204b319f4c9",
+      "hash": "b012516dcd142bd8b116284c035879a3839e5d81a9a9070cab6cd07568270a7c",
       "generatedFiles": [
         "forge/execution/tx/tx.pb.cc",
         "forge/execution/tx/tx.pb.go",
@@ -2934,7 +2863,7 @@
       "protoFiles": ["forge/lib/v86/bun/config.proto"]
     },
     "github.com/s4wave/spacewave/forge/pass": {
-      "hash": "19413f827574ea52810b83b9d7784e398721e9c18d711c632f3a4264a475b22b",
+      "hash": "65e3cb8634dee08b2c82775587df23d74890d1858456e6761c00190b02422ca5",
       "generatedFiles": [
         "forge/pass/pass.pb.cc",
         "forge/pass/pass.pb.go",
@@ -2956,7 +2885,7 @@
       "protoFiles": ["forge/pass/controller/config.proto"]
     },
     "github.com/s4wave/spacewave/forge/pass/tx": {
-      "hash": "c9900f9ca5b7437afa10d30299830680a199e4dc8e3730a2a95bf36520185c22",
+      "hash": "9f2092830402e87597d631dad63d63058d2f2ffbaa00512473d7a43373a4dac5",
       "generatedFiles": [
         "forge/pass/tx/tx.pb.cc",
         "forge/pass/tx/tx.pb.go",
@@ -2978,7 +2907,7 @@
       "protoFiles": ["forge/target/target.proto"]
     },
     "github.com/s4wave/spacewave/forge/task": {
-      "hash": "e2921f55c8b66e128d778423ba613ac06767cae48bf5f5068505178eb978a70e",
+      "hash": "2b2f792f78c9bba00ed714c5cc89425af2fab7b58fb84ef4bd3b3813ef67f4fe",
       "generatedFiles": [
         "forge/task/task.pb.cc",
         "forge/task/task.pb.go",
@@ -3000,7 +2929,7 @@
       "protoFiles": ["forge/task/controller/config.proto"]
     },
     "github.com/s4wave/spacewave/forge/task/tx": {
-      "hash": "cd79a375a795319eb2a914a279902ed73c823553a69c883b66e55085f7792ffc",
+      "hash": "deb4f3cecd636b2be0beb4af9ad7c76343e757fe35949e7cef926dff5063287e",
       "generatedFiles": [
         "forge/task/tx/tx.pb.cc",
         "forge/task/tx/tx.pb.go",
@@ -3073,9 +3002,7 @@
         "identity/domain/service/service.pb.h",
         "identity/domain/service/service.pb.rs",
         "identity/domain/service/service.pb.ts",
-        "identity/domain/service/service_srpc.pb.cpp",
         "identity/domain/service/service_srpc.pb.go",
-        "identity/domain/service/service_srpc.pb.hpp",
         "identity/domain/service/service_srpc.pb.rs",
         "identity/domain/service/service_srpc.pb.ts"
       ],
@@ -3253,9 +3180,7 @@
         "net/peer/api/api.pb.h",
         "net/peer/api/api.pb.rs",
         "net/peer/api/api.pb.ts",
-        "net/peer/api/api_srpc.pb.cpp",
         "net/peer/api/api_srpc.pb.go",
-        "net/peer/api/api_srpc.pb.hpp",
         "net/peer/api/api_srpc.pb.rs",
         "net/peer/api/api_srpc.pb.ts"
       ],
@@ -3280,9 +3205,7 @@
         "net/pubsub/api/api.pb.h",
         "net/pubsub/api/api.pb.rs",
         "net/pubsub/api/api.pb.ts",
-        "net/pubsub/api/api_srpc.pb.cpp",
         "net/pubsub/api/api_srpc.pb.go",
-        "net/pubsub/api/api_srpc.pb.hpp",
         "net/pubsub/api/api_srpc.pb.rs",
         "net/pubsub/api/api_srpc.pb.ts"
       ],
@@ -3340,9 +3263,7 @@
         "net/rpc/access/access.pb.h",
         "net/rpc/access/access.pb.rs",
         "net/rpc/access/access.pb.ts",
-        "net/rpc/access/access_srpc.pb.cpp",
         "net/rpc/access/access_srpc.pb.go",
-        "net/rpc/access/access_srpc.pb.hpp",
         "net/rpc/access/access_srpc.pb.rs",
         "net/rpc/access/access_srpc.pb.ts"
       ],
@@ -3367,9 +3288,7 @@
         "net/signaling/rpc/signaling.pb.h",
         "net/signaling/rpc/signaling.pb.rs",
         "net/signaling/rpc/signaling.pb.ts",
-        "net/signaling/rpc/signaling_srpc.pb.cpp",
         "net/signaling/rpc/signaling_srpc.pb.go",
-        "net/signaling/rpc/signaling_srpc.pb.hpp",
         "net/signaling/rpc/signaling_srpc.pb.rs",
         "net/signaling/rpc/signaling_srpc.pb.ts"
       ],
@@ -3405,9 +3324,7 @@
         "net/stream/api/api.pb.h",
         "net/stream/api/api.pb.rs",
         "net/stream/api/api.pb.ts",
-        "net/stream/api/api_srpc.pb.cpp",
         "net/stream/api/api_srpc.pb.go",
-        "net/stream/api/api_srpc.pb.hpp",
         "net/stream/api/api_srpc.pb.rs",
         "net/stream/api/api_srpc.pb.ts"
       ],
@@ -3707,9 +3624,7 @@
         "plugin/notes/sdk/blog.pb.h",
         "plugin/notes/sdk/blog.pb.rs",
         "plugin/notes/sdk/blog.pb.ts",
-        "plugin/notes/sdk/blog_srpc.pb.cpp",
         "plugin/notes/sdk/blog_srpc.pb.go",
-        "plugin/notes/sdk/blog_srpc.pb.hpp",
         "plugin/notes/sdk/blog_srpc.pb.rs",
         "plugin/notes/sdk/blog_srpc.pb.ts",
         "plugin/notes/sdk/docs.pb.cc",
@@ -3717,9 +3632,7 @@
         "plugin/notes/sdk/docs.pb.h",
         "plugin/notes/sdk/docs.pb.rs",
         "plugin/notes/sdk/docs.pb.ts",
-        "plugin/notes/sdk/docs_srpc.pb.cpp",
         "plugin/notes/sdk/docs_srpc.pb.go",
-        "plugin/notes/sdk/docs_srpc.pb.hpp",
         "plugin/notes/sdk/docs_srpc.pb.rs",
         "plugin/notes/sdk/docs_srpc.pb.ts",
         "plugin/notes/sdk/notebook.pb.cc",
@@ -3727,9 +3640,7 @@
         "plugin/notes/sdk/notebook.pb.h",
         "plugin/notes/sdk/notebook.pb.rs",
         "plugin/notes/sdk/notebook.pb.ts",
-        "plugin/notes/sdk/notebook_srpc.pb.cpp",
         "plugin/notes/sdk/notebook_srpc.pb.go",
-        "plugin/notes/sdk/notebook_srpc.pb.hpp",
         "plugin/notes/sdk/notebook_srpc.pb.rs",
         "plugin/notes/sdk/notebook_srpc.pb.ts"
       ],
@@ -3758,9 +3669,7 @@
         "sdk/account/account.pb.h",
         "sdk/account/account.pb.rs",
         "sdk/account/account.pb.ts",
-        "sdk/account/account_srpc.pb.cpp",
         "sdk/account/account_srpc.pb.go",
-        "sdk/account/account_srpc.pb.hpp",
         "sdk/account/account_srpc.pb.rs",
         "sdk/account/account_srpc.pb.ts"
       ],
@@ -3778,16 +3687,15 @@
       "protoFiles": ["sdk/apt/repository.proto"]
     },
     "github.com/s4wave/spacewave/sdk/block/cursor": {
-      "hash": "9122bdfbbf1f87c289478917a1b02c7635a563c42826c076368b3a528db469aa",
+      "hash": "32902675a5720a126ef2db0e13529f2f3b2ab2e570d55f9405c0f131007c7dbe",
       "generatedFiles": [
         "sdk/block/cursor/cursor.pb.cc",
         "sdk/block/cursor/cursor.pb.go",
         "sdk/block/cursor/cursor.pb.h",
         "sdk/block/cursor/cursor.pb.rs",
         "sdk/block/cursor/cursor.pb.ts",
-        "sdk/block/cursor/cursor_srpc.pb.cpp",
+        "sdk/block/cursor/cursor_resource_ids.pb.go",
         "sdk/block/cursor/cursor_srpc.pb.go",
-        "sdk/block/cursor/cursor_srpc.pb.hpp",
         "sdk/block/cursor/cursor_srpc.pb.rs",
         "sdk/block/cursor/cursor_srpc.pb.ts"
       ],
@@ -3801,25 +3709,23 @@
         "sdk/block/transaction/transaction.pb.h",
         "sdk/block/transaction/transaction.pb.rs",
         "sdk/block/transaction/transaction.pb.ts",
-        "sdk/block/transaction/transaction_srpc.pb.cpp",
+        "sdk/block/transaction/transaction_resource_ids.pb.go",
         "sdk/block/transaction/transaction_srpc.pb.go",
-        "sdk/block/transaction/transaction_srpc.pb.hpp",
         "sdk/block/transaction/transaction_srpc.pb.rs",
         "sdk/block/transaction/transaction_srpc.pb.ts"
       ],
       "protoFiles": ["sdk/block/transaction/transaction.proto"]
     },
     "github.com/s4wave/spacewave/sdk/bucket/lookup": {
-      "hash": "3e7bd84ba599dc2209493c98ed9e8d04396979005db197ae3d577f8d05c08518",
+      "hash": "7caef9f3a1ea32ba85a34204fda07dd3fe2175119600578338205929b891f0f3",
       "generatedFiles": [
         "sdk/bucket/lookup/lookup.pb.cc",
         "sdk/bucket/lookup/lookup.pb.go",
         "sdk/bucket/lookup/lookup.pb.h",
         "sdk/bucket/lookup/lookup.pb.rs",
         "sdk/bucket/lookup/lookup.pb.ts",
-        "sdk/bucket/lookup/lookup_srpc.pb.cpp",
+        "sdk/bucket/lookup/lookup_resource_ids.pb.go",
         "sdk/bucket/lookup/lookup_srpc.pb.go",
-        "sdk/bucket/lookup/lookup_srpc.pb.hpp",
         "sdk/bucket/lookup/lookup_srpc.pb.rs",
         "sdk/bucket/lookup/lookup_srpc.pb.ts"
       ],
@@ -3833,9 +3739,7 @@
         "sdk/canvas/canvas.pb.h",
         "sdk/canvas/canvas.pb.rs",
         "sdk/canvas/canvas.pb.ts",
-        "sdk/canvas/canvas_srpc.pb.cpp",
         "sdk/canvas/canvas_srpc.pb.go",
-        "sdk/canvas/canvas_srpc.pb.hpp",
         "sdk/canvas/canvas_srpc.pb.rs",
         "sdk/canvas/canvas_srpc.pb.ts"
       ],
@@ -3849,9 +3753,8 @@
         "sdk/cdn/cdn-resource.pb.h",
         "sdk/cdn/cdn-resource.pb.rs",
         "sdk/cdn/cdn-resource.pb.ts",
-        "sdk/cdn/cdn-resource_srpc.pb.cpp",
+        "sdk/cdn/cdn-resource_resource_ids.pb.go",
         "sdk/cdn/cdn-resource_srpc.pb.go",
-        "sdk/cdn/cdn-resource_srpc.pb.hpp",
         "sdk/cdn/cdn-resource_srpc.pb.rs",
         "sdk/cdn/cdn-resource_srpc.pb.ts"
       ],
@@ -3876,9 +3779,7 @@
         "sdk/chat/rpc/rpc.pb.h",
         "sdk/chat/rpc/rpc.pb.rs",
         "sdk/chat/rpc/rpc.pb.ts",
-        "sdk/chat/rpc/rpc_srpc.pb.cpp",
         "sdk/chat/rpc/rpc_srpc.pb.go",
-        "sdk/chat/rpc/rpc_srpc.pb.hpp",
         "sdk/chat/rpc/rpc_srpc.pb.rs",
         "sdk/chat/rpc/rpc_srpc.pb.ts"
       ],
@@ -3892,9 +3793,7 @@
         "sdk/cli/terminal/terminal.pb.h",
         "sdk/cli/terminal/terminal.pb.rs",
         "sdk/cli/terminal/terminal.pb.ts",
-        "sdk/cli/terminal/terminal_srpc.pb.cpp",
         "sdk/cli/terminal/terminal_srpc.pb.go",
-        "sdk/cli/terminal/terminal_srpc.pb.hpp",
         "sdk/cli/terminal/terminal_srpc.pb.rs",
         "sdk/cli/terminal/terminal_srpc.pb.ts"
       ],
@@ -3919,9 +3818,8 @@
         "sdk/command/registry/registry.pb.h",
         "sdk/command/registry/registry.pb.rs",
         "sdk/command/registry/registry.pb.ts",
-        "sdk/command/registry/registry_srpc.pb.cpp",
+        "sdk/command/registry/registry_resource_ids.pb.go",
         "sdk/command/registry/registry_srpc.pb.go",
-        "sdk/command/registry/registry_srpc.pb.hpp",
         "sdk/command/registry/registry_srpc.pb.rs",
         "sdk/command/registry/registry_srpc.pb.ts"
       ],
@@ -3935,9 +3833,8 @@
         "sdk/configtype/registry/registry.pb.h",
         "sdk/configtype/registry/registry.pb.rs",
         "sdk/configtype/registry/registry.pb.ts",
-        "sdk/configtype/registry/registry_srpc.pb.cpp",
+        "sdk/configtype/registry/registry_resource_ids.pb.go",
         "sdk/configtype/registry/registry_srpc.pb.go",
-        "sdk/configtype/registry/registry_srpc.pb.hpp",
         "sdk/configtype/registry/registry_srpc.pb.rs",
         "sdk/configtype/registry/registry_srpc.pb.ts"
       ],
@@ -3951,9 +3848,7 @@
         "sdk/debug/debug.pb.h",
         "sdk/debug/debug.pb.rs",
         "sdk/debug/debug.pb.ts",
-        "sdk/debug/debug_srpc.pb.cpp",
         "sdk/debug/debug_srpc.pb.go",
-        "sdk/debug/debug_srpc.pb.hpp",
         "sdk/debug/debug_srpc.pb.rs",
         "sdk/debug/debug_srpc.pb.ts"
       ],
@@ -3967,9 +3862,8 @@
         "sdk/debugdb/debugdb.pb.h",
         "sdk/debugdb/debugdb.pb.rs",
         "sdk/debugdb/debugdb.pb.ts",
-        "sdk/debugdb/debugdb_srpc.pb.cpp",
+        "sdk/debugdb/debugdb_resource_ids.pb.go",
         "sdk/debugdb/debugdb_srpc.pb.go",
-        "sdk/debugdb/debugdb_srpc.pb.hpp",
         "sdk/debugdb/debugdb_srpc.pb.rs",
         "sdk/debugdb/debugdb_srpc.pb.ts"
       ],
@@ -3983,9 +3877,7 @@
         "sdk/deploy/deploy.pb.h",
         "sdk/deploy/deploy.pb.rs",
         "sdk/deploy/deploy.pb.ts",
-        "sdk/deploy/deploy_srpc.pb.cpp",
         "sdk/deploy/deploy_srpc.pb.go",
-        "sdk/deploy/deploy_srpc.pb.hpp",
         "sdk/deploy/deploy_srpc.pb.rs",
         "sdk/deploy/deploy_srpc.pb.ts"
       ],
@@ -3999,9 +3891,8 @@
         "sdk/device/device.pb.h",
         "sdk/device/device.pb.rs",
         "sdk/device/device.pb.ts",
-        "sdk/device/device_srpc.pb.cpp",
+        "sdk/device/device_resource_ids.pb.go",
         "sdk/device/device_srpc.pb.go",
-        "sdk/device/device_srpc.pb.hpp",
         "sdk/device/device_srpc.pb.rs",
         "sdk/device/device_srpc.pb.ts"
       ],
@@ -4026,9 +3917,8 @@
         "sdk/git/repo.pb.h",
         "sdk/git/repo.pb.rs",
         "sdk/git/repo.pb.ts",
-        "sdk/git/repo_srpc.pb.cpp",
+        "sdk/git/repo_resource_ids.pb.go",
         "sdk/git/repo_srpc.pb.go",
-        "sdk/git/repo_srpc.pb.hpp",
         "sdk/git/repo_srpc.pb.rs",
         "sdk/git/repo_srpc.pb.ts",
         "sdk/git/worktree.pb.cc",
@@ -4036,9 +3926,8 @@
         "sdk/git/worktree.pb.h",
         "sdk/git/worktree.pb.rs",
         "sdk/git/worktree.pb.ts",
-        "sdk/git/worktree_srpc.pb.cpp",
+        "sdk/git/worktree_resource_ids.pb.go",
         "sdk/git/worktree_srpc.pb.go",
-        "sdk/git/worktree_srpc.pb.hpp",
         "sdk/git/worktree_srpc.pb.rs",
         "sdk/git/worktree_srpc.pb.ts"
       ],
@@ -4063,9 +3952,7 @@
         "sdk/layout/layout.pb.h",
         "sdk/layout/layout.pb.rs",
         "sdk/layout/layout.pb.ts",
-        "sdk/layout/layout_srpc.pb.cpp",
         "sdk/layout/layout_srpc.pb.go",
-        "sdk/layout/layout_srpc.pb.hpp",
         "sdk/layout/layout_srpc.pb.rs",
         "sdk/layout/layout_srpc.pb.ts"
       ],
@@ -4090,9 +3977,8 @@
         "sdk/objecttype/registry/registry.pb.h",
         "sdk/objecttype/registry/registry.pb.rs",
         "sdk/objecttype/registry/registry.pb.ts",
-        "sdk/objecttype/registry/registry_srpc.pb.cpp",
+        "sdk/objecttype/registry/registry_resource_ids.pb.go",
         "sdk/objecttype/registry/registry_srpc.pb.go",
-        "sdk/objecttype/registry/registry_srpc.pb.hpp",
         "sdk/objecttype/registry/registry_srpc.pb.rs",
         "sdk/objecttype/registry/registry_srpc.pb.ts"
       ],
@@ -4106,9 +3992,7 @@
         "sdk/org/org.pb.h",
         "sdk/org/org.pb.rs",
         "sdk/org/org.pb.ts",
-        "sdk/org/org_srpc.pb.cpp",
         "sdk/org/org_srpc.pb.go",
-        "sdk/org/org_srpc.pb.hpp",
         "sdk/org/org_srpc.pb.rs",
         "sdk/org/org_srpc.pb.ts"
       ],
@@ -4127,9 +4011,7 @@
         "sdk/process/process.pb.h",
         "sdk/process/process.pb.rs",
         "sdk/process/process.pb.ts",
-        "sdk/process/process_srpc.pb.cpp",
         "sdk/process/process_srpc.pb.go",
-        "sdk/process/process_srpc.pb.hpp",
         "sdk/process/process_srpc.pb.rs",
         "sdk/process/process_srpc.pb.ts"
       ],
@@ -4143,9 +4025,8 @@
         "sdk/provider/provider.pb.h",
         "sdk/provider/provider.pb.rs",
         "sdk/provider/provider.pb.ts",
-        "sdk/provider/provider_srpc.pb.cpp",
+        "sdk/provider/provider_resource_ids.pb.go",
         "sdk/provider/provider_srpc.pb.go",
-        "sdk/provider/provider_srpc.pb.hpp",
         "sdk/provider/provider_srpc.pb.rs",
         "sdk/provider/provider_srpc.pb.ts"
       ],
@@ -4159,9 +4040,7 @@
         "sdk/provider/local/local.pb.h",
         "sdk/provider/local/local.pb.rs",
         "sdk/provider/local/local.pb.ts",
-        "sdk/provider/local/local_srpc.pb.cpp",
         "sdk/provider/local/local_srpc.pb.go",
-        "sdk/provider/local/local_srpc.pb.hpp",
         "sdk/provider/local/local_srpc.pb.rs",
         "sdk/provider/local/local_srpc.pb.ts"
       ],
@@ -4175,9 +4054,7 @@
         "sdk/provider/spacewave/spacewave.pb.h",
         "sdk/provider/spacewave/spacewave.pb.rs",
         "sdk/provider/spacewave/spacewave.pb.ts",
-        "sdk/provider/spacewave/spacewave_srpc.pb.cpp",
         "sdk/provider/spacewave/spacewave_srpc.pb.go",
-        "sdk/provider/spacewave/spacewave_srpc.pb.hpp",
         "sdk/provider/spacewave/spacewave_srpc.pb.rs",
         "sdk/provider/spacewave/spacewave_srpc.pb.ts"
       ],
@@ -4191,9 +4068,8 @@
         "sdk/quickstart/registry/registry.pb.h",
         "sdk/quickstart/registry/registry.pb.rs",
         "sdk/quickstart/registry/registry.pb.ts",
-        "sdk/quickstart/registry/registry_srpc.pb.cpp",
+        "sdk/quickstart/registry/registry_resource_ids.pb.go",
         "sdk/quickstart/registry/registry_srpc.pb.go",
-        "sdk/quickstart/registry/registry_srpc.pb.hpp",
         "sdk/quickstart/registry/registry_srpc.pb.rs",
         "sdk/quickstart/registry/registry_srpc.pb.ts"
       ],
@@ -4207,9 +4083,8 @@
         "sdk/root/root.pb.h",
         "sdk/root/root.pb.rs",
         "sdk/root/root.pb.ts",
-        "sdk/root/root_srpc.pb.cpp",
+        "sdk/root/root_resource_ids.pb.go",
         "sdk/root/root_srpc.pb.go",
-        "sdk/root/root_srpc.pb.hpp",
         "sdk/root/root_srpc.pb.rs",
         "sdk/root/root_srpc.pb.ts"
       ],
@@ -4223,25 +4098,21 @@
         "sdk/secret/secret.pb.h",
         "sdk/secret/secret.pb.rs",
         "sdk/secret/secret.pb.ts",
-        "sdk/secret/secret_srpc.pb.cpp",
         "sdk/secret/secret_srpc.pb.go",
-        "sdk/secret/secret_srpc.pb.hpp",
         "sdk/secret/secret_srpc.pb.rs",
         "sdk/secret/secret_srpc.pb.ts"
       ],
       "protoFiles": ["sdk/secret/secret.proto"]
     },
     "github.com/s4wave/spacewave/sdk/session": {
-      "hash": "3f6cf63d532e9d3c1e89542dc2f56c2637a1a85ef65304be0609c5b8271089c4",
+      "hash": "abde3d6011986331ae827a1d6f9db54766413bfd9768df4bc6094828b6de0c0f",
       "generatedFiles": [
         "sdk/session/local-session.pb.cc",
         "sdk/session/local-session.pb.go",
         "sdk/session/local-session.pb.h",
         "sdk/session/local-session.pb.rs",
         "sdk/session/local-session.pb.ts",
-        "sdk/session/local-session_srpc.pb.cpp",
         "sdk/session/local-session_srpc.pb.go",
-        "sdk/session/local-session_srpc.pb.hpp",
         "sdk/session/local-session_srpc.pb.rs",
         "sdk/session/local-session_srpc.pb.ts",
         "sdk/session/session.pb.cc",
@@ -4249,18 +4120,15 @@
         "sdk/session/session.pb.h",
         "sdk/session/session.pb.rs",
         "sdk/session/session.pb.ts",
-        "sdk/session/session_srpc.pb.cpp",
+        "sdk/session/session_resource_ids.pb.go",
         "sdk/session/session_srpc.pb.go",
-        "sdk/session/session_srpc.pb.hpp",
         "sdk/session/session_srpc.pb.rs",
         "sdk/session/session_srpc.pb.ts",
         "sdk/session/shared-object-self-enrollment.pb.cc",
         "sdk/session/shared-object-self-enrollment.pb.go",
         "sdk/session/shared-object-self-enrollment.pb.h",
         "sdk/session/shared-object-self-enrollment.pb.ts",
-        "sdk/session/shared-object-self-enrollment_srpc.pb.cpp",
         "sdk/session/shared-object-self-enrollment_srpc.pb.go",
-        "sdk/session/shared-object-self-enrollment_srpc.pb.hpp",
         "sdk/session/shared-object-self-enrollment_srpc.pb.rs",
         "sdk/session/shared-object-self-enrollment_srpc.pb.ts",
         "sdk/session/spacewave-session.pb.cc",
@@ -4268,9 +4136,8 @@
         "sdk/session/spacewave-session.pb.h",
         "sdk/session/spacewave-session.pb.rs",
         "sdk/session/spacewave-session.pb.ts",
-        "sdk/session/spacewave-session_srpc.pb.cpp",
+        "sdk/session/spacewave-session_resource_ids.pb.go",
         "sdk/session/spacewave-session_srpc.pb.go",
-        "sdk/session/spacewave-session_srpc.pb.hpp",
         "sdk/session/spacewave-session_srpc.pb.rs",
         "sdk/session/spacewave-session_srpc.pb.ts"
       ],
@@ -4289,9 +4156,8 @@
         "sdk/sobject/sobject.pb.h",
         "sdk/sobject/sobject.pb.rs",
         "sdk/sobject/sobject.pb.ts",
-        "sdk/sobject/sobject_srpc.pb.cpp",
+        "sdk/sobject/sobject_resource_ids.pb.go",
         "sdk/sobject/sobject_srpc.pb.go",
-        "sdk/sobject/sobject_srpc.pb.hpp",
         "sdk/sobject/sobject_srpc.pb.rs",
         "sdk/sobject/sobject_srpc.pb.ts"
       ],
@@ -4305,9 +4171,8 @@
         "sdk/space/space.pb.h",
         "sdk/space/space.pb.rs",
         "sdk/space/space.pb.ts",
-        "sdk/space/space_srpc.pb.cpp",
+        "sdk/space/space_resource_ids.pb.go",
         "sdk/space/space_srpc.pb.go",
-        "sdk/space/space_srpc.pb.hpp",
         "sdk/space/space_srpc.pb.rs",
         "sdk/space/space_srpc.pb.ts"
       ],
@@ -4321,9 +4186,7 @@
         "sdk/sql/query/query.pb.h",
         "sdk/sql/query/query.pb.rs",
         "sdk/sql/query/query.pb.ts",
-        "sdk/sql/query/query_srpc.pb.cpp",
         "sdk/sql/query/query_srpc.pb.go",
-        "sdk/sql/query/query_srpc.pb.hpp",
         "sdk/sql/query/query_srpc.pb.rs",
         "sdk/sql/query/query_srpc.pb.ts"
       ],
@@ -4337,9 +4200,7 @@
         "sdk/sql/query-result/query-result.pb.h",
         "sdk/sql/query-result/query-result.pb.rs",
         "sdk/sql/query-result/query-result.pb.ts",
-        "sdk/sql/query-result/query-result_srpc.pb.cpp",
         "sdk/sql/query-result/query-result_srpc.pb.go",
-        "sdk/sql/query-result/query-result_srpc.pb.hpp",
         "sdk/sql/query-result/query-result_srpc.pb.rs",
         "sdk/sql/query-result/query-result_srpc.pb.ts"
       ],
@@ -4375,9 +4236,7 @@
         "sdk/sql/schema/schema.pb.h",
         "sdk/sql/schema/schema.pb.rs",
         "sdk/sql/schema/schema.pb.ts",
-        "sdk/sql/schema/schema_srpc.pb.cpp",
         "sdk/sql/schema/schema_srpc.pb.go",
-        "sdk/sql/schema/schema_srpc.pb.hpp",
         "sdk/sql/schema/schema_srpc.pb.rs",
         "sdk/sql/schema/schema_srpc.pb.ts"
       ],
@@ -4402,9 +4261,7 @@
         "sdk/sql/table-view/table-view.pb.h",
         "sdk/sql/table-view/table-view.pb.rs",
         "sdk/sql/table-view/table-view.pb.ts",
-        "sdk/sql/table-view/table-view_srpc.pb.cpp",
         "sdk/sql/table-view/table-view_srpc.pb.go",
-        "sdk/sql/table-view/table-view_srpc.pb.hpp",
         "sdk/sql/table-view/table-view_srpc.pb.rs",
         "sdk/sql/table-view/table-view_srpc.pb.ts"
       ],
@@ -4429,9 +4286,7 @@
         "sdk/sql/workbench/workbench.pb.h",
         "sdk/sql/workbench/workbench.pb.rs",
         "sdk/sql/workbench/workbench.pb.ts",
-        "sdk/sql/workbench/workbench_srpc.pb.cpp",
         "sdk/sql/workbench/workbench_srpc.pb.go",
-        "sdk/sql/workbench/workbench_srpc.pb.hpp",
         "sdk/sql/workbench/workbench_srpc.pb.rs",
         "sdk/sql/workbench/workbench_srpc.pb.ts"
       ],
@@ -4467,9 +4322,7 @@
         "sdk/sshhost/sshhost.pb.h",
         "sdk/sshhost/sshhost.pb.rs",
         "sdk/sshhost/sshhost.pb.ts",
-        "sdk/sshhost/sshhost_srpc.pb.cpp",
         "sdk/sshhost/sshhost_srpc.pb.go",
-        "sdk/sshhost/sshhost_srpc.pb.hpp",
         "sdk/sshhost/sshhost_srpc.pb.rs",
         "sdk/sshhost/sshhost_srpc.pb.ts"
       ],
@@ -4483,9 +4336,7 @@
         "sdk/status/status.pb.h",
         "sdk/status/status.pb.rs",
         "sdk/status/status.pb.ts",
-        "sdk/status/status_srpc.pb.cpp",
         "sdk/status/status_srpc.pb.go",
-        "sdk/status/status_srpc.pb.hpp",
         "sdk/status/status_srpc.pb.rs",
         "sdk/status/status_srpc.pb.ts"
       ],
@@ -4499,9 +4350,7 @@
         "sdk/terminal/terminal.pb.h",
         "sdk/terminal/terminal.pb.rs",
         "sdk/terminal/terminal.pb.ts",
-        "sdk/terminal/terminal_srpc.pb.cpp",
         "sdk/terminal/terminal_srpc.pb.go",
-        "sdk/terminal/terminal_srpc.pb.hpp",
         "sdk/terminal/terminal_srpc.pb.rs",
         "sdk/terminal/terminal_srpc.pb.ts"
       ],
@@ -4515,9 +4364,8 @@
         "sdk/testbed/testbed.pb.h",
         "sdk/testbed/testbed.pb.rs",
         "sdk/testbed/testbed.pb.ts",
-        "sdk/testbed/testbed_srpc.pb.cpp",
+        "sdk/testbed/testbed_resource_ids.pb.go",
         "sdk/testbed/testbed_srpc.pb.go",
-        "sdk/testbed/testbed_srpc.pb.hpp",
         "sdk/testbed/testbed_srpc.pb.rs",
         "sdk/testbed/testbed_srpc.pb.ts"
       ],
@@ -4531,9 +4379,7 @@
         "sdk/trace/trace.pb.h",
         "sdk/trace/trace.pb.rs",
         "sdk/trace/trace.pb.ts",
-        "sdk/trace/trace_srpc.pb.cpp",
         "sdk/trace/trace_srpc.pb.go",
-        "sdk/trace/trace_srpc.pb.hpp",
         "sdk/trace/trace_srpc.pb.rs",
         "sdk/trace/trace_srpc.pb.ts"
       ],
@@ -4547,9 +4393,8 @@
         "sdk/unixfs/handle.pb.h",
         "sdk/unixfs/handle.pb.rs",
         "sdk/unixfs/handle.pb.ts",
-        "sdk/unixfs/handle_srpc.pb.cpp",
+        "sdk/unixfs/handle_resource_ids.pb.go",
         "sdk/unixfs/handle_srpc.pb.go",
-        "sdk/unixfs/handle_srpc.pb.hpp",
         "sdk/unixfs/handle_srpc.pb.rs",
         "sdk/unixfs/handle_srpc.pb.ts"
       ],
@@ -4563,9 +4408,8 @@
         "sdk/viewer/registry/registry.pb.h",
         "sdk/viewer/registry/registry.pb.rs",
         "sdk/viewer/registry/registry.pb.ts",
-        "sdk/viewer/registry/registry_srpc.pb.cpp",
+        "sdk/viewer/registry/registry_resource_ids.pb.go",
         "sdk/viewer/registry/registry_srpc.pb.go",
-        "sdk/viewer/registry/registry_srpc.pb.hpp",
         "sdk/viewer/registry/registry_srpc.pb.rs",
         "sdk/viewer/registry/registry_srpc.pb.ts"
       ],
@@ -4579,9 +4423,7 @@
         "sdk/vm/v86-wizard.pb.h",
         "sdk/vm/v86-wizard.pb.rs",
         "sdk/vm/v86-wizard.pb.ts",
-        "sdk/vm/v86-wizard.pb.cc",
         "sdk/vm/v86-wizard.pb.go",
-        "sdk/vm/v86-wizard.pb.h",
         "sdk/vm/v86-wizard.pb.rs",
         "sdk/vm/v86-wizard.pb.ts",
         "sdk/vm/v86.pb.cc",
@@ -4589,25 +4431,22 @@
         "sdk/vm/v86.pb.h",
         "sdk/vm/v86.pb.rs",
         "sdk/vm/v86.pb.ts",
-        "sdk/vm/v86_srpc.pb.cpp",
         "sdk/vm/v86_srpc.pb.go",
-        "sdk/vm/v86_srpc.pb.hpp",
         "sdk/vm/v86_srpc.pb.rs",
         "sdk/vm/v86_srpc.pb.ts"
       ],
       "protoFiles": ["sdk/vm/v86-wizard.proto", "sdk/vm/v86.proto"]
     },
     "github.com/s4wave/spacewave/sdk/world": {
-      "hash": "4be9b3f294ff261a7a052f461f97c51c6f52fa258b799b4d7a7b9bcb5ac3c847",
+      "hash": "128bc54b56c53960409a950773d76e75ba973db2144fc7440d4148ded769d5a3",
       "generatedFiles": [
         "sdk/world/world.pb.cc",
         "sdk/world/world.pb.go",
         "sdk/world/world.pb.h",
         "sdk/world/world.pb.rs",
         "sdk/world/world.pb.ts",
-        "sdk/world/world_srpc.pb.cpp",
+        "sdk/world/world_resource_ids.pb.go",
         "sdk/world/world_srpc.pb.go",
-        "sdk/world/world_srpc.pb.hpp",
         "sdk/world/world_srpc.pb.rs",
         "sdk/world/world_srpc.pb.ts"
       ],
@@ -4621,9 +4460,8 @@
         "sdk/world/wizard/wizard.pb.h",
         "sdk/world/wizard/wizard.pb.rs",
         "sdk/world/wizard/wizard.pb.ts",
-        "sdk/world/wizard/wizard_srpc.pb.cpp",
+        "sdk/world/wizard/wizard_resource_ids.pb.go",
         "sdk/world/wizard/wizard_srpc.pb.go",
-        "sdk/world/wizard/wizard_srpc.pb.hpp",
         "sdk/world/wizard/wizard_srpc.pb.rs",
         "sdk/world/wizard/wizard_srpc.pb.ts"
       ],
@@ -4637,9 +4475,8 @@
         "sdk/worldop/registry/registry.pb.h",
         "sdk/worldop/registry/registry.pb.rs",
         "sdk/worldop/registry/registry.pb.ts",
-        "sdk/worldop/registry/registry_srpc.pb.cpp",
+        "sdk/worldop/registry/registry_resource_ids.pb.go",
         "sdk/worldop/registry/registry_srpc.pb.go",
-        "sdk/worldop/registry/registry_srpc.pb.hpp",
         "sdk/worldop/registry/registry_srpc.pb.rs",
         "sdk/worldop/registry/registry_srpc.pb.ts"
       ],
