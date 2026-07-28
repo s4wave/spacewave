@@ -359,7 +359,10 @@ func TestBlockSyncDEX(t *testing.T) {
 	waitForSyncedRootSeqno(ctx, t, accB, account_settings.BindingPurpose, 0)
 }
 
-func TestStartP2PSyncStartsDEXSolicit(t *testing.T) {
+// TestStartP2PSyncSameTransportRestartAddsDesiredWork proves that a
+// same-transport start arriving while the first startup pass is gated causes
+// the pass to restart and load a shared object added after its SO snapshot.
+func TestStartP2PSyncSameTransportRestartAddsDesiredWork(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 

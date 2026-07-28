@@ -320,34 +320,31 @@ func (a *ProviderAccount) awaitP2PSyncStart(ctx context.Context, state *p2pSyncS
 	return errors.New("P2P sync stopped during startup")
 }
 
-func (s *p2pSyncState) finishStart(err error) (bool, bool, error) {
+// finishStart records a stable startup result or consumes a pending restart.
+func (s *p2pSyncState) finishStart(err error) bool {
 	restart := false
-	published := false
-	terminalErr := err
 	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
-		if terminalErr == nil && s.stopping {
-			terminalErr = context.Canceled
+		if err == nil && s.stopping {
+			err = context.Canceled
 		}
-		if terminalErr == nil {
-			terminalErr = s.ctx.Err()
+		if err == nil {
+			err = s.ctx.Err()
 		}
-		if terminalErr == nil && s.restartPending && !s.stopping && !s.startComplete {
+		if err == nil && s.restartPending && !s.stopping && !s.startComplete {
 			s.restartPending = false
 			restart = true
 			bcast()
 			return
 		}
 		if s.startComplete {
-			terminalErr = s.startErr
 			return
 		}
-		s.startErr = terminalErr
-		s.started = terminalErr == nil
+		s.startErr = err
+		s.started = err == nil
 		s.startComplete = true
-		published = true
 		bcast()
 	})
-	return restart, published, terminalErr
+	return restart
 }
 
 func (s *p2pSyncState) markStartupExited() {
@@ -376,16 +373,15 @@ func (a *ProviderAccount) runP2PSyncStart(
 			childBus,
 			&inviteStarted,
 		)
-		restart, published, terminalErr := state.finishStart(err)
-		err = terminalErr
-		if published {
-			a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
-				bcast()
-			})
-		}
-		if restart {
+		if state.finishStart(err) {
 			continue
 		}
+		state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			err = state.startErr
+		})
+		a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+			bcast()
+		})
 		break
 	}
 
