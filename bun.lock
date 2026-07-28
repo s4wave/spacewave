@@ -54,7 +54,7 @@
         "markdown-to-jsx": "^9.9.0",
         "orga": "4.7.1",
         "qrcode": "^1.5.4",
-        "quickjs-wasi-reactor": "0.14.0",
+        "quickjs-wasi-reactor": "0.15.1",
         "react": "^19.2.8",
         "react-dom": "^19.2.8",
         "react-icons": "^5.7.0",
@@ -1548,7 +1548,7 @@
 
     "queue-microtask": ["queue-microtask@1.2.3", "", {}, "sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A=="],
 
-    "quickjs-wasi-reactor": ["quickjs-wasi-reactor@0.14.0", "", {}, "sha512-ZnQPo3iryanl2JgJ+kf/cJ3sBpQTArKZo3Cak0xisaEzQWcOPCLMzat+DUv7vY1JALNmOUBRJKZUzt3U5NaSjQ=="],
+    "quickjs-wasi-reactor": ["quickjs-wasi-reactor@0.15.1", "", {}, "sha512-A7n5I7zBrhNfDviGFQbzLdcCylmVTsFJPEzpwWA5RAuleexHwDzeHjMbMnfJTZ/qbIsXOPCYpKNyqoSxz8vVYA=="],
 
     "race-event": ["race-event@1.6.1", "", { "dependencies": { "abort-error": "^1.0.1" } }, "sha512-vi7WH5g5KoTFpu2mme/HqZiWH14XSOtg5rfp6raBskBHl7wnmy3F/biAIyY5MsK+BHWhoPhxtZ1Y2R7OHHaWyQ=="],
 
