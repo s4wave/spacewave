@@ -2,7 +2,7 @@ module github.com/s4wave/spacewave
 
 go 1.26.4
 
-require github.com/s4wave/goscript v0.2.24-0.20260727104350-d3f5c9faa9c9 // master
+require github.com/s4wave/goscript v0.2.25-0.20260728032914-f40cf597bdfc // master
 
 replace (
 	// aperture: use compatibility forks
@@ -26,7 +26,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
-	github.com/aperturerobotics/bbolt v0.0.0-20260705010846-0a20b604a410 // master
+	github.com/aperturerobotics/bbolt v0.0.0-20260728032024-2c2f5c4dde66 // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260705021747-c5ec5d20d2b6 // master
 	github.com/aperturerobotics/cli v1.1.0 // v1.1.0
@@ -96,8 +96,8 @@ require (
 	github.com/emirpasic/gods v1.18.1
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v6 v6.0.0-alpha.2 // main
-	github.com/go-git/go-git/v6 v6.0.0-alpha.4.0.20260726080237-8bff61114bb7 // main
+	github.com/go-git/go-billy/v6 v6.0.0-alpha.2.0.20260727083916-c3866da0293d // main
+	github.com/go-git/go-git/v6 v6.0.0-alpha.4.0.20260727084107-9b81545704e8 // main
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.6.0
