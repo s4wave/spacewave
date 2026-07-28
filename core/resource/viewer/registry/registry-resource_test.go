@@ -229,7 +229,7 @@ func TestViewerRegistryDefaultsUnspecifiedSurfaceToWeb(t *testing.T) {
 	}
 	svc := s4wave_viewer_registry.NewSRPCViewerRegistryResourceServiceClient(rootClient)
 
-	_, err = svc.RegisterViewer(ctx, &s4wave_viewer_registry.RegisterViewerRequest{
+	resp, err := svc.RegisterViewer(ctx, &s4wave_viewer_registry.RegisterViewerRequest{
 		Registration: &s4wave_viewer_registry.ViewerRegistration{
 			TypeId:      "spacewave/test",
 			ViewerName:  "Test",
@@ -240,6 +240,8 @@ func TestViewerRegistryDefaultsUnspecifiedSurfaceToWeb(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	ref := client.CreateResourceReference(resp.GetResourceId())
+	t.Cleanup(ref.Release)
 
 	web, err := svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{
 		Surface: s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
