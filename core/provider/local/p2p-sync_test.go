@@ -426,24 +426,6 @@ func TestStartP2PSyncStartsDEXSolicit(t *testing.T) {
 		secondDone <- acc.StartP2PSync(ctx, st)
 	}()
 
-	secondCtx, secondCancel := context.WithTimeout(ctx, time.Second)
-	defer secondCancel()
-	select {
-	case err := <-secondDone:
-		if err != nil {
-			t.Fatal(err)
-		}
-	case <-secondCtx.Done():
-		close(releaseLoad)
-		firstErr := <-firstDone
-		secondErr := <-secondDone
-		t.Fatalf(
-			"concurrent start blocked behind DEX controller load: first=%v second=%v",
-			firstErr,
-			secondErr,
-		)
-	}
-
 	newRef, err := acc.CreateSharedObject(
 		ctx,
 		"pending-start-space",
@@ -467,6 +449,9 @@ func TestStartP2PSyncStartsDEXSolicit(t *testing.T) {
 
 	close(releaseLoad)
 	if err := <-firstDone; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-secondDone; err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -493,6 +478,126 @@ func TestStartP2PSyncStartsDEXSolicit(t *testing.T) {
 			t.Fatalf("timed out waiting for DEX solicit controller for %s", newBucketID)
 		}
 	}
+}
+
+func TestStartP2PSyncCoalescedCallerOwnsLifecycle(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+
+	tb, sessRef, acc, sess, release := setupProviderAndSession(ctx, t)
+	defer release()
+
+	accountID := sessRef.GetProviderResourceRef().GetProviderAccountId()
+	_, soRelease := mountAccountSettingsSO(ctx, t, tb.Bus, accountID)
+	soRelease()
+
+	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
+		t.Fatal(err)
+	}
+	defer acc.StopSessionTransport()
+
+	st := acc.GetSessionTransport()
+	loadStarted := make(chan struct{})
+	releaseLoad := make(chan struct{})
+	var gate sync.Once
+	removeHandler, err := st.GetChildBus().AddHandler(directive.NewFuncHandler(
+		func(handlerCtx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+			load, ok := di.GetDirective().(resolver.LoadControllerWithConfig)
+			if !ok {
+				return nil, nil
+			}
+			if _, ok := load.GetLoadControllerConfig().(*dex_solicit.Config); !ok {
+				return nil, nil
+			}
+			gate.Do(func() {
+				close(loadStarted)
+				select {
+				case <-releaseLoad:
+				case <-handlerCtx.Done():
+				}
+			})
+			return nil, nil
+		},
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer removeHandler()
+
+	firstCtx, firstCancel := context.WithCancel(ctx)
+	defer firstCancel()
+	firstDone := make(chan error, 1)
+	go func() {
+		firstDone <- acc.StartP2PSync(firstCtx, st)
+	}()
+
+	select {
+	case <-loadStarted:
+	case <-ctx.Done():
+		t.Fatal("timed out waiting for first P2P startup load")
+	}
+
+	secondBaseCtx, secondCancel := context.WithCancel(ctx)
+	defer secondCancel()
+	secondCtx := &observedP2PStartContext{
+		Context:         secondBaseCtx,
+		awaitReady:      make(chan struct{}),
+		allowAwait:      make(chan struct{}),
+		ownerRegistered: make(chan struct{}),
+	}
+	secondDone := make(chan error, 1)
+	go func() {
+		secondDone <- acc.StartP2PSync(secondCtx, st)
+	}()
+
+	select {
+	case <-secondCtx.awaitReady:
+	case <-ctx.Done():
+		t.Fatal("timed out waiting for coalesced P2P caller readiness")
+	}
+	close(secondCtx.allowAwait)
+	select {
+	case <-secondCtx.ownerRegistered:
+	case <-ctx.Done():
+		t.Fatal("coalesced P2P caller did not retain the lifecycle")
+	}
+
+	firstCancel()
+	close(releaseLoad)
+
+	<-firstDone
+	select {
+	case err := <-secondDone:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-ctx.Done():
+		t.Fatal("timed out waiting for coalesced P2P start")
+	}
+	defer acc.StopP2PSync()
+	if !acc.IsP2PSyncRunning() {
+		t.Fatal("expected P2P sync to remain running under the coalesced caller")
+	}
+}
+
+type observedP2PStartContext struct {
+	context.Context
+	awaitReady      chan struct{}
+	allowAwait      chan struct{}
+	ownerRegistered chan struct{}
+	awaitOnce       sync.Once
+	ownerOnce       sync.Once
+}
+
+func (c *observedP2PStartContext) Done() <-chan struct{} {
+	c.awaitOnce.Do(func() {
+		close(c.awaitReady)
+		<-c.allowAwait
+	})
+	c.ownerOnce.Do(func() {
+		close(c.ownerRegistered)
+	})
+	return c.Context.Done()
 }
 
 func skipFullP2PSyncUnderGoScript(t *testing.T) {
