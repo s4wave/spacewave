@@ -37,26 +37,28 @@ func (s *MetaStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, er
 			pending: make([]mutation, 0, 8),
 		}, nil
 	}
-	tree, generation, release, err := s.shard.openCommittedTreeForRead()
+	tree, generation, closeSnapshot, releaseLock, err := s.shard.openCommittedTreeForRead()
 	if err != nil {
 		return nil, err
 	}
 	return &metaReadTx{
-		shard:      s.shard,
-		tree:       tree,
-		generation: generation,
-		release:    release,
+		shard:         s.shard,
+		tree:          tree,
+		generation:    generation,
+		closeSnapshot: closeSnapshot,
+		releaseLock:   releaseLock,
 	}, nil
 }
 
 // metaReadTx is a read-only transaction over a committed MetaShard snapshot.
 type metaReadTx struct {
-	shard      *MetaShard
-	tree       *pagestore.Tree
-	generation uint64
-	recovered  bool
-	release    func()
-	released   bool
+	shard         *MetaShard
+	tree          *pagestore.Tree
+	generation    uint64
+	recovered     bool
+	closeSnapshot func()
+	releaseLock   func()
+	released      bool
 }
 
 type metaEntry struct {
@@ -134,13 +136,13 @@ func (t *metaReadTx) Iterate(ctx context.Context, prefix []byte, sort, reverse b
 
 // Commit releases the read snapshot.
 func (t *metaReadTx) Commit(ctx context.Context) error {
-	t.releaseLock()
+	t.releaseResources()
 	return nil
 }
 
 // Discard releases the read snapshot.
 func (t *metaReadTx) Discard() {
-	t.releaseLock()
+	t.releaseResources()
 }
 
 func (t *metaReadTx) collectPrefix(prefix []byte) ([]metaEntry, error) {
@@ -165,32 +167,38 @@ func (t *metaReadTx) recoverCorruptRead(err error) error {
 	if t.shard == nil {
 		return err
 	}
-	hadSnapshot := t.release != nil && !t.released
+	hadSnapshot := !t.released && (t.closeSnapshot != nil || t.releaseLock != nil)
 	if hadSnapshot {
-		t.releaseLock()
+		t.releaseResources()
 	}
 	if err := t.shard.recoverCorruptState(); err != nil {
 		return errors.Wrap(err, "recover corrupt meta shard")
 	}
 	if hadSnapshot {
-		tree, generation, release, err := t.shard.openCommittedTreeForRead()
+		tree, generation, closeSnapshot, releaseLock, err := t.shard.openCommittedTreeForRead()
 		if err != nil {
 			return errors.Wrap(err, "reopen recovered meta read snapshot")
 		}
 		t.tree = tree
 		t.generation = generation
-		t.release = release
+		t.closeSnapshot = closeSnapshot
+		t.releaseLock = releaseLock
 		t.released = false
 	}
 	t.recovered = true
 	return nil
 }
 
-func (t *metaReadTx) releaseLock() {
-	if t.release == nil || t.released {
+func (t *metaReadTx) releaseResources() {
+	if t.released {
 		return
 	}
-	t.release()
+	if t.closeSnapshot != nil {
+		t.closeSnapshot()
+	}
+	if t.releaseLock != nil {
+		t.releaseLock()
+	}
 	t.released = true
 }
 
@@ -335,15 +343,16 @@ func (t *metaWriteTx) ensureReadTx() (*metaReadTx, error) {
 	if t.read != nil {
 		return t.read, nil
 	}
-	tree, generation, release, err := t.shard.openCommittedTreeForRead()
+	tree, generation, closeSnapshot, releaseLock, err := t.shard.openCommittedTreeForRead()
 	if err != nil {
 		return nil, err
 	}
 	t.read = &metaReadTx{
-		shard:      t.shard,
-		tree:       tree,
-		generation: generation,
-		release:    release,
+		shard:         t.shard,
+		tree:          tree,
+		generation:    generation,
+		closeSnapshot: closeSnapshot,
+		releaseLock:   releaseLock,
 	}
 	return t.read, nil
 }
@@ -352,7 +361,7 @@ func (t *metaWriteTx) releaseReadTx() {
 	if t.read == nil {
 		return
 	}
-	t.read.releaseLock()
+	t.read.releaseResources()
 	t.read = nil
 }
 

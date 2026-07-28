@@ -65,24 +65,25 @@ func NewMetaShard(dir js.Value, lockPrefix string, pageSize int, le *logrus.Entr
 
 // Get looks up a key. Returns value, found, error.
 func (ms *MetaShard) Get(key []byte) ([]byte, bool, error) {
-	tree, _, release, err := ms.openCommittedTreeForRead()
+	tree, _, closeSnapshot, releaseLock, err := ms.openCommittedTreeForRead()
 	if err != nil {
 		return nil, false, err
 	}
 	val, found, err := tree.Get(key)
+	closeSnapshot()
+	releaseLock()
 	if err == nil || !IsCorruptError(err) {
-		release()
 		return val, found, err
 	}
-	release()
 	if err := ms.recoverCorruptState(); err != nil {
 		return nil, false, errors.Wrap(err, "recover corrupt meta shard")
 	}
-	tree, _, release, err = ms.openCommittedTreeForRead()
+	tree, _, closeSnapshot, releaseLock, err = ms.openCommittedTreeForRead()
 	if err != nil {
 		return nil, false, err
 	}
-	defer release()
+	defer closeSnapshot()
+	defer releaseLock()
 	return tree.Get(key)
 }
 
@@ -179,13 +180,14 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 
 // ScanPrefix iterates over entries matching the prefix.
 func (ms *MetaShard) ScanPrefix(prefix []byte, fn func(key, value []byte) bool) error {
-	tree, _, release, err := ms.openCommittedTreeForRead()
+	tree, _, closeSnapshot, releaseLock, err := ms.openCommittedTreeForRead()
 	if err != nil {
 		return err
 	}
 	entries, err := scanPrefixEntries(tree, prefix)
+	closeSnapshot()
+	releaseLock()
 	if err == nil || !IsCorruptError(err) {
-		release()
 		if err != nil {
 			return err
 		}
@@ -196,15 +198,15 @@ func (ms *MetaShard) ScanPrefix(prefix []byte, fn func(key, value []byte) bool) 
 		}
 		return nil
 	}
-	release()
 	if err := ms.recoverCorruptState(); err != nil {
 		return errors.Wrap(err, "recover corrupt meta shard")
 	}
-	tree, _, release, err = ms.openCommittedTreeForRead()
+	tree, _, closeSnapshot, releaseLock, err = ms.openCommittedTreeForRead()
 	if err != nil {
 		return err
 	}
-	defer release()
+	defer closeSnapshot()
+	defer releaseLock()
 	entries, err = scanPrefixEntries(tree, prefix)
 	if err != nil {
 		return err
@@ -266,31 +268,30 @@ func (ms *MetaShard) OpenCommittedTree() (*pagestore.Tree, uint64) {
 	return pagestore.OpenTree(ms.pager, rootPage), generation
 }
 
-func (ms *MetaShard) openCommittedTreeForRead() (*pagestore.Tree, uint64, func(), error) {
-	release, err := ms.acquireStateLock(false)
+func (ms *MetaShard) openCommittedTreeForRead() (*pagestore.Tree, uint64, func(), func(), error) {
+	releaseLock, err := ms.acquireStateLock(false)
 	if err != nil {
-		return nil, 0, nil, errors.Wrap(err, "acquire meta read lock")
+		return nil, 0, nil, nil, errors.Wrap(err, "acquire meta read lock")
 	}
 	if err := ms.reloadCommittedState(); err != nil {
-		release()
+		releaseLock()
 		if !IsCorruptError(err) {
-			return nil, 0, nil, errors.Wrap(err, "reload committed state")
+			return nil, 0, nil, nil, errors.Wrap(err, "reload committed state")
 		}
 		if err := ms.recoverCorruptState(); err != nil {
-			return nil, 0, nil, errors.Wrap(err, "recover corrupt meta shard")
+			return nil, 0, nil, nil, errors.Wrap(err, "recover corrupt meta shard")
 		}
-		release, err = ms.acquireStateLock(false)
+		releaseLock, err = ms.acquireStateLock(false)
 		if err != nil {
-			return nil, 0, nil, errors.Wrap(err, "reacquire meta read lock")
+			return nil, 0, nil, nil, errors.Wrap(err, "reacquire meta read lock")
 		}
 		if err := ms.reloadCommittedState(); err != nil {
-			release()
-			return nil, 0, nil, errors.Wrap(err, "reload recovered state")
+			releaseLock()
+			return nil, 0, nil, nil, errors.Wrap(err, "reload recovered state")
 		}
 	}
 	tree, generation, closeSnapshot := ms.openCommittedSnapshotTree()
-	release()
-	return tree, generation, closeSnapshot, nil
+	return tree, generation, closeSnapshot, releaseLock, nil
 }
 
 func (ms *MetaShard) reloadCommittedState() error {

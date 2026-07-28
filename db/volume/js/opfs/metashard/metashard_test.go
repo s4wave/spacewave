@@ -188,8 +188,8 @@ func TestMetaShardReadSnapshotIsolation(t *testing.T) {
 	}
 }
 
-func TestMetaStoreReadTxDoesNotHoldMetaWebLock(t *testing.T) {
-	name := "test-metastore-read-tx-does-not-hold-lock"
+func TestMetaStoreReadTxHoldsMetaWebLock(t *testing.T) {
+	name := "test-metastore-read-tx-holds-lock"
 	ms := newTestMetaShard(t, name)
 	store := NewMetaStore(ms)
 	ctx := context.Background()
@@ -215,20 +215,9 @@ func TestMetaStoreReadTxDoesNotHoldMetaWebLock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !acquired {
-		t.Fatal("read transaction held meta WebLock")
-	}
-	release()
-
-	writeTx, err := store.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := writeTx.Set(ctx, []byte("k"), []byte("v2")); err != nil {
-		t.Fatal(err)
-	}
-	if err := writeTx.Commit(ctx); err != nil {
-		t.Fatal(err)
+	if acquired {
+		release()
+		t.Fatal("read transaction did not hold meta WebLock")
 	}
 
 	val, found, err := readTx.Get(ctx, []byte("k"))
@@ -237,6 +226,80 @@ func TestMetaStoreReadTxDoesNotHoldMetaWebLock(t *testing.T) {
 	}
 	if !found || string(val) != "v1" {
 		t.Fatalf("snapshot read got found=%v val=%q want v1", found, val)
+	}
+}
+
+func TestMetaStoreReadTxBlocksPageReuseUntilClose(t *testing.T) {
+	name := "test-metastore-read-tx-blocks-page-reuse"
+	ms := newTestMetaShard(t, name)
+	store := NewMetaStore(ms)
+	ctx := context.Background()
+	key := []byte("m/1/00000")
+	putMetaValue(t, ms, string(key), "v1")
+
+	readTx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	snapshotRoot := ms.rootPage
+	writerCommitted := make(chan struct{})
+	continueWriter := make(chan struct{})
+	writerDone := make(chan error, 1)
+	ms.testHook = func(stage string) error {
+		if stage != "after-superblock-write" {
+			return nil
+		}
+		close(writerCommitted)
+		<-continueWriter
+		return nil
+	}
+
+	probeRelease, acquired, err := filelock.AcquireWebLockIfAvailable(name+"/meta/write", true)
+	if err != nil {
+		readTx.Discard()
+		t.Fatal(err)
+	}
+	go func() {
+		writerDone <- ms.WriteTx(func(tree *pagestore.Tree) error {
+			ms.pager.freed = []pagestore.PageID{snapshotRoot}
+			_, err := tree.Delete(key)
+			return err
+		})
+	}()
+
+	if acquired {
+		probeRelease()
+		<-writerCommitted
+		val, found, readErr := readTx.Get(ctx, key)
+		close(continueWriter)
+		readTx.Discard()
+		if err := <-writerDone; err != nil {
+			t.Fatal(err)
+		}
+		if readErr != nil || !found || string(val) != "v1" {
+			t.Fatalf("lazy read lost key=%s found=%v val=%q err=%v", key, found, val, readErr)
+		}
+		t.Fatal("read transaction did not hold meta WebLock during page reuse")
+	}
+
+	val, found, err := readTx.Get(ctx, key)
+	if err != nil {
+		close(continueWriter)
+		readTx.Discard()
+		_ = <-writerDone
+		t.Fatal(err)
+	}
+	if !found || string(val) != "v1" {
+		close(continueWriter)
+		readTx.Discard()
+		_ = <-writerDone
+		t.Fatalf("snapshot read got found=%v val=%q want v1", found, val)
+	}
+	readTx.Discard()
+	close(continueWriter)
+	if err := <-writerDone; err != nil {
+		t.Fatal(err)
 	}
 }
 
