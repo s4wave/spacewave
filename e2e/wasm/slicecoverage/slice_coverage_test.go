@@ -55,6 +55,7 @@ var notEnrolledInAnySlice = []string{
 	"TestGoScriptDriveStartupBench",
 	"TestGoScriptFSHandleBrowserResourceOperations",
 	"TestGoScriptGitQuickstartLocalCreateReloadParity",
+	"TestGoScriptManifestStartupTrace",
 	"TestGoScriptNotesDynamicQuickstartsParity",
 	"TestGoScriptObjectLayoutRuntimeParity",
 	"TestGoScriptObjectLayoutSeedModelParity",
