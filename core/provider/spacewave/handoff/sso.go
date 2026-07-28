@@ -104,6 +104,9 @@ func StartSSOHandoff(
 	}
 	defer alpha_nethttp.DrainAndCloseResponseBody(httpResp)
 	respBody, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return nil, nil, "", errors.Wrap(err, "read desktop sso start response")
+	}
 	if httpResp.StatusCode != http.StatusOK {
 		return nil, nil, "", errors.Errorf("desktop sso start failed: %d: %s", httpResp.StatusCode, string(respBody))
 	}

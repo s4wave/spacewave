@@ -978,47 +978,6 @@ func (s *SpacewaveProviderResource) GetLinkedCloudSession(
 	return &s4wave_provider_spacewave.GetLinkedCloudSessionResponse{Found: false}, nil
 }
 
-// resolveActiveSpacewaveAccountWithRef finds the active spacewave ProviderAccount
-// by iterating sessions. Returns the account, session ref, and release function.
-// Used by migration RPCs which need cross-session access.
-func (s *SpacewaveProviderResource) resolveActiveSpacewaveAccountWithRef(ctx context.Context) (*provider_spacewave.ProviderAccount, *session.SessionRef, func(), error) {
-	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	defer sessionCtrlRef.Release()
-
-	sessions, err := sessionCtrl.ListSessions(ctx)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	for _, entry := range sessions {
-		ref := entry.GetSessionRef()
-		provRef := ref.GetProviderResourceRef()
-		if provRef.GetProviderId() != "spacewave" {
-			continue
-		}
-		provAcc, provAccRef, err := provider.ExAccessProviderAccount(
-			ctx, s.b,
-			provRef.GetProviderId(),
-			provRef.GetProviderAccountId(),
-			false, nil,
-		)
-		if err != nil {
-			continue
-		}
-		swAcc, ok := provAcc.(*provider_spacewave.ProviderAccount)
-		if !ok {
-			provAccRef.Release()
-			continue
-		}
-		return swAcc, ref, provAccRef.Release, nil
-	}
-
-	return nil, nil, nil, errors.New("no active spacewave session found")
-}
-
 // ReauthenticateSession re-authenticates a session whose key became stale.
 // Derives an entity key from the credential, verifies with the cloud,
 // generates a new session key, and clears the UNAUTHENTICATED status.

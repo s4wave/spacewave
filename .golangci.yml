@@ -66,6 +66,8 @@ linters:
     rules:
       - linters: [nonavigate]
         path-except: 'e2e/wasm/'
+      - linters: [gosec]
+        path: '_test\.go$'
     paths:
       - '(^|/)node_modules($|/)'
       - '(^|/)prototypes($|/)'

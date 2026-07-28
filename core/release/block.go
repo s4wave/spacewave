@@ -12,32 +12,32 @@ const (
 	browserAssetContentRef   = 1
 )
 
-func (m *ChannelDirectory) MarshalBlock() ([]byte, error) {
-	return m.MarshalVT()
+func (d *ChannelDirectory) MarshalBlock() ([]byte, error) {
+	return d.MarshalVT()
 }
 
-func (m *ChannelDirectory) UnmarshalBlock(data []byte) error {
-	return m.UnmarshalVT(data)
+func (d *ChannelDirectory) UnmarshalBlock(data []byte) error {
+	return d.UnmarshalVT(data)
 }
 
-func (m *ChannelDirectory) ApplyBlockRef(id uint32, ref *block.BlockRef) error {
+func (d *ChannelDirectory) ApplyBlockRef(id uint32, ref *block.BlockRef) error {
 	idx := int(id) - channelDirectoryRefBase
-	if idx < 0 || idx >= len(m.GetChannels()) {
+	if idx < 0 || idx >= len(d.GetChannels()) {
 		return errors.Errorf("unknown channel directory ref id %d", id)
 	}
-	m.Channels[idx].ReleaseMetadataRef = ref
+	d.Channels[idx].ReleaseMetadataRef = ref
 	return nil
 }
 
-func (m *ChannelDirectory) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
-	refs := make(map[uint32]*block.BlockRef, len(m.GetChannels()))
-	for i, entry := range m.GetChannels() {
+func (d *ChannelDirectory) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	refs := make(map[uint32]*block.BlockRef, len(d.GetChannels()))
+	for i, entry := range d.GetChannels() {
 		refs[uint32(channelDirectoryRefBase+i)] = entry.GetReleaseMetadataRef()
 	}
 	return refs, nil
 }
 
-func (m *ChannelDirectory) GetBlockRefCtor(uint32) block.Ctor {
+func (d *ChannelDirectory) GetBlockRefCtor(uint32) block.Ctor {
 	return nil
 }
 
@@ -103,39 +103,39 @@ func (m *BrowserShellMetadata) GetBlockRefCtor(uint32) block.Ctor {
 	return nil
 }
 
-func (m *BrowserAsset) MarshalBlock() ([]byte, error) {
-	return m.MarshalVT()
+func (a *BrowserAsset) MarshalBlock() ([]byte, error) {
+	return a.MarshalVT()
 }
 
-func (m *BrowserAsset) UnmarshalBlock(data []byte) error {
-	return m.UnmarshalVT(data)
+func (a *BrowserAsset) UnmarshalBlock(data []byte) error {
+	return a.UnmarshalVT(data)
 }
 
-func (m *BrowserAsset) ApplyBlockRef(id uint32, ref *block.BlockRef) error {
+func (a *BrowserAsset) ApplyBlockRef(id uint32, ref *block.BlockRef) error {
 	if id != browserAssetContentRef {
 		return errors.Errorf("unknown browser asset ref id %d", id)
 	}
-	m.ContentRef = ref
+	a.ContentRef = ref
 	return nil
 }
 
-func (m *BrowserAsset) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
-	if !blockRefPresent(m.GetContentRef()) {
+func (a *BrowserAsset) GetBlockRefs() (map[uint32]*block.BlockRef, error) {
+	if !blockRefPresent(a.GetContentRef()) {
 		return nil, nil
 	}
-	return map[uint32]*block.BlockRef{browserAssetContentRef: m.GetContentRef()}, nil
+	return map[uint32]*block.BlockRef{browserAssetContentRef: a.GetContentRef()}, nil
 }
 
-func (m *BrowserAsset) GetBlockRefCtor(uint32) block.Ctor {
+func (a *BrowserAsset) GetBlockRefCtor(uint32) block.Ctor {
 	return nil
 }
 
-func (m *UpdateNotification) MarshalBlock() ([]byte, error) {
-	return m.MarshalVT()
+func (n *UpdateNotification) MarshalBlock() ([]byte, error) {
+	return n.MarshalVT()
 }
 
-func (m *UpdateNotification) UnmarshalBlock(data []byte) error {
-	return m.UnmarshalVT(data)
+func (n *UpdateNotification) UnmarshalBlock(data []byte) error {
+	return n.UnmarshalVT(data)
 }
 
 var (

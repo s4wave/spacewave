@@ -32,8 +32,6 @@ import (
 )
 
 const (
-	maxWalkDepth = 10
-
 	// engineBucketID is the bucket ID used by the devtool world engine.
 	engineBucketID = "bldr/devtool"
 	// engineObjStoreID is the object store ID used by the devtool world engine.
@@ -133,7 +131,7 @@ func (a *DeployArgs) RunDeploy(c *cli.Context) error {
 	manifestObjRef.TransformConf = transformConf
 
 	os.Stdout.WriteString("found manifest " + a.ManifestID +
-		" rev=" + strconv.FormatUint(uint64(collected.GetRev()), 10) +
+		" rev=" + strconv.FormatUint(collected.GetRev(), 10) +
 		" ref=" + manifestObjRef.GetRootRef().MarshalString() + "\n")
 
 	// Navigate to the Space via Resource SDK through PluginRpc.
