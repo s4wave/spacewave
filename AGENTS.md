@@ -121,6 +121,19 @@ a subdirectory.
 - After any `go.mod` change, run `go mod tidy && go mod vendor`.
 - Never edit `vendor/` or the module cache directly. Patch dependencies in a
   fork or upstream, then update `go.mod` and regenerate vendor.
+- The linters and code generators live in `.tools/`, a separate Go module that
+  this module does not require. Its `go.mod`, `go.sum`, and `deps.go` are copies
+  of `go.mod.tools`, `go.sum.tools`, and `deps.go.tools` from
+  `github.com/aperturerobotics/common`. `bun install` compares the copies
+  against the vendored common module and deletes `.tools/` when they differ;
+  `aptre` recreates it from that module on the next lint, format, or generate
+  command. Editing `.tools/` by hand is discarded on the next install.
+- A `bun run lint:go:*` failure naming a missing `go.sum` entry for a linter or
+  one of its dependencies is therefore a defect in that upstream tools module,
+  not in this repository. Adding the hash here changes nothing. Fix it in
+  `aperturerobotics/common` by running `go mod tidy` in its `tools/` directory
+  and then `bash embed.bash`, release, and bump the
+  `github.com/aperturerobotics/common` requirement here.
 
 ## Go Rules
 
