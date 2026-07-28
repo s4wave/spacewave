@@ -658,6 +658,54 @@ func TestGCStoreOps_ParentIRI_DedupClearsStaleUnref(t *testing.T) {
 	}
 }
 
+// TestGCStoreOps_ParentIRI_FlushPendingRemovesConcurrentUnref tests that a
+// staging edge created after reconciliation begins is removed by the same
+// ref-graph batch as the parent edge.
+func TestGCStoreOps_ParentIRI_FlushPendingRemovesConcurrentUnref(t *testing.T) {
+	env := newGCTestEnv(t)
+	ex := block_mock.NewExample("concurrent-unref")
+	ref, _, err := block.PutBlock(env.ctx, env.gcStore, ex)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	env.flush(t)
+
+	blockIRI := BlockIRI(ref)
+	if err := env.refGraph.RemoveRef(env.ctx, NodeUnreferenced, blockIRI); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	raceGraph := &injectUnrefRefGraph{
+		RefGraphOps: env.refGraph,
+		object:      blockIRI,
+	}
+	parentStore := NewGCStoreOpsWithParent(
+		env.rawStore,
+		raceGraph,
+		BucketIRI("concurrent-unref"),
+	)
+	_, existed, err := block.PutBlock(env.ctx, parentStore, ex)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !existed {
+		t.Fatal("expected parent write to deduplicate the block")
+	}
+	if err := parentStore.FlushPending(env.ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	if !raceGraph.injected {
+		t.Fatal("expected concurrent staging edge injection")
+	}
+
+	if _, err := NewCollector(env.refGraph, env.rawStore, nil).Collect(env.ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	if !env.blockExists(t, ref) {
+		t.Fatal("parent-owned block should survive collection")
+	}
+}
+
 // buildBatchEntry creates a PutBatchEntry from a mock block message.
 func buildBatchEntry(t *testing.T, msg string) *block.PutBatchEntry {
 	t.Helper()
@@ -800,6 +848,25 @@ func (r *recordingRefGraph) ApplyRefBatch(_ context.Context, adds, removes []Ref
 	r.adds = append([]RefEdge(nil), adds...)
 	r.removes = append([]RefEdge(nil), removes...)
 	return nil
+}
+
+type injectUnrefRefGraph struct {
+	RefGraphOps
+	object   string
+	injected bool
+}
+
+func (r *injectUnrefRefGraph) ApplyRefBatch(
+	ctx context.Context,
+	adds, removes []RefEdge,
+) error {
+	if !r.injected {
+		r.injected = true
+		if err := r.RefGraphOps.AddRef(ctx, NodeUnreferenced, r.object); err != nil {
+			return err
+		}
+	}
+	return r.RefGraphOps.ApplyRefBatch(ctx, adds, removes)
 }
 
 func (r *recordingRefGraph) RemoveNodeRefs(context.Context, string, bool) ([]string, error) {
