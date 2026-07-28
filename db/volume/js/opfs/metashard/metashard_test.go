@@ -477,7 +477,9 @@ func TestMetaShardNewestSuperblockWithZeroRootFallsBack(t *testing.T) {
 	putMetaValue(t, ms, "k", "v2")
 
 	var sbBuf [pagestore.SuperblockSize]byte
-	readSuper(ms.dir, "super-b", sbBuf[:])
+	if err := readSuper(ms.dir, "super-b", sbBuf[:]); err != nil {
+		t.Fatal(err)
+	}
 	sb, err := pagestore.DecodeSuperblock(sbBuf[:])
 	if err != nil {
 		t.Fatal(err)
@@ -579,7 +581,9 @@ func zeroSuperblockRoots(t *testing.T, ms *MetaShard) {
 func zeroSuperblockRoot(t *testing.T, ms *MetaShard, slot string) {
 	t.Helper()
 	var sbBuf [pagestore.SuperblockSize]byte
-	readSuper(ms.dir, slot, sbBuf[:])
+	if err := readSuper(ms.dir, slot, sbBuf[:]); err != nil {
+		t.Fatal(err)
+	}
 	sb, err := pagestore.DecodeSuperblock(sbBuf[:])
 	if err != nil {
 		t.Fatal(err)
