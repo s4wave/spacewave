@@ -91,22 +91,20 @@ func (h *v86Handler) Execute(ctx context.Context) error {
 	}
 
 	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(inv)))
-	strm, err := s4wave_process.NewSRPCPersistentExecutionServiceClient(client).Execute(ctx, &s4wave_process.ExecuteRequest{})
+	strm, err := openV86ExecutionStream(ctx, client)
 	if err != nil {
 		return errors.Wrap(err, "execute v86 resource")
 	}
 	defer strm.Close()
 
 	for {
-		status, err := strm.Recv()
-		if err == io.EOF {
+		status := new(s4wave_process.ExecuteStatus)
+		err := strm.MsgRecv(status)
+		if err == io.EOF || errors.Is(err, io.ErrClosedPipe) {
 			return errors.New("v86 execution stream ended before RUNNING")
 		}
 		if err != nil {
 			return errors.Wrap(err, "receive v86 execution status")
-		}
-		if status == nil {
-			return errors.New("v86 execution stream returned nil status")
 		}
 		switch status.GetState() {
 		case s4wave_process.ExecutionState_ExecutionState_RUNNING:
@@ -127,6 +125,25 @@ func (h *v86Handler) Execute(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+func openV86ExecutionStream(ctx context.Context, client srpc.Client) (srpc.Stream, error) {
+	strm, err := client.NewStream(
+		ctx,
+		s4wave_process.SRPCPersistentExecutionServiceServiceID,
+		"Execute",
+		&s4wave_process.ExecuteRequest{},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if err := strm.CloseSend(); err != nil &&
+		!errors.Is(err, io.ErrClosedPipe) &&
+		!errors.Is(err, srpc.ErrCompleted) {
+		_ = strm.Close()
+		return nil, err
+	}
+	return strm, nil
 }
 
 // NewV86Handler constructs a V86 VM object handler factory.
