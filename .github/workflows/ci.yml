@@ -36,7 +36,7 @@ jobs:
           - name: alpha
             build_script: ''
             check_script: typecheck
-            lint_go_script: ''
+            lint_go_script: lint:go:alpha
             lint_js_script: ''
             test_go_script: test:go:alpha
             test_js_script: test:js:alpha
@@ -252,6 +252,11 @@ jobs:
             needs_playwright: true
             playwright_browsers: chromium
             timeout_minutes: 10
+          - name: opfs-chrome-stress
+            script: test:go:db:opfs:chrome:stress
+            needs_playwright: true
+            playwright_browsers: chromium
+            timeout_minutes: 20
           - name: trace-service
             script: test:go:e2e:trace
             needs_playwright: false
