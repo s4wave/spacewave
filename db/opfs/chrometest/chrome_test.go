@@ -1390,6 +1390,23 @@ func TestOpfsChromeWorldCoordinatorMultiWriter(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeMetaReadTxServesOneGeneration(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-meta-read-isolation-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "meta-read-isolation",
+		root:     root,
+	})
+}
+
 func TestOpfsChromeWorldDeferredCrashRecovery(t *testing.T) {
 	requireChromeProfile(t, chromeSmoke)
 	h := newChromeHarness(t)

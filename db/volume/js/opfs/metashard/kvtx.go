@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_iterator "github.com/s4wave/spacewave/db/kvtx/iterator"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
@@ -43,15 +44,42 @@ func (s *MetaStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, er
 // metaReadTx is a read-only transaction over the committed MetaShard.
 //
 // Each operation opens its own committed snapshot under the shared metadata
-// lock and drops both before returning, so the transaction is read committed
-// rather than snapshot isolated: one Get or scan sees a single generation, and
-// a later operation on the same transaction sees any generation committed since.
-// A snapshot cannot outlive its operation because the page store recycles freed
-// pages on commit, and the only cross-agent barrier against that is the lock. A
-// transaction that held the lock for its own lifetime would instead stall every
-// writer in every tab until the caller discarded it.
+// lock and drops both before returning. A snapshot cannot outlive its operation
+// because the page store recycles freed pages on commit, and the only
+// cross-agent barrier against that is the lock; a transaction that held the
+// lock for its own lifetime would stall every writer in every tab until the
+// caller discarded it.
+//
+// The transaction still owes its caller one consistent view. It pins the
+// generation its first operation read and fails any later operation that would
+// serve a different one, so a caller reading several keys either sees them as
+// one generation held them or gets ErrGenerationChanged. Serving both would let
+// it assemble metadata that never existed.
 type metaReadTx struct {
 	shard *MetaShard
+	// generation is the commit generation this transaction is pinned to, valid
+	// once pinned is set by the first operation to complete.
+	generation uint64
+	pinned     bool
+}
+
+// pin binds the transaction to the generation that served an operation, or
+// reports that the generation moved underneath it.
+func (t *metaReadTx) pin(generation uint64) error {
+	if !t.pinned {
+		t.generation = generation
+		t.pinned = true
+		return nil
+	}
+	if t.generation != generation {
+		return errors.Wrapf(
+			ErrGenerationChanged,
+			"transaction pinned to generation %d, read generation %d",
+			t.generation,
+			generation,
+		)
+	}
+	return nil
 }
 
 type metaEntry struct {
@@ -67,7 +95,14 @@ func (t *metaReadTx) Size(ctx context.Context) (uint64, error) {
 
 // Get looks up a key.
 func (t *metaReadTx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
-	return t.shard.Get(key)
+	val, found, generation, err := t.shard.getAt(key)
+	if err != nil {
+		return nil, false, err
+	}
+	if err := t.pin(generation); err != nil {
+		return nil, false, err
+	}
+	return val, found, nil
 }
 
 // Exists checks if a key exists.
@@ -129,7 +164,14 @@ func (t *metaReadTx) Commit(ctx context.Context) error {
 func (t *metaReadTx) Discard() {}
 
 func (t *metaReadTx) collectPrefix(prefix []byte) ([]metaEntry, error) {
-	return t.shard.collectPrefix(prefix)
+	entries, generation, err := t.shard.collectPrefixAt(prefix)
+	if err != nil {
+		return nil, err
+	}
+	if err := t.pin(generation); err != nil {
+		return nil, err
+	}
+	return entries, nil
 }
 
 // mutation is a buffered Set or Delete operation.
