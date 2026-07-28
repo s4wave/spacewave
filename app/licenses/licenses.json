@@ -108,7 +108,7 @@
     },
     {
       "name": "@radix-ui/primitive",
-      "version": "1.1.5",
+      "version": "1.1.7",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -116,7 +116,7 @@
     },
     {
       "name": "@radix-ui/react-arrow",
-      "version": "1.1.11",
+      "version": "1.1.15",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -124,7 +124,7 @@
     },
     {
       "name": "@radix-ui/react-collapsible",
-      "version": "1.1.16",
+      "version": "1.1.20",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -132,7 +132,7 @@
     },
     {
       "name": "@radix-ui/react-collection",
-      "version": "1.1.12",
+      "version": "1.1.15",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -147,7 +147,7 @@
     },
     {
       "name": "@radix-ui/react-compose-refs",
-      "version": "1.1.3",
+      "version": "1.1.5",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -162,7 +162,7 @@
     },
     {
       "name": "@radix-ui/react-context",
-      "version": "1.2.0",
+      "version": "1.2.2",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -178,7 +178,7 @@
     },
     {
       "name": "@radix-ui/react-dialog",
-      "version": "1.1.19",
+      "version": "1.1.23",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -186,7 +186,7 @@
     },
     {
       "name": "@radix-ui/react-direction",
-      "version": "1.1.2",
+      "version": "1.1.4",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -202,7 +202,7 @@
     },
     {
       "name": "@radix-ui/react-dismissable-layer",
-      "version": "1.1.15",
+      "version": "1.1.19",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -210,7 +210,7 @@
     },
     {
       "name": "@radix-ui/react-dropdown-menu",
-      "version": "2.1.20",
+      "version": "2.1.24",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -226,7 +226,7 @@
     },
     {
       "name": "@radix-ui/react-focus-guards",
-      "version": "1.1.4",
+      "version": "1.1.6",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -234,7 +234,7 @@
     },
     {
       "name": "@radix-ui/react-focus-scope",
-      "version": "1.1.12",
+      "version": "1.1.16",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -257,7 +257,7 @@
     },
     {
       "name": "@radix-ui/react-id",
-      "version": "1.1.2",
+      "version": "1.1.4",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -265,7 +265,7 @@
     },
     {
       "name": "@radix-ui/react-menu",
-      "version": "2.1.20",
+      "version": "2.1.24",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -273,7 +273,7 @@
     },
     {
       "name": "@radix-ui/react-menubar",
-      "version": "1.1.20",
+      "version": "1.1.24",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -281,7 +281,7 @@
     },
     {
       "name": "@radix-ui/react-popover",
-      "version": "1.1.19",
+      "version": "1.1.23",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -289,7 +289,7 @@
     },
     {
       "name": "@radix-ui/react-popper",
-      "version": "1.3.3",
+      "version": "1.3.7",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -297,7 +297,7 @@
     },
     {
       "name": "@radix-ui/react-portal",
-      "version": "1.1.13",
+      "version": "1.1.17",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -313,7 +313,7 @@
     },
     {
       "name": "@radix-ui/react-presence",
-      "version": "1.1.5",
+      "version": "1.1.10",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -321,7 +321,15 @@
     },
     {
       "name": "@radix-ui/react-presence",
-      "version": "1.1.7",
+      "version": "1.1.5",
+      "spdx": "MIT",
+      "source": "js",
+      "repo": "https://github.com/radix-ui/primitives",
+      "copyrightNotice": "Copyright (c) 2022 WorkOS"
+    },
+    {
+      "name": "@radix-ui/react-primitive",
+      "version": "2.1.10",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -336,16 +344,8 @@
       "copyrightNotice": "Copyright (c) 2022 WorkOS"
     },
     {
-      "name": "@radix-ui/react-primitive",
-      "version": "2.1.7",
-      "spdx": "MIT",
-      "source": "js",
-      "repo": "https://github.com/radix-ui/primitives",
-      "copyrightNotice": "Copyright (c) 2022 WorkOS"
-    },
-    {
       "name": "@radix-ui/react-roving-focus",
-      "version": "1.1.15",
+      "version": "1.1.19",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -361,7 +361,7 @@
     },
     {
       "name": "@radix-ui/react-slot",
-      "version": "1.3.0",
+      "version": "1.3.3",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -369,7 +369,7 @@
     },
     {
       "name": "@radix-ui/react-tabs",
-      "version": "1.1.17",
+      "version": "1.1.21",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -377,7 +377,7 @@
     },
     {
       "name": "@radix-ui/react-tooltip",
-      "version": "1.2.12",
+      "version": "1.2.16",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -392,7 +392,7 @@
     },
     {
       "name": "@radix-ui/react-use-callback-ref",
-      "version": "1.1.2",
+      "version": "1.1.4",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -408,7 +408,15 @@
     },
     {
       "name": "@radix-ui/react-use-controllable-state",
-      "version": "1.2.3",
+      "version": "1.2.6",
+      "spdx": "MIT",
+      "source": "js",
+      "repo": "https://github.com/radix-ui/primitives",
+      "copyrightNotice": "Copyright (c) 2022 WorkOS"
+    },
+    {
+      "name": "@radix-ui/react-use-effect-event",
+      "version": "0.0.5",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -423,7 +431,7 @@
     },
     {
       "name": "@radix-ui/react-use-is-hydrated",
-      "version": "0.1.1",
+      "version": "0.1.3",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -438,7 +446,7 @@
     },
     {
       "name": "@radix-ui/react-use-layout-effect",
-      "version": "1.1.2",
+      "version": "1.1.4",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -446,7 +454,7 @@
     },
     {
       "name": "@radix-ui/react-use-size",
-      "version": "1.1.2",
+      "version": "1.1.4",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -454,7 +462,7 @@
     },
     {
       "name": "@radix-ui/react-visually-hidden",
-      "version": "1.2.7",
+      "version": "1.2.11",
       "spdx": "MIT",
       "source": "js",
       "repo": "https://github.com/radix-ui/primitives",
@@ -652,7 +660,7 @@
     },
     {
       "name": "cnfast",
-      "version": "0.0.8",
+      "version": "0.1.0",
       "spdx": "MIT",
       "source": "js",
       "fullText": "MIT License\n\nCopyright (c) 2026 Aiden Bai\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n\n-------------------------------------------------------------------------------\n\ncnfast bundles and adapts code from the following MIT-licensed projects:\n\nclsx — Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com)\nhttps://github.com/lukeed/clsx\n\ntailwind-merge — Copyright (c) 2021 Dany Castillo\nhttps://github.com/dcastil/tailwind-merge\n\nBoth are distributed under the MIT License, the full text of which is identical\nto the license above (with their respective copyright holders)."
@@ -760,7 +768,7 @@
     },
     {
       "name": "github.com/aperturerobotics/bbolt",
-      "version": "v0.0.0-20260705010846-0a20b604a410",
+      "version": "v0.0.0-20260728094431-16915d2cabe4",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/etcd-io/bbolt",
@@ -1060,7 +1068,7 @@
     },
     {
       "name": "github.com/go-git/go-billy/v6",
-      "version": "v6.0.0-alpha.2",
+      "version": "v6.0.0-alpha.2.0.20260727083916-c3866da0293d",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/go-git/go-billy",
@@ -1504,7 +1512,7 @@
     },
     {
       "name": "github.com/s4wave/goscript",
-      "version": "v0.2.24-0.20260727104350-d3f5c9faa9c9",
+      "version": "v0.2.25-0.20260728032914-f40cf597bdfc",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/s4wave/goscript",
@@ -1670,7 +1678,7 @@
     },
     {
       "name": "golang.org/x/exp",
-      "version": "v0.0.0-20260718201538-764159d718ef",
+      "version": "v0.0.0-20260727155853-b88d891fe743",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/exp",
@@ -1869,7 +1877,7 @@
     },
     {
       "name": "markdown-to-jsx",
-      "version": "9.8.2",
+      "version": "9.9.0",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2015-present Evan Jacobs"
@@ -1937,14 +1945,14 @@
     },
     {
       "name": "react",
-      "version": "19.2.7",
+      "version": "19.2.8",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) Meta Platforms, Inc. and affiliates."
     },
     {
       "name": "react-dom",
-      "version": "19.2.7",
+      "version": "19.2.8",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) Meta Platforms, Inc. and affiliates."
@@ -1991,7 +1999,7 @@
     },
     {
       "name": "react-window",
-      "version": "2.2.7",
+      "version": "2.3.0",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2018 Brian Vaughn"
