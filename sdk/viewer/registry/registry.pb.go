@@ -18,7 +18,7 @@ import (
 type ViewerSurface int32
 
 const (
-	// VIEWER_SURFACE_UNSPECIFIED is invalid.
+	// VIEWER_SURFACE_UNSPECIFIED selects the web surface for legacy callers.
 	ViewerSurface_VIEWER_SURFACE_UNSPECIFIED ViewerSurface = 0
 	// VIEWER_SURFACE_WEB identifies browser viewers.
 	ViewerSurface_VIEWER_SURFACE_WEB ViewerSurface = 1

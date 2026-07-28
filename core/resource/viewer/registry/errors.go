@@ -5,8 +5,8 @@ import "errors"
 // ErrRegistrationRequired is returned when no registration is provided.
 var ErrRegistrationRequired = errors.New("registration is required")
 
-// ErrSurfaceRequired is returned when the surface field is unspecified.
-var ErrSurfaceRequired = errors.New("surface is required")
+// ErrInvalidViewerSurface is returned when the viewer surface is unknown.
+var ErrInvalidViewerSurface = errors.New("invalid viewer surface")
 
 // ErrTypeIdRequired is returned when the type_id field is empty.
 var ErrTypeIdRequired = errors.New("type_id is required")

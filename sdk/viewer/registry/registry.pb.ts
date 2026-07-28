@@ -17,7 +17,7 @@ export const protobufPackage = 's4wave.viewer.registry'
  */
 export enum ViewerSurface {
   /**
-   * VIEWER_SURFACE_UNSPECIFIED is invalid.
+   * VIEWER_SURFACE_UNSPECIFIED selects the web surface for legacy callers.
    *
    * @generated from enum value: VIEWER_SURFACE_UNSPECIFIED = 0;
    */

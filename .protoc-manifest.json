@@ -4401,7 +4401,7 @@
       "protoFiles": ["sdk/unixfs/handle.proto"]
     },
     "github.com/s4wave/spacewave/sdk/viewer/registry": {
-      "hash": "d9796b99522f18f8bbea9c9af69742bc9f4b63add6c992c263ec5937a40d32d2",
+      "hash": "e4bcdb4e4157864c35bcb2446198c80eecfdcd379035490eae0783d535c182ec",
       "generatedFiles": [
         "sdk/viewer/registry/registry.pb.cc",
         "sdk/viewer/registry/registry.pb.go",

@@ -218,7 +218,7 @@ func surfaceWaitCh(
 	return waitCh
 }
 
-func TestViewerRegistryRejectsUnspecifiedSurface(t *testing.T) {
+func TestViewerRegistryDefaultsUnspecifiedSurfaceToWeb(t *testing.T) {
 	ctx, client, _ := setupViewerRegistryClient(t)
 
 	rootRef := client.AccessRootResource()
@@ -237,16 +237,83 @@ func TestViewerRegistryRejectsUnspecifiedSurface(t *testing.T) {
 			ComponentId: "spacewave.test.viewer",
 		},
 	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	web, err := svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{
+		Surface: s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	assertViewerSurface(
+		t,
+		web.GetRegistrations(),
+		s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
+	)
+
+	unset, err := svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	assertViewerSurface(
+		t,
+		unset.GetRegistrations(),
+		s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
+	)
+
+	watch, err := svc.WatchViewers(ctx, &s4wave_viewer_registry.WatchViewersRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	snapshot, err := watch.Recv()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	assertViewerSurface(
+		t,
+		snapshot.GetRegistrations(),
+		s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
+	)
+}
+
+func TestViewerRegistryRejectsUnknownSurface(t *testing.T) {
+	ctx, client, _ := setupViewerRegistryClient(t)
+
+	rootRef := client.AccessRootResource()
+	t.Cleanup(rootRef.Release)
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	svc := s4wave_viewer_registry.NewSRPCViewerRegistryResourceServiceClient(rootClient)
+
+	unknown := s4wave_viewer_registry.ViewerSurface(99)
+
+	_, err = svc.RegisterViewer(ctx, &s4wave_viewer_registry.RegisterViewerRequest{
+		Registration: &s4wave_viewer_registry.ViewerRegistration{
+			TypeId:      "spacewave/test",
+			ViewerName:  "Test",
+			ScriptPath:  "/viewer.js",
+			ComponentId: "spacewave.test.viewer",
+			Surface:     unknown,
+		},
+	})
 	if err == nil {
 		t.Fatal("expected registration surface validation error")
 	}
 
-	_, err = svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{})
+	_, err = svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{
+		Surface: unknown,
+	})
 	if err == nil {
 		t.Fatal("expected list surface validation error")
 	}
 
-	watch, err := svc.WatchViewers(ctx, &s4wave_viewer_registry.WatchViewersRequest{})
+	watch, err := svc.WatchViewers(ctx, &s4wave_viewer_registry.WatchViewersRequest{
+		Surface: unknown,
+	})
 	if err == nil {
 		_, err = watch.Recv()
 	}

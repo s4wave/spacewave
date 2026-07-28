@@ -38,6 +38,22 @@ func (r *ViewerRegistryResource) GetMux() srpc.Invoker {
 	return r.mux
 }
 
+// normalizeViewerSurface resolves the requested surface to a concrete one.
+// An unset surface selects the web surface for legacy callers.
+func normalizeViewerSurface(
+	surface s4wave_viewer_registry.ViewerSurface,
+) (s4wave_viewer_registry.ViewerSurface, error) {
+	switch surface {
+	case s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_UNSPECIFIED,
+		s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB:
+		return s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB, nil
+	case s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TERMINAL:
+		return s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TERMINAL, nil
+	default:
+		return s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_UNSPECIFIED, ErrInvalidViewerSurface
+	}
+}
+
 // RegisterViewer registers a viewer for an object type.
 func (r *ViewerRegistryResource) RegisterViewer(
 	ctx context.Context,
@@ -47,8 +63,9 @@ func (r *ViewerRegistryResource) RegisterViewer(
 	if reg == nil {
 		return nil, ErrRegistrationRequired
 	}
-	if reg.GetSurface() == s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_UNSPECIFIED {
-		return nil, ErrSurfaceRequired
+	surface, err := normalizeViewerSurface(reg.GetSurface())
+	if err != nil {
+		return nil, err
 	}
 	if reg.GetTypeId() == "" {
 		return nil, ErrTypeIdRequired
@@ -65,12 +82,14 @@ func (r *ViewerRegistryResource) RegisterViewer(
 		return nil, err
 	}
 
+	stored := reg.CloneVT()
+	stored.Surface = surface
+
 	var regID uint32
-	surface := reg.GetSurface()
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		regID = r.nextID
 		r.nextID++
-		r.registrations[regID] = reg.CloneVT()
+		r.registrations[regID] = stored
 		r.broadcastSurfaceLocked(surface)
 	})
 
@@ -99,12 +118,13 @@ func (r *ViewerRegistryResource) ListViewers(
 	ctx context.Context,
 	req *s4wave_viewer_registry.ListViewersRequest,
 ) (*s4wave_viewer_registry.ListViewersResponse, error) {
-	if req.GetSurface() == s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_UNSPECIFIED {
-		return nil, ErrSurfaceRequired
+	surface, err := normalizeViewerSurface(req.GetSurface())
+	if err != nil {
+		return nil, err
 	}
 	var regs []*s4wave_viewer_registry.ViewerRegistration
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		regs = r.getRegistrationsLocked(req.GetSurface())
+		regs = r.getRegistrationsLocked(surface)
 	})
 	return &s4wave_viewer_registry.ListViewersResponse{Registrations: regs}, nil
 }
@@ -114,8 +134,9 @@ func (r *ViewerRegistryResource) WatchViewers(
 	req *s4wave_viewer_registry.WatchViewersRequest,
 	strm s4wave_viewer_registry.SRPCViewerRegistryResourceService_WatchViewersStream,
 ) error {
-	if req.GetSurface() == s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_UNSPECIFIED {
-		return ErrSurfaceRequired
+	surface, err := normalizeViewerSurface(req.GetSurface())
+	if err != nil {
+		return err
 	}
 	ctx := strm.Context()
 
@@ -124,8 +145,8 @@ func (r *ViewerRegistryResource) WatchViewers(
 		var waitCh <-chan struct{}
 
 		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			regs = r.getRegistrationsLocked(req.GetSurface())
-			r.getSurfaceBroadcastLocked(req.GetSurface()).HoldLock(func(
+			regs = r.getRegistrationsLocked(surface)
+			r.getSurfaceBroadcastLocked(surface).HoldLock(func(
 				_ func(),
 				getWaitCh func() <-chan struct{},
 			) {

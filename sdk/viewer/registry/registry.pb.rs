@@ -71,7 +71,7 @@ pub struct WatchViewersResponse {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ViewerSurface {
-    /// VIEWER_SURFACE_UNSPECIFIED is invalid.
+    /// VIEWER_SURFACE_UNSPECIFIED selects the web surface for legacy callers.
     Unspecified = 0,
     /// VIEWER_SURFACE_WEB identifies browser viewers.
     Web = 1,
