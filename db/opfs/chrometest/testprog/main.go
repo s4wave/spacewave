@@ -253,6 +253,8 @@ func run(ctx context.Context, c *config) error {
 		return runMetaReadIsolation(ctx, c)
 	case "meta-reset-identity":
 		return runMetaResetIdentity(ctx, c)
+	case "meta-fallback-shortcut":
+		return runMetaFallbackShortcut(ctx, c)
 	case "counter-init":
 		return runCounterInit(c)
 	case "counter-hold":
@@ -1718,6 +1720,92 @@ func runMetaResetIdentity(ctx context.Context, c *config) error {
 		verifyMetaValue(ctx, cached, []byte("reset-key"), []byte("after!")),
 		"read after replacement",
 	)
+}
+
+// runMetaFallbackShortcut checks that a shard serving the older superblock
+// still recognizes its own loaded state on the next read.
+//
+// A superblock whose header decodes can still fail tree validation, and the
+// shard then falls back to the other slot. The rejected slot stays on disk, so
+// a shard that decided whether to revalidate by looking at the newest slot
+// alone would find a stranger there on every read and walk the whole tree
+// again, under the shared metadata lock, for each point read.
+func runMetaFallbackShortcut(ctx context.Context, c *config) error {
+	shard, store, err := openMetaShard(c)
+	if err != nil {
+		return err
+	}
+	if err := putMetaValue(ctx, store, "fallback-key", "value!"); err != nil {
+		return err
+	}
+	if err := shard.Close(); err != nil {
+		return errors.Wrap(err, "close writer shard")
+	}
+
+	dir, err := openTestDirectory(c.root, []string{"meta"})
+	if err != nil {
+		return err
+	}
+	committed, err := readCurrentMetaSuperblock(dir)
+	if err != nil {
+		return err
+	}
+	if committed == nil {
+		return errors.New("no committed meta superblock after write")
+	}
+
+	// Publish a newer superblock whose root page lies outside the page file.
+	// Its header decodes, so the shard has to walk the tree to reject it, and
+	// the slot it lands in is the one the committed superblock does not hold.
+	poisoned := pagestore.Superblock{
+		Magic:        pagestore.SuperblockMagic,
+		Version:      1,
+		Generation:   committed.Generation + 1,
+		RootPage:     pagestore.PageID(committed.PageCount),
+		FreelistPage: committed.FreelistPage,
+		PageCount:    committed.PageCount,
+	}
+	slot := "super-a"
+	if poisoned.Generation%2 == 0 {
+		slot = "super-b"
+	}
+	var poisonedBuf [pagestore.SuperblockSize]byte
+	pagestore.EncodeSuperblock(poisonedBuf[:], &poisoned)
+	if err := opfs.WriteFile(dir, slot, poisonedBuf[:]); err != nil {
+		return errors.Wrap(err, "write poisoned superblock")
+	}
+
+	reader, readerStore, err := openMetaShard(c)
+	if err != nil {
+		return err
+	}
+	if err := verifyMetaValue(
+		ctx,
+		readerStore,
+		[]byte("fallback-key"),
+		[]byte("value!"),
+	); err != nil {
+		return errors.Wrap(err, "read through fallback superblock")
+	}
+
+	before := reader.Revalidations()
+	for i := 0; i < 4; i++ {
+		if err := verifyMetaValue(
+			ctx,
+			readerStore,
+			[]byte("fallback-key"),
+			[]byte("value!"),
+		); err != nil {
+			return errors.Wrap(err, "repeat read through fallback superblock")
+		}
+	}
+	if after := reader.Revalidations(); after != before {
+		return errors.Errorf(
+			"reads over an unchanged fallback shard revalidated %d times, want 0",
+			after-before,
+		)
+	}
+	return nil
 }
 
 func runMetaMixedWriter(ctx context.Context, c *config) error {
@@ -4229,15 +4317,22 @@ func readCurrentMetaSuperblock(dir js.Value) (*pagestore.Superblock, error) {
 }
 
 func openMetaStore(c *config) (*metashard.MetaStore, error) {
+	_, store, err := openMetaShard(c)
+	return store, err
+}
+
+// openMetaShard returns the shard alongside its store, for scenarios that
+// assert on shard-level counters rather than only on stored values.
+func openMetaShard(c *config) (*metashard.MetaShard, *metashard.MetaStore, error) {
 	dir, err := openTestDirectory(c.root, []string{"meta"})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	shard, err := metashard.NewMetaShard(dir, c.root+"/meta", 4096, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return metashard.NewMetaStore(shard), nil
+	return shard, metashard.NewMetaStore(shard), nil
 }
 
 func openVolume(ctx context.Context, c *config) (*volume_opfs.Opfs, error) {
