@@ -38,6 +38,7 @@ type p2pSyncState struct {
 	restartPending   bool
 	startErr         error
 	lowerSource      *p2pSyncState
+	lowerSourceHeld  bool
 	workers          int
 	refs             []directive.Reference
 	relFns           []func()
@@ -53,6 +54,19 @@ func (a *ProviderAccount) retainP2PSyncStateLocked(ctx context.Context, state *p
 	retained := false
 	state.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		if state.stopping || state.ctx.Err() != nil || ctx.Err() != nil {
+			return
+		}
+		state.owners++
+		retained = true
+		bcast()
+	})
+	return retained
+}
+
+func (a *ProviderAccount) retainP2PSyncLowerSourceLocked(state *p2pSyncState) bool {
+	retained := false
+	state.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if state.stopping || state.ctx.Err() != nil {
 			return
 		}
 		state.owners++
@@ -112,6 +126,22 @@ func (a *ProviderAccount) releaseP2PSyncState(state *p2pSyncState) {
 
 	if retire {
 		a.retireP2PSyncState(state)
+	}
+}
+
+func (a *ProviderAccount) releaseP2PSyncLowerSource(state *p2pSyncState) {
+	var lower *p2pSyncState
+	state.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if !state.lowerSourceHeld {
+			return
+		}
+		lower = state.lowerSource
+		state.lowerSource = nil
+		state.lowerSourceHeld = false
+		bcast()
+	})
+	if lower != nil {
+		a.releaseP2PSyncState(lower)
 	}
 }
 
@@ -184,17 +214,13 @@ func (s *p2pSyncState) workerDone() {
 
 func (s *p2pSyncState) getStore(bucketID string) block.StoreOps {
 	var store block.StoreOps
-	var lowerSource *p2pSyncState
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		store = s.stores[bucketID]
-		if store == nil && !s.started {
-			lowerSource = s.lowerSource
+		if store == nil && !s.started && s.lowerSource != nil {
+			store = s.lowerSource.getStore(bucketID)
 		}
 	})
-	if store != nil || lowerSource == nil {
-		return store
-	}
-	return lowerSource.getStore(bucketID)
+	return store
 }
 
 // StartP2PSync starts SO sync and DEX block exchange for all mounted
@@ -244,12 +270,15 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 			ctx:              syncCtx,
 			sessionTransport: sessionTransport,
 			cancel:           syncCancel,
-			lowerSource:      previous,
 		}
 		if !a.retainP2PSyncStateLocked(ctx, state) {
 			syncCancel()
 			state = nil
 			return
+		}
+		if previous != nil && a.retainP2PSyncLowerSourceLocked(previous) {
+			state.lowerSource = previous
+			state.lowerSourceHeld = true
 		}
 		a.p2pSync = state
 		bcast()
@@ -386,10 +415,8 @@ func (a *ProviderAccount) runP2PSyncStart(
 	}
 
 	if err == nil {
-		if previous != nil {
-			a.retireP2PSyncState(previous)
-		}
 		state.markStartupExited()
+		a.releaseP2PSyncLowerSource(state)
 		return
 	}
 
@@ -500,28 +527,19 @@ func (a *ProviderAccount) getP2PStore(bucketID string) block.StoreOps {
 // retireP2PSyncState removes one state from the account lifecycle and releases
 // its resources. A nil state selects the current state atomically with removal.
 func (a *ProviderAccount) retireP2PSyncState(state *p2pSyncState) {
-	var (
-		removed bool
-		lower   *p2pSyncState
-	)
 	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		if state == nil {
 			state = a.p2pSync
 		}
-		if state == nil || a.p2pSync != state {
+		if state == nil {
 			return
 		}
-		state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			lower = state.lowerSource
-		})
-		a.p2pSync = nil
-		removed = true
-		bcast()
+		if a.p2pSync == state {
+			a.p2pSync = nil
+			bcast()
+		}
 	})
 	a.stopP2PSyncState(state)
-	if removed && lower != nil {
-		a.retireP2PSyncState(lower)
-	}
 }
 
 func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
@@ -599,6 +617,8 @@ func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
 	for _, rel := range relFns {
 		rel()
 	}
+	a.releaseP2PSyncLowerSource(state)
+
 	state.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		state.cleanupDone = true
 		state.cleanupRunning = false

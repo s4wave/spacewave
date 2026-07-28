@@ -114,6 +114,7 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 		startComplete:    true,
 		started:          true,
 		startupExited:    true,
+		owners:           1,
 		stores:           map[string]block.StoreOps{bucketID: priorStore},
 	}
 	acc.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
@@ -171,6 +172,12 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal("replacement controller load did not start")
 	}
+	acc.releaseP2PSyncState(prior)
+	prior.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if prior.stopping {
+			t.Fatal("prior P2P source stopped while replacement was starting")
+		}
+	})
 
 	got, found, err := mounted.GetBlock(ctx, blockRef)
 	if err != nil || !found || string(got) != string(data) {
