@@ -1,9 +1,16 @@
 /* docs-prose scopes prose typography for rendered documentation markdown. */
 
 .docs-prose {
+  max-width: 70ch;
   font-size: 0.875rem;
   /* Long URLs and identifiers must break rather than force horizontal scroll. */
   overflow-wrap: break-word;
+}
+
+@container (min-width: 42rem) {
+  .docs-prose {
+    font-size: 0.9375rem;
+  }
 }
 
 .docs-prose h1 {

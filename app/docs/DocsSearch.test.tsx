@@ -46,4 +46,16 @@ describe('DocsSearch', () => {
     expect(results[0].textContent).toContain('Backup and Recovery')
     expect(results[1].textContent).toContain('CLI Reference')
   })
+
+  it('selects a result from keyboard focus', async () => {
+    const user = userEvent.setup()
+    let selected: DocPage | undefined
+    render(<DocsSearch docs={docs} onSelect={(doc) => (selected = doc)} />)
+
+    await user.type(screen.getByPlaceholderText('Search docs…'), 'backup')
+    await user.tab()
+    await user.keyboard('{Enter}')
+
+    expect(selected?.title).toBe('Backup and Recovery')
+  })
 })

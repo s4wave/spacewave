@@ -56,9 +56,10 @@ export function DocsSidebar({ sections, currentDoc }: DocsSidebarProps) {
   }, [sections, siteLabels])
 
   return (
-    <nav className="flex flex-1 flex-col">
+    <nav aria-label="Documentation navigation" className="flex flex-1 flex-col">
       <div className="flex flex-col gap-1 p-4">
         <button
+          type="button"
           onClick={goToIndex}
           className={cn(
             'mb-4 cursor-pointer text-left text-sm font-semibold transition-colors',
@@ -84,6 +85,7 @@ export function DocsSidebar({ sections, currentDoc }: DocsSidebarProps) {
                   {section.pages.map((page) => (
                     <li key={page.url}>
                       <button
+                        type="button"
                         onClick={() => goToPage(page.url)}
                         className={cn(
                           'w-full cursor-pointer border-l-2 py-2 pl-3 text-left text-sm transition-colors',

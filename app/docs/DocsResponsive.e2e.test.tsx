@@ -22,11 +22,11 @@ function DocsRouteHarness({ initialPath }: { initialPath: string }) {
   )
 }
 
-// WIDTHS are the responsive breakpoints under test: narrow phone, tablet, and
-// desktop. 360 is the production floor the docs viewer must stay readable at.
+// WIDTHS exercise phone, tablet, intermediate, and desktop container widths.
 const WIDTHS: [string, number][] = [
   ['360', 360],
   ['768', 768],
+  ['955', 955],
   ['1280', 1280],
 ]
 
@@ -174,6 +174,46 @@ describe('docs viewer responsive layout', () => {
         page.getByRole('button', { name: 'Open documentation navigation' }),
       )
       .toBeInTheDocument()
+    await page
+      .getByRole('button', { name: 'Open documentation navigation' })
+      .click()
+    await expect
+      .element(
+        page.getByRole('button', { name: 'Close documentation navigation' }),
+      )
+      .toBeInTheDocument()
+    await page
+      .getByRole('textbox', { name: 'Search documentation' })
+      .fill('backup')
+    await expect
+      .element(
+        page.getByRole('button', {
+          name: 'Backup and Lock Setup',
+          exact: true,
+        }),
+      )
+      .toBeInTheDocument()
+    await page
+      .getByRole('button', { name: 'Backup and Lock Setup', exact: true })
+      .click()
+    await expect
+      .element(page.getByRole('heading', { name: 'Backup and Lock Setup' }))
+      .toBeInTheDocument()
+
+    await cleanup()
+    await page.viewport(360, 900)
+    await render(<DocsRouteHarness initialPath="/docs" />)
+    await page
+      .getByRole('button', { name: 'Open documentation navigation' })
+      .click()
+    await page
+      .getByRole('button', { name: 'Close documentation navigation' })
+      .click()
+    await expect
+      .element(
+        page.getByRole('button', { name: 'Close documentation navigation' }),
+      )
+      .not.toBeInTheDocument()
 
     await cleanup()
 
