@@ -6,12 +6,15 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
 	lookup_concurrent "github.com/s4wave/spacewave/db/bucket/lookup/concurrent"
+	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 )
@@ -67,46 +70,116 @@ func (s *localDEXTestStore) GetBlock(ctx context.Context, ref *block.BlockRef) (
 
 var _ block.StoreOps = ((*localDEXTestStore)(nil))
 
-func TestBlockStoreReadRetainsPriorP2PSyncSourceDuringReplacement(t *testing.T) {
-	ctx := t.Context()
-	data := []byte("from-prior-p2p-state")
-	ref, err := block.BuildBlockRef(data, nil)
+func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+
+	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
+		t.Fatal(err)
+	}
+	defer acc.StopSessionTransport()
+	first := acc.GetSessionTransport()
+	if first == nil {
+		t.Fatal("expected initial session transport")
+	}
+
+	data := []byte("from-prior-production-source")
+	blockRef, err := block.BuildBlockRef(data, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	priorStore := newBatchForwardTestStore()
 	if _, _, err := priorStore.PutBlock(ctx, data, nil); err != nil {
 		t.Fatal(err)
 	}
+
+	bstoreRef, err := acc.CreateBlockStore(ctx, "replacement-window")
+	if err != nil {
+		t.Fatal(err)
+	}
+	bucketID := BlockStoreBucketID(
+		acc.GetProviderID(),
+		acc.GetAccountID(),
+		bstoreRef.GetProviderResourceRef().GetId(),
+	)
+	priorCtx, priorCancel := context.WithCancel(ctx)
+	defer priorCancel()
 	prior := &p2pSyncState{
-		ctx:     ctx,
-		started: true,
-		stores:  map[string]block.StoreOps{"bucket": priorStore},
+		ctx:              priorCtx,
+		cancel:           priorCancel,
+		sessionTransport: first,
+		startComplete:    true,
+		started:          true,
+		startupExited:    true,
+		stores:           map[string]block.StoreOps{bucketID: priorStore},
 	}
-	replacement := &p2pSyncState{
-		ctx:         ctx,
-		lowerSource: prior,
-	}
-	account := &ProviderAccount{}
-	account.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		account.p2pSync = replacement
+	acc.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		acc.p2pSync = prior
+		bcast()
 	})
 
-	localStore := newBatchForwardTestStore()
-	readOps := block_store.NewStoreReadThrough(
-		func() block.StoreOps { return localStore },
-		func() block.StoreOps { return account.getP2PStore("bucket") },
-		true,
-	)
-	store := &BlockStore{
-		store:     block_store.NewStore("local-store", localStore),
-		readStore: block_store.NewStore("local-store", readOps),
+	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
+		t.Fatal(err)
+	}
+	second := acc.GetSessionTransport()
+	if second == nil || second == first {
+		t.Fatal("expected replacement session transport")
 	}
 
-	got, found, err := store.GetBlock(ctx, ref)
+	loadStarted := make(chan struct{})
+	releaseLoad := make(chan struct{})
+	var gate atomic.Bool
+	removeHandler, err := second.GetChildBus().AddHandler(directive.NewFuncHandler(
+		func(handlerCtx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+			load, ok := di.GetDirective().(resolver.LoadControllerWithConfig)
+			if !ok {
+				return nil, nil
+			}
+			if _, ok := load.GetLoadControllerConfig().(*dex_solicit.Config); !ok {
+				return nil, nil
+			}
+			if gate.CompareAndSwap(false, true) {
+				close(loadStarted)
+				select {
+				case <-releaseLoad:
+				case <-handlerCtx.Done():
+				}
+			}
+			return nil, nil
+		},
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer removeHandler()
+
+	mounted, releaseMounted, err := acc.MountBlockStore(ctx, bstoreRef, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseMounted()
+
+	startDone := make(chan error, 1)
+	go func() {
+		startDone <- acc.StartP2PSync(ctx, second)
+	}()
+	select {
+	case <-loadStarted:
+	case <-ctx.Done():
+		t.Fatal("replacement controller load did not start")
+	}
+
+	got, found, err := mounted.GetBlock(ctx, blockRef)
 	if err != nil || !found || string(got) != string(data) {
-		t.Fatalf("replacement lower source = %q/%v/%v", got, found, err)
+		t.Fatalf("production replacement lower source = %q/%v/%v", got, found, err)
+	}
+
+	close(releaseLoad)
+	if err := <-startDone; err != nil {
+		t.Fatal(err)
 	}
 }
 

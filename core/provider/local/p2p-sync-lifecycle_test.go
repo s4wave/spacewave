@@ -9,9 +9,9 @@ func TestP2PSyncStateFinishStartPublishesStableState(t *testing.T) {
 	ctx := t.Context()
 	state := &p2pSyncState{ctx: ctx}
 
-	restart, published, err := state.finishStart(nil)
-	if restart || !published || err != nil {
-		t.Fatalf("finish start = restart %v, published %v, err %v", restart, published, err)
+	restart := state.finishStart(nil)
+	if restart {
+		t.Fatal("stable startup requested a restart")
 	}
 
 	state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -20,9 +20,9 @@ func TestP2PSyncStateFinishStartPublishesStableState(t *testing.T) {
 		}
 	})
 
-	restart, published, err = state.finishStart(context.Canceled)
-	if restart || published || err != nil {
-		t.Fatalf("second finish start = restart %v, published %v, err %v", restart, published, err)
+	restart = state.finishStart(context.Canceled)
+	if restart {
+		t.Fatal("completed startup requested a restart")
 	}
 }
 
@@ -30,9 +30,9 @@ func TestP2PSyncStateRestartStaysIncompleteUntilStable(t *testing.T) {
 	ctx := t.Context()
 	state := &p2pSyncState{ctx: ctx, restartPending: true}
 
-	restart, published, err := state.finishStart(nil)
-	if !restart || published || err != nil {
-		t.Fatalf("pending finish start = restart %v, published %v, err %v", restart, published, err)
+	restart := state.finishStart(nil)
+	if !restart {
+		t.Fatal("pending startup did not request a restart")
 	}
 	state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if state.startComplete {
@@ -43,9 +43,9 @@ func TestP2PSyncStateRestartStaysIncompleteUntilStable(t *testing.T) {
 		}
 	})
 
-	restart, published, err = state.finishStart(nil)
-	if restart || !published || err != nil {
-		t.Fatalf("stable finish start = restart %v, published %v, err %v", restart, published, err)
+	restart = state.finishStart(nil)
+	if restart {
+		t.Fatal("stable startup requested an extra restart")
 	}
 }
 
