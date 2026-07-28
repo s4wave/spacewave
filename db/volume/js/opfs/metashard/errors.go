@@ -3,7 +3,10 @@
 package metashard
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
 )
 
@@ -15,7 +18,15 @@ var ErrReadOnly = errors.New("read-only transaction")
 // generation, so continuing would let the transaction assemble a view of the
 // metadata that no generation ever held. The caller discards the transaction
 // and retries.
-var ErrGenerationChanged = errors.New("metadata committed by another agent during this transaction")
+//
+// It wraps kvtx.ErrInvalidSnapshot because that is the store-level contract for
+// exactly this situation, and the callers that already reopen a transaction at
+// a fresh generation recognize the snapshot error rather than any one store's
+// private sentinel.
+var ErrGenerationChanged = fmt.Errorf(
+	"%w: metadata committed by another agent during this transaction",
+	kvtx.ErrInvalidSnapshot,
+)
 
 // CorruptError is returned when committed metashard state cannot be decoded.
 type CorruptError struct {

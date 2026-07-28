@@ -7,6 +7,8 @@ package metashard
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"sync"
 	"syscall/js"
 
@@ -33,6 +35,13 @@ type MetaShard struct {
 	// this process has read and validated. It distinguishes an empty shard from
 	// one that has never been loaded, which both carry generation zero.
 	stateLoaded bool
+	// loadedSuper is the encoded superblock that produced the loaded state, and
+	// is what the reload shortcut compares against. It identifies the state
+	// rather than merely dating it, which matters because corruption recovery
+	// deletes the page file and creates a new database in its place: comparing
+	// the root page, page count, and freelist alongside the generation is what
+	// keeps a replacement from passing for the state it replaced.
+	loadedSuper [pagestore.SuperblockSize]byte
 	// revalidations counts full read-validate-rebuild passes, so a test can
 	// assert that a run of reads over an unchanged shard performs one.
 	revalidations uint64
@@ -162,6 +171,20 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 	}
 
 	gen++
+	if gen == 1 {
+		// Nothing was committed before this, so this commit creates the
+		// database. Start its generations at a fresh epoch instead of at one,
+		// because corruption recovery deletes the page file and creates a new
+		// database in its place. Counting from one again would let the
+		// replacement publish generations the database it replaced had already
+		// published, and another instance holding cached state decides whether
+		// that state is current by comparing what it loaded against what is on
+		// disk.
+		gen, err = newGenerationEpoch()
+		if err != nil {
+			return err
+		}
+	}
 	sb := pagestore.Superblock{
 		Magic:        pagestore.SuperblockMagic,
 		Version:      1,
@@ -187,6 +210,7 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 
 	ms.rootPage = tree.RootID()
 	ms.generation = gen
+	ms.loadedSuper = sbBuf
 
 	return nil
 }
@@ -350,10 +374,10 @@ func (ms *MetaShard) reloadCommittedStateLocked(revalidate bool) error {
 	// since the last one. Reloading in full costs a whole-tree validation walk
 	// and a pager rebuild that drops the page cache, so a point read would cost
 	// O(tree) and a run of M reads O(M*tree). The superblocks themselves say
-	// whether any of that is necessary: when the newest one on disk is the
-	// generation already loaded, the state in hand is that generation, and it
-	// was validated when it was loaded.
-	if !revalidate && ms.stateLoaded && newestGeneration(aBuf[:], bBuf[:]) == ms.generation {
+	// whether any of that is necessary: when the newest one on disk is byte for
+	// byte the one this state was loaded from, the state in hand is that state,
+	// and it was validated when it was loaded.
+	if !revalidate && ms.stateLoaded && newestSuperblock(aBuf[:], bBuf[:]) == ms.loadedSuper {
 		return nil
 	}
 	ms.revalidations++
@@ -391,20 +415,50 @@ func (ms *MetaShard) reloadCommittedStateLocked(revalidate bool) error {
 
 	ms.rootPage = rootPage
 	ms.generation = gen
+	ms.loadedSuper = [pagestore.SuperblockSize]byte{}
+	if sb != nil {
+		// Encode the superblock that was actually chosen rather than copying
+		// the newest bytes off disk. Validation can fall back to the older
+		// superblock, and the identity has to name the state in hand.
+		pagestore.EncodeSuperblock(ms.loadedSuper[:], sb)
+	}
 	ms.stateLoaded = true
 	return nil
 }
 
-// newestGeneration returns the highest generation among the superblocks that
-// decode, or zero when neither does. It reads only the encoded header, so it
-// costs nothing beyond the two superblock reads the caller already made.
-func newestGeneration(a, b []byte) uint64 {
-	var newest uint64
-	if sa, err := pagestore.DecodeSuperblock(a); err == nil {
-		newest = sa.Generation
+// generationEpochShift splits a generation into a per-database epoch above it
+// and a commit counter below it. The counter keeps 32 bits, far more commits
+// than a metadata shard makes in the lifetime of a browser profile, and the
+// epoch takes the other 32 at random, so two databases reaching the same commit
+// count still carry different generations.
+const generationEpochShift = 32
+
+// newGenerationEpoch returns the first generation of a newly created database.
+func newGenerationEpoch() (uint64, error) {
+	var buf [4]byte
+	if _, err := rand.Read(buf[:]); err != nil {
+		return 0, errors.Wrap(err, "read generation epoch")
 	}
-	if sb, err := pagestore.DecodeSuperblock(b); err == nil && sb.Generation > newest {
-		newest = sb.Generation
+	return uint64(binary.BigEndian.Uint32(buf[:]))<<generationEpochShift | 1, nil
+}
+
+// newestSuperblock returns the encoded bytes of the highest-generation
+// superblock that decodes, and the zero value when neither does. A valid
+// superblock never encodes to zeroes because its magic is nonzero, so the zero
+// value is usable as the identity of a shard with no committed state. It
+// decodes only the header, so it costs nothing beyond the two superblock reads
+// the caller already made.
+func newestSuperblock(a, b []byte) [pagestore.SuperblockSize]byte {
+	var newest [pagestore.SuperblockSize]byte
+	var newestGen uint64
+	var found bool
+	if sa, err := pagestore.DecodeSuperblock(a); err == nil {
+		newest = [pagestore.SuperblockSize]byte(a)
+		newestGen = sa.Generation
+		found = true
+	}
+	if sb, err := pagestore.DecodeSuperblock(b); err == nil && (!found || sb.Generation > newestGen) {
+		newest = [pagestore.SuperblockSize]byte(b)
 	}
 	return newest
 }
@@ -494,6 +548,7 @@ func (ms *MetaShard) resetCommittedStateLocked() error {
 
 	ms.rootPage = pagestore.InvalidPage
 	ms.generation = 0
+	ms.loadedSuper = [pagestore.SuperblockSize]byte{}
 	return nil
 }
 

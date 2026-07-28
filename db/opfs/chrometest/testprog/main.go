@@ -251,6 +251,8 @@ func run(ctx context.Context, c *config) error {
 		return runMetaCrashVerify(ctx, c)
 	case "meta-read-isolation":
 		return runMetaReadIsolation(ctx, c)
+	case "meta-reset-identity":
+		return runMetaResetIdentity(ctx, c)
 	case "counter-init":
 		return runCounterInit(c)
 	case "counter-hold":
@@ -1597,8 +1599,18 @@ func runMetaReadIsolation(ctx context.Context, c *config) error {
 		return err
 	}
 
-	if _, _, err := readTx.Get(ctx, []byte("iso-b")); !errors.Is(err, metashard.ErrGenerationChanged) {
-		return errors.Errorf("read after foreign commit err = %v, want ErrGenerationChanged", err)
+	readErr := func() error {
+		_, _, err := readTx.Get(ctx, []byte("iso-b"))
+		return err
+	}()
+	if !errors.Is(readErr, metashard.ErrGenerationChanged) {
+		return errors.Errorf("read after foreign commit err = %v, want ErrGenerationChanged", readErr)
+	}
+	// The callers that reopen a transaction at a fresh generation recognize the
+	// store-level snapshot error, not this store's private sentinel, so a
+	// generation change has to reach them as one.
+	if !errors.Is(readErr, kvtx.ErrInvalidSnapshot) {
+		return errors.Errorf("read after foreign commit err = %v, want kvtx.ErrInvalidSnapshot", readErr)
 	}
 
 	nextTx, err := store.NewTransaction(ctx, false)
@@ -1630,6 +1642,82 @@ func putMetaPair(ctx context.Context, store *metashard.MetaStore, value string) 
 		}
 	}
 	return errors.Wrap(tx.Commit(ctx), "commit meta pair")
+}
+
+func putMetaValue(ctx context.Context, store *metashard.MetaStore, key, value string) error {
+	tx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrap(err, "open meta write tx")
+	}
+	if err := tx.Set(ctx, []byte(key), []byte(value)); err != nil {
+		tx.Discard()
+		return errors.Wrapf(err, "set %s", key)
+	}
+	return errors.Wrapf(tx.Commit(ctx), "commit %s", key)
+}
+
+// runMetaResetIdentity checks that a shard holding cached committed state
+// notices when another agent replaces the database underneath it.
+//
+// Corruption recovery deletes the page file and builds a new database in its
+// place. A shard decides whether to revalidate by comparing the state it
+// loaded against what is on disk, so a replacement that reached the same
+// commit count with the same tree shape must still be distinguishable from the
+// database it replaced. Otherwise the cached shard serves the old root page
+// over the new file and returns metadata that no longer exists.
+func runMetaResetIdentity(ctx context.Context, c *config) error {
+	cached, err := openMetaStore(c)
+	if err != nil {
+		return err
+	}
+	if err := putMetaValue(ctx, cached, "reset-key", "before"); err != nil {
+		return err
+	}
+	// Read once so this shard caches the state it just committed.
+	if err := verifyMetaValue(ctx, cached, []byte("reset-key"), []byte("before")); err != nil {
+		return errors.Wrap(err, "read before replacement")
+	}
+
+	dir, err := openTestDirectory(c.root, []string{"meta"})
+	if err != nil {
+		return err
+	}
+	for _, name := range []string{"pages.dat", "super-a", "super-b"} {
+		if err := opfs.DeleteFile(dir, name); err != nil && !opfs.IsNotFound(err) {
+			return errors.Wrapf(err, "delete %s", name)
+		}
+	}
+
+	// Build the replacement in one commit, so it reaches the same commit count
+	// as the database that was deleted while holding a different root page and
+	// page count. That is the state a shard comparing commit counts alone would
+	// mistake for the one it cached.
+	replacement, err := openMetaStore(c)
+	if err != nil {
+		return err
+	}
+	tx, err := replacement.NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrap(err, "open replacement write tx")
+	}
+	for i := 0; i < 512; i++ {
+		if err := tx.Set(ctx, metaKey(0, i), metaValue(metaKey(0, i))); err != nil {
+			tx.Discard()
+			return errors.Wrap(err, "set replacement key")
+		}
+	}
+	if err := tx.Set(ctx, []byte("reset-key"), []byte("after!")); err != nil {
+		tx.Discard()
+		return errors.Wrap(err, "set replacement reset-key")
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit replacement")
+	}
+
+	return errors.Wrap(
+		verifyMetaValue(ctx, cached, []byte("reset-key"), []byte("after!")),
+		"read after replacement",
+	)
 }
 
 func runMetaMixedWriter(ctx context.Context, c *config) error {
