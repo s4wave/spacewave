@@ -3,12 +3,12 @@ package provider_local
 import (
 	"bytes"
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
@@ -22,78 +22,93 @@ import (
 
 // p2pSyncState holds P2P sync startup or running state and DEX stores.
 type p2pSyncState struct {
-	ctx context.Context
-	// sessionTransport is the transport this state's controllers run on. A
-	// start for a different transport cannot join this one: the startup pass
-	// loads controllers onto the child bus of the transport it began with, so
-	// coalescing across transports would leave the newer transport without
-	// them while its caller was told sync had started.
+	// bcast guards every lifecycle and resource field below.
+	bcast broadcast.Broadcast
+
+	ctx              context.Context
 	sessionTransport *transport.SessionTransport
 	cancel           context.CancelFunc
-	startDone        chan struct{}
-	startOnce        sync.Once
-	runDone          chan struct{}
-	stopDone         chan struct{}
-	stopOnce         sync.Once
-	wg               sync.WaitGroup
-	mtx              sync.Mutex
 	owners           int
+	startComplete    bool
+	started          bool
+	startupExited    bool
+	stopping         bool
+	cleanupRunning   bool
+	cleanupDone      bool
 	restartPending   bool
-	// startErr is the failure that ended startup, published to every waiter
-	// under the account's sync lock before startDone closes.
-	startErr error
-	refs     []directive.Reference
-	relFns   []func()
-	stores   map[string]block.StoreOps
-	soIDs    map[string]struct{}
+	startErr         error
+	lowerSource      *p2pSyncState
+	workers          int
+	refs             []directive.Reference
+	relFns           []func()
+	stores           map[string]block.StoreOps
+	soIDs            map[string]struct{}
 }
 
-func (s *p2pSyncState) completeStart() {
-	s.startOnce.Do(func() {
-		close(s.startDone)
-	})
-}
-
-// retainP2PSyncState is called with the account sync lock held before it takes
-// state.mtx. The release path drops state.mtx before reacquiring the account
-// lock to retire the state, so the locks are never held in reverse order.
-func (a *ProviderAccount) retainP2PSyncState(ctx context.Context, state *p2pSyncState) bool {
+func (a *ProviderAccount) retainP2PSyncStateLocked(ctx context.Context, state *p2pSyncState) bool {
 	if ctx.Err() != nil {
 		return false
 	}
 
-	state.mtx.Lock()
-	if state.ctx.Err() != nil {
-		state.mtx.Unlock()
-		return false
-	}
-	state.owners++
-	state.mtx.Unlock()
+	retained := false
+	state.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if state.stopping || state.ctx.Err() != nil || ctx.Err() != nil {
+			return
+		}
+		state.owners++
+		retained = true
+		bcast()
+	})
+	return retained
+}
 
+func (a *ProviderAccount) watchP2PSyncOwner(ctx context.Context, state *p2pSyncState) {
 	if ctx.Done() == nil {
-		return true
+		return
 	}
 	go func() {
-		select {
-		case <-ctx.Done():
-			a.releaseP2PSyncState(state)
-		case <-state.stopDone:
+		for {
+			var waitCh <-chan struct{}
+			var stopped bool
+			state.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+				stopped = state.stopping
+				if !stopped {
+					waitCh = getWaitCh()
+				}
+			})
+			if stopped {
+				return
+			}
+			select {
+			case <-ctx.Done():
+				a.releaseP2PSyncState(state)
+				return
+			case <-waitCh:
+			}
 		}
 	}()
-	return true
 }
 
 func (a *ProviderAccount) releaseP2PSyncState(state *p2pSyncState) {
 	retire := false
-	state.mtx.Lock()
-	if state.owners > 0 {
-		state.owners--
+	state.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		if state.owners == 0 {
-			state.cancel()
-			retire = true
+			return
 		}
-	}
-	state.mtx.Unlock()
+		state.owners--
+		if state.owners != 0 {
+			bcast()
+			return
+		}
+		state.cancel()
+		state.stopping = true
+		if !state.startComplete {
+			state.startErr = context.Canceled
+			state.startComplete = true
+		}
+		bcast()
+		retire = true
+	})
 
 	if retire {
 		a.retireP2PSyncState(state)
@@ -101,42 +116,85 @@ func (a *ProviderAccount) releaseP2PSyncState(state *p2pSyncState) {
 }
 
 func (s *p2pSyncState) addStore(bucketID string, store block.StoreOps) {
-	s.mtx.Lock()
-	if s.stores == nil {
-		s.stores = make(map[string]block.StoreOps)
-	}
-	s.stores[bucketID] = store
-	s.mtx.Unlock()
+	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if s.stores == nil {
+			s.stores = make(map[string]block.StoreOps)
+		}
+		s.stores[bucketID] = store
+		bcast()
+	})
 }
 
 func (s *p2pSyncState) hasStore(bucketID string) bool {
-	s.mtx.Lock()
-	_, ok := s.stores[bucketID]
-	s.mtx.Unlock()
+	var ok bool
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		_, ok = s.stores[bucketID]
+	})
 	return ok
 }
 
 func (s *p2pSyncState) hasSO(soID string) bool {
-	s.mtx.Lock()
-	_, ok := s.soIDs[soID]
-	s.mtx.Unlock()
+	var ok bool
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		_, ok = s.soIDs[soID]
+	})
 	return ok
 }
 
 func (s *p2pSyncState) addSO(soID string) {
-	s.mtx.Lock()
-	if s.soIDs == nil {
-		s.soIDs = make(map[string]struct{})
-	}
-	s.soIDs[soID] = struct{}{}
-	s.mtx.Unlock()
+	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if s.soIDs == nil {
+			s.soIDs = make(map[string]struct{})
+		}
+		s.soIDs[soID] = struct{}{}
+		bcast()
+	})
+}
+
+func (s *p2pSyncState) addRef(ref directive.Reference) {
+	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		s.refs = append(s.refs, ref)
+		bcast()
+	})
+}
+
+func (s *p2pSyncState) addRelease(rel func()) {
+	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		s.relFns = append(s.relFns, rel)
+		bcast()
+	})
+}
+
+func (s *p2pSyncState) addWorker() {
+	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		s.workers++
+		bcast()
+	})
+}
+
+func (s *p2pSyncState) workerDone() {
+	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if s.workers == 0 {
+			return
+		}
+		s.workers--
+		bcast()
+	})
 }
 
 func (s *p2pSyncState) getStore(bucketID string) block.StoreOps {
-	s.mtx.Lock()
-	store := s.stores[bucketID]
-	s.mtx.Unlock()
-	return store
+	var store block.StoreOps
+	var lowerSource *p2pSyncState
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		store = s.stores[bucketID]
+		if store == nil && !s.started {
+			lowerSource = s.lowerSource
+		}
+	})
+	if store != nil || lowerSource == nil {
+		return store
+	}
+	return lowerSource.getStore(bucketID)
 }
 
 // StartP2PSync starts SO sync and DEX block exchange for all mounted
@@ -158,18 +216,26 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 		previous  *p2pSyncState
 		waitState *p2pSyncState
 		state     *p2pSyncState
+		watch     bool
 	)
 	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		previous = a.p2pSync
 		if previous != nil && previous.sessionTransport == sessionTransport {
-			select {
-			case <-previous.startDone:
-			default:
-				if previous.ctx.Err() == nil && a.retainP2PSyncState(ctx, previous) {
-					previous.restartPending = true
-					waitState = previous
+			previous.bcast.HoldLock(func(stateBcast func(), _ func() <-chan struct{}) {
+				if previous.startComplete || previous.stopping || previous.ctx.Err() != nil {
 					return
 				}
+				if ctx.Err() != nil {
+					return
+				}
+				previous.owners++
+				previous.restartPending = true
+				stateBcast()
+				waitState = previous
+				watch = true
+			})
+			if waitState != nil {
+				return
 			}
 		}
 
@@ -178,18 +244,24 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 			ctx:              syncCtx,
 			sessionTransport: sessionTransport,
 			cancel:           syncCancel,
-			startDone:        make(chan struct{}),
-			runDone:          make(chan struct{}),
-			stopDone:         make(chan struct{}),
+			lowerSource:      previous,
 		}
-		if !a.retainP2PSyncState(ctx, state) {
+		if !a.retainP2PSyncStateLocked(ctx, state) {
 			syncCancel()
 			state = nil
 			return
 		}
 		a.p2pSync = state
 		bcast()
+		watch = true
 	})
+	if watch {
+		if waitState != nil {
+			a.watchP2PSyncOwner(ctx, waitState)
+		} else {
+			a.watchP2PSyncOwner(ctx, state)
+		}
+	}
 	if state == nil {
 		if waitState == nil {
 			return ctx.Err()
@@ -209,17 +281,32 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 // own context to end, whichever comes first. Giving up releases this caller's
 // ownership without stopping the run; it ends only when the last owner leaves.
 func (a *ProviderAccount) awaitP2PSyncStart(ctx context.Context, state *p2pSyncState) error {
-	select {
-	case <-state.startDone:
-	case <-ctx.Done():
-		return ctx.Err()
+	for {
+		var waitCh <-chan struct{}
+		var complete bool
+		state.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			complete = state.startComplete
+			if !complete {
+				waitCh = getWaitCh()
+			}
+		})
+		if complete {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-waitCh:
+		}
 	}
 
 	var running bool
 	var startErr error
 	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		running = a.p2pSync == state
-		startErr = state.startErr
+		state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			startErr = state.startErr
+		})
 	})
 	if startErr != nil {
 		return startErr
@@ -233,114 +320,159 @@ func (a *ProviderAccount) awaitP2PSyncStart(ctx context.Context, state *p2pSyncS
 	return errors.New("P2P sync stopped during startup")
 }
 
-// runP2PSyncStart performs the startup pass and publishes its outcome to every
-// caller waiting on the state.
+func (s *p2pSyncState) finishStart(err error) (bool, bool, error) {
+	restart := false
+	published := false
+	terminalErr := err
+	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if terminalErr == nil && s.stopping {
+			terminalErr = context.Canceled
+		}
+		if terminalErr == nil {
+			terminalErr = s.ctx.Err()
+		}
+		if terminalErr == nil && s.restartPending && !s.stopping && !s.startComplete {
+			s.restartPending = false
+			restart = true
+			bcast()
+			return
+		}
+		if s.startComplete {
+			terminalErr = s.startErr
+			return
+		}
+		s.startErr = terminalErr
+		s.started = terminalErr == nil
+		s.startComplete = true
+		published = true
+		bcast()
+	})
+	return restart, published, terminalErr
+}
+
+func (s *p2pSyncState) markStartupExited() {
+	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		s.startupExited = true
+		bcast()
+	})
+}
+
+// runP2PSyncStart performs startup and publishes each stable lifecycle outcome
+// through the state broadcast.
 func (a *ProviderAccount) runP2PSyncStart(
 	state *p2pSyncState,
 	previous *p2pSyncState,
 	sessionTransport *transport.SessionTransport,
 	childBus bus.Bus,
 ) {
-	err := a.startP2PSyncControllers(state, previous, sessionTransport, childBus)
-
-	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
-		state.startErr = err
-		state.completeStart()
-		bcast()
-	})
-	close(state.runDone)
-
-	if err != nil {
-		a.retireP2PSyncState(state)
+	var (
+		err           error
+		inviteStarted bool
+	)
+	for {
+		err = a.startP2PSyncControllers(
+			state,
+			sessionTransport,
+			childBus,
+			&inviteStarted,
+		)
+		restart, published, terminalErr := state.finishStart(err)
+		err = terminalErr
+		if published {
+			a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+				bcast()
+			})
+		}
+		if restart {
+			continue
+		}
+		break
 	}
+
+	if err == nil {
+		if previous != nil {
+			a.retireP2PSyncState(previous)
+		}
+		state.markStartupExited()
+		return
+	}
+
+	state.markStartupExited()
+	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if a.p2pSync == state {
+			a.p2pSync = previous
+			bcast()
+		}
+	})
+	a.retireP2PSyncState(state)
 }
 
 func (a *ProviderAccount) startP2PSyncControllers(
 	state *p2pSyncState,
-	previous *p2pSyncState,
 	sessionTransport *transport.SessionTransport,
 	childBus bus.Bus,
+	inviteStarted *bool,
 ) error {
-	if previous != nil {
-		// The replacement has its own transport, so its startup can proceed
-		// while the prior state's lifecycle owner waits for detached startup.
-		go a.retireP2PSyncState(previous)
-	}
-
 	syncCtx := state.ctx
-	inviteStarted := false
-	for {
-		soList := a.soListCtr.GetValue()
-		for _, entry := range soList.GetSharedObjects() {
-			ref := entry.GetRef()
-			provRef := ref.GetProviderResourceRef()
-			soID := provRef.GetId()
-			blockStoreID := ref.GetBlockStoreId()
+	soList := a.soListCtr.GetValue()
+	for _, entry := range soList.GetSharedObjects() {
+		ref := entry.GetRef()
+		provRef := ref.GetProviderResourceRef()
+		soID := provRef.GetId()
+		blockStoreID := ref.GetBlockStoreId()
 
-			providerID := provRef.GetProviderId()
-			providerAccountID := provRef.GetProviderAccountId()
-			bucketID := BlockStoreBucketID(providerID, providerAccountID, blockStoreID)
-			if !state.hasStore(bucketID) {
-				if err := a.startDEXSolicit(syncCtx, childBus, bucketID, state); err != nil {
-					if syncCtx.Err() != nil {
-						return syncCtx.Err()
-					}
-					a.le.WithError(err).WithField("bucket-id", bucketID).Warn("failed to start dex solicit")
-				}
-			}
-
-			if !state.hasSO(soID) {
-				if err := a.startSOSync(syncCtx, childBus, ref, soID, state); err != nil {
-					if syncCtx.Err() != nil {
-						return syncCtx.Err()
-					}
-					a.le.WithError(err).WithField("so-id", soID).Warn("failed to start so sync")
-				} else {
-					state.addSO(soID)
-				}
-			}
-		}
-
-		// Start the SO invite server so invitees can join via alpha/so-invite.
-		if !inviteStarted {
-			if err := a.startInviteServer(syncCtx, childBus, sessionTransport, state); err != nil {
+		providerID := provRef.GetProviderId()
+		providerAccountID := provRef.GetProviderAccountId()
+		bucketID := BlockStoreBucketID(providerID, providerAccountID, blockStoreID)
+		if !state.hasStore(bucketID) {
+			if err := a.startDEXSolicit(syncCtx, childBus, bucketID, state); err != nil {
 				if syncCtx.Err() != nil {
 					return syncCtx.Err()
 				}
-				a.le.WithError(err).Warn("failed to start invite server")
-			} else {
-				inviteStarted = true
+				a.le.WithError(err).WithField("bucket-id", bucketID).Warn("failed to start dex solicit")
 			}
 		}
 
-		restart := false
-		a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			if a.p2pSync == state && state.restartPending {
-				state.restartPending = false
-				restart = true
+		if !state.hasSO(soID) {
+			if err := a.startSOSync(syncCtx, childBus, ref, soID, state); err != nil {
+				if syncCtx.Err() != nil {
+					return syncCtx.Err()
+				}
+				a.le.WithError(err).WithField("so-id", soID).Warn("failed to start so sync")
+			} else {
+				state.addSO(soID)
 			}
-		})
-		if !restart {
-			return syncCtx.Err()
 		}
 	}
+
+	if !*inviteStarted {
+		if err := a.startInviteServer(syncCtx, childBus, sessionTransport, state); err != nil {
+			if syncCtx.Err() != nil {
+				return syncCtx.Err()
+			}
+			a.le.WithError(err).Warn("failed to start invite server")
+		} else {
+			*inviteStarted = true
+		}
+	}
+	return syncCtx.Err()
 }
 
 // GetP2PSyncSnapshotWithWait returns whether P2P sync is running and a channel
 // that closes when its lifecycle changes.
 func (a *ProviderAccount) GetP2PSyncSnapshotWithWait() (bool, <-chan struct{}) {
-	var running bool
-	var ch <-chan struct{}
+	var (
+		running bool
+		ch      <-chan struct{}
+	)
 	a.p2pSyncBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 		ch = getWaitCh()
 		if a.p2pSync == nil {
 			return
 		}
-		select {
-		case <-a.p2pSync.startDone:
-			running = true
-		default:
-		}
+		a.p2pSync.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			running = a.p2pSync.started && !a.p2pSync.stopping
+		})
 	})
 	return running, ch
 }
@@ -371,39 +503,110 @@ func (a *ProviderAccount) getP2PStore(bucketID string) block.StoreOps {
 
 // retireP2PSyncState removes one state from the account lifecycle and releases
 // its resources. A nil state selects the current state atomically with removal.
-//
-// Callers never hold state.mtx here: the account lock may nest state.mtx while
-// retaining an owner, so retirement acquires only the account lock. Resource
-// cleanup waits outside both locks.
 func (a *ProviderAccount) retireP2PSyncState(state *p2pSyncState) {
+	var (
+		removed bool
+		lower   *p2pSyncState
+	)
 	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		if state == nil {
 			state = a.p2pSync
 		}
-		if state != nil && a.p2pSync == state {
-			a.p2pSync = nil
-			bcast()
+		if state == nil || a.p2pSync != state {
+			return
 		}
+		state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			lower = state.lowerSource
+		})
+		a.p2pSync = nil
+		removed = true
+		bcast()
 	})
 	a.stopP2PSyncState(state)
+	if removed && lower != nil {
+		a.retireP2PSyncState(lower)
+	}
 }
 
 func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
 	if state == nil {
 		return
 	}
-	state.stopOnce.Do(func() {
-		close(state.stopDone)
-		state.cancel()
-		state.completeStart()
-		<-state.runDone
-		state.wg.Wait()
-		for _, ref := range state.refs {
-			ref.Release()
+
+	for {
+		var (
+			waitCh <-chan struct{}
+			done   bool
+			owner  bool
+		)
+		state.bcast.HoldLock(func(bcast func(), getWaitCh func() <-chan struct{}) {
+			if !state.stopping {
+				state.stopping = true
+				state.cancel()
+				if !state.startComplete {
+					state.startErr = context.Canceled
+					state.startComplete = true
+				}
+				bcast()
+			}
+			if state.cleanupDone {
+				done = true
+				return
+			}
+			if !state.cleanupRunning {
+				state.cleanupRunning = true
+				owner = true
+				bcast()
+				return
+			}
+			waitCh = getWaitCh()
+		})
+		if done {
+			return
 		}
-		for _, rel := range state.relFns {
-			rel()
+		if owner {
+			break
 		}
+		<-waitCh
+	}
+
+	for {
+		var (
+			waitCh <-chan struct{}
+			ready  bool
+		)
+		state.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			ready = state.startupExited && state.workers == 0
+			if !ready {
+				waitCh = getWaitCh()
+			}
+		})
+		if ready {
+			break
+		}
+		<-waitCh
+	}
+
+	var (
+		refs   []directive.Reference
+		relFns []func()
+	)
+	state.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		refs = state.refs
+		relFns = state.relFns
+		state.refs = nil
+		state.relFns = nil
+	})
+	for _, ref := range refs {
+		ref.Release()
+	}
+	for _, rel := range relFns {
+		rel()
+	}
+	state.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		state.cleanupDone = true
+		state.cleanupRunning = false
+		bcast()
 	})
 }
 
@@ -419,12 +622,14 @@ func (a *ProviderAccount) startSOSync(ctx context.Context, childBus bus.Bus, ref
 
 	localSO := so.(*SharedObject)
 	soSync := sobject_sync.NewSOSync(a.le, childBus, soID, localSO.soHost)
-	state.wg.Go(func() {
+	state.addWorker()
+	go func() {
+		defer state.workerDone()
 		defer relSO()
 		if err := soSync.Execute(ctx); err != nil && ctx.Err() == nil {
 			a.le.WithError(err).WithField("so-id", soID).Warn("so sync exited with error")
 		}
-	})
+	}()
 
 	return nil
 }
@@ -520,7 +725,7 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 	if err != nil {
 		return err
 	}
-	state.relFns = append(state.relFns, relCtrl)
+	state.addRelease(relCtrl)
 	return nil
 }
 
@@ -538,7 +743,7 @@ func (a *ProviderAccount) startDEXSolicit(ctx context.Context, childBus bus.Bus,
 	if err != nil {
 		return err
 	}
-	state.refs = append(state.refs, dexRef)
+	state.addRef(dexRef)
 	state.addStore(bucketID, dex_solicit.NewStore(ctrl))
 	return nil
 }
