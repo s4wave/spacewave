@@ -2,6 +2,7 @@ import { renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import type { ObjectViewerComponent } from '@s4wave/web/object/object.js'
 import type { Root } from '@s4wave/sdk/root'
 import {
   ViewerSurface,

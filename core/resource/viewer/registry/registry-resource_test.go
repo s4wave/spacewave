@@ -99,10 +99,7 @@ func TestRegisterViewerReleaseRemovesRegistration(t *testing.T) {
 		t.Fatalf("expected component id to round trip, got %q", list.GetRegistrations()[0].GetComponentId())
 	}
 
-	var waitCh <-chan struct{}
-	r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		waitCh = getWaitCh()
-	})
+	waitCh := surfaceWaitCh(t, r, s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB)
 
 	ref := client.CreateResourceReference(resp.GetResourceId())
 	ref.Release()
@@ -177,6 +174,48 @@ func TestViewerRegistryFiltersRegistrationsBySurface(t *testing.T) {
 		}
 		assertViewerSurface(t, snapshot.GetRegistrations(), surface)
 	}
+}
+
+func TestViewerRegistryNotifiesOnlyChangedSurface(t *testing.T) {
+	r := NewViewerRegistryResource()
+	webWaitCh := surfaceWaitCh(t, r, s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB)
+	terminalWaitCh := surfaceWaitCh(t, r, s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TERMINAL)
+
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		r.registrations[1] = &s4wave_viewer_registry.ViewerRegistration{
+			Surface: s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TERMINAL,
+		}
+		r.broadcastSurfaceLocked(s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TERMINAL)
+	})
+
+	select {
+	case <-webWaitCh:
+		t.Fatal("terminal registration woke web watchers")
+	default:
+	}
+	select {
+	case <-terminalWaitCh:
+	default:
+		t.Fatal("terminal registration did not wake terminal watchers")
+	}
+}
+
+func surfaceWaitCh(
+	t *testing.T,
+	r *ViewerRegistryResource,
+	surface s4wave_viewer_registry.ViewerSurface,
+) <-chan struct{} {
+	t.Helper()
+	var waitCh <-chan struct{}
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		r.getSurfaceBroadcastLocked(surface).HoldLock(func(
+			_ func(),
+			getWaitCh func() <-chan struct{},
+		) {
+			waitCh = getWaitCh()
+		})
+	})
+	return waitCh
 }
 
 func TestViewerRegistryRejectsUnspecifiedSurface(t *testing.T) {

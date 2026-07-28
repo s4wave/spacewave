@@ -15,6 +15,7 @@ type ViewerRegistryResource struct {
 	mux srpc.Invoker
 
 	bcast         broadcast.Broadcast
+	surfaceBcasts map[s4wave_viewer_registry.ViewerSurface]*broadcast.Broadcast
 	nextID        uint32
 	registrations map[uint32]*s4wave_viewer_registry.ViewerRegistration
 }
@@ -24,6 +25,7 @@ func NewViewerRegistryResource() *ViewerRegistryResource {
 	r := &ViewerRegistryResource{
 		nextID:        1,
 		registrations: make(map[uint32]*s4wave_viewer_registry.ViewerRegistration),
+		surfaceBcasts: make(map[s4wave_viewer_registry.ViewerSurface]*broadcast.Broadcast),
 	}
 	mux := srpc.NewMux()
 	_ = s4wave_viewer_registry.SRPCRegisterViewerRegistryResourceService(mux, r)
@@ -64,26 +66,27 @@ func (r *ViewerRegistryResource) RegisterViewer(
 	}
 
 	var regID uint32
-	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+	surface := reg.GetSurface()
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		regID = r.nextID
 		r.nextID++
 		r.registrations[regID] = reg.CloneVT()
-		broadcast()
+		r.broadcastSurfaceLocked(surface)
 	})
 
 	emptyMux := srpc.NewMux()
 	resourceID, err := client.AddResource(emptyMux, func() {
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			if _, ok := r.registrations[regID]; ok {
 				delete(r.registrations, regID)
-				broadcast()
+				r.broadcastSurfaceLocked(surface)
 			}
 		})
 	})
 	if err != nil {
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			delete(r.registrations, regID)
-			broadcast()
+			r.broadcastSurfaceLocked(surface)
 		})
 		return nil, err
 	}
@@ -120,9 +123,14 @@ func (r *ViewerRegistryResource) WatchViewers(
 		var regs []*s4wave_viewer_registry.ViewerRegistration
 		var waitCh <-chan struct{}
 
-		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			regs = r.getRegistrationsLocked(req.GetSurface())
-			waitCh = getWaitCh()
+			r.getSurfaceBroadcastLocked(req.GetSurface()).HoldLock(func(
+				_ func(),
+				getWaitCh func() <-chan struct{},
+			) {
+				waitCh = getWaitCh()
+			})
 		})
 
 		if err := strm.Send(&s4wave_viewer_registry.WatchViewersResponse{
@@ -137,6 +145,32 @@ func (r *ViewerRegistryResource) WatchViewers(
 		case <-waitCh:
 		}
 	}
+}
+
+// getSurfaceBroadcastLocked returns the notification state for surface.
+// Must be called with bcast lock held.
+func (r *ViewerRegistryResource) getSurfaceBroadcastLocked(
+	surface s4wave_viewer_registry.ViewerSurface,
+) *broadcast.Broadcast {
+	surfaceBcast := r.surfaceBcasts[surface]
+	if surfaceBcast == nil {
+		surfaceBcast = &broadcast.Broadcast{}
+		r.surfaceBcasts[surface] = surfaceBcast
+	}
+	return surfaceBcast
+}
+
+// broadcastSurfaceLocked wakes watchers for surface.
+// Must be called with bcast lock held.
+func (r *ViewerRegistryResource) broadcastSurfaceLocked(
+	surface s4wave_viewer_registry.ViewerSurface,
+) {
+	r.getSurfaceBroadcastLocked(surface).HoldLock(func(
+		broadcast func(),
+		_ func() <-chan struct{},
+	) {
+		broadcast()
+	})
 }
 
 // getRegistrationsLocked returns a snapshot of registrations for surface.
