@@ -22,16 +22,63 @@ import (
 
 // p2pSyncState holds P2P sync startup or running state and DEX stores.
 type p2pSyncState struct {
+	ctx            context.Context
 	cancel         context.CancelFunc
 	startDone      chan struct{}
+	startOnce      sync.Once
+	stopDone       chan struct{}
 	stopOnce       sync.Once
 	wg             sync.WaitGroup
 	mtx            sync.Mutex
+	owners         int
 	restartPending bool
 	refs           []directive.Reference
 	relFns         []func()
 	stores         map[string]block.StoreOps
 	soIDs          map[string]struct{}
+}
+
+func (s *p2pSyncState) completeStart() {
+	s.startOnce.Do(func() {
+		close(s.startDone)
+	})
+}
+
+func (s *p2pSyncState) retain(ctx context.Context) bool {
+	if ctx.Err() != nil {
+		return false
+	}
+
+	s.mtx.Lock()
+	if s.ctx.Err() != nil {
+		s.mtx.Unlock()
+		return false
+	}
+	s.owners++
+	s.mtx.Unlock()
+
+	if ctx.Done() == nil {
+		return true
+	}
+	go func() {
+		select {
+		case <-ctx.Done():
+			s.release()
+		case <-s.stopDone:
+		}
+	}()
+	return true
+}
+
+func (s *p2pSyncState) release() {
+	s.mtx.Lock()
+	if s.owners > 0 {
+		s.owners--
+		if s.owners == 0 {
+			s.cancel()
+		}
+	}
+	s.mtx.Unlock()
 }
 
 func (s *p2pSyncState) addStore(bucketID string, store block.StoreOps) {
@@ -89,9 +136,10 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 	}
 
 	var (
-		previous *p2pSyncState
-		syncCtx  context.Context
-		state    *p2pSyncState
+		previous  *p2pSyncState
+		waitState *p2pSyncState
+		syncCtx   context.Context
+		state     *p2pSyncState
 	)
 	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		previous = a.p2pSync
@@ -99,22 +147,50 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 			select {
 			case <-previous.startDone:
 			default:
-				previous.restartPending = true
-				return
+				if previous.ctx.Err() == nil && previous.retain(ctx) {
+					previous.restartPending = true
+					waitState = previous
+					return
+				}
 			}
 		}
 
 		var syncCancel context.CancelFunc
-		syncCtx, syncCancel = context.WithCancel(ctx)
+		syncCtx, syncCancel = context.WithCancel(context.WithoutCancel(ctx))
 		state = &p2pSyncState{
+			ctx:       syncCtx,
 			cancel:    syncCancel,
 			startDone: make(chan struct{}),
+			stopDone:  make(chan struct{}),
+		}
+		if !state.retain(ctx) {
+			syncCancel()
+			state = nil
+			return
 		}
 		a.p2pSync = state
 		bcast()
 	})
 	if state == nil {
-		return nil
+		if waitState == nil {
+			return ctx.Err()
+		}
+		select {
+		case <-waitState.startDone:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+		running := false
+		a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			running = a.p2pSync == waitState
+		})
+		if running {
+			return nil
+		}
+		if err := waitState.ctx.Err(); err != nil {
+			return err
+		}
+		return errors.New("P2P sync stopped during startup")
 	}
 	defer func() {
 		if rerr == nil {
@@ -127,7 +203,7 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 			if cleanup {
 				a.p2pSync = nil
 			}
-			close(state.startDone)
+			state.completeStart()
 			bcast()
 		})
 		if cleanup {
@@ -189,7 +265,7 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 				restart = true
 				return
 			}
-			close(state.startDone)
+			state.completeStart()
 			bcast()
 		})
 		if !restart {
@@ -253,7 +329,9 @@ func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
 		return
 	}
 	state.stopOnce.Do(func() {
+		close(state.stopDone)
 		state.cancel()
+		state.completeStart()
 		<-state.startDone
 		state.wg.Wait()
 		for _, ref := range state.refs {
