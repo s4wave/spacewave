@@ -152,10 +152,11 @@ namespace registry {
 
 // -------------------------------------------------------------------
 
-class WatchCommandsRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+class WatchCommandsRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.command.registry.WatchCommandsRequest) */ {
  public:
   inline WatchCommandsRequest() : WatchCommandsRequest(nullptr) {}
+  ~WatchCommandsRequest() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
   void operator delete(WatchCommandsRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
@@ -225,21 +226,48 @@ class WatchCommandsRequest final : public ::google::protobuf::internal::ZeroFiel
   // implements Message ----------------------------------------------
 
   WatchCommandsRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<WatchCommandsRequest>(arena);
+    return ::google::protobuf::Message::DefaultConstruct<WatchCommandsRequest>(arena);
   }
-  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
-  inline void CopyFrom(const WatchCommandsRequest& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
-  }
-  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
-  void MergeFrom(const WatchCommandsRequest& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
-  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const WatchCommandsRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const WatchCommandsRequest& from) { WatchCommandsRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
 
   public:
   bool IsInitialized() const {
     return true;
   }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(WatchCommandsRequest* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
@@ -265,11 +293,24 @@ class WatchCommandsRequest final : public ::google::protobuf::internal::ZeroFiel
   // nested types ----------------------------------------------------
 
   // accessors -------------------------------------------------------
+  enum : int {
+    kSurfaceFieldNumber = 1,
+  };
+  // .s4wave.command.CommandSurface surface = 1;
+  void clear_surface() ;
+  ::s4wave::command::CommandSurface surface() const;
+  void set_surface(::s4wave::command::CommandSurface value);
+
+  private:
+  ::s4wave::command::CommandSurface _internal_surface() const;
+  void _internal_set_surface(::s4wave::command::CommandSurface value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.command.registry.WatchCommandsRequest)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 0,
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
                                    0, 0,
                                    2>
       _table_;
@@ -280,6 +321,21 @@ class WatchCommandsRequest final : public ::google::protobuf::internal::ZeroFiel
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const WatchCommandsRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    int surface_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fregistry_2fregistry_2eproto;
 };
 
@@ -1638,6 +1694,7 @@ class GetSubItemsRequest final : public ::google::protobuf::Message
   enum : int {
     kCommandIdFieldNumber = 1,
     kQueryFieldNumber = 2,
+    kSurfaceFieldNumber = 3,
   };
   // string command_id = 1;
   void clear_command_id() ;
@@ -1669,11 +1726,21 @@ class GetSubItemsRequest final : public ::google::protobuf::Message
   ::std::string* PROTOBUF_NONNULL _internal_mutable_query();
 
   public:
+  // .s4wave.command.CommandSurface surface = 3;
+  void clear_surface() ;
+  ::s4wave::command::CommandSurface surface() const;
+  void set_surface(::s4wave::command::CommandSurface value);
+
+  private:
+  ::s4wave::command::CommandSurface _internal_surface() const;
+  void _internal_set_surface(::s4wave::command::CommandSurface value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.command.registry.GetSubItemsRequest)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
                                    0, 66,
                                    2>
       _table_;
@@ -1697,6 +1764,7 @@ class GetSubItemsRequest final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr command_id_;
     ::google::protobuf::internal::ArenaStringPtr query_;
+    int surface_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2107,6 +2175,7 @@ class InvokeCommandRequest final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kCommandIdFieldNumber = 1,
+    kSurfaceFieldNumber = 3,
     kArgsFieldNumber = 2,
   };
   // string command_id = 1;
@@ -2122,6 +2191,16 @@ class InvokeCommandRequest final : public ::google::protobuf::Message
   const ::std::string& _internal_command_id() const;
   PROTOBUF_ALWAYS_INLINE void _internal_set_command_id(const ::std::string& value);
   ::std::string* PROTOBUF_NONNULL _internal_mutable_command_id();
+
+  public:
+  // .s4wave.command.CommandSurface surface = 3;
+  void clear_surface() ;
+  ::s4wave::command::CommandSurface surface() const;
+  void set_surface(::s4wave::command::CommandSurface value);
+
+  private:
+  ::s4wave::command::CommandSurface _internal_surface() const;
+  void _internal_set_surface(::s4wave::command::CommandSurface value);
 
   public:
   // map<string, string> args = 2;
@@ -2143,7 +2222,7 @@ class InvokeCommandRequest final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 2,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
                                    1, 67,
                                    2>
       _table_;
@@ -2166,6 +2245,7 @@ class InvokeCommandRequest final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr command_id_;
+    int surface_;
     ::google::protobuf::internal::MapField<InvokeCommandRequest_ArgsEntry_DoNotUse, ::std::string, ::std::string,
                       ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
                       ::google::protobuf::internal::WireFormatLite::TYPE_STRING>
@@ -2735,6 +2815,7 @@ class RegisterCommandRequest final : public ::google::protobuf::Message
   enum : int {
     kCommandFieldNumber = 1,
     kHandlerResourceIdFieldNumber = 2,
+    kSurfaceFieldNumber = 3,
   };
   // .s4wave.command.Command command = 1;
   bool has_command() const;
@@ -2761,11 +2842,21 @@ class RegisterCommandRequest final : public ::google::protobuf::Message
   void _internal_set_handler_resource_id(::uint32_t value);
 
   public:
+  // .s4wave.command.CommandSurface surface = 3;
+  void clear_surface() ;
+  ::s4wave::command::CommandSurface surface() const;
+  void set_surface(::s4wave::command::CommandSurface value);
+
+  private:
+  ::s4wave::command::CommandSurface _internal_surface() const;
+  void _internal_set_surface(::s4wave::command::CommandSurface value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.command.registry.RegisterCommandRequest)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
                                    1, 0,
                                    2>
       _table_;
@@ -2789,6 +2880,7 @@ class RegisterCommandRequest final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::s4wave::command::Command* PROTOBUF_NULLABLE command_;
     ::uint32_t handler_resource_id_;
+    int surface_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -2944,6 +3036,7 @@ class CommandState final : public ::google::protobuf::Message
     kResourceIdFieldNumber = 1,
     kActiveFieldNumber = 3,
     kEnabledFieldNumber = 4,
+    kSurfaceFieldNumber = 5,
   };
   // .s4wave.command.Command command = 2;
   bool has_command() const;
@@ -2990,11 +3083,21 @@ class CommandState final : public ::google::protobuf::Message
   void _internal_set_enabled(bool value);
 
   public:
+  // .s4wave.command.CommandSurface surface = 5;
+  void clear_surface() ;
+  ::s4wave::command::CommandSurface surface() const;
+  void set_surface(::s4wave::command::CommandSurface value);
+
+  private:
+  ::s4wave::command::CommandSurface _internal_surface() const;
+  void _internal_set_surface(::s4wave::command::CommandSurface value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.command.registry.CommandState)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<2, 4,
+  static const ::google::protobuf::internal::TcParseTable<3, 5,
                                    1, 0,
                                    2>
       _table_;
@@ -3020,6 +3123,7 @@ class CommandState final : public ::google::protobuf::Message
     ::uint32_t resource_id_;
     bool active_;
     bool enabled_;
+    int surface_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -3359,6 +3463,31 @@ inline void RegisterCommandRequest::_internal_set_handler_resource_id(::uint32_t
   _impl_.handler_resource_id_ = value;
 }
 
+// .s4wave.command.CommandSurface surface = 3;
+inline void RegisterCommandRequest::clear_surface() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::s4wave::command::CommandSurface RegisterCommandRequest::surface() const {
+  // @@protoc_insertion_point(field_get:s4wave.command.registry.RegisterCommandRequest.surface)
+  return _internal_surface();
+}
+inline void RegisterCommandRequest::set_surface(::s4wave::command::CommandSurface value) {
+  _internal_set_surface(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.command.registry.RegisterCommandRequest.surface)
+}
+inline ::s4wave::command::CommandSurface RegisterCommandRequest::_internal_surface() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::command::CommandSurface>(_impl_.surface_);
+}
+inline void RegisterCommandRequest::_internal_set_surface(::s4wave::command::CommandSurface value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // RegisterCommandResponse
@@ -3507,6 +3636,31 @@ inline void SetEnabledRequest::_internal_set_enabled(bool value) {
 // -------------------------------------------------------------------
 
 // WatchCommandsRequest
+
+// .s4wave.command.CommandSurface surface = 1;
+inline void WatchCommandsRequest::clear_surface() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::s4wave::command::CommandSurface WatchCommandsRequest::surface() const {
+  // @@protoc_insertion_point(field_get:s4wave.command.registry.WatchCommandsRequest.surface)
+  return _internal_surface();
+}
+inline void WatchCommandsRequest::set_surface(::s4wave::command::CommandSurface value) {
+  _internal_set_surface(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:s4wave.command.registry.WatchCommandsRequest.surface)
+}
+inline ::s4wave::command::CommandSurface WatchCommandsRequest::_internal_surface() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::command::CommandSurface>(_impl_.surface_);
+}
+inline void WatchCommandsRequest::_internal_set_surface(::s4wave::command::CommandSurface value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = value;
+}
 
 // -------------------------------------------------------------------
 
@@ -3678,6 +3832,31 @@ inline bool CommandState::_internal_enabled() const {
 inline void CommandState::_internal_set_enabled(bool value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.enabled_ = value;
+}
+
+// .s4wave.command.CommandSurface surface = 5;
+inline void CommandState::clear_surface() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::s4wave::command::CommandSurface CommandState::surface() const {
+  // @@protoc_insertion_point(field_get:s4wave.command.registry.CommandState.surface)
+  return _internal_surface();
+}
+inline void CommandState::set_surface(::s4wave::command::CommandSurface value) {
+  _internal_set_surface(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:s4wave.command.registry.CommandState.surface)
+}
+inline ::s4wave::command::CommandSurface CommandState::_internal_surface() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::command::CommandSurface>(_impl_.surface_);
+}
+inline void CommandState::_internal_set_surface(::s4wave::command::CommandSurface value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -4163,6 +4342,31 @@ inline void GetSubItemsRequest::set_allocated_query(::std::string* PROTOBUF_NULL
   // @@protoc_insertion_point(field_set_allocated:s4wave.command.registry.GetSubItemsRequest.query)
 }
 
+// .s4wave.command.CommandSurface surface = 3;
+inline void GetSubItemsRequest::clear_surface() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::s4wave::command::CommandSurface GetSubItemsRequest::surface() const {
+  // @@protoc_insertion_point(field_get:s4wave.command.registry.GetSubItemsRequest.surface)
+  return _internal_surface();
+}
+inline void GetSubItemsRequest::set_surface(::s4wave::command::CommandSurface value) {
+  _internal_set_surface(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:s4wave.command.registry.GetSubItemsRequest.surface)
+}
+inline ::s4wave::command::CommandSurface GetSubItemsRequest::_internal_surface() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::command::CommandSurface>(_impl_.surface_);
+}
+inline void GetSubItemsRequest::_internal_set_surface(::s4wave::command::CommandSurface value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // GetSubItemsResponse
@@ -4305,7 +4509,7 @@ inline void InvokeCommandRequest::clear_args() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.args_.Clear();
   ClearHasBitForRepeated(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 inline const ::google::protobuf::Map<::std::string, ::std::string>& InvokeCommandRequest::_internal_args() const {
   ::google::protobuf::internal::TSanRead(&_impl_);
@@ -4321,9 +4525,34 @@ inline ::google::protobuf::Map<::std::string, ::std::string>* PROTOBUF_NONNULL I
 }
 inline ::google::protobuf::Map<::std::string, ::std::string>* PROTOBUF_NONNULL InvokeCommandRequest::mutable_args()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000004U);
   // @@protoc_insertion_point(field_mutable_map:s4wave.command.registry.InvokeCommandRequest.args)
   return _internal_mutable_args();
+}
+
+// .s4wave.command.CommandSurface surface = 3;
+inline void InvokeCommandRequest::clear_surface() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::s4wave::command::CommandSurface InvokeCommandRequest::surface() const {
+  // @@protoc_insertion_point(field_get:s4wave.command.registry.InvokeCommandRequest.surface)
+  return _internal_surface();
+}
+inline void InvokeCommandRequest::set_surface(::s4wave::command::CommandSurface value) {
+  _internal_set_surface(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:s4wave.command.registry.InvokeCommandRequest.surface)
+}
+inline ::s4wave::command::CommandSurface InvokeCommandRequest::_internal_surface() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::command::CommandSurface>(_impl_.surface_);
+}
+inline void InvokeCommandRequest::_internal_set_surface(::s4wave::command::CommandSurface value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = value;
 }
 
 // -------------------------------------------------------------------

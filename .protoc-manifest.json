@@ -3800,7 +3800,7 @@
       "protoFiles": ["sdk/cli/terminal/terminal.proto"]
     },
     "github.com/s4wave/spacewave/sdk/command": {
-      "hash": "fa0be9272aa697790c4904119bc1ae5ea033fa263d4a8d18ca03f5f19a593534",
+      "hash": "1baeda8348468de9438198f6cee2ecab3fa67c8677f0ace42212ddaf77c712a6",
       "generatedFiles": [
         "sdk/command/command.pb.cc",
         "sdk/command/command.pb.go",
@@ -3811,7 +3811,7 @@
       "protoFiles": ["sdk/command/command.proto"]
     },
     "github.com/s4wave/spacewave/sdk/command/registry": {
-      "hash": "4e13aabd7189daf7e243cc2a2b5333e2e0d1e23e33ede30b24c78b9a9f3e12c4",
+      "hash": "39fda424f5ee310162c6acbd6cc2513ee5fcf4f6f160de4ae1dc362d0ccea4d5",
       "generatedFiles": [
         "sdk/command/registry/registry.pb.cc",
         "sdk/command/registry/registry.pb.go",

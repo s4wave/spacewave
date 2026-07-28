@@ -2,7 +2,10 @@ import { useEffect, useEffectEvent, useRef } from 'react'
 import { createHandler } from 'starpc'
 import { newResourceMux } from '@aptre/bldr-sdk/resource/server/index.js'
 import { ResourceClientError } from '@aptre/bldr-sdk/resource/client.js'
-import type { CommandBinding } from '@s4wave/sdk/command/command.pb.js'
+import {
+  CommandSurface,
+  type CommandBinding,
+} from '@s4wave/sdk/command/command.pb.js'
 
 import {
   useCommandContext,
@@ -26,6 +29,8 @@ interface UseCommandOpts {
   keybinding?: string
   // defaultBindings are the typed default input bindings.
   defaultBindings?: CommandBinding[]
+  // searchAliases adds palette discovery terms without changing commandId.
+  searchAliases?: string[]
   // menuGroup controls separator placement within a menu level.
   menuGroup?: number
   // menuOrder controls ordering within a group.
@@ -57,6 +62,9 @@ export function useCommand(opts: UseCommandOpts): void {
   const defaultBindingsRef = useRef(opts.defaultBindings)
   defaultBindingsRef.current = opts.defaultBindings
   const defaultBindingsSignature = JSON.stringify(opts.defaultBindings ?? null)
+  const searchAliasesRef = useRef(opts.searchAliases)
+  searchAliasesRef.current = opts.searchAliases
+  const searchAliasesSignature = JSON.stringify(opts.searchAliases ?? null)
   const handleCommand = useEffectEvent((args: Record<string, string>) => {
     opts.handler(args)
   })
@@ -135,6 +143,7 @@ export function useCommand(opts: UseCommandOpts): void {
               label: opts.label,
               keybinding: opts.keybinding,
               defaultBindings: defaultBindingsRef.current,
+              searchAliases: searchAliasesRef.current,
               menuPath: opts.menuPath,
               menuGroup: opts.menuGroup,
               menuOrder: opts.menuOrder,
@@ -143,6 +152,7 @@ export function useCommand(opts: UseCommandOpts): void {
               hasSubItems: opts.hasSubItems,
             },
             handlerResourceId: resourceId,
+            surface: CommandSurface.WEB,
           },
           abort.signal,
         )
@@ -180,6 +190,7 @@ export function useCommand(opts: UseCommandOpts): void {
     opts.label,
     opts.keybinding,
     defaultBindingsSignature,
+    searchAliasesSignature,
     opts.menuPath,
     opts.menuGroup,
     opts.menuOrder,

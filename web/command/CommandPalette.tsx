@@ -124,6 +124,7 @@ function commandSearchValue(
     command?.description,
     command?.commandId,
     command?.menuPath,
+    ...(command?.searchAliases ?? []),
     ...displayBindings,
   ]
     .filter(Boolean)

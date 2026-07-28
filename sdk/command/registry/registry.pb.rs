@@ -10,6 +10,9 @@ pub struct RegisterCommandRequest {
     /// If 0, the command has no handler (display-only).
     #[prost(uint32, tag="2")]
     pub handler_resource_id: u32,
+    /// Surface identifies the command front door for this registration.
+    #[prost(enumeration="super::CommandSurface", tag="3")]
+    pub surface: i32,
 }
 /// RegisterCommandResponse is the response for RegisterCommand.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -49,6 +52,9 @@ pub struct SetEnabledResponse {
 /// WatchCommandsRequest is the request for WatchCommands.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchCommandsRequest {
+    /// Surface selects registrations for one command front door.
+    #[prost(enumeration="super::CommandSurface", tag="1")]
+    pub surface: i32,
 }
 /// CommandState is a registered command instance with active and enabled state.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -65,6 +71,9 @@ pub struct CommandState {
     /// Enabled is whether the registration is enabled.
     #[prost(bool, tag="4")]
     pub enabled: bool,
+    /// Surface identifies the command front door for this registration.
+    #[prost(enumeration="super::CommandSurface", tag="5")]
+    pub surface: i32,
 }
 /// WatchCommandsResponse is the response for WatchCommands.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -101,6 +110,9 @@ pub struct GetSubItemsRequest {
     /// Query is the user-entered filter text.
     #[prost(string, tag="2")]
     pub query: ::prost::alloc::string::String,
+    /// Surface selects the registration for one command front door.
+    #[prost(enumeration="super::CommandSurface", tag="3")]
+    pub surface: i32,
 }
 /// GetSubItemsResponse is the response for GetSubItems.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -118,6 +130,9 @@ pub struct InvokeCommandRequest {
     /// Args is optional key-value arguments.
     #[prost(map="string, string", tag="2")]
     pub args: ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
+    /// Surface selects the registration for one command front door.
+    #[prost(enumeration="super::CommandSurface", tag="3")]
+    pub surface: i32,
 }
 /// InvokeCommandResponse is the response for InvokeCommand.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]

@@ -84,8 +84,13 @@ vi.mock('./useCommand.js', () => ({
 }))
 
 vi.mock('@s4wave/web/ui/command.js', () => ({
-  CommandDialog: ({ open, children }: { open: boolean; children: ReactNode }) =>
-    open ? <div role="dialog">{children}</div> : null,
+  CommandDialog: ({
+    open,
+    children,
+  }: {
+    open: boolean
+    children: ReactNode
+  }) => (open ? <div role="dialog">{children}</div> : null),
   CommandEmpty: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
@@ -400,6 +405,46 @@ describe('CommandPalette', () => {
             /Keyboard|Shortcuts/.test(span.textContent ?? ''),
         ),
       ).toBe(true)
+      expect(view.queryByText('Launch Banana')).toBeNull()
+    })
+  })
+
+  it('finds commands only through declared search aliases', async () => {
+    mockCommands = [
+      {
+        command: {
+          commandId: 'spacewave.object.open',
+          label: 'Browse Objects',
+          description: 'Choose an object in the active space',
+          menuPath: 'Go/Browse Objects',
+          searchAliases: ['select'],
+        },
+        active: true,
+        enabled: true,
+      },
+      {
+        command: {
+          commandId: 'spacewave.view.banana',
+          label: 'Launch Banana',
+          description: 'Open the unrelated banana surface',
+          menuPath: 'Tools/Banana',
+        },
+        active: true,
+        enabled: true,
+      },
+    ]
+
+    const view = render(<CommandPalette />)
+    act(() => paletteHandler?.())
+
+    act(() => {
+      fireEvent.input(view.getByLabelText('Command search'), {
+        target: { value: 'select' },
+      })
+    })
+
+    await waitFor(() => {
+      expect(view.getByText(textContentMatches('Browse Objects'))).toBeTruthy()
       expect(view.queryByText('Launch Banana')).toBeNull()
     })
   })

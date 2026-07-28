@@ -59,6 +59,8 @@ namespace s4wave {
 namespace command {
 enum CommandFocusContext : int;
 extern const uint32_t CommandFocusContext_internal_data_[];
+enum CommandSurface : int;
+extern const uint32_t CommandSurface_internal_data_[];
 enum KeybindingDisplayMode : int;
 extern const uint32_t KeybindingDisplayMode_internal_data_[];
 class Command;
@@ -100,6 +102,9 @@ namespace protobuf {
 template <>
 internal::EnumTraitsT<::s4wave::command::CommandFocusContext_internal_data_>
     internal::EnumTraitsImpl::value<::s4wave::command::CommandFocusContext>;
+template <>
+internal::EnumTraitsT<::s4wave::command::CommandSurface_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::command::CommandSurface>;
 template <>
 internal::EnumTraitsT<::s4wave::command::KeybindingDisplayMode_internal_data_>
     internal::EnumTraitsImpl::value<::s4wave::command::KeybindingDisplayMode>;
@@ -148,6 +153,43 @@ inline const ::std::string& CommandFocusContext_Name(CommandFocusContext value) 
 inline bool CommandFocusContext_Parse(
     ::absl::string_view name, CommandFocusContext* PROTOBUF_NONNULL value) {
   return ::google::protobuf::internal::ParseNamedEnum<CommandFocusContext>(CommandFocusContext_descriptor(), name,
+                                           value);
+}
+enum CommandSurface : int {
+  COMMAND_SURFACE_UNSPECIFIED = 0,
+  COMMAND_SURFACE_WEB = 1,
+  COMMAND_SURFACE_TERMINAL = 2,
+  CommandSurface_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  CommandSurface_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t CommandSurface_internal_data_[];
+inline constexpr CommandSurface CommandSurface_MIN =
+    static_cast<CommandSurface>(0);
+inline constexpr CommandSurface CommandSurface_MAX =
+    static_cast<CommandSurface>(2);
+inline bool CommandSurface_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int CommandSurface_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL CommandSurface_descriptor();
+template <typename T>
+const ::std::string& CommandSurface_Name(T value) {
+  static_assert(::std::is_same<T, CommandSurface>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to CommandSurface_Name().");
+  return CommandSurface_Name(static_cast<CommandSurface>(value));
+}
+template <>
+inline const ::std::string& CommandSurface_Name(CommandSurface value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<CommandSurface_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool CommandSurface_Parse(
+    ::absl::string_view name, CommandSurface* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<CommandSurface>(CommandSurface_descriptor(), name,
                                            value);
 }
 enum KeybindingDisplayMode : int {
@@ -1691,6 +1733,7 @@ class Command final : public ::google::protobuf::Message
   // accessors -------------------------------------------------------
   enum : int {
     kDefaultBindingsFieldNumber = 10,
+    kSearchAliasesFieldNumber = 11,
     kCommandIdFieldNumber = 1,
     kLabelFieldNumber = 2,
     kKeybindingFieldNumber = 3,
@@ -1718,6 +1761,28 @@ class Command final : public ::google::protobuf::Message
   const ::s4wave::command::CommandBinding& default_bindings(int index) const;
   ::s4wave::command::CommandBinding* PROTOBUF_NONNULL add_default_bindings();
   const ::google::protobuf::RepeatedPtrField<::s4wave::command::CommandBinding>& default_bindings() const;
+  // repeated string search_aliases = 11;
+  int search_aliases_size() const;
+  private:
+  int _internal_search_aliases_size() const;
+
+  public:
+  void clear_search_aliases() ;
+  const ::std::string& search_aliases(int index) const;
+  ::std::string* PROTOBUF_NONNULL mutable_search_aliases(int index);
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_search_aliases(int index, Arg_&& value, Args_... args);
+  ::std::string* PROTOBUF_NONNULL add_search_aliases();
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void add_search_aliases(Arg_&& value, Args_... args);
+  const ::google::protobuf::RepeatedPtrField<::std::string>& search_aliases() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL mutable_search_aliases();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::std::string>& _internal_search_aliases() const;
+  ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL _internal_mutable_search_aliases();
+
+  public:
   // string command_id = 1;
   void clear_command_id() ;
   const ::std::string& command_id() const;
@@ -1842,8 +1907,8 @@ class Command final : public ::google::protobuf::Message
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<4, 10,
-                                   1, 88,
+  static const ::google::protobuf::internal::TcParseTable<4, 11,
+                                   1, 102,
                                    2>
       _table_;
 
@@ -1865,6 +1930,7 @@ class Command final : public ::google::protobuf::Message
     ::google::protobuf::internal::HasBits<1> _has_bits_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::RepeatedPtrField< ::s4wave::command::CommandBinding > default_bindings_;
+    ::google::protobuf::RepeatedPtrField<::std::string> search_aliases_;
     ::google::protobuf::internal::ArenaStringPtr command_id_;
     ::google::protobuf::internal::ArenaStringPtr label_;
     ::google::protobuf::internal::ArenaStringPtr keybinding_;
@@ -3259,7 +3325,7 @@ inline void Command::clear_command_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.command_id_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000002U);
+                  0x00000004U);
 }
 inline const ::std::string& Command::command_id() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -3269,13 +3335,13 @@ inline const ::std::string& Command::command_id() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void Command::set_command_id(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   _impl_.command_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:s4wave.command.Command.command_id)
 }
 inline ::std::string* PROTOBUF_NONNULL Command::mutable_command_id()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   ::std::string* _s = _internal_mutable_command_id();
   // @@protoc_insertion_point(field_mutable:s4wave.command.Command.command_id)
   return _s;
@@ -3295,10 +3361,10 @@ inline ::std::string* PROTOBUF_NONNULL Command::_internal_mutable_command_id() {
 inline ::std::string* PROTOBUF_NULLABLE Command::release_command_id() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.command.Command.command_id)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000002U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   auto* released = _impl_.command_id_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.command_id_.Set("", GetArena());
@@ -3308,9 +3374,9 @@ inline ::std::string* PROTOBUF_NULLABLE Command::release_command_id() {
 inline void Command::set_allocated_command_id(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000002U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
   }
   _impl_.command_id_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.command_id_.IsDefault()) {
@@ -3324,7 +3390,7 @@ inline void Command::clear_label() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.label_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000004U);
+                  0x00000008U);
 }
 inline const ::std::string& Command::label() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -3334,13 +3400,13 @@ inline const ::std::string& Command::label() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void Command::set_label(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   _impl_.label_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:s4wave.command.Command.label)
 }
 inline ::std::string* PROTOBUF_NONNULL Command::mutable_label()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   ::std::string* _s = _internal_mutable_label();
   // @@protoc_insertion_point(field_mutable:s4wave.command.Command.label)
   return _s;
@@ -3360,10 +3426,10 @@ inline ::std::string* PROTOBUF_NONNULL Command::_internal_mutable_label() {
 inline ::std::string* PROTOBUF_NULLABLE Command::release_label() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.command.Command.label)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000004U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   auto* released = _impl_.label_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.label_.Set("", GetArena());
@@ -3373,9 +3439,9 @@ inline ::std::string* PROTOBUF_NULLABLE Command::release_label() {
 inline void Command::set_allocated_label(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000004U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
   }
   _impl_.label_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.label_.IsDefault()) {
@@ -3389,7 +3455,7 @@ inline void Command::clear_keybinding() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.keybinding_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000008U);
+                  0x00000010U);
 }
 inline const ::std::string& Command::keybinding() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -3399,13 +3465,13 @@ inline const ::std::string& Command::keybinding() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void Command::set_keybinding(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   _impl_.keybinding_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:s4wave.command.Command.keybinding)
 }
 inline ::std::string* PROTOBUF_NONNULL Command::mutable_keybinding()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   ::std::string* _s = _internal_mutable_keybinding();
   // @@protoc_insertion_point(field_mutable:s4wave.command.Command.keybinding)
   return _s;
@@ -3425,10 +3491,10 @@ inline ::std::string* PROTOBUF_NONNULL Command::_internal_mutable_keybinding() {
 inline ::std::string* PROTOBUF_NULLABLE Command::release_keybinding() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.command.Command.keybinding)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000008U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   auto* released = _impl_.keybinding_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.keybinding_.Set("", GetArena());
@@ -3438,9 +3504,9 @@ inline ::std::string* PROTOBUF_NULLABLE Command::release_keybinding() {
 inline void Command::set_allocated_keybinding(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000008U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
   }
   _impl_.keybinding_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.keybinding_.IsDefault()) {
@@ -3454,7 +3520,7 @@ inline void Command::clear_menu_path() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.menu_path_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000010U);
+                  0x00000020U);
 }
 inline const ::std::string& Command::menu_path() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -3464,13 +3530,13 @@ inline const ::std::string& Command::menu_path() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void Command::set_menu_path(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   _impl_.menu_path_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:s4wave.command.Command.menu_path)
 }
 inline ::std::string* PROTOBUF_NONNULL Command::mutable_menu_path()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   ::std::string* _s = _internal_mutable_menu_path();
   // @@protoc_insertion_point(field_mutable:s4wave.command.Command.menu_path)
   return _s;
@@ -3490,10 +3556,10 @@ inline ::std::string* PROTOBUF_NONNULL Command::_internal_mutable_menu_path() {
 inline ::std::string* PROTOBUF_NULLABLE Command::release_menu_path() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.command.Command.menu_path)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000010U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   auto* released = _impl_.menu_path_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.menu_path_.Set("", GetArena());
@@ -3503,9 +3569,9 @@ inline ::std::string* PROTOBUF_NULLABLE Command::release_menu_path() {
 inline void Command::set_allocated_menu_path(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000010U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
   }
   _impl_.menu_path_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.menu_path_.IsDefault()) {
@@ -3519,7 +3585,7 @@ inline void Command::clear_menu_group() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.menu_group_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000080U);
+                  0x00000100U);
 }
 inline ::uint32_t Command::menu_group() const {
   // @@protoc_insertion_point(field_get:s4wave.command.Command.menu_group)
@@ -3527,7 +3593,7 @@ inline ::uint32_t Command::menu_group() const {
 }
 inline void Command::set_menu_group(::uint32_t value) {
   _internal_set_menu_group(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
   // @@protoc_insertion_point(field_set:s4wave.command.Command.menu_group)
 }
 inline ::uint32_t Command::_internal_menu_group() const {
@@ -3544,7 +3610,7 @@ inline void Command::clear_menu_order() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.menu_order_ = 0u;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000100U);
+                  0x00000200U);
 }
 inline ::uint32_t Command::menu_order() const {
   // @@protoc_insertion_point(field_get:s4wave.command.Command.menu_order)
@@ -3552,7 +3618,7 @@ inline ::uint32_t Command::menu_order() const {
 }
 inline void Command::set_menu_order(::uint32_t value) {
   _internal_set_menu_order(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000100U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
   // @@protoc_insertion_point(field_set:s4wave.command.Command.menu_order)
 }
 inline ::uint32_t Command::_internal_menu_order() const {
@@ -3569,7 +3635,7 @@ inline void Command::clear_icon() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.icon_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000020U);
+                  0x00000040U);
 }
 inline const ::std::string& Command::icon() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -3579,13 +3645,13 @@ inline const ::std::string& Command::icon() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void Command::set_icon(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   _impl_.icon_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:s4wave.command.Command.icon)
 }
 inline ::std::string* PROTOBUF_NONNULL Command::mutable_icon()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   ::std::string* _s = _internal_mutable_icon();
   // @@protoc_insertion_point(field_mutable:s4wave.command.Command.icon)
   return _s;
@@ -3605,10 +3671,10 @@ inline ::std::string* PROTOBUF_NONNULL Command::_internal_mutable_icon() {
 inline ::std::string* PROTOBUF_NULLABLE Command::release_icon() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.command.Command.icon)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000020U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
   auto* released = _impl_.icon_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.icon_.Set("", GetArena());
@@ -3618,9 +3684,9 @@ inline ::std::string* PROTOBUF_NULLABLE Command::release_icon() {
 inline void Command::set_allocated_icon(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000020U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
   }
   _impl_.icon_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.icon_.IsDefault()) {
@@ -3634,7 +3700,7 @@ inline void Command::clear_description() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.description_.ClearToEmpty();
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000040U);
+                  0x00000080U);
 }
 inline const ::std::string& Command::description() const
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -3644,13 +3710,13 @@ inline const ::std::string& Command::description() const
 template <typename Arg_, typename... Args_>
 PROTOBUF_ALWAYS_INLINE void Command::set_description(Arg_&& arg, Args_... args) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   _impl_.description_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:s4wave.command.Command.description)
 }
 inline ::std::string* PROTOBUF_NONNULL Command::mutable_description()
     ABSL_ATTRIBUTE_LIFETIME_BOUND {
-  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   ::std::string* _s = _internal_mutable_description();
   // @@protoc_insertion_point(field_mutable:s4wave.command.Command.description)
   return _s;
@@ -3670,10 +3736,10 @@ inline ::std::string* PROTOBUF_NONNULL Command::_internal_mutable_description() 
 inline ::std::string* PROTOBUF_NULLABLE Command::release_description() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   // @@protoc_insertion_point(field_release:s4wave.command.Command.description)
-  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000040U)) {
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000080U)) {
     return nullptr;
   }
-  ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+  ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   auto* released = _impl_.description_.Release();
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
     _impl_.description_.Set("", GetArena());
@@ -3683,9 +3749,9 @@ inline ::std::string* PROTOBUF_NULLABLE Command::release_description() {
 inline void Command::set_allocated_description(::std::string* PROTOBUF_NULLABLE value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   if (value != nullptr) {
-    SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+    SetHasBit(_impl_._has_bits_[0], 0x00000080U);
   } else {
-    ClearHasBit(_impl_._has_bits_[0], 0x00000040U);
+    ClearHasBit(_impl_._has_bits_[0], 0x00000080U);
   }
   _impl_.description_.SetAllocated(value, GetArena());
   if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.description_.IsDefault()) {
@@ -3699,7 +3765,7 @@ inline void Command::clear_has_sub_items() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.has_sub_items_ = false;
   ClearHasBit(_impl_._has_bits_[0],
-                  0x00000200U);
+                  0x00000400U);
 }
 inline bool Command::has_sub_items() const {
   // @@protoc_insertion_point(field_get:s4wave.command.Command.has_sub_items)
@@ -3707,7 +3773,7 @@ inline bool Command::has_sub_items() const {
 }
 inline void Command::set_has_sub_items(bool value) {
   _internal_set_has_sub_items(value);
-  SetHasBit(_impl_._has_bits_[0], 0x00000200U);
+  SetHasBit(_impl_._has_bits_[0], 0x00000400U);
   // @@protoc_insertion_point(field_set:s4wave.command.Command.has_sub_items)
 }
 inline bool Command::_internal_has_sub_items() const {
@@ -3775,6 +3841,78 @@ Command::_internal_mutable_default_bindings() {
   return &_impl_.default_bindings_;
 }
 
+// repeated string search_aliases = 11;
+inline int Command::_internal_search_aliases_size() const {
+  return _internal_search_aliases().size();
+}
+inline int Command::search_aliases_size() const {
+  return _internal_search_aliases_size();
+}
+inline void Command::clear_search_aliases() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.search_aliases_.Clear();
+  ClearHasBitForRepeated(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::std::string* PROTOBUF_NONNULL Command::add_search_aliases()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::std::string* _s =
+      _internal_mutable_search_aliases()->InternalAddWithArena(
+          ::google::protobuf::MessageLite::internal_visibility(), GetArena());
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add_mutable:s4wave.command.Command.search_aliases)
+  return _s;
+}
+inline const ::std::string& Command::search_aliases(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:s4wave.command.Command.search_aliases)
+  return _internal_search_aliases().Get(index);
+}
+inline ::std::string* PROTOBUF_NONNULL Command::mutable_search_aliases(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:s4wave.command.Command.search_aliases)
+  return _internal_mutable_search_aliases()->Mutable(index);
+}
+template <typename Arg_, typename... Args_>
+inline void Command::set_search_aliases(int index, Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::AssignToString(*_internal_mutable_search_aliases()->Mutable(index), ::std::forward<Arg_>(value),
+                        args... );
+  // @@protoc_insertion_point(field_set:s4wave.command.Command.search_aliases)
+}
+template <typename Arg_, typename... Args_>
+inline void Command::add_search_aliases(Arg_&& value, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::google::protobuf::internal::AddToRepeatedPtrField(
+      ::google::protobuf::MessageLite::internal_visibility(), GetArena(),
+      *_internal_mutable_search_aliases(), ::std::forward<Arg_>(value),
+      args... );
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_add:s4wave.command.Command.search_aliases)
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>& Command::search_aliases()
+    const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:s4wave.command.Command.search_aliases)
+  return _internal_search_aliases();
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+Command::mutable_search_aliases() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBitForRepeated(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_mutable_list:s4wave.command.Command.search_aliases)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_search_aliases();
+}
+inline const ::google::protobuf::RepeatedPtrField<::std::string>&
+Command::_internal_search_aliases() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.search_aliases_;
+}
+inline ::google::protobuf::RepeatedPtrField<::std::string>* PROTOBUF_NONNULL
+Command::_internal_mutable_search_aliases() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.search_aliases_;
+}
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif  // __GNUC__
@@ -3792,6 +3930,12 @@ struct is_proto_enum<::s4wave::command::CommandFocusContext> : std::true_type {}
 template <>
 inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::command::CommandFocusContext>() {
   return ::s4wave::command::CommandFocusContext_descriptor();
+}
+template <>
+struct is_proto_enum<::s4wave::command::CommandSurface> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::command::CommandSurface>() {
+  return ::s4wave::command::CommandSurface_descriptor();
 }
 template <>
 struct is_proto_enum<::s4wave::command::KeybindingDisplayMode> : std::true_type {};
