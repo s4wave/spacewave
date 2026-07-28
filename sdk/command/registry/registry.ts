@@ -23,7 +23,10 @@ export class CommandsManager extends Resource {
   // surface is the normalized command front door for every registry operation.
   private readonly surface: CommandSurface
 
-  constructor(resourceRef: ClientResourceRef, surface: CommandSurface) {
+  constructor(
+    resourceRef: ClientResourceRef,
+    surface: CommandSurface = CommandSurface.UNSPECIFIED,
+  ) {
     super(resourceRef)
     this.service = new CommandRegistryResourceServiceClient(resourceRef.client)
     this.surface =
