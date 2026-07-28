@@ -1,8 +1,8 @@
 package s4wave_apt
 
 import (
-	"crypto/md5"
-	"crypto/sha1"
+	"crypto/md5"  // #nosec G501 -- Debian Packages indexes require MD5sum content identifiers.
+	"crypto/sha1" // #nosec G505 -- Debian Packages indexes require SHA1 content identifiers.
 	"crypto/sha256"
 	"encoding/hex"
 )
@@ -24,8 +24,8 @@ type aptChecksumSet struct {
 }
 
 func newAptChecksumSet(data []byte) aptChecksumSet {
-	md5Sum := md5.Sum(data)
-	sha1Sum := sha1.Sum(data)
+	md5Sum := md5.Sum(data)   // #nosec G401 -- Debian Packages indexes require MD5sum content identifiers.
+	sha1Sum := sha1.Sum(data) // #nosec G401 -- Debian Packages indexes require SHA1 content identifiers.
 	sha256Sum := sha256.Sum256(data)
 	return aptChecksumSet{
 		md5:    hex.EncodeToString(md5Sum[:]),

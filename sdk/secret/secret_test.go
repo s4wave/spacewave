@@ -152,8 +152,7 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 	if err != nil {
 		t.Fatalf("mount nested SO: %v", err)
 	}
-	ih, ok := so.(sobject.InviteHost)
-	if !ok {
+	if _, ok := so.(sobject.InviteHost); !ok {
 		t.Fatal("nested SO does not support participant mutation")
 	}
 
@@ -176,7 +175,7 @@ func TestSecretPayloadAccessUsesSharedObjectGrants(t *testing.T) {
 	if err != nil {
 		t.Fatalf("remount nested SO after grant: %v", err)
 	}
-	ih, ok = so.(sobject.InviteHost)
+	ih, ok := so.(sobject.InviteHost)
 	if !ok {
 		t.Fatal("remounted nested SO does not support participant mutation")
 	}

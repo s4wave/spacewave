@@ -3,6 +3,7 @@ package session_controller
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"slices"
 	"strconv"
@@ -353,7 +354,7 @@ func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.Ses
 	// Find the session index by scanning for the matching ref.
 	var idx uint32
 	var found bool
-	err = otx.ScanPrefix(ctx, sessionListPrefix, func(key, value []byte) error {
+	scanErr := otx.ScanPrefix(ctx, sessionListPrefix, func(key, value []byte) error {
 		entry := &session.SessionListEntry{}
 		if err := entry.UnmarshalVT(value); err != nil {
 			return nil
@@ -365,6 +366,9 @@ func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.Ses
 		}
 		return nil
 	})
+	if scanErr != nil && !errors.Is(scanErr, io.EOF) {
+		return scanErr
+	}
 	if !found {
 		return nil
 	}

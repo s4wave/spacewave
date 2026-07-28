@@ -214,7 +214,7 @@ func (t *projectionTx) Commit(ctx context.Context) error {
 
 func (t *projectionTx) Discard() {
 	t.once.Do(func() {
-		_ = t.Store.Close()
+		_ = t.Close()
 		t.locCursor.Release()
 		t.rootCursor.Release()
 	})

@@ -782,22 +782,6 @@ func queueAccountSettingsOp(
 	}
 }
 
-func readAccountSettings(ctx context.Context, t *testing.T, so sobject.SharedObject) *account_settings.AccountSettings {
-	t.Helper()
-
-	getter, ok := so.(interface {
-		GetSharedObjectState(context.Context) (sobject.SharedObjectStateSnapshot, error)
-	})
-	if !ok {
-		t.Fatal("mounted account settings shared object cannot read state directly")
-	}
-	snap, err := getter.GetSharedObjectState(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return decodeAccountSettings(ctx, t, snap)
-}
-
 func decodeAccountSettings(
 	ctx context.Context,
 	t *testing.T,

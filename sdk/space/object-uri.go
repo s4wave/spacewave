@@ -135,9 +135,7 @@ func ParseObjectURI(uri string) ObjectURI {
 
 	// if URI starts with subpath delimiter, remove it
 	trimmed := strings.TrimPrefix(SubpathDelimiter, "/")
-	if strings.HasPrefix(uri, trimmed) {
-		uri = uri[len(trimmed):]
-	}
+	uri = strings.TrimPrefix(uri, trimmed)
 
 	delimIdx := strings.Index(uri, SubpathDelimiter)
 	if delimIdx != -1 {

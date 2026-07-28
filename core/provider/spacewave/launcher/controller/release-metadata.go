@@ -4,12 +4,13 @@ package spacewave_launcher_controller
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -460,31 +461,30 @@ func marshalManagedCLIReleaseSidecar(
 	binaryPath string,
 ) string {
 	meta := ref.GetMeta()
-	// encoding/json: this sidecar is a non-proto on-disk struct and fastjson has
-	// no struct-tag encoder. The fixed string/uint fields cannot fail to marshal.
-	data, err := json.MarshalIndent(struct {
-		BinaryPath     string `json:"binary_path"`
-		ProjectID      string `json:"project_id"`
-		EntrypointRole string `json:"entrypoint_role"`
-		ChannelKey     string `json:"channel_key"`
-		ManifestID     string `json:"manifest_id"`
-		ManifestRev    uint64 `json:"manifest_rev"`
-		PlatformID     string `json:"platform_id"`
-		ManifestRef    string `json:"manifest_ref"`
-	}{
-		BinaryPath:     binaryPath,
-		ProjectID:      metadata.GetProjectId(),
-		EntrypointRole: "cli",
-		ChannelKey:     metadata.GetChannelKey(),
-		ManifestID:     meta.GetManifestId(),
-		ManifestRev:    meta.GetRev(),
-		PlatformID:     meta.GetPlatformId(),
-		ManifestRef:    ref.GetManifestRef().MarshalString(),
-	}, "", "  ")
-	if err != nil {
-		panic(err)
+	var arena fastjson.Arena
+	marshalString := func(value string) string {
+		return string(arena.NewString(value).MarshalTo(nil))
 	}
-	return string(data) + "\n"
+	var b strings.Builder
+	b.WriteString("{\n")
+	b.WriteString("  \"binary_path\": ")
+	b.WriteString(marshalString(binaryPath))
+	b.WriteString(",\n  \"project_id\": ")
+	b.WriteString(marshalString(metadata.GetProjectId()))
+	b.WriteString(",\n  \"entrypoint_role\": ")
+	b.WriteString(marshalString("cli"))
+	b.WriteString(",\n  \"channel_key\": ")
+	b.WriteString(marshalString(metadata.GetChannelKey()))
+	b.WriteString(",\n  \"manifest_id\": ")
+	b.WriteString(marshalString(meta.GetManifestId()))
+	b.WriteString(",\n  \"manifest_rev\": ")
+	b.WriteString(strconv.FormatUint(meta.GetRev(), 10))
+	b.WriteString(",\n  \"platform_id\": ")
+	b.WriteString(marshalString(meta.GetPlatformId()))
+	b.WriteString(",\n  \"manifest_ref\": ")
+	b.WriteString(marshalString(ref.GetManifestRef().MarshalString()))
+	b.WriteString("\n}\n")
+	return b.String()
 }
 
 func (c *Controller) verifyStagedReleaseEntrypoint(

@@ -76,7 +76,6 @@ func FetchSourcePackToTempFile(
 func PushSinglePack(
 	ctx context.Context,
 	opts Options,
-	packID string,
 	packPath string,
 	bloomFilter []byte,
 ) error {
@@ -91,7 +90,7 @@ func PushSinglePack(
 	if len(bloomFilter) == 0 {
 		bloomFilter = metadata.BloomFilter
 	}
-	packID, err = identity.BuildPackID(opts.DstSpaceID, metadata.PackResult())
+	packID, err := identity.BuildPackID(opts.DstSpaceID, metadata.PackResult())
 	if err != nil {
 		return errors.Wrap(err, "build pack id")
 	}

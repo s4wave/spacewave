@@ -59,7 +59,7 @@ func Promote(ctx context.Context, opts Options) error {
 		if err != nil {
 			return errors.Wrapf(err, "fetch source pack %s", entry.GetId())
 		}
-		pushErr := PushSinglePack(ctx, opts, entry.GetId(), packPath, entry.GetBloomFilter())
+		pushErr := PushSinglePack(ctx, opts, packPath, entry.GetBloomFilter())
 		rmErr := os.Remove(packPath)
 		if pushErr != nil {
 			return errors.Wrapf(pushErr, "push destination pack %s", entry.GetId())

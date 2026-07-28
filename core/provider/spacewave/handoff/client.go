@@ -85,6 +85,9 @@ func StartHandoff(
 	}
 	defer alpha_nethttp.DrainAndCloseResponseBody(httpResp)
 	respBody, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return nil, "", "", errors.Wrap(err, "read create auth session response")
+	}
 	if httpResp.StatusCode != http.StatusOK {
 		return nil, "", "", errors.Errorf("create auth session failed: %d: %s", httpResp.StatusCode, string(respBody))
 	}

@@ -199,11 +199,7 @@ func newFallbackPrefixInvoker(inv srpc.Invoker, prefix string) *fallbackPrefixIn
 
 // InvokeMethod implements srpc.Invoker.
 func (f *fallbackPrefixInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-	// If the service ID has the prefix, strip it
-	if strings.HasPrefix(serviceID, f.prefix) {
-		serviceID = serviceID[len(f.prefix):]
-	}
-	// Otherwise, use the service ID as-is
+	serviceID = strings.TrimPrefix(serviceID, f.prefix)
 	return f.inv.InvokeMethod(serviceID, methodID, strm)
 }
 

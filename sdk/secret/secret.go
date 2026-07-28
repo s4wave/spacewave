@@ -27,19 +27,19 @@ const (
 	// SecretBodyType is the nested SharedObject body type for Secret payloads.
 	SecretBodyType = "secret"
 	// SecretKindMatrixAccessToken is the kind for Matrix access tokens.
-	SecretKindMatrixAccessToken = "matrix_access_token"
+	SecretKindMatrixAccessToken = "matrix_access_token" // #nosec G101 -- this identifies a secret kind, not a credential value.
 	// SecretKindSSHPrivateKey is the kind for SSH private-key credentials.
-	SecretKindSSHPrivateKey = "ssh_private_key"
+	SecretKindSSHPrivateKey = "ssh_private_key" // #nosec G101 -- this identifies a secret kind, not a credential value.
 	// SecretKindSSHPassword is the kind for SSH password credentials.
-	SecretKindSSHPassword = "ssh_password"
+	SecretKindSSHPassword = "ssh_password" // #nosec G101 -- this identifies a secret kind, not a credential value.
 	// SecretKindSSHPassphrase is the kind for SSH private-key passphrases.
-	SecretKindSSHPassphrase = "ssh_passphrase"
+	SecretKindSSHPassphrase = "ssh_passphrase" // #nosec G101 -- this identifies a secret kind, not a credential value.
 	// MatrixAccessTokenContentType is the content type for Matrix access tokens.
-	MatrixAccessTokenContentType = "text/plain; charset=utf-8"
+	MatrixAccessTokenContentType = "text/plain; charset=utf-8" // #nosec G101 -- this is a MIME content type, not a credential value.
 	// SSHPrivateKeyContentType is the content type for SSH private-key payloads.
 	SSHPrivateKeyContentType = "application/x-pem-file"
 	// SSHTextCredentialContentType is the content type for text SSH credentials.
-	SSHTextCredentialContentType = "text/plain; charset=utf-8"
+	SSHTextCredentialContentType = "text/plain; charset=utf-8" // #nosec G101 -- this is a MIME content type, not a credential value.
 )
 
 // SecretResource implements the SecretResourceService SRPC interface.

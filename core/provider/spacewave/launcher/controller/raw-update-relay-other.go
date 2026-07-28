@@ -17,6 +17,7 @@ func replaceFile(tmpPath, dstPath string) error {
 }
 
 func startRawUpdateRelay(tmpPath, targetPath string) error {
+	// #nosec G204 -- the self-update relay executes the staged binary path.
 	if err := syscall.Exec(tmpPath, rawUpdateArgs(tmpPath), rawUpdateRelayEnv(targetPath)); err != nil {
 		return errors.Wrap(err, "exec raw update relay")
 	}
@@ -24,6 +25,7 @@ func startRawUpdateRelay(tmpPath, targetPath string) error {
 }
 
 func startRawUpdateTarget(targetPath, cleanupPath string) error {
+	// #nosec G204 -- the self-update relay executes the target binary path.
 	if err := syscall.Exec(targetPath, rawUpdateArgs(targetPath), rawUpdateTargetEnv(cleanupPath)); err != nil {
 		return errors.Wrap(err, "exec raw update target")
 	}
