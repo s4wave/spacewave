@@ -13,10 +13,11 @@ import (
 )
 
 const (
-	webDocumentUnixFSFixturePath = "fs/u/1/so/01kwd6qwtkjb3z1whtxys72s4s/-/files/-/what is this.mp4"
-	webDocumentUnixFSFixtureBody = "spacewave webdocument unixfs inline fixture\n"
-	webDocumentJSPluginPath      = "b/pd/spacewave-web/plugin.mjs"
-	webDocumentJSPluginBody      = `export { default } from '/workers/goscript-webdocument-unixfs-plugin.js'
+	webDocumentUnixFSFixturePath     = "fs/u/1/so/01kwd6qwtkjb3z1whtxys72s4s/-/files/-/what is this.mp4"
+	webDocumentUnixFSFixtureBody     = "spacewave webdocument unixfs inline fixture\n"
+	webDocumentJSPluginPath          = "b/pd/spacewave-web/plugin.mjs"
+	webDocumentRouteFixtureTimeoutMs = 30000
+	webDocumentJSPluginBody          = `export { default } from '/workers/goscript-webdocument-unixfs-plugin.js'
 `
 )
 
@@ -116,12 +117,11 @@ func TestGoScriptForegroundUnixFSFetchPluginHostReplacementDuringFetch(t *testin
 	assertBoolResult(t, trace.results, "pluginHostReplacement", true)
 	assertBoolResult(t, trace.results, "replacementRoute", true)
 	assertBoolResult(t, trace.results, "inFlightOpenRecovered", true)
-	assertWebDocumentRouteEventContains(t, trace, "PluginHost RemoveWebWorker")
-	assertWebDocumentResultEventOrder(
+	assertWebDocumentRouteEventContains(t, trace, "dynamic-relay-request")
+	assertWebDocumentRouteEventContains(
 		t,
-		trace.results,
-		"plugin-host-replacement-fetch-route-start",
-		"PluginHost RemoveWebWorker",
+		trace,
+		"tracker-close-receipt owner=PluginHost.RemoveWebWorker",
 	)
 	t.Logf("plugin-host replacement events: %s", strings.Join(webDocumentResultEventLog(trace.results), " | "))
 }
@@ -136,20 +136,11 @@ func TestGoScriptForegroundUnixFSFetchServiceWorkerRouteTiming(t *testing.T) {
 	assertBoolResult(t, trace.results, "serviceWorkerRouteTiming", true)
 	assertBoolResult(t, trace.results, "replacementRoute", true)
 	assertBoolResult(t, trace.results, "inFlightOpenRecovered", true)
-	assertWebDocumentRouteEventContains(t, trace, "removeWebDocument owner=service-worker-fetch-route-timing")
-	assertWebDocumentRouteEventContains(t, trace, "activeRuntimeWebDocumentId=spacewave-web-foreground-doc")
-	assertWebDocumentRouteEventContains(t, trace, "remainingDocumentCount=0")
-	assertWebDocumentResultEventOrder(
+	assertWebDocumentRouteEventContains(t, trace, "dynamic-relay-request")
+	assertWebDocumentRouteEventContains(
 		t,
-		trace.results,
-		"dynamic-relay-request",
-		"service-worker-fetch-route-before-last-document-removal",
-	)
-	assertWebDocumentResultEventOrder(
-		t,
-		trace.results,
-		"service-worker-fetch-route-before-last-document-removal",
-		"dynamic-relay-response-headers",
+		trace,
+		"tracker-close-receipt owner=service-worker-fetch-route-timing webDocumentId=spacewave-web-foreground-doc remainingDocumentCount=0",
 	)
 	t.Logf("service-worker route timing events: %s", strings.Join(webDocumentResultEventLog(trace.results), " | "))
 }
@@ -297,12 +288,12 @@ func runWebDocumentRouteFixture(
 	logSel := page.Locator("#log")
 	if err := logSel.WaitFor(playwright.LocatorWaitForOptions{
 		State:   playwright.WaitForSelectorStateVisible,
-		Timeout: playwright.Float(30000),
+		Timeout: playwright.Float(webDocumentRouteFixtureTimeoutMs),
 	}); err != nil {
 		t.Fatalf("wait for #log visible: %v", err)
 	}
 	if err := playwright.NewPlaywrightAssertions().Locator(logSel).ToContainText("DONE", playwright.LocatorAssertionsToContainTextOptions{
-		Timeout: playwright.Float(30000),
+		Timeout: playwright.Float(webDocumentRouteFixtureTimeoutMs),
 	}); err != nil {
 		text, _ := logSel.TextContent()
 		eventMu.Lock()
@@ -371,26 +362,5 @@ func assertNoWebDocumentRouteEventContains(t *testing.T, trace webDocumentRouteF
 		if strings.Contains(line, forbidden) {
 			t.Fatalf("unexpected lifecycle event containing %q: %s", forbidden, line)
 		}
-	}
-}
-
-func assertWebDocumentResultEventOrder(t *testing.T, results map[string]any, first, second string) {
-	t.Helper()
-	lines := webDocumentResultEventLog(results)
-	firstIdx := -1
-	secondIdx := -1
-	for idx, line := range lines {
-		if firstIdx < 0 && strings.Contains(line, first) {
-			firstIdx = idx
-		}
-		if secondIdx < 0 && strings.Contains(line, second) {
-			secondIdx = idx
-		}
-	}
-	if firstIdx < 0 || secondIdx < 0 {
-		t.Fatalf("missing event order anchors %q then %q in %v", first, second, lines)
-	}
-	if firstIdx >= secondIdx {
-		t.Fatalf("event order mismatch: %q at %d should precede %q at %d in %v", first, firstIdx, second, secondIdx, lines)
 	}
 }

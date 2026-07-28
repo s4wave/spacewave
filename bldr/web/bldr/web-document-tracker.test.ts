@@ -171,6 +171,34 @@ describe('WebDocumentTracker resume-ready gate', () => {
     port2.close()
   })
 
+  it('acknowledges a WebDocument close after removing it', async () => {
+    const tracker = buildTracker()
+    const documentPort = attachWebDocument(tracker)
+    const { port1: ackPort, port2: ownerAckPort } = new MessageChannel()
+    const ack = new Promise<MessageEvent>((resolve) => {
+      ackPort.addEventListener('message', resolve, { once: true })
+      ackPort.start()
+    })
+
+    documentPort.postMessage(
+      {
+        from: 'document-1',
+        close: true,
+        closeAckPort: ownerAckPort,
+      },
+      [ownerAckPort],
+    )
+
+    await expect(ack).resolves.toMatchObject({ data: { closed: true } })
+    expect(Reflect.get(tracker, 'webDocuments')).not.toHaveProperty(
+      'document-1',
+    )
+
+    tracker.close()
+    documentPort.close()
+    ackPort.close()
+  }, 500)
+
   it('waits again after the active WebDocument clears runtime-connected', async () => {
     const tracker = buildTracker()
     const { port1, port2 } = new MessageChannel()
