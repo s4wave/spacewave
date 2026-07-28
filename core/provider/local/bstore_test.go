@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -71,7 +72,7 @@ func (s *localDEXTestStore) GetBlock(ctx context.Context, ref *block.BlockRef) (
 var _ block.StoreOps = ((*localDEXTestStore)(nil))
 
 func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
-	ctx, cancel := context.WithCancel(t.Context())
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
@@ -114,7 +115,7 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 		startComplete:    true,
 		started:          true,
 		startupExited:    true,
-		owners:           1,
+		owners:           2,
 		stores:           map[string]block.StoreOps{bucketID: priorStore},
 	}
 	acc.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
@@ -195,6 +196,31 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 	current.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		if current.lowerSource != nil || current.lowerSourceHeld {
 			t.Fatal("replacement retained its lower P2P source after startup")
+		}
+	})
+	for {
+		var (
+			clean  bool
+			waitCh <-chan struct{}
+		)
+		prior.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			clean = prior.cleanupDone
+			if !clean {
+				waitCh = getWaitCh()
+			}
+		})
+		if clean {
+			break
+		}
+		select {
+		case <-waitCh:
+		case <-ctx.Done():
+			t.Fatalf("displaced prior P2P source cleanup: %v", ctx.Err())
+		}
+	}
+	prior.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if !prior.stopping {
+			t.Fatal("displaced prior P2P source remained active")
 		}
 	})
 }
