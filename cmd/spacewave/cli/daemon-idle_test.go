@@ -7,6 +7,27 @@ import (
 	"time"
 )
 
+func TestGetDaemonIdleTimeoutUsesEnvironment(t *testing.T) {
+	t.Setenv(daemonIdleTimeoutEnvVar, "45s")
+
+	got, err := getDaemonIdleTimeout()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != 45*time.Second {
+		t.Fatalf("idle timeout = %v, want %v", got, 45*time.Second)
+	}
+}
+
+func TestGetDaemonIdleTimeoutInvalidEnvironment(t *testing.T) {
+	t.Setenv(daemonIdleTimeoutEnvVar, "not-a-duration")
+
+	_, err := getDaemonIdleTimeout()
+	if err == nil {
+		t.Fatal("expected invalid idle timeout error")
+	}
+}
+
 func TestDaemonIdleTrackerStartsTimerOnTransitionToZero(t *testing.T) {
 	idleCh := make(chan struct{}, 1)
 	tracker := newDaemonIdleTracker(25*time.Millisecond, func() {

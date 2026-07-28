@@ -3,14 +3,58 @@
 package spacewave_cli
 
 import (
+	"context"
+	"flag"
 	"os"
 	"slices"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/util/pipesock"
+	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 )
+
+func TestInvalidDaemonIdleTimeoutReportsStartupError(t *testing.T) {
+	t.Setenv(daemonIdleTimeoutEnvVar, "not-a-duration")
+	statePath := t.TempDir()
+	pipeListener, err := pipesock.BuildPipeListener(newDaemonStartupPipeLogger(), statePath, "startup")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pipeListener.Close()
+
+	app := cli.NewApp()
+	parentFlags := flag.NewFlagSet("spacewave", flag.ContinueOnError)
+	parentFlags.SetOutput(os.Stderr)
+	parentFlags.String("state-path", statePath, "state directory path")
+	if err := parentFlags.Parse([]string{"--state-path", statePath}); err != nil {
+		t.Fatal(err)
+	}
+	parent := cli.NewContext(app, parentFlags, nil)
+	child := cli.NewContext(app, flag.NewFlagSet("serve", flag.ContinueOnError), parent)
+
+	commandErrCh := make(chan error, 1)
+	go func() {
+		commandErrCh <- runServeCommand(child, func() cli_entrypoint.CliBus { return nil }, "startup", false, defaultDaemonIdleTimeout)
+	}()
+
+	waitCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	startupErr := waitForDaemonStartup(waitCtx, pipeListener)
+	commandErr := <-commandErrCh
+	if startupErr == nil {
+		t.Fatal("expected daemon startup error")
+	}
+	if !strings.Contains(startupErr.Error(), daemonIdleTimeoutEnvVar) {
+		t.Fatalf("startup error = %v, command error = %v, want %q", startupErr, commandErr, daemonIdleTimeoutEnvVar)
+	}
+	if commandErr == nil {
+		t.Fatal("expected serve command error")
+	}
+}
 
 func TestDaemonServeArgsPassStatePathToServe(t *testing.T) {
 	t.Setenv(daemonTracePathEnvVar, "")

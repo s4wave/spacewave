@@ -3,8 +3,11 @@
 package spacewave_cli
 
 import (
+	"os"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 const daemonIdleTimeoutEnvVar = "SPACEWAVE_DAEMON_IDLE_TIMEOUT"
@@ -82,4 +85,17 @@ func (t *daemonIdleTracker) close() {
 		t.idleTimer.Stop()
 		t.idleTimer = nil
 	}
+}
+
+// getDaemonIdleTimeout returns the configured idle timeout.
+func getDaemonIdleTimeout() (time.Duration, error) {
+	raw := os.Getenv(daemonIdleTimeoutEnvVar)
+	if raw == "" {
+		return defaultDaemonIdleTimeout, nil
+	}
+	dur, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, errors.Wrap(err, daemonIdleTimeoutEnvVar)
+	}
+	return dur, nil
 }

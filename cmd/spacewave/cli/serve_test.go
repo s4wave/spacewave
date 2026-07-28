@@ -7,7 +7,6 @@ import (
 	"io"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/aperturerobotics/cli"
 )
@@ -43,8 +42,8 @@ func TestServeCommandIdleTimeoutFlag(t *testing.T) {
 	}
 }
 
-func TestServeCommandIdleTimeoutFlagUsesEnvironment(t *testing.T) {
-	t.Setenv(daemonIdleTimeoutEnvVar, "45s")
+func TestServeCommandIdleTimeoutFlagDefersEnvironmentParsing(t *testing.T) {
+	t.Setenv(daemonIdleTimeoutEnvVar, "not-a-duration")
 	cmd := newServeCommand(nil)
 	idleFlag := findServeIdleTimeoutFlag(t, cmd)
 	set := flag.NewFlagSet(cmd.Name, flag.ContinueOnError)
@@ -53,8 +52,8 @@ func TestServeCommandIdleTimeoutFlagUsesEnvironment(t *testing.T) {
 		t.Fatalf("apply idle-timeout flag: %v", err)
 	}
 
-	if idleFlag.Value != 45*time.Second {
-		t.Fatalf("idle-timeout environment value = %v, want %v", idleFlag.Value, 45*time.Second)
+	if idleFlag.Value != defaultDaemonIdleTimeout {
+		t.Fatalf("idle-timeout environment value parsed during flag setup = %v, want %v", idleFlag.Value, defaultDaemonIdleTimeout)
 	}
 }
 

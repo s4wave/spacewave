@@ -52,7 +52,6 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 			&cli.DurationFlag{
 				Name:        "idle-timeout",
 				Usage:       "duration controls shutdown after the last active client/service; zero disables idle shutdown",
-				EnvVars:     []string{daemonIdleTimeoutEnvVar},
 				Value:       defaultDaemonIdleTimeout,
 				Destination: &idleTimeout,
 			},
@@ -104,6 +103,12 @@ func runServeCommand(
 		}
 		startupNotifier.close()
 	}()
+	if !c.IsSet("idle-timeout") {
+		idleTimeout, err = getDaemonIdleTimeout()
+		if err != nil {
+			return err
+		}
+	}
 
 	sockPath := filepath.Join(resolved, socketName)
 	handoffBroker := resource_listener.GetProcessYieldBroker()
