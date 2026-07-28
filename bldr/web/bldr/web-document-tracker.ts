@@ -167,16 +167,23 @@ export class WebDocumentTracker {
         const closeErr = new Error(
           `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} closed`,
         )
-        this.removeWebDocument(
+        void this.removeWebDocument(
           webDocumentId,
           closeErr,
           data.terminal === true,
-        ).catch((err) => {
-          console.error(
-            `WebDocumentTracker: ${this.clientUuid}: error handling WebDocument close:`,
-            err,
-          )
-        })
+        )
+          .then(() => {
+            data.closeAckPort?.postMessage({ closed: true })
+          })
+          .catch((err) => {
+            console.error(
+              `WebDocumentTracker: ${this.clientUuid}: error handling WebDocument close:`,
+              err,
+            )
+          })
+          .finally(() => {
+            data.closeAckPort?.close()
+          })
         return
       }
 

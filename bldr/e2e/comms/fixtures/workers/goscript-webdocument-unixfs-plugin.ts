@@ -2,7 +2,6 @@ import type { BackendAPI } from '@aptre/bldr-sdk'
 
 import runGoScriptPlugin from '../../../../web/runtime/goscript/plugin-goscript.js'
 
-declare const self: DedicatedWorkerGlobalScope
 
 type GoPushableSink = {
   push: (message: Uint8Array) => void
@@ -98,7 +97,15 @@ async function handleInFlightReloadTrigger(
     }
 
     port.postMessage(new Uint8Array([34]))
-    await delay(0)
+    const { promise: waitCloseAck, resolve: resolveCloseAck } =
+      Promise.withResolvers<Uint8Array>()
+    setReleasePacket(resolveCloseAck)
+    const closeAck = await waitCloseAck
+    if (closeAck[0] !== 35) {
+      throw new Error(
+        `unexpected in-flight reload close ack: ${Array.from(closeAck).join(',')}`,
+      )
+    }
     const response = await openStreamToWebRuntime()
     if (response[0] !== 12) {
       throw new Error(
@@ -222,10 +229,4 @@ function buildStartInfoRequest(): Uint8Array {
   request[0] = 11
   request.set(startInfo, 1)
   return request
-}
-
-function delay(ms: number): Promise<void> {
-  const { promise, resolve } = Promise.withResolvers<void>()
-  self.setTimeout(resolve, ms)
-  return promise
 }

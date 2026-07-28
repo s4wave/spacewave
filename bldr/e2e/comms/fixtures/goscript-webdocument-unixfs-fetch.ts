@@ -17,6 +17,7 @@ import {
   type WorkerCommsDetectResult,
 } from '../../../web/bldr/worker-comms-detect.js'
 import { initBrowserReleaseAutoReload } from '../../../web/bldr/browser-release-update.js'
+import { timeoutPromise } from '../../../web/bldr/timeout.js'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 import type {
   FetchRequest,
@@ -46,7 +47,7 @@ type PluginToHostResult = {
 
 type InFlightReloadTrigger = {
   armed: boolean
-  release: (beforeOpen: () => void) => Promise<void>
+  release: (beforeOpen: () => Promise<void>) => Promise<void>
 }
 
 type TerminalOrphanOutcome = {
@@ -73,14 +74,23 @@ type RuntimeConnection = {
   ) => Promise<TerminalOrphanTrigger>
 }
 
-type AttachedWorkerDocument = {
-  runtime: RuntimeConnection
-  close: () => void
+type RelayResponseControl = {
+  requestStarted: Promise<void>
+  releaseResponse: () => void
 }
 
-type ServiceWorkerRelayDocument = {
+type ControlledProxyFetch = RelayResponseControl & {
+  result: Promise<boolean>
+}
+
+type AttachedWorkerDocument = {
+  runtime: RuntimeConnection
+  close: () => Promise<void>
+}
+
+type ServiceWorkerRelayDocument = RelayResponseControl & {
   dynamicRelayUsed: () => boolean
-  close: () => void
+  close: () => Promise<void>
 }
 
 type WebDocumentUnixFSFixtureResult = {
@@ -124,6 +134,7 @@ const unixFSInlinePath =
 const unixFSRuntimeRelayPath =
   '/p/spacewave-core/fs/u/1/so/01kwd6qwtkjb3z1whtxys72s4s/-/files/-/what%20is%20this.mp4?inline=1'
 const unixFSInlineBody = 'spacewave webdocument unixfs inline fixture\n'
+const fixtureTimeoutMs = 5000
 
 const urlParams = new URLSearchParams(location.search)
 const variant = readVariant(urlParams.get('variant'))
@@ -173,12 +184,6 @@ function recordEvent(eventLog: string[], line: string): void {
   console.info(`__WEBDOCUMENT_UNIXFS_EVENT__ ${timedLine}`)
 }
 
-function delay(ms: number): Promise<void> {
-  const { promise, resolve } = Promise.withResolvers<void>()
-  globalThis.setTimeout(resolve, ms)
-  return promise
-}
-
 async function holdWebDocumentLock(name: string): Promise<() => void> {
   const waitReleased = Promise.withResolvers<void>()
   const waitReady = Promise.withResolvers<void>()
@@ -197,6 +202,30 @@ async function holdWebDocumentLock(name: string): Promise<() => void> {
     released = true
     waitReleased.resolve()
   }
+}
+
+function closeWebDocument(
+  port: MessagePort,
+  webDocumentId: string,
+  terminal = false,
+): Promise<void> {
+  const { port1: ackPort, port2: ownerAckPort } = new MessageChannel()
+  const { promise, resolve } = Promise.withResolvers<void>()
+  ackPort.addEventListener('message', () => resolve(), { once: true })
+  ackPort.start()
+  port.postMessage(
+    {
+      from: webDocumentId,
+      close: true,
+      terminal: terminal || undefined,
+      closeAckPort: ownerAckPort,
+    },
+    [ownerAckPort],
+  )
+  return promise.finally(() => {
+    ackPort.close()
+    port.close()
+  })
 }
 
 function encodeStartInfo(): Uint8Array {
@@ -221,22 +250,15 @@ function createSpacewaveWebWorker(): Worker {
   )
 }
 
-function recordTrackerRemoval(
+function recordTrackerCloseReceipt(
   eventLog: string[],
   owner: string,
   webDocumentId: string,
-  remainingBefore: number,
-  remainingAfter: number,
+  remainingDocumentCount: number,
 ): void {
-  const activeRuntimeWebDocumentId =
-    remainingBefore > 0 ? webDocumentId : 'none'
   recordEvent(
     eventLog,
-    `tracker-close-receipt owner=${owner} webDocumentId=${webDocumentId} activeRuntimeWebDocumentId=${activeRuntimeWebDocumentId} remainingDocumentCount=${remainingBefore}`,
-  )
-  recordEvent(
-    eventLog,
-    `removeWebDocument owner=${owner} webDocumentId=${webDocumentId} activeRuntimeWebDocumentId=${activeRuntimeWebDocumentId} remainingDocumentCount=${remainingAfter}`,
+    `tracker-close-receipt owner=${owner} webDocumentId=${webDocumentId} remainingDocumentCount=${remainingDocumentCount}`,
   )
 }
 
@@ -447,8 +469,10 @@ async function openInFlightReloadTriggerStream(
           `unexpected in-flight reload release packet ${releasePacketResult.value[0]}`,
         )
       }
-      beforeOpen()
+      await beforeOpen()
+      outbound.push(new Uint8Array([35]))
       outbound.end()
+      await sinkDone
     },
   }
 }
@@ -519,7 +543,7 @@ function waitWorkerReady(port: MessagePort): Promise<boolean> {
   const timer = globalThis.setTimeout(() => {
     cleanup()
     resolve(false)
-  }, 30000)
+  }, fixtureTimeoutMs)
   const handler = (ev: MessageEvent) => {
     const data = ev.data
     if (!isRecord(data) || data.ready !== true) {
@@ -567,10 +591,12 @@ async function attachWorkerDocument(
 
   return {
     runtime,
-    close: () => {
-      port2.postMessage({ from: webDocumentId, close: true })
-      port2.close()
-      releaseLock()
+    close: async () => {
+      try {
+        await closeWebDocument(port2, webDocumentId)
+      } finally {
+        releaseLock()
+      }
     },
   }
 }
@@ -587,13 +613,14 @@ async function fetchUnixFSInlineFile(
   return body === unixFSInlineBody
 }
 
-class DelayedServiceWorkerHost implements ServiceWorkerHost {
+class ControlledServiceWorkerHost implements ServiceWorkerHost {
   private used = false
+  private readonly request = Promise.withResolvers<void>()
+  private readonly response = Promise.withResolvers<void>()
+  public readonly requestStarted = this.request.promise
+  public readonly releaseResponse = this.response.resolve
 
-  public constructor(
-    private readonly eventLog: string[],
-    private readonly delayMs: number,
-  ) {}
+  public constructor(private readonly eventLog: string[]) {}
 
   public dynamicRelayUsed(): boolean {
     return this.used
@@ -605,7 +632,8 @@ class DelayedServiceWorkerHost implements ServiceWorkerHost {
   ): MessageStream<FetchResponse> {
     this.used = true
     const eventLog = this.eventLog
-    const delayMs = this.delayMs
+    const requestSignal = this.request
+    const responseGate = this.response
     return (async function* () {
       const iterator = request[Symbol.asyncIterator]()
       const first = await iterator.next()
@@ -615,7 +643,8 @@ class DelayedServiceWorkerHost implements ServiceWorkerHost {
           recordEvent(eventLog, `dynamic-relay-request ${body.value.url}`)
         }
       }
-      await delay(delayMs)
+      requestSignal.resolve()
+      await responseGate.promise
       recordEvent(eventLog, 'dynamic-relay-response-headers')
       yield {
         body: {
@@ -668,7 +697,7 @@ async function registerRelayServiceWorker(
   )
   const ready = await Promise.race([
     navigator.serviceWorker.ready.then(() => true),
-    delay(3000).then(() => false),
+    timeoutPromise(3000).then(() => false),
   ])
   if (!ready) {
     recordEvent(eventLog, 'service-worker-ready-timeout')
@@ -687,7 +716,7 @@ async function registerRelayServiceWorker(
   )
   const controlled = await Promise.race([
     controllerChanged.promise.then(() => true),
-    delay(3000).then(() => false),
+    timeoutPromise(3000).then(() => false),
   ])
   if (!controlled || !navigator.serviceWorker.controller) {
     recordEvent(eventLog, 'service-worker-controller-timeout')
@@ -705,7 +734,7 @@ async function connectServiceWorkerRelayDocument(
     throw new Error('service worker controller is not available')
   }
 
-  const host = new DelayedServiceWorkerHost(eventLog, 250)
+  const host = new ControlledServiceWorkerHost(eventLog)
   const mux = createMux()
   mux.register(createHandler(ServiceWorkerHostDefinition, host))
   const server = new Server(mux.lookupMethod)
@@ -741,11 +770,10 @@ async function connectServiceWorkerRelayDocument(
   recordEvent(eventLog, 'service-worker-relay-document-added')
 
   return {
+    requestStarted: host.requestStarted,
+    releaseResponse: host.releaseResponse,
     dynamicRelayUsed: () => host.dynamicRelayUsed(),
-    close: () => {
-      port2.postMessage({ from: serviceWorkerDocumentId, close: true })
-      port2.close()
-    },
+    close: () => closeWebDocument(port2, serviceWorkerDocumentId),
   }
 }
 
@@ -796,38 +824,64 @@ async function fetchUnixFSInlineFileThroughDynamicRelay(
       recordEvent(eventLog, `dynamic-relay-fetch-error ${message}`)
       return false
     })
-    const timeoutPromise = delay(3000).then(() => {
+    const deadline = timeoutPromise(3000).then(() => {
       abort.abort()
       recordEvent(eventLog, 'dynamic-relay-fetch-timeout')
       return false
     })
-    const fetchSuccess = await Promise.race([fetchPromise, timeoutPromise])
+    const requestStarted = await Promise.race([
+      relayDocument.requestStarted.then(() => true),
+      deadline,
+    ])
+    if (!requestStarted) {
+      return {
+        fetchSuccess: false,
+        relayUsed: relayDocument.dynamicRelayUsed(),
+      }
+    }
+    relayDocument.releaseResponse()
+    const fetchSuccess = await Promise.race([fetchPromise, deadline])
     return {
       fetchSuccess,
       relayUsed: relayDocument.dynamicRelayUsed(),
     }
   } finally {
-    relayDocument.close()
+    await relayDocument.close()
     releaseRelayLock()
+  }
+}
+
+function startUnixFSInlineFileThroughProxyFetch(
+  eventLog: string[],
+): ControlledProxyFetch {
+  const host = new ControlledServiceWorkerHost(eventLog)
+  const result = (async () => {
+    const response = await proxyFetch(
+      host,
+      new Request(new URL(unixFSRuntimeRelayPath, location.href)),
+      'service-worker-fixture-client',
+    )
+    if (!response.ok) {
+      throw new Error(
+        `proxyFetch UnixFS inline fetch failed: status=${response.status}`,
+      )
+    }
+    const body = await response.text()
+    return body === unixFSInlineBody && host.dynamicRelayUsed()
+  })()
+  return {
+    requestStarted: host.requestStarted,
+    releaseResponse: host.releaseResponse,
+    result,
   }
 }
 
 async function fetchUnixFSInlineFileThroughProxyFetch(
   eventLog: string[],
 ): Promise<boolean> {
-  const host = new DelayedServiceWorkerHost(eventLog, 250)
-  const response = await proxyFetch(
-    host,
-    new Request(new URL(unixFSRuntimeRelayPath, location.href)),
-    'service-worker-fixture-client',
-  )
-  if (!response.ok) {
-    throw new Error(
-      `proxyFetch UnixFS inline fetch failed: status=${response.status}`,
-    )
-  }
-  const body = await response.text()
-  return body === unixFSInlineBody && host.dynamicRelayUsed()
+  const fetch = startUnixFSInlineFileThroughProxyFetch(eventLog)
+  fetch.releaseResponse()
+  return await fetch.result
 }
 
 function installReleaseGenerationReloadProbe(eventLog: string[]): void {
@@ -990,7 +1044,6 @@ async function run() {
     const pluginToHost = await runtime.waitPluginToHost
     mark('wait-worker-ready')
     const workerReady = await workerReadyPromise
-    await delay(50)
     mark('pre-fetch-host-to-plugin-stream')
     const preFetchStream = await runtime.openHostToPluginStream(
       eventLog,
@@ -1031,30 +1084,29 @@ async function run() {
       fetchSuccess = dynamicRelayFetch
     } else if (variant === 'release-generation') {
       mark('fetch-unixfs-inline-release-generation')
-      void fetchUnixFSInlineFileThroughProxyFetch(eventLog)
-      await delay(50)
+      const fetch = startUnixFSInlineFileThroughProxyFetch(eventLog)
+      await fetch.requestStarted
       releaseBroadcast = true
       dispatchReleaseGenerationMismatch(eventLog)
-      await delay(5000)
+      await timeoutPromise(fixtureTimeoutMs)
       throw new Error('release generation mismatch did not reload the page')
     } else if (variant === 'in-flight-reload') {
       mark('fetch-unixfs-inline-in-flight-reload')
-      const fetchPromise = fetchUnixFSInlineFileThroughProxyFetch(eventLog)
+      const fetch = startUnixFSInlineFileThroughProxyFetch(eventLog)
+      await fetch.requestStarted
       const trigger = await runtime.openInFlightReloadTriggerStream(eventLog)
       if (!trigger.armed) {
         errors.push('inFlightReloadTrigger=false')
       }
-      await trigger.release(() => {
+      await trigger.release(async () => {
         recordEvent(eventLog, 'in-flight-reload-close-foreground-document')
-        recordTrackerRemoval(
+        await closeWebDocument(port2, documentId)
+        recordTrackerCloseReceipt(
           eventLog,
           'fixture-in-flight-reload',
           documentId,
-          1,
           0,
         )
-        port2.postMessage({ from: documentId, close: true })
-        port2.close()
         recordEvent(
           eventLog,
           `lock-release ${documentId} lock=bldr-doc-${documentId}`,
@@ -1063,7 +1115,6 @@ async function run() {
         releaseLock = undefined
         zeroDocumentRace = true
       })
-      await delay(0)
 
       recordEvent(eventLog, 'in-flight-reload-attach-replacement-document')
       replacementDocument = await attachWorkerDocument(
@@ -1074,33 +1125,31 @@ async function run() {
       )
       const recovered = await replacementDocument.runtime.waitPluginToHost
       inFlightOpenRecovered = recovered.stream && recovered.startInfo
-      await delay(50)
       replacementRoute =
         await replacementDocument.runtime.openHostToPluginStream(
           eventLog,
           'in-flight-reload-replacement-route',
         )
+      fetch.releaseResponse()
       reproduced = true
       postFetchStream = replacementRoute
-      fetchSuccess = await fetchPromise
+      fetchSuccess = await fetch.result
     } else if (variant === 'plugin-host-replacement') {
       mark('fetch-unixfs-inline-plugin-host-replacement')
       recordEvent(eventLog, 'plugin-host-replacement-fetch-route-start')
-      const fetchPromise = fetchUnixFSInlineFileThroughProxyFetch(eventLog)
-      await delay(50)
+      const fetch = startUnixFSInlineFileThroughProxyFetch(eventLog)
+      await fetch.requestStarted
       recordEvent(
         eventLog,
         'PluginHost RemoveWebWorker owner=fixture-plugin-host-replacement plugin=spacewave-web',
       )
-      recordTrackerRemoval(
+      await closeWebDocument(port2, documentId)
+      recordTrackerCloseReceipt(
         eventLog,
         'PluginHost.RemoveWebWorker',
         documentId,
-        1,
         0,
       )
-      port2.postMessage({ from: documentId, close: true })
-      port2.close()
       recordEvent(
         eventLog,
         `lock-release ${documentId} lock=bldr-doc-${documentId}`,
@@ -1119,39 +1168,37 @@ async function run() {
       )
       const recovered = await replacementDocument.runtime.waitPluginToHost
       inFlightOpenRecovered = recovered.stream && recovered.startInfo
-      await delay(50)
       replacementRoute =
         await replacementDocument.runtime.openHostToPluginStream(
           eventLog,
           'plugin-host-replacement-route',
         )
+      fetch.releaseResponse()
       pluginHostReplacement = true
       reproduced = true
       postFetchStream = replacementRoute
-      fetchSuccess = await fetchPromise
+      fetchSuccess = await fetch.result
     } else if (variant === 'service-worker-fetch-route-timing') {
       mark('fetch-unixfs-inline-service-worker-route-timing')
       recordEvent(eventLog, 'service-worker-fetch-route-start')
-      const fetchPromise = fetchUnixFSInlineFileThroughProxyFetch(eventLog)
+      const fetch = startUnixFSInlineFileThroughProxyFetch(eventLog)
+      await fetch.requestStarted
       const trigger = await runtime.openInFlightReloadTriggerStream(eventLog)
       if (!trigger.armed) {
         errors.push('inFlightReloadTrigger=false')
       }
-      await delay(50)
-      await trigger.release(() => {
+      await trigger.release(async () => {
         recordEvent(
           eventLog,
           'service-worker-fetch-route-before-last-document-removal',
         )
-        recordTrackerRemoval(
+        await closeWebDocument(port2, documentId)
+        recordTrackerCloseReceipt(
           eventLog,
           'service-worker-fetch-route-timing',
           documentId,
-          1,
           0,
         )
-        port2.postMessage({ from: documentId, close: true })
-        port2.close()
         recordEvent(
           eventLog,
           `lock-release ${documentId} lock=bldr-doc-${documentId}`,
@@ -1159,10 +1206,6 @@ async function run() {
         releaseLock?.()
         releaseLock = undefined
         zeroDocumentRace = true
-        recordEvent(
-          eventLog,
-          'service-worker-fetch-route-after-last-document-removal activeRuntimeWebDocumentId=none remainingDocumentCount=0',
-        )
       })
       recordEvent(
         eventLog,
@@ -1176,16 +1219,16 @@ async function run() {
       )
       const recovered = await replacementDocument.runtime.waitPluginToHost
       inFlightOpenRecovered = recovered.stream && recovered.startInfo
-      await delay(50)
       replacementRoute =
         await replacementDocument.runtime.openHostToPluginStream(
           eventLog,
           'service-worker-route-timing-replacement-route',
         )
+      fetch.releaseResponse()
       serviceWorkerRouteTiming = true
       reproduced = true
       postFetchStream = replacementRoute
-      fetchSuccess = await fetchPromise
+      fetchSuccess = await fetch.result
     } else if (variant === 'deliberate-worker-replacement') {
       mark('deliberate-worker-replacement')
       recordEvent(eventLog, 'deliberate-worker-replacement-arm')
@@ -1198,16 +1241,14 @@ async function run() {
       // WebDocument with a terminal close: the orphaned client must fail the
       // stream fast, not wait for a replacement WebDocument that never attaches.
       recordEvent(eventLog, 'deliberate-worker-replacement-terminal-close')
-      recordTrackerRemoval(
+      const closeStartMs = performance.now()
+      await closeWebDocument(port2, documentId, true)
+      recordTrackerCloseReceipt(
         eventLog,
         'fixture-deliberate-worker-replacement',
         documentId,
-        1,
         0,
       )
-      const closeStartMs = performance.now()
-      port2.postMessage({ from: documentId, close: true, terminal: true })
-      port2.close()
       recordEvent(
         eventLog,
         `lock-release ${documentId} lock=bldr-doc-${documentId}`,
@@ -1217,7 +1258,7 @@ async function run() {
 
       const outcome = await Promise.race([
         trigger.waitOutcome(),
-        delay(5000).then(
+        timeoutPromise(fixtureTimeoutMs).then(
           (): TerminalOrphanOutcome => ({
             failedFast: false,
             err: 'terminal-orphan-timeout',
@@ -1259,7 +1300,6 @@ async function run() {
 
     if (!postFetchStream) {
       mark('post-fetch-host-to-plugin-stream')
-      await delay(50)
       postFetchStream = await runtime.openHostToPluginStream(
         eventLog,
         'post-fetch-host-to-plugin-stream',
@@ -1334,7 +1374,7 @@ async function run() {
     window.__results = failureResult(eventLog, `error: ${String(err)}`)
   } finally {
     if (!(variant === 'release-generation' && runCount === 1)) {
-      replacementDocument?.close()
+      await replacementDocument?.close()
       releaseLock?.()
       worker?.terminate()
       log.textContent = 'DONE'
