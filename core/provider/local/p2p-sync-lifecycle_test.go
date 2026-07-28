@@ -70,11 +70,22 @@ func TestRetireP2PSyncStateWaitsForOwnedWork(t *testing.T) {
 		close(retired)
 	}()
 
-	var stoppingCh <-chan struct{}
-	state.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		stoppingCh = getWaitCh()
-	})
-	<-stoppingCh
+	for {
+		var (
+			stopping bool
+			waitCh   <-chan struct{}
+		)
+		state.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			stopping = state.stopping
+			if !stopping {
+				waitCh = getWaitCh()
+			}
+		})
+		if stopping {
+			break
+		}
+		<-waitCh
+	}
 
 	select {
 	case <-retired:
@@ -94,4 +105,48 @@ func TestRetireP2PSyncStateWaitsForOwnedWork(t *testing.T) {
 			t.Fatal("retirement did not complete cleanup")
 		}
 	})
+}
+
+func TestRetireP2PSyncStateReleasesLowerChain(t *testing.T) {
+	makeState := func(lower *p2pSyncState) *p2pSyncState {
+		ctx, cancel := context.WithCancel(context.Background())
+		return &p2pSyncState{
+			ctx:             ctx,
+			cancel:          cancel,
+			owners:          1,
+			startComplete:   true,
+			started:         true,
+			startupExited:   true,
+			lowerSource:     lower,
+			lowerSourceHeld: lower != nil,
+		}
+	}
+
+	first := makeState(nil)
+	second := makeState(first)
+	third := makeState(second)
+	account := &ProviderAccount{}
+	account.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		account.p2pSync = third
+	})
+
+	account.retireP2PSyncState(nil)
+
+	for name, state := range map[string]*p2pSyncState{
+		"first":  first,
+		"second": second,
+		"third":  third,
+	} {
+		state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			if !state.stopping || !state.cleanupDone {
+				t.Fatalf("%s state was not fully retired", name)
+			}
+			if state.lowerSource != nil || state.lowerSourceHeld {
+				t.Fatalf("%s state retained its lower source", name)
+			}
+		})
+		if state.ctx.Err() == nil {
+			t.Fatalf("%s state context was not canceled", name)
+		}
+	}
 }
