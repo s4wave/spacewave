@@ -10,7 +10,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs"
-	"github.com/s4wave/spacewave/db/opfs/filelock"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
 )
 
@@ -133,8 +132,8 @@ func TestMetaStoreLargeValue(t *testing.T) {
 	}
 }
 
-func TestMetaShardReadSnapshotIsolation(t *testing.T) {
-	ms := newTestMetaShard(t, "test-metashard-snapshot")
+func TestMetaStoreReadTxDoesNotBlockWrites(t *testing.T) {
+	ms := newTestMetaShard(t, "test-metastore-read-tx-does-not-block-writes")
 	store := NewMetaStore(ms)
 	ctx := context.Background()
 
@@ -149,11 +148,21 @@ func TestMetaShardReadSnapshotIsolation(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// A read transaction left open must not stall a later write. Holding the
+	// shared metadata lock for the transaction lifetime would queue this
+	// commit behind a lock nothing releases until Discard.
 	readTx, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer readTx.Discard()
+	val, found, err := readTx.Get(ctx, []byte("k"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || string(val) != "v1" {
+		t.Fatalf("first read got found=%v val=%q want v1", found, val)
+	}
 
 	writeTx, err := store.NewTransaction(ctx, true)
 	if err != nil {
@@ -166,140 +175,14 @@ func TestMetaShardReadSnapshotIsolation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	val, found, err := readTx.Get(ctx, []byte("k"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !found || string(val) != "v1" {
-		t.Fatalf("snapshot read got found=%v val=%q want v1", found, val)
-	}
-
-	liveTx, err := store.NewTransaction(ctx, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer liveTx.Discard()
-	val, found, err = liveTx.Get(ctx, []byte("k"))
+	// Reads are committed per operation, so the open transaction observes the
+	// commit rather than a snapshot taken when it opened.
+	val, found, err = readTx.Get(ctx, []byte("k"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !found || string(val) != "v2" {
-		t.Fatalf("live read got found=%v val=%q want v2", found, val)
-	}
-}
-
-func TestMetaStoreReadTxHoldsMetaWebLock(t *testing.T) {
-	name := "test-metastore-read-tx-holds-lock"
-	ms := newTestMetaShard(t, name)
-	store := NewMetaStore(ms)
-	ctx := context.Background()
-
-	tx, err := store.NewTransaction(ctx, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := tx.Set(ctx, []byte("k"), []byte("v1")); err != nil {
-		t.Fatal(err)
-	}
-	if err := tx.Commit(ctx); err != nil {
-		t.Fatal(err)
-	}
-
-	readTx, err := store.NewTransaction(ctx, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer readTx.Discard()
-
-	release, acquired, err := filelock.AcquireWebLockIfAvailable(name+"/meta/write", true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if acquired {
-		release()
-		t.Fatal("read transaction did not hold meta WebLock")
-	}
-
-	val, found, err := readTx.Get(ctx, []byte("k"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !found || string(val) != "v1" {
-		t.Fatalf("snapshot read got found=%v val=%q want v1", found, val)
-	}
-}
-
-func TestMetaStoreReadTxBlocksPageReuseUntilClose(t *testing.T) {
-	name := "test-metastore-read-tx-blocks-page-reuse"
-	ms := newTestMetaShard(t, name)
-	store := NewMetaStore(ms)
-	ctx := context.Background()
-	key := []byte("m/1/00000")
-	putMetaValue(t, ms, string(key), "v1")
-
-	readTx, err := store.NewTransaction(ctx, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	snapshotRoot := ms.rootPage
-	writerCommitted := make(chan struct{})
-	continueWriter := make(chan struct{})
-	writerDone := make(chan error, 1)
-	ms.testHook = func(stage string) error {
-		if stage != "after-superblock-write" {
-			return nil
-		}
-		close(writerCommitted)
-		<-continueWriter
-		return nil
-	}
-
-	probeRelease, acquired, err := filelock.AcquireWebLockIfAvailable(name+"/meta/write", true)
-	if err != nil {
-		readTx.Discard()
-		t.Fatal(err)
-	}
-	go func() {
-		writerDone <- ms.WriteTx(func(tree *pagestore.Tree) error {
-			ms.pager.freed = []pagestore.PageID{snapshotRoot}
-			_, err := tree.Delete(key)
-			return err
-		})
-	}()
-
-	if acquired {
-		probeRelease()
-		<-writerCommitted
-		val, found, readErr := readTx.Get(ctx, key)
-		close(continueWriter)
-		readTx.Discard()
-		if err := <-writerDone; err != nil {
-			t.Fatal(err)
-		}
-		if readErr != nil || !found || string(val) != "v1" {
-			t.Fatalf("lazy read lost key=%s found=%v val=%q err=%v", key, found, val, readErr)
-		}
-		t.Fatal("read transaction did not hold meta WebLock during page reuse")
-	}
-
-	val, found, err := readTx.Get(ctx, key)
-	if err != nil {
-		close(continueWriter)
-		readTx.Discard()
-		_ = <-writerDone
-		t.Fatal(err)
-	}
-	if !found || string(val) != "v1" {
-		close(continueWriter)
-		readTx.Discard()
-		_ = <-writerDone
-		t.Fatalf("snapshot read got found=%v val=%q want v1", found, val)
-	}
-	readTx.Discard()
-	close(continueWriter)
-	if err := <-writerDone; err != nil {
-		t.Fatal(err)
+		t.Fatalf("read after commit got found=%v val=%q want v2", found, val)
 	}
 }
 
