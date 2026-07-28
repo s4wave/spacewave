@@ -28,6 +28,8 @@ message RegisterCommandRequest {
   // HandlerResourceId is the resource ID of the attached handler.
   // If 0, the command has no handler (display-only).
   uint32 handler_resource_id = 2;
+  // Surface identifies the command front door for this registration.
+  s4wave.command.CommandSurface surface = 3;
 }
 
 // RegisterCommandResponse is the response for RegisterCommand.
@@ -59,7 +61,10 @@ message SetEnabledRequest {
 message SetEnabledResponse {}
 
 // WatchCommandsRequest is the request for WatchCommands.
-message WatchCommandsRequest {}
+message WatchCommandsRequest {
+  // Surface selects registrations for one command front door.
+  s4wave.command.CommandSurface surface = 1;
+}
 
 // CommandState is a registered command instance with active and enabled state.
 message CommandState {
@@ -71,6 +76,8 @@ message CommandState {
   bool active = 3;
   // Enabled is whether the registration is enabled.
   bool enabled = 4;
+  // Surface identifies the command front door for this registration.
+  s4wave.command.CommandSurface surface = 5;
 }
 
 // WatchCommandsResponse is the response for WatchCommands.
@@ -99,6 +106,8 @@ message GetSubItemsRequest {
   string command_id = 1;
   // Query is the user-entered filter text.
   string query = 2;
+  // Surface selects the registration for one command front door.
+  s4wave.command.CommandSurface surface = 3;
 }
 
 // GetSubItemsResponse is the response for GetSubItems.
@@ -113,6 +122,8 @@ message InvokeCommandRequest {
   string command_id = 1;
   // Args is optional key-value arguments.
   map<string, string> args = 2;
+  // Surface selects the registration for one command front door.
+  s4wave.command.CommandSurface surface = 3;
 }
 
 // InvokeCommandResponse is the response for InvokeCommand.

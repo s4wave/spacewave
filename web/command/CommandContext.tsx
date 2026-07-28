@@ -12,6 +12,7 @@ import { useResourcesContext } from '@aptre/bldr-sdk/hooks/ResourcesContext.js'
 import type { Client as ResourceClient } from '@aptre/bldr-sdk/resource/client.js'
 import type { Root } from '@s4wave/sdk/root'
 import type { LookupMethod } from 'starpc'
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import {
   CommandRegistryResourceServiceClient,
   type CommandRegistryResourceService,
@@ -105,7 +106,7 @@ export function CommandProvider({
       if (!root) return null
       const svc: CommandRegistryResourceService =
         new CommandRegistryResourceServiceClient(root.client)
-      return svc.WatchCommands({}, signal)
+      return svc.WatchCommands({ surface: CommandSurface.WEB }, signal)
     },
     [root],
   )
@@ -115,7 +116,7 @@ export function CommandProvider({
     WatchCommandsRequest
   >(
     watchFn,
-    {},
+    { surface: CommandSurface.WEB },
     WatchCommandsRequest.equals,
     WatchCommandsResponse.equals,
     commandWatchRetryOpts,
@@ -169,9 +170,11 @@ export function CommandProvider({
   const invokeCommand = useCallback(
     (commandId: string, args?: Record<string, string>) => {
       if (!service) return
-      service.InvokeCommand({ commandId, args }).catch((err) => {
-        console.error('InvokeCommand failed:', commandId, err)
-      })
+      service
+        .InvokeCommand({ commandId, args, surface: CommandSurface.WEB })
+        .catch((err) => {
+          console.error('InvokeCommand failed:', commandId, err)
+        })
     },
     [service],
   )
@@ -183,7 +186,10 @@ export function CommandProvider({
       signal: AbortSignal,
     ): Promise<SubItem[]> => {
       if (!service) return []
-      const resp = await service.GetSubItems({ commandId, query }, signal)
+      const resp = await service.GetSubItems(
+        { commandId, query, surface: CommandSurface.WEB },
+        signal,
+      )
       return (resp.items ?? []).flatMap((item) =>
         item.id
           ? [

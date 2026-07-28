@@ -133,6 +133,9 @@ pub struct Command {
     /// DefaultBindings are the typed default input bindings for the command.
     #[prost(message, repeated, tag="10")]
     pub default_bindings: ::prost::alloc::vec::Vec<CommandBinding>,
+    /// SearchAliases adds discovery terms without creating alternate command IDs.
+    #[prost(string, repeated, tag="11")]
+    pub search_aliases: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// CommandFocusContext identifies where a command binding applies.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -183,6 +186,39 @@ impl CommandFocusContext {
             "COMMAND_FOCUS_CONTEXT_CANVAS" => Some(Self::Canvas),
             "COMMAND_FOCUS_CONTEXT_MODAL" => Some(Self::Modal),
             "COMMAND_FOCUS_CONTEXT_TEXT_INPUT" => Some(Self::TextInput),
+            _ => None,
+        }
+    }
+}
+/// CommandSurface identifies the command front door for one registration.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CommandSurface {
+    /// COMMAND_SURFACE_UNSPECIFIED selects the web surface for legacy callers.
+    Unspecified = 0,
+    /// COMMAND_SURFACE_WEB selects the web command surface.
+    Web = 1,
+    /// COMMAND_SURFACE_TERMINAL selects the terminal command surface.
+    Terminal = 2,
+}
+impl CommandSurface {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COMMAND_SURFACE_UNSPECIFIED",
+            Self::Web => "COMMAND_SURFACE_WEB",
+            Self::Terminal => "COMMAND_SURFACE_TERMINAL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COMMAND_SURFACE_UNSPECIFIED" => Some(Self::Unspecified),
+            "COMMAND_SURFACE_WEB" => Some(Self::Web),
+            "COMMAND_SURFACE_TERMINAL" => Some(Self::Terminal),
             _ => None,
         }
     }

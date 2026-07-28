@@ -74,6 +74,46 @@ func (x CommandFocusContext) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// CommandSurface identifies the command front door for one registration.
+type CommandSurface int32
+
+const (
+	// COMMAND_SURFACE_UNSPECIFIED selects the web surface for legacy callers.
+	CommandSurface_COMMAND_SURFACE_UNSPECIFIED CommandSurface = 0
+	// COMMAND_SURFACE_WEB selects the web command surface.
+	CommandSurface_COMMAND_SURFACE_WEB CommandSurface = 1
+	// COMMAND_SURFACE_TERMINAL selects the terminal command surface.
+	CommandSurface_COMMAND_SURFACE_TERMINAL CommandSurface = 2
+)
+
+// Enum value maps for CommandSurface.
+var (
+	CommandSurface_name = map[int32]string{
+		0: "COMMAND_SURFACE_UNSPECIFIED",
+		1: "COMMAND_SURFACE_WEB",
+		2: "COMMAND_SURFACE_TERMINAL",
+	}
+	CommandSurface_value = map[string]int32{
+		"COMMAND_SURFACE_UNSPECIFIED": 0,
+		"COMMAND_SURFACE_WEB":         1,
+		"COMMAND_SURFACE_TERMINAL":    2,
+	}
+)
+
+func (x CommandSurface) Enum() *CommandSurface {
+	p := new(CommandSurface)
+	*p = x
+	return p
+}
+
+func (x CommandSurface) String() string {
+	name, valid := CommandSurface_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
 // KeybindingDisplayMode identifies how bindings are displayed.
 type KeybindingDisplayMode int32
 
@@ -418,6 +458,8 @@ type Command struct {
 	HasSubItems bool `protobuf:"varint,9,opt,name=has_sub_items,json=hasSubItems,proto3" json:"hasSubItems,omitempty"`
 	// DefaultBindings are the typed default input bindings for the command.
 	DefaultBindings []*CommandBinding `protobuf:"bytes,10,rep,name=default_bindings,json=defaultBindings,proto3" json:"defaultBindings,omitempty"`
+	// SearchAliases adds discovery terms without creating alternate command IDs.
+	SearchAliases []string `protobuf:"bytes,11,rep,name=search_aliases,json=searchAliases,proto3" json:"searchAliases,omitempty"`
 }
 
 func (x *Command) Reset() {
@@ -492,6 +534,13 @@ func (x *Command) GetHasSubItems() bool {
 func (x *Command) GetDefaultBindings() []*CommandBinding {
 	if x != nil {
 		return x.DefaultBindings
+	}
+	return nil
+}
+
+func (x *Command) GetSearchAliases() []string {
+	if x != nil {
+		return x.SearchAliases
 	}
 	return nil
 }
@@ -664,6 +713,7 @@ func (m *Command) CloneVT() *Command {
 	r.Description = m.Description
 	r.HasSubItems = m.HasSubItems
 	r.DefaultBindings = protobuf_go_lite.CloneVTSlice(m.DefaultBindings)
+	r.SearchAliases = protobuf_go_lite.CloneSlice(m.SearchAliases)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -926,6 +976,9 @@ func (this *Command) EqualVT(that *Command) bool {
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.DefaultBindings, that.DefaultBindings, func() *CommandBinding { return &CommandBinding{} }) {
 		return false
 	}
+	if !protobuf_go_lite.EqualSlice(this.SearchAliases, that.SearchAliases) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -974,6 +1027,46 @@ func (x *CommandFocusContext) UnmarshalText(b []byte) error {
 
 // UnmarshalJSON unmarshals the CommandFocusContext from JSON.
 func (x *CommandFocusContext) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CommandSurface to JSON.
+func (x CommandSurface) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), CommandSurface_name)
+}
+
+// MarshalText marshals the CommandSurface to text.
+func (x CommandSurface) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), CommandSurface_name)), nil
+}
+
+// MarshalJSON marshals the CommandSurface to JSON.
+func (x CommandSurface) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CommandSurface from JSON.
+func (x *CommandSurface) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(CommandSurface_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read CommandSurface enum: %v", err)
+		return
+	}
+	*x = CommandSurface(v)
+}
+
+// UnmarshalText unmarshals the CommandSurface from text.
+func (x *CommandSurface) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), CommandSurface_value)
+	if err != nil {
+		return err
+	}
+	*x = CommandSurface(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the CommandSurface from JSON.
+func (x *CommandSurface) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1543,6 +1636,11 @@ func (x *Command) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if len(x.SearchAliases) > 0 || s.HasField("searchAliases") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("searchAliases")
+		s.WriteStringArray(x.SearchAliases)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1605,6 +1703,13 @@ func (x *Command) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.DefaultBindings = append(x.DefaultBindings, v)
 			})
+		case "search_aliases", "searchAliases":
+			s.AddField("search_aliases")
+			if s.ReadNil() {
+				x.SearchAliases = nil
+				return
+			}
+			x.SearchAliases = s.ReadStringArray()
 		}
 	})
 }
@@ -2037,6 +2142,13 @@ func (m *Command) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.SearchAliases) > 0 {
+		for iNdEx := len(m.SearchAliases) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.SearchAliases[iNdEx])
+			i--
+			dAtA[i] = 0x5a
+		}
+	}
 	if len(m.DefaultBindings) > 0 {
 		for iNdEx := len(m.DefaultBindings) - 1; iNdEx >= 0; iNdEx-- {
 			size, err := m.DefaultBindings[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
@@ -2248,11 +2360,16 @@ func (m *Command) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringSlice(1, m.SearchAliases)
 	n += len(m.unknownFields)
 	return n
 }
 
 func (x CommandFocusContext) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x CommandSurface) MarshalProtoText() string {
 	return x.String()
 }
 
@@ -2486,6 +2603,14 @@ func (x *Command) MarshalProtoText() string {
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.SearchAliases) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "search_aliases")
+		for i, v := range x.SearchAliases {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
@@ -3144,6 +3269,16 @@ func (m *Command) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SearchAliases", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SearchAliases = append(m.SearchAliases, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

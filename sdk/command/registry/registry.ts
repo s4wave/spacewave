@@ -1,7 +1,7 @@
 import { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
 
-import { Command } from '../command.pb.js'
+import { Command, CommandSurface } from '../command.pb.js'
 import {
   CommandRegistryResourceService,
   CommandRegistryResourceServiceClient,
@@ -20,10 +20,14 @@ import {
 export class CommandsManager extends Resource {
   // service is the command registry resource service.
   private service: CommandRegistryResourceService
+  // surface is the normalized command front door for every registry operation.
+  private readonly surface: CommandSurface
 
-  constructor(resourceRef: ClientResourceRef) {
+  constructor(resourceRef: ClientResourceRef, surface: CommandSurface) {
     super(resourceRef)
     this.service = new CommandRegistryResourceServiceClient(resourceRef.client)
+    this.surface =
+      surface === CommandSurface.UNSPECIFIED ? CommandSurface.WEB : surface
   }
 
   // registerCommand registers a command with an optional handler resource.
@@ -33,7 +37,7 @@ export class CommandsManager extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<RegisterCommandResponse> {
     return await this.service.RegisterCommand(
-      { command, handlerResourceId },
+      { command, handlerResourceId, surface: this.surface },
       abortSignal,
     )
   }
@@ -60,7 +64,7 @@ export class CommandsManager extends Resource {
   public watchCommands(
     abortSignal?: AbortSignal,
   ): AsyncIterable<WatchCommandsResponse> {
-    return this.service.WatchCommands({}, abortSignal)
+    return this.service.WatchCommands({ surface: this.surface }, abortSignal)
   }
 
   // getSubItems queries a command's sub-items from the active registration.
@@ -69,7 +73,10 @@ export class CommandsManager extends Resource {
     query: string,
     abortSignal?: AbortSignal,
   ): Promise<GetSubItemsResponse> {
-    return await this.service.GetSubItems({ commandId, query }, abortSignal)
+    return await this.service.GetSubItems(
+      { commandId, query, surface: this.surface },
+      abortSignal,
+    )
   }
 
   // invokeCommand invokes a registered command with optional arguments.
@@ -78,6 +85,9 @@ export class CommandsManager extends Resource {
     args?: Record<string, string>,
     abortSignal?: AbortSignal,
   ): Promise<InvokeCommandResponse> {
-    return await this.service.InvokeCommand({ commandId, args }, abortSignal)
+    return await this.service.InvokeCommand(
+      { commandId, args, surface: this.surface },
+      abortSignal,
+    )
   }
 }

@@ -22,6 +22,8 @@ type RegisterCommandRequest struct {
 	// HandlerResourceId is the resource ID of the attached handler.
 	// If 0, the command has no handler (display-only).
 	HandlerResourceId uint32 `protobuf:"varint,2,opt,name=handler_resource_id,json=handlerResourceId,proto3" json:"handlerResourceId,omitempty"`
+	// Surface identifies the command front door for this registration.
+	Surface command.CommandSurface `protobuf:"varint,3,opt,name=surface,proto3" json:"surface,omitempty"`
 }
 
 func (x *RegisterCommandRequest) Reset() {
@@ -42,6 +44,13 @@ func (x *RegisterCommandRequest) GetHandlerResourceId() uint32 {
 		return x.HandlerResourceId
 	}
 	return 0
+}
+
+func (x *RegisterCommandRequest) GetSurface() command.CommandSurface {
+	if x != nil {
+		return x.Surface
+	}
+	return command.CommandSurface(0)
 }
 
 // RegisterCommandResponse is the response for RegisterCommand.
@@ -147,6 +156,8 @@ func (*SetEnabledResponse) ProtoMessage() {}
 // WatchCommandsRequest is the request for WatchCommands.
 type WatchCommandsRequest struct {
 	unknownFields []byte
+	// Surface selects registrations for one command front door.
+	Surface command.CommandSurface `protobuf:"varint,1,opt,name=surface,proto3" json:"surface,omitempty"`
 }
 
 func (x *WatchCommandsRequest) Reset() {
@@ -154,6 +165,13 @@ func (x *WatchCommandsRequest) Reset() {
 }
 
 func (*WatchCommandsRequest) ProtoMessage() {}
+
+func (x *WatchCommandsRequest) GetSurface() command.CommandSurface {
+	if x != nil {
+		return x.Surface
+	}
+	return command.CommandSurface(0)
+}
 
 // CommandState is a registered command instance with active and enabled state.
 type CommandState struct {
@@ -166,6 +184,8 @@ type CommandState struct {
 	Active bool `protobuf:"varint,3,opt,name=active,proto3" json:"active,omitempty"`
 	// Enabled is whether the registration is enabled.
 	Enabled bool `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// Surface identifies the command front door for this registration.
+	Surface command.CommandSurface `protobuf:"varint,5,opt,name=surface,proto3" json:"surface,omitempty"`
 }
 
 func (x *CommandState) Reset() {
@@ -200,6 +220,13 @@ func (x *CommandState) GetEnabled() bool {
 		return x.Enabled
 	}
 	return false
+}
+
+func (x *CommandState) GetSurface() command.CommandSurface {
+	if x != nil {
+		return x.Surface
+	}
+	return command.CommandSurface(0)
 }
 
 // WatchCommandsResponse is the response for WatchCommands.
@@ -285,6 +312,8 @@ type GetSubItemsRequest struct {
 	CommandId string `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"commandId,omitempty"`
 	// Query is the user-entered filter text.
 	Query string `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
+	// Surface selects the registration for one command front door.
+	Surface command.CommandSurface `protobuf:"varint,3,opt,name=surface,proto3" json:"surface,omitempty"`
 }
 
 func (x *GetSubItemsRequest) Reset() {
@@ -305,6 +334,13 @@ func (x *GetSubItemsRequest) GetQuery() string {
 		return x.Query
 	}
 	return ""
+}
+
+func (x *GetSubItemsRequest) GetSurface() command.CommandSurface {
+	if x != nil {
+		return x.Surface
+	}
+	return command.CommandSurface(0)
 }
 
 // GetSubItemsResponse is the response for GetSubItems.
@@ -334,6 +370,8 @@ type InvokeCommandRequest struct {
 	CommandId string `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"commandId,omitempty"`
 	// Args is optional key-value arguments.
 	Args map[string]string `protobuf:"bytes,2,rep,name=args,proto3" json:"args,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// Surface selects the registration for one command front door.
+	Surface command.CommandSurface `protobuf:"varint,3,opt,name=surface,proto3" json:"surface,omitempty"`
 }
 
 func (x *InvokeCommandRequest) Reset() {
@@ -354,6 +392,13 @@ func (x *InvokeCommandRequest) GetArgs() map[string]string {
 		return x.Args
 	}
 	return nil
+}
+
+func (x *InvokeCommandRequest) GetSurface() command.CommandSurface {
+	if x != nil {
+		return x.Surface
+	}
+	return command.CommandSurface(0)
 }
 
 // InvokeCommandResponse is the response for InvokeCommand.
@@ -465,6 +510,7 @@ func (m *RegisterCommandRequest) CloneVT() *RegisterCommandRequest {
 	}
 	r := new(RegisterCommandRequest)
 	r.HandlerResourceId = m.HandlerResourceId
+	r.Surface = m.Surface
 	r.Command = protobuf_go_lite.CloneVTValue(m.Command)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -561,6 +607,7 @@ func (m *WatchCommandsRequest) CloneVT() *WatchCommandsRequest {
 		return (*WatchCommandsRequest)(nil)
 	}
 	r := new(WatchCommandsRequest)
+	r.Surface = m.Surface
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -579,6 +626,7 @@ func (m *CommandState) CloneVT() *CommandState {
 	r.ResourceId = m.ResourceId
 	r.Active = m.Active
 	r.Enabled = m.Enabled
+	r.Surface = m.Surface
 	r.Command = protobuf_go_lite.CloneVTValue(m.Command)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -633,6 +681,7 @@ func (m *GetSubItemsRequest) CloneVT() *GetSubItemsRequest {
 	r := new(GetSubItemsRequest)
 	r.CommandId = m.CommandId
 	r.Query = m.Query
+	r.Surface = m.Surface
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -665,6 +714,7 @@ func (m *InvokeCommandRequest) CloneVT() *InvokeCommandRequest {
 	}
 	r := new(InvokeCommandRequest)
 	r.CommandId = m.CommandId
+	r.Surface = m.Surface
 	r.Args = protobuf_go_lite.CloneMap(m.Args)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -733,6 +783,9 @@ func (this *RegisterCommandRequest) EqualVT(that *RegisterCommandRequest) bool {
 		return false
 	}
 	if this.HandlerResourceId != that.HandlerResourceId {
+		return false
+	}
+	if this.Surface != that.Surface {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -852,6 +905,9 @@ func (this *WatchCommandsRequest) EqualVT(that *WatchCommandsRequest) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
+	if this.Surface != that.Surface {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -879,6 +935,9 @@ func (this *CommandState) EqualVT(that *CommandState) bool {
 		return false
 	}
 	if this.Enabled != that.Enabled {
+		return false
+	}
+	if this.Surface != that.Surface {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -956,6 +1015,9 @@ func (this *GetSubItemsRequest) EqualVT(that *GetSubItemsRequest) bool {
 	if this.Query != that.Query {
 		return false
 	}
+	if this.Surface != that.Surface {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -997,6 +1059,9 @@ func (this *InvokeCommandRequest) EqualVT(that *InvokeCommandRequest) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualMap(this.Args, that.Args) {
+		return false
+	}
+	if this.Surface != that.Surface {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1085,6 +1150,11 @@ func (x *RegisterCommandRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("handlerResourceId")
 		s.WriteUint32(x.HandlerResourceId)
 	}
+	if x.Surface != 0 || s.HasField("surface") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("surface")
+		x.Surface.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1112,6 +1182,9 @@ func (x *RegisterCommandRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "handler_resource_id", "handlerResourceId":
 			s.AddField("handler_resource_id")
 			x.HandlerResourceId = s.ReadUint32()
+		case "surface":
+			s.AddField("surface")
+			x.Surface.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -1330,6 +1403,12 @@ func (x *WatchCommandsRequest) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.Surface != 0 || s.HasField("surface") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("surface")
+		x.Surface.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1344,7 +1423,13 @@ func (x *WatchCommandsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "surface":
+			s.AddField("surface")
+			x.Surface.UnmarshalProtoJSON(s)
+		}
 	})
 }
 
@@ -1381,6 +1466,11 @@ func (x *CommandState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("enabled")
 		s.WriteBool(x.Enabled)
 	}
+	if x.Surface != 0 || s.HasField("surface") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("surface")
+		x.Surface.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1414,6 +1504,9 @@ func (x *CommandState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "enabled":
 			s.AddField("enabled")
 			x.Enabled = s.ReadBool()
+		case "surface":
+			s.AddField("surface")
+			x.Surface.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -1578,6 +1671,11 @@ func (x *GetSubItemsRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("query")
 		s.WriteString(x.Query)
 	}
+	if x.Surface != 0 || s.HasField("surface") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("surface")
+		x.Surface.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1601,6 +1699,9 @@ func (x *GetSubItemsRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "query":
 			s.AddField("query")
 			x.Query = s.ReadString()
+		case "surface":
+			s.AddField("surface")
+			x.Surface.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -1748,6 +1849,11 @@ func (x *InvokeCommandRequest) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteObjectEnd()
 	}
+	if x.Surface != 0 || s.HasField("surface") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("surface")
+		x.Surface.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1778,6 +1884,9 @@ func (x *InvokeCommandRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			s.ReadStringMap(func(key string) {
 				x.Args[key] = s.ReadString()
 			})
+		case "surface":
+			s.AddField("surface")
+			x.Surface.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -1989,6 +2098,11 @@ func (m *RegisterCommandRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Surface != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Surface))
+		i--
+		dAtA[i] = 0x18
 	}
 	if m.HandlerResourceId != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.HandlerResourceId))
@@ -2222,6 +2336,11 @@ func (m *WatchCommandsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Surface != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Surface))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -2253,6 +2372,11 @@ func (m *CommandState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Surface != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Surface))
+		i--
+		dAtA[i] = 0x28
 	}
 	if m.Enabled {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Enabled)
@@ -2412,6 +2536,11 @@ func (m *GetSubItemsRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Surface != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Surface))
+		i--
+		dAtA[i] = 0x18
+	}
 	if len(m.Query) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Query)
 		i--
@@ -2497,6 +2626,11 @@ func (m *InvokeCommandRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Surface != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Surface))
+		i--
+		dAtA[i] = 0x18
 	}
 	if len(m.Args) > 0 {
 		for k := range m.Args {
@@ -2648,6 +2782,7 @@ func (m *RegisterCommandRequest) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.HandlerResourceId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Surface)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2713,6 +2848,7 @@ func (m *WatchCommandsRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Surface)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2730,6 +2866,7 @@ func (m *CommandState) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Active)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Enabled)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Surface)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2771,6 +2908,7 @@ func (m *GetSubItemsRequest) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CommandId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Query)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Surface)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2802,6 +2940,7 @@ func (m *InvokeCommandRequest) SizeVT() (n int) {
 		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeStringValue(1, v)
 		n += protobuf_go_lite.SizeMessage(1, mapEntrySize)
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Surface)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2853,6 +2992,10 @@ func (x *RegisterCommandRequest) MarshalProtoText() string {
 	if x.HandlerResourceId != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "handler_resource_id")
 		protobuf_go_lite.TextWriteUint(&sb, x.HandlerResourceId)
+	}
+	if x.Surface != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "surface")
+		protobuf_go_lite.TextWriteStringer(&sb, command.CommandSurface(x.Surface))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2933,7 +3076,11 @@ func (x *SetEnabledResponse) String() string {
 
 func (x *WatchCommandsRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "WatchCommandsRequest")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchCommandsRequest")
+	if x.Surface != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "surface")
+		protobuf_go_lite.TextWriteStringer(&sb, command.CommandSurface(x.Surface))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -2959,6 +3106,10 @@ func (x *CommandState) MarshalProtoText() string {
 	if x.Enabled != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "enabled")
 		protobuf_go_lite.TextWriteBool(&sb, x.Enabled)
+	}
+	if x.Surface != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "surface")
+		protobuf_go_lite.TextWriteStringer(&sb, command.CommandSurface(x.Surface))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3030,6 +3181,10 @@ func (x *GetSubItemsRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "query")
 		protobuf_go_lite.TextWriteString(&sb, x.Query)
 	}
+	if x.Surface != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "surface")
+		protobuf_go_lite.TextWriteStringer(&sb, command.CommandSurface(x.Surface))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -3094,6 +3249,10 @@ func (x *InvokeCommandRequest) MarshalProtoText() string {
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteMapEnd(&sb)
+	}
+	if x.Surface != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "surface")
+		protobuf_go_lite.TextWriteStringer(&sb, command.CommandSurface(x.Surface))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -3206,6 +3365,17 @@ func (m *RegisterCommandRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.HandlerResourceId = 0
 			m.HandlerResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Surface", wireType)
+			}
+			m.Surface = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Surface = command.CommandSurface(_v)
 			if err != nil {
 				return err
 			}
@@ -3514,6 +3684,17 @@ func (m *WatchCommandsRequest) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: WatchCommandsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Surface", wireType)
+			}
+			m.Surface = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Surface = command.CommandSurface(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3601,6 +3782,17 @@ func (m *CommandState) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Enabled = bool(v)
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Surface", wireType)
+			}
+			m.Surface = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Surface = command.CommandSurface(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3813,6 +4005,17 @@ func (m *GetSubItemsRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Query = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Surface", wireType)
+			}
+			m.Surface = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Surface = command.CommandSurface(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3964,6 +4167,17 @@ func (m *InvokeCommandRequest) UnmarshalVT(dAtA []byte) error {
 			}
 			m.Args[mapkey] = mapvalue
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Surface", wireType)
+			}
+			m.Surface = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Surface = command.CommandSurface(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

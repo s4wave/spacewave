@@ -29,14 +29,21 @@ namespace _fl = ::google::protobuf::internal::field_layout;
 namespace s4wave {
 namespace command {
 namespace registry {
+
+inline constexpr WatchCommandsRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        surface_{static_cast< ::s4wave::command::CommandSurface >(0)} {}
+
 template <typename>
 PROTOBUF_CONSTEXPR WatchCommandsRequest::WatchCommandsRequest(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(WatchCommandsRequest_class_data_.base()){}
+    : ::google::protobuf::Message(WatchCommandsRequest_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase() {
-}
+    : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
 struct WatchCommandsRequestDefaultTypeInternal {
   PROTOBUF_CONSTEXPR WatchCommandsRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
   ~WatchCommandsRequestDefaultTypeInternal() {}
@@ -241,7 +248,8 @@ inline constexpr GetSubItemsRequest::Impl_::Impl_(
             ::_pbi::ConstantInitialized()),
         query_(
             &::google::protobuf::internal::fixed_address_empty_string,
-            ::_pbi::ConstantInitialized()) {}
+            ::_pbi::ConstantInitialized()),
+        surface_{static_cast< ::s4wave::command::CommandSurface >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR GetSubItemsRequest::GetSubItemsRequest(::_pbi::ConstantInitialized)
@@ -306,6 +314,7 @@ inline constexpr InvokeCommandRequest::Impl_::Impl_(
         command_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        surface_{static_cast< ::s4wave::command::CommandSurface >(0)},
         args_{} {}
 
 template <typename>
@@ -385,7 +394,8 @@ inline constexpr RegisterCommandRequest::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
         command_{nullptr},
-        handler_resource_id_{0u} {}
+        handler_resource_id_{0u},
+        surface_{static_cast< ::s4wave::command::CommandSurface >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR RegisterCommandRequest::RegisterCommandRequest(::_pbi::ConstantInitialized)
@@ -413,7 +423,8 @@ inline constexpr CommandState::Impl_::Impl_(
         command_{nullptr},
         resource_id_{0u},
         active_{false},
-        enabled_{false} {}
+        enabled_{false},
+        surface_{static_cast< ::s4wave::command::CommandSurface >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR CommandState::CommandState(::_pbi::ConstantInitialized)
@@ -471,11 +482,13 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::RegisterCommandRequest, _impl_._has_bits_),
-        5, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::RegisterCommandRequest, _impl_.command_),
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::RegisterCommandRequest, _impl_.handler_resource_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::RegisterCommandRequest, _impl_.surface_),
         0,
         1,
+        2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::RegisterCommandResponse, _impl_._has_bits_),
         4, // hasbit index offset
@@ -497,18 +510,24 @@ const ::uint32_t
         0,
         1,
         0x000, // bitmap
-        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::WatchCommandsRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::WatchCommandsRequest, _impl_.surface_),
+        0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::CommandState, _impl_._has_bits_),
-        7, // hasbit index offset
+        8, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::CommandState, _impl_.resource_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::CommandState, _impl_.command_),
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::CommandState, _impl_.active_),
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::CommandState, _impl_.enabled_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::CommandState, _impl_.surface_),
         1,
         0,
         2,
         3,
+        4,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::WatchCommandsResponse, _impl_._has_bits_),
         4, // hasbit index offset
@@ -529,11 +548,13 @@ const ::uint32_t
         4,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::GetSubItemsRequest, _impl_._has_bits_),
-        5, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::GetSubItemsRequest, _impl_.command_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::GetSubItemsRequest, _impl_.query_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::GetSubItemsRequest, _impl_.surface_),
         0,
         1,
+        2,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::GetSubItemsResponse, _impl_._has_bits_),
         4, // hasbit index offset
@@ -548,10 +569,12 @@ const ::uint32_t
         1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::InvokeCommandRequest, _impl_._has_bits_),
-        5, // hasbit index offset
+        6, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::InvokeCommandRequest, _impl_.command_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::InvokeCommandRequest, _impl_.args_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::command::registry::InvokeCommandRequest, _impl_.surface_),
         0,
+        2,
         1,
         0x000, // bitmap
         0x081, // bitmap
@@ -574,23 +597,23 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::s4wave::command::registry::RegisterCommandRequest)},
-        {7, sizeof(::s4wave::command::registry::RegisterCommandResponse)},
-        {12, sizeof(::s4wave::command::registry::SetActiveRequest)},
-        {19, sizeof(::s4wave::command::registry::SetActiveResponse)},
-        {20, sizeof(::s4wave::command::registry::SetEnabledRequest)},
-        {27, sizeof(::s4wave::command::registry::SetEnabledResponse)},
-        {28, sizeof(::s4wave::command::registry::WatchCommandsRequest)},
-        {29, sizeof(::s4wave::command::registry::CommandState)},
-        {40, sizeof(::s4wave::command::registry::WatchCommandsResponse)},
-        {45, sizeof(::s4wave::command::registry::CommandSubItem)},
-        {58, sizeof(::s4wave::command::registry::GetSubItemsRequest)},
-        {65, sizeof(::s4wave::command::registry::GetSubItemsResponse)},
-        {70, sizeof(::s4wave::command::registry::InvokeCommandRequest_ArgsEntry_DoNotUse)},
-        {77, sizeof(::s4wave::command::registry::InvokeCommandRequest)},
-        {84, sizeof(::s4wave::command::registry::InvokeCommandResponse)},
-        {85, sizeof(::s4wave::command::registry::HandleCommandRequest_ArgsEntry_DoNotUse)},
-        {92, sizeof(::s4wave::command::registry::HandleCommandRequest)},
-        {99, sizeof(::s4wave::command::registry::HandleCommandResponse)},
+        {9, sizeof(::s4wave::command::registry::RegisterCommandResponse)},
+        {14, sizeof(::s4wave::command::registry::SetActiveRequest)},
+        {21, sizeof(::s4wave::command::registry::SetActiveResponse)},
+        {22, sizeof(::s4wave::command::registry::SetEnabledRequest)},
+        {29, sizeof(::s4wave::command::registry::SetEnabledResponse)},
+        {30, sizeof(::s4wave::command::registry::WatchCommandsRequest)},
+        {35, sizeof(::s4wave::command::registry::CommandState)},
+        {48, sizeof(::s4wave::command::registry::WatchCommandsResponse)},
+        {53, sizeof(::s4wave::command::registry::CommandSubItem)},
+        {66, sizeof(::s4wave::command::registry::GetSubItemsRequest)},
+        {75, sizeof(::s4wave::command::registry::GetSubItemsResponse)},
+        {80, sizeof(::s4wave::command::registry::InvokeCommandRequest_ArgsEntry_DoNotUse)},
+        {87, sizeof(::s4wave::command::registry::InvokeCommandRequest)},
+        {96, sizeof(::s4wave::command::registry::InvokeCommandResponse)},
+        {97, sizeof(::s4wave::command::registry::HandleCommandRequest_ArgsEntry_DoNotUse)},
+        {104, sizeof(::s4wave::command::registry::HandleCommandRequest)},
+        {111, sizeof(::s4wave::command::registry::HandleCommandResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::command::registry::_RegisterCommandRequest_default_instance_._instance,
@@ -617,59 +640,65 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fc
     "\n\?github.com/s4wave/spacewave/sdk/comman"
     "d/registry/registry.proto\022\027s4wave.comman"
     "d.registry\0325github.com/s4wave/spacewave/"
-    "sdk/command/command.proto\"_\n\026RegisterCom"
-    "mandRequest\022(\n\007command\030\001 \001(\0132\027.s4wave.co"
-    "mmand.Command\022\033\n\023handler_resource_id\030\002 \001"
-    "(\r\".\n\027RegisterCommandResponse\022\023\n\013resourc"
-    "e_id\030\001 \001(\r\"7\n\020SetActiveRequest\022\023\n\013resour"
-    "ce_id\030\001 \001(\r\022\016\n\006active\030\002 \001(\010\"\023\n\021SetActive"
-    "Response\"9\n\021SetEnabledRequest\022\023\n\013resourc"
-    "e_id\030\001 \001(\r\022\017\n\007enabled\030\002 \001(\010\"\024\n\022SetEnable"
-    "dResponse\"\026\n\024WatchCommandsRequest\"n\n\014Com"
-    "mandState\022\023\n\013resource_id\030\001 \001(\r\022(\n\007comman"
-    "d\030\002 \001(\0132\027.s4wave.command.Command\022\016\n\006acti"
-    "ve\030\003 \001(\010\022\017\n\007enabled\030\004 \001(\010\"P\n\025WatchComman"
-    "dsResponse\0227\n\010commands\030\001 \003(\0132%.s4wave.co"
-    "mmand.registry.CommandState\"i\n\016CommandSu"
-    "bItem\022\n\n\002id\030\001 \001(\t\022\r\n\005label\030\002 \001(\t\022\023\n\013desc"
-    "ription\030\003 \001(\t\022\021\n\ticon_name\030\004 \001(\t\022\024\n\014expe"
-    "rimental\030\005 \001(\010\"7\n\022GetSubItemsRequest\022\022\n\n"
-    "command_id\030\001 \001(\t\022\r\n\005query\030\002 \001(\t\"M\n\023GetSu"
-    "bItemsResponse\0226\n\005items\030\001 \003(\0132\'.s4wave.c"
-    "ommand.registry.CommandSubItem\"\236\001\n\024Invok"
-    "eCommandRequest\022\022\n\ncommand_id\030\001 \001(\t\022E\n\004a"
-    "rgs\030\002 \003(\01327.s4wave.command.registry.Invo"
-    "keCommandRequest.ArgsEntry\032+\n\tArgsEntry\022"
-    "\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001\"\027\n\025Invok"
-    "eCommandResponse\"\236\001\n\024HandleCommandReques"
-    "t\022\022\n\ncommand_id\030\001 \001(\t\022E\n\004args\030\002 \003(\01327.s4"
-    "wave.command.registry.HandleCommandReque"
-    "st.ArgsEntry\032+\n\tArgsEntry\022\013\n\003key\030\001 \001(\t\022\r"
-    "\n\005value\030\002 \001(\t:\0028\001\"\027\n\025HandleCommandRespon"
-    "se2\255\005\n\036CommandRegistryResourceService\022t\n"
-    "\017RegisterCommand\022/.s4wave.command.regist"
-    "ry.RegisterCommandRequest\0320.s4wave.comma"
-    "nd.registry.RegisterCommandResponse\022b\n\tS"
-    "etActive\022).s4wave.command.registry.SetAc"
-    "tiveRequest\032*.s4wave.command.registry.Se"
-    "tActiveResponse\022e\n\nSetEnabled\022*.s4wave.c"
-    "ommand.registry.SetEnabledRequest\032+.s4wa"
-    "ve.command.registry.SetEnabledResponse\022p"
-    "\n\rWatchCommands\022-.s4wave.command.registr"
-    "y.WatchCommandsRequest\032..s4wave.command."
-    "registry.WatchCommandsResponse0\001\022h\n\013GetS"
-    "ubItems\022+.s4wave.command.registry.GetSub"
-    "ItemsRequest\032,.s4wave.command.registry.G"
-    "etSubItemsResponse\022n\n\rInvokeCommand\022-.s4"
-    "wave.command.registry.InvokeCommandReque"
-    "st\032..s4wave.command.registry.InvokeComma"
-    "ndResponse2\361\001\n\025CommandHandlerService\022h\n\013"
-    "GetSubItems\022+.s4wave.command.registry.Ge"
-    "tSubItemsRequest\032,.s4wave.command.regist"
-    "ry.GetSubItemsResponse\022n\n\rHandleCommand\022"
-    "-.s4wave.command.registry.HandleCommandR"
-    "equest\032..s4wave.command.registry.HandleC"
-    "ommandResponseb\006proto3"
+    "sdk/command/command.proto\"\220\001\n\026RegisterCo"
+    "mmandRequest\022(\n\007command\030\001 \001(\0132\027.s4wave.c"
+    "ommand.Command\022\033\n\023handler_resource_id\030\002 "
+    "\001(\r\022/\n\007surface\030\003 \001(\0162\036.s4wave.command.Co"
+    "mmandSurface\".\n\027RegisterCommandResponse\022"
+    "\023\n\013resource_id\030\001 \001(\r\"7\n\020SetActiveRequest"
+    "\022\023\n\013resource_id\030\001 \001(\r\022\016\n\006active\030\002 \001(\010\"\023\n"
+    "\021SetActiveResponse\"9\n\021SetEnabledRequest\022"
+    "\023\n\013resource_id\030\001 \001(\r\022\017\n\007enabled\030\002 \001(\010\"\024\n"
+    "\022SetEnabledResponse\"G\n\024WatchCommandsRequ"
+    "est\022/\n\007surface\030\001 \001(\0162\036.s4wave.command.Co"
+    "mmandSurface\"\237\001\n\014CommandState\022\023\n\013resourc"
+    "e_id\030\001 \001(\r\022(\n\007command\030\002 \001(\0132\027.s4wave.com"
+    "mand.Command\022\016\n\006active\030\003 \001(\010\022\017\n\007enabled\030"
+    "\004 \001(\010\022/\n\007surface\030\005 \001(\0162\036.s4wave.command."
+    "CommandSurface\"P\n\025WatchCommandsResponse\022"
+    "7\n\010commands\030\001 \003(\0132%.s4wave.command.regis"
+    "try.CommandState\"i\n\016CommandSubItem\022\n\n\002id"
+    "\030\001 \001(\t\022\r\n\005label\030\002 \001(\t\022\023\n\013description\030\003 \001"
+    "(\t\022\021\n\ticon_name\030\004 \001(\t\022\024\n\014experimental\030\005 "
+    "\001(\010\"h\n\022GetSubItemsRequest\022\022\n\ncommand_id\030"
+    "\001 \001(\t\022\r\n\005query\030\002 \001(\t\022/\n\007surface\030\003 \001(\0162\036."
+    "s4wave.command.CommandSurface\"M\n\023GetSubI"
+    "temsResponse\0226\n\005items\030\001 \003(\0132\'.s4wave.com"
+    "mand.registry.CommandSubItem\"\317\001\n\024InvokeC"
+    "ommandRequest\022\022\n\ncommand_id\030\001 \001(\t\022E\n\004arg"
+    "s\030\002 \003(\01327.s4wave.command.registry.Invoke"
+    "CommandRequest.ArgsEntry\022/\n\007surface\030\003 \001("
+    "\0162\036.s4wave.command.CommandSurface\032+\n\tArg"
+    "sEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001\"\027"
+    "\n\025InvokeCommandResponse\"\236\001\n\024HandleComman"
+    "dRequest\022\022\n\ncommand_id\030\001 \001(\t\022E\n\004args\030\002 \003"
+    "(\01327.s4wave.command.registry.HandleComma"
+    "ndRequest.ArgsEntry\032+\n\tArgsEntry\022\013\n\003key\030"
+    "\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001\"\027\n\025HandleComman"
+    "dResponse2\255\005\n\036CommandRegistryResourceSer"
+    "vice\022t\n\017RegisterCommand\022/.s4wave.command"
+    ".registry.RegisterCommandRequest\0320.s4wav"
+    "e.command.registry.RegisterCommandRespon"
+    "se\022b\n\tSetActive\022).s4wave.command.registr"
+    "y.SetActiveRequest\032*.s4wave.command.regi"
+    "stry.SetActiveResponse\022e\n\nSetEnabled\022*.s"
+    "4wave.command.registry.SetEnabledRequest"
+    "\032+.s4wave.command.registry.SetEnabledRes"
+    "ponse\022p\n\rWatchCommands\022-.s4wave.command."
+    "registry.WatchCommandsRequest\032..s4wave.c"
+    "ommand.registry.WatchCommandsResponse0\001\022"
+    "h\n\013GetSubItems\022+.s4wave.command.registry"
+    ".GetSubItemsRequest\032,.s4wave.command.reg"
+    "istry.GetSubItemsResponse\022n\n\rInvokeComma"
+    "nd\022-.s4wave.command.registry.InvokeComma"
+    "ndRequest\032..s4wave.command.registry.Invo"
+    "keCommandResponse2\361\001\n\025CommandHandlerServ"
+    "ice\022h\n\013GetSubItems\022+.s4wave.command.regi"
+    "stry.GetSubItemsRequest\032,.s4wave.command"
+    ".registry.GetSubItemsResponse\022n\n\rHandleC"
+    "ommand\022-.s4wave.command.registry.HandleC"
+    "ommandRequest\032..s4wave.command.registry."
+    "HandleCommandResponseb\006proto3"
 };
 static const ::_pbi::DescriptorTable* PROTOBUF_NONNULL const
     descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fregistry_2fregistry_2eproto_deps[1] = {
@@ -679,7 +708,7 @@ static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsd
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fregistry_2fregistry_2eproto = {
     false,
     false,
-    2222,
+    2469,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fregistry_2fregistry_2eproto,
     "github.com/s4wave/spacewave/sdk/command/registry/registry.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fcommand_2fregistry_2fregistry_2eproto_once,
@@ -744,7 +773,13 @@ RegisterCommandRequest::RegisterCommandRequest(
   _impl_.command_ = (CheckHasBit(cached_has_bits, 0x00000001U))
                 ? ::google::protobuf::Message::CopyConstruct(arena, *from._impl_.command_)
                 : nullptr;
-  _impl_.handler_resource_id_ = from._impl_.handler_resource_id_;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, handler_resource_id_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, handler_resource_id_),
+           offsetof(Impl_, surface_) -
+               offsetof(Impl_, handler_resource_id_) +
+               sizeof(Impl_::surface_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.command.registry.RegisterCommandRequest)
 }
@@ -758,9 +793,9 @@ inline void RegisterCommandRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE a
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, command_),
            0,
-           offsetof(Impl_, handler_resource_id_) -
+           offsetof(Impl_, surface_) -
                offsetof(Impl_, command_) +
-               sizeof(Impl_::handler_resource_id_));
+               sizeof(Impl_::surface_));
 }
 RegisterCommandRequest::~RegisterCommandRequest() {
   // @@protoc_insertion_point(destructor:s4wave.command.registry.RegisterCommandRequest)
@@ -820,16 +855,16 @@ RegisterCommandRequest::GetClassData() const {
   return RegisterCommandRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 1, 0, 2>
+const ::_pbi::TcParseTable<2, 3, 1, 0, 2>
 RegisterCommandRequest::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(RegisterCommandRequest, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
+    3,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     RegisterCommandRequest_class_data_.base(),
@@ -839,14 +874,19 @@ RegisterCommandRequest::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::command::registry::RegisterCommandRequest>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // uint32 handler_resource_id = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(RegisterCommandRequest, _impl_.handler_resource_id_), 1>(),
-     {16, 1, 0,
-      PROTOBUF_FIELD_OFFSET(RegisterCommandRequest, _impl_.handler_resource_id_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // .s4wave.command.Command command = 1;
     {::_pbi::TcParser::FastMtS1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(RegisterCommandRequest, _impl_.command_)}},
+    // uint32 handler_resource_id = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(RegisterCommandRequest, _impl_.handler_resource_id_), 1>(),
+     {16, 1, 0,
+      PROTOBUF_FIELD_OFFSET(RegisterCommandRequest, _impl_.handler_resource_id_)}},
+    // .s4wave.command.CommandSurface surface = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(RegisterCommandRequest, _impl_.surface_), 2>(),
+     {24, 2, 0,
+      PROTOBUF_FIELD_OFFSET(RegisterCommandRequest, _impl_.surface_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -854,6 +894,8 @@ RegisterCommandRequest::_table_ = {
     {PROTOBUF_FIELD_OFFSET(RegisterCommandRequest, _impl_.command_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
     // uint32 handler_resource_id = 2;
     {PROTOBUF_FIELD_OFFSET(RegisterCommandRequest, _impl_.handler_resource_id_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUInt32)},
+    // .s4wave.command.CommandSurface surface = 3;
+    {PROTOBUF_FIELD_OFFSET(RegisterCommandRequest, _impl_.surface_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::s4wave::command::Command>()},
@@ -873,7 +915,11 @@ PROTOBUF_NOINLINE void RegisterCommandRequest::Clear() {
     ABSL_DCHECK(_impl_.command_ != nullptr);
     _impl_.command_->Clear();
   }
-  _impl_.handler_resource_id_ = 0u;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000006U)) {
+    ::memset(&_impl_.handler_resource_id_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.surface_) -
+        reinterpret_cast<char*>(&_impl_.handler_resource_id_)) + sizeof(_impl_.surface_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -913,6 +959,15 @@ PROTOBUF_NOINLINE void RegisterCommandRequest::Clear() {
     }
   }
 
+  // .s4wave.command.CommandSurface surface = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_surface() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          3, this_._internal_surface(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -938,7 +993,7 @@ PROTOBUF_NOINLINE void RegisterCommandRequest::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     // .s4wave.command.Command command = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       total_size += 1 +
@@ -949,6 +1004,13 @@ PROTOBUF_NOINLINE void RegisterCommandRequest::Clear() {
       if (this_._internal_handler_resource_id() != 0) {
         total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
             this_._internal_handler_resource_id());
+      }
+    }
+    // .s4wave.command.CommandSurface surface = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_surface() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_surface());
       }
     }
   }
@@ -971,7 +1033,7 @@ void RegisterCommandRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       ABSL_DCHECK(from._impl_.command_ != nullptr);
       if (_this->_impl_.command_ == nullptr) {
@@ -983,6 +1045,11 @@ void RegisterCommandRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (from._internal_handler_resource_id() != 0) {
         _this->_impl_.handler_resource_id_ = from._impl_.handler_resource_id_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_surface() != 0) {
+        _this->_impl_.surface_ = from._impl_.surface_;
       }
     }
   }
@@ -1004,8 +1071,8 @@ void RegisterCommandRequest::InternalSwap(RegisterCommandRequest* PROTOBUF_RESTR
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(RegisterCommandRequest, _impl_.handler_resource_id_)
-      + sizeof(RegisterCommandRequest::_impl_.handler_resource_id_)
+      PROTOBUF_FIELD_OFFSET(RegisterCommandRequest, _impl_.surface_)
+      + sizeof(RegisterCommandRequest::_impl_.surface_)
       - PROTOBUF_FIELD_OFFSET(RegisterCommandRequest, _impl_.command_)>(
           reinterpret_cast<char*>(&_impl_.command_),
           reinterpret_cast<char*>(&other->_impl_.command_));
@@ -2068,30 +2135,53 @@ SetEnabledResponse::_table_ = {
 
 class WatchCommandsRequest::_Internal {
  public:
+  using HasBits =
+      decltype(::std::declval<WatchCommandsRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(WatchCommandsRequest, _impl_._has_bits_);
 };
 
 WatchCommandsRequest::WatchCommandsRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchCommandsRequest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, WatchCommandsRequest_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+    : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
   // @@protoc_insertion_point(arena_constructor:s4wave.command.registry.WatchCommandsRequest)
 }
 WatchCommandsRequest::WatchCommandsRequest(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const WatchCommandsRequest& from)
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchCommandsRequest& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchCommandsRequest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, WatchCommandsRequest_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+    : ::google::protobuf::Message(arena),
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  WatchCommandsRequest* const _this = this;
-  (void)_this;
+      _impl_(from._impl_) {
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE WatchCommandsRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
 
-  // @@protoc_insertion_point(copy_constructor:s4wave.command.registry.WatchCommandsRequest)
+inline void WatchCommandsRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.surface_ = {};
+}
+WatchCommandsRequest::~WatchCommandsRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.command.registry.WatchCommandsRequest)
+  SharedDtor(*this);
+}
+inline void WatchCommandsRequest::SharedDtor(MessageLite& self) {
+  WatchCommandsRequest& this_ = static_cast<WatchCommandsRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
 }
 
 inline void* PROTOBUF_NONNULL WatchCommandsRequest::PlacementNew_(
@@ -2111,10 +2201,10 @@ constexpr auto WatchCommandsRequest::InternalGenerateClassData_() {
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
           &WatchCommandsRequest::MergeImpl,
-          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<WatchCommandsRequest>(),
+          ::google::protobuf::Message::GetNewImpl<WatchCommandsRequest>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
           &WatchCommandsRequest::SharedDtor,
-          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<WatchCommandsRequest>(), &WatchCommandsRequest::ByteSizeLong,
+          ::google::protobuf::Message::GetClearImpl<WatchCommandsRequest>(), &WatchCommandsRequest::ByteSizeLong,
               &WatchCommandsRequest::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
           PROTOBUF_FIELD_OFFSET(WatchCommandsRequest, _impl_._cached_size_),
@@ -2137,16 +2227,16 @@ WatchCommandsRequest::GetClassData() const {
   return WatchCommandsRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
 WatchCommandsRequest::_table_ = {
   {
-    0,  // no _has_bits_
+    PROTOBUF_FIELD_OFFSET(WatchCommandsRequest, _impl_._has_bits_),
     0, // no _extensions_
-    0, 0,  // max_field_number, fast_idx_mask
+    1, 0,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967295,  // skipmap
-    offsetof(decltype(_table_), field_names),  // no field_entries
-    0,  // num_field_entries
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     WatchCommandsRequest_class_data_.base(),
@@ -2156,22 +2246,138 @@ WatchCommandsRequest::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::command::registry::WatchCommandsRequest>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.command.CommandSurface surface = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(WatchCommandsRequest, _impl_.surface_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(WatchCommandsRequest, _impl_.surface_)}},
   }}, {{
     65535, 65535
-  }}, // no field_entries, or aux_entries
+  }}, {{
+    // .s4wave.command.CommandSurface surface = 1;
+    {PROTOBUF_FIELD_OFFSET(WatchCommandsRequest, _impl_.surface_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+  }},
+  // no aux_entries
   {{
   }},
 };
+PROTOBUF_NOINLINE void WatchCommandsRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.command.registry.WatchCommandsRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.surface_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL WatchCommandsRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const WatchCommandsRequest& this_ = static_cast<const WatchCommandsRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL WatchCommandsRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const WatchCommandsRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.command.registry.WatchCommandsRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.command.CommandSurface surface = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_surface() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_surface(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.command.registry.WatchCommandsRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t WatchCommandsRequest::ByteSizeLong(const MessageLite& base) {
+  const WatchCommandsRequest& this_ = static_cast<const WatchCommandsRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t WatchCommandsRequest::ByteSizeLong() const {
+  const WatchCommandsRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.command.registry.WatchCommandsRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.command.CommandSurface surface = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_surface() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_surface());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void WatchCommandsRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<WatchCommandsRequest*>(&to_msg);
+  auto& from = static_cast<const WatchCommandsRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.command.registry.WatchCommandsRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_surface() != 0) {
+      _this->_impl_.surface_ = from._impl_.surface_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void WatchCommandsRequest::CopyFrom(const WatchCommandsRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.command.registry.WatchCommandsRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
 
 
-
-
-
-
+void WatchCommandsRequest::InternalSwap(WatchCommandsRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.surface_, other->_impl_.surface_);
+}
 
 ::google::protobuf::Metadata WatchCommandsRequest::GetMetadata() const {
-  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 
@@ -2226,9 +2432,9 @@ CommandState::CommandState(
                offsetof(Impl_, resource_id_),
            reinterpret_cast<const char*>(&from._impl_) +
                offsetof(Impl_, resource_id_),
-           offsetof(Impl_, enabled_) -
+           offsetof(Impl_, surface_) -
                offsetof(Impl_, resource_id_) +
-               sizeof(Impl_::enabled_));
+               sizeof(Impl_::surface_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.command.registry.CommandState)
 }
@@ -2242,9 +2448,9 @@ inline void CommandState::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   ::memset(reinterpret_cast<char*>(&_impl_) +
                offsetof(Impl_, command_),
            0,
-           offsetof(Impl_, enabled_) -
+           offsetof(Impl_, surface_) -
                offsetof(Impl_, command_) +
-               sizeof(Impl_::enabled_));
+               sizeof(Impl_::surface_));
 }
 CommandState::~CommandState() {
   // @@protoc_insertion_point(destructor:s4wave.command.registry.CommandState)
@@ -2304,16 +2510,16 @@ CommandState::GetClassData() const {
   return CommandState_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 4, 1, 0, 2>
+const ::_pbi::TcParseTable<3, 5, 1, 0, 2>
 CommandState::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(CommandState, _impl_._has_bits_),
     0, // no _extensions_
-    4, 24,  // max_field_number, fast_idx_mask
+    5, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
+    4294967264,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
+    5,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     CommandState_class_data_.base(),
@@ -2323,10 +2529,7 @@ CommandState::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::command::registry::CommandState>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // bool enabled = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(CommandState, _impl_.enabled_), 3>(),
-     {32, 3, 0,
-      PROTOBUF_FIELD_OFFSET(CommandState, _impl_.enabled_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // uint32 resource_id = 1;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CommandState, _impl_.resource_id_), 1>(),
      {8, 1, 0,
@@ -2339,6 +2542,16 @@ CommandState::_table_ = {
     {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(CommandState, _impl_.active_), 2>(),
      {24, 2, 0,
       PROTOBUF_FIELD_OFFSET(CommandState, _impl_.active_)}},
+    // bool enabled = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(CommandState, _impl_.enabled_), 3>(),
+     {32, 3, 0,
+      PROTOBUF_FIELD_OFFSET(CommandState, _impl_.enabled_)}},
+    // .s4wave.command.CommandSurface surface = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(CommandState, _impl_.surface_), 4>(),
+     {40, 4, 0,
+      PROTOBUF_FIELD_OFFSET(CommandState, _impl_.surface_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
@@ -2350,6 +2563,8 @@ CommandState::_table_ = {
     {PROTOBUF_FIELD_OFFSET(CommandState, _impl_.active_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // bool enabled = 4;
     {PROTOBUF_FIELD_OFFSET(CommandState, _impl_.enabled_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
+    // .s4wave.command.CommandSurface surface = 5;
+    {PROTOBUF_FIELD_OFFSET(CommandState, _impl_.surface_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
   }},
   {{
       {::_pbi::TcParser::GetTable<::s4wave::command::Command>()},
@@ -2369,10 +2584,10 @@ PROTOBUF_NOINLINE void CommandState::Clear() {
     ABSL_DCHECK(_impl_.command_ != nullptr);
     _impl_.command_->Clear();
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000eU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001eU)) {
     ::memset(&_impl_.resource_id_, 0, static_cast<::size_t>(
-        reinterpret_cast<char*>(&_impl_.enabled_) -
-        reinterpret_cast<char*>(&_impl_.resource_id_)) + sizeof(_impl_.enabled_));
+        reinterpret_cast<char*>(&_impl_.surface_) -
+        reinterpret_cast<char*>(&_impl_.resource_id_)) + sizeof(_impl_.surface_));
   }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
@@ -2431,6 +2646,15 @@ PROTOBUF_NOINLINE void CommandState::Clear() {
     }
   }
 
+  // .s4wave.command.CommandSurface surface = 5;
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+    if (this_._internal_surface() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          5, this_._internal_surface(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -2456,7 +2680,7 @@ PROTOBUF_NOINLINE void CommandState::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     // .s4wave.command.Command command = 2;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       total_size += 1 +
@@ -2481,6 +2705,13 @@ PROTOBUF_NOINLINE void CommandState::Clear() {
         total_size += 2;
       }
     }
+    // .s4wave.command.CommandSurface surface = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (this_._internal_surface() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_surface());
+      }
+    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -2501,7 +2732,7 @@ void CommandState::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000001fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       ABSL_DCHECK(from._impl_.command_ != nullptr);
       if (_this->_impl_.command_ == nullptr) {
@@ -2525,6 +2756,11 @@ void CommandState::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.enabled_ = from._impl_.enabled_;
       }
     }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
+      if (from._internal_surface() != 0) {
+        _this->_impl_.surface_ = from._impl_.surface_;
+      }
+    }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -2544,8 +2780,8 @@ void CommandState::InternalSwap(CommandState* PROTOBUF_RESTRICT PROTOBUF_NONNULL
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(CommandState, _impl_.enabled_)
-      + sizeof(CommandState::_impl_.enabled_)
+      PROTOBUF_FIELD_OFFSET(CommandState, _impl_.surface_)
+      + sizeof(CommandState::_impl_.surface_)
       - PROTOBUF_FIELD_OFFSET(CommandState, _impl_.command_)>(
           reinterpret_cast<char*>(&_impl_.command_),
           reinterpret_cast<char*>(&other->_impl_.command_));
@@ -3312,6 +3548,7 @@ GetSubItemsRequest::GetSubItemsRequest(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.surface_ = from._impl_.surface_;
 
   // @@protoc_insertion_point(copy_constructor:s4wave.command.registry.GetSubItemsRequest)
 }
@@ -3324,6 +3561,7 @@ PROTOBUF_NDEBUG_INLINE GetSubItemsRequest::Impl_::Impl_(
 
 inline void GetSubItemsRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.surface_ = {};
 }
 GetSubItemsRequest::~GetSubItemsRequest() {
   // @@protoc_insertion_point(destructor:s4wave.command.registry.GetSubItemsRequest)
@@ -3384,16 +3622,16 @@ GetSubItemsRequest::GetClassData() const {
   return GetSubItemsRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 0, 66, 2>
+const ::_pbi::TcParseTable<2, 3, 0, 66, 2>
 GetSubItemsRequest::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(GetSubItemsRequest, _impl_._has_bits_),
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
+    3,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     GetSubItemsRequest_class_data_.base(),
@@ -3403,14 +3641,19 @@ GetSubItemsRequest::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::command::registry::GetSubItemsRequest>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // string query = 2;
-    {::_pbi::TcParser::FastUS1,
-     {18, 1, 0,
-      PROTOBUF_FIELD_OFFSET(GetSubItemsRequest, _impl_.query_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // string command_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(GetSubItemsRequest, _impl_.command_id_)}},
+    // string query = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 1, 0,
+      PROTOBUF_FIELD_OFFSET(GetSubItemsRequest, _impl_.query_)}},
+    // .s4wave.command.CommandSurface surface = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(GetSubItemsRequest, _impl_.surface_), 2>(),
+     {24, 2, 0,
+      PROTOBUF_FIELD_OFFSET(GetSubItemsRequest, _impl_.surface_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -3418,6 +3661,8 @@ GetSubItemsRequest::_table_ = {
     {PROTOBUF_FIELD_OFFSET(GetSubItemsRequest, _impl_.command_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string query = 2;
     {PROTOBUF_FIELD_OFFSET(GetSubItemsRequest, _impl_.query_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.command.CommandSurface surface = 3;
+    {PROTOBUF_FIELD_OFFSET(GetSubItemsRequest, _impl_.surface_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
   }},
   // no aux_entries
   {{
@@ -3443,6 +3688,7 @@ PROTOBUF_NOINLINE void GetSubItemsRequest::Clear() {
       _impl_.query_.ClearNonDefaultToEmpty();
     }
   }
+  _impl_.surface_ = 0;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -3486,6 +3732,15 @@ PROTOBUF_NOINLINE void GetSubItemsRequest::Clear() {
     }
   }
 
+  // .s4wave.command.CommandSurface surface = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (this_._internal_surface() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          3, this_._internal_surface(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -3511,7 +3766,7 @@ PROTOBUF_NOINLINE void GetSubItemsRequest::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     // string command_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_command_id().empty()) {
@@ -3524,6 +3779,13 @@ PROTOBUF_NOINLINE void GetSubItemsRequest::Clear() {
       if (!this_._internal_query().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_query());
+      }
+    }
+    // .s4wave.command.CommandSurface surface = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (this_._internal_surface() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_surface());
       }
     }
   }
@@ -3545,7 +3807,7 @@ void GetSubItemsRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_command_id().empty()) {
         _this->_internal_set_command_id(from._internal_command_id());
@@ -3562,6 +3824,11 @@ void GetSubItemsRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
         if (_this->_impl_.query_.IsDefault()) {
           _this->_internal_set_query("");
         }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (from._internal_surface() != 0) {
+        _this->_impl_.surface_ = from._impl_.surface_;
       }
     }
   }
@@ -3586,6 +3853,7 @@ void GetSubItemsRequest::InternalSwap(GetSubItemsRequest* PROTOBUF_RESTRICT PROT
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.command_id_, &other->_impl_.command_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.query_, &other->_impl_.query_, arena);
+  swap(_impl_.surface_, other->_impl_.surface_);
 }
 
 ::google::protobuf::Metadata GetSubItemsRequest::GetMetadata() const {
@@ -4014,6 +4282,7 @@ InvokeCommandRequest::InvokeCommandRequest(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.surface_ = from._impl_.surface_;
 
   // @@protoc_insertion_point(copy_constructor:s4wave.command.registry.InvokeCommandRequest)
 }
@@ -4026,6 +4295,7 @@ PROTOBUF_NDEBUG_INLINE InvokeCommandRequest::Impl_::Impl_(
 
 inline void InvokeCommandRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.surface_ = {};
 }
 InvokeCommandRequest::~InvokeCommandRequest() {
   // @@protoc_insertion_point(destructor:s4wave.command.registry.InvokeCommandRequest)
@@ -4097,16 +4367,16 @@ InvokeCommandRequest::GetClassData() const {
   return InvokeCommandRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 2, 1, 67, 2>
+const ::_pbi::TcParseTable<2, 3, 1, 67, 2>
 InvokeCommandRequest::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(InvokeCommandRequest, _impl_._has_bits_),
     0, // no _extensions_
-    2, 0,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
+    3,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     InvokeCommandRequest_class_data_.base(),
@@ -4116,17 +4386,25 @@ InvokeCommandRequest::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::command::registry::InvokeCommandRequest>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
+    {::_pbi::TcParser::MiniParse, {}},
     // string command_id = 1;
     {::_pbi::TcParser::FastUS1,
      {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(InvokeCommandRequest, _impl_.command_id_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.command.CommandSurface surface = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(InvokeCommandRequest, _impl_.surface_), 1>(),
+     {24, 1, 0,
+      PROTOBUF_FIELD_OFFSET(InvokeCommandRequest, _impl_.surface_)}},
   }}, {{
     65535, 65535
   }}, {{
     // string command_id = 1;
     {PROTOBUF_FIELD_OFFSET(InvokeCommandRequest, _impl_.command_id_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // map<string, string> args = 2;
-    {PROTOBUF_FIELD_OFFSET(InvokeCommandRequest, _impl_.args_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    {PROTOBUF_FIELD_OFFSET(InvokeCommandRequest, _impl_.args_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMap)},
+    // .s4wave.command.CommandSurface surface = 3;
+    {PROTOBUF_FIELD_OFFSET(InvokeCommandRequest, _impl_.surface_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
   }},
   {{
       {::_pbi::TcParser::GetMapAuxInfo(
@@ -4147,11 +4425,12 @@ PROTOBUF_NOINLINE void InvokeCommandRequest::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
-    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-      _impl_.command_id_.ClearNonDefaultToEmpty();
-    }
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    _impl_.command_id_.ClearNonDefaultToEmpty();
+  }
+  if (BatchCheckHasBit(cached_has_bits, 0x00000006U)) {
+    _impl_.surface_ = 0;
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
       _impl_.args_.Clear();
     }
   }
@@ -4189,7 +4468,7 @@ PROTOBUF_NOINLINE void InvokeCommandRequest::Clear() {
   }
 
   // map<string, string> args = 2;
-  if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+  if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
     if (!this_._internal_args().empty()) {
       using MapType = ::google::protobuf::Map<::std::string, ::std::string>;
       using WireHelper = _pbi::MapEntryFuncs<::std::string, ::std::string,
@@ -4223,6 +4502,15 @@ PROTOBUF_NOINLINE void InvokeCommandRequest::Clear() {
     }
   }
 
+  // .s4wave.command.CommandSurface surface = 3;
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+    if (this_._internal_surface() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          3, this_._internal_surface(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -4248,7 +4536,7 @@ PROTOBUF_NOINLINE void InvokeCommandRequest::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     // string command_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_command_id().empty()) {
@@ -4256,8 +4544,15 @@ PROTOBUF_NOINLINE void InvokeCommandRequest::Clear() {
                                         this_._internal_command_id());
       }
     }
+    // .s4wave.command.CommandSurface surface = 3;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (this_._internal_surface() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_surface());
+      }
+    }
     // map<string, string> args = 2;
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
       total_size +=
           1 * ::google::protobuf::internal::FromIntSize(this_._internal_args_size());
       for (const auto& entry : this_._internal_args()) {
@@ -4285,7 +4580,7 @@ void InvokeCommandRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000007U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_command_id().empty()) {
         _this->_internal_set_command_id(from._internal_command_id());
@@ -4295,7 +4590,12 @@ void InvokeCommandRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
         }
       }
     }
-    if (CheckHasBitForRepeated(cached_has_bits, 0x00000002U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      if (from._internal_surface() != 0) {
+        _this->_impl_.surface_ = from._impl_.surface_;
+      }
+    }
+    if (CheckHasBitForRepeated(cached_has_bits, 0x00000004U)) {
       _this->_impl_.args_.MergeFrom(from._impl_.args_);
     }
   }
@@ -4319,6 +4619,7 @@ void InvokeCommandRequest::InternalSwap(InvokeCommandRequest* PROTOBUF_RESTRICT 
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.command_id_, &other->_impl_.command_id_, arena);
+  swap(_impl_.surface_, other->_impl_.surface_);
   _impl_.args_.InternalSwap(&other->_impl_.args_);
 }
 

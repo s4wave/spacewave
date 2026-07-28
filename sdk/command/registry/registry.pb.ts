@@ -2,7 +2,8 @@
 // @generated from file github.com/s4wave/spacewave/sdk/command/registry/registry.proto (package s4wave.command.registry, syntax proto3)
 /* eslint-disable */
 
-import { Command } from '../command.pb.js'
+import type { CommandSurface } from '../command.pb.js'
+import { Command, CommandSurface_Enum } from '../command.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
   createEmptyMessageType,
@@ -32,6 +33,12 @@ export interface RegisterCommandRequest {
    * @generated from field: uint32 handler_resource_id = 2;
    */
   handlerResourceId?: number
+  /**
+   * Surface identifies the command front door for this registration.
+   *
+   * @generated from field: s4wave.command.CommandSurface surface = 3;
+   */
+  surface?: CommandSurface
 }
 
 export const RegisterCommandRequest: MessageType<RegisterCommandRequest> =
@@ -45,6 +52,7 @@ export const RegisterCommandRequest: MessageType<RegisterCommandRequest> =
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
+      { no: 3, name: 'surface', kind: 'enum', T: CommandSurface_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -163,13 +171,23 @@ export const SetEnabledResponse: MessageType<SetEnabledResponse> =
  *
  * @generated from message s4wave.command.registry.WatchCommandsRequest
  */
-export interface WatchCommandsRequest {}
+export interface WatchCommandsRequest {
+  /**
+   * Surface selects registrations for one command front door.
+   *
+   * @generated from field: s4wave.command.CommandSurface surface = 1;
+   */
+  surface?: CommandSurface
+}
 
 export const WatchCommandsRequest: MessageType<WatchCommandsRequest> =
-  /* @__PURE__ */ createEmptyMessageType<WatchCommandsRequest>(
-    's4wave.command.registry.WatchCommandsRequest',
-    true,
-  )
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.command.registry.WatchCommandsRequest',
+    fields: [
+      { no: 1, name: 'surface', kind: 'enum', T: CommandSurface_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CommandState is a registered command instance with active and enabled state.
@@ -201,6 +219,12 @@ export interface CommandState {
    * @generated from field: bool enabled = 4;
    */
   enabled?: boolean
+  /**
+   * Surface identifies the command front door for this registration.
+   *
+   * @generated from field: s4wave.command.CommandSurface surface = 5;
+   */
+  surface?: CommandSurface
 }
 
 export const CommandState: MessageType<CommandState> =
@@ -211,6 +235,7 @@ export const CommandState: MessageType<CommandState> =
       { no: 2, name: 'command', kind: 'message', T: () => Command },
       { no: 3, name: 'active', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 5, name: 'surface', kind: 'enum', T: CommandSurface_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -313,6 +338,12 @@ export interface GetSubItemsRequest {
    * @generated from field: string query = 2;
    */
   query?: string
+  /**
+   * Surface selects the registration for one command front door.
+   *
+   * @generated from field: s4wave.command.CommandSurface surface = 3;
+   */
+  surface?: CommandSurface
 }
 
 export const GetSubItemsRequest: MessageType<GetSubItemsRequest> =
@@ -321,6 +352,7 @@ export const GetSubItemsRequest: MessageType<GetSubItemsRequest> =
     fields: [
       { no: 1, name: 'command_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'query', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'surface', kind: 'enum', T: CommandSurface_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -372,6 +404,12 @@ export interface InvokeCommandRequest {
    * @generated from field: map<string, string> args = 2;
    */
   args?: { [key: string]: string }
+  /**
+   * Surface selects the registration for one command front door.
+   *
+   * @generated from field: s4wave.command.CommandSurface surface = 3;
+   */
+  surface?: CommandSurface
 }
 
 export const InvokeCommandRequest: MessageType<InvokeCommandRequest> =
@@ -386,6 +424,7 @@ export const InvokeCommandRequest: MessageType<InvokeCommandRequest> =
         K: ScalarType.STRING,
         V: { kind: 'scalar', T: ScalarType.STRING },
       },
+      { no: 3, name: 'surface', kind: 'enum', T: CommandSurface_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

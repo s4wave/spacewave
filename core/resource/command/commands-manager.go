@@ -23,6 +23,7 @@ type attachedResourceClient interface {
 type commandRegistration struct {
 	resourceID        uint32
 	command           *s4wave_command.Command
+	surface           s4wave_command.CommandSurface
 	handlerResourceID uint32
 	client            attachedResourceClient
 	active            bool
@@ -68,6 +69,11 @@ func (r *CommandsManager) RegisterCommand(
 		return nil, ErrCommandIdRequired
 	}
 
+	surface, err := normalizeCommandSurface(req.GetSurface())
+	if err != nil {
+		return nil, err
+	}
+
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -75,6 +81,7 @@ func (r *CommandsManager) RegisterCommand(
 
 	reg := &commandRegistration{
 		command:           cmd,
+		surface:           surface,
 		handlerResourceID: req.GetHandlerResourceId(),
 		client:            client,
 		enabled:           true,
@@ -186,7 +193,12 @@ func (r *CommandsManager) GetSubItems(
 		return nil, ErrCommandIdRequired
 	}
 
-	reg, err := r.getActiveRegistration(cmdID)
+	surface, err := normalizeCommandSurface(req.GetSurface())
+	if err != nil {
+		return nil, err
+	}
+
+	reg, err := r.getActiveRegistration(cmdID, surface)
 	if err != nil {
 		return nil, err
 	}
@@ -203,6 +215,7 @@ func (r *CommandsManager) GetSubItems(
 	return handler.GetSubItems(ctx, &s4wave_command_registry.GetSubItemsRequest{
 		CommandId: cmdID,
 		Query:     req.GetQuery(),
+		Surface:   surface,
 	})
 }
 
@@ -211,6 +224,11 @@ func (r *CommandsManager) WatchCommands(
 	req *s4wave_command_registry.WatchCommandsRequest,
 	strm s4wave_command_registry.SRPCCommandRegistryResourceService_WatchCommandsStream,
 ) error {
+	surface, err := normalizeCommandSurface(req.GetSurface())
+	if err != nil {
+		return err
+	}
+
 	ctx := strm.Context()
 
 	for {
@@ -218,7 +236,7 @@ func (r *CommandsManager) WatchCommands(
 		var waitCh <-chan struct{}
 
 		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			states = r.getCommandStatesLocked()
+			states = r.getCommandStatesLocked(surface)
 			waitCh = getWaitCh()
 		})
 
@@ -246,7 +264,12 @@ func (r *CommandsManager) InvokeCommand(
 		return nil, ErrCommandIdRequired
 	}
 
-	reg, err := r.getActiveRegistration(cmdID)
+	surface, err := normalizeCommandSurface(req.GetSurface())
+	if err != nil {
+		return nil, err
+	}
+
+	reg, err := r.getActiveRegistration(cmdID, surface)
 	if err != nil {
 		return nil, err
 	}
@@ -273,10 +296,15 @@ func (r *CommandsManager) InvokeCommand(
 
 // getCommandStatesLocked builds CommandState entries from registrations.
 // Must be called with bcast lock held.
-func (r *CommandsManager) getCommandStatesLocked() []*s4wave_command_registry.CommandState {
+func (r *CommandsManager) getCommandStatesLocked(
+	surface s4wave_command.CommandSurface,
+) []*s4wave_command_registry.CommandState {
 	regs := make([]*commandRegistration, 0, len(r.registrations))
 	for _, reg := range r.registrations {
 		if reg == nil || reg.command == nil {
+			continue
+		}
+		if reg.surface != surface {
 			continue
 		}
 		regs = append(regs, reg)
@@ -295,14 +323,16 @@ func (r *CommandsManager) getCommandStatesLocked() []*s4wave_command_registry.Co
 			Command:    reg.command,
 			Active:     reg.active,
 			Enabled:    reg.enabled,
+			Surface:    reg.surface,
 		})
 	}
 	return states
 }
 
-// getActiveRegistration returns the single active registration for a command.
+// getActiveRegistration returns the single active registration for a command surface.
 func (r *CommandsManager) getActiveRegistration(
 	cmdID string,
+	surface s4wave_command.CommandSurface,
 ) (*commandRegistration, error) {
 	var reg *commandRegistration
 	var err error
@@ -312,7 +342,9 @@ func (r *CommandsManager) getActiveRegistration(
 			if candidate == nil || candidate.command == nil {
 				continue
 			}
-			if candidate.command.GetCommandId() != cmdID || !candidate.active {
+			if candidate.command.GetCommandId() != cmdID ||
+				candidate.surface != surface ||
+				!candidate.active {
 				continue
 			}
 			if reg != nil {
@@ -329,6 +361,20 @@ func (r *CommandsManager) getActiveRegistration(
 		return nil, ErrCommandNotFound
 	}
 	return reg, nil
+}
+
+func normalizeCommandSurface(
+	surface s4wave_command.CommandSurface,
+) (s4wave_command.CommandSurface, error) {
+	switch surface {
+	case s4wave_command.CommandSurface_COMMAND_SURFACE_UNSPECIFIED,
+		s4wave_command.CommandSurface_COMMAND_SURFACE_WEB:
+		return s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, nil
+	case s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL:
+		return s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL, nil
+	default:
+		return s4wave_command.CommandSurface_COMMAND_SURFACE_UNSPECIFIED, ErrInvalidCommandSurface
+	}
 }
 
 // _ is a type assertion

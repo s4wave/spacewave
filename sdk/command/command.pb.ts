@@ -88,6 +88,43 @@ export const CommandFocusContext_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * CommandSurface identifies the command front door for one registration.
+ *
+ * @generated from enum s4wave.command.CommandSurface
+ */
+export enum CommandSurface {
+  /**
+   * COMMAND_SURFACE_UNSPECIFIED selects the web surface for legacy callers.
+   *
+   * @generated from enum value: COMMAND_SURFACE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * COMMAND_SURFACE_WEB selects the web command surface.
+   *
+   * @generated from enum value: COMMAND_SURFACE_WEB = 1;
+   */
+  WEB = 1,
+
+  /**
+   * COMMAND_SURFACE_TERMINAL selects the terminal command surface.
+   *
+   * @generated from enum value: COMMAND_SURFACE_TERMINAL = 2;
+   */
+  TERMINAL = 2,
+}
+
+export const CommandSurface_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.command.CommandSurface',
+  [
+    [0, 'COMMAND_SURFACE_UNSPECIFIED'],
+    [1, 'COMMAND_SURFACE_WEB'],
+    [2, 'COMMAND_SURFACE_TERMINAL'],
+  ],
+)
+
+/**
  * KeybindingDisplayMode identifies how bindings are displayed.
  *
  * @generated from enum s4wave.command.KeybindingDisplayMode
@@ -508,6 +545,12 @@ export interface Command {
    * @generated from field: repeated s4wave.command.CommandBinding default_bindings = 10;
    */
   defaultBindings?: CommandBinding[]
+  /**
+   * SearchAliases adds discovery terms without creating alternate command IDs.
+   *
+   * @generated from field: repeated string search_aliases = 11;
+   */
+  searchAliases?: string[]
 }
 
 export const Command: MessageType<Command> = /* @__PURE__ */ createMessageType({
@@ -527,6 +570,13 @@ export const Command: MessageType<Command> = /* @__PURE__ */ createMessageType({
       name: 'default_bindings',
       kind: 'message',
       T: () => CommandBinding,
+      repeated: true,
+    },
+    {
+      no: 11,
+      name: 'search_aliases',
+      kind: 'scalar',
+      T: ScalarType.STRING,
       repeated: true,
     },
   ] satisfies readonly PartialFieldInfo[],

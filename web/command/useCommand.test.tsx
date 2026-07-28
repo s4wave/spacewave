@@ -2,7 +2,10 @@ import { Window } from 'happy-dom'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
-import type { CommandBinding } from '@s4wave/sdk/command/command.pb.js'
+import {
+  CommandSurface,
+  type CommandBinding,
+} from '@s4wave/sdk/command/command.pb.js'
 
 import { useCommand } from './useCommand.js'
 
@@ -87,12 +90,14 @@ function TestCommand({
   keybinding,
   defaultBindings,
   subItems,
+  searchAliases,
 }: {
   active?: boolean
   enabled?: boolean
   handler?: (args: Record<string, string>) => void
   keybinding?: string
   defaultBindings?: CommandBinding[]
+  searchAliases?: string[]
   subItems?: (
     query: string,
     signal: AbortSignal,
@@ -106,6 +111,7 @@ function TestCommand({
     handler,
     keybinding,
     defaultBindings,
+    searchAliases,
     subItems,
     hasSubItems: !!subItems,
   })
@@ -163,8 +169,10 @@ describe('useCommand', () => {
           icon: undefined,
           description: undefined,
           hasSubItems: false,
+          searchAliases: undefined,
         },
         handlerResourceId: 11,
+        surface: CommandSurface.WEB,
       },
       expect.any(AbortSignal),
     ])
@@ -173,6 +181,21 @@ describe('useCommand', () => {
 
     expect(mockCleanup).toHaveBeenCalled()
     expect(mockReleaseResource).toHaveBeenCalledWith(41)
+  })
+
+  it('registers search aliases on the web surface', async () => {
+    render(<TestCommand searchAliases={['open', 'find']} />)
+
+    await waitFor(() => {
+      expect(mockRegisterCommand).toHaveBeenCalled()
+    })
+
+    expect(mockRegisterCommand.mock.lastCall?.[0]).toMatchObject({
+      command: {
+        searchAliases: ['open', 'find'],
+      },
+      surface: CommandSurface.WEB,
+    })
   })
 
   it('registers legacy keybinding without typed default bindings', async () => {
@@ -195,8 +218,10 @@ describe('useCommand', () => {
           icon: undefined,
           description: undefined,
           hasSubItems: false,
+          searchAliases: undefined,
         },
         handlerResourceId: 11,
+        surface: CommandSurface.WEB,
       },
       expect.any(AbortSignal),
     ])
@@ -235,8 +260,10 @@ describe('useCommand', () => {
           icon: undefined,
           description: undefined,
           hasSubItems: false,
+          searchAliases: undefined,
         },
         handlerResourceId: 11,
+        surface: CommandSurface.WEB,
       },
       expect.any(AbortSignal),
     ])
@@ -274,8 +301,10 @@ describe('useCommand', () => {
           icon: undefined,
           description: undefined,
           hasSubItems: false,
+          searchAliases: undefined,
         },
         handlerResourceId: 11,
+        surface: CommandSurface.WEB,
       },
       expect.any(AbortSignal),
     ])
