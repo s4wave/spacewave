@@ -32,7 +32,7 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260705021747-c5ec5d20d2b6 // master
 	github.com/aperturerobotics/cli v1.1.0 // v1.1.0
-	github.com/aperturerobotics/common v0.34.3 // master
+	github.com/aperturerobotics/common v0.34.4-0.20260728184944-a767fdbf1e56 // master
 	github.com/aperturerobotics/controllerbus v0.53.5-0.20260726091303-7b91a295eab0 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
@@ -98,7 +98,7 @@ require (
 	github.com/emirpasic/gods v1.18.1
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v6 v6.0.0-alpha.2.0.20260727083916-c3866da0293d // main
+	github.com/go-git/go-billy/v6 v6.0.0-alpha.2.0.20260728104803-133d4f9bfd41 // main
 	github.com/go-git/go-git/v6 v6.0.0-alpha.4.0.20260727084107-9b81545704e8 // main
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v2.0.0+incompatible
