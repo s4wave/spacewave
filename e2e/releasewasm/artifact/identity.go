@@ -95,6 +95,7 @@ func ComputeIdentity(repoRoot string, inputs *BuildInputs) (*Identity, error) {
 func (i *Identity) Summary() map[string]string {
 	return map[string]string{
 		"identity":        i.Digest,
+		"schema":          strconv.Itoa(i.SchemaVersion),
 		"compiler":        i.Compiler,
 		"mode":            i.Mode,
 		"source":          i.SourceDigest,

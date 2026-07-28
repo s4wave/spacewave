@@ -65,9 +65,9 @@ func PublishReleaseWasmArtifact(ctx context.Context, le *logrus.Entry, repoRoot 
 	if err != nil {
 		return err
 	}
-	// The consumer of this artifact computes the same identity in its own
-	// process, and when the two disagree it silently rebuilds. Print the
-	// producing side's digests so the pair can be compared from two job logs.
+	// The consumer computes the same identity in its own process and rebuilds
+	// whenever the two disagree. Print the producing side's digests so both
+	// sides of that comparison are recoverable from their separate logs.
 	le.WithFields(identityFields(identity)).Info("published release artifact")
 	return nil
 }
