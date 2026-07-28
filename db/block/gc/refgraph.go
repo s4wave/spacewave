@@ -24,6 +24,7 @@ import (
 type RefGraph struct {
 	handle *cayley.Handle
 
+	writeMu    sync.Mutex
 	mu         sync.Mutex
 	iriRefKeys map[string]any
 }
@@ -66,6 +67,8 @@ func RegisterEntityChain(ctx context.Context, rg RefGraphOps, nodes ...string) e
 
 // AddRef adds a gc/ref edge from subject to object. Idempotent.
 func (rg *RefGraph) AddRef(ctx context.Context, subject, object string) error {
+	rg.writeMu.Lock()
+	defer rg.writeMu.Unlock()
 	ctx = disableStoreTracking(ctx)
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/add-ref")
 	defer task.End()
@@ -84,6 +87,8 @@ func (rg *RefGraph) AddRef(ctx context.Context, subject, object string) error {
 // RemoveRef removes a single gc/ref edge from subject to object.
 // Removing a non-existent edge is a no-op.
 func (rg *RefGraph) RemoveRef(ctx context.Context, subject, object string) error {
+	rg.writeMu.Lock()
+	defer rg.writeMu.Unlock()
 	ctx = disableStoreTracking(ctx)
 	q := quad.Make(quad.IRI(subject), quad.IRI(PredGCRef), quad.IRI(object), nil)
 	return rg.handle.RemoveQuad(ctx, q)
@@ -93,6 +98,8 @@ func (rg *RefGraph) RemoveRef(ctx context.Context, subject, object string) error
 // Small batches run in one Cayley transaction; larger batches chunk at a
 // bounded size while preserving add-before-remove order.
 func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) error {
+	rg.writeMu.Lock()
+	defer rg.writeMu.Unlock()
 	ctx = disableStoreTracking(ctx)
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/apply-ref-batch")
 	defer task.End()
@@ -107,6 +114,11 @@ func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) 
 
 	if len(adds) == 0 && len(removes) == 0 {
 		return nil
+	}
+	var err error
+	removes, err = rg.filterExistingRemoves(ctx, adds, removes)
+	if err != nil {
+		return err
 	}
 
 	chunks := 0
@@ -144,6 +156,44 @@ func (rg *RefGraph) applyRefBatch(ctx context.Context, adds, removes []RefEdge) 
 		tx.RemoveQuad(quad.Make(quad.IRI(e.Subject), quad.IRI(PredGCRef), quad.IRI(e.Object), nil))
 	}
 	return rg.handle.ApplyTransaction(ctx, tx)
+}
+
+func (rg *RefGraph) filterExistingRemoves(
+	ctx context.Context,
+	adds, removes []RefEdge,
+) ([]RefEdge, error) {
+	added := make(map[RefEdge]struct{}, len(adds))
+	for _, edge := range adds {
+		added[edge] = struct{}{}
+	}
+	existing := make([]RefEdge, 0, len(removes))
+	for _, edge := range removes {
+		if _, ok := added[edge]; ok {
+			existing = append(existing, edge)
+			continue
+		}
+		found, err := rg.hasRef(ctx, edge.Subject, edge.Object)
+		if err != nil {
+			return nil, err
+		}
+		if found {
+			existing = append(existing, edge)
+		}
+	}
+	return existing, nil
+}
+
+func (rg *RefGraph) hasRef(ctx context.Context, subject, object string) (bool, error) {
+	var found bool
+	err := iterateFilteredNodeRefs(ctx, rg.handle, quad.Quad{
+		Subject:   quad.IRI(subject),
+		Predicate: quad.IRI(PredGCRef),
+		Object:    quad.IRI(object),
+	}, quad.Subject, func(graph.Ref) error {
+		found = true
+		return io.EOF
+	})
+	return found, err
 }
 
 // RemoveNodeRefs removes ALL outgoing gc/ref edges for a node.
