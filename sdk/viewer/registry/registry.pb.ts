@@ -2,15 +2,50 @@
 // @generated from file github.com/s4wave/spacewave/sdk/viewer/registry/registry.proto (package s4wave.viewer.registry, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
-import {
-  createEmptyMessageType,
-  createMessageType,
-} from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 's4wave.viewer.registry'
+
+/**
+ * ViewerSurface identifies the host surface that can render a viewer.
+ *
+ * @generated from enum s4wave.viewer.registry.ViewerSurface
+ */
+export enum ViewerSurface {
+  /**
+   * VIEWER_SURFACE_UNSPECIFIED is invalid.
+   *
+   * @generated from enum value: VIEWER_SURFACE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * VIEWER_SURFACE_WEB identifies browser viewers.
+   *
+   * @generated from enum value: VIEWER_SURFACE_WEB = 1;
+   */
+  WEB = 1,
+
+  /**
+   * VIEWER_SURFACE_TERMINAL identifies terminal viewers.
+   *
+   * @generated from enum value: VIEWER_SURFACE_TERMINAL = 2;
+   */
+  TERMINAL = 2,
+}
+
+export const ViewerSurface_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.viewer.registry.ViewerSurface',
+  [
+    [0, 'VIEWER_SURFACE_UNSPECIFIED'],
+    [1, 'VIEWER_SURFACE_WEB'],
+    [2, 'VIEWER_SURFACE_TERMINAL'],
+  ],
+)
 
 /**
  * ViewerRegistration is a registered viewer.
@@ -54,6 +89,12 @@ export interface ViewerRegistration {
    * @generated from field: string component_id = 6;
    */
   componentId?: string
+  /**
+   * Surface is the host surface that can render this viewer.
+   *
+   * @generated from field: s4wave.viewer.registry.ViewerSurface surface = 7;
+   */
+  surface?: ViewerSurface
 }
 
 export const ViewerRegistration: MessageType<ViewerRegistration> =
@@ -66,6 +107,7 @@ export const ViewerRegistration: MessageType<ViewerRegistration> =
       { no: 4, name: 'category', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'dev_mode_only', kind: 'scalar', T: ScalarType.BOOL },
       { no: 6, name: 'component_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'surface', kind: 'enum', T: ViewerSurface_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -126,13 +168,23 @@ export const RegisterViewerResponse: MessageType<RegisterViewerResponse> =
  *
  * @generated from message s4wave.viewer.registry.ListViewersRequest
  */
-export interface ListViewersRequest {}
+export interface ListViewersRequest {
+  /**
+   * Surface selects the host surface to list.
+   *
+   * @generated from field: s4wave.viewer.registry.ViewerSurface surface = 1;
+   */
+  surface?: ViewerSurface
+}
 
 export const ListViewersRequest: MessageType<ListViewersRequest> =
-  /* @__PURE__ */ createEmptyMessageType<ListViewersRequest>(
-    's4wave.viewer.registry.ListViewersRequest',
-    true,
-  )
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.viewer.registry.ListViewersRequest',
+    fields: [
+      { no: 1, name: 'surface', kind: 'enum', T: ViewerSurface_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ListViewersResponse is the response type for ListViewers.
@@ -168,13 +220,23 @@ export const ListViewersResponse: MessageType<ListViewersResponse> =
  *
  * @generated from message s4wave.viewer.registry.WatchViewersRequest
  */
-export interface WatchViewersRequest {}
+export interface WatchViewersRequest {
+  /**
+   * Surface selects the host surface to watch.
+   *
+   * @generated from field: s4wave.viewer.registry.ViewerSurface surface = 1;
+   */
+  surface?: ViewerSurface
+}
 
 export const WatchViewersRequest: MessageType<WatchViewersRequest> =
-  /* @__PURE__ */ createEmptyMessageType<WatchViewersRequest>(
-    's4wave.viewer.registry.WatchViewersRequest',
-    true,
-  )
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.viewer.registry.WatchViewersRequest',
+    fields: [
+      { no: 1, name: 'surface', kind: 'enum', T: ViewerSurface_Enum },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * WatchViewersResponse is the response type for WatchViewers.

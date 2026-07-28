@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ViewerSurface } from '@s4wave/sdk/viewer/registry/registry.pb.js'
 import { V86RuntimeStatus } from '@s4wave/sdk/vm/v86.pb.js'
 
 const h = vi.hoisted(() => ({
@@ -391,6 +392,7 @@ describe('v86 backend registration', () => {
         viewerName: 'V86',
         componentId: 'spacewave.v86.viewer',
         scriptPath: '/asset/spacewave-v86/v/b/fe/assets/v86-viewer.mjs',
+        surface: ViewerSurface.WEB,
       },
     ])
     expect(h.rootRef.createRef).toHaveBeenCalledTimes(1)

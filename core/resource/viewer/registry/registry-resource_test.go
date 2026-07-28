@@ -76,6 +76,7 @@ func TestRegisterViewerReleaseRemovesRegistration(t *testing.T) {
 			ViewerName:  "Test",
 			ScriptPath:  "/viewer.js",
 			ComponentId: "spacewave.test.viewer",
+			Surface:     s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
 		},
 	})
 	if err != nil {
@@ -85,7 +86,9 @@ func TestRegisterViewerReleaseRemovesRegistration(t *testing.T) {
 		t.Fatal("expected registration resource id")
 	}
 
-	list, err := svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{})
+	list, err := svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{
+		Surface: s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
+	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -110,12 +113,120 @@ func TestRegisterViewerReleaseRemovesRegistration(t *testing.T) {
 		t.Fatal("timed out waiting for registration release")
 	}
 
-	list, err = svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{})
+	list, err = svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{
+		Surface: s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
+	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	if len(list.GetRegistrations()) != 0 {
 		t.Fatalf("expected registration release to remove viewer, got %d", len(list.GetRegistrations()))
+	}
+}
+
+func TestViewerRegistryFiltersRegistrationsBySurface(t *testing.T) {
+	ctx, client, _ := setupViewerRegistryClient(t)
+
+	rootRef := client.AccessRootResource()
+	t.Cleanup(rootRef.Release)
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	svc := s4wave_viewer_registry.NewSRPCViewerRegistryResourceServiceClient(rootClient)
+
+	surfaces := []s4wave_viewer_registry.ViewerSurface{
+		s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
+		s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TERMINAL,
+	}
+	for _, surface := range surfaces {
+		resp, err := svc.RegisterViewer(ctx, &s4wave_viewer_registry.RegisterViewerRequest{
+			Registration: &s4wave_viewer_registry.ViewerRegistration{
+				TypeId:      "spacewave/test",
+				ViewerName:  "Test",
+				ScriptPath:  "/viewer.js",
+				ComponentId: "spacewave.test.viewer",
+				Surface:     surface,
+			},
+		})
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		ref := client.CreateResourceReference(resp.GetResourceId())
+		t.Cleanup(ref.Release)
+	}
+
+	for _, surface := range surfaces {
+		list, err := svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{
+			Surface: surface,
+		})
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		assertViewerSurface(t, list.GetRegistrations(), surface)
+
+		watch, err := svc.WatchViewers(ctx, &s4wave_viewer_registry.WatchViewersRequest{
+			Surface: surface,
+		})
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		snapshot, err := watch.Recv()
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		assertViewerSurface(t, snapshot.GetRegistrations(), surface)
+	}
+}
+
+func TestViewerRegistryRejectsUnspecifiedSurface(t *testing.T) {
+	ctx, client, _ := setupViewerRegistryClient(t)
+
+	rootRef := client.AccessRootResource()
+	t.Cleanup(rootRef.Release)
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	svc := s4wave_viewer_registry.NewSRPCViewerRegistryResourceServiceClient(rootClient)
+
+	_, err = svc.RegisterViewer(ctx, &s4wave_viewer_registry.RegisterViewerRequest{
+		Registration: &s4wave_viewer_registry.ViewerRegistration{
+			TypeId:      "spacewave/test",
+			ViewerName:  "Test",
+			ScriptPath:  "/viewer.js",
+			ComponentId: "spacewave.test.viewer",
+		},
+	})
+	if err == nil {
+		t.Fatal("expected registration surface validation error")
+	}
+
+	_, err = svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{})
+	if err == nil {
+		t.Fatal("expected list surface validation error")
+	}
+
+	watch, err := svc.WatchViewers(ctx, &s4wave_viewer_registry.WatchViewersRequest{})
+	if err == nil {
+		_, err = watch.Recv()
+	}
+	if err == nil {
+		t.Fatal("expected watch surface validation error")
+	}
+}
+
+func assertViewerSurface(
+	t *testing.T,
+	regs []*s4wave_viewer_registry.ViewerRegistration,
+	surface s4wave_viewer_registry.ViewerSurface,
+) {
+	t.Helper()
+	if len(regs) != 1 {
+		t.Fatalf("expected 1 %s registration, got %d", surface.String(), len(regs))
+	}
+	if regs[0].GetSurface() != surface {
+		t.Fatalf("expected %s registration, got %s", surface.String(), regs[0].GetSurface().String())
 	}
 }
 
@@ -135,6 +246,7 @@ func TestRegisterViewerRequiresComponentID(t *testing.T) {
 			TypeId:     "spacewave/test",
 			ViewerName: "Test",
 			ScriptPath: "/viewer.js",
+			Surface:    s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
 		},
 	})
 	if err == nil {
@@ -158,6 +270,7 @@ func TestRegisterViewerClonesRegistrationState(t *testing.T) {
 		ViewerName:  "Test",
 		ScriptPath:  "/viewer.js",
 		ComponentId: "spacewave.test.viewer",
+		Surface:     s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
 	}
 	resp, err := svc.RegisterViewer(ctx, &s4wave_viewer_registry.RegisterViewerRequest{
 		Registration: reg,
@@ -169,7 +282,9 @@ func TestRegisterViewerClonesRegistrationState(t *testing.T) {
 	t.Cleanup(ref.Release)
 
 	reg.ComponentId = "mutated.viewer"
-	list, err := svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{})
+	list, err := svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{
+		Surface: s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
+	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

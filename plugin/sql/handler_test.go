@@ -230,6 +230,7 @@ func TestRegisterSQLRejectsZeroResourceIDs(t *testing.T) {
 				TypeId:     s4wave_sql_world.SqlDbTypeID,
 				ViewerName: "SQL DB",
 				ScriptPath: "plugin/sql/viewer.tsx",
+				Surface:    s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
 			}}
 			t.Cleanup(func() { sqlViewerRegistrations = oldViewers })
 

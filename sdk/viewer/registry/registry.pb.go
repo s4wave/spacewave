@@ -8,10 +8,51 @@ import (
 	fmt "fmt"
 	io "io"
 	slices "slices"
+	strconv "strconv"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
+
+// ViewerSurface identifies the host surface that can render a viewer.
+type ViewerSurface int32
+
+const (
+	// VIEWER_SURFACE_UNSPECIFIED is invalid.
+	ViewerSurface_VIEWER_SURFACE_UNSPECIFIED ViewerSurface = 0
+	// VIEWER_SURFACE_WEB identifies browser viewers.
+	ViewerSurface_VIEWER_SURFACE_WEB ViewerSurface = 1
+	// VIEWER_SURFACE_TERMINAL identifies terminal viewers.
+	ViewerSurface_VIEWER_SURFACE_TERMINAL ViewerSurface = 2
+)
+
+// Enum value maps for ViewerSurface.
+var (
+	ViewerSurface_name = map[int32]string{
+		0: "VIEWER_SURFACE_UNSPECIFIED",
+		1: "VIEWER_SURFACE_WEB",
+		2: "VIEWER_SURFACE_TERMINAL",
+	}
+	ViewerSurface_value = map[string]int32{
+		"VIEWER_SURFACE_UNSPECIFIED": 0,
+		"VIEWER_SURFACE_WEB":         1,
+		"VIEWER_SURFACE_TERMINAL":    2,
+	}
+)
+
+func (x ViewerSurface) Enum() *ViewerSurface {
+	p := new(ViewerSurface)
+	*p = x
+	return p
+}
+
+func (x ViewerSurface) String() string {
+	name, valid := ViewerSurface_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
 
 // ViewerRegistration is a registered viewer.
 type ViewerRegistration struct {
@@ -28,6 +69,8 @@ type ViewerRegistration struct {
 	DevModeOnly bool `protobuf:"varint,5,opt,name=dev_mode_only,json=devModeOnly,proto3" json:"devModeOnly,omitempty"`
 	// ComponentId is the stable ID used for persisted viewer selection.
 	ComponentId string `protobuf:"bytes,6,opt,name=component_id,json=componentId,proto3" json:"componentId,omitempty"`
+	// Surface is the host surface that can render this viewer.
+	Surface ViewerSurface `protobuf:"varint,7,opt,name=surface,proto3" json:"surface,omitempty"`
 }
 
 func (x *ViewerRegistration) Reset() {
@@ -78,6 +121,13 @@ func (x *ViewerRegistration) GetComponentId() string {
 	return ""
 }
 
+func (x *ViewerRegistration) GetSurface() ViewerSurface {
+	if x != nil {
+		return x.Surface
+	}
+	return ViewerSurface_VIEWER_SURFACE_UNSPECIFIED
+}
+
 // RegisterViewerRequest is the request type for RegisterViewer.
 type RegisterViewerRequest struct {
 	unknownFields []byte
@@ -121,6 +171,8 @@ func (x *RegisterViewerResponse) GetResourceId() uint32 {
 // ListViewersRequest is the request type for ListViewers.
 type ListViewersRequest struct {
 	unknownFields []byte
+	// Surface selects the host surface to list.
+	Surface ViewerSurface `protobuf:"varint,1,opt,name=surface,proto3" json:"surface,omitempty"`
 }
 
 func (x *ListViewersRequest) Reset() {
@@ -128,6 +180,13 @@ func (x *ListViewersRequest) Reset() {
 }
 
 func (*ListViewersRequest) ProtoMessage() {}
+
+func (x *ListViewersRequest) GetSurface() ViewerSurface {
+	if x != nil {
+		return x.Surface
+	}
+	return ViewerSurface_VIEWER_SURFACE_UNSPECIFIED
+}
 
 // ListViewersResponse is the response type for ListViewers.
 type ListViewersResponse struct {
@@ -152,6 +211,8 @@ func (x *ListViewersResponse) GetRegistrations() []*ViewerRegistration {
 // WatchViewersRequest is the request type for WatchViewers.
 type WatchViewersRequest struct {
 	unknownFields []byte
+	// Surface selects the host surface to watch.
+	Surface ViewerSurface `protobuf:"varint,1,opt,name=surface,proto3" json:"surface,omitempty"`
 }
 
 func (x *WatchViewersRequest) Reset() {
@@ -159,6 +220,13 @@ func (x *WatchViewersRequest) Reset() {
 }
 
 func (*WatchViewersRequest) ProtoMessage() {}
+
+func (x *WatchViewersRequest) GetSurface() ViewerSurface {
+	if x != nil {
+		return x.Surface
+	}
+	return ViewerSurface_VIEWER_SURFACE_UNSPECIFIED
+}
 
 // WatchViewersResponse is the response type for WatchViewers.
 type WatchViewersResponse struct {
@@ -191,6 +259,7 @@ func (m *ViewerRegistration) CloneVT() *ViewerRegistration {
 	r.Category = m.Category
 	r.DevModeOnly = m.DevModeOnly
 	r.ComponentId = m.ComponentId
+	r.Surface = m.Surface
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -238,6 +307,7 @@ func (m *ListViewersRequest) CloneVT() *ListViewersRequest {
 		return (*ListViewersRequest)(nil)
 	}
 	r := new(ListViewersRequest)
+	r.Surface = m.Surface
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -269,6 +339,7 @@ func (m *WatchViewersRequest) CloneVT() *WatchViewersRequest {
 		return (*WatchViewersRequest)(nil)
 	}
 	r := new(WatchViewersRequest)
+	r.Surface = m.Surface
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -317,6 +388,9 @@ func (this *ViewerRegistration) EqualVT(that *ViewerRegistration) bool {
 		return false
 	}
 	if this.ComponentId != that.ComponentId {
+		return false
+	}
+	if this.Surface != that.Surface {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -376,6 +450,9 @@ func (this *ListViewersRequest) EqualVT(that *ListViewersRequest) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
+	if this.Surface != that.Surface {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -413,6 +490,9 @@ func (this *WatchViewersRequest) EqualVT(that *WatchViewersRequest) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
+	if this.Surface != that.Surface {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -442,6 +522,46 @@ func (this *WatchViewersResponse) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
+}
+
+// MarshalProtoJSON marshals the ViewerSurface to JSON.
+func (x ViewerSurface) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), ViewerSurface_name)
+}
+
+// MarshalText marshals the ViewerSurface to text.
+func (x ViewerSurface) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), ViewerSurface_name)), nil
+}
+
+// MarshalJSON marshals the ViewerSurface to JSON.
+func (x ViewerSurface) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ViewerSurface from JSON.
+func (x *ViewerSurface) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(ViewerSurface_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read ViewerSurface enum: %v", err)
+		return
+	}
+	*x = ViewerSurface(v)
+}
+
+// UnmarshalText unmarshals the ViewerSurface from text.
+func (x *ViewerSurface) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), ViewerSurface_value)
+	if err != nil {
+		return err
+	}
+	*x = ViewerSurface(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the ViewerSurface from JSON.
+func (x *ViewerSurface) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the ViewerRegistration message to JSON.
@@ -482,6 +602,11 @@ func (x *ViewerRegistration) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("componentId")
 		s.WriteString(x.ComponentId)
 	}
+	if x.Surface != 0 || s.HasField("surface") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("surface")
+		x.Surface.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -517,6 +642,9 @@ func (x *ViewerRegistration) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "component_id", "componentId":
 			s.AddField("component_id")
 			x.ComponentId = s.ReadString()
+		case "surface":
+			s.AddField("surface")
+			x.Surface.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -621,6 +749,12 @@ func (x *ListViewersRequest) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.Surface != 0 || s.HasField("surface") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("surface")
+		x.Surface.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -635,7 +769,13 @@ func (x *ListViewersRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "surface":
+			s.AddField("surface")
+			x.Surface.UnmarshalProtoJSON(s)
+		}
 	})
 }
 
@@ -714,6 +854,12 @@ func (x *WatchViewersRequest) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.Surface != 0 || s.HasField("surface") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("surface")
+		x.Surface.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -728,7 +874,13 @@ func (x *WatchViewersRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "surface":
+			s.AddField("surface")
+			x.Surface.UnmarshalProtoJSON(s)
+		}
 	})
 }
 
@@ -828,6 +980,11 @@ func (m *ViewerRegistration) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Surface != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Surface))
+		i--
+		dAtA[i] = 0x38
 	}
 	if len(m.ComponentId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ComponentId)
@@ -970,6 +1127,11 @@ func (m *ListViewersRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Surface != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Surface))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -1046,6 +1208,11 @@ func (m *WatchViewersRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Surface != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Surface))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -1105,6 +1272,7 @@ func (m *ViewerRegistration) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Category)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.DevModeOnly)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ComponentId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Surface)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1140,6 +1308,7 @@ func (m *ListViewersRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Surface)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1164,6 +1333,7 @@ func (m *WatchViewersRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Surface)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1180,6 +1350,10 @@ func (m *WatchViewersResponse) SizeVT() (n int) {
 	}
 	n += len(m.unknownFields)
 	return n
+}
+
+func (x ViewerSurface) MarshalProtoText() string {
+	return x.String()
 }
 
 func (x *ViewerRegistration) MarshalProtoText() string {
@@ -1208,6 +1382,10 @@ func (x *ViewerRegistration) MarshalProtoText() string {
 	if x.ComponentId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "component_id")
 		protobuf_go_lite.TextWriteString(&sb, x.ComponentId)
+	}
+	if x.Surface != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "surface")
+		protobuf_go_lite.TextWriteStringer(&sb, ViewerSurface(x.Surface))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1246,7 +1424,11 @@ func (x *RegisterViewerResponse) String() string {
 
 func (x *ListViewersRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "ListViewersRequest")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ListViewersRequest")
+	if x.Surface != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "surface")
+		protobuf_go_lite.TextWriteStringer(&sb, ViewerSurface(x.Surface))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -1278,7 +1460,11 @@ func (x *ListViewersResponse) String() string {
 
 func (x *WatchViewersRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "WatchViewersRequest")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "WatchViewersRequest")
+	if x.Surface != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "surface")
+		protobuf_go_lite.TextWriteStringer(&sb, ViewerSurface(x.Surface))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -1388,6 +1574,17 @@ func (m *ViewerRegistration) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ComponentId = v
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Surface", wireType)
+			}
+			m.Surface = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Surface = ViewerSurface(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1541,6 +1738,17 @@ func (m *ListViewersRequest) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: ListViewersRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Surface", wireType)
+			}
+			m.Surface = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Surface = ViewerSurface(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1640,6 +1848,17 @@ func (m *WatchViewersRequest) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: WatchViewersRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Surface", wireType)
+			}
+			m.Surface = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Surface = ViewerSurface(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

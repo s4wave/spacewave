@@ -45,16 +45,19 @@ func (r *ViewerRegistry) RegisterViewer(ctx context.Context, reg *ViewerRegistra
 	return resp.GetResourceId(), nil
 }
 
-// ListViewers returns all registered viewers.
-func (r *ViewerRegistry) ListViewers(ctx context.Context) ([]*ViewerRegistration, error) {
-	resp, err := r.service.ListViewers(ctx, &ListViewersRequest{})
+// ListViewers returns registered viewers for surface.
+func (r *ViewerRegistry) ListViewers(ctx context.Context, surface ViewerSurface) ([]*ViewerRegistration, error) {
+	resp, err := r.service.ListViewers(ctx, &ListViewersRequest{Surface: surface})
 	if err != nil {
 		return nil, err
 	}
 	return resp.GetRegistrations(), nil
 }
 
-// WatchViewers streams viewer registration changes.
-func (r *ViewerRegistry) WatchViewers(ctx context.Context) (SRPCViewerRegistryResourceService_WatchViewersClient, error) {
-	return r.service.WatchViewers(ctx, &WatchViewersRequest{})
+// WatchViewers streams viewer registration changes for surface.
+func (r *ViewerRegistry) WatchViewers(
+	ctx context.Context,
+	surface ViewerSurface,
+) (SRPCViewerRegistryResourceService_WatchViewersClient, error) {
+	return r.service.WatchViewers(ctx, &WatchViewersRequest{Surface: surface})
 }

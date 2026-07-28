@@ -1,8 +1,24 @@
-import { describe, expect, it } from 'vitest'
+import { renderHook } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 
-import type { ObjectViewerComponent } from '@s4wave/web/object/object.js'
+import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import type { Root } from '@s4wave/sdk/root'
+import {
+  ViewerSurface,
+  type ViewerRegistration,
+} from '@s4wave/sdk/viewer/registry/registry.pb.js'
+
+const h = vi.hoisted(() => ({
+  useDynamicRegistrations: vi.fn((..._args: unknown[]) => []),
+}))
+
+vi.mock('./useDynamicRegistrations.js', () => ({
+  useDynamicRegistrations: h.useDynamicRegistrations,
+}))
+
 import {
   getViewersForType,
+  useAllViewers,
   viewerRegistrationToComponent,
 } from './useViewerRegistry.js'
 
@@ -39,6 +55,50 @@ describe('getViewersForType', () => {
   })
 })
 
+describe('useAllViewers', () => {
+  it('does not pass terminal registrations to dynamic viewer conversion', () => {
+    const webRegistration: ViewerRegistration = {
+      componentId: 'glados.workfront.viewer',
+      typeId: 'glados/workfront',
+      viewerName: 'Workfront',
+      scriptPath: '/plugins/glados/workfront.js',
+      surface: ViewerSurface.WEB,
+    }
+    const terminalRegistration: ViewerRegistration = {
+      ...webRegistration,
+      componentId: 'terminal.workfront.viewer',
+      surface: ViewerSurface.TERMINAL,
+    }
+    const mappedRegistrations: ViewerRegistration[] = []
+
+    h.useDynamicRegistrations.mockImplementationOnce((...args: unknown[]) => {
+      const request = args[2] as { surface?: ViewerSurface }
+      expect(request).toEqual({ surface: ViewerSurface.WEB })
+      const mapper = args[6] as (
+        registration: ViewerRegistration,
+      ) => ObjectViewerComponent | null
+      return [webRegistration, terminalRegistration]
+        .filter((registration) => registration.surface === request.surface)
+        .flatMap((registration) => {
+          mappedRegistrations.push(registration)
+          const viewer = mapper(registration)
+          return viewer ? [viewer] : []
+        })
+    })
+
+    const rootResource: Resource<Root> = {
+      value: null,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    }
+
+    renderHook(() => useAllViewers(rootResource))
+
+    expect(mappedRegistrations).toEqual([webRegistration])
+  })
+})
+
 describe('viewerRegistrationToComponent', () => {
   it('maps dynamic registrations with stable component IDs and display names', () => {
     const viewer = viewerRegistrationToComponent({
@@ -47,6 +107,7 @@ describe('viewerRegistrationToComponent', () => {
       viewerName: 'Workfront',
       scriptPath: '/plugins/glados/workfront.js',
       category: 'GLaDOS',
+      surface: ViewerSurface.WEB,
     })
 
     expect(viewer).toMatchObject({
@@ -63,6 +124,7 @@ describe('viewerRegistrationToComponent', () => {
         typeId: 'glados/workfront',
         viewerName: 'Workfront',
         scriptPath: '/plugins/glados/workfront.js',
+        surface: ViewerSurface.WEB,
       }),
     ).toBeNull()
   })

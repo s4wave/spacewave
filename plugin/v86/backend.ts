@@ -6,6 +6,7 @@ import {
   type ClientResourceRef,
 } from '@aptre/bldr-sdk/resource/index.js'
 import { ViewerRegistryResourceServiceClient } from '@s4wave/sdk/viewer/registry/registry_srpc.pb.js'
+import { ViewerSurface } from '@s4wave/sdk/viewer/registry/registry.pb.js'
 import { V86RuntimeStatus } from '@s4wave/sdk/vm/v86.pb.js'
 import {
   V86RuntimeStatusServiceClient,
@@ -319,6 +320,7 @@ export default async function main(
         viewerName: 'V86',
         componentId: 'spacewave.v86.viewer',
         scriptPath: v86ViewerScript,
+        surface: ViewerSurface.WEB,
       },
     },
     signal,

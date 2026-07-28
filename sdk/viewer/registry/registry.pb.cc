@@ -29,14 +29,21 @@ namespace _fl = ::google::protobuf::internal::field_layout;
 namespace s4wave {
 namespace viewer {
 namespace registry {
+
+inline constexpr WatchViewersRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        surface_{static_cast< ::s4wave::viewer::registry::ViewerSurface >(0)} {}
+
 template <typename>
 PROTOBUF_CONSTEXPR WatchViewersRequest::WatchViewersRequest(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(WatchViewersRequest_class_data_.base()){}
+    : ::google::protobuf::Message(WatchViewersRequest_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase() {
-}
+    : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
 struct WatchViewersRequestDefaultTypeInternal {
   PROTOBUF_CONSTEXPR WatchViewersRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
   ~WatchViewersRequestDefaultTypeInternal() {}
@@ -66,7 +73,8 @@ inline constexpr ViewerRegistration::Impl_::Impl_(
         component_id_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        dev_mode_only_{false} {}
+        dev_mode_only_{false},
+        surface_{static_cast< ::s4wave::viewer::registry::ViewerSurface >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR ViewerRegistration::ViewerRegistration(::_pbi::ConstantInitialized)
@@ -112,14 +120,21 @@ struct RegisterViewerResponseDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RegisterViewerResponseDefaultTypeInternal _RegisterViewerResponse_default_instance_;
+
+inline constexpr ListViewersRequest::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        surface_{static_cast< ::s4wave::viewer::registry::ViewerSurface >(0)} {}
+
 template <typename>
 PROTOBUF_CONSTEXPR ListViewersRequest::ListViewersRequest(::_pbi::ConstantInitialized)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(ListViewersRequest_class_data_.base()){}
+    : ::google::protobuf::Message(ListViewersRequest_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase() {
-}
+    : ::google::protobuf::Message(),
 #endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
 struct ListViewersRequestDefaultTypeInternal {
   PROTOBUF_CONSTEXPR ListViewersRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
   ~ListViewersRequestDefaultTypeInternal() {}
@@ -208,8 +223,8 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
 }  // namespace registry
 }  // namespace viewer
 }  // namespace s4wave
-static constexpr const ::_pb::EnumDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
-    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fviewer_2fregistry_2fregistry_2eproto = nullptr;
+static const ::_pb::EnumDescriptor* PROTOBUF_NONNULL
+    file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fviewer_2fregistry_2fregistry_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor* PROTOBUF_NONNULL* PROTOBUF_NULLABLE
     file_level_service_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fviewer_2fregistry_2fregistry_2eproto = nullptr;
 const ::uint32_t
@@ -217,19 +232,21 @@ const ::uint32_t
         protodesc_cold) = {
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ViewerRegistration, _impl_._has_bits_),
-        9, // hasbit index offset
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ViewerRegistration, _impl_.type_id_),
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ViewerRegistration, _impl_.viewer_name_),
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ViewerRegistration, _impl_.script_path_),
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ViewerRegistration, _impl_.category_),
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ViewerRegistration, _impl_.dev_mode_only_),
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ViewerRegistration, _impl_.component_id_),
+        PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ViewerRegistration, _impl_.surface_),
         0,
         1,
         2,
         3,
         5,
         4,
+        6,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::RegisterViewerRequest, _impl_._has_bits_),
         4, // hasbit index offset
@@ -240,13 +257,21 @@ const ::uint32_t
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::RegisterViewerResponse, _impl_.resource_id_),
         0,
-        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ListViewersRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ListViewersRequest, _impl_.surface_),
+        0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ListViewersResponse, _impl_._has_bits_),
         4, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::ListViewersResponse, _impl_.registrations_),
         0,
-        0x000, // bitmap
+        0x081, // bitmap
+        PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::WatchViewersRequest, _impl_._has_bits_),
+        4, // hasbit index offset
+        PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::WatchViewersRequest, _impl_.surface_),
+        0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::s4wave::viewer::registry::WatchViewersResponse, _impl_._has_bits_),
         4, // hasbit index offset
@@ -257,12 +282,12 @@ const ::uint32_t
 static const ::_pbi::MigrationSchema
     schemas[] ABSL_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
         {0, sizeof(::s4wave::viewer::registry::ViewerRegistration)},
-        {15, sizeof(::s4wave::viewer::registry::RegisterViewerRequest)},
-        {20, sizeof(::s4wave::viewer::registry::RegisterViewerResponse)},
-        {25, sizeof(::s4wave::viewer::registry::ListViewersRequest)},
-        {26, sizeof(::s4wave::viewer::registry::ListViewersResponse)},
-        {31, sizeof(::s4wave::viewer::registry::WatchViewersRequest)},
-        {32, sizeof(::s4wave::viewer::registry::WatchViewersResponse)},
+        {17, sizeof(::s4wave::viewer::registry::RegisterViewerRequest)},
+        {22, sizeof(::s4wave::viewer::registry::RegisterViewerResponse)},
+        {27, sizeof(::s4wave::viewer::registry::ListViewersRequest)},
+        {32, sizeof(::s4wave::viewer::registry::ListViewersResponse)},
+        {37, sizeof(::s4wave::viewer::registry::WatchViewersRequest)},
+        {42, sizeof(::s4wave::viewer::registry::WatchViewersResponse)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::s4wave::viewer::registry::_ViewerRegistration_default_instance_._instance,
@@ -277,35 +302,41 @@ const char descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fv
     protodesc_cold) = {
     "\n>github.com/s4wave/spacewave/sdk/viewer"
     "/registry/registry.proto\022\026s4wave.viewer."
-    "registry\"\216\001\n\022ViewerRegistration\022\017\n\007type_"
+    "registry\"\306\001\n\022ViewerRegistration\022\017\n\007type_"
     "id\030\001 \001(\t\022\023\n\013viewer_name\030\002 \001(\t\022\023\n\013script_"
     "path\030\003 \001(\t\022\020\n\010category\030\004 \001(\t\022\025\n\rdev_mode"
-    "_only\030\005 \001(\010\022\024\n\014component_id\030\006 \001(\t\"Y\n\025Reg"
-    "isterViewerRequest\022@\n\014registration\030\001 \001(\013"
-    "2*.s4wave.viewer.registry.ViewerRegistra"
-    "tion\"-\n\026RegisterViewerResponse\022\023\n\013resour"
-    "ce_id\030\001 \001(\r\"\024\n\022ListViewersRequest\"X\n\023Lis"
-    "tViewersResponse\022A\n\rregistrations\030\001 \003(\0132"
-    "*.s4wave.viewer.registry.ViewerRegistrat"
-    "ion\"\025\n\023WatchViewersRequest\"Y\n\024WatchViewe"
-    "rsResponse\022A\n\rregistrations\030\001 \003(\0132*.s4wa"
-    "ve.viewer.registry.ViewerRegistration2\345\002"
-    "\n\035ViewerRegistryResourceService\022o\n\016Regis"
-    "terViewer\022-.s4wave.viewer.registry.Regis"
-    "terViewerRequest\032..s4wave.viewer.registr"
-    "y.RegisterViewerResponse\022f\n\013ListViewers\022"
-    "*.s4wave.viewer.registry.ListViewersRequ"
-    "est\032+.s4wave.viewer.registry.ListViewers"
-    "Response\022k\n\014WatchViewers\022+.s4wave.viewer"
-    ".registry.WatchViewersRequest\032,.s4wave.v"
-    "iewer.registry.WatchViewersResponse0\001b\006p"
-    "roto3"
+    "_only\030\005 \001(\010\022\024\n\014component_id\030\006 \001(\t\0226\n\007sur"
+    "face\030\007 \001(\0162%.s4wave.viewer.registry.View"
+    "erSurface\"Y\n\025RegisterViewerRequest\022@\n\014re"
+    "gistration\030\001 \001(\0132*.s4wave.viewer.registr"
+    "y.ViewerRegistration\"-\n\026RegisterViewerRe"
+    "sponse\022\023\n\013resource_id\030\001 \001(\r\"L\n\022ListViewe"
+    "rsRequest\0226\n\007surface\030\001 \001(\0162%.s4wave.view"
+    "er.registry.ViewerSurface\"X\n\023ListViewers"
+    "Response\022A\n\rregistrations\030\001 \003(\0132*.s4wave"
+    ".viewer.registry.ViewerRegistration\"M\n\023W"
+    "atchViewersRequest\0226\n\007surface\030\001 \001(\0162%.s4"
+    "wave.viewer.registry.ViewerSurface\"Y\n\024Wa"
+    "tchViewersResponse\022A\n\rregistrations\030\001 \003("
+    "\0132*.s4wave.viewer.registry.ViewerRegistr"
+    "ation*d\n\rViewerSurface\022\036\n\032VIEWER_SURFACE"
+    "_UNSPECIFIED\020\000\022\026\n\022VIEWER_SURFACE_WEB\020\001\022\033"
+    "\n\027VIEWER_SURFACE_TERMINAL\020\0022\345\002\n\035ViewerRe"
+    "gistryResourceService\022o\n\016RegisterViewer\022"
+    "-.s4wave.viewer.registry.RegisterViewerR"
+    "equest\032..s4wave.viewer.registry.Register"
+    "ViewerResponse\022f\n\013ListViewers\022*.s4wave.v"
+    "iewer.registry.ListViewersRequest\032+.s4wa"
+    "ve.viewer.registry.ListViewersResponse\022k"
+    "\n\014WatchViewers\022+.s4wave.viewer.registry."
+    "WatchViewersRequest\032,.s4wave.viewer.regi"
+    "stry.WatchViewersResponse0\001b\006proto3"
 };
 static ::absl::once_flag descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fviewer_2fregistry_2fregistry_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fviewer_2fregistry_2fregistry_2eproto = {
     false,
     false,
-    965,
+    1235,
     descriptor_table_protodef_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fviewer_2fregistry_2fregistry_2eproto,
     "github.com/s4wave/spacewave/sdk/viewer/registry/registry.proto",
     &descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fviewer_2fregistry_2fregistry_2eproto_once,
@@ -321,6 +352,12 @@ PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_github_2ecom_2
 namespace s4wave {
 namespace viewer {
 namespace registry {
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL ViewerSurface_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fviewer_2fregistry_2fregistry_2eproto);
+  return file_level_enum_descriptors_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fviewer_2fregistry_2fregistry_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t ViewerSurface_internal_data_[] = {
+    196608u, 0u, };
 // ===================================================================
 
 class ViewerRegistration::_Internal {
@@ -365,7 +402,13 @@ ViewerRegistration::ViewerRegistration(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  _impl_.dev_mode_only_ = from._impl_.dev_mode_only_;
+  ::memcpy(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, dev_mode_only_),
+           reinterpret_cast<const char*>(&from._impl_) +
+               offsetof(Impl_, dev_mode_only_),
+           offsetof(Impl_, surface_) -
+               offsetof(Impl_, dev_mode_only_) +
+               sizeof(Impl_::surface_));
 
   // @@protoc_insertion_point(copy_constructor:s4wave.viewer.registry.ViewerRegistration)
 }
@@ -381,7 +424,12 @@ PROTOBUF_NDEBUG_INLINE ViewerRegistration::Impl_::Impl_(
 
 inline void ViewerRegistration::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.dev_mode_only_ = {};
+  ::memset(reinterpret_cast<char*>(&_impl_) +
+               offsetof(Impl_, dev_mode_only_),
+           0,
+           offsetof(Impl_, surface_) -
+               offsetof(Impl_, dev_mode_only_) +
+               sizeof(Impl_::surface_));
 }
 ViewerRegistration::~ViewerRegistration() {
   // @@protoc_insertion_point(destructor:s4wave.viewer.registry.ViewerRegistration)
@@ -445,16 +493,16 @@ ViewerRegistration::GetClassData() const {
   return ViewerRegistration_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 6, 0, 99, 2>
+const ::_pbi::TcParseTable<3, 7, 0, 99, 2>
 ViewerRegistration::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_._has_bits_),
     0, // no _extensions_
-    6, 56,  // max_field_number, fast_idx_mask
+    7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967232,  // skipmap
+    4294967168,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    6,  // num_field_entries
+    7,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     ViewerRegistration_class_data_.base(),
@@ -489,7 +537,10 @@ ViewerRegistration::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {50, 4, 0,
       PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_.component_id_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.viewer.registry.ViewerSurface surface = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ViewerRegistration, _impl_.surface_), 6>(),
+     {56, 6, 0,
+      PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_.surface_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -505,6 +556,8 @@ ViewerRegistration::_table_ = {
     {PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_.dev_mode_only_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kBool)},
     // string component_id = 6;
     {PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_.component_id_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .s4wave.viewer.registry.ViewerSurface surface = 7;
+    {PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_.surface_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
   }},
   // no aux_entries
   {{
@@ -542,7 +595,11 @@ PROTOBUF_NOINLINE void ViewerRegistration::Clear() {
       _impl_.component_id_.ClearNonDefaultToEmpty();
     }
   }
-  _impl_.dev_mode_only_ = false;
+  if (BatchCheckHasBit(cached_has_bits, 0x00000060U)) {
+    ::memset(&_impl_.dev_mode_only_, 0, static_cast<::size_t>(
+        reinterpret_cast<char*>(&_impl_.surface_) -
+        reinterpret_cast<char*>(&_impl_.dev_mode_only_)) + sizeof(_impl_.surface_));
+  }
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -625,6 +682,15 @@ PROTOBUF_NOINLINE void ViewerRegistration::Clear() {
     }
   }
 
+  // .s4wave.viewer.registry.ViewerSurface surface = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+    if (this_._internal_surface() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          7, this_._internal_surface(), target);
+    }
+  }
+
   if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -650,7 +716,7 @@ PROTOBUF_NOINLINE void ViewerRegistration::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     // string type_id = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_type_id().empty()) {
@@ -692,6 +758,13 @@ PROTOBUF_NOINLINE void ViewerRegistration::Clear() {
         total_size += 2;
       }
     }
+    // .s4wave.viewer.registry.ViewerSurface surface = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (this_._internal_surface() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_surface());
+      }
+    }
   }
   return this_.MaybeComputeUnknownFieldsSize(total_size,
                                              &this_._impl_._cached_size_);
@@ -711,7 +784,7 @@ void ViewerRegistration::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000003fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_type_id().empty()) {
         _this->_internal_set_type_id(from._internal_type_id());
@@ -762,6 +835,11 @@ void ViewerRegistration::MergeImpl(::google::protobuf::MessageLite& to_msg,
         _this->_impl_.dev_mode_only_ = from._impl_.dev_mode_only_;
       }
     }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
+      if (from._internal_surface() != 0) {
+        _this->_impl_.surface_ = from._impl_.surface_;
+      }
+    }
   }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
@@ -787,7 +865,12 @@ void ViewerRegistration::InternalSwap(ViewerRegistration* PROTOBUF_RESTRICT PROT
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.script_path_, &other->_impl_.script_path_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.category_, &other->_impl_.category_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.component_id_, &other->_impl_.component_id_, arena);
-  swap(_impl_.dev_mode_only_, other->_impl_.dev_mode_only_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_.surface_)
+      + sizeof(ViewerRegistration::_impl_.surface_)
+      - PROTOBUF_FIELD_OFFSET(ViewerRegistration, _impl_.dev_mode_only_)>(
+          reinterpret_cast<char*>(&_impl_.dev_mode_only_),
+          reinterpret_cast<char*>(&other->_impl_.dev_mode_only_));
 }
 
 ::google::protobuf::Metadata ViewerRegistration::GetMetadata() const {
@@ -1316,30 +1399,53 @@ void RegisterViewerResponse::InternalSwap(RegisterViewerResponse* PROTOBUF_RESTR
 
 class ListViewersRequest::_Internal {
  public:
+  using HasBits =
+      decltype(::std::declval<ListViewersRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ListViewersRequest, _impl_._has_bits_);
 };
 
 ListViewersRequest::ListViewersRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, ListViewersRequest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, ListViewersRequest_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+    : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
   // @@protoc_insertion_point(arena_constructor:s4wave.viewer.registry.ListViewersRequest)
 }
 ListViewersRequest::ListViewersRequest(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const ListViewersRequest& from)
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ListViewersRequest& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, ListViewersRequest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, ListViewersRequest_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+    : ::google::protobuf::Message(arena),
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  ListViewersRequest* const _this = this;
-  (void)_this;
+      _impl_(from._impl_) {
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE ListViewersRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
 
-  // @@protoc_insertion_point(copy_constructor:s4wave.viewer.registry.ListViewersRequest)
+inline void ListViewersRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.surface_ = {};
+}
+ListViewersRequest::~ListViewersRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.viewer.registry.ListViewersRequest)
+  SharedDtor(*this);
+}
+inline void ListViewersRequest::SharedDtor(MessageLite& self) {
+  ListViewersRequest& this_ = static_cast<ListViewersRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
 }
 
 inline void* PROTOBUF_NONNULL ListViewersRequest::PlacementNew_(
@@ -1359,10 +1465,10 @@ constexpr auto ListViewersRequest::InternalGenerateClassData_() {
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
           &ListViewersRequest::MergeImpl,
-          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<ListViewersRequest>(),
+          ::google::protobuf::Message::GetNewImpl<ListViewersRequest>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
           &ListViewersRequest::SharedDtor,
-          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<ListViewersRequest>(), &ListViewersRequest::ByteSizeLong,
+          ::google::protobuf::Message::GetClearImpl<ListViewersRequest>(), &ListViewersRequest::ByteSizeLong,
               &ListViewersRequest::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
           PROTOBUF_FIELD_OFFSET(ListViewersRequest, _impl_._cached_size_),
@@ -1385,16 +1491,16 @@ ListViewersRequest::GetClassData() const {
   return ListViewersRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
 ListViewersRequest::_table_ = {
   {
-    0,  // no _has_bits_
+    PROTOBUF_FIELD_OFFSET(ListViewersRequest, _impl_._has_bits_),
     0, // no _extensions_
-    0, 0,  // max_field_number, fast_idx_mask
+    1, 0,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967295,  // skipmap
-    offsetof(decltype(_table_), field_names),  // no field_entries
-    0,  // num_field_entries
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     ListViewersRequest_class_data_.base(),
@@ -1404,22 +1510,138 @@ ListViewersRequest::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::viewer::registry::ListViewersRequest>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.viewer.registry.ViewerSurface surface = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ListViewersRequest, _impl_.surface_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(ListViewersRequest, _impl_.surface_)}},
   }}, {{
     65535, 65535
-  }}, // no field_entries, or aux_entries
+  }}, {{
+    // .s4wave.viewer.registry.ViewerSurface surface = 1;
+    {PROTOBUF_FIELD_OFFSET(ListViewersRequest, _impl_.surface_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+  }},
+  // no aux_entries
   {{
   }},
 };
+PROTOBUF_NOINLINE void ListViewersRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.viewer.registry.ListViewersRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.surface_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL ListViewersRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const ListViewersRequest& this_ = static_cast<const ListViewersRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL ListViewersRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const ListViewersRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.viewer.registry.ListViewersRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.viewer.registry.ViewerSurface surface = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_surface() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_surface(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.viewer.registry.ListViewersRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t ListViewersRequest::ByteSizeLong(const MessageLite& base) {
+  const ListViewersRequest& this_ = static_cast<const ListViewersRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t ListViewersRequest::ByteSizeLong() const {
+  const ListViewersRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.viewer.registry.ListViewersRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.viewer.registry.ViewerSurface surface = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_surface() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_surface());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void ListViewersRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<ListViewersRequest*>(&to_msg);
+  auto& from = static_cast<const ListViewersRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.viewer.registry.ListViewersRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_surface() != 0) {
+      _this->_impl_.surface_ = from._impl_.surface_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void ListViewersRequest::CopyFrom(const ListViewersRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.viewer.registry.ListViewersRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
 
 
-
-
-
-
+void ListViewersRequest::InternalSwap(ListViewersRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.surface_, other->_impl_.surface_);
+}
 
 ::google::protobuf::Metadata ListViewersRequest::GetMetadata() const {
-  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 
@@ -1709,30 +1931,53 @@ void ListViewersResponse::InternalSwap(ListViewersResponse* PROTOBUF_RESTRICT PR
 
 class WatchViewersRequest::_Internal {
  public:
+  using HasBits =
+      decltype(::std::declval<WatchViewersRequest>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(WatchViewersRequest, _impl_._has_bits_);
 };
 
 WatchViewersRequest::WatchViewersRequest(::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchViewersRequest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, WatchViewersRequest_class_data_.base()) {
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+    : ::google::protobuf::Message(arena) {
 #endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
   // @@protoc_insertion_point(arena_constructor:s4wave.viewer.registry.WatchViewersRequest)
 }
 WatchViewersRequest::WatchViewersRequest(
-    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
-    const WatchViewersRequest& from)
+    ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const WatchViewersRequest& from)
 #if defined(PROTOBUF_CUSTOM_VTABLE)
-    : ::google::protobuf::internal::ZeroFieldsBase(arena, WatchViewersRequest_class_data_.base()) {
+    : ::google::protobuf::Message(arena, WatchViewersRequest_class_data_.base()),
 #else   // PROTOBUF_CUSTOM_VTABLE
-    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+    : ::google::protobuf::Message(arena),
 #endif  // PROTOBUF_CUSTOM_VTABLE
-  WatchViewersRequest* const _this = this;
-  (void)_this;
+      _impl_(from._impl_) {
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
+}
+PROTOBUF_NDEBUG_INLINE WatchViewersRequest::Impl_::Impl_(
+    [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
+    [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
+      : _cached_size_{0} {}
 
-  // @@protoc_insertion_point(copy_constructor:s4wave.viewer.registry.WatchViewersRequest)
+inline void WatchViewersRequest::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.surface_ = {};
+}
+WatchViewersRequest::~WatchViewersRequest() {
+  // @@protoc_insertion_point(destructor:s4wave.viewer.registry.WatchViewersRequest)
+  SharedDtor(*this);
+}
+inline void WatchViewersRequest::SharedDtor(MessageLite& self) {
+  WatchViewersRequest& this_ = static_cast<WatchViewersRequest&>(self);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
 }
 
 inline void* PROTOBUF_NONNULL WatchViewersRequest::PlacementNew_(
@@ -1752,10 +1997,10 @@ constexpr auto WatchViewersRequest::InternalGenerateClassData_() {
           nullptr,  // OnDemandRegisterArenaDtor
           nullptr,  // IsInitialized
           &WatchViewersRequest::MergeImpl,
-          ::google::protobuf::internal::ZeroFieldsBase::GetNewImpl<WatchViewersRequest>(),
+          ::google::protobuf::Message::GetNewImpl<WatchViewersRequest>(),
 #if defined(PROTOBUF_CUSTOM_VTABLE)
           &WatchViewersRequest::SharedDtor,
-          ::google::protobuf::internal::ZeroFieldsBase::GetClearImpl<WatchViewersRequest>(), &WatchViewersRequest::ByteSizeLong,
+          ::google::protobuf::Message::GetClearImpl<WatchViewersRequest>(), &WatchViewersRequest::ByteSizeLong,
               &WatchViewersRequest::_InternalSerialize,
 #endif  // PROTOBUF_CUSTOM_VTABLE
           PROTOBUF_FIELD_OFFSET(WatchViewersRequest, _impl_._cached_size_),
@@ -1778,16 +2023,16 @@ WatchViewersRequest::GetClassData() const {
   return WatchViewersRequest_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<0, 0, 0, 0, 2>
+const ::_pbi::TcParseTable<0, 1, 0, 0, 2>
 WatchViewersRequest::_table_ = {
   {
-    0,  // no _has_bits_
+    PROTOBUF_FIELD_OFFSET(WatchViewersRequest, _impl_._has_bits_),
     0, // no _extensions_
-    0, 0,  // max_field_number, fast_idx_mask
+    1, 0,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967295,  // skipmap
-    offsetof(decltype(_table_), field_names),  // no field_entries
-    0,  // num_field_entries
+    4294967294,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    1,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     WatchViewersRequest_class_data_.base(),
@@ -1797,22 +2042,138 @@ WatchViewersRequest::_table_ = {
     ::_pbi::TcParser::GetTable<::s4wave::viewer::registry::WatchViewersRequest>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    {::_pbi::TcParser::MiniParse, {}},
+    // .s4wave.viewer.registry.ViewerSurface surface = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(WatchViewersRequest, _impl_.surface_), 0>(),
+     {8, 0, 0,
+      PROTOBUF_FIELD_OFFSET(WatchViewersRequest, _impl_.surface_)}},
   }}, {{
     65535, 65535
-  }}, // no field_entries, or aux_entries
+  }}, {{
+    // .s4wave.viewer.registry.ViewerSurface surface = 1;
+    {PROTOBUF_FIELD_OFFSET(WatchViewersRequest, _impl_.surface_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kOpenEnum)},
+  }},
+  // no aux_entries
   {{
   }},
 };
+PROTOBUF_NOINLINE void WatchViewersRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:s4wave.viewer.registry.WatchViewersRequest)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.surface_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::uint8_t* PROTOBUF_NONNULL WatchViewersRequest::_InternalSerialize(
+    const ::google::protobuf::MessageLite& base, ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) {
+  const WatchViewersRequest& this_ = static_cast<const WatchViewersRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::uint8_t* PROTOBUF_NONNULL WatchViewersRequest::_InternalSerialize(
+    ::uint8_t* PROTOBUF_NONNULL target,
+    ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+  const WatchViewersRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    this_.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(serialize_to_array_start:s4wave.viewer.registry.WatchViewersRequest)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = this_._impl_._has_bits_[0];
+  // .s4wave.viewer.registry.ViewerSurface surface = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (this_._internal_surface() != 0) {
+      target = stream->EnsureSpace(target);
+      target = ::_pbi::WireFormatLite::WriteEnumToArray(
+          1, this_._internal_surface(), target);
+    }
+  }
+
+  if (ABSL_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:s4wave.viewer.registry.WatchViewersRequest)
+  return target;
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+::size_t WatchViewersRequest::ByteSizeLong(const MessageLite& base) {
+  const WatchViewersRequest& this_ = static_cast<const WatchViewersRequest&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+::size_t WatchViewersRequest::ByteSizeLong() const {
+  const WatchViewersRequest& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  // @@protoc_insertion_point(message_byte_size_start:s4wave.viewer.registry.WatchViewersRequest)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void)cached_has_bits;
+
+   {
+    // .s4wave.viewer.registry.ViewerSurface surface = 1;
+    cached_has_bits = this_._impl_._has_bits_[0];
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (this_._internal_surface() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this_._internal_surface());
+      }
+    }
+  }
+  return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                             &this_._impl_._cached_size_);
+}
+
+void WatchViewersRequest::MergeImpl(::google::protobuf::MessageLite& to_msg,
+                            const ::google::protobuf::MessageLite& from_msg) {
+   auto* const _this =
+      static_cast<WatchViewersRequest*>(&to_msg);
+  auto& from = static_cast<const WatchViewersRequest&>(from_msg);
+  if constexpr (::_pbi::DebugHardenCheckHasBitConsistency()) {
+    from.CheckHasBitConsistency();
+  }
+  // @@protoc_insertion_point(class_specific_merge_from_start:s4wave.viewer.registry.WatchViewersRequest)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (from._internal_surface() != 0) {
+      _this->_impl_.surface_ = from._impl_.surface_;
+    }
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+}
+
+void WatchViewersRequest::CopyFrom(const WatchViewersRequest& from) {
+  // @@protoc_insertion_point(class_specific_copy_from_start:s4wave.viewer.registry.WatchViewersRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
 
 
-
-
-
-
+void WatchViewersRequest::InternalSwap(WatchViewersRequest* PROTOBUF_RESTRICT PROTOBUF_NONNULL other) {
+  using ::std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  swap(_impl_.surface_, other->_impl_.surface_);
+}
 
 ::google::protobuf::Metadata WatchViewersRequest::GetMetadata() const {
-  return ::google::protobuf::internal::ZeroFieldsBase::GetMetadataImpl(GetClassData()->full());
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // ===================================================================
 

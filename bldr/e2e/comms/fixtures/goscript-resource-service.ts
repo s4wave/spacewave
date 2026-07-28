@@ -5,6 +5,7 @@ import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 import { Client as ResourceClient } from '../../../sdk/resource/client.js'
 import { ResourceServiceClient } from '../../../resource/resource_srpc.pb.js'
 import { ViewerRegistryResourceServiceClient } from '../../../../sdk/viewer/registry/registry_srpc.pb.js'
+import { ViewerSurface } from '../../../../sdk/viewer/registry/registry.pb.js'
 
 declare global {
   interface Window {
@@ -173,12 +174,16 @@ async function proveResourceService(
           viewerName: 'Test Viewer',
           scriptPath: '/viewer.js',
           componentId: 'spacewave.test.viewer',
+          surface: ViewerSurface.WEB,
         },
       },
       abort.signal,
     )
     mark('resource-list-viewers')
-    const registered = await registry.ListViewers({}, abort.signal)
+    const registered = await registry.ListViewers(
+      { surface: ViewerSurface.WEB },
+      abort.signal,
+    )
     const registeredRegistrations = registered.registrations ?? []
     const registeredViewer =
       Boolean(response.resourceId) &&
@@ -186,7 +191,10 @@ async function proveResourceService(
       registeredRegistrations[0]?.componentId === 'spacewave.test.viewer'
 
     mark('resource-watch-viewers')
-    const watch = registry.WatchViewers({}, abort.signal)
+    const watch = registry.WatchViewers(
+      { surface: ViewerSurface.WEB },
+      abort.signal,
+    )
     const watchIterator = watch[Symbol.asyncIterator]()
     const initial = await watchIterator.next()
     mark('resource-release-registration')

@@ -45,6 +45,9 @@ func (r *ViewerRegistryResource) RegisterViewer(
 	if reg == nil {
 		return nil, ErrRegistrationRequired
 	}
+	if reg.GetSurface() == s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_UNSPECIFIED {
+		return nil, ErrSurfaceRequired
+	}
 	if reg.GetTypeId() == "" {
 		return nil, ErrTypeIdRequired
 	}
@@ -88,23 +91,29 @@ func (r *ViewerRegistryResource) RegisterViewer(
 	return &s4wave_viewer_registry.RegisterViewerResponse{ResourceId: resourceID}, nil
 }
 
-// ListViewers returns all registered viewers.
+// ListViewers returns registered viewers for the requested surface.
 func (r *ViewerRegistryResource) ListViewers(
 	ctx context.Context,
 	req *s4wave_viewer_registry.ListViewersRequest,
 ) (*s4wave_viewer_registry.ListViewersResponse, error) {
+	if req.GetSurface() == s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_UNSPECIFIED {
+		return nil, ErrSurfaceRequired
+	}
 	var regs []*s4wave_viewer_registry.ViewerRegistration
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		regs = r.getRegistrationsLocked()
+		regs = r.getRegistrationsLocked(req.GetSurface())
 	})
 	return &s4wave_viewer_registry.ListViewersResponse{Registrations: regs}, nil
 }
 
-// WatchViewers streams viewer registration changes.
+// WatchViewers streams registration changes for the requested surface.
 func (r *ViewerRegistryResource) WatchViewers(
 	req *s4wave_viewer_registry.WatchViewersRequest,
 	strm s4wave_viewer_registry.SRPCViewerRegistryResourceService_WatchViewersStream,
 ) error {
+	if req.GetSurface() == s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_UNSPECIFIED {
+		return ErrSurfaceRequired
+	}
 	ctx := strm.Context()
 
 	for {
@@ -112,7 +121,7 @@ func (r *ViewerRegistryResource) WatchViewers(
 		var waitCh <-chan struct{}
 
 		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			regs = r.getRegistrationsLocked()
+			regs = r.getRegistrationsLocked(req.GetSurface())
 			waitCh = getWaitCh()
 		})
 
@@ -130,11 +139,16 @@ func (r *ViewerRegistryResource) WatchViewers(
 	}
 }
 
-// getRegistrationsLocked returns a snapshot of all registrations.
+// getRegistrationsLocked returns a snapshot of registrations for surface.
 // Must be called with bcast lock held.
-func (r *ViewerRegistryResource) getRegistrationsLocked() []*s4wave_viewer_registry.ViewerRegistration {
+func (r *ViewerRegistryResource) getRegistrationsLocked(
+	surface s4wave_viewer_registry.ViewerSurface,
+) []*s4wave_viewer_registry.ViewerRegistration {
 	regs := make([]*s4wave_viewer_registry.ViewerRegistration, 0, len(r.registrations))
 	for _, reg := range r.registrations {
+		if reg.GetSurface() != surface {
+			continue
+		}
 		regs = append(regs, reg)
 	}
 	return regs
