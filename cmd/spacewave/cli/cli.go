@@ -15,7 +15,7 @@ import (
 
 // NewCliCommands builds the spacewave CLI commands.
 func NewCliCommands(getBus func() cli_entrypoint.CliBus) []*cli.Command {
-	return []*cli.Command{
+	commands := []*cli.Command{
 		// Tier 1: entry points
 		newLoginCommand(getBus),
 		newLogoutCommand(getBus),
@@ -24,8 +24,10 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus) []*cli.Command {
 		newStopCommand(getBus),
 		newStatusCommand(getBus),
 		newWebCommand(getBus),
-		newTuiCommand(),
-
+	}
+	commands = appendTuiCommand(commands)
+	return append(
+		commands,
 		// Tier 2: auth
 		newAuthCommand(getBus),
 
@@ -47,7 +49,7 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus) []*cli.Command {
 		newAccountCommand(getBus),
 		newSessionCommand(getBus),
 		newProviderCommand(getBus),
-	}
+	)
 }
 
 func nativeRunnerConfig() runner.Config {

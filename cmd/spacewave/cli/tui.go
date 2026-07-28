@@ -1,4 +1,4 @@
-//go:build !js
+//go:build !js && !windows
 
 package spacewave_cli
 
@@ -37,6 +37,10 @@ func newTuiCommand() *cli.Command {
 		Flags:     args.BuildFlags(),
 		Action:    args.Run,
 	}
+}
+
+func appendTuiCommand(commands []*cli.Command) []*cli.Command {
+	return append(commands, newTuiCommand())
 }
 
 // BuildFlags returns flags for the generic TuiView front door.
@@ -105,7 +109,7 @@ func (a *tuiArgs) Run(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	client.close()
+	defer client.close()
 
 	daemonSocketPath, err := tuiDaemonSocketPath(c, a.statePath)
 	if err != nil {
