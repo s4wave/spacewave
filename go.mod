@@ -1,6 +1,6 @@
 module github.com/s4wave/spacewave
 
-go 1.26.4
+go 1.26.5
 
 tool github.com/s4wave/goscript/cmd/goscript
 

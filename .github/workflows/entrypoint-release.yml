@@ -43,7 +43,7 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: 1.26.4
+  GO_VERSION: 1.26.5
   TINYGO_VERSION: 0.41.1
   BINARYEN_VERSION: 129
   # Binaryen's static Linux release binaries can segfault in pthreaded
