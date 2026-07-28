@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ViewerSurface } from '@s4wave/sdk/viewer/registry/registry.pb.js'
 
 const h = vi.hoisted(() => ({
   buildPluginOpenStream: vi.fn(),
@@ -371,36 +372,42 @@ describe('notes backend registration', () => {
         viewerName: 'Notebook',
         componentId: 'notes.notebook.viewer',
         scriptPath: '/asset/spacewave-notes/v/b/fe/assets/notebook.mjs',
+        surface: ViewerSurface.WEB,
       },
       {
         typeId: 'notes/blog',
         viewerName: 'Blog',
         componentId: 'notes.blog.viewer',
         scriptPath: '/asset/spacewave-notes/v/b/fe/assets/blog.mjs',
+        surface: ViewerSurface.WEB,
       },
       {
         typeId: 'notes/docs',
         viewerName: 'Documentation',
         componentId: 'notes.docs.viewer',
         scriptPath: '/asset/spacewave-notes/v/b/fe/assets/docs.mjs',
+        surface: ViewerSurface.WEB,
       },
       {
         typeId: 'wizard/notes/notebook',
         viewerName: 'Notebook Wizard',
         componentId: 'notes.notebook-wizard.viewer',
         scriptPath: '/asset/spacewave-notes/v/b/fe/assets/notes-wizard.mjs',
+        surface: ViewerSurface.WEB,
       },
       {
         typeId: 'wizard/notes/docs',
         viewerName: 'Documentation Wizard',
         componentId: 'notes.docs-wizard.viewer',
         scriptPath: '/asset/spacewave-notes/v/b/fe/assets/notes-wizard.mjs',
+        surface: ViewerSurface.WEB,
       },
       {
         typeId: 'wizard/notes/blog',
         viewerName: 'Blog Wizard',
         componentId: 'notes.blog-wizard.viewer',
         scriptPath: '/asset/spacewave-notes/v/b/fe/assets/notes-wizard.mjs',
+        surface: ViewerSurface.WEB,
       },
     ])
     expect(h.rootRef.createRef).toHaveBeenCalledTimes(18)

@@ -4,6 +4,7 @@ import type { Root } from '@s4wave/sdk/root'
 import type { ObjectViewerComponent } from '@s4wave/web/object/object.js'
 import { ViewerRegistryResourceServiceClient } from '@s4wave/sdk/viewer/registry/registry_srpc.pb.js'
 import {
+  ViewerSurface,
   WatchViewersRequest,
   WatchViewersResponse,
   type ViewerRegistration,
@@ -56,10 +57,10 @@ export function useAllViewers(
 
 const viewerCreateStream = (
   root: Root,
-  _req: WatchViewersRequest,
+  req: WatchViewersRequest,
   signal: AbortSignal,
 ) =>
-  new ViewerRegistryResourceServiceClient(root.client).WatchViewers({}, signal)
+  new ViewerRegistryResourceServiceClient(root.client).WatchViewers(req, signal)
 
 const viewerGetRegs = (resp: WatchViewersResponse | null) =>
   resp?.registrations ?? []
@@ -72,7 +73,7 @@ function useDynamicViewers(
   return useDynamicRegistrations(
     rootResource.value,
     viewerCreateStream,
-    {},
+    { surface: ViewerSurface.WEB },
     WatchViewersRequest.equals,
     WatchViewersResponse.equals,
     viewerGetRegs,

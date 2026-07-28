@@ -22,7 +22,6 @@
 #include "google/protobuf/io/coded_stream.h"
 #include "google/protobuf/arena.h"
 #include "google/protobuf/arenastring.h"
-#include "google/protobuf/generated_message_bases.h"
 #include "google/protobuf/generated_message_tctable_decl.h"
 #include "google/protobuf/generated_message_util.h"
 #include "google/protobuf/metadata_lite.h"
@@ -31,6 +30,7 @@
 #include "google/protobuf/message_lite.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 // @@protoc_insertion_point(includes)
 
@@ -58,6 +58,8 @@ extern const ::google::protobuf::internal::DescriptorTable descriptor_table_gith
 namespace s4wave {
 namespace viewer {
 namespace registry {
+enum ViewerSurface : int;
+extern const uint32_t ViewerSurface_internal_data_[];
 class ListViewersRequest;
 struct ListViewersRequestDefaultTypeInternal;
 extern ListViewersRequestDefaultTypeInternal _ListViewersRequest_default_instance_;
@@ -91,22 +93,63 @@ extern const ::google::protobuf::internal::ClassDataFull WatchViewersResponse_cl
 }  // namespace s4wave
 namespace google {
 namespace protobuf {
+template <>
+internal::EnumTraitsT<::s4wave::viewer::registry::ViewerSurface_internal_data_>
+    internal::EnumTraitsImpl::value<::s4wave::viewer::registry::ViewerSurface>;
 }  // namespace protobuf
 }  // namespace google
 
 namespace s4wave {
 namespace viewer {
 namespace registry {
+enum ViewerSurface : int {
+  VIEWER_SURFACE_UNSPECIFIED = 0,
+  VIEWER_SURFACE_WEB = 1,
+  VIEWER_SURFACE_TERMINAL = 2,
+  ViewerSurface_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::min(),
+  ViewerSurface_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      ::std::numeric_limits<::int32_t>::max(),
+};
+
+extern const uint32_t ViewerSurface_internal_data_[];
+inline constexpr ViewerSurface ViewerSurface_MIN =
+    static_cast<ViewerSurface>(0);
+inline constexpr ViewerSurface ViewerSurface_MAX =
+    static_cast<ViewerSurface>(2);
+inline bool ViewerSurface_IsValid(int value) {
+  return 0 <= value && value <= 2;
+}
+inline constexpr int ViewerSurface_ARRAYSIZE = 2 + 1;
+const ::google::protobuf::EnumDescriptor* PROTOBUF_NONNULL ViewerSurface_descriptor();
+template <typename T>
+const ::std::string& ViewerSurface_Name(T value) {
+  static_assert(::std::is_same<T, ViewerSurface>::value ||
+                    ::std::is_integral<T>::value,
+                "Incorrect type passed to ViewerSurface_Name().");
+  return ViewerSurface_Name(static_cast<ViewerSurface>(value));
+}
+template <>
+inline const ::std::string& ViewerSurface_Name(ViewerSurface value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<ViewerSurface_descriptor, 0, 2>(
+      static_cast<int>(value));
+}
+inline bool ViewerSurface_Parse(
+    ::absl::string_view name, ViewerSurface* PROTOBUF_NONNULL value) {
+  return ::google::protobuf::internal::ParseNamedEnum<ViewerSurface>(ViewerSurface_descriptor(), name,
+                                           value);
+}
 
 // ===================================================================
 
 
 // -------------------------------------------------------------------
 
-class WatchViewersRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+class WatchViewersRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.viewer.registry.WatchViewersRequest) */ {
  public:
   inline WatchViewersRequest() : WatchViewersRequest(nullptr) {}
+  ~WatchViewersRequest() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
   void operator delete(WatchViewersRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
@@ -176,21 +219,48 @@ class WatchViewersRequest final : public ::google::protobuf::internal::ZeroField
   // implements Message ----------------------------------------------
 
   WatchViewersRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<WatchViewersRequest>(arena);
+    return ::google::protobuf::Message::DefaultConstruct<WatchViewersRequest>(arena);
   }
-  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
-  inline void CopyFrom(const WatchViewersRequest& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
-  }
-  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
-  void MergeFrom(const WatchViewersRequest& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
-  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const WatchViewersRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const WatchViewersRequest& from) { WatchViewersRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
 
   public:
   bool IsInitialized() const {
     return true;
   }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(WatchViewersRequest* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
@@ -216,11 +286,24 @@ class WatchViewersRequest final : public ::google::protobuf::internal::ZeroField
   // nested types ----------------------------------------------------
 
   // accessors -------------------------------------------------------
+  enum : int {
+    kSurfaceFieldNumber = 1,
+  };
+  // .s4wave.viewer.registry.ViewerSurface surface = 1;
+  void clear_surface() ;
+  ::s4wave::viewer::registry::ViewerSurface surface() const;
+  void set_surface(::s4wave::viewer::registry::ViewerSurface value);
+
+  private:
+  ::s4wave::viewer::registry::ViewerSurface _internal_surface() const;
+  void _internal_set_surface(::s4wave::viewer::registry::ViewerSurface value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.viewer.registry.WatchViewersRequest)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 0,
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
                                    0, 0,
                                    2>
       _table_;
@@ -231,6 +314,21 @@ class WatchViewersRequest final : public ::google::protobuf::internal::ZeroField
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const WatchViewersRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    int surface_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fviewer_2fregistry_2fregistry_2eproto;
 };
 
@@ -385,6 +483,7 @@ class ViewerRegistration final : public ::google::protobuf::Message
     kCategoryFieldNumber = 4,
     kComponentIdFieldNumber = 6,
     kDevModeOnlyFieldNumber = 5,
+    kSurfaceFieldNumber = 7,
   };
   // string type_id = 1;
   void clear_type_id() ;
@@ -471,11 +570,21 @@ class ViewerRegistration final : public ::google::protobuf::Message
   void _internal_set_dev_mode_only(bool value);
 
   public:
+  // .s4wave.viewer.registry.ViewerSurface surface = 7;
+  void clear_surface() ;
+  ::s4wave::viewer::registry::ViewerSurface surface() const;
+  void set_surface(::s4wave::viewer::registry::ViewerSurface value);
+
+  private:
+  ::s4wave::viewer::registry::ViewerSurface _internal_surface() const;
+  void _internal_set_surface(::s4wave::viewer::registry::ViewerSurface value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.viewer.registry.ViewerRegistration)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<3, 6,
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
                                    0, 99,
                                    2>
       _table_;
@@ -503,6 +612,7 @@ class ViewerRegistration final : public ::google::protobuf::Message
     ::google::protobuf::internal::ArenaStringPtr category_;
     ::google::protobuf::internal::ArenaStringPtr component_id_;
     bool dev_mode_only_;
+    int surface_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -702,10 +812,11 @@ class RegisterViewerResponse final : public ::google::protobuf::Message
 extern const ::google::protobuf::internal::ClassDataFull RegisterViewerResponse_class_data_;
 // -------------------------------------------------------------------
 
-class ListViewersRequest final : public ::google::protobuf::internal::ZeroFieldsBase
+class ListViewersRequest final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:s4wave.viewer.registry.ListViewersRequest) */ {
  public:
   inline ListViewersRequest() : ListViewersRequest(nullptr) {}
+  ~ListViewersRequest() PROTOBUF_FINAL;
 
 #if defined(PROTOBUF_CUSTOM_VTABLE)
   void operator delete(ListViewersRequest* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
@@ -775,21 +886,48 @@ class ListViewersRequest final : public ::google::protobuf::internal::ZeroFields
   // implements Message ----------------------------------------------
 
   ListViewersRequest* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
-    return ::google::protobuf::internal::ZeroFieldsBase::DefaultConstruct<ListViewersRequest>(arena);
+    return ::google::protobuf::Message::DefaultConstruct<ListViewersRequest>(arena);
   }
-  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
-  inline void CopyFrom(const ListViewersRequest& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
-  }
-  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
-  void MergeFrom(const ListViewersRequest& from) {
-    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
-  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ListViewersRequest& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ListViewersRequest& from) { ListViewersRequest::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
 
   public:
   bool IsInitialized() const {
     return true;
   }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ListViewersRequest* PROTOBUF_NONNULL other);
  private:
   template <typename T>
   friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
@@ -815,11 +953,24 @@ class ListViewersRequest final : public ::google::protobuf::internal::ZeroFields
   // nested types ----------------------------------------------------
 
   // accessors -------------------------------------------------------
+  enum : int {
+    kSurfaceFieldNumber = 1,
+  };
+  // .s4wave.viewer.registry.ViewerSurface surface = 1;
+  void clear_surface() ;
+  ::s4wave::viewer::registry::ViewerSurface surface() const;
+  void set_surface(::s4wave::viewer::registry::ViewerSurface value);
+
+  private:
+  ::s4wave::viewer::registry::ViewerSurface _internal_surface() const;
+  void _internal_set_surface(::s4wave::viewer::registry::ViewerSurface value);
+
+  public:
   // @@protoc_insertion_point(class_scope:s4wave.viewer.registry.ListViewersRequest)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<0, 0,
+  static const ::google::protobuf::internal::TcParseTable<0, 1,
                                    0, 0,
                                    2>
       _table_;
@@ -830,6 +981,21 @@ class ListViewersRequest final : public ::google::protobuf::internal::ZeroFields
   friend class ::google::protobuf::Arena::InternalHelper;
   using InternalArenaConstructable_ = void;
   using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ListViewersRequest& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    int surface_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
   friend struct ::TableStruct_github_2ecom_2fs4wave_2fspacewave_2fsdk_2fviewer_2fregistry_2fregistry_2eproto;
 };
 
@@ -1790,6 +1956,31 @@ inline void ViewerRegistration::set_allocated_component_id(::std::string* PROTOB
   // @@protoc_insertion_point(field_set_allocated:s4wave.viewer.registry.ViewerRegistration.component_id)
 }
 
+// .s4wave.viewer.registry.ViewerSurface surface = 7;
+inline void ViewerRegistration::clear_surface() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::s4wave::viewer::registry::ViewerSurface ViewerRegistration::surface() const {
+  // @@protoc_insertion_point(field_get:s4wave.viewer.registry.ViewerRegistration.surface)
+  return _internal_surface();
+}
+inline void ViewerRegistration::set_surface(::s4wave::viewer::registry::ViewerSurface value) {
+  _internal_set_surface(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:s4wave.viewer.registry.ViewerRegistration.surface)
+}
+inline ::s4wave::viewer::registry::ViewerSurface ViewerRegistration::_internal_surface() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::viewer::registry::ViewerSurface>(_impl_.surface_);
+}
+inline void ViewerRegistration::_internal_set_surface(::s4wave::viewer::registry::ViewerSurface value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // RegisterViewerRequest
@@ -1926,6 +2117,31 @@ inline void RegisterViewerResponse::_internal_set_resource_id(::uint32_t value) 
 
 // ListViewersRequest
 
+// .s4wave.viewer.registry.ViewerSurface surface = 1;
+inline void ListViewersRequest::clear_surface() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::s4wave::viewer::registry::ViewerSurface ListViewersRequest::surface() const {
+  // @@protoc_insertion_point(field_get:s4wave.viewer.registry.ListViewersRequest.surface)
+  return _internal_surface();
+}
+inline void ListViewersRequest::set_surface(::s4wave::viewer::registry::ViewerSurface value) {
+  _internal_set_surface(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:s4wave.viewer.registry.ListViewersRequest.surface)
+}
+inline ::s4wave::viewer::registry::ViewerSurface ListViewersRequest::_internal_surface() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::viewer::registry::ViewerSurface>(_impl_.surface_);
+}
+inline void ListViewersRequest::_internal_set_surface(::s4wave::viewer::registry::ViewerSurface value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // ListViewersResponse
@@ -1989,6 +2205,31 @@ ListViewersResponse::_internal_mutable_registrations() {
 // -------------------------------------------------------------------
 
 // WatchViewersRequest
+
+// .s4wave.viewer.registry.ViewerSurface surface = 1;
+inline void WatchViewersRequest::clear_surface() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline ::s4wave::viewer::registry::ViewerSurface WatchViewersRequest::surface() const {
+  // @@protoc_insertion_point(field_get:s4wave.viewer.registry.WatchViewersRequest.surface)
+  return _internal_surface();
+}
+inline void WatchViewersRequest::set_surface(::s4wave::viewer::registry::ViewerSurface value) {
+  _internal_set_surface(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  // @@protoc_insertion_point(field_set:s4wave.viewer.registry.WatchViewersRequest.surface)
+}
+inline ::s4wave::viewer::registry::ViewerSurface WatchViewersRequest::_internal_surface() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::s4wave::viewer::registry::ViewerSurface>(_impl_.surface_);
+}
+inline void WatchViewersRequest::_internal_set_surface(::s4wave::viewer::registry::ViewerSurface value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.surface_ = value;
+}
 
 // -------------------------------------------------------------------
 
@@ -2059,6 +2300,19 @@ WatchViewersResponse::_internal_mutable_registrations() {
 }  // namespace viewer
 }  // namespace s4wave
 
+
+namespace google {
+namespace protobuf {
+
+template <>
+struct is_proto_enum<::s4wave::viewer::registry::ViewerSurface> : std::true_type {};
+template <>
+inline const EnumDescriptor* PROTOBUF_NONNULL GetEnumDescriptor<::s4wave::viewer::registry::ViewerSurface>() {
+  return ::s4wave::viewer::registry::ViewerSurface_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 

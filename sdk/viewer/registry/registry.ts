@@ -6,6 +6,7 @@ import {
 } from './registry_srpc.pb.js'
 import {
   RegisterViewerResponse,
+  ViewerSurface,
   ListViewersResponse,
   WatchViewersResponse,
   ViewerRegistration,
@@ -30,17 +31,19 @@ export class ViewerRegistry extends Resource {
     return await this.service.RegisterViewer({ registration }, abortSignal)
   }
 
-  // listViewers returns all registered viewers.
+  // listViewers returns registered viewers for a surface.
   public async listViewers(
+    surface: ViewerSurface,
     abortSignal?: AbortSignal,
   ): Promise<ListViewersResponse> {
-    return await this.service.ListViewers({}, abortSignal)
+    return await this.service.ListViewers({ surface }, abortSignal)
   }
 
-  // watchViewers streams viewer registration changes.
+  // watchViewers streams viewer registration changes for a surface.
   public watchViewers(
+    surface: ViewerSurface,
     abortSignal?: AbortSignal,
   ): AsyncIterable<WatchViewersResponse> {
-    return this.service.WatchViewers({}, abortSignal)
+    return this.service.WatchViewers({ surface }, abortSignal)
   }
 }

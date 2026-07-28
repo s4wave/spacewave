@@ -21,6 +21,9 @@ pub struct ViewerRegistration {
     /// ComponentId is the stable ID used for persisted viewer selection.
     #[prost(string, tag="6")]
     pub component_id: ::prost::alloc::string::String,
+    /// Surface is the host surface that can render this viewer.
+    #[prost(enumeration="ViewerSurface", tag="7")]
+    pub surface: i32,
 }
 /// RegisterViewerRequest is the request type for RegisterViewer.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -39,6 +42,9 @@ pub struct RegisterViewerResponse {
 /// ListViewersRequest is the request type for ListViewers.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListViewersRequest {
+    /// Surface selects the host surface to list.
+    #[prost(enumeration="ViewerSurface", tag="1")]
+    pub surface: i32,
 }
 /// ListViewersResponse is the response type for ListViewers.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -50,6 +56,9 @@ pub struct ListViewersResponse {
 /// WatchViewersRequest is the request type for WatchViewers.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WatchViewersRequest {
+    /// Surface selects the host surface to watch.
+    #[prost(enumeration="ViewerSurface", tag="1")]
+    pub surface: i32,
 }
 /// WatchViewersResponse is the response type for WatchViewers.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -57,5 +66,38 @@ pub struct WatchViewersResponse {
     /// Registrations is the current set of registered viewers.
     #[prost(message, repeated, tag="1")]
     pub registrations: ::prost::alloc::vec::Vec<ViewerRegistration>,
+}
+/// ViewerSurface identifies the host surface that can render a viewer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ViewerSurface {
+    /// VIEWER_SURFACE_UNSPECIFIED selects the web surface for legacy callers.
+    Unspecified = 0,
+    /// VIEWER_SURFACE_WEB identifies browser viewers.
+    Web = 1,
+    /// VIEWER_SURFACE_TERMINAL identifies terminal viewers.
+    Terminal = 2,
+}
+impl ViewerSurface {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "VIEWER_SURFACE_UNSPECIFIED",
+            Self::Web => "VIEWER_SURFACE_WEB",
+            Self::Terminal => "VIEWER_SURFACE_TERMINAL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VIEWER_SURFACE_UNSPECIFIED" => Some(Self::Unspecified),
+            "VIEWER_SURFACE_WEB" => Some(Self::Web),
+            "VIEWER_SURFACE_TERMINAL" => Some(Self::Terminal),
+            _ => None,
+        }
+    }
 }
 // @@protoc_insertion_point(module)

@@ -49,6 +49,7 @@ import type {
   SeedQuickstartResponse,
 } from '@s4wave/sdk/quickstart/registry/registry.pb.js'
 import { ViewerRegistryResourceServiceClient } from '@s4wave/sdk/viewer/registry/registry_srpc.pb.js'
+import { ViewerSurface } from '@s4wave/sdk/viewer/registry/registry.pb.js'
 import { Engine } from '@s4wave/sdk/world/engine.js'
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { WorldStateResource } from '@s4wave/sdk/world/world-state.js'
@@ -749,6 +750,7 @@ export function startNotesBackend(
             viewerName: 'Notebook',
             componentId: 'notes.notebook.viewer',
             scriptPath: notebookViewerScript,
+            surface: ViewerSurface.WEB,
           },
         },
         signal,
@@ -763,6 +765,7 @@ export function startNotesBackend(
             viewerName: 'Blog',
             componentId: 'notes.blog.viewer',
             scriptPath: blogViewerScript,
+            surface: ViewerSurface.WEB,
           },
         },
         signal,
@@ -775,6 +778,7 @@ export function startNotesBackend(
             viewerName: 'Documentation',
             componentId: 'notes.docs.viewer',
             scriptPath: docsViewerScript,
+            surface: ViewerSurface.WEB,
           },
         },
         signal,
@@ -787,6 +791,7 @@ export function startNotesBackend(
             viewerName: 'Notebook Wizard',
             componentId: 'notes.notebook-wizard.viewer',
             scriptPath: notesWizardViewerScript,
+            surface: ViewerSurface.WEB,
           },
         },
         signal,
@@ -804,6 +809,7 @@ export function startNotesBackend(
             viewerName: 'Documentation Wizard',
             componentId: 'notes.docs-wizard.viewer',
             scriptPath: notesWizardViewerScript,
+            surface: ViewerSurface.WEB,
           },
         },
         signal,
@@ -818,6 +824,7 @@ export function startNotesBackend(
             viewerName: 'Blog Wizard',
             componentId: 'notes.blog-wizard.viewer',
             scriptPath: notesWizardViewerScript,
+            surface: ViewerSurface.WEB,
           },
         },
         signal,
