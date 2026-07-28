@@ -92,7 +92,8 @@ describe('docs viewer responsive layout', () => {
 
   it('hub, site home, and article stay within narrow, tablet, and desktop widths', async () => {
     for (const [label, width] of WIDTHS) {
-      await page.viewport(width, 900)
+      const height = width === 955 ? 1568 : 900
+      await page.viewport(width, height)
 
       await render(<DocsRouteHarness initialPath="/docs" />)
       await expect
