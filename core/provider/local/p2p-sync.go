@@ -22,14 +22,16 @@ import (
 
 // p2pSyncState holds P2P sync startup or running state and DEX stores.
 type p2pSyncState struct {
-	cancel    context.CancelFunc
-	startDone chan struct{}
-	stopOnce  sync.Once
-	wg        sync.WaitGroup
-	mtx       sync.Mutex
-	refs      []directive.Reference
-	relFns    []func()
-	stores    map[string]block.StoreOps
+	cancel         context.CancelFunc
+	startDone      chan struct{}
+	stopOnce       sync.Once
+	wg             sync.WaitGroup
+	mtx            sync.Mutex
+	restartPending bool
+	refs           []directive.Reference
+	relFns         []func()
+	stores         map[string]block.StoreOps
+	soIDs          map[string]struct{}
 }
 
 func (s *p2pSyncState) addStore(bucketID string, store block.StoreOps) {
@@ -38,6 +40,29 @@ func (s *p2pSyncState) addStore(bucketID string, store block.StoreOps) {
 		s.stores = make(map[string]block.StoreOps)
 	}
 	s.stores[bucketID] = store
+	s.mtx.Unlock()
+}
+
+func (s *p2pSyncState) hasStore(bucketID string) bool {
+	s.mtx.Lock()
+	_, ok := s.stores[bucketID]
+	s.mtx.Unlock()
+	return ok
+}
+
+func (s *p2pSyncState) hasSO(soID string) bool {
+	s.mtx.Lock()
+	_, ok := s.soIDs[soID]
+	s.mtx.Unlock()
+	return ok
+}
+
+func (s *p2pSyncState) addSO(soID string) {
+	s.mtx.Lock()
+	if s.soIDs == nil {
+		s.soIDs = make(map[string]struct{})
+	}
+	s.soIDs[soID] = struct{}{}
 	s.mtx.Unlock()
 }
 
@@ -63,110 +88,160 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 		return errors.New("session transport child bus is not ready")
 	}
 
-	a.p2pSyncMtx.Lock()
-	previous := a.p2pSync
-	if previous != nil {
-		select {
-		case <-previous.startDone:
-		default:
-			a.p2pSyncMtx.Unlock()
-			return nil
+	var (
+		previous *p2pSyncState
+		syncCtx  context.Context
+		state    *p2pSyncState
+	)
+	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		previous = a.p2pSync
+		if previous != nil {
+			select {
+			case <-previous.startDone:
+			default:
+				previous.restartPending = true
+				return
+			}
 		}
-	}
 
-	syncCtx, syncCancel := context.WithCancel(ctx)
-	state := &p2pSyncState{
-		cancel:    syncCancel,
-		startDone: make(chan struct{}),
+		var syncCancel context.CancelFunc
+		syncCtx, syncCancel = context.WithCancel(ctx)
+		state = &p2pSyncState{
+			cancel:    syncCancel,
+			startDone: make(chan struct{}),
+		}
+		a.p2pSync = state
+		bcast()
+	})
+	if state == nil {
+		return nil
 	}
-	a.p2pSync = state
 	defer func() {
 		if rerr == nil {
-			close(state.startDone)
 			return
 		}
 
-		a.p2pSyncMtx.Lock()
-		cleanup := a.p2pSync == state
-		if cleanup {
-			a.p2pSync = nil
-		}
-		a.p2pSyncMtx.Unlock()
-		close(state.startDone)
+		cleanup := false
+		a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+			cleanup = a.p2pSync == state
+			if cleanup {
+				a.p2pSync = nil
+			}
+			close(state.startDone)
+			bcast()
+		})
 		if cleanup {
 			a.stopP2PSyncState(state)
 		}
 	}()
-	a.p2pSyncMtx.Unlock()
 
 	a.stopP2PSyncState(previous)
 
-	soList := a.soListCtr.GetValue()
-	for _, entry := range soList.GetSharedObjects() {
-		ref := entry.GetRef()
-		provRef := ref.GetProviderResourceRef()
-		soID := provRef.GetId()
-		blockStoreID := ref.GetBlockStoreId()
+	inviteStarted := false
+	for {
+		soList := a.soListCtr.GetValue()
+		for _, entry := range soList.GetSharedObjects() {
+			ref := entry.GetRef()
+			provRef := ref.GetProviderResourceRef()
+			soID := provRef.GetId()
+			blockStoreID := ref.GetBlockStoreId()
 
-		providerID := provRef.GetProviderId()
-		providerAccountID := provRef.GetProviderAccountId()
-		bucketID := BlockStoreBucketID(providerID, providerAccountID, blockStoreID)
-		if err := a.startDEXSolicit(syncCtx, childBus, bucketID, state); err != nil {
-			if syncCtx.Err() != nil {
-				return syncCtx.Err()
+			providerID := provRef.GetProviderId()
+			providerAccountID := provRef.GetProviderAccountId()
+			bucketID := BlockStoreBucketID(providerID, providerAccountID, blockStoreID)
+			if !state.hasStore(bucketID) {
+				if err := a.startDEXSolicit(syncCtx, childBus, bucketID, state); err != nil {
+					if syncCtx.Err() != nil {
+						return syncCtx.Err()
+					}
+					a.le.WithError(err).WithField("bucket-id", bucketID).Warn("failed to start dex solicit")
+				}
 			}
-			a.le.WithError(err).WithField("bucket-id", bucketID).Warn("failed to start dex solicit")
+
+			if !state.hasSO(soID) {
+				if err := a.startSOSync(syncCtx, childBus, ref, soID, state); err != nil {
+					if syncCtx.Err() != nil {
+						return syncCtx.Err()
+					}
+					a.le.WithError(err).WithField("so-id", soID).Warn("failed to start so sync")
+				} else {
+					state.addSO(soID)
+				}
+			}
 		}
 
-		if err := a.startSOSync(syncCtx, childBus, ref, soID, state); err != nil {
-			if syncCtx.Err() != nil {
-				return syncCtx.Err()
+		// Start the SO invite server so invitees can join via alpha/so-invite.
+		if !inviteStarted {
+			if err := a.startInviteServer(syncCtx, childBus, sessionTransport, state); err != nil {
+				if syncCtx.Err() != nil {
+					return syncCtx.Err()
+				}
+				a.le.WithError(err).Warn("failed to start invite server")
+			} else {
+				inviteStarted = true
 			}
-			a.le.WithError(err).WithField("so-id", soID).Warn("failed to start so sync")
 		}
-	}
 
-	// Start the SO invite server so invitees can join via alpha/so-invite.
-	if err := a.startInviteServer(syncCtx, childBus, sessionTransport, state); err != nil {
-		if syncCtx.Err() != nil {
+		restart := false
+		a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+			if a.p2pSync == state && state.restartPending {
+				state.restartPending = false
+				restart = true
+				return
+			}
+			close(state.startDone)
+			bcast()
+		})
+		if !restart {
 			return syncCtx.Err()
 		}
-		a.le.WithError(err).Warn("failed to start invite server")
 	}
-	return syncCtx.Err()
+}
+
+// GetP2PSyncSnapshotWithWait returns whether P2P sync is running and a channel
+// that closes when its lifecycle changes.
+func (a *ProviderAccount) GetP2PSyncSnapshotWithWait() (bool, <-chan struct{}) {
+	var running bool
+	var ch <-chan struct{}
+	a.p2pSyncBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		ch = getWaitCh()
+		if a.p2pSync == nil {
+			return
+		}
+		select {
+		case <-a.p2pSync.startDone:
+			running = true
+		default:
+		}
+	})
+	return running, ch
 }
 
 // IsP2PSyncRunning returns whether P2P sync is currently active.
 // Safe to call from any goroutine.
 func (a *ProviderAccount) IsP2PSyncRunning() bool {
-	a.p2pSyncMtx.Lock()
-	defer a.p2pSyncMtx.Unlock()
-	if a.p2pSync == nil {
-		return false
-	}
-	select {
-	case <-a.p2pSync.startDone:
-		return true
-	default:
-		return false
-	}
+	running, _ := a.GetP2PSyncSnapshotWithWait()
+	return running
 }
 
 // StopP2PSync stops all P2P sync controllers, waits for goroutines
 // to finish, and releases references.
 func (a *ProviderAccount) StopP2PSync() {
-	a.p2pSyncMtx.Lock()
-	state := a.p2pSync
-	a.p2pSync = nil
-	a.p2pSyncMtx.Unlock()
+	var state *p2pSyncState
+	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		state = a.p2pSync
+		a.p2pSync = nil
+		bcast()
+	})
 
 	a.stopP2PSyncState(state)
 }
 
 func (a *ProviderAccount) getP2PStore(bucketID string) block.StoreOps {
-	a.p2pSyncMtx.Lock()
-	state := a.p2pSync
-	a.p2pSyncMtx.Unlock()
+	var state *p2pSyncState
+	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		state = a.p2pSync
+	})
 	if state == nil {
 		return nil
 	}
