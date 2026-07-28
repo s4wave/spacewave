@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
@@ -699,6 +701,185 @@ func TestStartP2PSyncDoesNotCoalesceAcrossTransports(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal("the replacement transport never received its DEX solicit controller")
 	}
+}
+
+func TestP2PSyncRetiresWhenFinalOwnerExits(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+
+	tb, sessRef, acc, sess, release := setupProviderAndSession(ctx, t)
+	defer release()
+
+	accountID := sessRef.GetProviderResourceRef().GetProviderAccountId()
+	_, soRelease := mountAccountSettingsSO(ctx, t, tb.Bus, accountID)
+	soRelease()
+
+	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
+		t.Fatal(err)
+	}
+	defer acc.StopSessionTransport()
+	defer acc.StopP2PSync()
+
+	st := acc.GetSessionTransport()
+	ownerCtx, ownerCancel := context.WithCancel(ctx)
+	if err := acc.StartP2PSync(ownerCtx, st); err != nil {
+		t.Fatal(err)
+	}
+
+	running, lifecycleChanged := acc.GetP2PSyncSnapshotWithWait()
+	if !running {
+		t.Fatal("expected P2P sync to be running before its final owner exits")
+	}
+	ownerCancel()
+
+	select {
+	case <-lifecycleChanged:
+	case <-ctx.Done():
+		t.Fatal("P2P sync did not retire after its final owner exited")
+	}
+	if running, _ := acc.GetP2PSyncSnapshotWithWait(); running {
+		t.Fatal("expected P2P sync to stop after its final owner exited")
+	}
+}
+
+func TestStopP2PSyncReleasesResourceRegisteredDuringStartup(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+
+	tb, sessRef, acc, sess, release := setupProviderAndSession(ctx, t)
+	defer release()
+
+	accountID := sessRef.GetProviderResourceRef().GetProviderAccountId()
+	_, soRelease := mountAccountSettingsSO(ctx, t, tb.Bus, accountID)
+	soRelease()
+
+	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
+		t.Fatal(err)
+	}
+	defer acc.StopSessionTransport()
+
+	st := acc.GetSessionTransport()
+	childBus := st.GetChildBus()
+	var factoryResolver controller.Controller
+	for _, ctrl := range childBus.GetControllers() {
+		if _, ok := ctrl.(*resolver.Controller); ok {
+			childBus.RemoveController(ctrl)
+			factoryResolver = ctrl
+			break
+		}
+	}
+	if factoryResolver == nil {
+		t.Fatal("expected the transport child bus factory resolver")
+	}
+	defer func() {
+		if err := factoryResolver.Close(); err != nil {
+			t.Errorf("close transport child bus factory resolver: %v", err)
+		}
+	}()
+
+	controllerSelected := make(chan struct{})
+	allowRegistration := make(chan struct{})
+	resourceReleased := make(chan struct{})
+	var selectedOnce, releasedOnce sync.Once
+	removeHandler, err := childBus.AddHandler(directive.NewFuncHandler(
+		func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+			load, ok := di.GetDirective().(resolver.LoadControllerWithConfig)
+			if !ok {
+				return nil, nil
+			}
+			loadConfig, ok := load.GetLoadControllerConfig().(*dex_solicit.Config)
+			if !ok {
+				return nil, nil
+			}
+			ctrl, err := dex_solicit.NewController(logrus.NewEntry(logrus.New()), childBus, loadConfig)
+			if err != nil {
+				return nil, err
+			}
+			value := &gatedP2PSyncExecValue{
+				ExecControllerValue: loader.NewExecControllerValue(time.Now(), time.Time{}, ctrl, nil),
+				ctrl:                ctrl,
+				selected:            controllerSelected,
+				allow:               allowRegistration,
+				selectedOnce:        &selectedOnce,
+			}
+			return directive.Resolvers(directive.NewFuncResolver(
+				func(resolverCtx context.Context, handler directive.ResolverHandler) error {
+					if _, accepted := handler.AddValue(value); !accepted {
+						return errors.New("P2P startup resource was rejected")
+					}
+					<-resolverCtx.Done()
+					releasedOnce.Do(func() {
+						close(resourceReleased)
+					})
+					return resolverCtx.Err()
+				},
+			)), nil
+		},
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer removeHandler()
+
+	startDone := make(chan error, 1)
+	go func() {
+		startDone <- acc.StartP2PSync(ctx, st)
+	}()
+	select {
+	case <-controllerSelected:
+	case <-ctx.Done():
+		t.Fatal("P2P startup did not select the gated controller resource")
+	}
+
+	_, lifecycleChanged := acc.GetP2PSyncSnapshotWithWait()
+	stopDone := make(chan struct{})
+	go func() {
+		acc.StopP2PSync()
+		close(stopDone)
+	}()
+	select {
+	case <-lifecycleChanged:
+	case <-ctx.Done():
+		t.Fatal("P2P stop did not retire the starting state")
+	}
+
+	// Registration proceeds only after stop has retired the state. Cleanup must
+	// wait for the startup pass to retain this reference before releasing it.
+	close(allowRegistration)
+	select {
+	case <-resourceReleased:
+	case <-ctx.Done():
+		t.Fatal("P2P startup resource registered after stop began was not released")
+	}
+	select {
+	case <-stopDone:
+	case <-ctx.Done():
+		t.Fatal("P2P stop did not finish after releasing the startup resource")
+	}
+	select {
+	case err := <-startDone:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("expected stopped P2P startup to return context.Canceled, got %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatal("stopped P2P startup did not return")
+	}
+}
+
+type gatedP2PSyncExecValue struct {
+	loader.ExecControllerValue
+	ctrl         controller.Controller
+	selected     chan struct{}
+	allow        chan struct{}
+	selectedOnce *sync.Once
+}
+
+func (v *gatedP2PSyncExecValue) GetController() controller.Controller {
+	v.selectedOnce.Do(func() {
+		close(v.selected)
+	})
+	<-v.allow
+	return v.ctrl
 }
 
 type observedP2PStartContext struct {

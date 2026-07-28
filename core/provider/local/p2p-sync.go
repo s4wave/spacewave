@@ -32,6 +32,7 @@ type p2pSyncState struct {
 	cancel           context.CancelFunc
 	startDone        chan struct{}
 	startOnce        sync.Once
+	runDone          chan struct{}
 	stopDone         chan struct{}
 	stopOnce         sync.Once
 	wg               sync.WaitGroup
@@ -53,18 +54,21 @@ func (s *p2pSyncState) completeStart() {
 	})
 }
 
-func (s *p2pSyncState) retain(ctx context.Context) bool {
+// retainP2PSyncState is called with the account sync lock held before it takes
+// state.mtx. The release path drops state.mtx before reacquiring the account
+// lock to retire the state, so the locks are never held in reverse order.
+func (a *ProviderAccount) retainP2PSyncState(ctx context.Context, state *p2pSyncState) bool {
 	if ctx.Err() != nil {
 		return false
 	}
 
-	s.mtx.Lock()
-	if s.ctx.Err() != nil {
-		s.mtx.Unlock()
+	state.mtx.Lock()
+	if state.ctx.Err() != nil {
+		state.mtx.Unlock()
 		return false
 	}
-	s.owners++
-	s.mtx.Unlock()
+	state.owners++
+	state.mtx.Unlock()
 
 	if ctx.Done() == nil {
 		return true
@@ -72,22 +76,28 @@ func (s *p2pSyncState) retain(ctx context.Context) bool {
 	go func() {
 		select {
 		case <-ctx.Done():
-			s.release()
-		case <-s.stopDone:
+			a.releaseP2PSyncState(state)
+		case <-state.stopDone:
 		}
 	}()
 	return true
 }
 
-func (s *p2pSyncState) release() {
-	s.mtx.Lock()
-	if s.owners > 0 {
-		s.owners--
-		if s.owners == 0 {
-			s.cancel()
+func (a *ProviderAccount) releaseP2PSyncState(state *p2pSyncState) {
+	retire := false
+	state.mtx.Lock()
+	if state.owners > 0 {
+		state.owners--
+		if state.owners == 0 {
+			state.cancel()
+			retire = true
 		}
 	}
-	s.mtx.Unlock()
+	state.mtx.Unlock()
+
+	if retire {
+		a.retireP2PSyncState(state)
+	}
 }
 
 func (s *p2pSyncState) addStore(bucketID string, store block.StoreOps) {
@@ -155,7 +165,7 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 			select {
 			case <-previous.startDone:
 			default:
-				if previous.ctx.Err() == nil && previous.retain(ctx) {
+				if previous.ctx.Err() == nil && a.retainP2PSyncState(ctx, previous) {
 					previous.restartPending = true
 					waitState = previous
 					return
@@ -169,9 +179,10 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 			sessionTransport: sessionTransport,
 			cancel:           syncCancel,
 			startDone:        make(chan struct{}),
+			runDone:          make(chan struct{}),
 			stopDone:         make(chan struct{}),
 		}
-		if !state.retain(ctx) {
+		if !a.retainP2PSyncState(ctx, state) {
 			syncCancel()
 			state = nil
 			return
@@ -232,20 +243,15 @@ func (a *ProviderAccount) runP2PSyncStart(
 ) {
 	err := a.startP2PSyncControllers(state, previous, sessionTransport, childBus)
 
-	cleanup := false
 	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
-		if err != nil {
-			state.startErr = err
-			cleanup = a.p2pSync == state
-			if cleanup {
-				a.p2pSync = nil
-			}
-		}
+		state.startErr = err
 		state.completeStart()
 		bcast()
 	})
-	if cleanup {
-		a.stopP2PSyncState(state)
+	close(state.runDone)
+
+	if err != nil {
+		a.retireP2PSyncState(state)
 	}
 }
 
@@ -255,7 +261,11 @@ func (a *ProviderAccount) startP2PSyncControllers(
 	sessionTransport *transport.SessionTransport,
 	childBus bus.Bus,
 ) error {
-	a.stopP2PSyncState(previous)
+	if previous != nil {
+		// The replacement has its own transport, so its startup can proceed
+		// while the prior state's lifecycle owner waits for detached startup.
+		go a.retireP2PSyncState(previous)
+	}
 
 	syncCtx := state.ctx
 	inviteStarted := false
@@ -345,14 +355,7 @@ func (a *ProviderAccount) IsP2PSyncRunning() bool {
 // StopP2PSync stops all P2P sync controllers, waits for goroutines
 // to finish, and releases references.
 func (a *ProviderAccount) StopP2PSync() {
-	var state *p2pSyncState
-	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
-		state = a.p2pSync
-		a.p2pSync = nil
-		bcast()
-	})
-
-	a.stopP2PSyncState(state)
+	a.retireP2PSyncState(nil)
 }
 
 func (a *ProviderAccount) getP2PStore(bucketID string) block.StoreOps {
@@ -366,6 +369,25 @@ func (a *ProviderAccount) getP2PStore(bucketID string) block.StoreOps {
 	return state.getStore(bucketID)
 }
 
+// retireP2PSyncState removes one state from the account lifecycle and releases
+// its resources. A nil state selects the current state atomically with removal.
+//
+// Callers never hold state.mtx here: the account lock may nest state.mtx while
+// retaining an owner, so retirement acquires only the account lock. Resource
+// cleanup waits outside both locks.
+func (a *ProviderAccount) retireP2PSyncState(state *p2pSyncState) {
+	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if state == nil {
+			state = a.p2pSync
+		}
+		if state != nil && a.p2pSync == state {
+			a.p2pSync = nil
+			bcast()
+		}
+	})
+	a.stopP2PSyncState(state)
+}
+
 func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
 	if state == nil {
 		return
@@ -374,7 +396,7 @@ func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
 		close(state.stopDone)
 		state.cancel()
 		state.completeStart()
-		<-state.startDone
+		<-state.runDone
 		state.wg.Wait()
 		for _, ref := range state.refs {
 			ref.Release()
