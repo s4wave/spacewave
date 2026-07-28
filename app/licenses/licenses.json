@@ -1068,7 +1068,7 @@
     },
     {
       "name": "github.com/go-git/go-billy/v6",
-      "version": "v6.0.0-alpha.2.0.20260727083916-c3866da0293d",
+      "version": "v6.0.0-alpha.2.0.20260728104803-133d4f9bfd41",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/go-git/go-billy",
