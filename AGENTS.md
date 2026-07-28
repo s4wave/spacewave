@@ -134,6 +134,12 @@ a subdirectory.
   `aperturerobotics/common` by running `go mod tidy` in its `tools/` directory
   and then `bash embed.bash`, release, and bump the
   `github.com/aperturerobotics/common` requirement here.
+- A dependency refresh that resolves the npm `latest` tag can move a pin
+  backwards, because a package may publish its current line under another dist
+  tag and leave `latest` on an older one. The downgrade reads as an upgrade in
+  the diff. Run the typecheck before landing a refresh, and when a package
+  needs a version `latest` does not point at, add it to `resolutions` and
+  `overrides` in `package.json` so a later spec rewrite still resolves it.
 
 ## Go Rules
 
