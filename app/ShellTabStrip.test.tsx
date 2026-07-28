@@ -414,6 +414,24 @@ function FlexCliCommandProbe() {
     </button>
   )
 }
+function DocsCommandProbe() {
+  const { activeTabId, openPathInActiveTabset } = useShellTabs()
+
+  return (
+    <button
+      onClick={() => {
+        openPathInActiveTabset('/docs', {
+          afterTabId: activeTabId || undefined,
+          focusExisting: true,
+        })
+      }}
+      type="button"
+    >
+      Open Documentation
+    </button>
+  )
+}
+
 function ActiveTabProbe() {
   const { activeTabId } = useShellTabs()
   return <output data-testid="active-tab">{activeTabId}</output>
@@ -839,5 +857,66 @@ describe('ShellTabStrip', () => {
     window.removeEventListener('hashchange', onHashChange)
     expect(navigations).not.toContain('/quickstart/drive')
     expect(mockCreateSpace).not.toHaveBeenCalled()
+  })
+
+  it('opens Documentation in the active tabset of a split without leaving the grid route', async () => {
+    window.location.hash = '#/quickstart/drive'
+    seedShellTabs([
+      {
+        id: 'quickstart',
+        name: 'Drive',
+        path: '/quickstart/drive',
+      },
+    ])
+
+    render(
+      <ShellTabStrip entry={continuationEntry}>
+        <DocsCommandProbe />
+      </ShellTabStrip>,
+    )
+    await waitFor(() => expect(mockCreateSpace).toHaveBeenCalledTimes(1))
+    const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0] as
+      | {
+          model: {
+            isGrid: boolean
+            tabs: Array<{ id: string }>
+            selectedTabId: string | null
+            addExternalSplit: (node: { id: string; name: string }) => {
+              getId: () => string
+            }
+          }
+          onExternalDrag?: (event: unknown) => unknown
+        }
+      | undefined
+    if (typeof props?.onExternalDrag !== 'function') {
+      throw new Error('shell layout did not provide onExternalDrag')
+    }
+
+    const externalDrag = props.onExternalDrag(createUnixFSRowDragEvent()) as {
+      json: { id: string; name: string }
+      onDrop?: (node?: { getId: () => string }) => void
+    }
+    act(() => {
+      const droppedNode = props.model.addExternalSplit(externalDrag.json)
+      externalDrag.onDrop?.(droppedNode)
+    })
+    await waitFor(() => {
+      expect(props.model.isGrid).toBe(true)
+      expect(getAppPath()).toBe('/g/grid-layout')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Documentation' }))
+
+    await waitFor(() => {
+      const docs = readShellTabsSnapshot().records.find(
+        (record) => record.path === '/docs',
+      )
+      expect(docs).toBeDefined()
+      expect(props.model.tabs.some((tab) => tab.id === docs?.id)).toBe(true)
+      expect(props.model.selectedTabId).toBe(docs?.id)
+    })
+    // The grid route is the layout. Writing the tab's own path there would
+    // collapse the split and take the tab strip the command opened into.
+    expect(getAppPath()).toBe('/g/grid-layout')
   })
 })

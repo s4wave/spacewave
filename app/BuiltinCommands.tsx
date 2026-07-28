@@ -20,7 +20,7 @@ import { SelectAccountCommand } from '@s4wave/app/session/SelectAccountCommand.j
 // BuiltinCommands registers built-in commands with the command registry.
 // Returns null (no UI).
 export function BuiltinCommands() {
-  const { activeTabId, openPathInNewTab, resetShellTabs } = useShellTabs()
+  const { activeTabId, openPathInActiveTabset, resetShellTabs } = useShellTabs()
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [keybindingEditorOpen, setKeybindingEditorOpen] = useState(false)
   const [keybindingEditorScope, setKeybindingEditorScope] =
@@ -32,14 +32,18 @@ export function BuiltinCommands() {
   const [emailSupportOpen, setEmailSupportOpen] = useState(false)
   const { add: addRootAlias, canAdd: canAddRootAlias } = useAddSpaceRootAlias()
 
-  const handleOpenPathInNewTab = useCallback(
+  // handleOpenPathInTabset opens a path as a shell tab of whichever tabset the
+  // user is working in. A menu command must not write the path to the route
+  // itself: in a split that route is the layout, so replacing it collapses the
+  // split the command was invoked from and takes the tab strip with it.
+  const handleOpenPathInTabset = useCallback(
     (path: string) => {
-      openPathInNewTab(path, {
+      openPathInActiveTabset(path, {
         afterTabId: activeTabId || undefined,
         focusExisting: true,
       })
     },
-    [activeTabId, openPathInNewTab],
+    [activeTabId, openPathInActiveTabset],
   )
 
   const openKeybindingEditor = useCallback(
@@ -158,8 +162,8 @@ export function BuiltinCommands() {
     menuGroup: 10,
     menuOrder: 1,
     handler: useCallback(() => {
-      handleOpenPathInNewTab('/docs')
-    }, [handleOpenPathInNewTab]),
+      handleOpenPathInTabset('/docs')
+    }, [handleOpenPathInTabset]),
   })
 
   useCommand({

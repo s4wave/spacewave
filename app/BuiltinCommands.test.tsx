@@ -35,7 +35,7 @@ interface BuiltinCommandMocks {
   quitDesktopRuntime: () => Promise<void>
   addRootAlias: () => void
   resetShellTabs: () => void
-  openPathInNewTab: (path: string, opts: ShellTabOpenOptions) => void
+  openPathInActiveTabset: (path: string, opts: ShellTabOpenOptions) => void
   appPath: string
   setAppPath: (path: string) => void
   keyboardShortcutsDialogs: KeyboardShortcutsDialogProps[]
@@ -119,7 +119,7 @@ vi.mock('@s4wave/app/session/SelectAccountCommand.js', () => ({
 vi.mock('@s4wave/app/ShellTabContext.js', () => ({
   useShellTabs: () => ({
     activeTabId: 'home',
-    openPathInNewTab: builtinCommandMocks.openPathInNewTab,
+    openPathInActiveTabset: builtinCommandMocks.openPathInActiveTabset,
     resetShellTabs: builtinCommandMocks.resetShellTabs,
   }),
 }))
@@ -141,7 +141,7 @@ describe('BuiltinCommands', () => {
       quitDesktopRuntime: vi.fn(() => Promise.resolve()),
       addRootAlias: vi.fn(),
       resetShellTabs: vi.fn(),
-      openPathInNewTab: vi.fn(),
+      openPathInActiveTabset: vi.fn(),
       appPath: '/',
       setAppPath: vi.fn(),
       keyboardShortcutsDialogs: [],
@@ -207,10 +207,10 @@ describe('BuiltinCommands', () => {
 
     findCommand('spacewave.help.docs')?.handler({})
 
-    expect(builtinCommandMocks.openPathInNewTab).toHaveBeenCalledWith('/docs', {
-      afterTabId: 'home',
-      focusExisting: true,
-    })
+    expect(builtinCommandMocks.openPathInActiveTabset).toHaveBeenCalledWith(
+      '/docs',
+      { afterTabId: 'home', focusExisting: true },
+    )
     expect(builtinCommandMocks.setAppPath).not.toHaveBeenCalled()
   })
 
@@ -220,10 +220,10 @@ describe('BuiltinCommands', () => {
 
     findCommand('spacewave.help.docs')?.handler({})
 
-    expect(builtinCommandMocks.openPathInNewTab).toHaveBeenCalledWith('/docs', {
-      afterTabId: 'home',
-      focusExisting: true,
-    })
+    expect(builtinCommandMocks.openPathInActiveTabset).toHaveBeenCalledWith(
+      '/docs',
+      { afterTabId: 'home', focusExisting: true },
+    )
     expect(builtinCommandMocks.setAppPath).not.toHaveBeenCalled()
   })
   it('exposes a visible Shell reset command through the menu owner', () => {
