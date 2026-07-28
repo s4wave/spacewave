@@ -10,7 +10,9 @@ import {
 } from '@s4wave/sdk/viewer/registry/registry.pb.js'
 
 const h = vi.hoisted(() => ({
-  useDynamicRegistrations: vi.fn((..._args: unknown[]) => []),
+  useDynamicRegistrations: vi.fn(
+    (..._args: unknown[]): ObjectViewerComponent[] => [],
+  ),
 }))
 
 vi.mock('./useDynamicRegistrations.js', () => ({
