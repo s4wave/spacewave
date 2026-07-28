@@ -1424,6 +1424,23 @@ func TestOpfsChromeMetaShardNoticesReplacedDatabase(t *testing.T) {
 	})
 }
 
+func TestOpfsChromeMetaShardReusesFallbackState(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	root := "opfs-chrome-meta-fallback-shortcut-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+	s.runWorker(t, workerArgs{
+		scenario: "meta-fallback-shortcut",
+		root:     root,
+	})
+}
+
 func TestOpfsChromeWorldDeferredCrashRecovery(t *testing.T) {
 	requireChromeProfile(t, chromeSmoke)
 	h := newChromeHarness(t)
