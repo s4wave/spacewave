@@ -2,13 +2,32 @@ package kvtx_iterator
 
 import (
 	"context"
+	"errors"
 	"testing"
 
+	"github.com/s4wave/spacewave/db/kvtx"
 	"gotest.tools/v3/assert"
 )
 
 type mockOps struct {
 	data map[string]string
+}
+
+type generationOps struct {
+	generation        uint64
+	scannedGeneration uint64
+}
+
+func (o *generationOps) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
+	if o.generation != o.scannedGeneration {
+		return nil, false, kvtx.ErrInvalidSnapshot
+	}
+	return []byte("value"), true, nil
+}
+
+func (o *generationOps) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
+	o.scannedGeneration = o.generation
+	return cb([]byte("key"))
 }
 
 func (m *mockOps) Get(ctx context.Context, key []byte) (data []byte, found bool, err error) {
@@ -98,4 +117,18 @@ func TestIterator(t *testing.T) {
 		assert.NilError(t, it.Seek([]byte("f")))
 		assert.Equal(t, it.Valid(), false)
 	})
+}
+
+func TestIteratorValuePropagatesSnapshotError(t *testing.T) {
+	ops := &generationOps{generation: 1}
+	it := NewIterator(context.Background(), ops, nil, true, false)
+	defer it.Close()
+
+	assert.Assert(t, it.Next())
+	ops.generation++
+
+	value, err := it.Value()
+	assert.Assert(t, errors.Is(err, kvtx.ErrInvalidSnapshot),
+		"Value() error = %v, want kvtx.ErrInvalidSnapshot", err)
+	assert.Assert(t, value == nil)
 }

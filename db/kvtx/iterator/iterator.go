@@ -187,8 +187,7 @@ func (i *Iterator) Value() ([]byte, error) {
 	if len(i.val) != 0 {
 		return i.val, nil
 	}
-	v, _ := i.ValueCopy(nil) // sets i.val internally
-	return v, nil
+	return i.ValueCopy(nil) // sets i.val internally
 }
 
 // ValueCopy copies the key to the given byte slice and returns it.
