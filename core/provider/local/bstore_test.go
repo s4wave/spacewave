@@ -188,6 +188,15 @@ func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 	if err := <-startDone; err != nil {
 		t.Fatal(err)
 	}
+	var current *p2pSyncState
+	acc.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		current = acc.p2pSync
+	})
+	current.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if current.lowerSource != nil || current.lowerSourceHeld {
+			t.Fatal("replacement retained its lower P2P source after startup")
+		}
+	})
 }
 
 func TestLocalBlockStoreMissRoutesToSessionChildDEX(t *testing.T) {
