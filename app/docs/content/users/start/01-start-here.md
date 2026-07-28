@@ -41,7 +41,7 @@ Press Cmd/Ctrl+K, or click the Spacewave logo, to open the command palette. Type
 what you want to do. What you see there depends on where you are and which Space
 is open.
 
-## Check it stuck
+## Verify your data persisted
 
 Once your first Space opens, add a file or a folder, then reload the page. Still
 there? Everything is set up correctly.

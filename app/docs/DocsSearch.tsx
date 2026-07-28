@@ -18,12 +18,25 @@ export function DocsSearch({ docs, onSelect }: DocsSearchProps) {
   const results = useMemo(() => {
     if (!query.trim()) return []
     const q = query.toLowerCase()
-    return docs.filter(
-      (d) =>
-        d.title.toLowerCase().includes(q) ||
-        d.body.toLowerCase().includes(q) ||
-        d.summary.toLowerCase().includes(q),
-    )
+    return docs
+      .flatMap((doc, index) => {
+        const title = doc.title.toLowerCase()
+        const titleMatch = title.includes(q)
+        const contentMatch =
+          doc.body.toLowerCase().includes(q) ||
+          doc.summary.toLowerCase().includes(q)
+        if (!titleMatch && !contentMatch) return []
+
+        return [
+          {
+            doc,
+            index,
+            score: title === q ? 3 : titleMatch ? 2 : 1,
+          },
+        ]
+      })
+      .sort((a, b) => b.score - a.score || a.index - b.index)
+      .map(({ doc }) => doc)
   }, [query, docs])
 
   const handleSelect = useCallback(

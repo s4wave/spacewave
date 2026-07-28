@@ -22,7 +22,7 @@ export function DocsPageRoute() {
   const docs = useMemo(() => loadDocs(), [])
   const allSections = useMemo(() => getSections(), [])
 
-  // Filter docs and sections to the current site for scoped navigation.
+  // Keep sections scoped to the current site while search spans the corpus.
   const siteDocs = useMemo(
     () => docs.filter((d) => d.site === site),
     [docs, site],
@@ -53,7 +53,7 @@ export function DocsPageRoute() {
   const sidebar = (
     <div className="flex min-h-full flex-col gap-3">
       <div className="px-4 pt-4">
-        <DocsSearch docs={siteDocs} onSelect={handleSearchSelect} />
+        <DocsSearch docs={docs} onSelect={handleSearchSelect} />
       </div>
       <DocsSidebar sections={sections} currentDoc={doc} />
     </div>
