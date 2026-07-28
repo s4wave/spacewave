@@ -21,10 +21,6 @@ export function DocsSiteRoute() {
     () => allSections.filter((s) => s.site === site),
     [allSections, site],
   )
-  const siteDocs = useMemo(
-    () => docs.filter((d) => d.site === site),
-    [docs, site],
-  )
 
   const validSite = useMemo(() => siteDefs.some((s) => s.id === site), [site])
 
@@ -42,7 +38,7 @@ export function DocsSiteRoute() {
   const sidebar = (
     <div className="flex min-h-full flex-col gap-3">
       <div className="px-4 pt-4">
-        <DocsSearch docs={siteDocs} onSelect={handleSearchSelect} />
+        <DocsSearch docs={docs} onSelect={handleSearchSelect} />
       </div>
       <DocsSidebar sections={sections} />
     </div>
