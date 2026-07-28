@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
+	"github.com/sirupsen/logrus"
 )
 
 func newTestMetaShard(t *testing.T, name string) *MetaShard {
@@ -46,7 +47,7 @@ func reopenTestMetaShard(t *testing.T, name string) *MetaShard {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ms, err := NewMetaShard(dir, name, 0, nil)
+	ms, err := NewMetaShard(dir, name, 0, logrus.New().WithField("test", name))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -574,6 +575,41 @@ func TestMetaShardResetGenerationUsesProcessFloor(t *testing.T) {
 				t.Fatalf("generation %d after reset did not exceed prior %d", after, before)
 			}
 		})
+	}
+}
+
+func TestMetaShardConstructionRecoveryPreservesGenerationFloor(t *testing.T) {
+	name := "test-metashard-construction-generation-floor"
+	ms := newTestMetaShard(t, name)
+	putMetaValue(t, ms, "k", "v1")
+	putMetaValue(t, ms, "k", "v2")
+
+	const corruptGeneration = uint64(0xFFFFFFFF)<<generationEpochShift | 1
+	for _, slot := range []string{"super-a", "super-b"} {
+		var buf [pagestore.SuperblockSize]byte
+		if err := readSuper(ms.dir, slot, buf[:]); err != nil {
+			t.Fatal(err)
+		}
+		sb, err := pagestore.DecodeSuperblock(buf[:])
+		if err != nil {
+			t.Fatal(err)
+		}
+		sb.Generation = corruptGeneration
+		pagestore.EncodeSuperblock(buf[:], sb)
+		if err := writeSuper(ms.dir, slot, buf[:]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := ms.Close(); err != nil {
+		t.Fatal(err)
+	}
+	zeroSuperblockRoots(t, ms)
+
+	reopened := reopenTestMetaShard(t, name)
+	putMetaValue(t, reopened, "after-reset", "ok")
+	if after := reopened.Generation(); after <= corruptGeneration {
+		t.Fatalf("generation %d after construction reset did not exceed corrupt generation %d",
+			after, corruptGeneration)
 	}
 }
 
