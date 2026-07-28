@@ -19,6 +19,7 @@ import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { createLocalSession } from '@s4wave/app/quickstart/create.js'
 import { PairingChannelProgress } from '@s4wave/app/session/setup/PairingChannelProgress.js'
+import { pairingErrorMessage } from '@s4wave/app/session/setup/pairing-copy.js'
 import { PairingStatus } from '@s4wave/sdk/session/session.pb.js'
 import { pairingStatusReachedPeer } from '@s4wave/app/session/pairing-status.js'
 import { pairingStatusIsTerminalFailure } from '@s4wave/app/loading/status/pairing.js'
@@ -150,9 +151,9 @@ export function PairCodePage(props: PairCodePageProps) {
         setStep('verify')
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to complete pairing',
-      )
+      const message =
+        err instanceof Error ? err.message : 'Failed to complete pairing'
+      setError(pairingErrorMessage(message))
     } finally {
       setLoading(false)
     }

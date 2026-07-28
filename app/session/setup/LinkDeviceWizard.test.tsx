@@ -135,6 +135,33 @@ describe('LinkDeviceWizard', () => {
     ).toBeDefined()
   })
 
+  it('maps a local relay not-found error in the EnterCodeStep submit path', async () => {
+    const session = {
+      completePairing: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            'pairing relay returned 404: {"code":"not_found","message":"Pairing code not found or expired"}',
+          ),
+        ),
+    }
+    mockUseResourceValue.mockReturnValue(session)
+
+    render(<LinkDeviceWizard />)
+    fireEvent.click(screen.getByText('Enter a code from another device'))
+    fireEvent.change(screen.getByPlaceholderText('XXXX XXXX'), {
+      target: { value: 'ABCD1234' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }))
+
+    expect(
+      await screen.findByText(
+        'That pairing code was not found or has expired. Check the code and try again.',
+      ),
+    ).toBeDefined()
+    expect(screen.queryByText(/pairing relay returned/i)).toBeNull()
+  })
+
   it('starts watching pairing status after the generated code resolves', async () => {
     const watchPairingStatus = vi.fn(async function* () {})
     const session = {

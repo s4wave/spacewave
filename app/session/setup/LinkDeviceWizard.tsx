@@ -886,7 +886,7 @@ function EnterCodeStep({
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Failed to complete pairing'
-      setError(message)
+      setError(pairingErrorMessage(message))
       // Surface via toast too: a failed submit can re-render or navigate the
       // settings pane away from this card before the inline error is seen.
       toast.error(pairingErrorMessage(message))
@@ -961,11 +961,7 @@ function EnterCodeStep({
         <span className="text-foreground-alt text-xs">Scan QR code</span>
       </button>
 
-      {error && (
-        <p className="text-destructive text-center text-xs">
-          {pairingErrorMessage(error)}
-        </p>
-      )}
+      {error && <p className="text-destructive text-center text-xs">{error}</p>}
 
       <div className="flex gap-2">
         <button
