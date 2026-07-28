@@ -802,7 +802,7 @@ func lookupStartupManifestObjectRefLocal(
 	if err != nil {
 		return nil, err
 	}
-	return manifest, manifest.Validate()
+	return manifest, validateStartupManifest(ctx, manifest)
 }
 
 func lookupStartupManifestObjectRefDemand(
@@ -831,7 +831,7 @@ func lookupStartupManifestObjectRefDemand(
 	if err != nil {
 		return nil, err
 	}
-	return manifest, manifest.Validate()
+	return manifest, validateStartupManifest(ctx, manifest)
 }
 
 func followManifestRefForStartupDemand(

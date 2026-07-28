@@ -19,6 +19,13 @@ type startupManifestGraphEdge struct {
 	to    string
 	label string
 }
+type startupManifestGraphResult struct {
+	edges         []startupManifestGraphEdge
+	candidates    []string
+	dequeuedNodes int
+	edgesFound    int
+	depthReached  int
+}
 
 // dumpStartupManifestGraphForManifestID builds a non-mutating diagnostic dump
 // of the retained manifest graph followed during startup selection.
@@ -68,14 +75,14 @@ func startupManifestGraphWorldBucketID(ctx context.Context, ws world.WorldState)
 	return bucketID, err
 }
 
-func collectStartupManifestGraph(
+func collectStartupManifestGraphCore(
 	ctx context.Context,
 	w world.WorldState,
 	manifestID string,
 	startObjKeys ...string,
-) ([]startupManifestGraphEdge, []string, error) {
+) (startupManifestGraphResult, error) {
 	if len(startObjKeys) == 0 {
-		return nil, nil, nil
+		return startupManifestGraphResult{}, nil
 	}
 
 	labels := startupManifestGraphLabels(manifestID)
@@ -92,19 +99,18 @@ func collectStartupManifestGraph(
 		frontier = append(frontier, objKey)
 	}
 
-	var edges []startupManifestGraphEdge
-	var candidates []string
+	result := startupManifestGraphResult{}
 	outputSeen := make(map[string]struct{})
 	for depth := 0; depth < 50 && len(frontier) != 0; depth++ {
+		if depth+1 > result.depthReached {
+			result.depthReached = depth + 1
+		}
 		var next []string
 		for _, objKey := range frontier {
-			quads, err := w.LookupGraphQuads(
-				ctx,
-				world.NewGraphQuadWithKeys(objKey, PredManifest.String(), "", ""),
-				0,
-			)
+			result.dequeuedNodes++
+			quads, err := lookupStartupManifestGraphQuads(ctx, w, objKey)
 			if err != nil {
-				return nil, nil, err
+				return startupManifestGraphResult{}, err
 			}
 			sortStartupManifestGraphQuads(quads)
 			for _, label := range labels {
@@ -114,16 +120,17 @@ func collectStartupManifestGraph(
 					}
 					linkedKey, err := world.GraphValueToKey(q.GetObj())
 					if err != nil {
-						return nil, nil, err
+						return startupManifestGraphResult{}, err
 					}
-					edges = append(edges, startupManifestGraphEdge{
+					result.edgesFound++
+					result.edges = append(result.edges, startupManifestGraphEdge{
 						from:  objKey,
 						to:    linkedKey,
 						label: q.GetLabel(),
 					})
 					if _, ok := outputSeen[linkedKey]; !ok {
 						outputSeen[linkedKey] = struct{}{}
-						candidates = append(candidates, linkedKey)
+						result.candidates = append(result.candidates, linkedKey)
 					}
 					if _, ok := queued[linkedKey]; ok {
 						continue
@@ -135,7 +142,7 @@ func collectStartupManifestGraph(
 		}
 		frontier = next
 	}
-	return edges, candidates, nil
+	return result, nil
 }
 
 func startupManifestGraphLabels(manifestID string) []string {
