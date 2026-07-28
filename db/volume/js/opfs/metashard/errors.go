@@ -10,6 +10,13 @@ import (
 // ErrReadOnly is returned when a write operation is attempted on a read-only transaction.
 var ErrReadOnly = errors.New("read-only transaction")
 
+// ErrGenerationChanged is returned when another agent commits between two
+// operations of the same transaction. Each operation reads one committed
+// generation, so continuing would let the transaction assemble a view of the
+// metadata that no generation ever held. The caller discards the transaction
+// and retries.
+var ErrGenerationChanged = errors.New("metadata committed by another agent during this transaction")
+
 // CorruptError is returned when committed metashard state cannot be decoded.
 type CorruptError struct {
 	Err error

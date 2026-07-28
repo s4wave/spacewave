@@ -249,6 +249,8 @@ func run(ctx context.Context, c *config) error {
 		return runMetaCrashWrite(c, true)
 	case "meta-crash-verify":
 		return runMetaCrashVerify(ctx, c)
+	case "meta-read-isolation":
+		return runMetaReadIsolation(ctx, c)
 	case "counter-init":
 		return runCounterInit(c)
 	case "counter-hold":
@@ -1553,6 +1555,81 @@ func runMetaVerify(ctx context.Context, c *config) error {
 		}
 	}
 	return nil
+}
+
+// runMetaReadIsolation checks that a read transaction serves one committed
+// generation. Reading several keys is how a caller assembles one object, so a
+// transaction that answered from two generations would hand back a combination
+// the store never held.
+func runMetaReadIsolation(ctx context.Context, c *config) error {
+	store, err := openMetaStore(c)
+	if err != nil {
+		return err
+	}
+
+	if err := putMetaPair(ctx, store, "1"); err != nil {
+		return err
+	}
+
+	readTx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		return errors.Wrap(err, "open meta read tx")
+	}
+	defer readTx.Discard()
+
+	val, found, err := readTx.Get(ctx, []byte("iso-a"))
+	if err != nil {
+		return errors.Wrap(err, "read iso-a")
+	}
+	if !found || string(val) != "1" {
+		return errors.Errorf("iso-a = %q found=%v, want 1", val, found)
+	}
+
+	// Repeated reads with nothing committed in between stay on one generation
+	// and must not fail.
+	for i := 0; i < 8; i++ {
+		if _, _, err := readTx.Get(ctx, []byte("iso-b")); err != nil {
+			return errors.Wrapf(err, "repeat read %d", i)
+		}
+	}
+
+	if err := putMetaPair(ctx, store, "2"); err != nil {
+		return err
+	}
+
+	if _, _, err := readTx.Get(ctx, []byte("iso-b")); !errors.Is(err, metashard.ErrGenerationChanged) {
+		return errors.Errorf("read after foreign commit err = %v, want ErrGenerationChanged", err)
+	}
+
+	nextTx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		return errors.Wrap(err, "open fresh meta read tx")
+	}
+	defer nextTx.Discard()
+	for _, key := range []string{"iso-a", "iso-b"} {
+		val, found, err := nextTx.Get(ctx, []byte(key))
+		if err != nil {
+			return errors.Wrapf(err, "fresh read %s", key)
+		}
+		if !found || string(val) != "2" {
+			return errors.Errorf("fresh %s = %q found=%v, want 2", key, val, found)
+		}
+	}
+	return nil
+}
+
+func putMetaPair(ctx context.Context, store *metashard.MetaStore, value string) error {
+	tx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrap(err, "open meta write tx")
+	}
+	for _, key := range []string{"iso-a", "iso-b"} {
+		if err := tx.Set(ctx, []byte(key), []byte(value)); err != nil {
+			tx.Discard()
+			return errors.Wrapf(err, "set %s", key)
+		}
+	}
+	return errors.Wrap(tx.Commit(ctx), "commit meta pair")
 }
 
 func runMetaMixedWriter(ctx context.Context, c *config) error {

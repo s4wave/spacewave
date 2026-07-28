@@ -29,7 +29,14 @@ type MetaShard struct {
 	mu         sync.RWMutex
 	rootPage   pagestore.PageID
 	generation uint64
-	testHook   func(string) error
+	// stateLoaded reports whether rootPage and generation describe a superblock
+	// this process has read and validated. It distinguishes an empty shard from
+	// one that has never been loaded, which both carry generation zero.
+	stateLoaded bool
+	// revalidations counts full read-validate-rebuild passes, so a test can
+	// assert that a run of reads over an unchanged shard performs one.
+	revalidations uint64
+	testHook      func(string) error
 }
 
 // NewMetaShard opens or creates a meta shard in the given OPFS directory.
@@ -65,24 +72,32 @@ func NewMetaShard(dir js.Value, lockPrefix string, pageSize int, le *logrus.Entr
 
 // Get looks up a key. Returns value, found, error.
 func (ms *MetaShard) Get(key []byte) ([]byte, bool, error) {
-	tree, _, release, err := ms.openCommittedTreeForRead()
+	val, found, _, err := ms.getAt(key)
+	return val, found, err
+}
+
+// getAt looks up a key and reports the commit generation that served it, so a
+// caller spanning several reads can tell whether they came from one generation.
+func (ms *MetaShard) getAt(key []byte) ([]byte, bool, uint64, error) {
+	tree, generation, release, err := ms.openCommittedTreeForRead()
 	if err != nil {
-		return nil, false, err
+		return nil, false, 0, err
 	}
 	val, found, err := tree.Get(key)
 	release()
 	if err == nil || !IsCorruptError(err) {
-		return val, found, err
+		return val, found, generation, err
 	}
 	if err := ms.recoverCorruptState(); err != nil {
-		return nil, false, errors.Wrap(err, "recover corrupt meta shard")
+		return nil, false, 0, errors.Wrap(err, "recover corrupt meta shard")
 	}
-	tree, _, release, err = ms.openCommittedTreeForRead()
+	tree, generation, release, err = ms.openCommittedTreeForRead()
 	if err != nil {
-		return nil, false, err
+		return nil, false, 0, err
 	}
 	defer release()
-	return tree.Get(key)
+	val, found, err = tree.Get(key)
+	return val, found, generation, err
 }
 
 // WriteTx executes a write transaction. The function fn receives the tree
@@ -99,7 +114,7 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
-	if err := ms.reloadCommittedStateLocked(); err != nil {
+	if err := ms.reloadCommittedStateLocked(true); err != nil {
 		if !IsCorruptError(err) {
 			return errors.Wrap(err, "reload committed state")
 		}
@@ -194,24 +209,32 @@ func (ms *MetaShard) ScanPrefix(prefix []byte, fn func(key, value []byte) bool) 
 // entirely inside one shared-lock hold, so the returned entries are a
 // consistent view of one generation.
 func (ms *MetaShard) collectPrefix(prefix []byte) ([]metaEntry, error) {
-	tree, _, release, err := ms.openCommittedTreeForRead()
+	entries, _, err := ms.collectPrefixAt(prefix)
+	return entries, err
+}
+
+// collectPrefixAt materializes every committed entry under prefix and reports
+// the commit generation that served them.
+func (ms *MetaShard) collectPrefixAt(prefix []byte) ([]metaEntry, uint64, error) {
+	tree, generation, release, err := ms.openCommittedTreeForRead()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	entries, err := scanPrefixEntries(tree, prefix)
 	release()
 	if err == nil || !IsCorruptError(err) {
-		return entries, err
+		return entries, generation, err
 	}
 	if err := ms.recoverCorruptState(); err != nil {
-		return nil, errors.Wrap(err, "recover corrupt meta shard")
+		return nil, 0, errors.Wrap(err, "recover corrupt meta shard")
 	}
-	tree, _, release, err = ms.openCommittedTreeForRead()
+	tree, generation, release, err = ms.openCommittedTreeForRead()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer release()
-	return scanPrefixEntries(tree, prefix)
+	entries, err = scanPrefixEntries(tree, prefix)
+	return entries, generation, err
 }
 
 // Generation returns the current commit generation.
@@ -301,10 +324,19 @@ func (ms *MetaShard) reloadCommittedState() error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
-	return ms.reloadCommittedStateLocked()
+	return ms.reloadCommittedStateLocked(false)
 }
 
-func (ms *MetaShard) reloadCommittedStateLocked() error {
+// reloadCommittedStateLocked brings rootPage, generation, and the pager up to
+// the newest valid superblock on disk.
+//
+// revalidate forces the full read-validate-rebuild path even when the newest
+// superblock is the generation already loaded. Readers pass false: they only
+// need to know whether another agent has committed since. Writers and
+// corruption recovery pass true, because they go on to allocate pages from the
+// freelist and must rebuild it from the committed chain rather than trust the
+// in-memory copy left behind by an earlier commit.
+func (ms *MetaShard) reloadCommittedStateLocked(revalidate bool) error {
 	var aBuf [pagestore.SuperblockSize]byte
 	var bBuf [pagestore.SuperblockSize]byte
 	if err := readSuper(ms.dir, "super-a", aBuf[:]); err != nil {
@@ -313,6 +345,18 @@ func (ms *MetaShard) reloadCommittedStateLocked() error {
 	if err := readSuper(ms.dir, "super-b", bBuf[:]); err != nil {
 		return err
 	}
+
+	// Every read operation reloads, because another agent may have committed
+	// since the last one. Reloading in full costs a whole-tree validation walk
+	// and a pager rebuild that drops the page cache, so a point read would cost
+	// O(tree) and a run of M reads O(M*tree). The superblocks themselves say
+	// whether any of that is necessary: when the newest one on disk is the
+	// generation already loaded, the state in hand is that generation, and it
+	// was validated when it was loaded.
+	if !revalidate && ms.stateLoaded && newestGeneration(aBuf[:], bBuf[:]) == ms.generation {
+		return nil
+	}
+	ms.revalidations++
 
 	validatePager := NewOpfsPager(ms.dir, "pages.dat", ms.pageSize)
 	sb, err := pickValidSuperblock(validatePager, aBuf[:], bBuf[:])
@@ -347,7 +391,22 @@ func (ms *MetaShard) reloadCommittedStateLocked() error {
 
 	ms.rootPage = rootPage
 	ms.generation = gen
+	ms.stateLoaded = true
 	return nil
+}
+
+// newestGeneration returns the highest generation among the superblocks that
+// decode, or zero when neither does. It reads only the encoded header, so it
+// costs nothing beyond the two superblock reads the caller already made.
+func newestGeneration(a, b []byte) uint64 {
+	var newest uint64
+	if sa, err := pagestore.DecodeSuperblock(a); err == nil {
+		newest = sa.Generation
+	}
+	if sb, err := pagestore.DecodeSuperblock(b); err == nil && sb.Generation > newest {
+		newest = sb.Generation
+	}
+	return newest
 }
 
 func (ms *MetaShard) recoverCorruptState() error {
@@ -360,7 +419,10 @@ func (ms *MetaShard) recoverCorruptState() error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
-	if err := ms.reloadCommittedStateLocked(); err == nil {
+	// Recovery runs because a read of the loaded generation failed, so the
+	// generation match that lets an ordinary reload skip validation is exactly
+	// the condition under test here.
+	if err := ms.reloadCommittedStateLocked(true); err == nil {
 		return nil
 	} else if !IsCorruptError(err) {
 		return err

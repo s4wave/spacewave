@@ -175,14 +175,150 @@ func TestMetaStoreReadTxDoesNotBlockWrites(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Reads are committed per operation, so the open transaction observes the
-	// commit rather than a snapshot taken when it opened.
-	val, found, err = readTx.Get(ctx, []byte("k"))
+	// The commit landed, which is what this test is for. The open transaction
+	// already served a read from the previous generation, so it refuses to
+	// serve one from this generation rather than mixing the two.
+	if _, _, err := readTx.Get(ctx, []byte("k")); !errors.Is(err, ErrGenerationChanged) {
+		t.Fatalf("read after commit err = %v, want ErrGenerationChanged", err)
+	}
+
+	// A fresh transaction sees the commit.
+	nextTx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer nextTx.Discard()
+	val, found, err = nextTx.Get(ctx, []byte("k"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !found || string(val) != "v2" {
-		t.Fatalf("read after commit got found=%v val=%q want v2", found, val)
+		t.Fatalf("fresh read after commit got found=%v val=%q want v2", found, val)
+	}
+}
+
+func TestMetaStoreReadTxRefusesToStraddleGenerations(t *testing.T) {
+	ms := newTestMetaShard(t, "test-metastore-read-tx-straddle")
+	store := NewMetaStore(ms)
+	ctx := context.Background()
+
+	writeTx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeTx.Set(ctx, []byte("a"), []byte("1")); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeTx.Set(ctx, []byte("b"), []byte("1")); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeTx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// A caller reading a multi-key object reads "a" from the first generation.
+	readTx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer readTx.Discard()
+	val, _, err := readTx.Get(ctx, []byte("a"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(val) != "1" {
+		t.Fatalf("a = %q, want 1", val)
+	}
+
+	// Another agent rewrites both keys between the two reads.
+	second, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := second.Set(ctx, []byte("a"), []byte("2")); err != nil {
+		t.Fatal(err)
+	}
+	if err := second.Set(ctx, []byte("b"), []byte("2")); err != nil {
+		t.Fatal(err)
+	}
+	if err := second.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Serving b=2 here would hand the caller a=1 with b=2, which no generation
+	// ever held.
+	if _, _, err := readTx.Get(ctx, []byte("b")); !errors.Is(err, ErrGenerationChanged) {
+		t.Fatalf("b err = %v, want ErrGenerationChanged", err)
+	}
+	if err := readTx.ScanPrefix(ctx, nil, func(_, _ []byte) error { return nil }); !errors.Is(err, ErrGenerationChanged) {
+		t.Fatalf("scan err = %v, want ErrGenerationChanged", err)
+	}
+}
+
+func TestMetaShardReadsRevalidateOnlyWhenTheGenerationMoves(t *testing.T) {
+	ms := newTestMetaShard(t, "test-metashard-read-revalidation")
+	store := NewMetaStore(ms)
+	ctx := context.Background()
+
+	writeTx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"k1", "k2", "k3", "k4"} {
+		if err := writeTx.Set(ctx, []byte(key), []byte("v")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := writeTx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Validating a superblock walks the whole tree, so doing it per read makes
+	// a run of M point reads cost M tree walks. Nothing has committed between
+	// these reads, so the state loaded by the first one is still current.
+	readTx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer readTx.Discard()
+	for _, key := range []string{"k1", "k2", "k3", "k4"} {
+		if _, _, err := readTx.Get(ctx, []byte(key)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	before := ms.revalidations
+
+	for _, key := range []string{"k1", "k2", "k3", "k4"} {
+		if _, _, err := readTx.Get(ctx, []byte(key)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if after := ms.revalidations; after != before {
+		t.Fatalf("reads over an unchanged shard revalidated %d times, want 0", after-before)
+	}
+
+	// A commit does have to be picked up.
+	nextWrite, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := nextWrite.Set(ctx, []byte("k1"), []byte("v2")); err != nil {
+		t.Fatal(err)
+	}
+	if err := nextWrite.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	freshTx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer freshTx.Discard()
+	val, found, err := freshTx.Get(ctx, []byte("k1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || string(val) != "v2" {
+		t.Fatalf("k1 after commit got found=%v val=%q want v2", found, val)
 	}
 }
 
