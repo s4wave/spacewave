@@ -109,8 +109,9 @@ func (r *SessionResource) buildLocalSyncStatusSnapshot(
 		pairing = acc.GetPairingSnapshot()
 	})
 	transportRunning, transportCh := acc.GetTransportSnapshotWithWait()
-	return syncStatusFromLocalState(pairing, transportRunning, acc.IsP2PSyncRunning()),
-		[]<-chan struct{}{pairingCh, transportCh}
+	p2pRunning, p2pCh := acc.GetP2PSyncSnapshotWithWait()
+	return syncStatusFromLocalState(pairing, transportRunning, p2pRunning),
+		[]<-chan struct{}{pairingCh, transportCh, p2pCh}
 }
 
 func syncStatusFromSpacewaveTelemetry(

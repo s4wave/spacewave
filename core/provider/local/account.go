@@ -2,7 +2,6 @@ package provider_local
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -56,8 +55,8 @@ type ProviderAccount struct {
 	mtx csync.Mutex
 	// soListCtr is the list of shared objects.
 	soListCtr *ccontainer.CContainer[*sobject.SharedObjectList]
-	// p2pSyncMtx guards p2pSync lifecycle.
-	p2pSyncMtx sync.Mutex
+	// p2pSyncBcast guards p2pSync lifecycle and wakes status watchers.
+	p2pSyncBcast broadcast.Broadcast
 	// p2pSync holds current P2P sync startup or running state, nil when inactive.
 	p2pSync *p2pSyncState
 	// sessionTransport is the running session transport, nil when not active.

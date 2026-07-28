@@ -379,6 +379,7 @@ func TestStartP2PSyncStartsDEXSolicit(t *testing.T) {
 
 	loadStarted := make(chan struct{})
 	releaseLoad := make(chan struct{})
+	dexLoads := make(chan string, 8)
 	var gate sync.Once
 	removeHandler, err := st.GetChildBus().AddHandler(directive.NewFuncHandler(
 		func(handlerCtx context.Context, di directive.Instance) ([]directive.Resolver, error) {
@@ -386,8 +387,13 @@ func TestStartP2PSyncStartsDEXSolicit(t *testing.T) {
 			if !ok {
 				return nil, nil
 			}
-			if _, ok := load.GetLoadControllerConfig().(*dex_solicit.Config); !ok {
+			loadConfig, ok := load.GetLoadControllerConfig().(*dex_solicit.Config)
+			if !ok {
 				return nil, nil
+			}
+			select {
+			case dexLoads <- loadConfig.GetBucketId():
+			default:
 			}
 			gate.Do(func() {
 				close(loadStarted)
@@ -438,18 +444,54 @@ func TestStartP2PSyncStartsDEXSolicit(t *testing.T) {
 		)
 	}
 
+	newRef, err := acc.CreateSharedObject(
+		ctx,
+		"pending-start-space",
+		&sobject.SharedObjectMeta{BodyType: "space"},
+		"",
+		"",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	newBucketID := provider_local.BlockStoreBucketID(
+		newRef.GetProviderResourceRef().GetProviderId(),
+		newRef.GetProviderResourceRef().GetProviderAccountId(),
+		newRef.GetBlockStoreId(),
+	)
+
 	if acc.IsP2PSyncRunning() {
 		t.Fatal("expected P2P sync to remain starting while DEX controller load is blocked")
 	}
+	_, p2pWaitCh := acc.GetP2PSyncSnapshotWithWait()
 
 	close(releaseLoad)
 	if err := <-firstDone; err != nil {
 		t.Fatal(err)
 	}
+	select {
+	case <-p2pWaitCh:
+	case <-ctx.Done():
+		t.Fatal("timed out waiting for P2P startup broadcast")
+	}
+	if running, _ := acc.GetP2PSyncSnapshotWithWait(); !running {
+		t.Fatal("expected P2P sync running after startup broadcast")
+	}
+
 	defer acc.StopP2PSync()
 
-	if !acc.IsP2PSyncRunning() {
-		t.Fatal("expected P2P sync running after direct start")
+	for {
+		select {
+		case bucketID := <-dexLoads:
+			if bucketID == newBucketID {
+				if !acc.IsP2PSyncRunning() {
+					t.Fatal("expected P2P sync running after pending shared object start")
+				}
+				return
+			}
+		case <-ctx.Done():
+			t.Fatalf("timed out waiting for DEX solicit controller for %s", newBucketID)
+		}
 	}
 }
 

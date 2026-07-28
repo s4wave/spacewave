@@ -200,6 +200,20 @@ func TestWatchSyncStatusInitialSnapshots(t *testing.T) {
 	}
 }
 
+func TestBuildLocalSyncStatusSnapshotWaitsForP2P(t *testing.T) {
+	t.Parallel()
+
+	acc := &provider_local.ProviderAccount{}
+	res := &SessionResource{
+		session: &testSyncStatusSession{acc: acc},
+	}
+
+	_, waitChs := res.buildLocalSyncStatusSnapshot(acc)
+	if len(waitChs) != 3 {
+		t.Fatalf("wait channel count = %d, want 3", len(waitChs))
+	}
+}
+
 func TestWaitSyncStatusWaitsForEverySource(t *testing.T) {
 	t.Parallel()
 
