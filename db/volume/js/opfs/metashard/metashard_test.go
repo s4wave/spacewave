@@ -5,6 +5,7 @@ package metashard
 import (
 	"bytes"
 	"context"
+	"math"
 	"strings"
 	"testing"
 
@@ -585,6 +586,58 @@ func TestMetaShardConstructionRecoveryPreservesGenerationFloor(t *testing.T) {
 	putMetaValue(t, ms, "k", "v2")
 
 	const corruptGeneration = uint64(0xFFFFFFFF)<<generationEpochShift | 1
+	prepareCorruptMetaShard(t, ms, corruptGeneration)
+
+	reopened := reopenTestMetaShard(t, name)
+	putMetaValue(t, reopened, "after-reset", "ok")
+	if after := reopened.Generation(); after <= corruptGeneration {
+		t.Fatalf("generation %d after construction reset did not exceed corrupt generation %d",
+			after, corruptGeneration)
+	}
+}
+
+func TestMetaShardConstructionRecoveryRejectsSaturatedGenerationFloor(t *testing.T) {
+	name := "test-metashard-construction-saturated-generation-floor"
+	ms := newTestMetaShard(t, name)
+	putMetaValue(t, ms, "k", "v1")
+	putMetaValue(t, ms, "k", "v2")
+	prepareCorruptMetaShard(t, ms, math.MaxUint64)
+
+	root, err := opfs.GetRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := opfs.GetDirectory(root, name, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = NewMetaShard(dir, name, 0, logrus.New().WithField("test", name))
+	if err == nil {
+		t.Fatal("expected construction to reject saturated generation floor")
+	}
+	var floorErr *generationFloorError
+	if !errors.As(err, &floorErr) {
+		t.Fatalf("error = %v, want generationFloorError", err)
+	}
+	if floorErr.generation != math.MaxUint64 {
+		t.Fatalf("generation = %d, want %d", floorErr.generation, uint64(math.MaxUint64))
+	}
+
+	var buf [pagestore.SuperblockSize]byte
+	if err := readSuper(dir, "super-a", buf[:]); err != nil {
+		t.Fatal(err)
+	}
+	sb, err := pagestore.DecodeSuperblock(buf[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sb.Generation != math.MaxUint64 {
+		t.Fatalf("on-disk generation = %d, want %d", sb.Generation, uint64(math.MaxUint64))
+	}
+}
+
+func prepareCorruptMetaShard(t *testing.T, ms *MetaShard, generation uint64) {
+	t.Helper()
 	for _, slot := range []string{"super-a", "super-b"} {
 		var buf [pagestore.SuperblockSize]byte
 		if err := readSuper(ms.dir, slot, buf[:]); err != nil {
@@ -594,7 +647,7 @@ func TestMetaShardConstructionRecoveryPreservesGenerationFloor(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		sb.Generation = corruptGeneration
+		sb.Generation = generation
 		pagestore.EncodeSuperblock(buf[:], sb)
 		if err := writeSuper(ms.dir, slot, buf[:]); err != nil {
 			t.Fatal(err)
@@ -604,13 +657,6 @@ func TestMetaShardConstructionRecoveryPreservesGenerationFloor(t *testing.T) {
 		t.Fatal(err)
 	}
 	zeroSuperblockRoots(t, ms)
-
-	reopened := reopenTestMetaShard(t, name)
-	putMetaValue(t, reopened, "after-reset", "ok")
-	if after := reopened.Generation(); after <= corruptGeneration {
-		t.Fatalf("generation %d after construction reset did not exceed corrupt generation %d",
-			after, corruptGeneration)
-	}
 }
 
 func TestMetaStoreReadTxRecoversCorruptSnapshot(t *testing.T) {
