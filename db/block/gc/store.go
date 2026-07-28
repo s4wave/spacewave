@@ -430,16 +430,33 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	if parent == "" {
 		parent = NodeUnreferenced
 	}
+	// Only queue stale staging edges. A no-op removal in the same batch as a
+	// parent add can hide the remaining owner from graph index queries.
+	var unrefSet map[string]struct{}
+	if g.parentIRI != "" && len(unrefs) != 0 {
+		existing, err := g.refGraph.GetOutgoingRefs(ctx, NodeUnreferenced)
+		if err != nil {
+			return errors.Wrap(err, "get unreferenced refs")
+		}
+		unrefSet = make(map[string]struct{}, len(existing))
+		for _, iri := range existing {
+			unrefSet[iri] = struct{}{}
+		}
+	}
 
 	adds := make([]RefEdge, 0, len(unrefs)+len(refs))
+	removes := make([]RefEdge, 0, len(ununrefs)+len(unrefs))
 	for _, iri := range unrefs {
 		adds = append(adds, RefEdge{Subject: parent, Object: iri})
+		if g.parentIRI != "" {
+			if _, ok := unrefSet[iri]; ok {
+				removes = append(removes, RefEdge{Subject: NodeUnreferenced, Object: iri})
+			}
+		}
 	}
 	for _, r := range refs {
 		adds = append(adds, RefEdge{Subject: r.source, Object: r.target})
 	}
-
-	removes := make([]RefEdge, 0, len(ununrefs))
 	for _, iri := range ununrefs {
 		removes = append(removes, RefEdge{Subject: parent, Object: iri})
 	}

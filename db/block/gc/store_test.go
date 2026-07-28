@@ -584,6 +584,80 @@ func TestGCStoreOps_ParentIRI_FlushPending(t *testing.T) {
 	}
 }
 
+// TestGCStoreOps_ParentIRI_DedupClearsStaleUnref tests that taking ownership
+// of a block staged under unreferenced removes the stale staging edge.
+func TestGCStoreOps_ParentIRI_DedupClearsStaleUnref(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		batch bool
+	}{
+		{name: "PutBlock"},
+		{name: "PutBlockBatch", batch: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			env := newGCTestEnv(t)
+			var ref *block.BlockRef
+			if tc.batch {
+				entry := buildBatchEntry(t, "parent-dedup-batch")
+				if err := env.gcStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{entry}); err != nil {
+					t.Fatal(err.Error())
+				}
+				ref = entry.Ref
+			} else {
+				ex := block_mock.NewExample("parent-dedup-single")
+				var err error
+				ref, _, err = block.PutBlock(env.ctx, env.gcStore, ex)
+				if err != nil {
+					t.Fatal(err.Error())
+				}
+			}
+			env.flush(t)
+			nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			if !slices.Contains(nodes, BlockIRI(ref)) {
+				t.Fatal("block should be staged under unreferenced")
+			}
+
+			parent := BucketIRI("parent-dedup")
+			parentStore := NewGCStoreOpsWithParent(env.rawStore, env.refGraph, parent)
+			if tc.batch {
+				entry := buildBatchEntry(t, "parent-dedup-batch")
+				if err := parentStore.PutBlockBatch(env.ctx, []*block.PutBatchEntry{entry}); err != nil {
+					t.Fatal(err.Error())
+				}
+			} else {
+				ex := block_mock.NewExample("parent-dedup-single")
+				if _, _, err := block.PutBlock(env.ctx, parentStore, ex); err != nil {
+					t.Fatal(err.Error())
+				}
+			}
+			if err := parentStore.FlushPending(env.ctx); err != nil {
+				t.Fatal(err.Error())
+			}
+			nodes, err = env.refGraph.GetUnreferencedNodes(env.ctx)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			if slices.Contains(nodes, BlockIRI(ref)) {
+				t.Fatal("parent-owned block should not remain unreferenced")
+			}
+
+			if _, err := NewCollector(env.refGraph, env.rawStore, nil).Collect(env.ctx); err != nil {
+				t.Fatal(err.Error())
+			}
+			_, exists, err := parentStore.GetBlock(env.ctx, ref)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			if !exists {
+				t.Fatal("parent-owned block should survive collection")
+			}
+		})
+	}
+}
+
 // buildBatchEntry creates a PutBatchEntry from a mock block message.
 func buildBatchEntry(t *testing.T, msg string) *block.PutBatchEntry {
 	t.Helper()
