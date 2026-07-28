@@ -118,6 +118,16 @@ describe('docs viewer responsive layout', () => {
         .toBeInTheDocument()
       await shot(`article-${label}`)
       expect(horizontalOverflow()).toBeLessThanOrEqual(1)
+      await page
+        .getByRole('button', { name: 'Open page in an AI assistant' })
+        .click()
+      await expect
+        .element(page.getByRole('menuitem', { name: 'Copy .md URL' }))
+        .toBeInTheDocument()
+      const openMarkdown = document.querySelector(
+        'a[title="Open raw Markdown on GitHub"]',
+      )
+      expect(openMarkdown).not.toBeNull()
       await cleanup()
     }
   }, 120000)
