@@ -2,6 +2,7 @@ package space_exec
 
 import (
 	"context"
+	"io"
 	"slices"
 	"strings"
 	"testing"
@@ -173,6 +174,103 @@ func TestV86ExecuteSetsStartingAndStreamsLogs(t *testing.T) {
 			t.Fatalf("log %d = {%q, %q}, want {%q, %q}", i, got.GetLevel(), got.GetMessage(), want.GetLevel(), want.GetMessage())
 		}
 	}
+}
+
+func TestOpenV86ExecutionStreamCloseSend(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		closeSendErr  error
+		wantError     bool
+		wantCloseCall bool
+	}{
+		{name: "closed pipe", closeSendErr: io.ErrClosedPipe},
+		{name: "completed", closeSendErr: srpc.ErrCompleted},
+		{name: "other error", closeSendErr: errors.New("close send failed"), wantError: true, wantCloseCall: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			stream := &v86ExecutionStreamFake{closeSendErr: tc.closeSendErr}
+			client := &v86ExecutionClientFake{stream: stream}
+
+			got, err := openV86ExecutionStream(context.Background(), client)
+			if tc.wantError {
+				if err == nil || err.Error() != "close send failed" {
+					t.Fatalf("openV86ExecutionStream error = %v, want close send failed", err)
+				}
+				if got != nil {
+					t.Fatal("openV86ExecutionStream returned a stream on error")
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("openV86ExecutionStream: %v", err)
+				}
+				if got != stream {
+					t.Fatal("openV86ExecutionStream returned a different stream")
+				}
+			}
+			if stream.closeCalled != tc.wantCloseCall {
+				t.Fatalf("stream close called = %t, want %t", stream.closeCalled, tc.wantCloseCall)
+			}
+			if client.service != s4wave_process.SRPCPersistentExecutionServiceServiceID {
+				t.Fatalf("service = %q", client.service)
+			}
+			if client.method != "Execute" {
+				t.Fatalf("method = %q", client.method)
+			}
+		})
+	}
+}
+
+type v86ExecutionClientFake struct {
+	stream  srpc.Stream
+	service string
+	method  string
+}
+
+func (f *v86ExecutionClientFake) ExecCall(
+	ctx context.Context,
+	service string,
+	method string,
+	in srpc.Message,
+	out srpc.Message,
+) error {
+	return errors.New("unexpected ExecCall")
+}
+
+func (f *v86ExecutionClientFake) NewStream(
+	ctx context.Context,
+	service string,
+	method string,
+	firstMsg srpc.Message,
+) (srpc.Stream, error) {
+	f.service = service
+	f.method = method
+	return f.stream, nil
+}
+
+type v86ExecutionStreamFake struct {
+	closeSendErr error
+	closeCalled  bool
+}
+
+func (f *v86ExecutionStreamFake) Context() context.Context {
+	return context.Background()
+}
+
+func (f *v86ExecutionStreamFake) MsgSend(msg srpc.Message) error {
+	return nil
+}
+
+func (f *v86ExecutionStreamFake) MsgRecv(msg srpc.Message) error {
+	return io.EOF
+}
+
+func (f *v86ExecutionStreamFake) CloseSend() error {
+	return f.closeSendErr
+}
+
+func (f *v86ExecutionStreamFake) Close() error {
+	f.closeCalled = true
+	return nil
 }
 
 type v86PersistentExecutionServiceFake struct {
