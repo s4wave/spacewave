@@ -546,6 +546,37 @@ func TestMetaShardBothSuperblocksWithZeroRootsResets(t *testing.T) {
 	assertMetaValue(t, reopenTestMetaShard(t, name), "after-reset", "ok")
 }
 
+// TestMetaShardResetGenerationUsesProcessFloor covers both draws the epoch can
+// produce. The first case sets a floor low enough that a random epoch almost
+// always clears it, and the second sets the highest epoch there is, so no draw
+// can clear it and the floor has to carry the generation itself.
+func TestMetaShardResetGenerationUsesProcessFloor(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		epoch uint64
+	}{
+		{name: "ordinary", epoch: 1},
+		{name: "highest-epoch", epoch: 0xFFFFFFFF},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ms := newTestMetaShard(t, "test-metashard-reset-generation-floor-"+tc.name)
+			putMetaValue(t, ms, "k", "v1")
+
+			before := tc.epoch<<generationEpochShift | 1
+			ms.generation = before
+			if err := ms.resetCommittedStateLocked(); err != nil {
+				t.Fatal(err)
+			}
+
+			putMetaValue(t, ms, "after-reset", "ok")
+			after := ms.Generation()
+			if after <= before {
+				t.Fatalf("generation %d after reset did not exceed prior %d", after, before)
+			}
+		})
+	}
+}
+
 func TestMetaStoreReadTxRecoversCorruptSnapshot(t *testing.T) {
 	name := "test-metastore-read-tx-recovers-corrupt-snapshot"
 	ms := newTestMetaShard(t, name)
