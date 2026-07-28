@@ -188,17 +188,28 @@ func pageHasShellTabs(page playwright.Page) (bool, error) {
 	return hasShell, nil
 }
 
+// seedShellTabs installs a known tab set and selection, then reloads so the
+// Shell adopts them.
+//
+// The tab records live in the browser Shell Tabs store and the document-local
+// selection sits beside them in session storage. Reloading is what makes the
+// selection stick: the Shell honours a persisted selection only when the
+// navigation continues the same document, and a fresh load starts its own
+// incarnation instead.
 func seedShellTabs(page playwright.Page) error {
 	if _, err := page.Evaluate(`() => {
-		const tabs = [
-			{ id: 'home', name: 'Home', path: '/' },
-			{ id: 'docs', name: 'Docs', path: '/docs' },
-			{ id: 'changelog', name: 'Changelog', path: '/changelog' },
+		const records = [
+			{ id: 'home', name: 'Home', path: '/', creationSequence: 1 },
+			{ id: 'docs', name: 'Docs', path: '/docs', creationSequence: 2 },
+			{ id: 'changelog', name: 'Changelog', path: '/changelog', creationSequence: 3 },
 		]
-		const nextState = JSON.stringify({ tabs, activeTabId: 'home' })
+		localStorage.setItem(
+			'browser-shell-tabs',
+			JSON.stringify({ schemaVersion: 1, epoch: 1, revision: 1, records }),
+		)
 		sessionStorage.setItem(
-			'shell-tabs-state',
-			nextState,
+			'shell-document-state',
+			JSON.stringify({ incarnation: 'e2e-shell-tabs', activeTabId: 'home' }),
 		)
 		sessionStorage.removeItem('shell-tabs-layout')
 	}`); err != nil {
@@ -207,8 +218,16 @@ func seedShellTabs(page playwright.Page) error {
 	if _, err := page.Reload(); err != nil {
 		return err
 	}
+	// Wait for the seeded names rather than a tab count. The Shell opens a
+	// default tab of its own, so a count is satisfied whether or not the seed
+	// reached the store, and every later step then fails somewhere unrelated.
 	_, err := page.WaitForFunction(
-		`() => document.querySelectorAll('.shell-flexlayout .flexlayout__tab_button').length >= 3`,
+		`() => {
+			const names = Array.from(
+				document.querySelectorAll('.shell-flexlayout .flexlayout__tab_button_content'),
+			).map((content) => content.textContent?.trim())
+			return ['Home', 'Docs', 'Changelog'].every((name) => names.includes(name))
+		}`,
 		nil,
 		playwright.PageWaitForFunctionOptions{
 			Timeout: playwright.Float(shellUIWaitTimeout),
@@ -222,13 +241,17 @@ func seedGridShellTabs(t testing.TB, page playwright.Page) error {
 
 	layoutData := encodeShellGridLayout(t)
 	if _, err := page.Evaluate(`(layoutData) => {
-		const tabs = [
-			{ id: 'grid-home', name: 'Home', path: '/' },
-			{ id: 'grid-blog', name: 'Blog', path: '/blog' },
+		const records = [
+			{ id: 'grid-home', name: 'Home', path: '/', creationSequence: 1 },
+			{ id: 'grid-blog', name: 'Blog', path: '/blog', creationSequence: 2 },
 		]
+		localStorage.setItem(
+			'browser-shell-tabs',
+			JSON.stringify({ schemaVersion: 1, epoch: 1, revision: 1, records }),
+		)
 		sessionStorage.setItem(
-			'shell-tabs-state',
-			JSON.stringify({ tabs, activeTabId: 'grid-home' }),
+			'shell-document-state',
+			JSON.stringify({ incarnation: 'e2e-shell-grid', activeTabId: 'grid-home' }),
 		)
 		sessionStorage.removeItem('shell-tabs-layout')
 		window.location.hash = '#/g/' + layoutData
@@ -239,10 +262,13 @@ func seedGridShellTabs(t testing.TB, page playwright.Page) error {
 		return err
 	}
 	_, err := page.WaitForFunction(
-		`() => (
-			window.location.hash.startsWith('#/g/') &&
-			document.querySelectorAll('.shell-flexlayout .flexlayout__tab_button').length >= 2
-		)`,
+		`() => {
+			if (!window.location.hash.startsWith('#/g/')) return false
+			const names = Array.from(
+				document.querySelectorAll('.shell-flexlayout .flexlayout__tab_button_content'),
+			).map((content) => content.textContent?.trim())
+			return ['Home', 'Blog'].every((name) => names.includes(name))
+		}`,
 		nil,
 		playwright.PageWaitForFunctionOptions{
 			Timeout: playwright.Float(shellUIWaitTimeout),
@@ -341,7 +367,8 @@ func shellMenuDebug(page playwright.Page) string {
 				state: item.getAttribute('data-state'),
 				rect: compactRect(item),
 			})),
-			shellTabsState: sessionStorage.getItem('shell-tabs-state'),
+			shellDocumentState: sessionStorage.getItem('shell-document-state'),
+			shellTabRecords: localStorage.getItem('browser-shell-tabs'),
 		})
 	}`)
 	if err != nil {
@@ -397,22 +424,31 @@ func waitForSelectedShellTab(page playwright.Page, name string) error {
 
 func waitForStoredActiveTabID(page playwright.Page, tabID string) error {
 	_, err := page.WaitForFunction(`(tabID) => {
-		const raw = sessionStorage.getItem('shell-tabs-state')
-		if (!raw) return false
-		return JSON.parse(raw).activeTabId === tabID
+		try {
+			const documentState = JSON.parse(sessionStorage.getItem('shell-document-state') ?? 'null')
+			return documentState?.activeTabId === tabID
+		} catch {
+			return false
+		}
 	}`, tabID, playwright.PageWaitForFunctionOptions{
 		Timeout: playwright.Float(shellUIWaitTimeout),
 	})
 	return err
 }
 
+// waitForStoredActiveShellTab resolves the persisted selection against the tab
+// records, since the document holds only the selected id and the records hold
+// the name and path it refers to.
 func waitForStoredActiveShellTab(page playwright.Page, name, path string) error {
 	_, err := page.WaitForFunction(`([name, path]) => {
-		const raw = sessionStorage.getItem('shell-tabs-state')
-		if (!raw) return false
-		const state = JSON.parse(raw)
-		const active = state.tabs?.find((tab) => tab.id === state.activeTabId)
-		return active?.name === name && active?.path === path
+		try {
+			const documentState = JSON.parse(sessionStorage.getItem('shell-document-state') ?? 'null')
+			const snapshot = JSON.parse(localStorage.getItem('browser-shell-tabs') ?? 'null')
+			const active = snapshot?.records?.find((record) => record.id === documentState?.activeTabId)
+			return active?.name === name && active?.path === path
+		} catch {
+			return false
+		}
 	}`, []string{name, path}, playwright.PageWaitForFunctionOptions{
 		Timeout: playwright.Float(shellUIWaitTimeout),
 	})

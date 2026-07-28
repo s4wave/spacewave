@@ -510,8 +510,13 @@ func dropUnixFSOpenableOnShellLayout(t testing.TB, page playwright.Page, scenari
 	}
 
 	_, err = page.WaitForFunction(`({ routePath }) => {
-		const state = sessionStorage.getItem('shell-tabs-state') || ''
-		return state.includes(routePath) || window.location.hash.includes('/g/')
+		try {
+			const snapshot = JSON.parse(localStorage.getItem('browser-shell-tabs') ?? 'null')
+			const opened = snapshot?.records?.some((record) => record.path === routePath)
+			return Boolean(opened) || window.location.hash.includes('/g/')
+		} catch {
+			return window.location.hash.includes('/g/')
+		}
 	}`, map[string]any{"routePath": routePath}, playwright.PageWaitForFunctionOptions{
 		Timeout: playwright.Float(float64(driveBrowserUIWaitTimeout / time.Millisecond)),
 	})

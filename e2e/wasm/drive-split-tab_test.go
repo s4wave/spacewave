@@ -117,23 +117,32 @@ func (p *splitDriveProbe) enterSplitLayout(leftPath, rightPath string) {
 
 	layoutData := encodeSplitDriveLayout(p.t)
 	_, err := p.page.Evaluate(`({ layoutData, leftPath, rightPath }) => {
-		const tabs = [
+		const records = [
 			{
 				id: 'tinygo-drive-left',
 				name: 'getting-started.md',
 				path: leftPath,
 				customName: 'getting-started.md',
+				creationSequence: 1,
 			},
 			{
 				id: 'tinygo-drive-right',
 				name: 'tinygo-split-upload.md',
 				path: rightPath,
 				customName: 'tinygo-split-upload.md',
+				creationSequence: 2,
 			},
 		]
+		localStorage.setItem(
+			'browser-shell-tabs',
+			JSON.stringify({ schemaVersion: 1, epoch: 1, revision: 1, records }),
+		)
 		sessionStorage.setItem(
-			'shell-tabs-state',
-			JSON.stringify({ tabs, activeTabId: 'tinygo-drive-right' }),
+			'shell-document-state',
+			JSON.stringify({
+				incarnation: 'e2e-split-drive',
+				activeTabId: 'tinygo-drive-right',
+			}),
 		)
 		sessionStorage.removeItem('shell-tabs-layout')
 		window.location.hash = '#/g/' + layoutData
