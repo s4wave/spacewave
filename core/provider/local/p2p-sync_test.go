@@ -2,6 +2,7 @@ package provider_local_test
 
 import (
 	"context"
+	"errors"
 	"runtime"
 	"sync"
 	"testing"
@@ -562,10 +563,20 @@ func TestStartP2PSyncCoalescedCallerOwnsLifecycle(t *testing.T) {
 		t.Fatal("coalesced P2P caller did not retain the lifecycle")
 	}
 
+	// Cancel the first caller while its startup is still gated. The startup
+	// belongs to whoever owns the state, so a caller that gives up returns on
+	// its own context instead of finishing work it no longer has a stake in.
 	firstCancel()
+	select {
+	case err := <-firstDone:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("expected the canceled first caller to return context.Canceled, got %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatal("canceled first P2P caller did not return while startup was still gated")
+	}
 	close(releaseLoad)
 
-	<-firstDone
 	select {
 	case err := <-secondDone:
 		if err != nil {
@@ -577,6 +588,116 @@ func TestStartP2PSyncCoalescedCallerOwnsLifecycle(t *testing.T) {
 	defer acc.StopP2PSync()
 	if !acc.IsP2PSyncRunning() {
 		t.Fatal("expected P2P sync to remain running under the coalesced caller")
+	}
+}
+
+// TestStartP2PSyncDoesNotCoalesceAcrossTransports checks that a start for a
+// replacement session transport gets its own controllers.
+//
+// A startup pass loads controllers onto the child bus of the transport it began
+// with. A start for a different transport that joined an in-flight one would be
+// told sync had started while its own transport carried no DEX solicit, SO
+// sync, or invite controllers at all.
+func TestStartP2PSyncDoesNotCoalesceAcrossTransports(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+
+	tb, sessRef, acc, sess, release := setupProviderAndSession(ctx, t)
+	defer release()
+
+	accountID := sessRef.GetProviderResourceRef().GetProviderAccountId()
+	_, soRelease := mountAccountSettingsSO(ctx, t, tb.Bus, accountID)
+	soRelease()
+
+	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
+		t.Fatal(err)
+	}
+	defer acc.StopSessionTransport()
+	first := acc.GetSessionTransport()
+	if first == nil {
+		t.Fatal("expected non-nil session transport")
+	}
+
+	firstLoadStarted := make(chan struct{})
+	releaseFirstLoad := make(chan struct{})
+	var gate sync.Once
+	removeFirst, err := first.GetChildBus().AddHandler(directive.NewFuncHandler(
+		func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+			load, ok := di.GetDirective().(resolver.LoadControllerWithConfig)
+			if !ok {
+				return nil, nil
+			}
+			if _, ok := load.GetLoadControllerConfig().(*dex_solicit.Config); !ok {
+				return nil, nil
+			}
+			// Hold the first startup open past the replacement of its own
+			// transport, so the second start meets a startup genuinely in
+			// flight rather than one that already finished.
+			gate.Do(func() {
+				close(firstLoadStarted)
+				<-releaseFirstLoad
+			})
+			return nil, nil
+		},
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer removeFirst()
+	defer close(releaseFirstLoad)
+
+	firstDone := make(chan error, 1)
+	go func() {
+		firstDone <- acc.StartP2PSync(ctx, first)
+	}()
+	select {
+	case <-firstLoadStarted:
+	case <-ctx.Done():
+		t.Fatal("timed out waiting for the first P2P startup load")
+	}
+
+	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
+		t.Fatal(err)
+	}
+	second := acc.GetSessionTransport()
+	if second == first {
+		t.Fatal("expected a replacement session transport")
+	}
+
+	secondLoads := make(chan struct{}, 1)
+	removeSecond, err := second.GetChildBus().AddHandler(directive.NewFuncHandler(
+		func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+			load, ok := di.GetDirective().(resolver.LoadControllerWithConfig)
+			if !ok {
+				return nil, nil
+			}
+			if _, ok := load.GetLoadControllerConfig().(*dex_solicit.Config); !ok {
+				return nil, nil
+			}
+			select {
+			case secondLoads <- struct{}{}:
+			default:
+			}
+			return nil, nil
+		},
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer removeSecond()
+
+	secondDone := make(chan error, 1)
+	go func() {
+		secondDone <- acc.StartP2PSync(ctx, second)
+	}()
+	defer acc.StopP2PSync()
+
+	select {
+	case <-secondLoads:
+	case err := <-secondDone:
+		t.Fatalf("start for the replacement transport finished without loading controllers on it: %v", err)
+	case <-ctx.Done():
+		t.Fatal("the replacement transport never received its DEX solicit controller")
 	}
 }
 
