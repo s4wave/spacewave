@@ -257,7 +257,24 @@ func (h *Harness) RepoRoot() string { return h.repoRoot }
 // than the repository checkout.
 func (h *Harness) CLISocketPath() string { return h.cliSocketPath }
 
-// WaitForPage waits until a renderer page is visible through the CDP driver.
+// pageContextReady reports whether the page has a live JavaScript execution
+// context over a parsed document.
+//
+// An app:// URL appears as soon as the renderer commits the navigation, while
+// the execution context behind it is still replaced one or more times during
+// startup. Evaluating against a context that is about to be destroyed fails
+// with "Execution context was destroyed", so a page is only usable once an
+// evaluate against it succeeds.
+func pageContextReady(page playwright.Page) bool {
+	state, err := page.Evaluate(`() => document.readyState`)
+	if err != nil {
+		return false
+	}
+	readyState, _ := state.(string)
+	return readyState == "interactive" || readyState == "complete"
+}
+
+// WaitForPage waits until a renderer page is usable through the CDP driver.
 func (h *Harness) WaitForPage(ctx context.Context) (playwright.Page, error) {
 	if h.browser == nil {
 		return nil, errors.New("playwright CDP browser is not connected")
@@ -270,7 +287,7 @@ func (h *Harness) WaitForPage(ctx context.Context) (playwright.Page, error) {
 				if page.IsClosed() {
 					continue
 				}
-				if strings.HasPrefix(page.URL(), "app://") {
+				if strings.HasPrefix(page.URL(), "app://") && pageContextReady(page) {
 					return page, nil
 				}
 			}
