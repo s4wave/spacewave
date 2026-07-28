@@ -28,6 +28,14 @@ var ErrGenerationChanged = fmt.Errorf(
 	kvtx.ErrInvalidSnapshot,
 )
 
+type generationFloorError struct {
+	generation uint64
+}
+
+func (e *generationFloorError) Error() string {
+	return fmt.Sprintf("generation floor exhausted at %d", e.generation)
+}
+
 // CorruptError is returned when committed metashard state cannot be decoded.
 type CorruptError struct {
 	Err error

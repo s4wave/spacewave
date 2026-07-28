@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/binary"
+	"math"
 	"sync"
 	"syscall/js"
 
@@ -138,6 +139,9 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 			return errors.Wrap(err, "reset corrupt meta shard")
 		}
 	}
+	if ms.generation == math.MaxUint64 {
+		return &generationFloorError{generation: ms.generation}
+	}
 	tree, gen := ms.openCommittedTreeLocked()
 
 	// Execute mutations.
@@ -198,6 +202,9 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 		// database's epoch, which is harmless: every generation it produces is
 		// above every generation that database published.
 		if gen <= ms.resetGenerationFloor {
+			if ms.resetGenerationFloor == math.MaxUint64 {
+				return &generationFloorError{generation: ms.resetGenerationFloor}
+			}
 			gen = ms.resetGenerationFloor + 1
 		}
 	}
@@ -542,9 +549,14 @@ func (ms *MetaShard) resetCorruptStateLocked(cause error) error {
 }
 
 func (ms *MetaShard) resetCommittedStateLocked() error {
-	if ms.generation > ms.resetGenerationFloor {
-		ms.resetGenerationFloor = ms.generation
+	floor := ms.resetGenerationFloor
+	if ms.generation > floor {
+		floor = ms.generation
 	}
+	if floor == math.MaxUint64 {
+		return &generationFloorError{generation: floor}
+	}
+	ms.resetGenerationFloor = floor
 	if err := ms.pager.Close(); err != nil {
 		return errors.Wrap(err, "close page file")
 	}
