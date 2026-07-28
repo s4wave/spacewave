@@ -29,3 +29,40 @@ func DumpStartupManifestGraphForManifestID(
 	startuptrace.Log(traceCtx, "outcome", "ok")
 	return dump, nil
 }
+
+func collectStartupManifestGraph(
+	ctx context.Context,
+	ws world.WorldState,
+	manifestID string,
+	objKeys ...string,
+) ([]startupManifestGraphEdge, []string, error) {
+	traceCtx, task := startuptrace.NewTask(ctx, "bldr/manifest-world/eligibility/graph-walk")
+	defer task.End()
+	result, err := collectStartupManifestGraphCore(traceCtx, ws, manifestID, objKeys...)
+	if err != nil {
+		return nil, nil, err
+	}
+	startuptrace.Logf(
+		traceCtx,
+		"graph-stats",
+		"nodes=%d edges=%d depth=%d",
+		result.dequeuedNodes,
+		result.edgesFound,
+		result.depthReached,
+	)
+	return result.edges, result.candidates, nil
+}
+
+func lookupStartupManifestGraphQuads(
+	ctx context.Context,
+	ws world.WorldState,
+	objKey string,
+) ([]world.GraphQuad, error) {
+	traceCtx, task := startuptrace.NewTask(ctx, "bldr/manifest-world/eligibility/graph-node")
+	defer task.End()
+	return ws.LookupGraphQuads(
+		traceCtx,
+		world.NewGraphQuadWithKeys(objKey, PredManifest.String(), "", ""),
+		0,
+	)
+}

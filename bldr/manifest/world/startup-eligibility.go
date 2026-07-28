@@ -11,7 +11,6 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
-	world_types "github.com/s4wave/spacewave/db/world/types"
 )
 
 // StartupManifestEligibility is the retained startup candidate classification.
@@ -181,7 +180,7 @@ func startupManifestCandidateEdgeLabels(edges []startupManifestGraphEdge, manife
 	return labels
 }
 
-func classifyStartupManifestCandidateEligibility(
+func classifyStartupManifestCandidateEligibilityCore(
 	ctx context.Context,
 	ws world.WorldState,
 	objKey string,
@@ -194,7 +193,7 @@ func classifyStartupManifestCandidateEligibility(
 		EdgeLabel: edgeLabel,
 	}
 
-	objType, err := world_types.GetObjectType(ctx, ws, objKey)
+	objType, err := getStartupManifestCandidateObjectType(ctx, ws, objKey)
 	if err != nil {
 		if ctxErr := startupContextError(err); ctxErr != nil {
 			return nil, ctxErr
@@ -223,7 +222,7 @@ func classifyDirectStartupManifestEligibility(
 	expectedManifestID string,
 	filterPlatformIDs []string,
 ) (*StartupManifestCandidateEligibility, error) {
-	manifest, manifestRef, err := lookupStartupManifestObject(ctx, ws, candidate.ObjectKey)
+	manifest, manifestRef, err := lookupStartupManifestObjectForEligibility(ctx, ws, candidate.ObjectKey)
 	if err != nil {
 		if ctxErr := startupContextError(err); ctxErr != nil {
 			return nil, ctxErr
@@ -234,7 +233,7 @@ func classifyDirectStartupManifestEligibility(
 	}
 	candidate.Manifest = manifest
 	candidate.ManifestRef = manifestRef.Clone()
-	if err := manifest.Validate(); err != nil {
+	if err := validateStartupManifest(ctx, manifest); err != nil {
 		candidate.Eligibility = StartupManifestEligibilityUnsafe
 		candidate.Reason = "manifest-validate:" + err.Error()
 		return candidate, nil
@@ -250,7 +249,7 @@ func classifyManifestRefStartupEligibility(
 	expectedManifestID string,
 	filterPlatformIDs []string,
 ) (*StartupManifestCandidateEligibility, error) {
-	manifestRef, objectRef, err := LookupManifestRef(ctx, ws, candidate.ObjectKey)
+	manifestRef, objectRef, err := lookupManifestRefForStartupEligibility(ctx, ws, candidate.ObjectKey)
 	if err != nil {
 		if ctxErr := startupContextError(err); ctxErr != nil {
 			return nil, ctxErr
@@ -264,7 +263,7 @@ func classifyManifestRefStartupEligibility(
 	}
 	candidate.ObjectRef = objectRef.Clone()
 	candidate.ManifestRef = manifestRef.GetManifestRef().Clone()
-	if err := manifestRef.Validate(); err != nil {
+	if err := validateStartupManifestRef(ctx, manifestRef); err != nil {
 		candidate.Eligibility = StartupManifestEligibilityUnsafe
 		candidate.Reason = "manifest-ref-validate:" + err.Error()
 		return candidate, nil
@@ -288,7 +287,7 @@ func classifyManifestRefStartupEligibility(
 		return candidate, nil
 	}
 
-	manifest, err := lookupStartupManifestObjectRefLocal(ctx, ws, manifestRef.GetManifestRef())
+	manifest, err := lookupStartupManifestObjectRefLocalForEligibility(ctx, ws, manifestRef.GetManifestRef())
 	if err != nil {
 		if ctxErr := startupContextError(err); ctxErr != nil {
 			return nil, ctxErr
@@ -309,7 +308,7 @@ func classifyManifestRefStartupEligibility(
 		candidate.Reason = "manifest-meta-mismatch"
 		return candidate, nil
 	}
-	if err := manifest.Validate(); err != nil {
+	if err := validateStartupManifest(ctx, manifest); err != nil {
 		candidate.ManifestID = meta.GetManifestId()
 		candidate.PlatformID = meta.GetPlatformId()
 		candidate.Rev = meta.GetRev()
@@ -328,11 +327,11 @@ func classifyUnknownTypedStartupCandidate(
 	filterPlatformIDs []string,
 	refErr error,
 ) (*StartupManifestCandidateEligibility, error) {
-	manifest, manifestRef, manifestErr := lookupStartupManifestObject(ctx, ws, candidate.ObjectKey)
+	manifest, manifestRef, manifestErr := lookupStartupManifestObjectForEligibility(ctx, ws, candidate.ObjectKey)
 	if manifestErr == nil && manifest != nil {
 		candidate.Manifest = manifest
 		candidate.ManifestRef = manifestRef.Clone()
-		if err := manifest.Validate(); err != nil {
+		if err := validateStartupManifest(ctx, manifest); err != nil {
 			candidate.Eligibility = StartupManifestEligibilityUnsafe
 			candidate.Reason = "manifest-validate:" + err.Error()
 			return candidate, nil
