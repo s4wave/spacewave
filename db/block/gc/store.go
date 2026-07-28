@@ -164,9 +164,9 @@ func (g *GCStoreOps) BeginReadOperation(ctx context.Context) (block.StoreOps, fu
 	return scoped, release, nil
 }
 
-// PutBlock puts a block into the store and buffers a gc/ref edge for
-// later flush if the block is new. When parentIRI is set, the edge
-// is parentIRI -> block; otherwise unreferenced -> block.
+// PutBlock puts a block into the store and buffers a gc/ref edge for later
+// flush. A parent owns every non-empty block it writes. Without a parent, only
+// new blocks are staged under unreferenced.
 func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/put-block")
 	defer task.End()
@@ -190,7 +190,7 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 	if storeTrackingDisabled(ctx) {
 		return finish(ref, existed)
 	}
-	if !existed && ref != nil && !ref.GetEmpty() {
+	if ref != nil && !ref.GetEmpty() && (g.parentIRI != "" || !existed) {
 		_, subtask = trace.NewTask(ctx, "hydra/block-gc/store/put-block/buffer-pending-unref")
 		iri := BlockIRI(ref)
 		g.mu.Lock()
@@ -209,13 +209,12 @@ func (g *GCStoreOps) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 }
 
 // PutBlockBatch writes a batch of blocks through the inner store and buffers
-// GC ref edges for all new non-tombstone blocks. The inner store decides
-// whether the batch flows through a native path or an internal fallback.
+// GC ref edges for all non-tombstone blocks. The inner store decides whether
+// the batch flows through a native path or an internal fallback.
 //
-// Tombstone entries are handled via GCStoreOps.RmBlock so refgraph
-// cleanup (outgoing edge removal, orphan cascade) is preserved.
-// Non-tombstone entries that already exist in the store are skipped
-// for GC edge buffering to avoid reviving unreferenced edges.
+// Tombstone entries are handled via GCStoreOps.RmBlock so refgraph cleanup
+// (outgoing edge removal, orphan cascade) is preserved. Existing entries skip
+// unreferenced staging, but a configured parent owns every block it writes.
 func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch")
 	defer task.End()
@@ -240,26 +239,26 @@ func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 		return g.store.PutBlockBatch(ctx, puts)
 	}
 
-	// Check which blocks already exist so we only buffer GC edges
-	// for genuinely new blocks (matching the single-put !existed guard).
-	newBlock := make([]bool, len(puts))
-	checkCtx, checkTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/check-existing")
-	refs := make([]*block.BlockRef, len(puts))
-	for i, entry := range puts {
-		if entry.Ref == nil || entry.Ref.GetEmpty() {
-			continue
+	var existing []bool
+	if g.parentIRI == "" {
+		// Staging an existing block under unreferenced could revive a block
+		// that already has real parents.
+		checkCtx, checkTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/check-existing")
+		refs := make([]*block.BlockRef, len(puts))
+		for i, entry := range puts {
+			if entry.Ref == nil || entry.Ref.GetEmpty() {
+				continue
+			}
+			refs[i] = entry.Ref
 		}
-		refs[i] = entry.Ref
-	}
-	exists, err := g.store.GetBlockExistsBatch(checkCtx, refs)
-	if err != nil {
+		exists, err := g.store.GetBlockExistsBatch(checkCtx, refs)
+		if err != nil {
+			checkTask.End()
+			return err
+		}
+		existing = exists
 		checkTask.End()
-		return err
 	}
-	for i, found := range exists {
-		newBlock[i] = !found
-	}
-	checkTask.End()
 
 	writeCtx, writeTask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/inner-put-block-batch")
 	if err := g.store.PutBlockBatch(writeCtx, puts); err != nil {
@@ -268,17 +267,15 @@ func (g *GCStoreOps) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	}
 	writeTask.End()
 
-	// Buffer GC ref edges only for genuinely new blocks.
 	_, subtask := trace.NewTask(ctx, "hydra/block-gc/store/put-block-batch/buffer-pending-unref")
 	g.mu.Lock()
 	for i, entry := range puts {
-		if !newBlock[i] || entry.Ref == nil || entry.Ref.GetEmpty() {
-			if entry.Ref != nil && !entry.Ref.GetEmpty() && len(entry.Refs) != 0 {
-				g.bufferBlockRefsLocked(entry.Ref, entry.Refs)
-			}
+		if entry.Ref == nil || entry.Ref.GetEmpty() {
 			continue
 		}
-		g.pendingUnref = append(g.pendingUnref, BlockIRI(entry.Ref))
+		if g.parentIRI != "" || !existing[i] {
+			g.pendingUnref = append(g.pendingUnref, BlockIRI(entry.Ref))
+		}
 		if len(entry.Refs) != 0 {
 			g.bufferBlockRefsLocked(entry.Ref, entry.Refs)
 		}
