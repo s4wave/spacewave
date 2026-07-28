@@ -18,6 +18,7 @@ import {
 } from '../../../web/bldr/worker-comms-detect.js'
 import { initBrowserReleaseAutoReload } from '../../../web/bldr/browser-release-update.js'
 import { timeoutPromise } from '../../../web/bldr/timeout.js'
+import { waitWorkerReady } from './wait-worker-ready.js'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 import type {
   FetchRequest,
@@ -536,28 +537,6 @@ async function openTerminalOrphanStream(
       }
     },
   }
-}
-
-function waitWorkerReady(port: MessagePort): Promise<boolean> {
-  const { promise, resolve } = Promise.withResolvers<boolean>()
-  const timer = globalThis.setTimeout(() => {
-    cleanup()
-    resolve(false)
-  }, fixtureTimeoutMs)
-  const handler = (ev: MessageEvent) => {
-    const data = ev.data
-    if (!isRecord(data) || data.ready !== true) {
-      return
-    }
-    cleanup()
-    resolve(true)
-  }
-  const cleanup = () => {
-    globalThis.clearTimeout(timer)
-    port.removeEventListener('message', handler)
-  }
-  port.addEventListener('message', handler)
-  return promise
 }
 
 async function attachWorkerDocument(

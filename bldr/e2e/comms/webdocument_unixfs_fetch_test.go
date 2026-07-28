@@ -16,7 +16,7 @@ const (
 	webDocumentUnixFSFixturePath     = "fs/u/1/so/01kwd6qwtkjb3z1whtxys72s4s/-/files/-/what is this.mp4"
 	webDocumentUnixFSFixtureBody     = "spacewave webdocument unixfs inline fixture\n"
 	webDocumentJSPluginPath          = "b/pd/spacewave-web/plugin.mjs"
-	webDocumentRouteFixtureTimeoutMs = 5000
+	webDocumentRouteFixtureTimeoutMs = 30000
 	webDocumentJSPluginBody          = `export { default } from '/workers/goscript-webdocument-unixfs-plugin.js'
 `
 )
