@@ -89,13 +89,13 @@ type metaEntry struct {
 
 // Size returns the number of keys. Scans the entire tree.
 func (t *metaReadTx) Size(ctx context.Context) (uint64, error) {
-	entries, err := t.collectPrefix(nil)
+	entries, err := t.collectPrefix(ctx, nil)
 	return uint64(len(entries)), err
 }
 
 // Get looks up a key.
 func (t *metaReadTx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
-	val, found, generation, err := t.shard.getAt(key)
+	val, found, generation, err := t.shard.getAt(ctx, key)
 	if err != nil {
 		return nil, false, err
 	}
@@ -123,7 +123,7 @@ func (t *metaReadTx) Delete(ctx context.Context, key []byte) error {
 
 // ScanPrefix iterates over entries matching the prefix.
 func (t *metaReadTx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value []byte) error) error {
-	entries, err := t.collectPrefix(prefix)
+	entries, err := t.collectPrefix(ctx, prefix)
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func (t *metaReadTx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key,
 
 // ScanPrefixKeys iterates over keys only with a prefix.
 func (t *metaReadTx) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key []byte) error) error {
-	entries, err := t.collectPrefix(prefix)
+	entries, err := t.collectPrefix(ctx, prefix)
 	if err != nil {
 		return err
 	}
@@ -163,8 +163,8 @@ func (t *metaReadTx) Commit(ctx context.Context) error {
 // Discard is a no-op: read transactions hold nothing between operations.
 func (t *metaReadTx) Discard() {}
 
-func (t *metaReadTx) collectPrefix(prefix []byte) ([]metaEntry, error) {
-	entries, generation, err := t.shard.collectPrefixAt(prefix)
+func (t *metaReadTx) collectPrefix(ctx context.Context, prefix []byte) ([]metaEntry, error) {
+	entries, generation, err := t.shard.collectPrefixAt(ctx, prefix)
 	if err != nil {
 		return nil, err
 	}

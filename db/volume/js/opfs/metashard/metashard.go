@@ -50,6 +50,11 @@ type MetaShard struct {
 	// assert that a run of reads over an unchanged shard performs one.
 	revalidations uint64
 	testHook      func(string) error
+	// resetGenerationFloor is the last generation this process saw before deleting
+	// and recreating on-disk metadata. A reset keeps this value in memory so the
+	// next creation generation stays above it, and stale cached state does not
+	// look current.
+	resetGenerationFloor uint64
 }
 
 // NewMetaShard opens or creates a meta shard in the given OPFS directory.
@@ -66,7 +71,7 @@ func NewMetaShard(dir js.Value, lockPrefix string, pageSize int, le *logrus.Entr
 		le:         le,
 		rootPage:   pagestore.InvalidPage,
 	}
-	release, err := ms.acquireStateLock(false)
+	release, err := ms.acquireStateLock(context.Background(), false)
 	if err != nil {
 		return nil, errors.Wrap(err, "acquire meta read lock")
 	}
@@ -76,7 +81,7 @@ func NewMetaShard(dir js.Value, lockPrefix string, pageSize int, le *logrus.Entr
 		if !IsCorruptError(err) {
 			return nil, err
 		}
-		if err := ms.recoverCorruptState(); err != nil {
+		if err := ms.recoverCorruptState(context.Background()); err != nil {
 			return nil, err
 		}
 	}
@@ -85,14 +90,14 @@ func NewMetaShard(dir js.Value, lockPrefix string, pageSize int, le *logrus.Entr
 
 // Get looks up a key. Returns value, found, error.
 func (ms *MetaShard) Get(key []byte) ([]byte, bool, error) {
-	val, found, _, err := ms.getAt(key)
+	val, found, _, err := ms.getAt(context.Background(), key)
 	return val, found, err
 }
 
 // getAt looks up a key and reports the commit generation that served it, so a
 // caller spanning several reads can tell whether they came from one generation.
-func (ms *MetaShard) getAt(key []byte) ([]byte, bool, uint64, error) {
-	tree, generation, release, err := ms.openCommittedTreeForRead()
+func (ms *MetaShard) getAt(ctx context.Context, key []byte) ([]byte, bool, uint64, error) {
+	tree, generation, release, err := ms.openCommittedTreeForRead(ctx)
 	if err != nil {
 		return nil, false, 0, err
 	}
@@ -101,10 +106,10 @@ func (ms *MetaShard) getAt(key []byte) ([]byte, bool, uint64, error) {
 	if err == nil || !IsCorruptError(err) {
 		return val, found, generation, err
 	}
-	if err := ms.recoverCorruptState(); err != nil {
+	if err := ms.recoverCorruptState(ctx); err != nil {
 		return nil, false, 0, errors.Wrap(err, "recover corrupt meta shard")
 	}
-	tree, generation, release, err = ms.openCommittedTreeForRead()
+	tree, generation, release, err = ms.openCommittedTreeForRead(ctx)
 	if err != nil {
 		return nil, false, 0, err
 	}
@@ -118,7 +123,7 @@ func (ms *MetaShard) getAt(key []byte) ([]byte, bool, uint64, error) {
 // by writing dirty pages and flipping the superblock.
 func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 	// Acquire write lock.
-	release, err := ms.acquireStateLock(true)
+	release, err := ms.acquireStateLock(context.Background(), true)
 	if err != nil {
 		return errors.Wrap(err, "acquire meta write lock")
 	}
@@ -188,6 +193,15 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 		if err != nil {
 			return err
 		}
+		// A random epoch lands below the replaced database about half the time,
+		// and a replacement that publishes lower generations is the same stale
+		// cache problem the epoch exists to prevent. Continue from just above the
+		// floor when the draw does not clear it. That stays inside the replaced
+		// database's epoch, which is harmless: every generation it produces is
+		// above every generation that database published.
+		if gen <= ms.resetGenerationFloor {
+			gen = ms.resetGenerationFloor + 1
+		}
 	}
 	sb := pagestore.Superblock{
 		Magic:        pagestore.SuperblockMagic,
@@ -223,7 +237,7 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 
 // ScanPrefix iterates over entries matching the prefix.
 func (ms *MetaShard) ScanPrefix(prefix []byte, fn func(key, value []byte) bool) error {
-	entries, err := ms.collectPrefix(prefix)
+	entries, err := ms.collectPrefix(context.Background(), prefix)
 	if err != nil {
 		return err
 	}
@@ -238,15 +252,15 @@ func (ms *MetaShard) ScanPrefix(prefix []byte, fn func(key, value []byte) bool) 
 // collectPrefix materializes every committed entry under prefix. The walk runs
 // entirely inside one shared-lock hold, so the returned entries are a
 // consistent view of one generation.
-func (ms *MetaShard) collectPrefix(prefix []byte) ([]metaEntry, error) {
-	entries, _, err := ms.collectPrefixAt(prefix)
+func (ms *MetaShard) collectPrefix(ctx context.Context, prefix []byte) ([]metaEntry, error) {
+	entries, _, err := ms.collectPrefixAt(ctx, prefix)
 	return entries, err
 }
 
 // collectPrefixAt materializes every committed entry under prefix and reports
 // the commit generation that served them.
-func (ms *MetaShard) collectPrefixAt(prefix []byte) ([]metaEntry, uint64, error) {
-	tree, generation, release, err := ms.openCommittedTreeForRead()
+func (ms *MetaShard) collectPrefixAt(ctx context.Context, prefix []byte) ([]metaEntry, uint64, error) {
+	tree, generation, release, err := ms.openCommittedTreeForRead(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -255,10 +269,10 @@ func (ms *MetaShard) collectPrefixAt(prefix []byte) ([]metaEntry, uint64, error)
 	if err == nil || !IsCorruptError(err) {
 		return entries, generation, err
 	}
-	if err := ms.recoverCorruptState(); err != nil {
+	if err := ms.recoverCorruptState(ctx); err != nil {
 		return nil, 0, errors.Wrap(err, "recover corrupt meta shard")
 	}
-	tree, generation, release, err = ms.openCommittedTreeForRead()
+	tree, generation, release, err = ms.openCommittedTreeForRead(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -290,7 +304,7 @@ func (ms *MetaShard) RefreshGeneration() (uint64, error) {
 
 // RefreshGenerationContext reloads the committed superblock and returns its generation.
 func (ms *MetaShard) RefreshGenerationContext(ctx context.Context) (uint64, error) {
-	release, err := filelock.AcquireWebLockContext(ctx, ms.lockPrefix+"/meta/write", false)
+	release, err := ms.acquireStateLock(ctx, false)
 	if err != nil {
 		return 0, errors.Wrap(err, "acquire meta read lock")
 	}
@@ -300,7 +314,7 @@ func (ms *MetaShard) RefreshGenerationContext(ctx context.Context) (uint64, erro
 		if !IsCorruptError(err) {
 			return 0, errors.Wrap(err, "reload committed state")
 		}
-		if err := ms.recoverCorruptState(); err != nil {
+		if err := ms.recoverCorruptState(ctx); err != nil {
 			return 0, errors.Wrap(err, "recover corrupt meta shard")
 		}
 		return ms.Generation(), nil
@@ -330,8 +344,8 @@ func (ms *MetaShard) OpenCommittedTree() (*pagestore.Tree, uint64) {
 // and the caller must hold it for the whole tree walk: a commit recycles freed
 // pages immediately, so a walk that overlaps one reads pages that now belong to
 // another subtree and silently reports missing keys.
-func (ms *MetaShard) openCommittedTreeForRead() (*pagestore.Tree, uint64, func(), error) {
-	releaseLock, err := ms.acquireStateLock(false)
+func (ms *MetaShard) openCommittedTreeForRead(ctx context.Context) (*pagestore.Tree, uint64, func(), error) {
+	releaseLock, err := ms.acquireStateLock(ctx, false)
 	if err != nil {
 		return nil, 0, nil, errors.Wrap(err, "acquire meta read lock")
 	}
@@ -340,10 +354,10 @@ func (ms *MetaShard) openCommittedTreeForRead() (*pagestore.Tree, uint64, func()
 		if !IsCorruptError(err) {
 			return nil, 0, nil, errors.Wrap(err, "reload committed state")
 		}
-		if err := ms.recoverCorruptState(); err != nil {
+		if err := ms.recoverCorruptState(ctx); err != nil {
 			return nil, 0, nil, errors.Wrap(err, "recover corrupt meta shard")
 		}
-		releaseLock, err = ms.acquireStateLock(false)
+		releaseLock, err = ms.acquireStateLock(ctx, false)
 		if err != nil {
 			return nil, 0, nil, errors.Wrap(err, "reacquire meta read lock")
 		}
@@ -452,8 +466,8 @@ func newGenerationEpoch() (uint64, error) {
 	return uint64(binary.BigEndian.Uint32(buf[:]))<<generationEpochShift | 1, nil
 }
 
-func (ms *MetaShard) recoverCorruptState() error {
-	release, err := ms.acquireStateLock(true)
+func (ms *MetaShard) recoverCorruptState(ctx context.Context) error {
+	release, err := ms.acquireStateLock(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "acquire meta write lock")
 	}
@@ -492,8 +506,8 @@ func (ms *MetaShard) openCommittedSnapshotTree() (*pagestore.Tree, uint64, func(
 	}
 }
 
-func (ms *MetaShard) acquireStateLock(exclusive bool) (func(), error) {
-	release, err := filelock.AcquireWebLock(ms.lockPrefix+"/meta/write", exclusive)
+func (ms *MetaShard) acquireStateLock(ctx context.Context, exclusive bool) (func(), error) {
+	release, err := filelock.AcquireWebLockContext(ctx, ms.lockPrefix+"/meta/write", exclusive)
 	if err != nil {
 		return nil, err
 	}
@@ -520,6 +534,7 @@ func (ms *MetaShard) resetCorruptStateLocked(cause error) error {
 }
 
 func (ms *MetaShard) resetCommittedStateLocked() error {
+	ms.resetGenerationFloor = ms.generation
 	if err := ms.pager.Close(); err != nil {
 		return errors.Wrap(err, "close page file")
 	}
