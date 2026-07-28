@@ -537,24 +537,14 @@ func (g *GCStoreOps) AddGCRef(ctx context.Context, subject, object string) error
 // RemoveGCRef removes a gc/ref edge from subject to object and marks
 // the object as orphaned if it has no remaining incoming references.
 func (g *GCStoreOps) RemoveGCRef(ctx context.Context, subject, object string) error {
-	if err := g.refGraph.RemoveRef(ctx, subject, object); err != nil {
+	if err := g.refGraph.ApplyRefBatch(ctx, nil, []RefEdge{{
+		Subject: subject,
+		Object:  object,
+	}}); err != nil {
 		if ctx.Err() != nil {
 			return context.Canceled
 		}
 		return errors.Wrap(err, "remove gc ref")
-	}
-	if IsPermanentRoot(object) {
-		return nil
-	}
-	has, err := g.refGraph.HasIncomingRefs(ctx, object)
-	if err != nil {
-		if ctx.Err() != nil {
-			return context.Canceled
-		}
-		return errors.Wrap(err, "check incoming refs")
-	}
-	if !has {
-		return g.refGraph.AddRef(ctx, NodeUnreferenced, object)
 	}
 	return nil
 }

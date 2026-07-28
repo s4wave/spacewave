@@ -2,6 +2,7 @@ package block_gc_rpc_client
 
 import (
 	"context"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -12,6 +13,7 @@ import (
 // RefGraph implements RefGraphOps backed by a RefGraph RPC service.
 type RefGraph struct {
 	client block_gc_rpc.SRPCRefGraphClient
+	mu     sync.Mutex
 }
 
 // NewRefGraph constructs a new RefGraph RPC client.
@@ -21,6 +23,12 @@ func NewRefGraph(client block_gc_rpc.SRPCRefGraphClient) *RefGraph {
 
 // AddRef adds a gc/ref edge from subject to object.
 func (r *RefGraph) AddRef(ctx context.Context, subject, object string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.addRef(ctx, subject, object)
+}
+
+func (r *RefGraph) addRef(ctx context.Context, subject, object string) error {
 	resp, err := r.client.AddRef(ctx, &block_gc_rpc.AddRefRequest{
 		Subject: subject,
 		Object:  object,
@@ -36,6 +44,12 @@ func (r *RefGraph) AddRef(ctx context.Context, subject, object string) error {
 
 // RemoveRef removes a single gc/ref edge from subject to object.
 func (r *RefGraph) RemoveRef(ctx context.Context, subject, object string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.removeRef(ctx, subject, object)
+}
+
+func (r *RefGraph) removeRef(ctx context.Context, subject, object string) error {
 	resp, err := r.client.RemoveRef(ctx, &block_gc_rpc.RemoveRefRequest{
 		Subject: subject,
 		Object:  object,
@@ -51,6 +65,8 @@ func (r *RefGraph) RemoveRef(ctx context.Context, subject, object string) error 
 
 // RemoveNodeRefs removes all outgoing gc/ref edges for a node.
 func (r *RefGraph) RemoveNodeRefs(ctx context.Context, node string, markOrphaned bool) ([]string, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	resp, err := r.client.RemoveNodeRefs(ctx, &block_gc_rpc.RemoveNodeRefsRequest{
 		Node:         node,
 		MarkOrphaned: markOrphaned,
@@ -171,15 +187,64 @@ func (r *RefGraph) RemoveObjectRoot(ctx context.Context, objectKey string, ref *
 }
 
 // ApplyRefBatch applies a batch of ref graph edge additions and removals.
-// Falls back to sequential RPC calls since no batch RPC is defined.
+// The RPC protocol has no batch endpoint, so the client serializes the full
+// ownership transition and performs orphan marking before issuing the calls.
 func (r *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []block_gc.RefEdge) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	owners := make(map[string]map[string]struct{})
+	stagingRemoves := make(map[string]struct{})
+	for _, edge := range removes {
+		if edge.Subject == block_gc.NodeUnreferenced {
+			stagingRemoves[edge.Object] = struct{}{}
+			continue
+		}
+		if block_gc.IsPermanentRoot(edge.Object) {
+			continue
+		}
+		if _, ok := owners[edge.Object]; ok {
+			continue
+		}
+		sources, err := r.GetIncomingRefs(ctx, edge.Object)
+		if err != nil {
+			return err
+		}
+		set := make(map[string]struct{}, len(sources))
+		for _, source := range sources {
+			if source != block_gc.NodeUnreferenced {
+				set[source] = struct{}{}
+			}
+		}
+		owners[edge.Object] = set
+	}
+	for _, edge := range removes {
+		if set, ok := owners[edge.Object]; ok {
+			delete(set, edge.Subject)
+		}
+	}
+	for _, edge := range adds {
+		if set, ok := owners[edge.Object]; ok && edge.Subject != block_gc.NodeUnreferenced {
+			set[edge.Subject] = struct{}{}
+		}
+	}
+	for object, set := range owners {
+		if len(set) == 0 {
+			if _, removingStaging := stagingRemoves[object]; !removingStaging {
+				adds = append(adds, block_gc.RefEdge{
+					Subject: block_gc.NodeUnreferenced,
+					Object:  object,
+				})
+			}
+		}
+	}
 	for _, e := range adds {
-		if err := r.AddRef(ctx, e.Subject, e.Object); err != nil {
+		if err := r.addRef(ctx, e.Subject, e.Object); err != nil {
 			return err
 		}
 	}
 	for _, e := range removes {
-		if err := r.RemoveRef(ctx, e.Subject, e.Object); err != nil {
+		if err := r.removeRef(ctx, e.Subject, e.Object); err != nil {
 			return err
 		}
 	}

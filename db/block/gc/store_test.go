@@ -2,14 +2,14 @@ package block_gc
 
 import (
 	"context"
-	"slices"
-	"testing"
-
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+	"slices"
+	"sync"
+	"testing"
 )
 
 // gcTestEnv holds the test environment for GCStoreOps tests.
@@ -706,6 +706,52 @@ func TestGCStoreOps_ParentIRI_FlushPendingRemovesConcurrentUnref(t *testing.T) {
 	}
 }
 
+// TestGCStoreOps_RemoveGCRefDoesNotReviveStagingAfterParentBatch verifies
+// that orphan marking waits inside the ownership transition.
+func TestGCStoreOps_RemoveGCRefDoesNotReviveStagingAfterParentBatch(t *testing.T) {
+	env := newGCTestEnv(t)
+	ref := env.putBlock(t, "orphan-transition")
+	object := BlockIRI(ref)
+	if err := env.gcStore.AddGCRef(env.ctx, "owner:old", object); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	raceGraph := &orphanRaceRefGraph{
+		RefGraphOps:    env.refGraph,
+		removerStarted: make(chan struct{}),
+		parentDone:     make(chan struct{}),
+	}
+	remover := NewGCStoreOps(env.rawStore, raceGraph)
+	removerErr := make(chan error, 1)
+	go func() {
+		removerErr <- remover.RemoveGCRef(env.ctx, "owner:old", object)
+	}()
+	<-raceGraph.removerStarted
+
+	parent := NewGCStoreOps(env.rawStore, raceGraph)
+	parent.bufferBlockRefs(ref, []*block.BlockRef{ref})
+	if err := parent.FlushPending(env.ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := <-removerErr; err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if _, err := NewCollector(env.refGraph, env.rawStore, nil).Collect(env.ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+	if !env.blockExists(t, ref) {
+		t.Fatal("parent-owned block should survive collection")
+	}
+	nodes, err := env.refGraph.GetUnreferencedNodes(env.ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if slices.Contains(nodes, object) {
+		t.Fatal("parent-owned block should not be staged as unreferenced")
+	}
+}
+
 // buildBatchEntry creates a PutBatchEntry from a mock block message.
 func buildBatchEntry(t *testing.T, msg string) *block.PutBatchEntry {
 	t.Helper()
@@ -867,6 +913,44 @@ func (r *injectUnrefRefGraph) ApplyRefBatch(
 		}
 	}
 	return r.RefGraphOps.ApplyRefBatch(ctx, adds, removes)
+}
+
+type orphanRaceRefGraph struct {
+	RefGraphOps
+	removerStarted chan struct{}
+	parentDone     chan struct{}
+	startOnce      sync.Once
+	parentOnce     sync.Once
+}
+
+func (r *orphanRaceRefGraph) signalRemoverStarted() {
+	r.startOnce.Do(func() { close(r.removerStarted) })
+}
+
+func (r *orphanRaceRefGraph) signalParentDone() {
+	r.parentOnce.Do(func() { close(r.parentDone) })
+}
+
+func (r *orphanRaceRefGraph) ApplyRefBatch(
+	ctx context.Context,
+	adds, removes []RefEdge,
+) error {
+	removalOnly := len(adds) == 0 && len(removes) == 1 && removes[0].Subject != NodeUnreferenced
+	if removalOnly {
+		r.signalRemoverStarted()
+		<-r.parentDone
+	}
+	err := r.RefGraphOps.ApplyRefBatch(ctx, adds, removes)
+	if len(adds) != 0 {
+		r.signalParentDone()
+	}
+	return err
+}
+
+func (r *orphanRaceRefGraph) HasIncomingRefs(ctx context.Context, node string) (bool, error) {
+	r.signalRemoverStarted()
+	<-r.parentDone
+	return false, nil
 }
 
 func (r *recordingRefGraph) RemoveNodeRefs(context.Context, string, bool) ([]string, error) {

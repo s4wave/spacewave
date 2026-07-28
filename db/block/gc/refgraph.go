@@ -100,6 +100,14 @@ func (rg *RefGraph) RemoveRef(ctx context.Context, subject, object string) error
 func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) error {
 	rg.writeMu.Lock()
 	defer rg.writeMu.Unlock()
+	return rg.applyRefBatchLocked(ctx, adds, removes, true)
+}
+
+func (rg *RefGraph) applyRefBatchLocked(
+	ctx context.Context,
+	adds, removes []RefEdge,
+	markOrphaned bool,
+) error {
 	ctx = disableStoreTracking(ctx)
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/apply-ref-batch")
 	defer task.End()
@@ -116,7 +124,7 @@ func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) 
 		return nil
 	}
 	var err error
-	removes, err = rg.filterExistingRemoves(ctx, adds, removes)
+	adds, removes, err = rg.prepareRefBatch(ctx, adds, removes, markOrphaned)
 	if err != nil {
 		return err
 	}
@@ -132,7 +140,7 @@ func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) 
 			removeCount = min(len(removes), refGraphApplyBatchLimit)
 		}
 		chunks++
-		if err := rg.applyRefBatch(ctx, adds[:addCount], removes[:removeCount]); err != nil {
+		if err := rg.applyRefBatchChunk(ctx, adds[:addCount], removes[:removeCount]); err != nil {
 			return err
 		}
 		adds = adds[addCount:]
@@ -142,7 +150,7 @@ func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) 
 	return nil
 }
 
-func (rg *RefGraph) applyRefBatch(ctx context.Context, adds, removes []RefEdge) error {
+func (rg *RefGraph) applyRefBatchChunk(ctx context.Context, adds, removes []RefEdge) error {
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/apply-ref-batch/apply-transaction")
 	defer task.End()
 	trace.Logf(ctx, "hydra/block-gc/refgraph/apply-ref-batch/apply-transaction/shape", "adds=%d removes=%d", len(adds), len(removes))
@@ -156,6 +164,66 @@ func (rg *RefGraph) applyRefBatch(ctx context.Context, adds, removes []RefEdge) 
 		tx.RemoveQuad(quad.Make(quad.IRI(e.Subject), quad.IRI(PredGCRef), quad.IRI(e.Object), nil))
 	}
 	return rg.handle.ApplyTransaction(ctx, tx)
+}
+
+func (rg *RefGraph) prepareRefBatch(
+	ctx context.Context,
+	adds, removes []RefEdge,
+	markOrphaned bool,
+) ([]RefEdge, []RefEdge, error) {
+	removes, err := rg.filterExistingRemoves(ctx, adds, removes)
+	if err != nil {
+		return nil, nil, err
+	}
+	if !markOrphaned || len(removes) == 0 {
+		return adds, removes, nil
+	}
+
+	owners := make(map[string]map[string]struct{})
+	stagingRemoves := make(map[string]struct{})
+	for _, edge := range removes {
+		if edge.Subject == NodeUnreferenced {
+			stagingRemoves[edge.Object] = struct{}{}
+			continue
+		}
+		if IsPermanentRoot(edge.Object) {
+			continue
+		}
+		if _, ok := owners[edge.Object]; ok {
+			continue
+		}
+		sources, err := rg.GetIncomingRefs(ctx, edge.Object)
+		if err != nil {
+			return nil, nil, err
+		}
+		set := make(map[string]struct{}, len(sources))
+		for _, source := range sources {
+			if source != NodeUnreferenced {
+				set[source] = struct{}{}
+			}
+		}
+		owners[edge.Object] = set
+	}
+	for _, edge := range removes {
+		if set, ok := owners[edge.Object]; ok {
+			delete(set, edge.Subject)
+		}
+	}
+	for _, edge := range adds {
+		if set, ok := owners[edge.Object]; ok && edge.Subject != NodeUnreferenced {
+			set[edge.Subject] = struct{}{}
+		}
+	}
+	for object, set := range owners {
+		if len(set) != 0 {
+			continue
+		}
+		if _, removingStaging := stagingRemoves[object]; removingStaging {
+			continue
+		}
+		adds = append(adds, RefEdge{Subject: NodeUnreferenced, Object: object})
+	}
+	return adds, removes, nil
 }
 
 func (rg *RefGraph) filterExistingRemoves(
@@ -201,30 +269,19 @@ func (rg *RefGraph) hasRef(ctx context.Context, subject, object string) (bool, e
 // If markOrphaned is true, targets that have no remaining incoming
 // refs (excluding from "unreferenced") get an unreferenced edge.
 func (rg *RefGraph) RemoveNodeRefs(ctx context.Context, node string, markOrphaned bool) ([]string, error) {
+	rg.writeMu.Lock()
+	defer rg.writeMu.Unlock()
+
 	targets, err := rg.GetOutgoingRefs(ctx, node)
 	if err != nil {
 		return nil, err
 	}
-	for _, t := range targets {
-		if err := rg.RemoveRef(ctx, node, t); err != nil {
-			return nil, err
-		}
+	removes := make([]RefEdge, 0, len(targets))
+	for _, target := range targets {
+		removes = append(removes, RefEdge{Subject: node, Object: target})
 	}
-	if markOrphaned {
-		for _, t := range targets {
-			if IsPermanentRoot(t) {
-				continue
-			}
-			has, err := rg.HasIncomingRefs(ctx, t)
-			if err != nil {
-				return nil, err
-			}
-			if !has {
-				if err := rg.AddRef(ctx, NodeUnreferenced, t); err != nil {
-					return nil, err
-				}
-			}
-		}
+	if err := rg.applyRefBatchLocked(ctx, nil, removes, markOrphaned); err != nil {
+		return nil, err
 	}
 	return targets, nil
 }

@@ -2,8 +2,8 @@
 
 // Package gcgraph implements the GC reference graph on OPFS.
 // Each edge, node inventory entry, and root-set entry is an individual
-// file under a structured directory layout. Per-file locking provides
-// concurrency safety.
+// file under a structured directory layout. Per-file locking protects
+// individual files, while ownership transitions use a graph-wide lock.
 package gcgraph
 
 import (
@@ -71,10 +71,22 @@ func NewGCGraph(root js.Value, lockPrefix string) (*GCGraph, error) {
 	}
 	return g, nil
 }
+func (g *GCGraph) acquireOwnershipLock(ctx context.Context) (func(), error) {
+	return filelock.AcquireWebLockContext(ctx, g.lockPrefix+"/ownership", true)
+}
 
 // AddRef adds a gc/ref edge from subject to object. Idempotent.
 // Ensures node inventory entries exist for both endpoints.
 func (g *GCGraph) AddRef(ctx context.Context, subject, object string) error {
+	release, err := g.acquireOwnershipLock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	return g.addRef(subject, object)
+}
+
+func (g *GCGraph) addRef(subject, object string) error {
 	if err := g.ensureNode(subject); err != nil {
 		return errors.Wrap(err, "ensure subject node")
 	}
@@ -86,7 +98,6 @@ func (g *GCGraph) AddRef(ctx context.Context, subject, object string) error {
 	oh := hashName(object)
 	content := []byte(subject + "\n" + object)
 
-	// Forward edge: edges/<subject-hash>/<object-hash>
 	edgeSubDir, err := opfs.GetDirectory(g.edgesDir, sh, true)
 	if err != nil {
 		return errors.Wrap(err, "edges subdir")
@@ -95,7 +106,6 @@ func (g *GCGraph) AddRef(ctx context.Context, subject, object string) error {
 		return errors.Wrap(err, "write forward edge")
 	}
 
-	// Reverse edge: incoming/<object-hash>/<subject-hash>
 	inSubDir, err := opfs.GetDirectory(g.incomingDir, oh, true)
 	if err != nil {
 		return errors.Wrap(err, "incoming subdir")
@@ -106,16 +116,23 @@ func (g *GCGraph) AddRef(ctx context.Context, subject, object string) error {
 // RemoveRef removes a single gc/ref edge from subject to object.
 // Removing a non-existent edge is a no-op.
 func (g *GCGraph) RemoveRef(ctx context.Context, subject, object string) error {
+	release, err := g.acquireOwnershipLock(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	return g.removeRef(subject, object)
+}
+
+func (g *GCGraph) removeRef(subject, object string) error {
 	sh := hashName(subject)
 	oh := hashName(object)
 
-	// Forward edge.
 	edgeSubDir, err := opfs.GetDirectory(g.edgesDir, sh, false)
 	if err == nil {
 		_ = g.deleteFile(edgeSubDir, oh)
 	}
 
-	// Reverse edge.
 	inSubDir, err := opfs.GetDirectory(g.incomingDir, oh, false)
 	if err == nil {
 		_ = g.deleteFile(inSubDir, sh)
