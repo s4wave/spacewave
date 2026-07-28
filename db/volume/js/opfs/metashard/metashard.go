@@ -50,10 +50,8 @@ type MetaShard struct {
 	// assert that a run of reads over an unchanged shard performs one.
 	revalidations uint64
 	testHook      func(string) error
-	// resetGenerationFloor is the last generation this process saw before deleting
-	// and recreating on-disk metadata. A reset keeps this value in memory so the
-	// next creation generation stays above it, and stale cached state does not
-	// look current.
+	// resetGenerationFloor is the greatest generation this process has seen
+	// in validated state or decoded from on-disk superblocks before reset.
 	resetGenerationFloor uint64
 }
 
@@ -399,6 +397,15 @@ func (ms *MetaShard) reloadCommittedStateLocked(revalidate bool) error {
 		return err
 	}
 
+	// A decodable generation is evidence about the database on disk even when
+	// validation later rejects the page tree behind it.
+	for _, buf := range [][pagestore.SuperblockSize]byte{aBuf, bBuf} {
+		if sb, err := pagestore.DecodeSuperblock(buf[:]); err == nil &&
+			sb.Generation > ms.resetGenerationFloor {
+			ms.resetGenerationFloor = sb.Generation
+		}
+	}
+
 	// Every read operation reloads, because another agent may have committed
 	// since the last one. Reloading in full costs a whole-tree validation walk
 	// and a pager rebuild that drops the page cache, so a point read would cost
@@ -406,6 +413,7 @@ func (ms *MetaShard) reloadCommittedStateLocked(revalidate bool) error {
 	// whether any of that is necessary: when both are byte for byte the ones
 	// this state was loaded from, nothing has been committed since, the state in
 	// hand is that state, and it was validated when it was loaded.
+
 	if !revalidate && ms.stateLoaded &&
 		aBuf == ms.loadedSupers[0] && bBuf == ms.loadedSupers[1] {
 		return nil
@@ -534,7 +542,9 @@ func (ms *MetaShard) resetCorruptStateLocked(cause error) error {
 }
 
 func (ms *MetaShard) resetCommittedStateLocked() error {
-	ms.resetGenerationFloor = ms.generation
+	if ms.generation > ms.resetGenerationFloor {
+		ms.resetGenerationFloor = ms.generation
+	}
 	if err := ms.pager.Close(); err != nil {
 		return errors.Wrap(err, "close page file")
 	}
