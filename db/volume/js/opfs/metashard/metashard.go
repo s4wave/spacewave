@@ -304,8 +304,12 @@ func (ms *MetaShard) reloadCommittedState() error {
 func (ms *MetaShard) reloadCommittedStateLocked() error {
 	var aBuf [pagestore.SuperblockSize]byte
 	var bBuf [pagestore.SuperblockSize]byte
-	readSuper(ms.dir, "super-a", aBuf[:])
-	readSuper(ms.dir, "super-b", bBuf[:])
+	if err := readSuper(ms.dir, "super-a", aBuf[:]); err != nil {
+		return err
+	}
+	if err := readSuper(ms.dir, "super-b", bBuf[:]); err != nil {
+		return err
+	}
 
 	validatePager := NewOpfsPager(ms.dir, "pages.dat", ms.pageSize)
 	sb, err := pickValidSuperblock(validatePager, aBuf[:], bBuf[:])
@@ -516,11 +520,20 @@ func validateSuperblock(pager *OpfsPager, sb *pagestore.Superblock) (*pagestore.
 
 // readSuper reads a superblock file through an async handle so concurrent
 // shared metadata readers do not contend on exclusive sync access handles.
-func readSuper(dir js.Value, name string, buf []byte) {
+// A shard that has never committed has no superblock file, so a missing file
+// leaves buf zeroed and reports success. Every other failure is returned,
+// because a zeroed buffer is indistinguishable from generation zero and would
+// otherwise hide committed state.
+func readSuper(dir js.Value, name string, buf []byte) error {
 	data, err := opfs.ReadFile(dir, name)
-	if err == nil {
-		copy(buf, data)
+	if err != nil {
+		if opfs.IsNotFound(err) {
+			return nil
+		}
+		return errors.Wrapf(err, "read superblock %s", name)
 	}
+	copy(buf, data)
+	return nil
 }
 
 // writeSuper writes a superblock to OPFS.
