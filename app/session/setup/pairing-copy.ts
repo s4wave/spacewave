@@ -30,20 +30,42 @@ export function pairingCodeInstructions(
 export const PAIRING_SERVICE_UNREACHABLE =
   'Could not reach the pairing service. Check your connection and try again.'
 
+// PAIRING_CODE_NOT_FOUND is the recovery message for an expired or unknown
+// pairing code.
+export const PAIRING_CODE_NOT_FOUND =
+  'That pairing code was not found or has expired. Check the code and try again.'
+
+// PAIRING_FAILED is the fallback for a relay error without a known code.
+export const PAIRING_FAILED =
+  'Could not complete pairing. Check the code and try again.'
+
 // pairingErrorMessage maps a raw pairing error into user-facing copy. Relay
-// transport failures (a raw fetch failure or a relay 5xx surfaced as "pairing
-// relay returned 5xx") collapse to a single reachability message; other errors,
-// which are user-actionable (code conflict, rejected pairing), pass through.
+// transport failures stay behind the reachability message, known relay error
+// codes get recovery copy, and unknown relay responses use one honest fallback.
 export function pairingErrorMessage(raw: string | null | undefined): string {
   if (!raw) {
     return PAIRING_SERVICE_UNREACHABLE
   }
+  const relayStatus = raw.match(
+    /(?:pairing relay returned\s+|(?:get|post) pairing code:\s*)(\d{3})(?=\s|:)/i,
+  )
   if (
     /failed to fetch/i.test(raw) ||
-    /pairing relay returned 5\d\d/i.test(raw) ||
     /network(?:error)?|load failed|could not reach|err_network/i.test(raw)
   ) {
     return PAIRING_SERVICE_UNREACHABLE
   }
-  return raw
+  if (relayStatus) {
+    if (relayStatus[1].startsWith('5')) {
+      return PAIRING_SERVICE_UNREACHABLE
+    }
+    if (/"code"\s*:\s*"not_found"/i.test(raw) || /\bnot_found\s*:/i.test(raw)) {
+      return PAIRING_CODE_NOT_FOUND
+    }
+    return PAIRING_FAILED
+  }
+  if (/^pairing code conflict, retry with new code$/i.test(raw)) {
+    return raw
+  }
+  return PAIRING_FAILED
 }

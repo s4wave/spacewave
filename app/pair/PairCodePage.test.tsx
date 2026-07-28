@@ -31,6 +31,55 @@ describe('PairCodePage', () => {
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
+    mockUseParams.mockReturnValue({ code: 'direct' })
+  })
+  it('shows the missing or expired message for a rejected pairing code', async () => {
+    mockUseParams.mockReturnValue({ code: '' })
+    const session = {
+      completePairing: vi.fn(async () => {
+        throw new Error(
+          'pairing relay returned 404: {"code":"not_found","message":"Pairing code not found or expired"}',
+        )
+      }),
+    }
+
+    render(<PairCodePage session={session as never} />)
+    fireEvent.change(screen.getByPlaceholderText('XXXX XXXX'), {
+      target: { value: 'AAAA AAAA' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }))
+
+    expect(
+      await screen.findByText(
+        'That pairing code was not found or has expired. Check the code and try again.',
+      ),
+    ).toBeDefined()
+    expect(screen.queryByText(/pairing relay returned/)).toBeNull()
+    expect(screen.getByDisplayValue('AAAA AAAA')).toBeDefined()
+  })
+
+  it('shows the fallback for an unmapped relay failure', async () => {
+    mockUseParams.mockReturnValue({ code: '' })
+    const session = {
+      completePairing: vi.fn(async () => {
+        throw new Error(
+          'pairing relay returned 418: {"code":"teapot","message":"Unexpected relay response"}',
+        )
+      }),
+    }
+
+    render(<PairCodePage session={session as never} />)
+    fireEvent.change(screen.getByPlaceholderText('XXXX XXXX'), {
+      target: { value: 'AAAA AAAA' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }))
+
+    expect(
+      await screen.findByText(
+        'Could not complete pairing. Check the code and try again.',
+      ),
+    ).toBeDefined()
+    expect(screen.queryByText(/pairing relay returned/)).toBeNull()
   })
 
   it('surfaces PAIRING_FAILED from the PairVerifyStep status watch', async () => {
