@@ -624,7 +624,7 @@ func TestStartP2PSyncDoesNotCoalesceAcrossTransports(t *testing.T) {
 	releaseFirstLoad := make(chan struct{})
 	var gate sync.Once
 	removeFirst, err := first.GetChildBus().AddHandler(directive.NewFuncHandler(
-		func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+		func(handlerCtx context.Context, di directive.Instance) ([]directive.Resolver, error) {
 			load, ok := di.GetDirective().(resolver.LoadControllerWithConfig)
 			if !ok {
 				return nil, nil
@@ -637,7 +637,10 @@ func TestStartP2PSyncDoesNotCoalesceAcrossTransports(t *testing.T) {
 			// flight rather than one that already finished.
 			gate.Do(func() {
 				close(firstLoadStarted)
-				<-releaseFirstLoad
+				select {
+				case <-releaseFirstLoad:
+				case <-handlerCtx.Done():
+				}
 			})
 			return nil, nil
 		},

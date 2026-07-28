@@ -67,6 +67,49 @@ func (s *localDEXTestStore) GetBlock(ctx context.Context, ref *block.BlockRef) (
 
 var _ block.StoreOps = ((*localDEXTestStore)(nil))
 
+func TestBlockStoreReadRetainsPriorP2PSyncSourceDuringReplacement(t *testing.T) {
+	ctx := t.Context()
+	data := []byte("from-prior-p2p-state")
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	priorStore := newBatchForwardTestStore()
+	if _, _, err := priorStore.PutBlock(ctx, data, nil); err != nil {
+		t.Fatal(err)
+	}
+	prior := &p2pSyncState{
+		ctx:     ctx,
+		started: true,
+		stores:  map[string]block.StoreOps{"bucket": priorStore},
+	}
+	replacement := &p2pSyncState{
+		ctx:         ctx,
+		lowerSource: prior,
+	}
+	account := &ProviderAccount{}
+	account.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		account.p2pSync = replacement
+	})
+
+	localStore := newBatchForwardTestStore()
+	readOps := block_store.NewStoreReadThrough(
+		func() block.StoreOps { return localStore },
+		func() block.StoreOps { return account.getP2PStore("bucket") },
+		true,
+	)
+	store := &BlockStore{
+		store:     block_store.NewStore("local-store", localStore),
+		readStore: block_store.NewStore("local-store", readOps),
+	}
+
+	got, found, err := store.GetBlock(ctx, ref)
+	if err != nil || !found || string(got) != string(data) {
+		t.Fatalf("replacement lower source = %q/%v/%v", got, found, err)
+	}
+}
+
 func TestLocalBlockStoreMissRoutesToSessionChildDEX(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
