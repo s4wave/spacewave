@@ -514,21 +514,13 @@ func validateSuperblock(pager *OpfsPager, sb *pagestore.Superblock) (*pagestore.
 	return sb, nil
 }
 
-// readSuper reads a superblock file into buf, ignoring errors.
+// readSuper reads a superblock file through an async handle so concurrent
+// shared metadata readers do not contend on exclusive sync access handles.
 func readSuper(dir js.Value, name string, buf []byte) {
-	if !opfs.PreferSyncAccessHandles() {
-		data, err := opfs.ReadFile(dir, name)
-		if err == nil {
-			copy(buf, data)
-		}
-		return
+	data, err := opfs.ReadFile(dir, name)
+	if err == nil {
+		copy(buf, data)
 	}
-	f, err := opfs.OpenSyncFile(dir, name)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-	f.ReadAt(buf, 0)
 }
 
 // writeSuper writes a superblock to OPFS.
