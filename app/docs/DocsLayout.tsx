@@ -34,7 +34,7 @@ function DocsMobileNav({ portalContainer, sidebar }: DocsMobileNavProps) {
 
   return (
     <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-      <div className="border-b border-white/10 px-4 py-2.5 @lg:hidden">
+      <div className="border-b border-white/10 px-4 py-2.5 @2xl:hidden">
         <SheetTrigger asChild>
           <button
             type="button"
@@ -76,7 +76,7 @@ function DocsMobileNav({ portalContainer, sidebar }: DocsMobileNavProps) {
 }
 
 // DocsLayout renders the responsive documentation shell: a persistent left rail
-// on wide displays that collapses into a top-bar drawer below the @lg container
+// on wide displays that collapses into a top-bar drawer below the @2xl container
 // breakpoint. The content column carries its own min-w-0 so wide code blocks and
 // tables scroll within it instead of forcing the page to scroll sideways.
 export function DocsLayout({
@@ -104,7 +104,7 @@ export function DocsLayout({
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Sidebar - wide widths only */}
-        <aside className="hidden w-[216px] shrink-0 overflow-y-auto border-r border-white/10 @lg:block">
+        <aside className="hidden w-[216px] shrink-0 overflow-y-auto border-r border-white/10 @2xl:block">
           {sidebar}
         </aside>
 
@@ -114,7 +114,7 @@ export function DocsLayout({
         <main className="flex min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
           <div
             className={cn(
-              'mx-auto w-full flex-1 px-5 pt-6 pb-20 @lg:px-8 @lg:pt-10',
+              'mx-auto w-full flex-1 px-5 pt-6 pb-20 @2xl:px-8 @2xl:pt-10',
               maxWidth,
             )}
           >

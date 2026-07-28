@@ -36,9 +36,9 @@ const siteLabels = new Map(siteDefs.map((s) => [s.id, s.label]))
 
 // toolbarActionBase sizes a header action to a 44px touch target while it is
 // icon-only on narrow displays, then relaxes to a compact inline control once
-// the @lg label appears.
+// the @2xl label appears.
 const toolbarActionBase =
-  'flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-2 text-xs transition-colors @lg:h-8 @lg:min-w-0 @lg:justify-start'
+  'flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-2 text-xs transition-colors @2xl:h-8 @2xl:min-w-0 @2xl:justify-start'
 
 // toolbarActionIdle is the resting color treatment shared by the header actions.
 const toolbarActionIdle =
@@ -90,16 +90,16 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
   return (
     <article>
       {/* Header bar: breadcrumb + utility actions */}
-      <div className="mb-6 flex items-center justify-between gap-3">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
         <div className="text-foreground-alt/50 flex min-w-0 flex-1 items-center gap-2 text-xs">
-          <span className="hidden @lg:inline">
+          <span className="hidden @2xl:inline">
             {siteLabels.get(doc.site) ?? doc.site}
           </span>
-          <span className="text-foreground-alt/30 hidden @lg:inline">/</span>
-          <span className="hidden @lg:inline">
+          <span className="text-foreground-alt/30 hidden @2xl:inline">/</span>
+          <span className="hidden @2xl:inline">
             {getSectionLabel(doc.site, doc.section)}
           </span>
-          <span className="text-foreground-alt/30 hidden @lg:inline">/</span>
+          <span className="text-foreground-alt/30 hidden @2xl:inline">/</span>
           <span className="text-foreground-alt truncate">{doc.title}</span>
         </div>
 
@@ -118,7 +118,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
             ) : (
               <LuCopy className="size-3" />
             )}
-            <span className="hidden @lg:inline">
+            <span className="hidden @2xl:inline">
               {copied ? 'Copied' : 'Copy MD'}
             </span>
           </button>
@@ -130,7 +130,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
             aria-label="Open raw Markdown on GitHub"
           >
             <LuFileText className="size-3" />
-            <span className="hidden @lg:inline">Open MD</span>
+            <span className="hidden @2xl:inline">Open MD</span>
           </ExternalLink>
 
           <DropdownMenu>
@@ -141,7 +141,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
                 aria-label="Open page in an AI assistant"
               >
                 <LuSparkles className="size-3" />
-                <span className="hidden @lg:inline">AI</span>
+                <span className="hidden @2xl:inline">AI</span>
                 <LuChevronDown className="size-2.5" />
               </button>
             </DropdownMenuTrigger>
@@ -162,7 +162,7 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
 
       {/* Page header */}
       <header className="mb-8">
-        <h1 className="text-foreground mb-3 text-2xl leading-snug font-semibold tracking-tight @lg:text-3xl @lg:leading-snug">
+        <h1 className="text-foreground mb-3 text-2xl leading-snug font-semibold tracking-tight @2xl:text-3xl @2xl:leading-snug">
           {doc.title}
         </h1>
         <p className="text-foreground-alt text-sm leading-relaxed">

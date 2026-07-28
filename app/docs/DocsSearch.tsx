@@ -75,6 +75,7 @@ export function DocsSearch({ docs, onSelect }: DocsSearchProps) {
           onChange={handleSearchChange}
           onFocus={handleSearchFocus}
           onBlur={handleSearchBlur}
+          aria-label="Search documentation"
           placeholder="Search docs…"
           className={cn(
             'border-foreground/10 bg-background-card/50 text-foreground placeholder:text-foreground-alt/40 w-full rounded-md border py-2 pr-3 pl-9 text-sm transition-colors outline-none',
@@ -93,7 +94,8 @@ export function DocsSearch({ docs, onSelect }: DocsSearchProps) {
           {results.map((doc) => (
             <button
               key={doc.url}
-              onMouseDown={() => handleSelect(doc)}
+              type="button"
+              onClick={() => handleSelect(doc)}
               className="hover:bg-foreground/5 w-full cursor-pointer px-4 py-2.5 text-left transition-colors"
             >
               <div className="text-foreground text-sm font-medium">
