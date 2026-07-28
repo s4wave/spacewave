@@ -89,6 +89,22 @@ func ComputeIdentity(repoRoot string, inputs *BuildInputs) (*Identity, error) {
 	return identity, nil
 }
 
+// Summary returns every digest that determines the identity, so two processes
+// that disagree about which artifact they want can be compared field by field
+// from their logs alone.
+func (i *Identity) Summary() map[string]string {
+	return map[string]string{
+		"identity":        i.Digest,
+		"compiler":        i.Compiler,
+		"mode":            i.Mode,
+		"source":          i.SourceDigest,
+		"build":           i.BuildDigest,
+		"lockfiles":       i.LockfileDigest,
+		"bldr":            i.BldrDigest,
+		"prerenderInputs": i.PrerenderInputsDigest,
+	}
+}
+
 // Differences returns the current inputs that do not match the artifact.
 func (i *Identity) Differences(artifact *Identity) []string {
 	if artifact == nil {

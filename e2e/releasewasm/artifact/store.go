@@ -202,6 +202,24 @@ func ValidGenerations(storeDir string, expected *Identity) ([]Generation, error)
 	return generations, nil
 }
 
+// GenerationIDs returns the name of every generation directory in the store,
+// whatever identity it carries. A caller that found no usable generation uses
+// this to report what the store did hold.
+func GenerationIDs(storeDir string) ([]string, error) {
+	entries, err := os.ReadDir(filepath.Join(storeDir, generationsDir))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, "read release artifact generations")
+	}
+	names := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		names = append(names, entry.Name())
+	}
+	return names, nil
+}
+
 // Validate rejects incomplete, modified, or stale artifact directory pairs.
 func Validate(releaseDir, prerenderDir string, expected *Identity) error {
 	if expected == nil {
