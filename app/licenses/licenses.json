@@ -919,7 +919,7 @@
     },
     {
       "name": "github.com/aperturerobotics/starpc",
-      "version": "v0.49.21",
+      "version": "v0.49.22-0.20260729204716-b4b6ff1b808d",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/starpc",
@@ -1224,8 +1224,8 @@
       "copyrightNotice": "Copyright (c) 2014 Juan Batiz-Benet"
     },
     {
-      "name": "github.com/libp2p/go-yamux/v4",
-      "version": "v4.0.2",
+      "name": "github.com/libp2p/go-yamux/v5",
+      "version": "v5.1.0",
       "spdx": "MPL-2.0",
       "source": "go",
       "repo": "https://github.com/libp2p/go-yamux"
