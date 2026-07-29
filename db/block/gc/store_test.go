@@ -2,14 +2,15 @@ package block_gc
 
 import (
 	"context"
+	"slices"
+	"sync"
+	"testing"
+
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store_kvtx "github.com/s4wave/spacewave/db/block/store/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
-	"slices"
-	"sync"
-	"testing"
 )
 
 // gcTestEnv holds the test environment for GCStoreOps tests.
@@ -908,7 +909,7 @@ func (r *injectUnrefRefGraph) ApplyRefBatch(
 ) error {
 	if !r.injected {
 		r.injected = true
-		if err := r.RefGraphOps.AddRef(ctx, NodeUnreferenced, r.object); err != nil {
+		if err := r.AddRef(ctx, NodeUnreferenced, r.object); err != nil {
 			return err
 		}
 	}
