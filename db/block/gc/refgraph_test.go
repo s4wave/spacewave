@@ -114,6 +114,42 @@ func TestRemoveNonExistentRef(t *testing.T) {
 	}
 }
 
+func TestFilterExistingRemovesPreservesBatchAndGraphEdges(t *testing.T) {
+	ctx := context.Background()
+	rg := newTestRefGraph(t)
+
+	adds := []RefEdge{{Subject: "batch", Object: "in-adds"}}
+	if err := rg.AddRef(ctx, "graph", "in-graph"); err != nil {
+		t.Fatal(err)
+	}
+
+	removes := []RefEdge{
+		{Subject: "batch", Object: "in-adds"},
+		{Subject: "graph", Object: "in-graph"},
+		{Subject: "absent", Object: "absent"},
+	}
+	got, err := rg.filterExistingRemoves(ctx, adds, removes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := removes[:2]
+	if !slices.Equal(got, want) {
+		t.Fatalf("filtered removes = %#v, want %#v", got, want)
+	}
+
+	// An absent edge whose node names collide with the predicate IRI adds no
+	// lookup entries; it must still be probed, not assumed to exist.
+	got, err = rg.filterExistingRemoves(ctx, nil, []RefEdge{
+		{Subject: PredGCRef, Object: PredGCRef},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("filtered predicate-named removes = %#v, want none", got)
+	}
+}
+
 func TestRemoveNodeRefs(t *testing.T) {
 	ctx := context.Background()
 	rg := newTestRefGraph(t)
