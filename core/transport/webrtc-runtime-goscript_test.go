@@ -16,13 +16,17 @@ import (
 )
 
 func TestSessionTransportGoScriptStartsSignalingBeforeReady(t *testing.T) {
-	requested := make(chan struct{}, 1)
+	requested := make(chan struct{})
+	releaseRequest := make(chan struct{})
+	observed := make(chan struct{}, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/signal/ticket" {
 			http.NotFound(w, r)
 			return
 		}
 		requested <- struct{}{}
+		<-releaseRequest
+		observed <- struct{}{}
 		http.Error(w, "test rejection", http.StatusServiceUnavailable)
 	}))
 	defer srv.Close()
@@ -51,9 +55,17 @@ func TestSessionTransportGoScriptStartsSignalingBeforeReady(t *testing.T) {
 	select {
 	case <-requested:
 	case <-st.Ready():
-		t.Fatal("GoScript session transport reported ready without starting signaling")
+		t.Fatal("session transport became ready before requesting a signal ticket")
 	case err := <-done:
 		t.Fatalf("session transport exited before requesting a signal ticket: %v", err)
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	close(releaseRequest)
+	select {
+	case <-observed:
+	case err := <-done:
+		t.Fatalf("session transport exited before the signal ticket request was observed: %v", err)
 	case <-ctx.Done():
 		t.Fatal(ctx.Err())
 	}

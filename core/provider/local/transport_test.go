@@ -1,8 +1,6 @@
 package provider_local_test
 
-import (
-	"testing"
-)
+import "testing"
 
 // TestSessionTransportCreate verifies that CreateSessionTransport creates a
 // transport with the session's private key and the child bus resolves the peer.

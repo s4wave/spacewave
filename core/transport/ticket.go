@@ -6,12 +6,31 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 )
+
+var errSignalTicketUnauthorized = errors.New("signal ticket unauthorized")
+
+type signalTicketHTTPError struct {
+	statusCode int
+}
+
+func (e *signalTicketHTTPError) Error() string {
+	return "signal ticket: HTTP " + strconv.Itoa(e.statusCode)
+}
+
+func (e *signalTicketHTTPError) StatusCode() int {
+	return e.statusCode
+}
+
+func (e *signalTicketHTTPError) Is(target error) bool {
+	return e.statusCode == http.StatusUnauthorized && target == errSignalTicketUnauthorized
+}
 
 // signalURL joins a signaling endpoint path to its relative or absolute base.
 func signalURL(baseURL, endpoint string) (*url.URL, error) {
@@ -72,7 +91,7 @@ func acquireSignalTicket(
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", errors.Errorf("signal ticket: HTTP %d", resp.StatusCode)
+		return "", &signalTicketHTTPError{statusCode: resp.StatusCode}
 	}
 
 	data, err := io.ReadAll(resp.Body)
