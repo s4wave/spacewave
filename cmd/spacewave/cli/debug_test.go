@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
-	yamux "github.com/libp2p/go-yamux/v4"
+	yamux "github.com/libp2p/go-yamux/v5"
 	trace_capture "github.com/s4wave/spacewave/core/trace/capture"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"

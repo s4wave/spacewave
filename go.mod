@@ -32,7 +32,7 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260705021747-c5ec5d20d2b6 // master
 	github.com/aperturerobotics/cli v1.1.0 // v1.1.0
-	github.com/aperturerobotics/common v0.34.4-0.20260728184944-a767fdbf1e56 // master
+	github.com/aperturerobotics/common v0.34.4 // master
 	github.com/aperturerobotics/controllerbus v0.53.5-0.20260726091303-7b91a295eab0 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
@@ -53,7 +53,7 @@ require (
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.16.0 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
-	github.com/aperturerobotics/starpc v0.49.21 // latest
+	github.com/aperturerobotics/starpc v0.49.22-0.20260729204716-b4b6ff1b808d // latest
 	github.com/aperturerobotics/util v1.34.10-0.20260705010935-dceeac6053fb // master
 )
 
@@ -74,6 +74,7 @@ require (
 require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
 	github.com/go-sql-driver/mysql v1.10.0
+	github.com/libp2p/go-yamux/v5 v5.1.0
 	github.com/pion/logging v0.2.4
 	github.com/pion/transport/v4 v4.0.2
 	go.starlark.net v0.0.0-20260708150628-5395d018f003
@@ -158,7 +159,6 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lestrrat-go/strftime v1.2.0 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
-	github.com/libp2p/go-yamux/v4 v4.0.2
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/multiformats/go-multihash v0.2.3 // indirect
