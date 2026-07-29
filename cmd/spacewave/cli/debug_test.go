@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	yamux "github.com/libp2p/go-yamux/v4"
 	trace_capture "github.com/s4wave/spacewave/core/trace/capture"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"
@@ -162,6 +163,32 @@ func newDebugTraceTestClient(t *testing.T) s4wave_trace.SRPCTraceServiceClient {
 	}
 
 	server := srpc.NewServer(mux)
-	client := srpc.NewClient(srpc.NewServerPipe(server))
+	serverCtx, cancel := context.WithCancel(t.Context())
+	clientConn, serverConn := net.Pipe()
+	serverMux, err := srpc.NewMuxedConn(serverConn, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client, err := srpc.NewClientWithConn(clientConn, true, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	serverErr := make(chan error, 1)
+	go func() {
+		serverErr <- server.AcceptMuxedConn(serverCtx, serverMux)
+	}()
+	t.Cleanup(func() {
+		if err := serverMux.Close(); err != nil {
+			t.Errorf("close server mux: %v", err)
+		}
+		acceptErr := <-serverErr
+		cancel()
+		if acceptErr != yamux.ErrSessionShutdown {
+			t.Errorf("server accept: %v, want session shutdown", acceptErr)
+		}
+		if err := clientConn.Close(); err != nil {
+			t.Errorf("close client connection: %v", err)
+		}
+	})
 	return s4wave_trace.NewSRPCTraceServiceClient(client)
 }
