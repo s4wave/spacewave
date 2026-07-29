@@ -298,6 +298,39 @@ func TestValidGenerationsCandidatePredicate(t *testing.T) {
 	})
 }
 
+func TestValidGenerationsTreatsOutputDigestMismatchAsCacheMiss(t *testing.T) {
+	repoRoot := newIdentityTestRepo(t)
+	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
+	storeDir := filepath.Join(t.TempDir(), "store")
+	releaseDir, prerenderDir := newArtifactFixture(t, "downloaded")
+	generation, err := PublishGeneration(storeDir, releaseDir, prerenderDir, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	writeTestFile(t, filepath.Join(generation.ReleaseDir, "marker.txt"), "changed after download")
+	generations, err := ValidGenerations(storeDir, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(generations) != 0 {
+		t.Fatalf("generations = %#v, want stale output to be treated as a miss", generations)
+	}
+
+	rebuiltRelease, rebuiltPrerender := newArtifactFixture(t, "rebuilt")
+	rebuilt, err := PublishGeneration(storeDir, rebuiltRelease, rebuiltPrerender, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	generations, err = ValidGenerations(storeDir, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(generations) != 1 || generations[0] != rebuilt {
+		t.Fatalf("generations = %#v, want rebuilt generation %#v", generations, rebuilt)
+	}
+}
+
 func TestValidGenerationsRejectsExternalValidFixtureSymlink(t *testing.T) {
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())

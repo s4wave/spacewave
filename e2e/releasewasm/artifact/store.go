@@ -19,6 +19,11 @@ const (
 	generationsDir   = "generations"
 )
 
+var (
+	errReleaseArtifactOutputDigestMismatch   = errors.New("release artifact output digest mismatch")
+	errPrerenderArtifactOutputDigestMismatch = errors.New("prerender artifact output digest mismatch")
+)
+
 type publishHooks struct {
 	beforeRename             func()
 	afterRenameBeforeCurrent func()
@@ -183,7 +188,15 @@ func ValidGenerations(storeDir string, expected *Identity) ([]Generation, error)
 		releaseDir := filepath.Join(generationDir, "release")
 		prerenderDir := filepath.Join(generationDir, "prerender")
 		if err := Validate(releaseDir, prerenderDir, expected); err != nil {
-			return nil, err
+			// Artifact transport can preserve the identity manifest while
+			// changing output bytes or modes. Let the resolver rebuild that
+			// stale generation, but keep identity and structural failures fatal.
+			switch errors.Cause(err) {
+			case errReleaseArtifactOutputDigestMismatch, errPrerenderArtifactOutputDigestMismatch:
+				continue
+			default:
+				return nil, err
+			}
 		}
 		generation := Generation{
 			ID:           name,
@@ -241,14 +254,14 @@ func Validate(releaseDir, prerenderDir string, expected *Identity) error {
 		return errors.Wrap(err, "digest release output")
 	}
 	if actualReleaseDigest != releaseDigest {
-		return errors.New("release artifact output digest mismatch")
+		return errReleaseArtifactOutputDigestMismatch
 	}
 	actualPrerenderDigest, err := treeDigest(prerenderDir)
 	if err != nil {
 		return errors.Wrap(err, "digest prerender output")
 	}
 	if actualPrerenderDigest != prerenderDigest {
-		return errors.New("prerender artifact output digest mismatch")
+		return errPrerenderArtifactOutputDigestMismatch
 	}
 	return nil
 }
