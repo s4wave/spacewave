@@ -30,7 +30,7 @@
     "react-dom": "^19.2.7",
     "react-icons": "^5.6.0",
     "rolldown": "1.2.1",
-    "starpc": "0.49.20",
+    "starpc": "0.50.0",
     "sonner": "^2.0.7",
     "ulid": "^3.0.2",
     "vite": "8.1.5",
