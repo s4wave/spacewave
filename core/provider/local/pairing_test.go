@@ -252,12 +252,17 @@ func TestPairingCreatesTransport(t *testing.T) {
 	defer release()
 
 	// Pre-create transport without signaling (test relay is HTTP only).
+	if err := acc.EnsureSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
+		t.Fatalf("settle session transport startup: %v", err)
+	}
+
 	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
 		t.Fatal(err)
 	}
 
 	srv := newPairingRelayServer("")
 	defer srv.Close()
+	defer acc.StopSessionTransport()
 
 	code, err := acc.GeneratePairingCode(ctx, srv.URL, "", sess.GetPrivKey(), sess.GetPeerId())
 	if err != nil {
@@ -290,7 +295,6 @@ func TestPairingCreatesTransport(t *testing.T) {
 		t.Fatal("expected same transport on second call")
 	}
 
-	acc.StopSessionTransport()
 }
 
 // TestCompletePairingWaitsForLink verifies that CompletePairing ensures
@@ -396,8 +400,8 @@ func TestCompletePairingReplacesEmptyTransportWithSignaling(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
-		t.Fatal(err)
+	if err := acc.EnsureSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
+		t.Fatalf("settle session transport startup: %v", err)
 	}
 
 	got, err := acc.CompletePairing(ctx, srv.URL, "spacewave-staging", "TESTCODE", sess.GetPrivKey(), sess.GetPeerId())

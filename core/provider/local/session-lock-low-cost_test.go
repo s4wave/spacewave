@@ -3,21 +3,45 @@ package provider_local
 import (
 	"context"
 	"crypto/rand"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"runtime"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	websocket "github.com/aperturerobotics/go-websocket"
+	"github.com/aperturerobotics/util/routine"
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/s4wave/spacewave/core/provider"
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	core_session "github.com/s4wave/spacewave/core/session"
 	session_lock "github.com/s4wave/spacewave/core/session/lock"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/util/blockenc"
+	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/keypem"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/testbed"
 	"github.com/zeebo/blake3"
 	"golang.org/x/crypto/scrypt"
 )
+
+type observedDoneContext struct {
+	context.Context
+	observed chan struct{}
+	once     sync.Once
+}
+
+func (c *observedDoneContext) Done() <-chan struct{} {
+	c.once.Do(func() {
+		close(c.observed)
+	})
+	return c.Context.Done()
+}
 
 func TestMountedPINUnlockRestoresLocalSessionStateLowCost(t *testing.T) {
 	ctx := t.Context()
@@ -58,7 +82,8 @@ func TestMountedPINUnlockRestoresLocalSessionStateLowCost(t *testing.T) {
 }
 
 func TestEnsureSessionTransportReleasesAccountLockWhileWaitingReady(t *testing.T) {
-	ctx := t.Context()
+	ctx, ctxCancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer ctxCancel()
 	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
 	defer release()
 	acc.StopSessionTransport()
@@ -97,11 +122,263 @@ func TestEnsureSessionTransportReleasesAccountLockWhileWaitingReady(t *testing.T
 	rel()
 
 	cancel()
-	<-done
+	select {
+	case <-done:
+	case <-ctx.Done():
+		t.Fatalf("transport wait did not return after cancellation: %v", ctx.Err())
+	}
 }
 
+func TestSessionTransportReadyErrorCleanupHonorsCallerDeadline(t *testing.T) {
+	ctx, ctxCancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer ctxCancel()
+	acc, _, release := newPairingTransportAccount(ctx, t)
+	defer release()
+
+	rel, err := acc.mtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cleanupCtx, cleanupCancel := context.WithTimeout(ctx, 50*time.Millisecond)
+	defer cleanupCancel()
+	done := make(chan error, 1)
+	go func() {
+		done <- acc.cleanupSessionTransportReadyError(
+			cleanupCtx,
+			&sessionTransportState{},
+			errors.New("startup timeout"),
+		)
+	}()
+
+	select {
+	case err := <-done:
+		rel()
+		if err == nil || !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("cleanup returned %v, want bounded context cancellation", err)
+		}
+	case <-time.After(time.Second):
+		rel()
+		t.Fatal("cleanup remained blocked on the account owner")
+	}
+}
+
+func TestSessionTransportReadyErrorCleanupUsesFreshBudgetAfterCallerExpiry(t *testing.T) {
+	ctx, ctxCancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer ctxCancel()
+	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
+	defer release()
+
+	requestStarted := make(chan struct{})
+	var requestOnce sync.Once
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestOnce.Do(func() {
+			close(requestStarted)
+		})
+		<-r.Context().Done()
+	}))
+	defer server.Close()
+
+	st, err := transport.NewSessionTransport(
+		acc.le,
+		acc.t.p.b,
+		sessionKey,
+		server.URL,
+		"",
+		transport.WithStartupTimeout(time.Second),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rc := routine.NewRoutineContainer()
+	rc.SetRoutine(st.Execute)
+	runCtx, runCancel := context.WithCancel(ctx)
+	defer runCancel()
+	rc.SetContext(runCtx, false)
+	peerID, err := peer.IDFromPrivateKey(sessionKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sts := &sessionTransportState{
+		transport: st,
+		rc:        rc,
+		config:    sessionTransportConfig{peerID: peerID},
+	}
+	acc.transportBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		acc.sessionTransport = sts
+		bcast()
+	})
+
+	ownerRelease, err := acc.mtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	callerCtx, callerCancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	defer callerCancel()
+	done := make(chan error, 1)
+	go func() {
+		done <- acc.waitSessionTransportReady(callerCtx, sts)
+	}()
+
+	select {
+	case <-requestStarted:
+	case <-callerCtx.Done():
+		ownerRelease()
+		t.Fatal("transport startup did not reach its causal request")
+	}
+	select {
+	case <-callerCtx.Done():
+	case <-ctx.Done():
+		ownerRelease()
+		t.Fatalf("caller context did not expire: %v", ctx.Err())
+	}
+	ownerRelease()
+
+	var cleanupErr error
+	select {
+	case cleanupErr = <-done:
+	case <-ctx.Done():
+		t.Fatalf("cleanup did not return after releasing the account owner: %v", ctx.Err())
+	}
+	if cleanupErr == nil || !errors.Is(cleanupErr, context.Canceled) && !errors.Is(cleanupErr, context.DeadlineExceeded) {
+		t.Fatalf("expired caller returned %v, want caller cancellation", cleanupErr)
+	}
+
+	var current *sessionTransportState
+	acc.transportBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		current = acc.sessionTransport
+	})
+	if current != nil {
+		t.Fatal("expired caller left dead transport current")
+	}
+	var exited bool
+	sts.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		exited = sts.exited
+	})
+	if !exited {
+		t.Fatal("expired caller did not publish dead transport exit")
+	}
+
+	replacementCtx, replacementCancel := context.WithTimeout(ctx, time.Second)
+	defer replacementCancel()
+	if err := acc.EnsureSessionTransport(replacementCtx, sessionKey, ""); err != nil {
+		t.Fatalf("same-configuration replacement: %v", err)
+	}
+	replacement := acc.GetSessionTransport()
+	if replacement == nil || replacement == sts.transport {
+		t.Fatal("same-configuration ensure did not create a replacement")
+	}
+}
+
+func TestCanceledSessionTransportCreatorStopsPendingState(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("causal startup cancellation test requires native HTTP server context and WebSocket support")
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
+	defer release()
+
+	var ticketRequests atomic.Int32
+	requestStarted := make(chan struct{}, 1)
+	requestCanceled := make(chan struct{}, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/signal/ticket":
+			if ticketRequests.Add(1) == 1 {
+				requestStarted <- struct{}{}
+				<-r.Context().Done()
+				requestCanceled <- struct{}{}
+				return
+			}
+			data, err := (&api.SignalTicketResponse{Token: "test-token"}).MarshalVT()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(data)
+		case r.Method == http.MethodGet && r.URL.Path == "/api/signal/ws":
+			conn, err := websocket.Accept(w, r, nil)
+			if err != nil {
+				return
+			}
+			defer conn.Close(websocket.StatusNormalClosure, "")
+			<-r.Context().Done()
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	creatorCtx, creatorCancel := context.WithCancel(ctx)
+	type ensureResult struct {
+		sts *sessionTransportState
+		err error
+	}
+	creatorDone := make(chan ensureResult, 1)
+	go func() {
+		sts, _, err := acc.ensureSessionTransport(creatorCtx, sessionKey, server.URL, "")
+		creatorDone <- ensureResult{sts: sts, err: err}
+	}()
+
+	select {
+	case <-requestStarted:
+	case <-ctx.Done():
+		t.Fatalf("creator did not reach signaling startup: %v", ctx.Err())
+	}
+	creatorCancel()
+	select {
+	case <-requestCanceled:
+	case <-ctx.Done():
+		t.Fatalf("signaling request did not observe creator cancellation: %v", ctx.Err())
+	}
+
+	var result ensureResult
+	select {
+	case result = <-creatorDone:
+	case <-ctx.Done():
+		t.Fatalf("creator did not return after cancellation: %v", ctx.Err())
+	}
+	if !errors.Is(result.err, context.Canceled) {
+		t.Fatalf("creator returned %v, want context cancellation", result.err)
+	}
+	if result.sts == nil {
+		t.Fatal("creator did not return its pending transport state")
+	}
+	var exited bool
+	var exitErr error
+	result.sts.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		exited = result.sts.exited
+		exitErr = result.sts.err
+	})
+	if !exited {
+		t.Fatal("canceled creator did not publish transport exit")
+	}
+	if !errors.Is(exitErr, context.Canceled) {
+		t.Fatalf("canceled creator exit error = %v, want context cancellation", exitErr)
+	}
+	if acc.GetSessionTransport() != nil {
+		t.Fatal("canceled creator left its transport current")
+	}
+
+	replacement, created, err := acc.ensureSessionTransport(ctx, sessionKey, server.URL, "")
+	if err != nil {
+		t.Fatalf("same-configuration ensure after cancellation failed: %v", err)
+	}
+	if !created {
+		t.Fatal("same-configuration ensure reused the abandoned transport")
+	}
+	if replacement == result.sts {
+		t.Fatal("same-configuration ensure returned the abandoned transport")
+	}
+	if replacement.transport.GetChildBus() == nil {
+		t.Fatal("replacement transport was not usable after readiness")
+	}
+}
 func TestEnsureSessionTransportRetriesWhenExistingTransportClearsBeforeReady(t *testing.T) {
-	ctx := t.Context()
+	ctx, ctxCancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer ctxCancel()
 	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
 	defer release()
 	acc.StopSessionTransport()
@@ -148,17 +425,446 @@ func TestEnsureSessionTransportRetriesWhenExistingTransportClearsBeforeReady(t *
 
 	clearFakeState()
 
-	completeCtx, completeCancel := context.WithTimeout(ctx, time.Second)
-	defer completeCancel()
 	select {
 	case err := <-done:
 		if err != nil {
 			t.Fatalf("ensure session transport after cleared state: %v", err)
 		}
-	case <-completeCtx.Done():
+	case <-ctx.Done():
 		cancel()
-		err := <-done
-		t.Fatalf("ensure session transport remained blocked after cleared state: %v", err)
+		t.Fatalf("ensure session transport remained blocked after cleared state: %v", ctx.Err())
+	}
+}
+
+func TestEnsureSessionTransportCoalescesSameConfiguration(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	acc.StopSessionTransport()
+
+	first, created, err := acc.ensureSessionTransport(ctx, sess.GetPrivKey(), "", "")
+	if err != nil {
+		t.Fatalf("first ensure failed: %v", err)
+	}
+	if !created {
+		t.Fatal("first ensure did not create the transport")
+	}
+	second, created, err := acc.ensureSessionTransport(ctx, sess.GetPrivKey(), "", "")
+	if err != nil {
+		t.Fatalf("same-configuration ensure failed: %v", err)
+	}
+	if created {
+		t.Fatal("same-configuration ensure created a second transport")
+	}
+	if second != first {
+		t.Fatal("same-configuration ensure did not coalesce onto the existing transport")
+	}
+}
+
+func TestExistingSessionTransportWaitReturnsStateExit(t *testing.T) {
+	baseCtx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	_, _, acc, sess, release := setupProviderAndSessionInternal(baseCtx, t)
+	defer release()
+	acc.StopSessionTransport()
+
+	fakeTransport, err := transport.NewSessionTransport(acc.le, acc.t.p.b, sess.GetPrivKey(), "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakeState := &sessionTransportState{
+		transport: fakeTransport,
+		rc:        routine.NewRoutineContainer(),
+	}
+	acc.transportBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		acc.sessionTransport = fakeState
+		bcast()
+	})
+	defer func() {
+		acc.transportBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+			if acc.sessionTransport == fakeState {
+				acc.sessionTransport = nil
+				bcast()
+			}
+		})
+	}()
+
+	observed := make(chan struct{})
+	waitCtx := &observedDoneContext{
+		Context:  baseCtx,
+		observed: observed,
+	}
+	done := make(chan error, 1)
+	go func() {
+		done <- acc.waitExistingSessionTransportReady(waitCtx, fakeState)
+	}()
+	select {
+	case <-observed:
+	case <-baseCtx.Done():
+		t.Fatalf("waiter did not enter its wait path: %v", baseCtx.Err())
+	}
+	fakeState.setExited(context.Canceled)
+
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("wait returned %v, want state cancellation", err)
+		}
+	case <-baseCtx.Done():
+		t.Fatalf("state exit did not wake existing wait: %v", baseCtx.Err())
+	}
+}
+
+func TestExistingSessionTransportWaitReturnsSuperseded(t *testing.T) {
+	baseCtx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	_, _, acc, sess, release := setupProviderAndSessionInternal(baseCtx, t)
+	defer release()
+	acc.StopSessionTransport()
+
+	fakeTransport, err := transport.NewSessionTransport(acc.le, acc.t.p.b, sess.GetPrivKey(), "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakeState := &sessionTransportState{
+		transport: fakeTransport,
+		rc:        routine.NewRoutineContainer(),
+	}
+	acc.transportBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		acc.sessionTransport = fakeState
+		bcast()
+	})
+	defer func() {
+		acc.transportBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+			if acc.sessionTransport == fakeState {
+				acc.sessionTransport = nil
+				bcast()
+			}
+		})
+	}()
+
+	observed := make(chan struct{})
+	waitCtx := &observedDoneContext{
+		Context:  baseCtx,
+		observed: observed,
+	}
+	done := make(chan error, 1)
+	go func() {
+		done <- acc.waitExistingSessionTransportReady(waitCtx, fakeState)
+	}()
+	select {
+	case <-observed:
+	case <-baseCtx.Done():
+		t.Fatalf("waiter did not enter its wait path: %v", baseCtx.Err())
+	}
+	fakeState.setReplaced()
+
+	select {
+	case err := <-done:
+		if !errors.Is(err, errSessionTransportSuperseded) {
+			t.Fatalf("wait returned %v, want superseded signal", err)
+		}
+	case <-baseCtx.Done():
+		t.Fatalf("replacement did not wake existing wait: %v", baseCtx.Err())
+	}
+}
+
+func TestSessionTransportReadyErrorClassifiesReplacementFromFreshState(t *testing.T) {
+	ctx := t.Context()
+	sts := &sessionTransportState{}
+	readyResult := make(chan error, 1)
+	readyResult <- context.Canceled
+
+	var stateWaitCh <-chan struct{}
+	sts.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		stateWaitCh = getWaitCh()
+	})
+	sts.setReplaced()
+
+	select {
+	case <-readyResult:
+	default:
+		t.Fatal("readiness result was not eligible")
+	}
+	select {
+	case <-stateWaitCh:
+	default:
+		t.Fatal("replacement notification was not eligible")
+	}
+
+	err := classifySessionTransportReadyError(ctx, sts, context.Canceled, func(err error) error {
+		t.Fatalf("cleanup called for superseded transport: %v", err)
+		return err
+	})
+	if !errors.Is(err, errSessionTransportSuperseded) {
+		t.Fatalf("ready error classification = %v, want superseded signal", err)
+	}
+}
+
+func TestSessionTransportReadyErrorCleanupRechecksSupersession(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	acc, oldPriv, release := newPairingTransportAccount(ctx, t)
+	defer release()
+	acc.SetPairingCode("TESTCODE", oldPriv)
+
+	oldTransport, err := transport.NewSessionTransport(acc.le, acc.t.p.b, oldPriv, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldRC := routine.NewRoutineContainer()
+	oldRC.SetRoutine(func(ctx context.Context) error {
+		<-ctx.Done()
+		return ctx.Err()
+	})
+	oldRC.SetContext(ctx, false)
+	oldPeerID, err := peer.IDFromPrivateKey(oldPriv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldState := &sessionTransportState{
+		transport: oldTransport,
+		rc:        oldRC,
+		config:    sessionTransportConfig{peerID: oldPeerID},
+	}
+	acc.transportBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		acc.sessionTransport = oldState
+		bcast()
+	})
+
+	cleanupStarted := make(chan struct{})
+	releaseCleanup := make(chan struct{})
+	oldDone := make(chan error, 1)
+	go func() {
+		oldDone <- classifySessionTransportReadyError(
+			ctx,
+			oldState,
+			context.DeadlineExceeded,
+			func(err error) error {
+				close(cleanupStarted)
+				<-releaseCleanup
+				return acc.cleanupSessionTransportReadyError(ctx, oldState, err)
+			},
+		)
+	}()
+	select {
+	case <-cleanupStarted:
+	case <-ctx.Done():
+		t.Fatalf("old startup did not reach cleanup overlap: %v", ctx.Err())
+	}
+
+	newPriv, _, err := bifrost_crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	newDone := make(chan error, 1)
+	go func() {
+		_, _, err := acc.ensureSessionTransport(ctx, newPriv, "", "")
+		newDone <- err
+	}()
+	select {
+	case err := <-newDone:
+		if err != nil {
+			t.Fatalf("new configuration failed to start: %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("new configuration did not become ready: %v", ctx.Err())
+	}
+	close(releaseCleanup)
+
+	select {
+	case err := <-oldDone:
+		if !errors.Is(err, errSessionTransportSuperseded) {
+			t.Fatalf("superseded startup returned %v, want superseded error", err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("superseded startup did not return: %v", ctx.Err())
+	}
+	snapshot := acc.GetPairingSnapshot()
+	if snapshot.Status == PairingStatusSignalingFailed {
+		t.Fatalf("superseded startup published stale pairing failure: %q", snapshot.ErrMsg)
+	}
+}
+
+func TestSessionTransportReplacementReturnsSupersededSignal(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	acc.StopSessionTransport()
+
+	st, err := transport.NewSessionTransport(acc.le, acc.t.p.b, sess.GetPrivKey(), "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rc := routine.NewRoutineContainer()
+	sts := &sessionTransportState{
+		transport: st,
+		rc:        rc,
+	}
+	runCtx := t.Context()
+	rc.SetRoutine(st.Execute)
+	rc.SetContext(runCtx, false)
+
+	rel, err := acc.mtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	acc.transportBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		acc.sessionTransport = sts
+		bcast()
+	})
+	if err := acc.stopSessionTransportForReplacementLocked(ctx); err != nil {
+		rel()
+		t.Fatalf("stop session transport for replacement: %v", err)
+	}
+	rel()
+
+	err = acc.waitSessionTransportReady(ctx, sts)
+	if !errors.Is(err, errSessionTransportSuperseded) {
+		t.Fatalf("replacement wait returned %v, want superseded signal", err)
+	}
+}
+
+func TestSessionTransportReplacementReportsUncooperativeRoutine(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	acc.StopSessionTransport()
+
+	st, err := transport.NewSessionTransport(acc.le, acc.t.p.b, sess.GetPrivKey(), "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rc := routine.NewRoutineContainer()
+	started := make(chan struct{})
+	releaseRoutine := make(chan struct{})
+	routineExited := make(chan struct{})
+	rc.SetRoutine(func(context.Context) error {
+		close(started)
+		<-releaseRoutine
+		close(routineExited)
+		return nil
+	})
+	rc.SetContext(ctx, false)
+	sts := &sessionTransportState{transport: st, rc: rc}
+	acc.transportBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		acc.sessionTransport = sts
+		bcast()
+	})
+
+	rel, err := acc.mtx.Lock(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-started:
+	case <-ctx.Done():
+		rel()
+		t.Fatalf("old routine did not start: %v", ctx.Err())
+	}
+	stopCtx, stopCancel := context.WithTimeout(ctx, 50*time.Millisecond)
+	err = acc.stopSessionTransportForReplacementLocked(stopCtx)
+	stopCancel()
+	rel()
+	if err == nil {
+		t.Fatal("replacement returned nil while old routine ignored cancellation")
+	}
+	var current *sessionTransportState
+	acc.transportBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		current = acc.sessionTransport
+	})
+	if current != sts {
+		t.Fatal("replacement removed the current state after an unconfirmed stop")
+	}
+
+	close(releaseRoutine)
+	select {
+	case <-routineExited:
+	case <-ctx.Done():
+		t.Fatalf("old routine did not exit after release: %v", ctx.Err())
+	}
+}
+func TestSupersededSessionTransportCreatorKeepsNewConfiguration(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+	if _, _, err := acc.ensureSessionTransport(ctx, sess.GetPrivKey(), "", ""); err != nil {
+		t.Fatalf("settle session transport startup: %v", err)
+	}
+
+	var requestCount atomic.Int32
+	requestStarted := make(chan struct{}, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if requestCount.Add(1) == 1 {
+			requestStarted <- struct{}{}
+			<-r.Context().Done()
+			return
+		}
+		http.Error(w, "stale transport recreation", http.StatusServiceUnavailable)
+	}))
+	defer func() {
+		cancel()
+		server.Close()
+	}()
+
+	oldPriv := sess.GetPrivKey()
+	newPriv, _, err := bifrost_crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	oldDone := make(chan error, 1)
+	go func() {
+		_, _, err := acc.ensureSessionTransport(ctx, oldPriv, server.URL, "old")
+		oldDone <- err
+	}()
+
+	select {
+	case <-requestStarted:
+	case <-ctx.Done():
+		t.Fatalf("old transport did not reach signaling startup: %v", ctx.Err())
+	}
+
+	newDone := make(chan error, 1)
+	go func() {
+		_, _, err := acc.ensureSessionTransport(ctx, newPriv, "", "")
+		newDone <- err
+	}()
+	select {
+	case err := <-newDone:
+		if err != nil {
+			t.Fatalf("new transport failed to start: %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("new transport did not become ready: %v", ctx.Err())
+	}
+
+	select {
+	case err := <-oldDone:
+		if !errors.Is(err, errSessionTransportSuperseded) {
+			t.Fatalf("superseded creator returned %v, want superseded error", err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("superseded creator did not return: %v", ctx.Err())
+	}
+
+	var current *sessionTransportState
+	acc.transportBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		current = acc.sessionTransport
+	})
+	if current == nil {
+		t.Fatal("superseded creator removed the newer transport")
+	}
+	newPeerID, err := peer.IDFromPrivateKey(newPriv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !current.config.matches(newPeerID, "", "") {
+		t.Fatalf("current transport configuration = %+v, want peer %s with empty relay", current.config, newPeerID)
 	}
 }
 

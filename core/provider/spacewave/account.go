@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/refcount"
 	"github.com/aperturerobotics/util/routine"
@@ -147,7 +148,7 @@ type ProviderAccount struct {
 	// transportBcast guards sessionTransports.
 	transportBcast broadcast.Broadcast
 	// transportReplaceMtx serializes session transport create/replace/stop.
-	transportReplaceMtx sync.Mutex
+	transportReplaceMtx csync.Mutex
 	// p2pSyncMtx guards p2pSyncs.
 	p2pSyncMtx sync.Mutex
 	// syncTelemetry stores sync activity snapshots keyed by block store id.

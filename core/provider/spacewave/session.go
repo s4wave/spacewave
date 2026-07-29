@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"slices"
-	"strings"
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -655,7 +654,7 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		if errors.Is(err, context.Canceled) {
 			return context.Canceled
 		}
-		if strings.Contains(err.Error(), "HTTP 401") {
+		if errors.Is(err, errSessionTransportUnauthorized) {
 			le.WithError(err).Warn("registered session rejected; re-registering")
 			observed, rerr := registerSession()
 			if rerr != nil {
