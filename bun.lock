@@ -71,7 +71,7 @@
         "yaml": "^2.9.0",
       },
       "devDependencies": {
-        "@aptre/common": "0.34.3",
+        "@aptre/common": "0.34.4",
         "@google/design.md": "^0.4.0",
         "@playwright/test": "^1.62.0",
         "@tailwindcss/vite": "^4.3.3",
@@ -115,7 +115,7 @@
   "packages": {
     "@alcalzone/ansi-tokenize": ["@alcalzone/ansi-tokenize@0.3.0", "", { "dependencies": { "ansi-styles": "^6.2.1", "is-fullwidth-code-point": "^5.0.0" } }, "sha512-p+CMKJ93HFmLkjXKlXiVGlMQEuRb6H0MokBSwUsX+S6BRX8eV5naFZpQJFfJHjRZY0Hmnqy1/r6UWl3x+19zYA=="],
 
-    "@aptre/common": ["@aptre/common@0.34.3", "", { "dependencies": { "@aptre/protobuf-es-lite": "1.1.1", "starpc": "^0.49.20", "vitest": "^4.1.10" } }, "sha512-IkzCMCgJdmSZJ7hJ7WRFUp00ARcPgJmEEDert1gV3Wr3teueP/3pG9X4zKW5VNzMvXMDyko+Y9fomFNkHyQbKw=="],
+    "@aptre/common": ["@aptre/common@0.34.4", "", { "dependencies": { "@aptre/protobuf-es-lite": "1.1.1", "starpc": "^0.49.20", "vitest": "^4.1.10" } }, "sha512-m8SgrlfNpIj08w7n6DpScFIQeqJyBPvkZmcVLo/++TJlyBH7JQyM+uM795Ys2Jlu1kol4rlNkUIhfECaoK/9nQ=="],
 
     "@aptre/flex-layout": ["@aptre/flex-layout@0.6.4", "", { "peerDependencies": { "react": "^19.2.5", "react-dom": "^19.2.5" } }, "sha512-ROKbbJSoDGv1wbLcQq6VryPtWsqZBIF3R2z5q9hRpBjdltC7/71i2e4erpKqn2gTFckZrjuXssIHTdHMs60/Ag=="],
 
