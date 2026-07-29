@@ -234,13 +234,17 @@ func (rg *RefGraph) filterExistingRemoves(
 	for _, edge := range adds {
 		added[edge] = struct{}{}
 	}
+	if qs, ok := graph.Unwrap(rg.handle.QuadStore).(*cayley_kv.QuadStore); ok {
+		return rg.filterExistingRemovesIndexed(ctx, added, removes, qs)
+	}
+
 	existing := make([]RefEdge, 0, len(removes))
 	for _, edge := range removes {
 		if _, ok := added[edge]; ok {
 			existing = append(existing, edge)
 			continue
 		}
-		found, err := rg.hasRef(ctx, edge.Subject, edge.Object)
+		found, err := rg.hasRefGeneric(ctx, edge.Subject, edge.Object)
 		if err != nil {
 			return nil, err
 		}
@@ -251,7 +255,7 @@ func (rg *RefGraph) filterExistingRemoves(
 	return existing, nil
 }
 
-func (rg *RefGraph) hasRef(ctx context.Context, subject, object string) (bool, error) {
+func (rg *RefGraph) hasRefGeneric(ctx context.Context, subject, object string) (bool, error) {
 	var found bool
 	err := iterateFilteredNodeRefs(ctx, rg.handle, quad.Quad{
 		Subject:   quad.IRI(subject),
@@ -262,6 +266,108 @@ func (rg *RefGraph) hasRef(ctx context.Context, subject, object string) (bool, e
 		return io.EOF
 	})
 	return found, err
+}
+
+func (rg *RefGraph) filterExistingRemovesIndexed(
+	ctx context.Context,
+	added map[RefEdge]struct{},
+	removes []RefEdge,
+	qs *cayley_kv.QuadStore,
+) ([]RefEdge, error) {
+	existing := make([]RefEdge, 0, len(removes))
+	lookup := make([]string, 1, 1+2*len(removes))
+	lookup[0] = PredGCRef
+	lookupSet := map[string]struct{}{PredGCRef: {}}
+	unadded := 0
+	for _, edge := range removes {
+		if _, ok := added[edge]; ok {
+			continue
+		}
+		unadded++
+		if _, ok := lookupSet[edge.Subject]; !ok {
+			lookupSet[edge.Subject] = struct{}{}
+			lookup = append(lookup, edge.Subject)
+		}
+		if _, ok := lookupSet[edge.Object]; !ok {
+			lookupSet[edge.Object] = struct{}{}
+			lookup = append(lookup, edge.Object)
+		}
+	}
+	if unadded == 0 {
+		return removes, nil
+	}
+	ids, err := resolveIRIRefIDs(ctx, qs, lookup)
+	if err != nil {
+		return nil, errors.Wrap(err, "resolve remove refs")
+	}
+	predID := ids[PredGCRef]
+	if predID == 0 {
+		for _, edge := range removes {
+			if _, ok := added[edge]; ok {
+				existing = append(existing, edge)
+			}
+		}
+		return existing, nil
+	}
+
+	byObject := make(map[uint64]map[uint64][]int)
+	for i, edge := range removes {
+		if _, ok := added[edge]; ok {
+			continue
+		}
+		subjectID := ids[edge.Subject]
+		objectID := ids[edge.Object]
+		if subjectID == 0 || objectID == 0 {
+			continue
+		}
+		bySubject := byObject[objectID]
+		if bySubject == nil {
+			bySubject = make(map[uint64][]int)
+			byObject[objectID] = bySubject
+		}
+		bySubject[subjectID] = append(bySubject[subjectID], i)
+	}
+	found := make([]bool, len(removes))
+	for objectID, bySubject := range byObject {
+		remaining := 0
+		for _, indexes := range bySubject {
+			remaining += len(indexes)
+		}
+		err := iterateIncomingIndexRefs(ctx, qs, objectID, predID,
+			func(ref cayley_kv.Int64Value, hasLive func() (bool, error)) error {
+				indexes, ok := bySubject[uint64(ref)]
+				if !ok {
+					return nil
+				}
+				live, err := hasLive()
+				if err != nil {
+					return err
+				}
+				if !live {
+					return nil
+				}
+				for _, index := range indexes {
+					if !found[index] {
+						found[index] = true
+						remaining--
+					}
+				}
+				if remaining == 0 {
+					return io.EOF
+				}
+				return nil
+			},
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "iterate remove object index")
+		}
+	}
+	for i, edge := range removes {
+		if _, ok := added[edge]; ok || found[i] {
+			existing = append(existing, edge)
+		}
+	}
+	return existing, nil
 }
 
 // RemoveNodeRefs removes ALL outgoing gc/ref edges for a node.
@@ -471,6 +577,36 @@ func (rg *RefGraph) GetIncomingRefs(ctx context.Context, node string) ([]string,
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/get-incoming-refs")
 	defer task.End()
 
+	if qs, ok := graph.Unwrap(rg.handle.QuadStore).(*cayley_kv.QuadStore); ok {
+		ids, err := resolveIRIRefIDs(ctx, qs, []string{PredGCRef, node})
+		if err != nil {
+			return nil, errors.Wrap(err, "resolve incoming refs")
+		}
+		predID := ids[PredGCRef]
+		objectID := ids[node]
+		if predID == 0 || objectID == 0 {
+			return nil, nil
+		}
+
+		var nodeRefs []graph.Ref
+		err = iterateIncomingIndexRefs(ctx, qs, objectID, predID,
+			func(ref cayley_kv.Int64Value, hasLive func() (bool, error)) error {
+				live, err := hasLive()
+				if err != nil {
+					return err
+				}
+				if live {
+					nodeRefs = append(nodeRefs, ref)
+				}
+				return nil
+			},
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "iterate incoming object index")
+		}
+		return resolveNodeIRIs(ctx, rg.handle, nodeRefs)
+	}
+
 	return collectFilteredNodeIRIs(ctx, rg.handle, quad.Quad{
 		Predicate: quad.IRI(PredGCRef),
 		Object:    quad.IRI(node),
@@ -542,25 +678,18 @@ func (rg *RefGraph) hasIncomingRefsExcludingFast(
 	if !ok {
 		return false, false, nil
 	}
-	predRef, err := rg.handle.ValueOf(ctx, quad.IRI(PredGCRef))
+	ids, err := resolveIRIRefIDs(ctx, qs, []string{PredGCRef, node})
 	if err != nil {
-		return false, true, errors.Wrap(err, "lookup gc/ref predicate")
+		return false, true, errors.Wrap(err, "lookup incoming refs")
 	}
-	objRef, err := rg.handle.ValueOf(ctx, quad.IRI(node))
-	if err != nil {
-		return false, true, errors.Wrap(err, "lookup incoming object")
-	}
-	predID, predOK := predRef.(cayley_kv.Int64Value)
-	objID, objOK := objRef.(cayley_kv.Int64Value)
-	if !predOK || !objOK || predID == 0 || objID == 0 {
+	predID := ids[PredGCRef]
+	objID := ids[node]
+	if predID == 0 || objID == 0 {
 		return false, true, nil
 	}
 
 	var found bool
-	err = qs.IterateIndexPrefixNextRefs(
-		ctx,
-		cayley_kv.DefaultQuadIndexes[1],
-		[]uint64{uint64(objID), uint64(predID)},
+	err = iterateIncomingIndexRefs(ctx, qs, objID, predID,
 		func(ref cayley_kv.Int64Value, hasLive func() (bool, error)) error {
 			if _, ok := excludedSet[refs.ToKey(ref)]; ok {
 				return nil
@@ -576,10 +705,44 @@ func (rg *RefGraph) hasIncomingRefsExcludingFast(
 			return io.EOF
 		},
 	)
-	if err != nil {
-		return false, true, errors.Wrap(err, "iterate incoming object index")
+	return found, true, errors.Wrap(err, "iterate incoming object index")
+}
+
+func resolveIRIRefIDs(
+	ctx context.Context,
+	qs *cayley_kv.QuadStore,
+	iris []string,
+) (map[string]uint64, error) {
+	values := make([]quad.Value, len(iris))
+	for i, iri := range iris {
+		values[i] = quad.IRI(iri)
 	}
-	return found, true, nil
+	refs, err := qs.RefsOf(ctx, values)
+	if err != nil {
+		return nil, err
+	}
+	ids := make(map[string]uint64, len(iris))
+	for i, ref := range refs {
+		id, ok := ref.(cayley_kv.Int64Value)
+		if ok && id != 0 {
+			ids[iris[i]] = uint64(id)
+		}
+	}
+	return ids, nil
+}
+
+func iterateIncomingIndexRefs(
+	ctx context.Context,
+	qs *cayley_kv.QuadStore,
+	objectID, predID uint64,
+	cb func(cayley_kv.Int64Value, func() (bool, error)) error,
+) error {
+	return qs.IterateIndexPrefixNextRefs(
+		ctx,
+		cayley_kv.DefaultQuadIndexes[1],
+		[]uint64{objectID, predID},
+		cb,
+	)
 }
 
 // iterateFilteredNodeRefs iterates node refs on dir from quads matching gq.
