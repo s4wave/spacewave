@@ -82,7 +82,7 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.31.2
 	gotest.tools/v3 v3.5.2
-	modernc.org/sqlite v1.54.0
+	modernc.org/sqlite v1.55.0
 )
 
 require github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
@@ -99,7 +99,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-alpha.2.0.20260728104803-133d4f9bfd41 // main
-	github.com/go-git/go-git/v6 v6.0.0-alpha.4.0.20260727084107-9b81545704e8 // main
+	github.com/go-git/go-git/v6 v6.0.0-alpha.5 // main
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.6.0
@@ -158,7 +158,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lestrrat-go/strftime v1.2.0 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
-	github.com/libp2p/go-yamux/v4 v4.0.2 // indirect
+	github.com/libp2p/go-yamux/v4 v4.0.2
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/multiformats/go-multihash v0.2.3 // indirect
