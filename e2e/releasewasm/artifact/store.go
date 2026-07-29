@@ -389,7 +389,7 @@ func treeDigest(root string) (string, error) {
 		if rel == identityFilename {
 			return nil
 		}
-		return hashFile(h, root, rel)
+		return hashFile(h, root, rel, false)
 	})
 	if err != nil {
 		return "", err

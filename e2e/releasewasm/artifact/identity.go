@@ -70,7 +70,7 @@ func ComputeIdentity(repoRoot string, inputs *BuildInputs) (*Identity, error) {
 		case path == "app/prerender" || strings.HasPrefix(path, "app/prerender/"):
 			h = prerenderHash
 		}
-		if err := hashFile(h, repoRoot, path); err != nil {
+		if err := hashFile(h, repoRoot, path, true); err != nil {
 			return nil, err
 		}
 	}
@@ -164,7 +164,9 @@ func isLockfile(path string) bool {
 	}
 }
 
-func hashFile(h hash.Hash, repoRoot, path string) error {
+// includeMode controls whether filesystem permission bits participate in the
+// digest. Source inputs retain modes, while transported output trees do not.
+func hashFile(h hash.Hash, repoRoot, path string, includeMode bool) error {
 	fullPath := filepath.Join(repoRoot, filepath.FromSlash(path))
 	info, err := os.Lstat(fullPath)
 	if os.IsNotExist(err) {
@@ -176,7 +178,9 @@ func hashFile(h hash.Hash, repoRoot, path string) error {
 	}
 
 	writeDigestField(h, "path", path)
-	writeDigestField(h, "mode", strconv.FormatUint(uint64(info.Mode()), 8))
+	if includeMode {
+		writeDigestField(h, "mode", strconv.FormatUint(uint64(info.Mode()), 8))
+	}
 	if info.Mode()&os.ModeSymlink != 0 {
 		target, err := os.Readlink(fullPath)
 		if err != nil {
