@@ -470,3 +470,49 @@ jobs:
 
       - name: Run Playwright E2E suite
         run: bun run ${{ matrix.suite.script }}
+  nightly-workflow-contract:
+    name: Nightly workflow contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate release-WASM smoke toolchain contract
+        shell: bash
+        run: |
+          ruby -ryaml <<'RUBY'
+          options = Psych::VERSION.to_i >= 4 ? { aliases: true } : {}
+          workflow = YAML.load_file(".github/workflows/e2e-nightly.yml", **options)
+          jobs = workflow.fetch("jobs")
+          build = jobs.fetch("release-wasm-build")
+          smoke = jobs.fetch("release-wasm-smoke")
+
+          step = lambda do |job, name|
+            job.fetch("steps").find { |candidate| candidate["name"] == name } ||
+              abort("missing step #{name.inspect}")
+          end
+
+          unless smoke.fetch("env")["E2E_RELEASE_WASM_TINYGO"] == true
+            abort("smoke job must enable TinyGo release-WASM builds")
+          end
+
+          ["Install Binaryen", "Install TinyGo"].each do |name|
+            producer = step.call(build, name)
+            consumer = step.call(smoke, name)
+            unless producer["run"] == consumer["run"]
+              abort("#{name} differs between build and smoke jobs")
+            end
+          end
+
+          verify = step.call(smoke, "Verify release-WASM fallback toolchain")
+          unless verify.fetch("run").include?("command -v tinygo") &&
+              verify.fetch("run").include?("command -v wasm-opt")
+            abort("smoke job must probe TinyGo and Binaryen before the test")
+          end
+
+          smoke_steps = smoke.fetch("steps")
+          verify_index = smoke_steps.index(verify)
+          test_index = smoke_steps.index { |candidate| candidate["name"] == "Run release-WASM browser smoke" }
+          abort("toolchain probe must precede the smoke test") unless verify_index < test_index
+          puts "nightly release-WASM smoke contract: PASS"
+          RUBY

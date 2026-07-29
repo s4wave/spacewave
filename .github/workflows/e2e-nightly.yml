@@ -91,7 +91,8 @@ jobs:
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
-      - name: Install Binaryen
+      - &release-wasm-install-binaryen
+        name: Install Binaryen
         shell: bash
         run: |
           set -euo pipefail
@@ -105,7 +106,8 @@ jobs:
           echo "${RUNNER_TEMP}/binaryen/bin" >> "${GITHUB_PATH}"
           "${RUNNER_TEMP}/binaryen/bin/wasm-opt" --version
 
-      - name: Install TinyGo
+      - &release-wasm-install-tinygo
+        name: Install TinyGo
         shell: bash
         run: |
           set -euo pipefail
@@ -234,6 +236,18 @@ jobs:
 
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile --ignore-scripts
+      - *release-wasm-install-binaryen
+
+      - *release-wasm-install-tinygo
+
+      - name: Verify release-WASM fallback toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v tinygo
+          command -v wasm-opt
+          tinygo version
+          wasm-opt --version
 
       - name: Install Playwright browsers
         run: go run github.com/mxschmitt/playwright-go/cmd/playwright install --with-deps chromium
