@@ -24,7 +24,7 @@ import {
   WatchSpaceSharingStateRequest,
   WatchSpaceStateRequest,
 } from './space.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { DeployManifestMessage } from '../deploy/deploy.pb.js'
 import {
   buildDecodeMessageTransform,

@@ -50,7 +50,7 @@ import {
   ReleaseFSCursorRequest,
   ReleaseFSCursorResponse,
 } from './rpc.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**

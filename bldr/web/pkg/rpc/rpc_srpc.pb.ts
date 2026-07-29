@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { GetInfoRequest, GetInfoResponse } from './rpc.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 import {
   buildDecodeMessageTransform,

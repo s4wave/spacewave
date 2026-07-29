@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { WatchOrgStateRequest, WatchOrgStateResponse } from './org.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**

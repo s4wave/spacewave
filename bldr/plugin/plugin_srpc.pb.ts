@@ -8,7 +8,7 @@ import {
   LoadPluginRequest,
   LoadPluginResponse,
 } from './plugin.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   ExecControllerRequest,
   ExecControllerResponse,

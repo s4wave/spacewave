@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { WatchDocsRequest, WatchDocsResponse } from './docs.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**

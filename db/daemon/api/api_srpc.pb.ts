@@ -13,7 +13,7 @@ import {
   ObjectStoreOpRequest,
   ObjectStoreOpResponse,
 } from './api.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ListBucketsRequest } from '../../volume/volume.pb.js'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 

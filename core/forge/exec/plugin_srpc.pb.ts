@@ -3,7 +3,7 @@
 /* eslint-disable */
 
 import { PluginExecRequest, PluginExecResponse } from './plugin.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
 
 /**

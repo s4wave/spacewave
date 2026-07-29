@@ -10,7 +10,7 @@ import {
   MarkTestResultRequest,
   MarkTestResultResponse,
 } from './testbed.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc } from 'starpc'
 
 /**

@@ -26,7 +26,7 @@ import {
   UnmarshalRequest,
   UnmarshalResponse,
 } from './lookup.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc } from 'starpc'
 
 /**

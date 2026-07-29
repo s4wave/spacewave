@@ -12,7 +12,7 @@ import {
   ReplaceTabResponse,
   WatchLayoutModelRequest,
 } from './layout.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,

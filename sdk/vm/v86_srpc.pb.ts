@@ -6,7 +6,7 @@ import {
   ReportV86RuntimeStatusRequest,
   ReportV86RuntimeStatusResponse,
 } from './v86.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc } from 'starpc'
 
 /**

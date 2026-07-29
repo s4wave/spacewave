@@ -7,7 +7,7 @@ import {
   WatchTerminalStateRequest,
   WatchTerminalStateResponse,
 } from './terminal.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,

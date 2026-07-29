@@ -40,7 +40,7 @@ import {
   HandleWriteAtRequest,
   HandleWriteAtResponse,
 } from './handle.pb.js'
-import { MethodKind } from '@aptre/protobuf-es-lite/service-type'
+import { MethodKind } from '@aptre/protobuf-es-lite'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,
