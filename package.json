@@ -23,6 +23,10 @@
   },
   "type": "module",
   "aptre": {
+    "languages": [
+      "go",
+      "ts"
+    ],
     "tsImportBoundaries": [
       "auth",
       "bldr",
