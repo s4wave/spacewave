@@ -331,6 +331,34 @@ func TestValidGenerationsTreatsOutputDigestMismatchAsCacheMiss(t *testing.T) {
 	}
 }
 
+func TestValidGenerationsIgnoresTransportModeChanges(t *testing.T) {
+	repoRoot := newIdentityTestRepo(t)
+	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
+	storeDir := filepath.Join(t.TempDir(), "store")
+	releaseDir, prerenderDir := newArtifactFixture(t, "transported")
+	recordPath := filepath.Join(releaseDir, ".bundle-cache", "renderer.json")
+	writeTestFile(t, recordPath, "{}")
+	if err := os.Chmod(recordPath, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	generation, err := PublishGeneration(storeDir, releaseDir, prerenderDir, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(filepath.Join(generation.ReleaseDir, ".bundle-cache", "renderer.json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	generations, err := ValidGenerations(storeDir, identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(generations) != 1 || generations[0] != generation {
+		t.Fatalf("generations = %#v, want transported generation %#v", generations, generation)
+	}
+}
+
 func TestValidGenerationsRejectsExternalValidFixtureSymlink(t *testing.T) {
 	repoRoot := newIdentityTestRepo(t)
 	identity := computeTestIdentity(t, repoRoot, testBuildInputs())
