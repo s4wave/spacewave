@@ -378,6 +378,20 @@ export class BldrElectronApp {
         )
         return
       }
+      // The renderer key dispatcher owns command keybindings, so no main-process
+      // shortcut registry may claim the leader or the palette key. This route
+      // exposes that ownership as an observable state, since a key injected
+      // through the debugging protocol reaches the renderer whether or not a
+      // native owner would have stolen it first.
+      if (req.method === 'GET' && url.pathname === '/globalshortcut-state') {
+        sendE2EJSON(res, 200, {
+          leaderRegistered:
+            electron.globalShortcut.isRegistered('Control+Space'),
+          paletteRegistered:
+            electron.globalShortcut.isRegistered('CommandOrControl+K'),
+        })
+        return
+      }
       if (req.method === 'POST' && url.pathname === '/open-or-focus') {
         await this.desktopRuntimeResource.OpenOrFocusMainWindow({
           route: url.searchParams.get('route') || undefined,

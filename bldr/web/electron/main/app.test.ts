@@ -104,6 +104,9 @@ vi.mock('electron', () => {
   const nativeTheme = {
     themeSource: 'system',
   }
+  const globalShortcut = {
+    isRegistered: vi.fn(() => false),
+  }
   class BrowserWindow extends MockBrowserWindow {
     constructor(opts: object = {}) {
       super(opts)
@@ -121,6 +124,7 @@ vi.mock('electron', () => {
       dialog,
       nativeTheme,
       session,
+      globalShortcut,
     },
     app: mockElectronApp,
     BrowserWindow,
@@ -131,6 +135,7 @@ vi.mock('electron', () => {
     dialog,
     nativeTheme,
     session,
+    globalShortcut,
   }
 })
 
@@ -645,6 +650,37 @@ describe('BldrElectronApp', () => {
     expect(JSON.parse(res.body)).toEqual({ error: 'internal server error' })
     expect(res.body).not.toContain('JSON')
     expect(res.body).not.toContain('SyntaxError')
+  })
+
+  it('reports that no native shortcut owner claims the command keys', async () => {
+    const [electron, { BldrElectronApp }] = await Promise.all([
+      import('electron'),
+      import('./app.js'),
+    ])
+    const app = Reflect.construct(BldrElectronApp, [
+      mockElectronApp,
+      'runtime-1',
+      {},
+    ])
+    const handleE2EControlRequest = Reflect.get(app, 'handleE2EControlRequest')
+    const res = new MockServerResponse()
+
+    await Reflect.apply(handleE2EControlRequest, app, [
+      new MockIncomingMessage('GET', '/globalshortcut-state'),
+      res,
+    ])
+
+    expect(res.statusCode).toBe(200)
+    expect(JSON.parse(res.body)).toEqual({
+      leaderRegistered: false,
+      paletteRegistered: false,
+    })
+    expect(electron.globalShortcut.isRegistered).toHaveBeenCalledWith(
+      'Control+Space',
+    )
+    expect(electron.globalShortcut.isRegistered).toHaveBeenCalledWith(
+      'CommandOrControl+K',
+    )
   })
 })
 
