@@ -21,12 +21,16 @@ import (
 )
 
 // RefGraph is a unified reference graph for garbage collection backed by Cayley.
+// edgeIndex and incomingIndex are rebuilt once from the durable graph and then
+// updated under writeMu as the owner-native exact-edge representation.
 type RefGraph struct {
 	handle *cayley.Handle
 
-	writeMu    sync.Mutex
-	mu         sync.Mutex
-	iriRefKeys map[string]any
+	writeMu       sync.Mutex
+	mu            sync.Mutex
+	iriRefKeys    map[string]any
+	edgeIndex     map[RefEdge]struct{}
+	incomingIndex map[string]map[string]struct{}
 }
 
 const (
@@ -66,7 +70,79 @@ func NewRefGraph(ctx context.Context, store kvtx.Store, prefix []byte) (*RefGrap
 	if err != nil {
 		return nil, errors.Wrap(err, "new ref graph")
 	}
-	return &RefGraph{handle: h}, nil
+	rg := &RefGraph{
+		handle:        h,
+		edgeIndex:     make(map[RefEdge]struct{}),
+		incomingIndex: make(map[string]map[string]struct{}),
+	}
+	if err := rg.loadEdgeIndex(ctx); err != nil {
+		_ = h.Close()
+		return nil, errors.Wrap(err, "load ref graph edge index")
+	}
+	return rg, nil
+}
+
+func (rg *RefGraph) loadEdgeIndex(ctx context.Context) error {
+	it := rg.handle.QuadsAllIterator(ctx).Iterate(ctx)
+	defer it.Close()
+	for it.Next(ctx) {
+		ref, err := it.Result(ctx)
+		if err != nil {
+			return err
+		}
+		q, err := rg.handle.Quad(ctx, ref)
+		if err != nil {
+			return err
+		}
+		predicate, ok := q.Predicate.(quad.IRI)
+		if !ok || string(predicate) != PredGCRef {
+			continue
+		}
+		subject, ok := q.Subject.(quad.IRI)
+		if !ok {
+			continue
+		}
+		object, ok := q.Object.(quad.IRI)
+		if !ok {
+			continue
+		}
+		rg.indexRefEdge(RefEdge{Subject: string(subject), Object: string(object)})
+	}
+	return it.Err()
+}
+
+func (rg *RefGraph) indexRefEdge(edge RefEdge) {
+	if _, ok := rg.edgeIndex[edge]; ok {
+		return
+	}
+	rg.edgeIndex[edge] = struct{}{}
+	owners := rg.incomingIndex[edge.Object]
+	if owners == nil {
+		owners = make(map[string]struct{})
+		rg.incomingIndex[edge.Object] = owners
+	}
+	owners[edge.Subject] = struct{}{}
+}
+
+func (rg *RefGraph) unindexRefEdge(edge RefEdge) {
+	if _, ok := rg.edgeIndex[edge]; !ok {
+		return
+	}
+	delete(rg.edgeIndex, edge)
+	owners := rg.incomingIndex[edge.Object]
+	delete(owners, edge.Subject)
+	if len(owners) == 0 {
+		delete(rg.incomingIndex, edge.Object)
+	}
+}
+
+func (rg *RefGraph) applyRefIndex(adds, removes []RefEdge) {
+	for _, edge := range adds {
+		rg.indexRefEdge(edge)
+	}
+	for _, edge := range removes {
+		rg.unindexRefEdge(edge)
+	}
 }
 
 // RegisterEntityChain registers a chain of gc/ref edges between nodes.
@@ -101,6 +177,9 @@ func (rg *RefGraph) AddRef(ctx context.Context, subject, object string) error {
 	taskCtx, subtask = trace.NewTask(taskCtx, "hydra/block-gc/refgraph/add-ref/add-quad")
 	err := rg.handle.AddQuad(taskCtx, q)
 	subtask.End()
+	if err == nil {
+		rg.indexRefEdge(RefEdge{Subject: subject, Object: object})
+	}
 	return err
 }
 
@@ -111,7 +190,11 @@ func (rg *RefGraph) RemoveRef(ctx context.Context, subject, object string) error
 	defer rg.writeMu.Unlock()
 	ctx = disableStoreTracking(ctx)
 	q := quad.Make(quad.IRI(subject), quad.IRI(PredGCRef), quad.IRI(object), nil)
-	return rg.handle.RemoveQuad(ctx, q)
+	err := rg.handle.RemoveQuad(ctx, q)
+	if err == nil {
+		rg.unindexRefEdge(RefEdge{Subject: subject, Object: object})
+	}
+	return err
 }
 
 // ApplyRefBatch serializes one bounded ownership transition under the RefGraph
@@ -289,7 +372,11 @@ func (rg *RefGraph) applyRefBatchChunk(ctx context.Context, adds, removes []RefE
 	for _, e := range removes {
 		tx.RemoveQuad(quad.Make(quad.IRI(e.Subject), quad.IRI(PredGCRef), quad.IRI(e.Object), nil))
 	}
-	return rg.handle.ApplyTransaction(ctx, tx)
+	err := rg.handle.ApplyTransaction(ctx, tx)
+	if err == nil {
+		rg.applyRefIndex(adds, removes)
+	}
+	return err
 }
 
 func (rg *RefGraph) prepareRefBatch(
@@ -313,8 +400,22 @@ func (rg *RefGraph) prepareNativeRefBatch(
 	adds, removes []RefEdge,
 	markOrphaned bool,
 ) ([]RefEdge, []RefEdge, error) {
-	if !markOrphaned || len(removes) == 0 {
-		return adds, removes, nil
+	added := make(map[RefEdge]struct{}, len(adds))
+	for _, edge := range adds {
+		added[edge] = struct{}{}
+	}
+	existingRemoves := make([]RefEdge, 0, len(removes))
+	for _, edge := range removes {
+		if _, exists := rg.edgeIndex[edge]; exists {
+			existingRemoves = append(existingRemoves, edge)
+			continue
+		}
+		if _, addedInBatch := added[edge]; addedInBatch {
+			existingRemoves = append(existingRemoves, edge)
+		}
+	}
+	if !markOrphaned || len(existingRemoves) == 0 {
+		return adds, existingRemoves, nil
 	}
 
 	type ownerState struct {
@@ -323,7 +424,7 @@ func (rg *RefGraph) prepareNativeRefBatch(
 	}
 	owners := make(map[string]ownerState)
 	stagingRemoves := make(map[string]struct{})
-	for _, edge := range removes {
+	for _, edge := range existingRemoves {
 		if edge.Subject == NodeUnreferenced {
 			stagingRemoves[edge.Object] = struct{}{}
 			continue
@@ -334,12 +435,8 @@ func (rg *RefGraph) prepareNativeRefBatch(
 		if _, ok := owners[edge.Object]; ok {
 			continue
 		}
-		sources, err := rg.GetIncomingRefs(ctx, edge.Object)
-		if err != nil {
-			return nil, nil, err
-		}
-		set := make(map[string]struct{}, len(sources))
-		for _, source := range sources {
+		set := make(map[string]struct{})
+		for source := range rg.incomingIndex[edge.Object] {
 			if source != NodeUnreferenced {
 				set[source] = struct{}{}
 			}
@@ -353,7 +450,7 @@ func (rg *RefGraph) prepareNativeRefBatch(
 			owners[edge.Object] = state
 		}
 	}
-	for _, edge := range removes {
+	for _, edge := range existingRemoves {
 		if state, ok := owners[edge.Object]; ok {
 			if _, exists := state.owners[edge.Subject]; exists {
 				state.hadEdge = true
@@ -371,7 +468,7 @@ func (rg *RefGraph) prepareNativeRefBatch(
 		}
 		adds = append(adds, RefEdge{Subject: NodeUnreferenced, Object: object})
 	}
-	return adds, removes, nil
+	return adds, existingRemoves, nil
 }
 
 func (rg *RefGraph) prepareOrphanMarks(
