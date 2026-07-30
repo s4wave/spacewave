@@ -430,6 +430,8 @@ func (rg *RefGraph) prepareOrphanMarks(
 	return adds, removes, nil
 }
 
+// filterExistingRemoves is the correctness-preserving slow path for graph
+// implementations without an owner-native exact-removal primitive.
 func (rg *RefGraph) filterExistingRemoves(
 	ctx context.Context,
 	adds, removes []RefEdge,
@@ -437,9 +439,6 @@ func (rg *RefGraph) filterExistingRemoves(
 	added := make(map[RefEdge]struct{}, len(adds))
 	for _, edge := range adds {
 		added[edge] = struct{}{}
-	}
-	if qs, ok := graph.Unwrap(rg.handle.QuadStore).(*cayley_kv.QuadStore); ok {
-		return rg.filterExistingRemovesIndexed(ctx, added, removes, qs)
 	}
 
 	existing := make([]RefEdge, 0, len(removes))
@@ -470,108 +469,6 @@ func (rg *RefGraph) hasRefGeneric(ctx context.Context, subject, object string) (
 		return io.EOF
 	})
 	return found, err
-}
-
-func (rg *RefGraph) filterExistingRemovesIndexed(
-	ctx context.Context,
-	added map[RefEdge]struct{},
-	removes []RefEdge,
-	qs *cayley_kv.QuadStore,
-) ([]RefEdge, error) {
-	existing := make([]RefEdge, 0, len(removes))
-	lookup := make([]string, 1, 1+2*len(removes))
-	lookup[0] = PredGCRef
-	lookupSet := map[string]struct{}{PredGCRef: {}}
-	unadded := 0
-	for _, edge := range removes {
-		if _, ok := added[edge]; ok {
-			continue
-		}
-		unadded++
-		if _, ok := lookupSet[edge.Subject]; !ok {
-			lookupSet[edge.Subject] = struct{}{}
-			lookup = append(lookup, edge.Subject)
-		}
-		if _, ok := lookupSet[edge.Object]; !ok {
-			lookupSet[edge.Object] = struct{}{}
-			lookup = append(lookup, edge.Object)
-		}
-	}
-	if unadded == 0 {
-		return removes, nil
-	}
-	ids, err := resolveIRIRefIDs(ctx, qs, lookup)
-	if err != nil {
-		return nil, errors.Wrap(err, "resolve remove refs")
-	}
-	predID := ids[PredGCRef]
-	if predID == 0 {
-		for _, edge := range removes {
-			if _, ok := added[edge]; ok {
-				existing = append(existing, edge)
-			}
-		}
-		return existing, nil
-	}
-
-	byObject := make(map[uint64]map[uint64][]int)
-	for i, edge := range removes {
-		if _, ok := added[edge]; ok {
-			continue
-		}
-		subjectID := ids[edge.Subject]
-		objectID := ids[edge.Object]
-		if subjectID == 0 || objectID == 0 {
-			continue
-		}
-		bySubject := byObject[objectID]
-		if bySubject == nil {
-			bySubject = make(map[uint64][]int)
-			byObject[objectID] = bySubject
-		}
-		bySubject[subjectID] = append(bySubject[subjectID], i)
-	}
-	found := make([]bool, len(removes))
-	for objectID, bySubject := range byObject {
-		remaining := 0
-		for _, indexes := range bySubject {
-			remaining += len(indexes)
-		}
-		err := iterateIncomingIndexRefs(ctx, qs, objectID, predID,
-			func(ref cayley_kv.Int64Value, hasLive func() (bool, error)) error {
-				indexes, ok := bySubject[uint64(ref)]
-				if !ok {
-					return nil
-				}
-				live, err := hasLive()
-				if err != nil {
-					return err
-				}
-				if !live {
-					return nil
-				}
-				for _, index := range indexes {
-					if !found[index] {
-						found[index] = true
-						remaining--
-					}
-				}
-				if remaining == 0 {
-					return io.EOF
-				}
-				return nil
-			},
-		)
-		if err != nil {
-			return nil, errors.Wrap(err, "iterate remove object index")
-		}
-	}
-	for i, edge := range removes {
-		if _, ok := added[edge]; ok || found[i] {
-			existing = append(existing, edge)
-		}
-	}
-	return existing, nil
 }
 
 // RemoveNodeRefs removes ALL outgoing gc/ref edges for a node.
