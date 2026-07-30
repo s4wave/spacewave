@@ -15,7 +15,7 @@ const deviceQuickstartProbeWaitMS = 120000
 
 // STORY_DEV_001 / STORY_DEV_002: the Device quickstart opens Computers first,
 // then the Add Device control launches the setup wizard.
-func TestGoScriptDeviceQuickstartOpensComputersDashboard(t *testing.T) {
+func TestGoScriptDeviceQuickstartOpensDurableComputersDashboard(t *testing.T) {
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -66,7 +66,49 @@ func TestGoScriptDeviceQuickstartOpensComputersDashboard(t *testing.T) {
 		t.Fatalf("Device quickstart hash = %q, want canonical Computers object route; proof: %+v", proof.Hash, proof)
 	}
 
-	dashboardHash := proof.Hash
+	addDevice := page.Locator("button:has-text('Add Device')").First()
+	if err := addDevice.Click(playwright.LocatorClickOptions{
+		Timeout: playwright.Float(deviceQuickstartWaitMS),
+	}); err != nil {
+		t.Fatalf("click Device dashboard Add Device: %v\ndebug: %v", err, collectDeviceQuickstartDebug(page))
+	}
+	waitForAddDeviceWizard(t, page)
+}
+
+// Presentation-only smoke coverage for the Device viewer. This intentionally
+// seeds a world object and must not be used as enrollment or lifecycle proof.
+func TestGoScriptDeviceViewerPresentationSmoke(t *testing.T) {
+	compiler, err := ResolveE2EWasmCompiler()
+	if err != nil {
+		t.Fatalf("resolve wasm compiler: %v", err)
+	}
+	if compiler != E2EWasmCompilerGoScript {
+		t.Skipf("requires %s", E2EWasmCompilerGoScript)
+	}
+
+	h := harness(t)
+	sess := h.NewCleanPageSession(t)
+	console, stopConsole := sess.WatchConsole()
+	defer stopConsole()
+	defer func() {
+		report := DrainCrashReport(console)
+		if report.HasCrash() {
+			t.Errorf("unexpected browser/WASM crash report during Device viewer smoke: %+v", report)
+		}
+		if report.HasExitedGoLoop() {
+			t.Errorf("unexpected exited-Go loop during Device viewer smoke: %+v", report)
+		}
+	}()
+
+	page := sess.Page()
+	WaitForApp(t, page)
+	EnableQuickstartTimingLogs(t, page)
+	NavigateHash(t, h, page, "#/quickstart/device")
+	proof := waitForDeviceQuickstartSurface(t, page)
+	if proof.Timeout {
+		t.Fatalf("Device quickstart did not reach the viewer smoke surface; proof: %+v", proof)
+	}
+
 	seededDevice := seedDeviceQuickstartDevice(t, h, page)
 	deviceObjectKey := stringField(seededDevice, "objectKey")
 	if deviceObjectKey == "" {
@@ -76,20 +118,9 @@ func TestGoScriptDeviceQuickstartOpensComputersDashboard(t *testing.T) {
 	if err := page.Locator("button:has-text('" + deviceObjectKey + "')").First().Click(
 		playwright.LocatorClickOptions{Timeout: playwright.Float(deviceQuickstartWaitMS)},
 	); err != nil {
-		t.Fatalf("click Device dashboard row %q: %v\ndebug: %v", deviceObjectKey, err, collectDeviceQuickstartDebug(page))
+		t.Fatalf("click Device viewer smoke row %q: %v\ndebug: %v", deviceObjectKey, err, collectDeviceQuickstartDebug(page))
 	}
 	waitForDeviceViewer(t, page, deviceObjectKey)
-
-	NavigateHash(t, h, page, dashboardHash)
-	waitForDeviceDashboardRow(t, page, deviceObjectKey)
-
-	addDevice := page.Locator("button:has-text('Add Device')").First()
-	if err := addDevice.Click(playwright.LocatorClickOptions{
-		Timeout: playwright.Float(deviceQuickstartWaitMS),
-	}); err != nil {
-		t.Fatalf("click Device dashboard Add Device: %v\ndebug: %v", err, collectDeviceQuickstartDebug(page))
-	}
-	waitForAddDeviceWizard(t, page)
 }
 
 type deviceQuickstartSurfaceProof struct {
@@ -155,8 +186,7 @@ func waitForDeviceQuickstartSurface(t testing.TB, page playwright.Page) deviceQu
 				text.includes('Computers') &&
 				text.includes('Devices') &&
 				text.includes('Hosts') &&
-				text.includes('No Device objects yet') &&
-				text.includes('No host entries yet') &&
+				text.includes('No computers match this filter') &&
 				addDeviceButtonVisible()
 			)
 		}
@@ -442,7 +472,7 @@ func waitForAddDeviceWizard(t testing.TB, page playwright.Page) {
 		const text = document.querySelector('#bldr-root')?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
 		return (
 			text.includes('Add Device') &&
-			text.includes('SpaceLink') &&
+			text.includes('Managed Device') &&
 			text.includes('SSH Host') &&
 			text.includes('Device Name')
 		)
