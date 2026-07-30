@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
 	"github.com/sirupsen/logrus"
@@ -249,8 +250,12 @@ func TestMetaStoreReadTxRefusesToStraddleGenerations(t *testing.T) {
 
 	// Serving b=2 here would hand the caller a=1 with b=2, which no generation
 	// ever held.
-	if _, _, err := readTx.Get(ctx, []byte("b")); !errors.Is(err, ErrGenerationChanged) {
+	_, _, err = readTx.Get(ctx, []byte("b"))
+	if !errors.Is(err, ErrGenerationChanged) {
 		t.Fatalf("b err = %v, want ErrGenerationChanged", err)
+	}
+	if !errors.Is(err, kvtx.ErrInvalidSnapshot) {
+		t.Fatalf("b err = %v, want ErrInvalidSnapshot", err)
 	}
 	if err := readTx.ScanPrefix(ctx, nil, func(_, _ []byte) error { return nil }); !errors.Is(err, ErrGenerationChanged) {
 		t.Fatalf("scan err = %v, want ErrGenerationChanged", err)

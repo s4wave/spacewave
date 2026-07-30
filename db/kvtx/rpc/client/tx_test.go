@@ -51,4 +51,8 @@ func TestRetryClassRoundTripsOnComplete(t *testing.T) {
 	if got.GetError() != want.GetError() {
 		t.Fatalf("diagnostic = %q, want %q", got.GetError(), want.GetError())
 	}
+	err = remoteError(got.GetError(), got.GetRetryClass())
+	if !errors.Is(err, kvtx.ErrInvalidSnapshot) {
+		t.Fatalf("round-trip error = %v, want ErrInvalidSnapshot", err)
+	}
 }

@@ -3,6 +3,7 @@ package kvtx_vlogger
 import (
 	"bytes"
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -52,5 +53,44 @@ func TestKeyForLoggingRedactsKeyMaterial(t *testing.T) {
 	}
 	if !strings.Contains(output, "len=") {
 		t.Fatalf("vlogger did not include structural key summary: %s", output)
+	}
+}
+
+type typedCommitStore struct {
+	kvtx.Store
+}
+
+func (s *typedCommitStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	tx, err := s.Store.NewTransaction(ctx, write)
+	if err != nil {
+		return nil, err
+	}
+	return &typedCommitTx{Tx: tx}, nil
+}
+
+type typedCommitTx struct {
+	kvtx.Tx
+}
+
+func (t *typedCommitTx) Commit(ctx context.Context) error {
+	if err := t.Tx.Commit(ctx); err != nil {
+		return err
+	}
+	return errors.Join(errors.New("wrapped logger commit conflict"), kvtx.ErrInvalidSnapshot)
+}
+
+func TestVloggerPreservesInvalidSnapshot(t *testing.T) {
+	store := &typedCommitStore{Store: sinmem.NewStore()}
+	log := logrus.New()
+	vstore := NewVLogger(logrus.NewEntry(log), store)
+	tx, err := vstore.NewTransaction(context.Background(), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+
+	err = tx.Commit(context.Background())
+	if !errors.Is(err, kvtx.ErrInvalidSnapshot) {
+		t.Fatalf("commit error = %v, want ErrInvalidSnapshot", err)
 	}
 }

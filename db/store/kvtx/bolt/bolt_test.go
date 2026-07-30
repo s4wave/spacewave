@@ -4,10 +4,12 @@ package store_kvtx_bolt
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path"
 	"testing"
 
+	"github.com/s4wave/spacewave/db/kvtx"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	kvtx_vlogger "github.com/s4wave/spacewave/db/store/kvtx/vlogger"
@@ -48,5 +50,15 @@ func TestBolt(t *testing.T) {
 	).(*store_kvtx.KVTx)
 	if err := store_test.TestAll(ctx, ktx); err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+func TestBoltPanicIsInvalidSnapshot(t *testing.T) {
+	err := func() (err error) {
+		defer recoverBoltTxPanic(&err)
+		panic("page 2 already freed")
+	}()
+	if !errors.Is(err, kvtx.ErrInvalidSnapshot) {
+		t.Fatalf("panic error = %v, want ErrInvalidSnapshot", err)
 	}
 }
