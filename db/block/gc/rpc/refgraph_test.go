@@ -554,3 +554,73 @@ func TestRPCApplyRefBatchPreservesRemainder(t *testing.T) {
 		t.Fatalf("RPC committed prefix = %v, want [committed]", committed)
 	}
 }
+
+var (
+	errInjectedRPCAddRef        = errors.New("injected RPC AddRef failure")
+	errInjectedRPCRemoveRef     = errors.New("injected RPC RemoveRef failure")
+	errInjectedRPCRemoveNodeRef = errors.New("injected RPC RemoveNodeRefs failure")
+)
+
+type rpcErrorRefGraph struct {
+	block_gc.RefGraphOps
+	addRefErr         error
+	removeRefErr      error
+	removeNodeRefsErr error
+}
+
+func (r *rpcErrorRefGraph) AddRef(context.Context, string, string) error {
+	return r.addRefErr
+}
+
+func (r *rpcErrorRefGraph) RemoveRef(context.Context, string, string) error {
+	return r.removeRefErr
+}
+
+func (r *rpcErrorRefGraph) RemoveNodeRefs(context.Context, string, bool) ([]string, error) {
+	return nil, r.removeNodeRefsErr
+}
+
+func TestRPCAddRefSurfacesServerError(t *testing.T) {
+	testbed := newRPCRefGraphTestbed(t, func(rg block_gc.RefGraphOps) block_gc.RefGraphOps {
+		return &rpcErrorRefGraph{
+			RefGraphOps: rg,
+			addRefErr:   errInjectedRPCAddRef,
+		}
+	})
+
+	err := testbed.client.AddRef(context.Background(), "subject", "object")
+	if err == nil || err.Error() != errInjectedRPCAddRef.Error() {
+		t.Fatalf("RPC AddRef error = %v, want %q", err, errInjectedRPCAddRef)
+	}
+}
+
+func TestRPCRemoveRefSurfacesServerError(t *testing.T) {
+	testbed := newRPCRefGraphTestbed(t, func(rg block_gc.RefGraphOps) block_gc.RefGraphOps {
+		return &rpcErrorRefGraph{
+			RefGraphOps:  rg,
+			removeRefErr: errInjectedRPCRemoveRef,
+		}
+	})
+
+	err := testbed.client.RemoveRef(context.Background(), "subject", "object")
+	if err == nil || err.Error() != errInjectedRPCRemoveRef.Error() {
+		t.Fatalf("RPC RemoveRef error = %v, want %q", err, errInjectedRPCRemoveRef)
+	}
+}
+
+func TestRPCRemoveNodeRefsSurfacesServerError(t *testing.T) {
+	testbed := newRPCRefGraphTestbed(t, func(rg block_gc.RefGraphOps) block_gc.RefGraphOps {
+		return &rpcErrorRefGraph{
+			RefGraphOps:       rg,
+			removeNodeRefsErr: errInjectedRPCRemoveNodeRef,
+		}
+	})
+
+	targets, err := testbed.client.RemoveNodeRefs(context.Background(), "node", true)
+	if err == nil || err.Error() != errInjectedRPCRemoveNodeRef.Error() {
+		t.Fatalf("RPC RemoveNodeRefs error = %v, want %q", err, errInjectedRPCRemoveNodeRef)
+	}
+	if targets != nil {
+		t.Fatalf("RPC RemoveNodeRefs targets = %v, want nil", targets)
+	}
+}
