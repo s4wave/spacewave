@@ -108,14 +108,9 @@ func (i *Iterator) Seek(k []byte) error {
 		if !i.rev {
 			i.it.Rewind()
 		} else {
-			// Rewind does not work correctly with reverse=true.
-			// https://github.com/dgraph-io/badger/issues/436#issuecomment-1073008604
-			// We instead need to Seek to the last key valid for the prefix then call Next.
-			incPrefix := incrementPrefix(i.prefix)
-			i.it.Seek(incPrefix)
-			if i.it.Valid() && bytes.Equal(incPrefix, i.it.Item().Key()) {
-				i.it.Next()
-			}
+			// Rewind does not work correctly with reverse=true when a finite
+			// prefix successor is available; seek to the end of the prefix.
+			i.seekPrefixEnd()
 		}
 		return nil
 	}
@@ -126,12 +121,7 @@ func (i *Iterator) Seek(k []byte) error {
 		if bytes.Compare(k, i.prefix) < 0 {
 			// Key is less than prefix
 			if i.rev {
-				// For reverse iteration, seek to the end of our prefix
-				incPrefix := incrementPrefix(i.prefix)
-				i.it.Seek(incPrefix)
-				if i.it.Valid() && bytes.Equal(incPrefix, i.it.Item().Key()) {
-					i.it.Next()
-				}
+				i.seekPrefixEnd()
 			} else {
 				// For forward iteration, seek to start of prefix
 				i.it.Seek(i.prefix)
@@ -143,8 +133,11 @@ func (i *Iterator) Seek(k []byte) error {
 				i.it.Seek(k)
 			} else {
 				// For forward iteration, we're past our prefix range
-				incPrefix := incrementPrefix(i.prefix)
-				i.it.Seek(incPrefix)
+				if incPrefix, ok := kvtx.PrefixSuccessor(i.prefix); ok {
+					i.it.Seek(incPrefix)
+				} else {
+					i.it.Seek(i.prefix)
+				}
 			}
 		}
 		return nil
@@ -167,18 +160,16 @@ func (i *Iterator) Close() {
 	}
 }
 
-func incrementPrefix(prefix []byte) []byte {
-	result := bytes.Clone(prefix)
-	plen := len(prefix)
-	for plen > 0 {
-		if result[plen-1] == 0xFF {
-			plen -= 1
-		} else {
-			result[plen-1] += 1
-			break
-		}
+func (i *Iterator) seekPrefixEnd() {
+	incPrefix, ok := kvtx.PrefixSuccessor(i.prefix)
+	if !ok {
+		i.it.Rewind()
+		return
 	}
-	return result[0:plen]
+	i.it.Seek(incPrefix)
+	if i.it.Valid() && bytes.Equal(incPrefix, i.it.Item().Key()) {
+		i.it.Next()
+	}
 }
 
 // _ is a type assertion

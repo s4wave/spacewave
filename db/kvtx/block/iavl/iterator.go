@@ -58,7 +58,7 @@ func NewIterator(ctx context.Context, t *Tx, prefix []byte, sort, reverse bool) 
 		prefixEnd: nil,
 	}
 	if len(prefix) != 0 {
-		if end, ok := prefixUpperBound(prefix); ok {
+		if end, ok := kvtx.PrefixSuccessor(prefix); ok {
 			it.prefixEnd = end
 		}
 	}
@@ -488,17 +488,6 @@ func (i *Iterator) seekToBeginning() error {
 // matchesPrefix checks if a key matches the iterator's prefix constraint
 func (i *Iterator) matchesPrefix(key []byte) bool {
 	return len(key) > 0 && (len(i.prefix) == 0 || bytes.HasPrefix(key, i.prefix))
-}
-
-func prefixUpperBound(prefix []byte) ([]byte, bool) {
-	out := append([]byte(nil), prefix...)
-	for idx := len(out) - 1; idx >= 0; idx-- {
-		if out[idx] != 0xff {
-			out[idx]++
-			return out[:idx+1], true
-		}
-	}
-	return nil, false
 }
 
 // _ is a type assertion

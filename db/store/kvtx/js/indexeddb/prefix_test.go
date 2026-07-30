@@ -3,43 +3,13 @@ package store_kvtx_indexeddb
 import (
 	"bytes"
 	"testing"
+
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-func TestPrefixUpperBound(t *testing.T) {
-	tests := []struct {
-		name   string
-		prefix []byte
-		want   []byte
-		// unbounded expects no finite upper bound, reported as a nil result.
-		unbounded bool
-	}{
-		{name: "ascii", prefix: []byte("ab"), want: []byte("ac")},
-		{name: "carry", prefix: []byte{0x61, 0xff}, want: []byte{0x62}},
-		{name: "all max", prefix: []byte{0xff, 0xff}, unbounded: true},
-		{name: "empty", prefix: []byte{}, unbounded: true},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			got := prefixUpperBound(test.prefix)
-			if test.unbounded {
-				// nil and empty are distinct here: an empty upper bound would
-				// exclude every key rather than leaving the range unbounded.
-				if got != nil {
-					t.Fatalf("prefixUpperBound(%v) = %v, want no finite bound", test.prefix, got)
-				}
-				return
-			}
-			if got == nil || !bytes.Equal(got, test.want) {
-				t.Fatalf("prefixUpperBound(%v) = %v, want %v", test.prefix, got, test.want)
-			}
-		})
-	}
-}
-
-func TestPrefixUpperBoundRange(t *testing.T) {
+func TestPrefixRange(t *testing.T) {
 	prefix := []byte("ab")
-	upper := prefixUpperBound(prefix)
+	upper, _ := kvtx.PrefixSuccessor(prefix)
 	tests := []struct {
 		name string
 		key  []byte
@@ -64,7 +34,7 @@ func TestPrefixUpperBoundRange(t *testing.T) {
 
 func TestBuildPrefixRange(t *testing.T) {
 	prefix := []byte("ab")
-	upper := prefixUpperBound(prefix)
+	upper, _ := kvtx.PrefixSuccessor(prefix)
 	maxPrefix := []byte{0xff, 0xff}
 
 	full := prefixRange{lower: prefixBoundPrefix, upper: prefixBoundUpper, upperOpen: true}
@@ -120,7 +90,7 @@ func TestBuildPrefixRange(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := buildPrefixRange(test.prefix, test.upper, test.key, test.reverse)
+			got := buildPrefixRange(test.prefix, test.upper, test.upper != nil, test.key, test.reverse)
 			if got != test.want {
 				t.Fatalf(
 					"buildPrefixRange(%v, %v, %v, %t) = %+v, want %+v",
