@@ -15,15 +15,16 @@ type RoutineGroup struct {
 // Wrap registers a routine until it returns, refusing work after shutdown begins.
 func (g *RoutineGroup) Wrap(r func(context.Context) error) func(context.Context) error {
 	return func(ctx context.Context) error {
-		if !g.begin() {
+		if !g.Begin() {
 			return context.Canceled
 		}
-		defer g.done()
+		defer g.Done()
 		return r(ctx)
 	}
 }
 
-func (g *RoutineGroup) begin() bool {
+// Begin reserves a routine slot unless shutdown has begun.
+func (g *RoutineGroup) Begin() bool {
 	g.mtx.Lock()
 	defer g.mtx.Unlock()
 	if g.closed {
@@ -33,18 +34,9 @@ func (g *RoutineGroup) begin() bool {
 	return true
 }
 
-// Begin reserves a routine slot unless shutdown has begun.
-func (g *RoutineGroup) Begin() bool {
-	return g.begin()
-}
-
-func (g *RoutineGroup) done() {
-	g.wg.Done()
-}
-
 // Done releases a routine slot.
 func (g *RoutineGroup) Done() {
-	g.done()
+	g.wg.Done()
 }
 
 // StopAccepting prevents new routines from joining the group.
