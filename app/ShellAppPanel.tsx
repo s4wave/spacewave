@@ -1,7 +1,10 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
-import { setAppPath } from '@s4wave/web/router/app-path.js'
+import {
+  getAppNavigationGeneration,
+  setAppPath,
+} from '@s4wave/web/router/app-path.js'
 import { HistoryRouter } from '@s4wave/web/router/HistoryRouter.js'
 import { resolvePath, type To } from '@s4wave/web/router/router.js'
 import {
@@ -62,6 +65,29 @@ function ShellAppPanelInner({
   const tabId = useTabId()
   const { tabs, activeTabId, addShellTab, updateTabPath } = useShellTabs()
 
+  // The path commit can be delayed behind the store's Web Lock. Decide at
+  // commit time, not at initiation: a panel that lost active status, a
+  // navigation a later one superseded, and a document the user moved
+  // elsewhere in the meantime each forfeit the hash.
+  const activeTabIdRef = useRef(activeTabId)
+  activeTabIdRef.current = activeTabId
+  const syncAppPathRef = useRef(syncAppPath)
+  syncAppPathRef.current = syncAppPath
+  const navGenerationRef = useRef(0)
+  const beginAppPathCommit = useCallback(
+    (path: string) => {
+      const generation = ++navGenerationRef.current
+      const documentGeneration = getAppNavigationGeneration()
+      return () => {
+        if (generation !== navGenerationRef.current) return
+        if (!syncAppPathRef.current || tabId !== activeTabIdRef.current) return
+        if (getAppNavigationGeneration() !== documentGeneration) return
+        setAppPath(path)
+      }
+    },
+    [tabId],
+  )
+
   const addTab = useCallback(
     (request: AddTabRequest) => {
       const tab = request.tab
@@ -85,10 +111,16 @@ function ShellAppPanelInner({
 
   const navigateTab = useCallback(
     (path: string) => {
-      if (tabId) updateTabPath(tabId, path)
+      if (tabId) {
+        updateTabPath(
+          tabId,
+          path,
+          syncAppPath ? beginAppPathCommit(path) : undefined,
+        )
+      }
       return Promise.resolve({})
     },
-    [tabId, updateTabPath],
+    [tabId, updateTabPath, syncAppPath, beginAppPathCommit],
   )
 
   const tabContext = useMemo<TabContextValue>(
@@ -110,10 +142,10 @@ function ShellAppPanelInner({
       updateTabPath(
         tabId,
         newPath,
-        syncAppPath ? () => setAppPath(newPath) : undefined,
+        syncAppPath ? beginAppPathCommit(newPath) : undefined,
       )
     },
-    [tabId, activeTabId, path, updateTabPath, syncAppPath],
+    [tabId, activeTabId, path, updateTabPath, syncAppPath, beginAppPathCommit],
   )
 
   return (

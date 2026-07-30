@@ -13,6 +13,7 @@ import { getAppPath } from '@s4wave/web/router/app-path.js'
 import { APP_DRAG_MIME } from '@s4wave/web/dnd/app-drag.js'
 import type * as WebState from '@s4wave/web/state/index.js'
 import {
+  BROWSER_SHELL_TABS_STORAGE_KEY,
   getBrowserShellTabsStore,
   resetBrowserShellTabsStoreForTests,
 } from './BrowserShellTabsStore.js'
@@ -629,6 +630,41 @@ describe('ShellTabStrip', () => {
     })
     window.removeEventListener('hashchange', onHashChange)
     expect(navigations).not.toContain('/files')
+  })
+  it('keeps the document hash when a shared active record path changes', async () => {
+    seedShellTabs([{ id: 'active', name: 'Active', path: '/a-only' }])
+    window.location.hash = '#/a-only'
+
+    render(
+      <ShellTabStrip entry={continuationEntry}>
+        <ActiveTabProbe />
+      </ShellTabStrip>,
+    )
+
+    await waitFor(() => expect(getAppPath()).toBe('/a-only'))
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: BROWSER_SHELL_TABS_STORAGE_KEY,
+          newValue: JSON.stringify({
+            schemaVersion: 1,
+            epoch: 0,
+            revision: 1,
+            records: [
+              {
+                id: 'active',
+                name: 'Home',
+                path: '/',
+                creationSequence: 1,
+              },
+            ],
+          }),
+        }),
+      )
+    })
+
+    expect(getAppPath()).toBe('/a-only')
   })
 
   it('preserves every shared record while projecting an empty stored model', async () => {

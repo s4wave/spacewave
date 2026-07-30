@@ -90,6 +90,45 @@ export function getAppPath(): string {
   return getAppNavigation().path
 }
 
+let navigationGeneration = 0
+let navigationGenerationTracked = false
+let observedLocation = ''
+
+function currentLocationKey(): string {
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`
+}
+
+// observeNavigation advances the counter when the document location differs
+// from the one last observed. Reading the location is what makes a direct
+// `window.location.hash` write countable: that write moves the document
+// synchronously and only queues `hashchange`, so a counter driven by the
+// event alone still reads stale inside the same task.
+function observeNavigation(): void {
+  const key = currentLocationKey()
+  if (key === observedLocation) return
+  observedLocation = key
+  navigationGeneration++
+}
+
+function trackNavigationGeneration(): void {
+  if (navigationGenerationTracked) return
+  navigationGenerationTracked = true
+  observedLocation = currentLocationKey()
+  window.addEventListener('hashchange', observeNavigation)
+  window.addEventListener('popstate', observeNavigation)
+}
+
+// getAppNavigationGeneration returns a counter that advances on every
+// document navigation, whoever caused it: history traversal, an in-app
+// setAppPath, or an external hash edit. Comparing the counter across an
+// awaited boundary answers whether the document moved, which comparing
+// paths cannot, since a navigation away and back restores the old string.
+export function getAppNavigationGeneration(): number {
+  trackNavigationGeneration()
+  observeNavigation()
+  return navigationGeneration
+}
+
 // setAppPath sets the hash to the given path while retaining named parameters
 // unless an explicit parameter set is provided.
 export function setAppPath(
@@ -103,17 +142,23 @@ export function setAppPath(
     ? window.location.hash.slice(1)
     : window.location.hash
   if (currentHash === nextHash) return
+  // replaceState fires neither hashchange nor popstate, so the move is
+  // observed here rather than left to the listeners.
+  trackNavigationGeneration()
   if (window.location.search) {
     window.history.replaceState(
       {},
       '',
       `${window.location.pathname}${window.location.search}#${nextHash}`,
     )
+    observeNavigation()
     return
   }
   if (window.location.pathname !== '/') {
     window.history.replaceState({}, '', `/#${nextHash}`)
+    observeNavigation()
     return
   }
   window.location.hash = nextHash
+  observeNavigation()
 }
