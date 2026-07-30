@@ -2,6 +2,7 @@ package store_kvtx_badger
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	bdb "github.com/dgraph-io/badger/v4"
@@ -182,6 +183,9 @@ func (t *Tx) Commit(ctx context.Context) error {
 			t.s.writeMtx.Unlock()
 		}
 	})
+	if errors.Is(err, bdb.ErrConflict) {
+		return errors.Join(kvtx.ErrInvalidSnapshot, err)
+	}
 	return err
 }
 
