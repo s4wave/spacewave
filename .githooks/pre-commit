@@ -23,10 +23,28 @@ if [ -n "$go_files" ]; then
 	printf "%s\n" "$go_files" | xargs git add
 
 	go_pkg_dirs=$(printf "%s\n" "$go_files" | xargs -n1 dirname | sort -u | sed 's#^\.$#.#; s#^\./##; s#^#./#')
-	GOFLAGS="-mod=mod -tags=purego" go list -f '{{.ImportPath}}' $go_pkg_dirs >/dev/null
 
+	# A package whose files the host platform excludes, such as a js-only one,
+	# cannot be listed or compiled here; the wasm build in CI covers it. Drop it
+	# and treat every other listing error as a failure.
+	list_err=$(mktemp)
+	go_pkgs=""
+	for dir in $go_pkg_dirs; do
+		if GOFLAGS="-mod=mod -tags=purego" go list "$dir" >/dev/null 2>>"$list_err"; then
+			go_pkgs="$go_pkgs $dir"
+		fi
+	done
+	if grep -v 'build constraints exclude all Go files' "$list_err" | grep -q .; then
+		cat "$list_err" >&2
+		rm -f "$list_err"
+		exit 1
+	fi
+	rm -f "$list_err"
+fi
+
+if [ -n "$go_pkgs" ]; then
 	go_fix_before=$(git diff -- $go_pkg_dirs)
-	GOFLAGS="-mod=mod -tags=purego" go fix $go_pkg_dirs
+	GOFLAGS="-mod=mod -tags=purego" go fix $go_pkgs
 	go_fix_after=$(git diff -- $go_pkg_dirs)
 	if [ "$go_fix_before" != "$go_fix_after" ]; then
 		printf "go fix changed files in staged Go package(s); review and stage them before committing:\n" >&2
@@ -40,9 +58,9 @@ if [ -n "$go_files" ]; then
 	# fails, printing both logs.
 	compile_out=$(mktemp)
 	lint_out=$(mktemp)
-	GOFLAGS="-mod=mod -tags=purego" go test -run '^$' $go_pkg_dirs >"$compile_out" 2>&1 &
+	GOFLAGS="-mod=mod -tags=purego" go test -run '^$' $go_pkgs >"$compile_out" 2>&1 &
 	compile_pid=$!
-	bun run go:aptre -- lint $go_pkg_dirs >"$lint_out" 2>&1 &
+	bun run go:aptre -- lint $go_pkgs >"$lint_out" 2>&1 &
 	lint_pid=$!
 	go_rc=0
 	wait "$compile_pid" || go_rc=1
