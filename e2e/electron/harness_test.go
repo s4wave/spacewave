@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/s4wave/spacewave/e2e/electron/cdpretry"
 	"github.com/sirupsen/logrus"
 )
 
@@ -63,20 +64,11 @@ func TestElectronHarnessBootCDP(t *testing.T) {
 		t.Fatalf("expected app:// renderer URL, got %q", url)
 	}
 
-	var uaRaw any
-	for {
-		uaRaw, err = page.Evaluate(`() => navigator.userAgent`)
-		if err == nil {
-			break
-		}
-		page, err = h.WaitForPage(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-	ua, ok := uaRaw.(string)
-	if !ok {
-		t.Fatalf("expected string user agent, got %T", uaRaw)
+	ua, err := cdpretry.EvaluateUserAgent(ctx, page, func(ctx context.Context) (cdpretry.Page, error) {
+		return h.WaitForPage(ctx)
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 	if !strings.Contains(ua, "Electron") {
 		t.Fatalf("expected Electron renderer user agent, got %q", ua)
