@@ -385,6 +385,11 @@ func runDeviceComplete(c *cli.Context, args deviceCompleteArgs) error {
 	if updated.SetupState == deviceSetupStateImported {
 		activated, err := openDeviceSession(ctx, client, resolvedStatePath, updated)
 		if err != nil {
+			updated.SetupState = deviceSetupStateFailed
+			updated.FailureReason = err.Error()
+			if persistErr := writeDeviceSetupRecord(resolvedStatePath, updated); persistErr != nil {
+				return errors.Wrapf(err, "persist Device setup failure: %v", persistErr)
+			}
 			return err
 		}
 		updated = activated
