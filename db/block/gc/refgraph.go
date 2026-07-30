@@ -34,6 +34,9 @@ const (
 	refGraphApplySliceLimit = 4096
 )
 
+// refBatchError reports a failed ownership transition together with the
+// uncommitted suffix that the caller must retain for a later attempt.
+// The slices are always expressed in the original add-before-remove order.
 type refBatchError struct {
 	err     error
 	adds    []RefEdge
@@ -111,7 +114,9 @@ func (rg *RefGraph) RemoveRef(ctx context.Context, subject, object string) error
 	return rg.handle.RemoveQuad(ctx, q)
 }
 
-// ApplyRefBatch applies a batch of ref graph edge additions and removals.
+// ApplyRefBatch serializes one bounded ownership transition under the RefGraph
+// owner lock. It applies additions before removals, treats missing exact
+// removals as no-ops, and derives orphan marks from the resulting owner set.
 // Preparation and application are bounded together so each slice commits
 // before preparation of the next slice begins.
 func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) error {
