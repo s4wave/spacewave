@@ -50,6 +50,9 @@ func (k *KVTxBlock) GetSupportedFeatures() block.StoreFeature {
 }
 
 // BeginReadOperation opens one read-only kvtx transaction for a bounded read scope.
+// Retry classification: external to RunTransaction. The returned scope spans
+// multiple caller operations, so reopening it cannot replay one logical
+// operation without changing the StoreOps lifetime contract.
 func (k *KVTxBlock) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
 	tx, err := k.store.NewTransaction(ctx, false)
 	if err != nil {
@@ -93,41 +96,33 @@ func (k *KVTxBlock) PutBlock(ctx context.Context, data []byte, opts *block.PutOp
 	}
 	key := k.kvkey.GetBlockKey(rm)
 
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/new-transaction")
-	tx, err := k.store.NewTransaction(taskCtx, true)
-	subtask.End()
-	if err != nil {
-		return ref, false, err
-	}
-	defer tx.Discard()
+	err = kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/new-transaction")
+			tx, err := k.store.NewTransaction(taskCtx, true)
+			subtask.End()
+			return tx, err
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			attemptExists, err := tx.Exists(ctx, key)
+			if err != nil {
+				return err
+			}
+			exists = attemptExists
+			if attemptExists {
+				return nil
+			}
 
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/exists")
-	exists, err = tx.Exists(taskCtx, key)
-	subtask.End()
-	if err != nil {
-		return ref, false, err
-	}
-	if exists {
-		return ref, true, nil
-	}
+			// many stores cannot handle empty values
+			// add a blanket check here to be sure
+			if len(data) == 0 {
+				return block.ErrEmptyBlock
+			}
 
-	// many stores cannot handle empty values
-	// add a blanket check here to be sure
-	if len(data) == 0 {
-		return ref, false, block.ErrEmptyBlock
-	}
-
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/set")
-	err = tx.Set(taskCtx, key, data)
-	subtask.End()
-	if err != nil {
-		return ref, false, err
-	}
-
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/put-block/commit")
-	err = tx.Commit(taskCtx)
-	subtask.End()
-	return ref, false, err
+			return tx.Set(ctx, key, data)
+		},
+	)
+	return ref, exists, err
 }
 
 // PutBlockBatch writes all entries in one lower kvtx transaction.
@@ -147,48 +142,53 @@ func (k *KVTxBlock) PutBlockBatch(ctx context.Context, entries []*block.PutBatch
 		return nil
 	}
 
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block-batch/new-transaction")
-	tx, err := k.store.NewTransaction(taskCtx, true)
-	subtask.End()
-	if err != nil {
-		return err
-	}
-	defer tx.Discard()
-
-	for _, op := range ops {
-		if op.tombstone {
-			if err := tx.Delete(ctx, op.key); err != nil {
-				return err
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			taskCtx, subtask := trace.NewTask(ctx, "hydra/block-store/kvtx/put-block-batch/new-transaction")
+			tx, err := k.store.NewTransaction(taskCtx, true)
+			subtask.End()
+			return tx, err
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			for _, op := range ops {
+				if op.tombstone {
+					if err := tx.Delete(ctx, op.key); err != nil {
+						return err
+					}
+					continue
+				}
+				exists, err := tx.Exists(ctx, op.key)
+				if err != nil {
+					return err
+				}
+				if exists {
+					continue
+				}
+				if err := tx.Set(ctx, op.key, op.data); err != nil {
+					return err
+				}
 			}
-			continue
-		}
-		exists, err := tx.Exists(ctx, op.key)
-		if err != nil {
-			return err
-		}
-		if exists {
-			continue
-		}
-		if err := tx.Set(ctx, op.key, op.data); err != nil {
-			return err
-		}
-	}
-
-	taskCtx, subtask = trace.NewTask(ctx, "hydra/block-store/kvtx/put-block-batch/commit")
-	err = tx.Commit(taskCtx)
-	subtask.End()
-	return err
+			return nil
+		},
+	)
 }
 
 // GetBlock looks up a block in the store.
 // Returns data, found, and error.
 func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	tx, err := k.store.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, false, err
-	}
-	defer tx.Discard()
-	return k.getBlock(ctx, tx, ref)
+	var data []byte
+	var found bool
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return k.store.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			attemptData, attemptFound, err := k.getBlock(ctx, tx, ref)
+			data, found = attemptData, attemptFound
+			return err
+		},
+	)
+	return data, found, err
 }
 
 func (k *KVTxBlock) getBlock(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) ([]byte, bool, error) {
@@ -303,12 +303,18 @@ func (r *readOperation) release() {
 // GetBlockExists checks if a block exists in the store.
 // Returns found, and any exceptional error.
 func (k *KVTxBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
-	tx, err := k.store.NewTransaction(ctx, false)
-	if err != nil {
-		return false, err
-	}
-	defer tx.Discard()
-	return k.getBlockExists(ctx, tx, ref)
+	var found bool
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return k.store.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			var err error
+			found, err = k.getBlockExists(ctx, tx, ref)
+			return err
+		},
+	)
+	return found, err
 }
 
 func (k *KVTxBlock) getBlockExists(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) (bool, error) {
@@ -325,12 +331,21 @@ func (k *KVTxBlock) GetBlockExistsBatch(ctx context.Context, refs []*block.Block
 	if len(refs) == 0 {
 		return []bool{}, nil
 	}
-	tx, err := k.store.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Discard()
-	return k.getBlockExistsBatch(ctx, tx, refs)
+
+	var found []bool
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return k.store.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			attemptFound, err := k.getBlockExistsBatch(ctx, tx, refs)
+			if err == nil {
+				found = attemptFound
+			}
+			return err
+		},
+	)
+	return found, err
 }
 
 func (k *KVTxBlock) getBlockExistsBatch(ctx context.Context, tx kvtx.TxOps, refs []*block.BlockRef) ([]bool, error) {
@@ -348,12 +363,18 @@ func (k *KVTxBlock) getBlockExistsBatch(ctx context.Context, tx kvtx.TxOps, refs
 // StatBlock returns metadata about a block without reading its data.
 // Returns nil, nil if the block does not exist.
 func (k *KVTxBlock) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
-	tx, err := k.store.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Discard()
-	return k.statBlock(ctx, tx, ref)
+	var stat *block.BlockStat
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return k.store.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			var err error
+			stat, err = k.statBlock(ctx, tx, ref)
+			return err
+		},
+	)
+	return stat, err
 }
 
 func (k *KVTxBlock) statBlock(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) (*block.BlockStat, error) {
@@ -383,17 +404,14 @@ func (k *KVTxBlock) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 		return err
 	}
 
-	tx, err := k.store.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer tx.Discard()
-
-	if err := tx.Delete(ctx, key); err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return k.store.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			return tx.Delete(ctx, key)
+		},
+	)
 }
 
 // Sync reports always-durable: KVTxBlock writes commit synchronously.

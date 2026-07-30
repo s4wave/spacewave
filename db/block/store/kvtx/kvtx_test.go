@@ -8,6 +8,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
+	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 )
 
@@ -235,6 +236,52 @@ func TestGetBlockExistsBatchUsesSingleReadTransaction(t *testing.T) {
 	for i, got := range found {
 		if got != want[i] {
 			t.Fatalf("found[%d]=%v, want %v", i, got, want[i])
+		}
+	}
+}
+
+func TestPutBlockBatchRetriesWholeLogicalOperation(t *testing.T) {
+	ctx := context.Background()
+	backend := newCountingStore()
+	store := kvtest.NewFaultStore(backend, kvtest.FaultBeforeCommit)
+	blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store, 0, false)
+	firstData := []byte("retry first batch block")
+	secondData := []byte("retry second batch block")
+	firstRef := mustBuildBlockRef(t, firstData)
+	secondRef := mustBuildBlockRef(t, secondData)
+
+	err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
+		{Ref: firstRef, Data: firstData},
+		{Ref: secondRef, Data: secondData},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := store.Opened(); got != 2 {
+		t.Fatalf("opened transactions = %d, want 2", got)
+	}
+	if got := store.Discarded(); got != 2 {
+		t.Fatalf("discarded transactions = %d, want 2", got)
+	}
+	if got := store.DelegatedCommits(); got != 1 {
+		t.Fatalf("delegated commits = %d, want 1", got)
+	}
+	// Both keys must be replayed in the second transaction. A helper scoped to
+	// one key would perform only three sets instead of replaying the batch body.
+	if got := backend.sets.Load(); got != 4 {
+		t.Fatalf("batch set operations = %d, want 4 across two complete attempts", got)
+	}
+
+	for _, entry := range []*block.PutBatchEntry{
+		{Ref: firstRef, Data: firstData},
+		{Ref: secondRef, Data: secondData},
+	} {
+		data, found, err := blocks.GetBlock(ctx, entry.Ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !found || string(data) != string(entry.Data) {
+			t.Fatalf("ref %v found=%v data=%q, want %q", entry.Ref, found, data, entry.Data)
 		}
 	}
 }
