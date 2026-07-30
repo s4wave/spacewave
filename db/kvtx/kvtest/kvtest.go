@@ -9,14 +9,35 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
-// withTx executes a function within a transaction context, ensuring proper cleanup
+// withTx executes a replay-safe function within a transaction context.
 func withTx(ctx context.Context, ktx kvtx.Store, writable bool, fn func(tx kvtx.Tx) error) error {
-	tx, err := ktx.NewTransaction(ctx, writable)
-	if err != nil {
+	return kvtx.RunTransaction(ctx, writable,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return ktx.NewTransaction(ctx, writable)
+		},
+		func(_ context.Context, tx kvtx.Tx) error {
+			return fn(tx)
+		},
+	)
+}
+
+// withTxValue executes a replay-safe function and returns its value after the
+// logical transaction succeeds.
+func withTxValue[T any](
+	ctx context.Context,
+	ktx kvtx.Store,
+	writable bool,
+	fn func(tx kvtx.Tx) (T, error),
+) (T, error) {
+	var value T
+	err := withTx(ctx, ktx, writable, func(tx kvtx.Tx) error {
+		attemptValue, err := fn(tx)
+		if err == nil {
+			value = attemptValue
+		}
 		return err
-	}
-	defer tx.Discard()
-	return fn(tx)
+	})
+	return value, err
 }
 
 // TestAll tests all tests for a kvtx store.
@@ -63,7 +84,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 				return errors.Errorf("mismatch of value for key: %s", string(keys[i]))
 			}
 		}
-		return tx.Commit(ctx)
+		return nil
 	})
 	if err != nil {
 		return err
@@ -101,7 +122,6 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		if err != nil {
 			return err
 		}
-		// note: we do not commit the txn here
 		return nil
 	})
 	if err != nil {
@@ -109,14 +129,9 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 	}
 
 	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
-		val, ok, err := tx.Get(ctx, keys[0])
-		if err == nil && !ok {
-			err = errors.Errorf("expected key to exist after delete was discarded: %s", string(keys[0]))
-		}
-		if err == nil {
-			if !bytes.Equal(val, []byte("0")) {
-				err = errors.Errorf("value mismatch for key: %s", string(keys[0]))
-			}
+		_, ok, err := tx.Get(ctx, keys[0])
+		if err == nil && ok {
+			err = errors.Errorf("expected key to remain deleted: %s", string(keys[0]))
 		}
 		return err
 	})
@@ -128,18 +143,19 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		if err := tx.Set(ctx, []byte("test"), []byte{1, 2, 3, 4}); err != nil {
 			return err
 		}
-		return tx.Commit(ctx)
+		return nil
 	})
 	if err != nil {
 		return err
 	}
 
-	var ks [][]byte
-	err = withTx(ctx, ktx, false, func(tx kvtx.Tx) error {
-		return tx.ScanPrefix(ctx, []byte("t"), func(key, val []byte) error {
-			ks = append(ks, bytes.Clone(key))
+	ks, err := withTxValue(ctx, ktx, false, func(tx kvtx.Tx) ([][]byte, error) {
+		var attemptKeys [][]byte
+		err := tx.ScanPrefix(ctx, []byte("t"), func(key, val []byte) error {
+			attemptKeys = append(attemptKeys, bytes.Clone(key))
 			return nil
 		})
+		return attemptKeys, err
 	})
 	if err != nil {
 		return err
@@ -172,7 +188,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		if err := tx.Delete(ctx, []byte("test")); err != nil {
 			return err
 		}
-		return tx.Commit(ctx)
+		return nil
 	})
 	if err != nil {
 		return err
@@ -211,7 +227,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 				return err
 			}
 		}
-		return tx.Commit(ctx)
+		return nil
 	})
 	if err != nil {
 		return err
@@ -353,7 +369,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		if err := tx.Set(ctx, emptyKey, []byte{}); err != nil {
 			return err
 		}
-		return tx.Commit(ctx)
+		return nil
 	})
 	if err != nil {
 		return err
@@ -390,7 +406,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 		if err := tx.Delete(ctx, emptyKey); err != nil {
 			return err
 		}
-		return tx.Commit(ctx)
+		return nil
 	})
 	if err != nil {
 		return err
@@ -550,7 +566,7 @@ func TestAll(ctx context.Context, ktx kvtx.Store) error {
 				return err
 			}
 		}
-		return tx.Commit(ctx)
+		return nil
 	})
 	return err
 }
