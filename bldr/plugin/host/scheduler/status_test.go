@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus/inmem"
+	directive_controller "github.com/aperturerobotics/controllerbus/directive/controller"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -13,7 +15,90 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/sirupsen/logrus"
 )
+
+func TestWaitControllerOnBusWaitsForDelayedScheduler(t *testing.T) {
+	busCtx := t.Context()
+
+	logger := logrus.NewEntry(logrus.New())
+	b := inmem.NewBus(directive_controller.NewController(busCtx, logger))
+	p, _, _, err := peer.NewPeerWithGenerateED25519()
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler := NewController(logger, b, NewConfig(
+		"test-engine",
+		"test-plugin-host",
+		"test-volume",
+		p.GetPeerID().String(),
+		true,
+		false,
+		false,
+	))
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	type waitResult struct {
+		scheduler *Controller
+		err       error
+	}
+	resultCh := make(chan waitResult, 1)
+	go func() {
+		got, err := WaitControllerOnBus(ctx, b)
+		resultCh <- waitResult{scheduler: got, err: err}
+	}()
+
+	delay := time.NewTimer(50 * time.Millisecond)
+	defer delay.Stop()
+	select {
+	case result := <-resultCh:
+		t.Fatalf("wait returned before scheduler registration: scheduler=%p err=%v", result.scheduler, result.err)
+	case <-delay.C:
+	}
+
+	rel, err := b.AddController(busCtx, scheduler, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rel()
+
+	select {
+	case result := <-resultCh:
+		if result.err != nil {
+			t.Fatalf("wait: %v", result.err)
+		}
+		if result.scheduler != scheduler {
+			t.Fatalf("scheduler = %p, want %p", result.scheduler, scheduler)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("wait did not return after scheduler registration")
+	}
+}
+
+func TestWaitControllerOnBusReturnsContextCancellation(t *testing.T) {
+	busCtx := t.Context()
+
+	logger := logrus.NewEntry(logrus.New())
+	b := inmem.NewBus(directive_controller.NewController(busCtx, logger))
+	ctx, cancel := context.WithCancel(context.Background())
+	resultCh := make(chan error, 1)
+	go func() {
+		_, err := WaitControllerOnBus(ctx, b)
+		resultCh <- err
+	}()
+	cancel()
+
+	select {
+	case err := <-resultCh:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("wait error = %v, want context.Canceled", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("wait did not return after context cancellation")
+	}
+}
 
 func TestPluginStatusRecordsAndClearsLastError(t *testing.T) {
 	ctrl := &Controller{
