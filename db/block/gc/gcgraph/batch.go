@@ -28,6 +28,10 @@ func (g *GCGraph) applyRefBatchLocked(
 	if err != nil {
 		return err
 	}
+	return g.applyPreparedRefBatch(adds, removes)
+}
+
+func (g *GCGraph) applyPreparedRefBatch(adds, removes []block_gc.RefEdge) error {
 	for _, e := range adds {
 		if err := g.addRef(e.Subject, e.Object); err != nil {
 			return err
