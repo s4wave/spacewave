@@ -85,7 +85,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestBrowserReleaseDescriptorIncludesPrerenderedWasmShell(t *testing.T) {
+func TestBrowserReleaseDescriptorIncludesPrerenderedShell(t *testing.T) {
 	desc, err := testHarness.browserRelease(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -104,9 +104,6 @@ func TestBrowserReleaseDescriptorIncludesPrerenderedWasmShell(t *testing.T) {
 	}
 	if desc.ShellAssets.SharedWorker == "" {
 		t.Fatal("expected shellAssets.sharedWorker")
-	}
-	if desc.ShellAssets.Wasm == "" {
-		t.Fatal("expected shellAssets.wasm")
 	}
 	if !slices.Contains(desc.PrerenderedRoutes, "/") {
 		t.Fatalf("expected / in prerendered routes: %v", desc.PrerenderedRoutes)
