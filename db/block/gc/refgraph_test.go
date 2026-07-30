@@ -739,6 +739,31 @@ func TestApplyRefBatchMissingRemovalPreservesGraphRecords(t *testing.T) {
 	}
 }
 
+func TestPrepareNativeRefBatchFiltersBackendRemovals(t *testing.T) {
+	ctx := context.Background()
+	rg := newTestRefGraph(t)
+
+	existing := RefEdge{Subject: "owner", Object: "target"}
+	if err := rg.AddRef(ctx, existing.Subject, existing.Object); err != nil {
+		t.Fatal(err)
+	}
+	removes := []RefEdge{
+		existing,
+		{Subject: "missing-owner", Object: "target"},
+		{Subject: "missing-owner", Object: "never-seen"},
+	}
+	_, backendRemoves, err := rg.prepareNativeRefBatch(ctx, nil, removes, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := len(backendRemoves), 1; got != want {
+		t.Fatalf("backend removal count = %d, want %d", got, want)
+	}
+	if !slices.Equal(backendRemoves, []RefEdge{existing}) {
+		t.Fatalf("backend removals = %#v, want only %#v", backendRemoves, existing)
+	}
+}
+
 func TestApplyRefBatchExistingRemovalUpdatesIndexesAndOrphan(t *testing.T) {
 	ctx := context.Background()
 	store := store_kvtx_inmem.NewStore()
