@@ -109,6 +109,65 @@ func TestServeServiceWorkerHTTPServesWebPackageModule(t *testing.T) {
 	}
 }
 
+func TestServePluginFilesHTTPDisablesBrowserCaching(t *testing.T) {
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	btb, err := hydra_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const pluginID = "cache-header-test"
+	rootRef, err := newTestPluginAssetsRoot(ctx, map[string][]byte{
+		"/entry.mjs": []byte("export const cached = false\n"),
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer rootRef.Release()
+	accessCtrl := unixfs_access.NewController(
+		btb.Logger,
+		btb.Bus,
+		controller.NewInfo("bldr/web/runtime/test-cache-headers", controller.MustParseVersion("0.0.1"), "test plugin file cache headers"),
+		[]string{
+			bldr_plugin.PluginDistFsId(pluginID),
+			bldr_plugin.PluginAssetsFsId(pluginID),
+		},
+		unixfs_access.NewAccessUnixFSFunc(rootRef),
+	)
+	accessRel, err := btb.Bus.AddController(ctx, accessCtrl, nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer accessRel()
+
+	rtCtrl := &Controller{
+		le:  btb.Logger,
+		bus: btb.Bus,
+	}
+	tests := []struct {
+		name  string
+		serve func(string, http.ResponseWriter, *http.Request)
+	}{
+		{name: "dist", serve: rtCtrl.ServePluginDistFsHTTP},
+		{name: "assets", serve: rtCtrl.ServePluginAssetsFsHTTP},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rw := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/entry.mjs", nil)
+
+			tt.serve(pluginID, rw, req)
+
+			assertHTTPAssetResponse(
+				t,
+				rw,
+				[]byte("export const cached = false\n"),
+			)
+		})
+	}
+}
+
 func TestServePluginAssetsFsHTTPRebindsPendingFrontendAssets(t *testing.T) {
 	ctx := t.Context()
 
