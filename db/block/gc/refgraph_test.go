@@ -1,6 +1,7 @@
 package block_gc
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"slices"
@@ -24,6 +25,41 @@ func newTestRefGraph(t *testing.T) *RefGraph {
 	}
 	t.Cleanup(func() { rg.Close() })
 	return rg
+}
+
+// snapshotRefGraphRecords captures the underlying Cayley value, refcount,
+// primitive-log, and edge-index records for the refgraph prefix.
+func snapshotRefGraphRecords(t *testing.T, store kvtx.Store) map[string][]byte {
+	t.Helper()
+	ctx := context.Background()
+	tx, err := store.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Discard()
+
+	records := make(map[string][]byte)
+	err = tx.ScanPrefix(ctx, []byte("gc/"), func(key, value []byte) error {
+		records[string(key)] = slices.Clone(value)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return records
+}
+
+func equalRefGraphRecords(left, right map[string][]byte) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for key, value := range left {
+		other, ok := right[key]
+		if !ok || !bytes.Equal(value, other) {
+			return false
+		}
+	}
+	return true
 }
 
 func testBlockRef(t *testing.T, data string) *block.BlockRef {
@@ -616,6 +652,214 @@ func TestMixedNodeTypes(t *testing.T) {
 		if !has {
 			t.Fatalf("expected %s to have incoming refs", node)
 		}
+	}
+}
+
+func TestApplyRefBatchAddsBeforeRemoves(t *testing.T) {
+	ctx := context.Background()
+	rg := newTestRefGraph(t)
+
+	edge := RefEdge{Subject: "owner", Object: "target"}
+	if err := rg.ApplyRefBatch(ctx, []RefEdge{edge}, []RefEdge{edge}); err != nil {
+		t.Fatal(err)
+	}
+	refs, err := rg.GetOutgoingRefs(ctx, edge.Subject)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slices.Contains(refs, edge.Object) {
+		t.Fatal("edge survived; removals must follow additions")
+	}
+}
+
+func TestApplyRefBatchMissingRemovalPreservesGraphRecords(t *testing.T) {
+	ctx := context.Background()
+	store := store_kvtx_inmem.NewStore()
+	rg, err := NewRefGraph(ctx, store, []byte("gc/"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { rg.Close() })
+
+	if err := rg.AddRef(ctx, "owner", "target"); err != nil {
+		t.Fatal(err)
+	}
+	if err := rg.AddRef(ctx, NodeUnreferenced, "staged"); err != nil {
+		t.Fatal(err)
+	}
+	beforeRecords := snapshotRefGraphRecords(t, store)
+	beforeOwner, err := rg.GetOutgoingRefs(ctx, "owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeTarget, err := rg.GetIncomingRefs(ctx, "target")
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeUnreferenced, err := rg.GetUnreferencedNodes(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	removes := []RefEdge{
+		{Subject: "missing-owner", Object: "target"},
+		{Subject: "missing-owner", Object: "never-seen"},
+	}
+	if err := rg.ApplyRefBatch(ctx, nil, removes); err != nil {
+		t.Fatal(err)
+	}
+	afterRecords := snapshotRefGraphRecords(t, store)
+	if !equalRefGraphRecords(beforeRecords, afterRecords) {
+		t.Fatal("missing removals changed underlying Cayley records")
+	}
+	afterOwner, err := rg.GetOutgoingRefs(ctx, "owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterTarget, err := rg.GetIncomingRefs(ctx, "target")
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterUnreferenced, err := rg.GetUnreferencedNodes(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(sortedStrings(beforeOwner), sortedStrings(afterOwner)) ||
+		!slices.Equal(sortedStrings(beforeTarget), sortedStrings(afterTarget)) ||
+		!slices.Equal(sortedStrings(beforeUnreferenced), sortedStrings(afterUnreferenced)) {
+		t.Fatalf(
+			"missing removals changed graph views: before owner=%v target=%v unreferenced=%v, after owner=%v target=%v unreferenced=%v",
+			beforeOwner,
+			beforeTarget,
+			beforeUnreferenced,
+			afterOwner,
+			afterTarget,
+			afterUnreferenced,
+		)
+	}
+}
+
+func TestApplyRefBatchExistingRemovalUpdatesIndexesAndOrphan(t *testing.T) {
+	ctx := context.Background()
+	store := store_kvtx_inmem.NewStore()
+	rg, err := NewRefGraph(ctx, store, []byte("gc/"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { rg.Close() })
+
+	if err := rg.AddRef(ctx, "owner", "target"); err != nil {
+		t.Fatal(err)
+	}
+	beforeRecords := snapshotRefGraphRecords(t, store)
+	if err := rg.ApplyRefBatch(ctx, nil, []RefEdge{{
+		Subject: "owner",
+		Object:  "target",
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	afterRecords := snapshotRefGraphRecords(t, store)
+	if equalRefGraphRecords(beforeRecords, afterRecords) {
+		t.Fatal("existing removal left underlying Cayley records unchanged")
+	}
+	if refs, err := rg.GetOutgoingRefs(ctx, "owner"); err != nil {
+		t.Fatal(err)
+	} else if slices.Contains(refs, "target") {
+		t.Fatal("existing edge remains in forward index")
+	}
+	if refs, err := rg.GetIncomingRefs(ctx, "target"); err != nil {
+		t.Fatal(err)
+	} else if !slices.Equal(refs, []string{NodeUnreferenced}) {
+		t.Fatalf("existing edge reverse index = %v, want only unreferenced", refs)
+	}
+	unreferenced, err := rg.GetUnreferencedNodes(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(unreferenced, "target") {
+		t.Fatalf("last owner removal did not mark target orphaned: %v", unreferenced)
+	}
+}
+
+func TestApplyRefBatchCollidingAddAndRemoveOrphans(t *testing.T) {
+	ctx := context.Background()
+	rg := newTestRefGraph(t)
+
+	edge := RefEdge{Subject: "owner", Object: "target"}
+	if err := rg.ApplyRefBatch(ctx, []RefEdge{edge}, []RefEdge{edge}); err != nil {
+		t.Fatal(err)
+	}
+	if refs, err := rg.GetOutgoingRefs(ctx, edge.Subject); err != nil {
+		t.Fatal(err)
+	} else if slices.Contains(refs, edge.Object) {
+		t.Fatal("colliding edge remains after add-before-remove")
+	}
+	unreferenced, err := rg.GetUnreferencedNodes(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(unreferenced, edge.Object) {
+		t.Fatalf("colliding edge did not produce orphan mark: %v", unreferenced)
+	}
+}
+
+func TestApplyRefBatchSharedOwnerRemovalKeepsObjectReachable(t *testing.T) {
+	ctx := context.Background()
+	rg := newTestRefGraph(t)
+
+	for _, owner := range []string{"owner-a", "owner-b"} {
+		if err := rg.AddRef(ctx, owner, "shared"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := rg.ApplyRefBatch(ctx, nil, []RefEdge{{
+		Subject: "owner-a",
+		Object:  "shared",
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	incoming, err := rg.GetIncomingRefs(ctx, "shared")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(sortedStrings(incoming), []string{"owner-b"}) {
+		t.Fatalf("shared incoming owners = %v, want [owner-b]", incoming)
+	}
+	unreferenced, err := rg.GetUnreferencedNodes(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slices.Contains(unreferenced, "shared") {
+		t.Fatalf("shared object was incorrectly orphaned: %v", unreferenced)
+	}
+}
+
+func TestApplyRefBatchLastOwnerRemovalOrphansObject(t *testing.T) {
+	ctx := context.Background()
+	rg := newTestRefGraph(t)
+
+	if err := rg.AddRef(ctx, "owner", "target"); err != nil {
+		t.Fatal(err)
+	}
+	if err := rg.ApplyRefBatch(ctx, nil, []RefEdge{{
+		Subject: "owner",
+		Object:  "target",
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	incoming, err := rg.GetIncomingRefs(ctx, "target")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(incoming, []string{NodeUnreferenced}) {
+		t.Fatalf("last owner reverse index = %v, want only unreferenced", incoming)
+	}
+	unreferenced, err := rg.GetUnreferencedNodes(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(unreferenced, "target") {
+		t.Fatalf("last owner removal did not orphan target: %v", unreferenced)
 	}
 }
 
