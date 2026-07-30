@@ -4,6 +4,7 @@ package space_resolve
 import (
 	"context"
 	"slices"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -110,12 +111,28 @@ func ResolveSpace(
 	}
 	soRef.GetProviderResourceRef().Id = sharedObjectID
 
-	// Step 6: Compute the engine ID and look up the world engine.
+	// Step 6: Compute the engine ID and resolve the required world engine.
 	engineID := space.SpaceEngineId(soRef)
 	engine, _, engineRef, err := world.ExLookupWorldEngine(ctx, b, true, engineID, nil)
 	if err != nil {
 		cleanup()
 		return nil, nil, errors.Wrap(err, "lookup world engine")
+	}
+	if engine == nil {
+		// A controller can become visible just after the idle lookup. Give
+		// that startup race a bounded window, but never wait for an absent
+		// engine until the request context is canceled.
+		lookupCtx, cancel := context.WithTimeout(ctx, time.Second)
+		engine, _, engineRef, err = world.ExLookupWorldEngine(lookupCtx, b, false, engineID, nil)
+		timedOut := errors.Is(lookupCtx.Err(), context.DeadlineExceeded)
+		cancel()
+		if err != nil {
+			cleanup()
+			if timedOut {
+				return nil, nil, errors.Errorf("world engine %q unavailable", engineID)
+			}
+			return nil, nil, errors.Wrap(err, "lookup world engine")
+		}
 	}
 	if engine == nil {
 		cleanup()
