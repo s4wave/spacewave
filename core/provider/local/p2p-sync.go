@@ -316,7 +316,7 @@ func (a *ProviderAccount) awaitP2PSyncStart(ctx context.Context, state *p2pSyncS
 		var waitCh <-chan struct{}
 		var complete bool
 		state.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			complete = state.startComplete
+			complete = state.startComplete && (state.startErr != nil || !state.lowerSourceHeld)
 			if !complete {
 				waitCh = getWaitCh()
 			}
@@ -417,8 +417,8 @@ func (a *ProviderAccount) runP2PSyncStart(
 		break
 	}
 	if err == nil {
-		state.markStartupExited()
 		a.releaseP2PSyncLowerSource(state)
+		state.markStartupExited()
 		if previous != nil {
 			a.retireP2PSyncState(previous)
 		}
