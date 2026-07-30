@@ -345,7 +345,18 @@ func watchTrackedChanges(ctx context.Context, snapshot *s4wave_world.TrackedWorl
 
 	// Loop: wait for world changes, then check if tracked resources changed
 	for {
-		// First check: see if any tracked resources already changed
+		// Sample the seqno before reading the revisions it describes. The engine
+		// publishes a commit's seqno and its object revisions under one lock, so
+		// every commit the check below can miss lands above currentSeqno and the
+		// wait then returns immediately. Sampling after the check would hand the
+		// wait a seqno that already covers the missed commit, parking the watch
+		// until some later unrelated commit arrived.
+		currentSeqno, err := ws.GetSeqno(ctx)
+		if err != nil {
+			return err
+		}
+
+		// See if any tracked resources already changed
 		changed, err := checkTrackedChanges(ctx, snapshot, ws)
 		if err != nil {
 			return err
@@ -356,11 +367,6 @@ func watchTrackedChanges(ctx context.Context, snapshot *s4wave_world.TrackedWorl
 		}
 
 		// Nothing changed yet, wait for world seqno to increment
-		currentSeqno, err := ws.GetSeqno(ctx)
-		if err != nil {
-			return err
-		}
-
 		_, err = ws.WaitSeqno(ctx, currentSeqno+1)
 		if err != nil {
 			return err
