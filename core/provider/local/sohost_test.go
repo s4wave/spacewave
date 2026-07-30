@@ -1,11 +1,14 @@
 package provider_local
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"testing"
 
 	"github.com/s4wave/spacewave/core/sobject"
+	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
+	"github.com/s4wave/spacewave/db/object"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
@@ -269,6 +272,55 @@ func TestLocalOpResultOutcomeLeavesLegacySuccessUnresolved(t *testing.T) {
 	}
 	if resolved {
 		t.Fatalf("legacy success resolved with seqno=%d rejected=%v", seqno, rejected)
+	}
+}
+
+func TestLocalSOStateWriteReplaysIdentically(t *testing.T) {
+	run := func(t *testing.T, injectFault bool) ([]byte, *kvtest.FaultStore) {
+		t.Helper()
+		ctx := t.Context()
+		backend := store_kvtx_inmem.NewStore()
+		var store object.ObjectStore = backend
+		var faultStore *kvtest.FaultStore
+		if injectFault {
+			faultStore = kvtest.NewFaultStore(backend, kvtest.FaultBeforeCommit)
+			store = faultStore
+		}
+		host := &LocalSOHost{
+			objStore: store,
+			soHost:   sobject.NewSOHost(nil, nil, nil, testSharedObjectID),
+		}
+		if err := host.writeLocalState(ctx, &LocalSOState{
+			OpQueue: []*sobject.QueuedSOOperation{{
+				LocalId: "replay-local-op",
+				OpData:  []byte("operation-data"),
+			}},
+		}); err != nil {
+			t.Fatal(err)
+		}
+
+		host.objStore = backend
+		state, err := host.readLocalState(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := state.MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return data, faultStore
+	}
+
+	want, _ := run(t, false)
+	got, faultStore := run(t, true)
+	if !bytes.Equal(got, want) {
+		t.Fatalf("local state = %x, want %x", got, want)
+	}
+	if got := faultStore.Opened(); got != 2 {
+		t.Fatalf("opened transactions = %d, want 2", got)
+	}
+	if got := faultStore.DelegatedCommits(); got != 1 {
+		t.Fatalf("delegated commits = %d, want 1", got)
 	}
 }
 
