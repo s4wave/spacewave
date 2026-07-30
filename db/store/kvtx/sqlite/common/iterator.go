@@ -33,20 +33,25 @@ type Iterator struct {
 	closed  bool
 
 	// Precomputed queries for advance operation
-	advanceForwardQuery        string
-	advanceForwardPrefixQuery  string
-	advanceBackwardQuery       string
-	advanceBackwardPrefixQuery string
+	advanceForwardQuery                 string
+	advanceForwardPrefixQuery           string
+	advanceForwardPrefixUnboundedQuery  string
+	advanceBackwardQuery                string
+	advanceBackwardPrefixQuery          string
+	advanceBackwardPrefixUnboundedQuery string
 
 	// Precomputed queries for seek operation
-	seekForwardQuery           string
-	seekForwardPrefixQuery     string
-	seekForwardPrefixNilQuery  string
-	seekBackwardQuery          string
-	seekBackwardPrefixQuery    string
-	seekBackwardPrefixNilQuery string
-	seekAbsoluteStartQuery     string
-	seekAbsoluteEndQuery       string
+	seekForwardQuery                    string
+	seekForwardPrefixQuery              string
+	seekForwardPrefixNilQuery           string
+	seekForwardPrefixUnboundedQuery     string
+	seekBackwardQuery                   string
+	seekBackwardPrefixQuery             string
+	seekBackwardPrefixNilQuery          string
+	seekBackwardPrefixUnboundedQuery    string
+	seekBackwardPrefixNilUnboundedQuery string
+	seekAbsoluteStartQuery              string
+	seekAbsoluteEndQuery                string
 }
 
 // NewIterator constructs a new SQLite iterator.
@@ -62,15 +67,20 @@ func NewIterator(ctx context.Context, queryer sqliteQueryer, active func() error
 
 	i.advanceForwardQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key > ? ORDER BY key LIMIT 1"}, " ")
 	i.advanceForwardPrefixQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key > ? AND key >= ? AND key < ? ORDER BY key LIMIT 1"}, " ")
+	i.advanceForwardPrefixUnboundedQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key > ? AND key >= ? ORDER BY key LIMIT 1"}, " ")
 	i.advanceBackwardQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key < ? ORDER BY key DESC LIMIT 1"}, " ")
 	i.advanceBackwardPrefixQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key < ? AND key < ? ORDER BY key DESC LIMIT 1"}, " ")
+	i.advanceBackwardPrefixUnboundedQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key < ? ORDER BY key DESC LIMIT 1"}, " ")
 
 	i.seekForwardQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? ORDER BY key LIMIT 1"}, " ")
 	i.seekForwardPrefixQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key < ? ORDER BY key LIMIT 1"}, " ")
 	i.seekForwardPrefixNilQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key < ? ORDER BY key LIMIT 1"}, " ")
+	i.seekForwardPrefixUnboundedQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? ORDER BY key LIMIT 1"}, " ")
 	i.seekBackwardQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key <= ? ORDER BY key DESC LIMIT 1"}, " ")
 	i.seekBackwardPrefixQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key <= ? AND key < ? ORDER BY key DESC LIMIT 1"}, " ")
 	i.seekBackwardPrefixNilQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key < ? ORDER BY key DESC LIMIT 1"}, " ")
+	i.seekBackwardPrefixUnboundedQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key <= ? ORDER BY key DESC LIMIT 1"}, " ")
+	i.seekBackwardPrefixNilUnboundedQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? ORDER BY key DESC LIMIT 1"}, " ")
 	i.seekAbsoluteStartQuery = strings.Join([]string{"SELECT key, value FROM", table, "ORDER BY key LIMIT 1"}, " ")
 	i.seekAbsoluteEndQuery = strings.Join([]string{"SELECT key, value FROM", table, "ORDER BY key DESC LIMIT 1"}, " ")
 
@@ -147,18 +157,26 @@ func (i *Iterator) advance() bool {
 
 	if i.reverse {
 		if len(i.prefix) > 0 {
-			upperBound := CreateUpperBound(i.prefix)
-			query = i.advanceBackwardPrefixQuery
-			args = []any{i.prefix, i.currentKey, upperBound}
+			if upperBound, ok := kvtx.PrefixSuccessor(i.prefix); ok {
+				query = i.advanceBackwardPrefixQuery
+				args = []any{i.prefix, i.currentKey, upperBound}
+			} else {
+				query = i.advanceBackwardPrefixUnboundedQuery
+				args = []any{i.prefix, i.currentKey}
+			}
 		} else {
 			query = i.advanceBackwardQuery
 			args = []any{i.currentKey}
 		}
 	} else {
 		if len(i.prefix) > 0 {
-			upperBound := CreateUpperBound(i.prefix)
-			query = i.advanceForwardPrefixQuery
-			args = []any{i.currentKey, i.prefix, upperBound}
+			if upperBound, ok := kvtx.PrefixSuccessor(i.prefix); ok {
+				query = i.advanceForwardPrefixQuery
+				args = []any{i.currentKey, i.prefix, upperBound}
+			} else {
+				query = i.advanceForwardPrefixUnboundedQuery
+				args = []any{i.currentKey, i.prefix}
+			}
 		} else {
 			query = i.advanceForwardQuery
 			args = []any{i.currentKey}
@@ -206,13 +224,20 @@ func (i *Iterator) Seek(k []byte) error {
 
 	if i.reverse {
 		if len(i.prefix) > 0 {
-			upperBound := CreateUpperBound(i.prefix)
-			if k == nil {
-				query = i.seekBackwardPrefixNilQuery
-				args = []any{i.prefix, upperBound}
+			if upperBound, ok := kvtx.PrefixSuccessor(i.prefix); ok {
+				if k == nil {
+					query = i.seekBackwardPrefixNilQuery
+					args = []any{i.prefix, upperBound}
+				} else {
+					query = i.seekBackwardPrefixQuery
+					args = []any{i.prefix, k, upperBound}
+				}
+			} else if k == nil {
+				query = i.seekBackwardPrefixNilUnboundedQuery
+				args = []any{i.prefix}
 			} else {
-				query = i.seekBackwardPrefixQuery
-				args = []any{i.prefix, k, upperBound}
+				query = i.seekBackwardPrefixUnboundedQuery
+				args = []any{i.prefix, k}
 			}
 		} else {
 			if k == nil {
@@ -224,17 +249,26 @@ func (i *Iterator) Seek(k []byte) error {
 		}
 	} else {
 		if len(i.prefix) > 0 {
-			upperBound := CreateUpperBound(i.prefix)
 			if k == nil {
 				query = i.seekForwardPrefixNilQuery
-				args = []any{i.prefix, upperBound}
+				if upperBound, ok := kvtx.PrefixSuccessor(i.prefix); ok {
+					args = []any{i.prefix, upperBound}
+				} else {
+					query = i.seekForwardPrefixUnboundedQuery
+					args = []any{i.prefix}
+				}
 			} else {
 				seekKey := k
 				if bytes.Compare(k, i.prefix) < 0 {
 					seekKey = i.prefix
 				}
-				query = i.seekForwardPrefixQuery
-				args = []any{seekKey, upperBound}
+				if upperBound, ok := kvtx.PrefixSuccessor(i.prefix); ok {
+					query = i.seekForwardPrefixQuery
+					args = []any{seekKey, upperBound}
+				} else {
+					query = i.seekForwardPrefixUnboundedQuery
+					args = []any{seekKey}
+				}
 			}
 		} else {
 			if k == nil {

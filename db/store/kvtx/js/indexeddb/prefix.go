@@ -2,19 +2,6 @@ package store_kvtx_indexeddb
 
 import "bytes"
 
-// prefixUpperBound returns the smallest key above the contiguous prefix range.
-// A nil result means the prefix range has no finite upper bound.
-func prefixUpperBound(prefix []byte) []byte {
-	upper := bytes.Clone(prefix)
-	for idx := len(upper) - 1; idx >= 0; idx-- {
-		if upper[idx] != 0xff {
-			upper[idx]++
-			return upper[:idx+1]
-		}
-	}
-	return nil
-}
-
 // prefixBound identifies which key a prefix range bound is taken from.
 type prefixBound int
 
@@ -47,12 +34,11 @@ type prefixRange struct {
 // caller may Seek to any key, so key is not necessarily inside the prefix
 // range. A key short of the range in the direction of travel clamps to the
 // near bound, while a key past the range leaves nothing to return.
-func buildPrefixRange(prefix, upper, key []byte, reverse bool) prefixRange {
+func buildPrefixRange(prefix, upper []byte, hasUpper bool, key []byte, reverse bool) prefixRange {
 	// full is the whole prefix range, used on the first run and as the clamp.
-	full := prefixRange{lower: prefixBoundPrefix, upper: prefixBoundUpper, upperOpen: true}
-	if upper == nil {
-		// An all-0xFF prefix has no key above it, so the range runs to the end.
-		full.upper, full.upperOpen = prefixBoundNone, false
+	full := prefixRange{lower: prefixBoundPrefix}
+	if hasUpper {
+		full.upper, full.upperOpen = prefixBoundUpper, true
 	}
 	if len(key) == 0 {
 		return full
@@ -62,14 +48,14 @@ func buildPrefixRange(prefix, upper, key []byte, reverse bool) prefixRange {
 		if bytes.Compare(key, prefix) < 0 {
 			return prefixRange{done: true}
 		}
-		if upper != nil && bytes.Compare(key, upper) >= 0 {
+		if hasUpper && bytes.Compare(key, upper) >= 0 {
 			return full
 		}
 		// Resume below key, including key itself so it is read again.
 		return prefixRange{lower: prefixBoundPrefix, upper: prefixBoundKey}
 	}
 
-	if upper != nil && bytes.Compare(key, upper) >= 0 {
+	if hasUpper && bytes.Compare(key, upper) >= 0 {
 		return prefixRange{done: true}
 	}
 	if bytes.Compare(key, prefix) < 0 {

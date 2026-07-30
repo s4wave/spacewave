@@ -46,7 +46,7 @@ func NewIterator(ctx context.Context, tx *Tx, prefix []byte, sort, reverse bool)
 		return it
 	}
 	if len(prefix) != 0 {
-		it.upper, _ = prefixUpperBound(prefix)
+		it.upper, _ = kvtx.PrefixSuccessor(prefix)
 	}
 	return it
 }
@@ -354,17 +354,6 @@ func (i *Iterator) inBounds(key []byte) bool {
 		return false
 	}
 	return true
-}
-
-func prefixUpperBound(prefix []byte) ([]byte, bool) {
-	out := bytes.Clone(prefix)
-	for idx := len(out) - 1; idx >= 0; idx-- {
-		if out[idx] != 0xff {
-			out[idx]++
-			return out[:idx+1], true
-		}
-	}
-	return nil, false
 }
 
 // _ is a type assertion

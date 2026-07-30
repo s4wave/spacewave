@@ -3,7 +3,6 @@ package common
 import (
 	"context"
 	"database/sql"
-	"slices"
 	"strings"
 	"sync"
 
@@ -34,21 +33,23 @@ type Tx struct {
 	finalizeOnce sync.Once
 
 	// Precomputed queries
-	getQuery        string
-	sizeQuery       string
-	setQuery        string
-	scanAllQuery    string
-	scanPrefixQuery string
-	deleteQuery     string
-	existsQuery     string
+	getQuery                 string
+	sizeQuery                string
+	setQuery                 string
+	scanAllQuery             string
+	scanPrefixQuery          string
+	scanPrefixUnboundedQuery string
+	deleteQuery              string
+	existsQuery              string
 }
 
-func buildQueries(table string) (getQuery, sizeQuery, setQuery, scanAllQuery, scanPrefixQuery, deleteQuery, existsQuery string) {
+func buildQueries(table string) (getQuery, sizeQuery, setQuery, scanAllQuery, scanPrefixQuery, scanPrefixUnboundedQuery, deleteQuery, existsQuery string) {
 	getQuery = strings.Join([]string{"SELECT value FROM", table, "WHERE key = ?"}, " ")
 	sizeQuery = strings.Join([]string{"SELECT COUNT(*) FROM", table}, " ")
 	setQuery = strings.Join([]string{"INSERT OR REPLACE INTO", table, "(key, value) VALUES (?, ?)"}, " ")
 	scanAllQuery = strings.Join([]string{"SELECT key, value FROM", table, "ORDER BY key"}, " ")
 	scanPrefixQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? AND key < ? ORDER BY key"}, " ")
+	scanPrefixUnboundedQuery = strings.Join([]string{"SELECT key, value FROM", table, "WHERE key >= ? ORDER BY key"}, " ")
 	deleteQuery = strings.Join([]string{"DELETE FROM", table, "WHERE key = ?"}, " ")
 	existsQuery = strings.Join([]string{"SELECT 1 FROM", table, "WHERE key = ? LIMIT 1"}, " ")
 	return
@@ -56,36 +57,38 @@ func buildQueries(table string) (getQuery, sizeQuery, setQuery, scanAllQuery, sc
 
 // NewTx constructs a new SQLite write transaction.
 func NewTx(txn *sql.Tx, table string, write bool) *Tx {
-	getQuery, sizeQuery, setQuery, scanAllQuery, scanPrefixQuery, deleteQuery, existsQuery := buildQueries(table)
+	getQuery, sizeQuery, setQuery, scanAllQuery, scanPrefixQuery, scanPrefixUnboundedQuery, deleteQuery, existsQuery := buildQueries(table)
 	return &Tx{
-		txn:             txn,
-		queryer:         txn,
-		execer:          txn,
-		table:           table,
-		write:           write,
-		getQuery:        getQuery,
-		sizeQuery:       sizeQuery,
-		setQuery:        setQuery,
-		scanAllQuery:    scanAllQuery,
-		scanPrefixQuery: scanPrefixQuery,
-		deleteQuery:     deleteQuery,
-		existsQuery:     existsQuery,
+		txn:                      txn,
+		queryer:                  txn,
+		execer:                   txn,
+		table:                    table,
+		write:                    write,
+		getQuery:                 getQuery,
+		sizeQuery:                sizeQuery,
+		setQuery:                 setQuery,
+		scanAllQuery:             scanAllQuery,
+		scanPrefixQuery:          scanPrefixQuery,
+		scanPrefixUnboundedQuery: scanPrefixUnboundedQuery,
+		deleteQuery:              deleteQuery,
+		existsQuery:              existsQuery,
 	}
 }
 
 // NewReadTx constructs a lightweight SQLite read handle backed directly by sql.DB.
 func NewReadTx(db *sql.DB, table string) *Tx {
-	getQuery, sizeQuery, setQuery, scanAllQuery, scanPrefixQuery, deleteQuery, existsQuery := buildQueries(table)
+	getQuery, sizeQuery, setQuery, scanAllQuery, scanPrefixQuery, scanPrefixUnboundedQuery, deleteQuery, existsQuery := buildQueries(table)
 	return &Tx{
-		queryer:         db,
-		table:           table,
-		getQuery:        getQuery,
-		sizeQuery:       sizeQuery,
-		setQuery:        setQuery,
-		scanAllQuery:    scanAllQuery,
-		scanPrefixQuery: scanPrefixQuery,
-		deleteQuery:     deleteQuery,
-		existsQuery:     existsQuery,
+		queryer:                  db,
+		table:                    table,
+		getQuery:                 getQuery,
+		sizeQuery:                sizeQuery,
+		setQuery:                 setQuery,
+		scanAllQuery:             scanAllQuery,
+		scanPrefixQuery:          scanPrefixQuery,
+		scanPrefixUnboundedQuery: scanPrefixUnboundedQuery,
+		deleteQuery:              deleteQuery,
+		existsQuery:              existsQuery,
 	}
 }
 
@@ -163,10 +166,12 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 
 	if len(prefix) == 0 {
 		query = t.scanAllQuery
-	} else {
+	} else if upperBound, ok := kvtx.PrefixSuccessor(prefix); ok {
 		query = t.scanPrefixQuery
-		upperBound := CreateUpperBound(prefix)
 		args = []any{prefix, upperBound}
+	} else {
+		query = t.scanPrefixUnboundedQuery
+		args = []any{prefix}
 	}
 
 	rows, err := t.queryer.QueryContext(ctx, query, args...)
@@ -275,26 +280,6 @@ func (t *Tx) Discard() {
 			_ = t.txn.Rollback()
 		}
 	})
-}
-
-// CreateUpperBound creates an upper bound for prefix scanning by incrementing the last byte.
-func CreateUpperBound(prefix []byte) []byte {
-	if len(prefix) == 0 {
-		return nil
-	}
-
-	upperBound := slices.Clone(prefix)
-
-	// Find the rightmost byte that can be incremented
-	for i, v := range slices.Backward(upperBound) {
-		if v < 255 {
-			upperBound[i] = v + 1
-			return upperBound[:i+1]
-		}
-	}
-
-	// All bytes are 255, return nil to indicate no upper bound
-	return nil
 }
 
 // _ is a type assertion

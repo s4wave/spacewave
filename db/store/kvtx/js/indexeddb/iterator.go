@@ -22,12 +22,12 @@ type kvtxIterator struct {
 	// if prefix is set, prefixVal is set
 	prefix    []byte
 	prefixVal safejs.Value
-	// upper is the smallest key above the prefix range, nil if the prefix has
-	// no finite upper bound. If upper is set, upperVal is set.
+	// upper is the smallest key above the prefix range. If upper is set,
+	// upperVal is set.
 	upper    []byte
+	hasUpper bool
 	upperVal safejs.Value
-	// valid indicates the current position is valid
-	valid bool
+	valid    bool
 	// done indicates the iterator ran past its prefix range and has no
 	// further results until the next Seek.
 	done bool
@@ -64,7 +64,7 @@ func BuildKvtxIterator(ctx context.Context, store *durable.DurableObjectStore, p
 
 	if len(prefix) != 0 {
 		it.prefix = bytes.Clone(prefix)
-		it.upper = prefixUpperBound(prefix)
+		it.upper, it.hasUpper = kvtx.PrefixSuccessor(prefix)
 
 		prefixVal, err := jsbuf.CopyBytesToJs(it.prefix)
 		if err != nil {
@@ -72,7 +72,7 @@ func BuildKvtxIterator(ctx context.Context, store *durable.DurableObjectStore, p
 		}
 		it.prefixVal = prefixVal
 
-		if it.upper != nil {
+		if it.hasUpper {
 			upperVal, err := jsbuf.CopyBytesToJs(it.upper)
 			if err != nil {
 				return kvtx.NewErrIterator(err)
@@ -113,7 +113,7 @@ func (it *kvtxIterator) performOp(
 		if req == nil {
 			var keyRng *idb.KeyRange
 			if len(it.prefix) != 0 {
-				rng := buildPrefixRange(it.prefix, it.upper, it.key, it.dir == idb.CursorPreviousUnique)
+				rng := buildPrefixRange(it.prefix, it.upper, it.hasUpper, it.key, it.dir == idb.CursorPreviousUnique)
 				if rng.done {
 					// The resume position lies past the prefix range in the
 					// direction of travel, so there is nothing left to read.
