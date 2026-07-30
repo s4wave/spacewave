@@ -483,7 +483,98 @@ jobs:
           ruby -ryaml <<'RUBY'
           options = Psych::VERSION.to_i >= 4 ? { aliases: true } : {}
           workflow = YAML.load_file(".github/workflows/e2e-nightly.yml", **options)
-          release_jobs = workflow.fetch("jobs").keys.grep(/\Arelease-wasm-(build|smoke)\z/)
-          abort("blocked release-WASM jobs must not be shipped: #{release_jobs.inspect}") unless release_jobs.empty?
-          puts "nightly release-WASM smoke contract: PASS (no release arm shipped)"
+          jobs = workflow.fetch("jobs")
+          build = jobs.fetch("release-wasm-build")
+          smoke = jobs.fetch("release-wasm-smoke")
+
+          step = lambda do |job, name|
+            job.fetch("steps").find { |candidate| candidate["name"] == name } ||
+              abort("missing step #{name.inspect}")
+          end
+
+          [build, smoke].each do |job|
+            strategy = job.fetch("strategy")
+            abort("release-WASM matrices must disable fail-fast") unless strategy["fail-fast"] == false
+          end
+
+          build_matrix = Array(build.fetch("strategy").fetch("matrix").fetch("include"))
+          smoke_matrix = Array(smoke.fetch("strategy").fetch("matrix").fetch("include"))
+          unless build_matrix == smoke_matrix
+            abort("release-WASM build and smoke matrices differ")
+          end
+
+          expected = {
+            "go" => {
+              "build_script" => "build:release:web:e2e:ci",
+              "smoke_script" => "test:go:e2e:release-wasm",
+              "e2e_tinygo" => "",
+              "e2e_goscript" => "",
+              "install_binaryen" => false,
+              "install_tinygo" => false,
+            },
+            "tinygo" => {
+              "build_script" => "build:release:web:e2e:tinygo",
+              "smoke_script" => "test:go:e2e:release-wasm",
+              "e2e_tinygo" => true,
+              "e2e_goscript" => "",
+              "install_binaryen" => true,
+              "install_tinygo" => true,
+            },
+            "goscript" => {
+              "build_script" => "build:release:web:e2e:goscript",
+              "smoke_script" => "test:go:e2e:release-wasm:goscript",
+              "e2e_tinygo" => "",
+              "e2e_goscript" => true,
+              "install_binaryen" => false,
+              "install_tinygo" => false,
+            },
+          }
+          unless build_matrix.all? { |entry| expected.key?(entry.fetch("compiler")) }
+            abort("release-WASM compiler matrix contains an unknown compiler")
+          end
+          build_matrix.each do |entry|
+            compiler = entry.fetch("compiler")
+            unless entry.slice(*expected.fetch(compiler).keys) == expected.fetch(compiler)
+              abort("release-WASM matrix entry for #{compiler.inspect} is incorrect: #{entry.inspect}")
+            end
+          end
+
+          unless smoke.fetch("needs") == "release-wasm-build"
+            abort("release-WASM smoke must consume release-wasm-build")
+          end
+
+          ["Install Binaryen", "Install TinyGo"].each do |name|
+            producer = step.call(build, name)
+            consumer = step.call(smoke, name)
+            unless producer["run"] == consumer["run"]
+              abort("#{name} differs between build and smoke jobs")
+            end
+            unless producer["if"] == consumer["if"]
+              abort("#{name} condition differs between build and smoke jobs")
+            end
+          end
+
+          verify = step.call(smoke, "Verify release-WASM fallback toolchain")
+          unless verify.fetch("if") == "matrix.install_binaryen || matrix.install_tinygo"
+            abort("smoke job must gate fallback toolchain probes on the matrix arm")
+          end
+          unless verify.fetch("run").include?("command -v tinygo") &&
+              verify.fetch("run").include?("command -v wasm-opt")
+            abort("smoke job must probe each required release-WASM toolchain")
+          end
+
+          matrix_expression = "$" + "{{ matrix.compiler }}"
+          smoke_steps = smoke.fetch("steps")
+          verify_index = smoke_steps.index(verify)
+          test_index = smoke_steps.index { |candidate| candidate["name"] == "Run release-WASM #{matrix_expression} browser smoke" }
+          abort("toolchain probe must precede the smoke test") unless verify_index < test_index
+
+          [build, smoke].each do |job|
+            artifact_step = step.call(job, job.equal?(build) ? "Upload release-WASM browser artifact" : "Download release-WASM browser artifact")
+            unless artifact_step.fetch("with").fetch("name").include?(matrix_expression)
+              abort("release-WASM artifact names must include the compiler")
+            end
+          end
+
+          puts "nightly release-WASM smoke contract: PASS"
           RUBY

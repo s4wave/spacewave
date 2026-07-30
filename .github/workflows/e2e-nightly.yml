@@ -76,3 +76,261 @@ jobs:
       - name: Run Nightly E2E electron suite natively
         if: runner.os != 'Linux'
         run: bun run test:go:e2e:electron
+
+  release-wasm-build:
+    name: Nightly E2E (release-wasm build / ${{ matrix.compiler }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include: &release-wasm-compilers
+          - compiler: go
+            build_script: build:release:web:e2e:ci
+            smoke_script: test:go:e2e:release-wasm
+            e2e_tinygo: ''
+            e2e_goscript: ''
+            install_binaryen: false
+            install_tinygo: false
+          # Disabled: TinyGo runtime out-of-memory traps as `unreachable`; nightly run 30514076114 is evidence. This arm returns when TinyGo stops trapping.
+          # - compiler: tinygo
+          #   build_script: build:release:web:e2e:tinygo
+          #   smoke_script: test:go:e2e:release-wasm
+          #   e2e_tinygo: true
+          #   e2e_goscript: ''
+          #   install_binaryen: true
+          #   install_tinygo: true
+          - compiler: goscript
+            build_script: build:release:web:e2e:goscript
+            smoke_script: test:go:e2e:release-wasm:goscript
+            e2e_tinygo: ''
+            e2e_goscript: true
+            install_binaryen: false
+            install_tinygo: false
+    runs-on: ubuntu-latest
+    env:
+      BLDR_WASM_OPT_DIAGNOSTICS_DIR: ${{ github.workspace }}/.tmp/wasm-opt-diagnostics
+      BLDR_GO_WASM_OPTIMIZE: false
+      BLDR_TINYGO_PROFILE: ${{ matrix.compiler == 'tinygo' && 'fast' || '' }}
+      BLDR_TINYGO_GC: ${{ matrix.compiler == 'tinygo' && 'leaking' || '' }}
+      E2E_RELEASE_WASM_BUILD_SCRIPT: ${{ matrix.build_script }}
+      E2E_RELEASE_WASM_TINYGO: ${{ matrix.e2e_tinygo }}
+      E2E_RELEASE_WASM_GOSCRIPT: ${{ matrix.e2e_goscript }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 25.x
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - &release-wasm-install-binaryen
+        if: matrix.install_binaryen
+        name: Install Binaryen
+        shell: bash
+        run: |
+          set -euo pipefail
+          binaryen_tar="binaryen-version_${BINARYEN_VERSION}-x86_64-linux.tar.gz"
+          binaryen_url="https://github.com/WebAssembly/binaryen/releases/download/version_${BINARYEN_VERSION}"
+          wget --quiet "${binaryen_url}/${binaryen_tar}"
+          wget --quiet "${binaryen_url}/${binaryen_tar}.sha256"
+          sha256sum --check "${binaryen_tar}.sha256"
+          mkdir -p "${RUNNER_TEMP}/binaryen"
+          tar -xzf "${binaryen_tar}" -C "${RUNNER_TEMP}/binaryen" --strip-components=1
+          echo "${RUNNER_TEMP}/binaryen/bin" >> "${GITHUB_PATH}"
+          "${RUNNER_TEMP}/binaryen/bin/wasm-opt" --version
+
+      - &release-wasm-install-tinygo
+        if: matrix.install_tinygo
+        name: Install TinyGo
+        shell: bash
+        run: |
+          set -euo pipefail
+          tinygo_deb="tinygo_${TINYGO_VERSION}_amd64.deb"
+          wget --quiet "https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VERSION}/${tinygo_deb}"
+          sudo dpkg -i "${tinygo_deb}"
+          sudo sed -i 's/return t[.]roundTrip(req)/return roundTrip(req)/' /usr/local/lib/tinygo/src/net/http/roundtrip_js.go
+          grep -q 'return roundTrip(req)' /usr/local/lib/tinygo/src/net/http/roundtrip_js.go
+          tinygo version
+
+      - name: Cache aptre tools
+        uses: actions/cache@v6
+        with:
+          path: ./.tools
+          key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
+
+      - name: Setup aptre tools and vendor
+        run: bun run prepare
+
+      - name: Build release-WASM ${{ matrix.compiler }} assets with resource telemetry
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/release-wasm-telemetry
+          {
+            date -u
+            echo "workflow=${GITHUB_WORKFLOW}"
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "sha=${GITHUB_SHA}"
+            echo "compiler=${{ matrix.compiler }}"
+            echo "build_script=${{ matrix.build_script }}"
+            echo "build_sequence=${{ matrix.build_script == 'build:release:web:e2e:ci' && 'assets,dist' || 'core,assets,dist' }}"
+            echo "BLDR_TINYGO_PROFILE=${BLDR_TINYGO_PROFILE}"
+            echo "BLDR_TINYGO_GC=${BLDR_TINYGO_GC}"
+            go version
+            if [[ "${{ matrix.install_tinygo }}" == "true" ]]; then tinygo version; fi
+            bun --version
+            if [[ "${{ matrix.install_binaryen }}" == "true" ]]; then wasm-opt --version; fi
+            df -h
+            free -h || true
+            ulimit -a
+          } | tee .tmp/release-wasm-telemetry/preflight.txt
+          /usr/bin/time -v -o .tmp/release-wasm-telemetry/build-time.txt \
+            bun run "${{ matrix.build_script }}" 2>&1 | tee .tmp/release-wasm-telemetry/build.log
+
+      - name: Build release-WASM prerender artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun run vite build --config app/prerender/vite.hydrate.config.ts
+          bun run vite build --config app/prerender/vite.ssr.config.ts
+          bun ./app/prerender/ssr-dist/build.js --dist-dir .bldr-dist/build/js/spacewave-browser/dist
+          go run ./e2e/releasewasm/cmd/publish-artifact
+
+      - name: Collect release-WASM build telemetry
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/release-wasm-telemetry
+          {
+            date -u
+            df -h
+            free -h || true
+          } > .tmp/release-wasm-telemetry/postflight.txt
+          if [ -d .bldr-dist ]; then
+            find .bldr-dist -type f \( -name '*.wasm' -o -name '*.wasm.gz' \) -print0 \
+              | xargs -0 --no-run-if-empty du -h \
+              | sort -h > .tmp/release-wasm-telemetry/wasm-sizes.txt
+          else
+            : > .tmp/release-wasm-telemetry/wasm-sizes.txt
+          fi
+          if [ -d .bldr-dist/build/js/spacewave-browser/dist ] || [ -d app/prerender/dist ]; then
+            find .bldr-dist/build/js/spacewave-browser/dist app/prerender/dist -type f -printf '%s %p\n' \
+              > .tmp/release-wasm-telemetry/browser-artifact-files.txt 2>/dev/null || true
+          else
+            : > .tmp/release-wasm-telemetry/browser-artifact-files.txt
+          fi
+
+      - name: Upload release-WASM build telemetry
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nightly-release-wasm-build-telemetry-${{ matrix.compiler }}-${{ github.run_id }}
+          path: |
+            .tmp/release-wasm-telemetry
+            .tmp/wasm-opt-diagnostics
+          include-hidden-files: true
+          if-no-files-found: warn
+
+      - name: Upload release-WASM browser artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: nightly-release-wasm-browser-${{ matrix.compiler }}-${{ github.run_id }}
+          path: .bldr/e2e-releasewasm/release-artifacts
+          include-hidden-files: true
+          if-no-files-found: error
+
+  release-wasm-smoke:
+    name: Nightly E2E (release-wasm smoke / ${{ matrix.compiler }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include: *release-wasm-compilers
+    runs-on: ubuntu-latest
+    needs: release-wasm-build
+    env:
+      ENABLE_E2E_RELEASE_WASM: true
+      BLDR_GO_WASM_OPTIMIZE: false
+      BLDR_TINYGO_PROFILE: ${{ matrix.compiler == 'tinygo' && 'fast' || '' }}
+      BLDR_TINYGO_GC: ${{ matrix.compiler == 'tinygo' && 'leaking' || '' }}
+      E2E_RELEASE_WASM_BUILD_SCRIPT: ${{ matrix.build_script }}
+      E2E_RELEASE_WASM_TINYGO: ${{ matrix.e2e_tinygo }}
+      E2E_RELEASE_WASM_GOSCRIPT: ${{ matrix.e2e_goscript }}
+      E2E_RELEASE_WASM_BROWSER: chromium
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 25.x
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - *release-wasm-install-binaryen
+
+      - *release-wasm-install-tinygo
+
+      - name: Verify release-WASM fallback toolchain
+        if: matrix.install_binaryen || matrix.install_tinygo
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ matrix.install_tinygo }}" == "true" ]]; then
+            command -v tinygo
+            tinygo version
+          fi
+          if [[ "${{ matrix.install_binaryen }}" == "true" ]]; then
+            command -v wasm-opt
+            wasm-opt --version
+          fi
+
+      - name: Install Playwright browsers
+        run: go run github.com/mxschmitt/playwright-go/cmd/playwright install --with-deps chromium
+
+      - name: Cache aptre tools
+        uses: actions/cache@v6
+        with:
+          path: ./.tools
+          key: ${{ runner.os }}-aptre-tools-${{ hashFiles('**/go.sum') }}
+
+      - name: Setup aptre tools and vendor
+        run: bun run prepare
+
+      - name: Download release-WASM browser artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: nightly-release-wasm-browser-${{ matrix.compiler }}-${{ github.run_id }}
+          path: .bldr/e2e-releasewasm/release-artifacts
+
+      - name: Run release-WASM ${{ matrix.compiler }} browser smoke
+        run: bun run "${{ matrix.smoke_script }}"
+
+      - name: Upload release-WASM smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nightly-release-wasm-smoke-artifacts-${{ matrix.compiler }}-${{ github.run_id }}
+          path: .bldr/e2e-releasewasm/artifacts
+          include-hidden-files: true
+          if-no-files-found: warn
