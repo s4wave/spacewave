@@ -52,7 +52,8 @@ func RunTransactionWithRetry[T TransactionLifecycle](
 	body func(context.Context, T) error,
 	retry RetryPredicate,
 ) error {
-	for attempt := range transactionAttemptLimit {
+	for range transactionAttemptLimit {
+		// Cancellation between attempts must win before another transaction opens.
 		if err := ctx.Err(); err != nil {
 			return err
 		}
@@ -61,12 +62,12 @@ func RunTransactionWithRetry[T TransactionLifecycle](
 		if err == nil {
 			return nil
 		}
-		if !retry(err) || attempt == transactionAttemptLimit-1 {
+		if !retry(err) {
 			return err
 		}
 	}
 
-	return nil
+	return errors.New("kvtx transaction attempt limit exhausted")
 }
 
 func runTransactionAttempt[T TransactionLifecycle](
@@ -75,22 +76,20 @@ func runTransactionAttempt[T TransactionLifecycle](
 	open func(context.Context) (T, error),
 	body func(context.Context, T) error,
 ) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
 	tx, err := open(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Discard()
 
+	// Opening may cancel the context while still returning a live transaction.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if err := body(ctx, tx); err != nil {
 		return err
 	}
+	// Body cancellation must prevent a write from committing partial work.
 	if err := ctx.Err(); err != nil {
 		return err
 	}

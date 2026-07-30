@@ -136,11 +136,12 @@ func TestRunTransactionDiscardsBodyErrorWithoutCommit(t *testing.T) {
 	}
 }
 
-func TestRunTransactionStopsAtAttemptBound(t *testing.T) {
+func TestRunTransactionReturnsExhaustionErrorAtAttemptBound(t *testing.T) {
 	var events []string
 	var opened int
+	bodyErr := errors.New("body failed")
 
-	err := RunTransaction(
+	err := RunTransactionWithRetry(
 		context.Background(),
 		false,
 		func(context.Context) (*retryTestTx, error) {
@@ -148,11 +149,17 @@ func TestRunTransactionStopsAtAttemptBound(t *testing.T) {
 			return &retryTestTx{id: opened, events: &events}, nil
 		},
 		func(context.Context, *retryTestTx) error {
-			return ErrInvalidSnapshot
+			return bodyErr
+		},
+		func(error) bool {
+			return true
 		},
 	)
-	if !errors.Is(err, ErrInvalidSnapshot) {
-		t.Fatalf("error = %v, want ErrInvalidSnapshot", err)
+	if err == nil || err.Error() != "kvtx transaction attempt limit exhausted" {
+		t.Fatalf("error = %v, want transaction attempt limit exhaustion", err)
+	}
+	if errors.Is(err, bodyErr) {
+		t.Fatalf("error = %v, want exhaustion error instead of last body error", err)
 	}
 	if opened != transactionAttemptLimit {
 		t.Fatalf("opened = %d, want %d", opened, transactionAttemptLimit)
@@ -162,7 +169,61 @@ func TestRunTransactionStopsAtAttemptBound(t *testing.T) {
 	}
 }
 
-func TestRunTransactionCancellationStopsRetry(t *testing.T) {
+func TestRunTransactionCancellationBeforeOpen(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	opened := 0
+	err := RunTransaction(
+		ctx,
+		true,
+		func(context.Context) (*retryTestTx, error) {
+			opened++
+			return &retryTestTx{events: new([]string)}, nil
+		},
+		func(context.Context, *retryTestTx) error {
+			t.Fatal("body called after cancellation")
+			return nil
+		},
+	)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("error = %v, want context.Canceled", err)
+	}
+	if opened != 0 {
+		t.Fatalf("opened = %d, want 0", opened)
+	}
+}
+
+func TestRunTransactionCancellationDuringOpenSkipsBody(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var events []string
+	bodyCalled := false
+	err := RunTransaction(
+		ctx,
+		true,
+		func(context.Context) (*retryTestTx, error) {
+			cancel()
+			return &retryTestTx{id: 1, events: &events}, nil
+		},
+		func(context.Context, *retryTestTx) error {
+			bodyCalled = true
+			return nil
+		},
+	)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("error = %v, want context.Canceled", err)
+	}
+	if bodyCalled {
+		t.Fatal("body called after open canceled the context")
+	}
+	if len(events) != 1 || events[0] != "discard:1" {
+		t.Fatalf("events = %v, want one discard", events)
+	}
+}
+
+func TestRunTransactionCancellationDuringBodySkipsCommit(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -176,8 +237,9 @@ func TestRunTransactionCancellationStopsRetry(t *testing.T) {
 			return &retryTestTx{id: opened, events: &events}, nil
 		},
 		func(context.Context, *retryTestTx) error {
+			events = append(events, "body:1")
 			cancel()
-			return ErrInvalidSnapshot
+			return nil
 		},
 	)
 	if !errors.Is(err, context.Canceled) {
@@ -186,8 +248,8 @@ func TestRunTransactionCancellationStopsRetry(t *testing.T) {
 	if opened != 1 {
 		t.Fatalf("opened = %d, want 1", opened)
 	}
-	if len(events) != 1 || events[0] != "discard:1" {
-		t.Fatalf("events = %v, want one discard", events)
+	if len(events) != 2 || events[0] != "body:1" || events[1] != "discard:1" {
+		t.Fatalf("events = %v, want body then discard", events)
 	}
 }
 
