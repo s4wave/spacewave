@@ -1,3 +1,8 @@
+// Package kvtx_kvtest contains shared transaction behavior tests and fixtures.
+//
+// Matrix rule: use FaultStore for portable replay coverage. Add a backend-native
+// stale trigger only when it proves a producer or runtime behavior that this
+// seam cannot exercise.
 package kvtx_kvtest
 
 import (
@@ -19,7 +24,8 @@ const (
 // FaultStore wraps a real store and injects one typed transaction failure.
 // Every transaction is opened by the wrapped store. The transaction wrapper
 // embeds the real transaction so operations outside the selected boundary are
-// delegated unchanged.
+// delegated unchanged. Its counters let tests reject helper-only mocks that
+// skip backend opening or body execution.
 type FaultStore struct {
 	store    kvtx.Store
 	boundary FaultBoundary
