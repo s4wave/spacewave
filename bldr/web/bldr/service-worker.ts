@@ -947,7 +947,14 @@ async function matchStaticPluginAsset(
   if (!response || activePluginRoots.get(asset.pluginId) !== asset.rootHash) {
     return null
   }
-  return responseForMethod(request, response)
+  const cachedResponse = responseForMethod(request, response)
+  const headers = new Headers(cachedResponse.headers)
+  headers.set('X-Bldr-Plugin-Asset-Cache', 'generation')
+  return new Response(cachedResponse.body, {
+    status: cachedResponse.status,
+    statusText: cachedResponse.statusText,
+    headers,
+  })
 }
 
 // Static plugin assets are warm-cached by promoted browser-release generation.

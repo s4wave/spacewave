@@ -19,7 +19,7 @@ func TestReturnVisitorStaticPluginAssetCache(t *testing.T) {
 
 	WaitForDriveReady(t, h, page)
 	pluginAssetURL := serviceWorkerRestartPluginAssetURL(t, page)
-	assertStaticPluginAssetFetch(t, page, pluginAssetURL, "initial visitor")
+	assertStaticPluginAssetFetch(t, page, pluginAssetURL, "initial visitor", "")
 
 	if err := sess.ReplacePageInCurrentContext(); err != nil {
 		t.Fatalf("replace return-visitor page: %v", err)
@@ -29,7 +29,7 @@ func TestReturnVisitorStaticPluginAssetCache(t *testing.T) {
 	}
 	page = sess.Page()
 	WaitForApp(t, page)
-	assertStaticPluginAssetFetch(t, page, pluginAssetURL, "return visitor")
+	assertStaticPluginAssetFetch(t, page, pluginAssetURL, "return visitor", "generation")
 }
 
 func assertStaticPluginAssetFetch(
@@ -37,12 +37,14 @@ func assertStaticPluginAssetFetch(
 	page playwright.Page,
 	url string,
 	label string,
+	wantCacheProvenance string,
 ) {
 	t.Helper()
 	raw, err := page.Evaluate(`async (arg) => {
 		const [url, label] = arg
 		const response = await fetch(url)
 		return {
+			cacheProvenance: response.headers.get('X-Bldr-Plugin-Asset-Cache'),
 			ok: response.ok,
 			status: response.status,
 			label,
@@ -57,7 +59,9 @@ func assertStaticPluginAssetFetch(
 	}
 	if stringField(result, "label") != label ||
 		intField(result, "status") != 200 ||
-		!boolField(result, "ok") {
+		!boolField(result, "ok") ||
+		(wantCacheProvenance != "" &&
+			stringField(result, "cacheProvenance") != wantCacheProvenance) {
 		t.Fatalf("static plugin asset fetch failed %s: %#v", label, result)
 	}
 }
