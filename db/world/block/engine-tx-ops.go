@@ -2,10 +2,8 @@ package world_block
 
 import (
 	"context"
-	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/coord"
@@ -292,20 +290,7 @@ func (e *EngineTx) refreshReadSnapshot(ctx context.Context) error {
 }
 
 func isCoordinatedWriteSnapshotError(err error) bool {
-	if err == nil {
-		return false
-	}
-	if errors.Is(err, block.ErrNotFound) {
-		return true
-	}
-	if errors.Is(err, kvtx.ErrInvalidSnapshot) {
-		return true
-	}
-	msg := err.Error()
-	return strings.Contains(msg, "panic: page ") ||
-		strings.Contains(msg, "panic: invalid page type") ||
-		strings.Contains(msg, "misplaced bucket header") ||
-		strings.Contains(msg, "circular dependency occurred")
+	return err != nil && errors.Is(err, kvtx.ErrInvalidSnapshot)
 }
 
 // _ is a type assertion
