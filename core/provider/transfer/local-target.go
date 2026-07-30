@@ -9,6 +9,7 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/volume"
 )
@@ -86,17 +87,15 @@ func (t *LocalTransferTarget) WriteSharedObjectState(ctx context.Context, shared
 		return err
 	}
 
-	otx, err := objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer otx.Discard()
-
 	key := provider_local.SobjectObjectStoreHostStateKey(sharedObjectID)
-	if err := otx.Set(ctx, key, data); err != nil {
-		return err
-	}
-	return otx.Commit(ctx)
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			return tx.Set(ctx, key, data)
+		},
+	)
 }
 
 // buildObjectStore builds an object store handle for the target account.

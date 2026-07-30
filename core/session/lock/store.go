@@ -3,6 +3,7 @@ package session_lock
 import (
 	"context"
 
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
 )
 
@@ -34,89 +35,92 @@ func MakeKey(sessionID string, suffix []byte) []byte {
 // ReadLockMode checks ObjectStore to determine lock mode.
 // Returns PIN_ENCRYPTED if lock-params exists, AUTO_UNLOCK otherwise.
 func ReadLockMode(ctx context.Context, objStore object.ObjectStore, sessionID string) (SessionLockMode, error) {
-	otx, err := objStore.NewTransaction(ctx, false)
-	if err != nil {
-		return 0, err
-	}
-	defer otx.Discard()
-
-	_, found, err := otx.Get(ctx, MakeKey(sessionID, SuffixLockParams))
-	if err != nil {
-		return 0, err
-	}
-	if found {
-		return SessionLockMode_PIN_ENCRYPTED, nil
-	}
-	return SessionLockMode_AUTO_UNLOCK, nil
+	var mode = SessionLockMode_AUTO_UNLOCK
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			_, found, err := tx.Get(ctx, MakeKey(sessionID, SuffixLockParams))
+			if err != nil {
+				return err
+			}
+			if found {
+				mode = SessionLockMode_PIN_ENCRYPTED
+			}
+			return nil
+		},
+	)
+	return mode, err
 }
 
 // ReadAutoUnlockKey reads the encrypted privkey for auto-unlock mode.
 func ReadAutoUnlockKey(ctx context.Context, objStore object.ObjectStore, sessionID string) ([]byte, bool, error) {
-	otx, err := objStore.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, false, err
-	}
-	defer otx.Discard()
-	return otx.Get(ctx, MakeKey(sessionID, SuffixPK))
+	var (
+		data  []byte
+		found bool
+	)
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			var err error
+			data, found, err = tx.Get(ctx, MakeKey(sessionID, SuffixPK))
+			return err
+		},
+	)
+	return data, found, err
 }
 
 // ReadPINLockFiles reads the encrypted privkey, encrypted symkey, and lock config.
 func ReadPINLockFiles(ctx context.Context, objStore object.ObjectStore, sessionID string) (encPriv, encSymKey []byte, config *LockConfig, err error) {
-	otx, err := objStore.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	defer otx.Discard()
+	err = kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			var found bool
+			encPriv, found, err = tx.Get(ctx, MakeKey(sessionID, SuffixLocked))
+			if err != nil || !found {
+				return err
+			}
 
-	encPriv, found, err := otx.Get(ctx, MakeKey(sessionID, SuffixLocked))
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	if !found {
-		return nil, nil, nil, nil
-	}
+			encSymKey, found, err = tx.Get(ctx, MakeKey(sessionID, SuffixLockKey))
+			if err != nil || !found {
+				return err
+			}
 
-	encSymKey, found, err = otx.Get(ctx, MakeKey(sessionID, SuffixLockKey))
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	if !found {
-		return nil, nil, nil, nil
-	}
+			var configData []byte
+			configData, found, err = tx.Get(ctx, MakeKey(sessionID, SuffixLockParams))
+			if err != nil || !found {
+				return err
+			}
 
-	configData, found, err := otx.Get(ctx, MakeKey(sessionID, SuffixLockParams))
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	if !found {
-		return nil, nil, nil, nil
-	}
-
-	config = &LockConfig{}
-	if err := config.UnmarshalVT(configData); err != nil {
-		return nil, nil, nil, err
-	}
-
-	return encPriv, encSymKey, config, nil
+			config = &LockConfig{}
+			return config.UnmarshalVT(configData)
+		},
+	)
+	return
 }
 
 // WriteAutoUnlock writes encrypted privkey for auto-unlock mode and deletes
 // any PIN lock files.
 func WriteAutoUnlock(ctx context.Context, objStore object.ObjectStore, sessionID string, encPriv []byte) error {
-	otx, err := objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer otx.Discard()
-
-	if err := otx.Set(ctx, MakeKey(sessionID, SuffixPK), encPriv); err != nil {
-		return err
-	}
-	// Delete PIN lock files (mode switch).
-	_ = otx.Delete(ctx, MakeKey(sessionID, SuffixLocked))
-	_ = otx.Delete(ctx, MakeKey(sessionID, SuffixLockKey))
-	_ = otx.Delete(ctx, MakeKey(sessionID, SuffixLockParams))
-	return otx.Commit(ctx)
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			if err := tx.Set(ctx, MakeKey(sessionID, SuffixPK), encPriv); err != nil {
+				return err
+			}
+			_ = tx.Delete(ctx, MakeKey(sessionID, SuffixLocked))
+			_ = tx.Delete(ctx, MakeKey(sessionID, SuffixLockKey))
+			_ = tx.Delete(ctx, MakeKey(sessionID, SuffixLockParams))
+			return nil
+		},
+	)
 }
 
 // WritePINLock writes PIN-encrypted lock files and deletes auto-unlock /pk file.
@@ -126,35 +130,34 @@ func WritePINLock(ctx context.Context, objStore object.ObjectStore, sessionID st
 		return err
 	}
 
-	otx, err := objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer otx.Discard()
-
-	if err := otx.Set(ctx, MakeKey(sessionID, SuffixLocked), encPriv); err != nil {
-		return err
-	}
-	if err := otx.Set(ctx, MakeKey(sessionID, SuffixLockKey), encSymKey); err != nil {
-		return err
-	}
-	if err := otx.Set(ctx, MakeKey(sessionID, SuffixLockParams), configBytes); err != nil {
-		return err
-	}
-	// Delete auto-unlock file.
-	_ = otx.Delete(ctx, MakeKey(sessionID, SuffixPK))
-	return otx.Commit(ctx)
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			if err := tx.Set(ctx, MakeKey(sessionID, SuffixLocked), encPriv); err != nil {
+				return err
+			}
+			if err := tx.Set(ctx, MakeKey(sessionID, SuffixLockKey), encSymKey); err != nil {
+				return err
+			}
+			if err := tx.Set(ctx, MakeKey(sessionID, SuffixLockParams), configBytes); err != nil {
+				return err
+			}
+			_ = tx.Delete(ctx, MakeKey(sessionID, SuffixPK))
+			return nil
+		},
+	)
 }
 
 // WriteEnvelope writes the Shamir envelope bytes to ObjectStore.
 func WriteEnvelope(ctx context.Context, objStore object.ObjectStore, sessionID string, envData []byte) error {
-	otx, err := objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer otx.Discard()
-	if err := otx.Set(ctx, MakeKey(sessionID, SuffixEnvelope), envData); err != nil {
-		return err
-	}
-	return otx.Commit(ctx)
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			return tx.Set(ctx, MakeKey(sessionID, SuffixEnvelope), envData)
+		},
+	)
 }

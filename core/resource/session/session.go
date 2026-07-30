@@ -31,6 +31,7 @@ import (
 	"github.com/s4wave/spacewave/core/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 	kvtx_volume "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	"github.com/s4wave/spacewave/db/world"
@@ -1008,37 +1009,50 @@ func (r *SessionResource) DeleteAccount(ctx context.Context, req *s4wave_session
 	// Collect linked-cloud account IDs before deleting keys.
 	var linkedCloudAccountIDs []string
 	if providerID == "local" {
-		rtx, err := objStore.NewTransaction(ctx, false)
-		if err == nil {
-			for _, entry := range accountSessions {
-				sid := entry.GetSessionRef().GetProviderResourceRef().GetId()
-				key := provider_local.LinkedCloudKey(sid)
-				data, found, gerr := rtx.Get(ctx, key)
-				if gerr == nil && found && len(data) > 0 {
-					linkedCloudAccountIDs = append(linkedCloudAccountIDs, string(data))
+		var attemptLinkedCloudAccountIDs []string
+		err := kvtx.RunTransaction(ctx, false,
+			func(ctx context.Context) (kvtx.Tx, error) {
+				return objStore.NewTransaction(ctx, false)
+			},
+			func(ctx context.Context, tx kvtx.Tx) error {
+				attemptLinkedCloudAccountIDs = nil
+				for _, entry := range accountSessions {
+					sid := entry.GetSessionRef().GetProviderResourceRef().GetId()
+					key := provider_local.LinkedCloudKey(sid)
+					data, found, err := tx.Get(ctx, key)
+					if err != nil {
+						return err
+					}
+					if found && len(data) > 0 {
+						attemptLinkedCloudAccountIDs = append(
+							attemptLinkedCloudAccountIDs,
+							string(data),
+						)
+					}
 				}
-			}
-			rtx.Discard()
+				return nil
+			},
+		)
+		if err == nil {
+			linkedCloudAccountIDs = attemptLinkedCloudAccountIDs
 		}
 	}
 
 	// Clean all session keys in the ObjectStore.
 	for _, entry := range accountSessions {
 		sid := entry.GetSessionRef().GetProviderResourceRef().GetId()
-		tx, err := objStore.NewTransaction(ctx, true)
-		if err != nil {
-			return nil, errors.Wrap(err, "open transaction for session key cleanup")
-		}
 		prefix := []byte(sid + "/")
-		if err := tx.ScanPrefixKeys(ctx, prefix, func(key []byte) error {
-			return tx.Delete(ctx, key)
-		}); err != nil {
-			tx.Discard()
+		if err := kvtx.RunTransaction(ctx, true,
+			func(ctx context.Context) (kvtx.Tx, error) {
+				return objStore.NewTransaction(ctx, true)
+			},
+			func(ctx context.Context, tx kvtx.Tx) error {
+				return tx.ScanPrefixKeys(ctx, prefix, func(key []byte) error {
+					return tx.Delete(ctx, key)
+				})
+			},
+		); err != nil {
 			return nil, errors.Wrap(err, "scan and delete session keys")
-		}
-		if err := tx.Commit(ctx); err != nil {
-			tx.Discard()
-			return nil, errors.Wrap(err, "commit session key cleanup")
 		}
 	}
 
