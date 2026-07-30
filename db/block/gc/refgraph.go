@@ -297,10 +297,88 @@ func (rg *RefGraph) prepareRefBatch(
 	adds, removes []RefEdge,
 	markOrphaned bool,
 ) ([]RefEdge, []RefEdge, error) {
+	if _, ok := graph.Unwrap(rg.handle.QuadStore).(*cayley_kv.QuadStore); ok {
+		return rg.prepareNativeRefBatch(ctx, adds, removes, markOrphaned)
+	}
+
 	removes, err := rg.filterExistingRemoves(ctx, adds, removes)
 	if err != nil {
 		return nil, nil, err
 	}
+	return rg.prepareOrphanMarks(ctx, adds, removes, markOrphaned)
+}
+
+func (rg *RefGraph) prepareNativeRefBatch(
+	ctx context.Context,
+	adds, removes []RefEdge,
+	markOrphaned bool,
+) ([]RefEdge, []RefEdge, error) {
+	if !markOrphaned || len(removes) == 0 {
+		return adds, removes, nil
+	}
+
+	type ownerState struct {
+		owners  map[string]struct{}
+		hadEdge bool
+	}
+	owners := make(map[string]ownerState)
+	stagingRemoves := make(map[string]struct{})
+	for _, edge := range removes {
+		if edge.Subject == NodeUnreferenced {
+			stagingRemoves[edge.Object] = struct{}{}
+			continue
+		}
+		if IsPermanentRoot(edge.Object) {
+			continue
+		}
+		if _, ok := owners[edge.Object]; ok {
+			continue
+		}
+		sources, err := rg.GetIncomingRefs(ctx, edge.Object)
+		if err != nil {
+			return nil, nil, err
+		}
+		set := make(map[string]struct{}, len(sources))
+		for _, source := range sources {
+			if source != NodeUnreferenced {
+				set[source] = struct{}{}
+			}
+		}
+		owners[edge.Object] = ownerState{owners: set}
+	}
+
+	for _, edge := range adds {
+		if state, ok := owners[edge.Object]; ok && edge.Subject != NodeUnreferenced {
+			state.owners[edge.Subject] = struct{}{}
+			owners[edge.Object] = state
+		}
+	}
+	for _, edge := range removes {
+		if state, ok := owners[edge.Object]; ok {
+			if _, exists := state.owners[edge.Subject]; exists {
+				state.hadEdge = true
+				delete(state.owners, edge.Subject)
+				owners[edge.Object] = state
+			}
+		}
+	}
+	for object, state := range owners {
+		if !state.hadEdge || len(state.owners) != 0 {
+			continue
+		}
+		if _, removingStaging := stagingRemoves[object]; removingStaging {
+			continue
+		}
+		adds = append(adds, RefEdge{Subject: NodeUnreferenced, Object: object})
+	}
+	return adds, removes, nil
+}
+
+func (rg *RefGraph) prepareOrphanMarks(
+	ctx context.Context,
+	adds, removes []RefEdge,
+	markOrphaned bool,
+) ([]RefEdge, []RefEdge, error) {
 	if !markOrphaned || len(removes) == 0 {
 		return adds, removes, nil
 	}
