@@ -15,6 +15,9 @@ func (s *CoreRootServer) getStateAtomStoreIndex(
 ) (*session.StateAtomStoreIndex, error) {
 	s.stateAtomStoreIndexMtx.Lock()
 	defer s.stateAtomStoreIndexMtx.Unlock()
+	if s.stateAtomStoreClosed {
+		return nil, errors.New("root resource server is closed")
+	}
 
 	if s.stateAtomStoreIndex != nil {
 		return s.stateAtomStoreIndex, nil
@@ -35,6 +38,19 @@ func (s *CoreRootServer) getStateAtomStoreIndex(
 	s.stateAtomStoreIndex = session.NewStateAtomStoreIndex(objStoreHandle.GetObjectStore())
 	s.releaseStateAtomStoreIndex = diRef.Release
 	return s.stateAtomStoreIndex, nil
+}
+
+func (s *CoreRootServer) closeStateAtomStoreIndex() {
+	s.stateAtomStoreIndexMtx.Lock()
+	s.stateAtomStoreClosed = true
+	release := s.releaseStateAtomStoreIndex
+	s.stateAtomStoreIndex = nil
+	s.releaseStateAtomStoreIndex = nil
+	s.stateAtomStoreIndexMtx.Unlock()
+
+	if release != nil {
+		release()
+	}
 }
 
 // WatchStateAtoms streams the known root state atom store ids on change.

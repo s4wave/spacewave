@@ -35,6 +35,8 @@ type CoreRootServer struct {
 	stateAtomStoreIndex *session.StateAtomStoreIndex
 	// releaseStateAtomStoreIndex releases the root object store handle.
 	releaseStateAtomStoreIndex func()
+	// stateAtomStoreClosed rejects lazy store acquisition after shutdown.
+	stateAtomStoreClosed bool
 	// cdnRegistry owns the process-scoped map of CdnInstances.
 	cdnRegistry *resource_cdn.Registry
 	// webListeners owns daemon-background localhost web listeners.
@@ -70,6 +72,7 @@ func (s *CoreRootServer) Close() {
 	if s.cdnRegistry != nil {
 		s.cdnRegistry.Close()
 	}
+	s.closeStateAtomStoreIndex()
 }
 
 // Register registers the server with the mux.
