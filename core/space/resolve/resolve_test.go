@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
@@ -17,16 +18,16 @@ import (
 	"github.com/s4wave/spacewave/testbed"
 )
 
-// TestResolveSpaceReturnsEngine tests that ResolveSpace resolves a session
-// index and shared object ID to a running world engine using the full
-// mounting chain with a real in-memory testbed.
-func TestResolveSpaceReturnsEngine(t *testing.T) {
+// TestResolveSpaceRetainsEngineMount tests that ResolveSpace keeps the mounted
+// world engine alive until its cleanup function releases the mount reference.
+func TestResolveSpaceRetainsEngineMount(t *testing.T) {
 	ctx := context.Background()
 
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer tb.Release()
 
 	peerID := tb.Volume.GetPeerID()
 
@@ -112,10 +113,17 @@ func TestResolveSpaceReturnsEngine(t *testing.T) {
 	}
 
 	engineID := space.SpaceEngineId(soRef)
-	mounted, mountRef, err := space.ExMountSpaceSoBody(ctx, tb.Bus, soRef, false, nil)
+	attachedMount, mountInstance, mountRef, err := bus.ExecOneOffTyped[space.MountSharedObjectBodyValue](
+		ctx,
+		tb.Bus,
+		sobject.NewMountSharedObjectBody(soRef, space.SpaceBodyType),
+		bus.ReturnIfIdle(false),
+		nil,
+	)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	mounted := attachedMount.GetValue()
 	if mounted.GetSharedObjectBody().GetWorldEngineID() != engineID {
 		t.Fatalf("expected mounted engine ID %q, got %q", engineID, mounted.GetSharedObjectBody().GetWorldEngineID())
 	}
@@ -149,4 +157,9 @@ func TestResolveSpaceReturnsEngine(t *testing.T) {
 		t.Fatalf("use engine after unrelated mount release: %v", err)
 	}
 	tx.Discard()
+
+	cleanup()
+	if !mountInstance.CloseIfUnreferenced(true) {
+		t.Fatal("ResolveSpace cleanup did not release the space body mount")
+	}
 }
