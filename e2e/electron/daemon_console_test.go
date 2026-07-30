@@ -55,7 +55,11 @@ func TestDesktopDaemonConsoleKeepsCLIReachableWithoutWindows(t *testing.T) {
 	if !strings.Contains(stdout, `"status":"running"`) {
 		t.Fatalf("status output missing running state: %s", stdout)
 	}
-	if !strings.Contains(stdout, h.CLISocketPath()) {
+	expectedSocketPath := h.CLISocketPath()
+	if runtime.GOOS == "windows" {
+		expectedSocketPath = strings.ReplaceAll(expectedSocketPath, `\`, `\\`)
+	}
+	if !strings.Contains(stdout, expectedSocketPath) {
 		t.Fatalf("status output missing socket path %q: %s", h.CLISocketPath(), stdout)
 	}
 
