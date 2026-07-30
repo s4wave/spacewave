@@ -47,7 +47,7 @@ type Controller struct {
 	// webPkgs is the list of web pkg trackers.
 	webPkgs *keyed.KeyedRefCount[string, *webPkgTracker]
 	// routines owns tracker execution after Execute returns.
-	routines routineGroup
+	routines web_pkg.RoutineGroup
 	// releaseDelay controls retention after a resolver releases a tracker.
 	releaseDelay time.Duration
 	// lifecycleMtx guards shutdown and delayed releases.
@@ -99,7 +99,7 @@ func NewController(
 	c.webPkgs = keyed.NewKeyedRefCount(
 		func(key string) (keyed.Routine, *webPkgTracker) {
 			r, tracker := c.newWebPkgTracker(key)
-			return c.routines.wrap(r), tracker
+			return c.routines.Wrap(r), tracker
 		},
 		keyed.WithExitLogger[string, *webPkgTracker](le),
 		keyed.WithBackoff[string, *webPkgTracker](func(k string) cbackoff.BackOff {
@@ -226,12 +226,12 @@ func (c *Controller) Close() error {
 	c.closed = true
 	c.closeDone = make(chan struct{})
 	done := c.closeDone
-	c.routines.stopAccepting()
+	c.routines.StopAccepting()
 	c.lifecycleMtx.Unlock()
 
 	c.webPkgs.ClearContext()
 	c.stopDelayedReleases()
-	c.routines.wait()
+	c.routines.Wait()
 	c.delayedWG.Wait()
 	close(done)
 	return nil

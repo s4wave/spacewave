@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
+	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
@@ -53,53 +54,13 @@ type Controller struct {
 	// conf is the current controller config
 	conf atomic.Pointer[Config]
 	// routines owns the post-Execute tracker and startup lifetimes.
-	routines routineGroup
+	routines web_pkg.RoutineGroup
 	// lifecycleMtx guards close state and closeDone.
 	lifecycleMtx sync.Mutex
 	// closed rejects work after shutdown begins.
 	closed bool
 	// closeDone closes after all owned routines have stopped.
 	closeDone chan struct{}
-}
-
-type routineGroup struct {
-	mtx    sync.Mutex
-	wg     sync.WaitGroup
-	closed bool
-}
-
-func (g *routineGroup) wrap(r func(context.Context) error) func(context.Context) error {
-	return func(ctx context.Context) error {
-		if !g.begin() {
-			return context.Canceled
-		}
-		defer g.done()
-		return r(ctx)
-	}
-}
-
-func (g *routineGroup) begin() bool {
-	g.mtx.Lock()
-	defer g.mtx.Unlock()
-	if g.closed {
-		return false
-	}
-	g.wg.Add(1)
-	return true
-}
-
-func (g *routineGroup) done() {
-	g.wg.Done()
-}
-
-func (g *routineGroup) stopAccepting() {
-	g.mtx.Lock()
-	g.closed = true
-	g.mtx.Unlock()
-}
-
-func (g *routineGroup) wait() {
-	g.wg.Wait()
 }
 
 var errControllerClosed = errors.New("bldr project controller is closed")
@@ -115,7 +76,7 @@ func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
 	ctrl.manifestBuilders = keyed.NewKeyedRefCountWithLogger(
 		func(key string) (keyed.Routine, *manifestBuilderTracker) {
 			r, tracker := ctrl.newManifestBuilderTracker(key)
-			return ctrl.routines.wrap(r), tracker
+			return ctrl.routines.Wrap(r), tracker
 		},
 		le,
 		keyed.WithRetry[string, *manifestBuilderTracker](buildBackoff),
@@ -123,7 +84,7 @@ func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
 	ctrl.remotes = keyed.NewKeyedRefCountWithLogger(
 		func(key string) (keyed.Routine, *remoteTracker) {
 			r, tracker := ctrl.newRemoteTracker(key)
-			return ctrl.routines.wrap(r), tracker
+			return ctrl.routines.Wrap(r), tracker
 		},
 		le,
 		keyed.WithRetry[string, *remoteTracker](buildBackoff),
@@ -131,10 +92,10 @@ func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
 	ctrl.manifestBuilderBuildTargets = make(map[string][]string)
 	ctrl.startup = routine.NewStateRoutineContainerWithLoggerVT[*bldr_project.StartConfig](le, routine.WithRetry(buildBackoff))
 	ctrl.startup.SetStateRoutine(func(ctx context.Context, conf *bldr_project.StartConfig) error {
-		if !ctrl.routines.begin() {
+		if !ctrl.routines.Begin() {
 			return context.Canceled
 		}
-		defer ctrl.routines.done()
+		defer ctrl.routines.Done()
 		return ctrl.executeStartup(ctx, conf)
 	})
 	return ctrl
@@ -543,13 +504,13 @@ func (c *Controller) Close() error {
 	c.closed = true
 	c.closeDone = make(chan struct{})
 	done := c.closeDone
-	c.routines.stopAccepting()
+	c.routines.StopAccepting()
 	c.lifecycleMtx.Unlock()
 
 	c.manifestBuilders.ClearContext()
 	c.remotes.ClearContext()
 	c.startup.ClearContext()
-	c.routines.wait()
+	c.routines.Wait()
 	close(done)
 	return nil
 }

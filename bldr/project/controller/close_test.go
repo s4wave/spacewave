@@ -21,7 +21,7 @@ func TestCloseJoinsPostExecuteTrackerWork(t *testing.T) {
 	release := make(chan struct{})
 	stopped := make(chan struct{})
 	ctrl.manifestBuilders = keyed.NewKeyedRefCount(func(string) (keyed.Routine, *manifestBuilderTracker) {
-		return ctrl.routines.wrap(func(ctx context.Context) error {
+		return ctrl.routines.Wrap(func(ctx context.Context) error {
 			close(started)
 			<-ctx.Done()
 			<-release
