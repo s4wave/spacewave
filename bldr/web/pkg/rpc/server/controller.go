@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -44,6 +46,20 @@ type Controller struct {
 	matchWebPkgIdRe *regexp.Regexp
 	// webPkgs is the list of web pkg trackers.
 	webPkgs *keyed.KeyedRefCount[string, *webPkgTracker]
+	// routines owns tracker execution after Execute returns.
+	routines routineGroup
+	// releaseDelay controls retention after a resolver releases a tracker.
+	releaseDelay time.Duration
+	// lifecycleMtx guards shutdown and delayed releases.
+	lifecycleMtx sync.Mutex
+	// closed rejects new tracker work after shutdown begins.
+	closed bool
+	// closeDone closes after all tracker and delayed release work stops.
+	closeDone chan struct{}
+	// delayedReleases owns retained tracker references.
+	delayedReleases map[*keyed.KeyedRef[string, *webPkgTracker]]*time.Timer
+	// delayedWG joins delayed release callbacks.
+	delayedWG sync.WaitGroup
 }
 
 // NewController constructs a new controller.
@@ -76,12 +92,16 @@ func NewController(
 		bus:             bus,
 		serviceIdPrefix: serviceIDPrefix,
 		matchWebPkgIdRe: webPkgIdRe,
+		releaseDelay:    releaseDelay,
+		delayedReleases: make(map[*keyed.KeyedRef[string, *webPkgTracker]]*time.Timer),
 	}
 
 	c.webPkgs = keyed.NewKeyedRefCount(
-		c.newWebPkgTracker,
+		func(key string) (keyed.Routine, *webPkgTracker) {
+			r, tracker := c.newWebPkgTracker(key)
+			return c.routines.wrap(r), tracker
+		},
 		keyed.WithExitLogger[string, *webPkgTracker](le),
-		keyed.WithReleaseDelay[string, *webPkgTracker](releaseDelay),
 		keyed.WithBackoff[string, *webPkgTracker](func(k string) cbackoff.BackOff {
 			if cc.GetBackoff().SizeVT() == 0 {
 				return (&backoff.Backoff{Exponential: &backoff.Exponential{
@@ -103,6 +123,11 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
+	c.lifecycleMtx.Lock()
+	defer c.lifecycleMtx.Unlock()
+	if c.closed {
+		return context.Canceled
+	}
 	c.webPkgs.SetContext(ctx, true)
 	return nil
 }
@@ -112,6 +137,12 @@ func (c *Controller) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
 ) ([]directive.Resolver, error) {
+	c.lifecycleMtx.Lock()
+	closed := c.closed
+	c.lifecycleMtx.Unlock()
+	if closed {
+		return nil, nil
+	}
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case bifrost_rpc.LookupRpcService:
@@ -158,10 +189,10 @@ func (c *Controller) HandleDirective(
 		}
 
 		// resolve with the refcount
-		return directive.R(directive.NewKeyedRefCountResolver(
-			c.webPkgs,
-			webPkgID,
-			func(ctx context.Context, val *webPkgTracker) (directive.Value, error) {
+		return directive.R(&webPkgResolver{
+			c:   c,
+			key: webPkgID,
+			buildValue: func(ctx context.Context, val *webPkgTracker) (directive.Value, error) {
 				if val == nil {
 					return nil, nil
 				}
@@ -177,7 +208,7 @@ func (c *Controller) HandleDirective(
 				var rval bifrost_rpc.LookupRpcServiceValue = web_pkg_rpc.NewSRPCAccessWebPkgHandler(res, serviceID)
 				return rval, nil
 			},
-		), nil)
+		}, nil)
 	}
 
 	return nil, nil
@@ -185,6 +216,24 @@ func (c *Controller) HandleDirective(
 
 // Close releases any resources used by the controller.
 func (c *Controller) Close() error {
+	c.lifecycleMtx.Lock()
+	if c.closed {
+		done := c.closeDone
+		c.lifecycleMtx.Unlock()
+		<-done
+		return nil
+	}
+	c.closed = true
+	c.closeDone = make(chan struct{})
+	done := c.closeDone
+	c.routines.stopAccepting()
+	c.lifecycleMtx.Unlock()
+
+	c.webPkgs.ClearContext()
+	c.stopDelayedReleases()
+	c.routines.wait()
+	c.delayedWG.Wait()
+	close(done)
 	return nil
 }
 
