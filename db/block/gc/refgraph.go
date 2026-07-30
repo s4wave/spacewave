@@ -21,8 +21,9 @@ import (
 )
 
 // RefGraph is a unified reference graph for garbage collection backed by Cayley.
-// edgeIndex and incomingIndex are rebuilt once from the durable graph and then
-// updated under writeMu as the owner-native exact-edge representation.
+// edgeIndex and incomingIndex are loaded from the durable graph or adopted from
+// a retiring RefGraph over the same content, then updated under writeMu as the
+// owner-native exact-edge representation.
 type RefGraph struct {
 	handle *cayley.Handle
 
@@ -59,9 +60,45 @@ func (e *refBatchError) RefBatchRemainder() ([]RefEdge, []RefEdge) {
 	return e.adds, e.removes
 }
 
+// RefEdgeIndex is the exact-edge state of a RefGraph: the gc/ref edge set and
+// its reverse map from object to owning subjects. Building it walks every quad
+// in the durable graph and allocates one map entry per edge, so a replacement
+// RefGraph opening a graph with identical durable content adopts the outgoing
+// graph's index instead of rebuilding it.
+type RefEdgeIndex struct {
+	edges    map[RefEdge]struct{}
+	incoming map[string]map[string]struct{}
+}
+
+// TransferRefEdgeIndex returns rg's exact-edge index for adoption by a
+// replacement RefGraph. The maps are handed over live rather than copied, so rg
+// and the replacement must never both stay in service: the caller closes rg
+// once the replacement has adopted the index, and keeps rg whole if the
+// replacement fails to open.
+func (rg *RefGraph) TransferRefEdgeIndex() *RefEdgeIndex {
+	rg.writeMu.Lock()
+	defer rg.writeMu.Unlock()
+
+	return &RefEdgeIndex{edges: rg.edgeIndex, incoming: rg.incomingIndex}
+}
+
 // NewRefGraph constructs a RefGraph backed by the given kvtx store.
 // prefix is prepended to all keys (e.g., "gc/" for space context).
 func NewRefGraph(ctx context.Context, store kvtx.Store, prefix []byte) (*RefGraph, error) {
+	return NewRefGraphWithEdgeIndex(ctx, store, prefix, nil)
+}
+
+// NewRefGraphWithEdgeIndex constructs a RefGraph that adopts index rather than
+// loading the edge index from the durable graph. index must hold exactly the
+// gc/ref edges store already holds under prefix; a stale index silently
+// corrupts orphan detection, so callers that cannot prove equality pass nil and
+// take the load.
+func NewRefGraphWithEdgeIndex(
+	ctx context.Context,
+	store kvtx.Store,
+	prefix []byte,
+	index *RefEdgeIndex,
+) (*RefGraph, error) {
 	prefixed := kvtx_prefixer.NewPrefixer(store, prefix)
 	opts := graph.Options{
 		"ignore_duplicate": true,
@@ -74,10 +111,18 @@ func NewRefGraph(ctx context.Context, store kvtx.Store, prefix []byte) (*RefGrap
 	if err != nil {
 		return nil, errors.Wrap(err, "new ref graph")
 	}
-	rg := &RefGraph{
-		handle:        h,
-		edgeIndex:     make(map[RefEdge]struct{}),
-		incomingIndex: make(map[string]map[string]struct{}),
+	rg := &RefGraph{handle: h}
+	if index != nil {
+		rg.edgeIndex, rg.incomingIndex = index.edges, index.incoming
+	}
+	if rg.edgeIndex == nil {
+		rg.edgeIndex = make(map[RefEdge]struct{})
+	}
+	if rg.incomingIndex == nil {
+		rg.incomingIndex = make(map[string]map[string]struct{})
+	}
+	if index != nil {
+		return rg, nil
 	}
 	if err := rg.loadEdgeIndex(ctx); err != nil {
 		_ = h.Close()
@@ -87,6 +132,61 @@ func NewRefGraph(ctx context.Context, store kvtx.Store, prefix []byte) (*RefGrap
 }
 
 func (rg *RefGraph) loadEdgeIndex(ctx context.Context) error {
+	return rg.iterateDurableEdges(ctx, rg.indexRefEdge)
+}
+
+// VerifyEdgeIndex compares the in-memory exact-edge index against the gc/ref
+// edges the durable graph holds, in both directions and including the reverse
+// object-to-owners map. It returns nil when the index is exact and an error
+// naming a difference otherwise. The check walks every quad in the graph, so it
+// belongs in tests and diagnostics rather than on a write path.
+func (rg *RefGraph) VerifyEdgeIndex(ctx context.Context) error {
+	rg.writeMu.Lock()
+	defer rg.writeMu.Unlock()
+
+	durable := &RefGraph{
+		edgeIndex:     make(map[RefEdge]struct{}),
+		incomingIndex: make(map[string]map[string]struct{}),
+	}
+	if err := rg.iterateDurableEdges(ctx, durable.indexRefEdge); err != nil {
+		return errors.Wrap(err, "load durable ref graph edges")
+	}
+
+	for edge := range rg.edgeIndex {
+		if _, ok := durable.edgeIndex[edge]; !ok {
+			return errors.Errorf(
+				"edge index holds %s -> %s which the durable graph does not (index %d edges, durable %d edges)",
+				edge.Subject, edge.Object, len(rg.edgeIndex), len(durable.edgeIndex),
+			)
+		}
+	}
+	for edge := range durable.edgeIndex {
+		if _, ok := rg.edgeIndex[edge]; !ok {
+			return errors.Errorf(
+				"durable graph holds %s -> %s which the edge index does not (index %d edges, durable %d edges)",
+				edge.Subject, edge.Object, len(rg.edgeIndex), len(durable.edgeIndex),
+			)
+		}
+	}
+	for object, owners := range rg.incomingIndex {
+		for subject := range owners {
+			if _, ok := durable.incomingIndex[object][subject]; !ok {
+				return errors.Errorf("incoming index holds %s <- %s which the durable graph does not", object, subject)
+			}
+		}
+	}
+	for object, owners := range durable.incomingIndex {
+		for subject := range owners {
+			if _, ok := rg.incomingIndex[object][subject]; !ok {
+				return errors.Errorf("durable graph holds %s <- %s which the incoming index does not", object, subject)
+			}
+		}
+	}
+	return nil
+}
+
+// iterateDurableEdges visits every gc/ref edge the durable graph holds.
+func (rg *RefGraph) iterateDurableEdges(ctx context.Context, visit func(RefEdge)) error {
 	it := rg.handle.QuadsAllIterator(ctx).Iterate(ctx)
 	defer it.Close()
 	for it.Next(ctx) {
@@ -110,7 +210,7 @@ func (rg *RefGraph) loadEdgeIndex(ctx context.Context) error {
 		if !ok {
 			continue
 		}
-		rg.indexRefEdge(RefEdge{Subject: string(subject), Object: string(object)})
+		visit(RefEdge{Subject: string(subject), Object: string(object)})
 	}
 	return it.Err()
 }
