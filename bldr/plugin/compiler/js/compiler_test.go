@@ -4,6 +4,7 @@ package bldr_plugin_compiler_js_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -216,6 +217,62 @@ func TestPluginCompilerJs(t *testing.T) {
 	}
 
 	le.Infof("plugin successfully called host rpc with message: %v", string(calledMsgDat))
+}
+
+func TestPluginCompilerJsOwnsWorkingPathDuringBuild(t *testing.T) {
+	ctrl, err := bldr_plugin_compiler_js.NewController(logrus.NewEntry(logrus.New()), nil, &bldr_plugin_compiler_js.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	workDir := t.TempDir()
+	args := &bldr_manifest_builder.BuildManifestArgs{
+		BuilderConfig: &bldr_manifest_builder.BuilderConfig{
+			ManifestMeta:   bldr_manifest.NewManifestMeta("test-plugin", bldr_manifest.BuildType_DEV, "js", 1),
+			SourcePath:     t.TempDir(),
+			DistSourcePath: t.TempDir(),
+			WorkingPath:    workDir,
+		},
+	}
+	buildStarted := make(chan struct{})
+	continueBuild := make(chan struct{})
+	sentinelErr := errors.New("stop after working-directory ownership check")
+	ctrl.AddPreBuildHook(func(
+		_ context.Context,
+		builderConf *bldr_manifest_builder.BuilderConfig,
+		_ world.Engine,
+	) (*bldr_plugin_compiler_js.PreBuildHookResult, error) {
+		close(buildStarted)
+		<-continueBuild
+		if err := os.WriteFile(filepath.Join(builderConf.GetWorkingPath(), "marker"), []byte("builder-owned"), 0o644); err != nil {
+			return nil, err
+		}
+		return nil, sentinelErr
+	})
+
+	buildErr := make(chan error, 1)
+	go func() {
+		_, err := ctrl.BuildManifest(context.Background(), args, nil)
+		buildErr <- err
+	}()
+
+	<-buildStarted
+	if err := os.RemoveAll(workDir); err != nil {
+		t.Fatal(err)
+	}
+	close(continueBuild)
+
+	select {
+	case err := <-buildErr:
+		if !errors.Is(err, sentinelErr) {
+			t.Fatalf("BuildManifest error = %v, want sentinel after builder-owned write", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("BuildManifest did not finish after releasing the build seam")
+	}
+	if err := ctrl.Close(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestPluginCompilerJsStartupCacheRequiresStaticInputs(t *testing.T) {
