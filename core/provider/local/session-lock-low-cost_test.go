@@ -26,6 +26,7 @@ import (
 	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/testbed"
+	"github.com/sirupsen/logrus"
 	"github.com/zeebo/blake3"
 	"golang.org/x/crypto/scrypt"
 )
@@ -41,6 +42,24 @@ func (c *observedDoneContext) Done() <-chan struct{} {
 		close(c.observed)
 	})
 	return c.Context.Done()
+}
+
+type sessionTransportFollowHook struct {
+	observed chan struct{}
+	once     sync.Once
+}
+
+func (h *sessionTransportFollowHook) Levels() []logrus.Level {
+	return logrus.AllLevels
+}
+
+func (h *sessionTransportFollowHook) Fire(entry *logrus.Entry) error {
+	if entry.Message == "session transport already exists, skipping creation" {
+		h.once.Do(func() {
+			close(h.observed)
+		})
+	}
+	return nil
 }
 
 func TestMountedPINUnlockRestoresLocalSessionStateLowCost(t *testing.T) {
@@ -408,6 +427,7 @@ func TestEnsureSessionTransportRetriesWhenExistingTransportClearsBeforeReady(t *
 	defer clearFakeState()
 
 	waitCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	done := make(chan error, 1)
 	go func() {
 		_, _, err := acc.ensureSessionTransport(waitCtx, sess.GetPrivKey(), "", "")
@@ -560,6 +580,180 @@ func TestEnsureSessionTransportPostUnlockStartDoesNotSupersedeExplicitCallers(t 
 		case <-ctx.Done():
 			t.Fatalf("%s transport did not finish: %v", name, ctx.Err())
 		}
+	}
+}
+
+func TestUnlockSessionDoesNotSupersedeExplicitSessionTransport(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("causal startup ordering test requires native HTTP server context and WebSocket support")
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
+	defer release()
+
+	pin := []byte("2468")
+	sessionKey := sess.GetPrivKey()
+	configureLowCostPINLock(ctx, t, sess, pin)
+	if err := sess.LockSession(ctx); err != nil {
+		t.Fatalf("lock session: %v", err)
+	}
+	acc.StopSessionTransport()
+
+	server, firstRequestStarted, releaseFirstRequest := newBlockedSessionTransportServer(t)
+	defer server.Close()
+	defer releaseFirstRequest()
+
+	firstDone := make(chan error, 1)
+	go func() {
+		_, _, err := acc.ensureSessionTransport(ctx, sessionKey, server.URL, "")
+		firstDone <- err
+	}()
+	select {
+	case <-firstRequestStarted:
+	case <-ctx.Done():
+		t.Fatalf("explicit transport did not begin startup: %v", ctx.Err())
+	}
+
+	followObserved := make(chan struct{})
+	acc.le.Logger.AddHook(&sessionTransportFollowHook{observed: followObserved})
+	unlockDone := make(chan error, 1)
+	go func() {
+		unlockDone <- sess.UnlockSession(ctx, pin)
+	}()
+
+	firstPending := true
+	select {
+	case <-followObserved:
+	case err := <-firstDone:
+		firstPending = false
+		releaseFirstRequest()
+		if errors.Is(err, errSessionTransportSuperseded) {
+			t.Fatalf("explicit transport was superseded by unlock startup: %v", err)
+		}
+		if err != nil {
+			t.Fatalf("explicit transport failed before unlock followed it: %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("unlock startup did not select a transport policy: %v", ctx.Err())
+	}
+	releaseFirstRequest()
+
+	if firstPending {
+		select {
+		case err := <-firstDone:
+			if errors.Is(err, errSessionTransportSuperseded) {
+				t.Fatalf("explicit transport was superseded by unlock startup: %v", err)
+			}
+			if err != nil {
+				t.Fatalf("explicit transport failed: %v", err)
+			}
+		case <-ctx.Done():
+			t.Fatalf("explicit transport did not finish: %v", ctx.Err())
+		}
+	}
+	select {
+	case err := <-unlockDone:
+		if err != nil {
+			t.Fatalf("unlock session: %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("unlock session did not finish: %v", ctx.Err())
+	}
+}
+
+func TestEnsureSessionTransportWithoutReplacementRetriesAfterFollowedTransportIsSuperseded(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("causal startup ordering test requires native HTTP server context and WebSocket support")
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
+	defer release()
+
+	server, firstRequestStarted, releaseFirstRequest := newBlockedSessionTransportServer(t)
+	defer server.Close()
+	defer releaseFirstRequest()
+
+	firstDone := make(chan error, 1)
+	go func() {
+		_, _, err := acc.ensureSessionTransport(ctx, sessionKey, server.URL, "")
+		firstDone <- err
+	}()
+	select {
+	case <-firstRequestStarted:
+	case <-ctx.Done():
+		t.Fatalf("first transport did not begin startup: %v", ctx.Err())
+	}
+
+	followerObserved := make(chan struct{})
+	followerCtx := &observedDoneContext{Context: ctx, observed: followerObserved}
+	followerDone := make(chan error, 1)
+	go func() {
+		_, _, err := acc.ensureSessionTransportWithoutReplacement(followerCtx, sessionKey, "", "")
+		followerDone <- err
+	}()
+	select {
+	case <-followerObserved:
+	case <-ctx.Done():
+		t.Fatalf("non-replacing caller did not follow the first transport: %v", ctx.Err())
+	}
+
+	if _, _, err := acc.ensureSessionTransport(ctx, sessionKey, "", ""); err != nil {
+		t.Fatalf("replacement transport failed: %v", err)
+	}
+	select {
+	case err := <-followerDone:
+		if err != nil {
+			t.Fatalf("non-replacing follower failed after supersession: %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("non-replacing follower did not retry: %v", ctx.Err())
+	}
+	select {
+	case err := <-firstDone:
+		if !errors.Is(err, errSessionTransportSuperseded) {
+			t.Fatalf("first transport returned %v, want superseded error", err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("first transport did not report supersession: %v", ctx.Err())
+	}
+}
+
+func TestEnsureSessionTransportWithoutReplacementRetriesAfterStartedTransportIsSuperseded(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("causal startup ordering test requires native HTTP server context and WebSocket support")
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
+	defer release()
+
+	server, firstRequestStarted, releaseFirstRequest := newBlockedSessionTransportServer(t)
+	defer server.Close()
+	defer releaseFirstRequest()
+
+	starterDone := make(chan error, 1)
+	go func() {
+		_, _, err := acc.ensureSessionTransportWithoutReplacement(ctx, sessionKey, server.URL, "")
+		starterDone <- err
+	}()
+	select {
+	case <-firstRequestStarted:
+	case <-ctx.Done():
+		t.Fatalf("non-replacing transport did not begin startup: %v", ctx.Err())
+	}
+
+	if _, _, err := acc.ensureSessionTransport(ctx, sessionKey, "", ""); err != nil {
+		t.Fatalf("replacement transport failed: %v", err)
+	}
+	select {
+	case err := <-starterDone:
+		if err != nil {
+			t.Fatalf("non-replacing starter failed after supersession: %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("non-replacing starter did not retry: %v", ctx.Err())
 	}
 }
 
@@ -982,6 +1176,49 @@ func stopMountedSessionTransportOwner(t *testing.T, acc *ProviderAccount, sess *
 	case <-ctx.Done():
 		t.Fatalf("mounted session owner did not stop: %v", ctx.Err())
 	}
+}
+func newBlockedSessionTransportServer(t *testing.T) (*httptest.Server, <-chan struct{}, func()) {
+	t.Helper()
+
+	firstRequestStarted := make(chan struct{})
+	releaseFirstRequest := make(chan struct{})
+	var requestOnce, releaseOnce sync.Once
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/signal/ticket":
+			requestOnce.Do(func() {
+				close(firstRequestStarted)
+			})
+			select {
+			case <-releaseFirstRequest:
+			case <-r.Context().Done():
+				return
+			}
+			data, err := (&api.SignalTicketResponse{Token: "test-token"}).MarshalVT()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(data)
+		case r.Method == http.MethodGet && r.URL.Path == "/api/signal/ws":
+			conn, err := websocket.Accept(w, r, nil)
+			if err != nil {
+				return
+			}
+			defer conn.Close(websocket.StatusNormalClosure, "")
+			<-r.Context().Done()
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	release := func() {
+		releaseOnce.Do(func() {
+			close(releaseFirstRequest)
+		})
+	}
+	return server, firstRequestStarted, release
 }
 
 func configureLowCostPINLock(ctx context.Context, t *testing.T, sess *Session, pin []byte) {
