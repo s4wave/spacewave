@@ -49,6 +49,13 @@ func NewStore(store kvtx.Store) *Store {
 	}
 }
 
+func retryClassForError(err error) kvtx_rpc.KvtxRetryClass {
+	if errors.Is(err, kvtx.ErrInvalidSnapshot) {
+		return kvtx_rpc.KvtxRetryClass_KVTX_RETRY_CLASS_INVALID_SNAPSHOT
+	}
+	return kvtx_rpc.KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED
+}
+
 func newTxHandle(tx kvtx.Tx) (*txHandle, error) {
 	mux := srpc.NewMux()
 	if err := kvtx_rpc.SRPCRegisterKvtxOps(mux, NewOps(tx)); err != nil {
@@ -133,11 +140,14 @@ func (s *Store) KvtxTransaction(strm kvtx_rpc.SRPCKvtx_KvtxTransactionStream) er
 	write := req.GetInit().GetWrite()
 	tx, err := s.store.NewTransaction(strm.Context(), write)
 	var errStr, txID string
+	var retryClass kvtx_rpc.KvtxRetryClass
 	if err != nil {
 		errStr = err.Error()
+		retryClass = retryClassForError(err)
 	} else {
 		txIDNumeric := s.idCounter.Add(1) - 1
 		txID = "tx/" + strconv.Itoa(int(txIDNumeric))
+		retryClass = kvtx_rpc.KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED
 
 		handle, hErr := newTxHandle(tx)
 		if hErr != nil {
@@ -172,6 +182,7 @@ func (s *Store) KvtxTransaction(strm kvtx_rpc.SRPCKvtx_KvtxTransactionStream) er
 			Ack: &kvtx_rpc.KvtxTransactionAck{
 				Error:         errStr,
 				TransactionId: txID,
+				RetryClass:    retryClass,
 			},
 		},
 	})
@@ -190,6 +201,7 @@ func (s *Store) KvtxTransaction(strm kvtx_rpc.SRPCKvtx_KvtxTransactionStream) er
 	}
 	var commitErrStr string
 	var commitErr error
+	var commitRetryClass kvtx_rpc.KvtxRetryClass
 	if txID != "" {
 		s.rmtx.Lock()
 		handle := s.txs[txID]
@@ -203,6 +215,7 @@ func (s *Store) KvtxTransaction(strm kvtx_rpc.SRPCKvtx_KvtxTransactionStream) er
 		commitErr = tx.Commit(strm.Context())
 		if commitErr != nil {
 			commitErrStr = commitErr.Error()
+			commitRetryClass = retryClassForError(commitErr)
 		}
 	} else {
 		tx.Discard()
@@ -211,9 +224,10 @@ func (s *Store) KvtxTransaction(strm kvtx_rpc.SRPCKvtx_KvtxTransactionStream) er
 	return strm.Send(&kvtx_rpc.KvtxTransactionResponse{
 		Body: &kvtx_rpc.KvtxTransactionResponse_Complete{
 			Complete: &kvtx_rpc.KvtxTransactionComplete{
-				Error:     commitErrStr,
-				Committed: doCommit && commitErr == nil,
-				Discarded: doDiscard || commitErr != nil,
+				Error:      commitErrStr,
+				Committed:  doCommit && commitErr == nil,
+				Discarded:  doDiscard || commitErr != nil,
+				RetryClass: commitRetryClass,
 			},
 		},
 	})

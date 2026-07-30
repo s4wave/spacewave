@@ -17,6 +17,12 @@ service Kvtx {
   rpc Watch(KvtxWatchRequest) returns (stream KvtxWatchResponse);
 }
 
+// KvtxRetryClass identifies a typed transaction retry signal.
+enum KvtxRetryClass {
+  KVTX_RETRY_CLASS_UNSPECIFIED = 0;
+  KVTX_RETRY_CLASS_INVALID_SNAPSHOT = 1;
+}
+
 // KvtxTransactionRequest is a request in a KvtxTransaction rpc.
 message KvtxTransactionRequest {
   // Body contains the message body.
@@ -58,6 +64,8 @@ message KvtxTransactionAck {
   string error = 1;
   // TransactionId is the identifier to use for the RpcStream.
   // If error != "" this will be empty.
+  // RetryClass is the typed retry classification for Error.
+  KvtxRetryClass retry_class = 3;
   string transaction_id = 2;
 }
 
@@ -72,6 +80,8 @@ message KvtxTransactionComplete {
   // Discarded indicates the transaction is/was discarded.
   // No changes will be applied.
   bool discarded = 3;
+  // RetryClass is the typed retry classification for Error.
+  KvtxRetryClass retry_class = 4;
 }
 
 // KvtxOps exposes a KvtxOps object with a service.

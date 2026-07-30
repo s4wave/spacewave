@@ -2,6 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/db/kvtx/rpc/kvtx.proto (package kvtx.rpc, syntax proto3)
 /* eslint-disable */
 
+import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
   createEmptyMessageType,
@@ -11,6 +12,31 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
 export const protobufPackage = 'kvtx.rpc'
+
+/**
+ * KvtxRetryClass identifies a typed transaction retry signal.
+ *
+ * @generated from enum kvtx.rpc.KvtxRetryClass
+ */
+export enum KvtxRetryClass {
+  /**
+   * @generated from enum value: KVTX_RETRY_CLASS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: KVTX_RETRY_CLASS_INVALID_SNAPSHOT = 1;
+   */
+  INVALID_SNAPSHOT = 1,
+}
+
+export const KvtxRetryClass_Enum = /* @__PURE__ */ createEnumType(
+  'kvtx.rpc.KvtxRetryClass',
+  [
+    [0, 'KVTX_RETRY_CLASS_UNSPECIFIED'],
+    [1, 'KVTX_RETRY_CLASS_INVALID_SNAPSHOT'],
+  ],
+)
 
 /**
  * KvtxTransactionInit is the message sent to init a kvtx transaction.
@@ -127,7 +153,12 @@ export interface KvtxTransactionAck {
   /**
    * TransactionId is the identifier to use for the RpcStream.
    * If error != "" this will be empty.
+   * RetryClass is the typed retry classification for Error.
    *
+   * @generated from field: kvtx.rpc.KvtxRetryClass retry_class = 3;
+   */
+  retryClass?: KvtxRetryClass
+  /**
    * @generated from field: string transaction_id = 2;
    */
   transactionId?: string
@@ -138,6 +169,7 @@ export const KvtxTransactionAck: MessageType<KvtxTransactionAck> =
     typeName: 'kvtx.rpc.KvtxTransactionAck',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
       { no: 2, name: 'transaction_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
@@ -170,6 +202,12 @@ export interface KvtxTransactionComplete {
    * @generated from field: bool discarded = 3;
    */
   discarded?: boolean
+  /**
+   * RetryClass is the typed retry classification for Error.
+   *
+   * @generated from field: kvtx.rpc.KvtxRetryClass retry_class = 4;
+   */
+  retryClass?: KvtxRetryClass
 }
 
 export const KvtxTransactionComplete: MessageType<KvtxTransactionComplete> =
@@ -179,6 +217,7 @@ export const KvtxTransactionComplete: MessageType<KvtxTransactionComplete> =
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'committed', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'discarded', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
