@@ -90,12 +90,27 @@ export function getAppPath(): string {
   return getAppNavigation().path
 }
 
-let navigationGeneration = 0
-let navigationGenerationTracked = false
-let observedLocation = ''
+interface NavigationState {
+  generation: number
+  tracked: boolean
+  observedLocation: string
+}
 
-function currentLocationKey(): string {
-  return `${window.location.pathname}${window.location.search}${window.location.hash}`
+type NavigationDocument = Document & {
+  __s4waveNavigationState?: NavigationState
+}
+
+function getNavigationState(ownerWindow: Window = window): NavigationState {
+  const documentState = ownerWindow.document as NavigationDocument
+  const existing = documentState.__s4waveNavigationState
+  if (existing) return existing
+  const state = { generation: 0, tracked: false, observedLocation: '' }
+  documentState.__s4waveNavigationState = state
+  return state
+}
+
+function currentLocationKey(ownerWindow: Window = window): string {
+  return `${ownerWindow.location.pathname}${ownerWindow.location.search}${ownerWindow.location.hash}`
 }
 
 // observeNavigation advances the counter when the document location differs
@@ -103,19 +118,23 @@ function currentLocationKey(): string {
 // `window.location.hash` write countable: that write moves the document
 // synchronously and only queues `hashchange`, so a counter driven by the
 // event alone still reads stale inside the same task.
-function observeNavigation(): void {
-  const key = currentLocationKey()
-  if (key === observedLocation) return
-  observedLocation = key
-  navigationGeneration++
+function observeNavigation(event?: Event): void {
+  const ownerWindow = (event?.currentTarget as Window | null) ?? window
+  const state = getNavigationState(ownerWindow)
+  const key = currentLocationKey(ownerWindow)
+  if (key === state.observedLocation) return
+  state.observedLocation = key
+  state.generation++
 }
 
 function trackNavigationGeneration(): void {
-  if (navigationGenerationTracked) return
-  navigationGenerationTracked = true
-  observedLocation = currentLocationKey()
-  window.addEventListener('hashchange', observeNavigation)
-  window.addEventListener('popstate', observeNavigation)
+  const ownerWindow = window
+  const state = getNavigationState(ownerWindow)
+  if (state.tracked) return
+  state.tracked = true
+  state.observedLocation = currentLocationKey(ownerWindow)
+  ownerWindow.addEventListener('hashchange', observeNavigation)
+  ownerWindow.addEventListener('popstate', observeNavigation)
 }
 
 // getAppNavigationGeneration returns a counter that advances on every
@@ -126,7 +145,7 @@ function trackNavigationGeneration(): void {
 export function getAppNavigationGeneration(): number {
   trackNavigationGeneration()
   observeNavigation()
-  return navigationGeneration
+  return getNavigationState().generation
 }
 
 // setAppPath sets the hash to the given path while retaining named parameters
