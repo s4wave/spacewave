@@ -79,3 +79,35 @@ func TestWorldStateCommitCarriesExactRefEdgeIndex(t *testing.T) {
 	}
 	verify("after committing past a discarded transaction")
 }
+
+// TestBuildGCTreeDropsCarriedIndexOnEmptyTree covers the one condition under
+// which a carried index cannot describe the GC tree being opened. A world state
+// that has never committed writes its gcroot edge into an isolated GC tree, so
+// rebuilding from its cursor lands on an empty tree while the live index still
+// holds that edge.
+func TestBuildGCTreeDropsCarriedIndexOnEmptyTree(t *testing.T) {
+	ctx := context.Background()
+	ws, _, cleanup := newRefBatchTestWorld(t, ctx)
+	defer cleanup()
+
+	carried := ws.refGraph.TransferRefEdgeIndex()
+	gcTree, rg, _, _, err := ws.buildGCTree(ctx, ws.bcs, carried)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer func() {
+		_ = rg.Close()
+		gcTree.Discard()
+	}()
+
+	size, err := gcTree.Size(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if size != 0 {
+		t.Fatalf("gc tree size = %d, want 0 so the carried index has something to be wrong about", size)
+	}
+	if err := rg.VerifyEdgeIndex(ctx); err != nil {
+		t.Fatal(err.Error())
+	}
+}
