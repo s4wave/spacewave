@@ -124,20 +124,56 @@ func (g *GCGraph) RemoveRef(ctx context.Context, subject, object string) error {
 	return g.removeRef(subject, object)
 }
 
+func (g *GCGraph) hasRef(subject, object string) (bool, error) {
+	edgeSubDir, err := opfs.GetDirectory(g.edgesDir, hashName(subject), false)
+	if err != nil {
+		if opfs.IsNotFound(err) {
+			return false, nil
+		}
+		return false, errors.Wrap(err, "edges subdir")
+	}
+	data, err := g.readFileContent(edgeSubDir, hashName(object))
+	if err != nil {
+		if opfs.IsNotFound(err) {
+			return false, nil
+		}
+		return false, errors.Wrap(err, "read forward edge")
+	}
+	fileSubject, fileObject, ok := parseEdgeContent(data)
+	return ok && fileSubject == subject && fileObject == object, nil
+}
+
 func (g *GCGraph) removeRef(subject, object string) error {
+	exists, err := g.hasRef(subject, object)
+	if err != nil || !exists {
+		return err
+	}
+	return g.removeExistingRef(subject, object)
+}
+
+func (g *GCGraph) removeExistingRef(subject, object string) error {
 	sh := hashName(subject)
 	oh := hashName(object)
 
 	edgeSubDir, err := opfs.GetDirectory(g.edgesDir, sh, false)
-	if err == nil {
-		_ = g.deleteFile(edgeSubDir, oh)
+	if err != nil {
+		if opfs.IsNotFound(err) {
+			return nil
+		}
+		return errors.Wrap(err, "edges subdir")
+	}
+	if err := g.deleteFile(edgeSubDir, oh); err != nil {
+		return errors.Wrap(err, "delete forward edge")
 	}
 
 	inSubDir, err := opfs.GetDirectory(g.incomingDir, oh, false)
-	if err == nil {
-		_ = g.deleteFile(inSubDir, sh)
+	if err != nil {
+		if opfs.IsNotFound(err) {
+			return nil
+		}
+		return errors.Wrap(err, "incoming subdir")
 	}
-	return nil
+	return errors.Wrap(g.deleteFile(inSubDir, sh), "delete reverse edge")
 }
 
 // ensureNode creates a node inventory entry if it does not exist.
