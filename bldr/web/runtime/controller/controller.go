@@ -3,7 +3,6 @@ package web_runtime_controller
 import (
 	"context"
 	"net/http"
-	"path"
 	"strconv"
 	"strings"
 
@@ -285,95 +284,18 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 	}
 }
 
-// setNoCacheHeaders sets headers that prevent client-side caching.
+// setNoCacheHeaders keeps controller headers non-load-bearing for plugin asset
+// freshness; generation-scoped ServiceWorker cache ownership handles warm reads.
 func setNoCacheHeaders(hdr http.Header) {
 	hdr.Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	hdr.Set("Pragma", "no-cache")
 	hdr.Set("Expires", "0")
 }
 
-const immutableContentCacheControl = "public, max-age=31536000, immutable"
-
-// setPluginFileCacheHeaders sets immutable cache headers for content-hashed plugin files.
-func setPluginFileCacheHeaders(hdr http.Header, requestPath string) {
-	if isContentHashedFilename(requestPath) {
-		hdr.Set("Cache-Control", immutableContentCacheControl)
-		hdr.Del("Pragma")
-		hdr.Del("Expires")
-		return
-	}
-
+// setPluginFileCacheHeaders leaves plugin asset freshness to the
+// generation-scoped ServiceWorker cache.
+func setPluginFileCacheHeaders(hdr http.Header) {
 	setNoCacheHeaders(hdr)
-}
-
-// isContentHashedFilename reports whether the request basename names immutable content.
-//
-// Bundler-hashed names keep the bytes stable for the path; a rebuild changes
-// the filename, not the content served at the old filename. Rolldown/Vite emits
-// an 8-byte base64url hash as the final dash-separated segment before the first
-// extension; exact length and alphabet avoid marking mutable entrypoints
-// immutable for a year. All-lowercase words and simple English-shaped alpha
-// words stay mutable; if a hash contains '-' the last-segment split can miss it,
-// which is safe because no-cache is slow, not stale.
-//
-// TODO: replace this filename heuristic with build-emitted immutability metadata
-// on the plugin dist manifest.
-func isContentHashedFilename(requestPath string) bool {
-	if requestPath == "" || strings.ContainsAny(requestPath, "?#") {
-		return false
-	}
-
-	name := path.Base(requestPath)
-	if name == "." {
-		return false
-	}
-
-	dash := strings.LastIndexByte(name, '-')
-	if dash < 0 || dash == len(name)-1 {
-		return false
-	}
-
-	dot := strings.IndexByte(name[dash+1:], '.')
-	if dot < 0 {
-		return false
-	}
-
-	hash := name[dash+1 : dash+1+dot]
-	if len(hash) != 8 {
-		return false
-	}
-
-	hasLower := false
-	hasUpper := false
-	hasNonAlpha := false
-	for _, ch := range hash {
-		switch {
-		case ch >= 'a' && ch <= 'z':
-			hasLower = true
-		case ch >= 'A' && ch <= 'Z':
-			hasUpper = true
-		case ch >= '0' && ch <= '9':
-			hasNonAlpha = true
-		case ch == '_' || ch == '-':
-			hasNonAlpha = true
-		default:
-			return false
-		}
-	}
-
-	if hasNonAlpha {
-		return true
-	}
-	if !hasLower || !hasUpper {
-		return false
-	}
-
-	titleCaseWord := hash[0] >= 'A' && hash[0] <= 'Z'
-	for i := 1; titleCaseWord && i < len(hash); i++ {
-		titleCaseWord = hash[i] >= 'a' && hash[i] <= 'z'
-	}
-
-	return !titleCaseWord
 }
 
 // ServePluginDistFsHTTP serves a HTTP request for a plugin dist filesystem.
@@ -386,7 +308,7 @@ func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWrit
 	unixFsID := bldr_plugin.PluginDistFsId(pluginID)
 	handler := unixfs_access_http.NewHTTPHandler(req.Context(), c.bus, unixFsID, "", "", true)
 
-	setPluginFileCacheHeaders(rw.Header(), req.URL.RequestURI())
+	setPluginFileCacheHeaders(rw.Header())
 
 	handler.ServeHTTP(rw, req)
 }
@@ -401,7 +323,7 @@ func (c *Controller) ServePluginAssetsFsHTTP(pluginID string, rw http.ResponseWr
 	unixFsID := bldr_plugin.PluginAssetsFsId(pluginID)
 	handler := unixfs_access_http.NewHTTPHandler(req.Context(), c.bus, unixFsID, "", "", true)
 
-	setPluginFileCacheHeaders(rw.Header(), req.URL.RequestURI())
+	setPluginFileCacheHeaders(rw.Header())
 
 	handler.ServeHTTP(rw, req)
 }
