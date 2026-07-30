@@ -5,8 +5,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/aperturerobotics/cayley/graph"
-	"github.com/aperturerobotics/cayley/quad"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 )
 
@@ -25,12 +23,14 @@ func BenchmarkRefGraphRemoveBatchLargeStore(b *testing.B) {
 			Object:  "bench/large/object/" + strconv.Itoa(i),
 		}
 	}
-	tx := graph.NewTransactionN(seedEdgeCount)
-	for _, edge := range seed {
-		tx.AddQuad(quad.Make(quad.IRI(edge.Subject), quad.IRI(PredGCRef), quad.IRI(edge.Object), nil))
-	}
-	if err := rg.handle.ApplyTransaction(ctx, tx); err != nil {
+	// Seed through the owner API. Writing to the handle directly leaves the
+	// edge index empty, so the timed removals would run against an index
+	// holding only what the benchmark itself restores between iterations.
+	if err := rg.ApplyRefBatch(ctx, seed, nil); err != nil {
 		b.Fatal(err)
+	}
+	if got := len(rg.edgeIndex); got != seedEdgeCount {
+		b.Fatalf("seeded %d edges but the index holds %d", seedEdgeCount, got)
 	}
 	removes := seed[:removeCount]
 
