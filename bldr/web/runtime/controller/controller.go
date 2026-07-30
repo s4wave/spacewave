@@ -292,12 +292,6 @@ func setNoCacheHeaders(hdr http.Header) {
 	hdr.Set("Expires", "0")
 }
 
-// setPluginFileCacheHeaders leaves plugin asset freshness to the
-// generation-scoped ServiceWorker cache.
-func setPluginFileCacheHeaders(hdr http.Header) {
-	setNoCacheHeaders(hdr)
-}
-
 // ServePluginDistFsHTTP serves a HTTP request for a plugin dist filesystem.
 func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWriter, req *http.Request) {
 	c.le.
@@ -308,7 +302,7 @@ func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWrit
 	unixFsID := bldr_plugin.PluginDistFsId(pluginID)
 	handler := unixfs_access_http.NewHTTPHandler(req.Context(), c.bus, unixFsID, "", "", true)
 
-	setPluginFileCacheHeaders(rw.Header())
+	setNoCacheHeaders(rw.Header())
 
 	handler.ServeHTTP(rw, req)
 }
@@ -323,7 +317,7 @@ func (c *Controller) ServePluginAssetsFsHTTP(pluginID string, rw http.ResponseWr
 	unixFsID := bldr_plugin.PluginAssetsFsId(pluginID)
 	handler := unixfs_access_http.NewHTTPHandler(req.Context(), c.bus, unixFsID, "", "", true)
 
-	setPluginFileCacheHeaders(rw.Header())
+	setNoCacheHeaders(rw.Header())
 
 	handler.ServeHTTP(rw, req)
 }
