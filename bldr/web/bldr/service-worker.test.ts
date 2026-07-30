@@ -1203,10 +1203,7 @@ describe('service worker fetch release cache routing', () => {
     const generationCache = await caches.open('bldr-generation-gen-a')
     const cached = await generationCache.match(
       new Request(
-        new URL(
-          '/b/pa/spacewave-app/v/b/fe/app/App2.mjs',
-          self.location.href,
-        ),
+        new URL('/b/pa/spacewave-app/v/b/fe/app/App2.mjs', self.location.href),
       ),
     )
     expect(await cached?.text()).toBe(body)
@@ -1244,6 +1241,7 @@ describe('service worker fetch release cache routing', () => {
     const response = await swFetch(fetchEvent.ev)
 
     expect(await response.text()).toBe('cached app')
+    expect(response.headers.get('X-Bldr-Plugin-Asset-Cache')).toBe('generation')
     expect(proxyFetch).toHaveBeenCalledOnce()
     expect(fetchEvent.waitUntilPromises).toHaveLength(1)
     revalidation.resolve(new Response('fresh app', { status: 200 }))
@@ -1254,6 +1252,87 @@ describe('service worker fetch release cache routing', () => {
       new Request(new URL(path, self.location.href)),
     )
     expect(await cached?.text()).toBe('fresh app')
+  })
+
+  it('rejects a cache hit when promotion changes between resolve and match', async () => {
+    const caches = globalThis.caches as unknown as FakeCacheStorage
+    const oldRelease = buildRelease('gen-a')
+    const currentRelease = buildRelease('gen-b')
+    const path = '/b/pd/spacewave-app/backend.mjs'
+    await writeBrowserReleaseState(caches, {
+      ...createEmptyBrowserReleaseState(),
+      promotedCurrent: oldRelease,
+    })
+    await announcePluginRoot('spacewave-app', '2abc')
+    await writeGenerationCacheResponse(
+      caches,
+      oldRelease.generationId,
+      path,
+      new Response('old generation', { status: 200 }),
+    )
+    const controlCache = await caches.open('bldr-control')
+    const originalMatch = controlCache.match.bind(controlCache)
+    let releaseStateReads = 0
+    vi.spyOn(controlCache, 'match').mockImplementation(async (request) => {
+      if (
+        new URL(request.url).pathname !== '/__bldr/browser-release-state.json'
+      ) {
+        return originalMatch(request)
+      }
+      releaseStateReads++
+      return new Response(
+        JSON.stringify({
+          ...createEmptyBrowserReleaseState(),
+          promotedCurrent:
+            releaseStateReads === 1 ? oldRelease : currentRelease,
+        }),
+      )
+    })
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response('current generation', { status: 200 }),
+    )
+
+    const fetchEvent = buildClientFetchEvent(path, 'client-a')
+    const response = await swFetch(fetchEvent.ev)
+
+    expect(await response.text()).toBe('current generation')
+    expect(releaseStateReads).toBeGreaterThanOrEqual(2)
+    expect(proxyFetch).toHaveBeenCalledOnce()
+    await Promise.all(fetchEvent.waitUntilPromises)
+  })
+
+  it('does not cache a response after its resolved generation is replaced', async () => {
+    const caches = globalThis.caches as unknown as FakeCacheStorage
+    const oldRelease = buildRelease('gen-a')
+    const currentRelease = buildRelease('gen-b')
+    const path = '/b/pd/spacewave-app/backend.mjs'
+    await writeBrowserReleaseState(caches, {
+      ...createEmptyBrowserReleaseState(),
+      promotedCurrent: oldRelease,
+    })
+    await announcePluginRoot('spacewave-app', '2abc')
+    const runtimeResponse = newDeferred<Response>()
+    vi.mocked(proxyFetch).mockReturnValue(runtimeResponse.promise)
+
+    const fetchEvent = buildClientFetchEvent(path, 'client-a')
+    const responsePromise = swFetch(fetchEvent.ev)
+    await vi.waitFor(() => expect(proxyFetch).toHaveBeenCalledOnce())
+    await writeBrowserReleaseState(caches, {
+      ...createEmptyBrowserReleaseState(),
+      promotedCurrent: currentRelease,
+    })
+    runtimeResponse.resolve(
+      new Response('old generation response', { status: 200 }),
+    )
+
+    const response = await responsePromise
+    expect(await response.text()).toBe('old generation response')
+    await Promise.all(fetchEvent.waitUntilPromises)
+    const oldCache = await caches.open('bldr-generation-gen-a')
+    const cached = await oldCache.match(
+      new Request(new URL(path, self.location.href)),
+    )
+    expect(cached).toBeUndefined()
   })
 
   it('does not serve a static asset from a previous promoted generation', async () => {
