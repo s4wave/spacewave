@@ -1,5 +1,4 @@
 //go:build js
-// +build js
 
 package store_kvtx_indexeddb
 
@@ -20,13 +19,18 @@ type kvtxIterator struct {
 	store *durable.DurableObjectStore
 	dir   idb.CursorDirection
 
-	// if prefix is set, upper is set
+	// if prefix is set, prefixVal is set
 	prefix    []byte
 	prefixVal safejs.Value
-	upperVal  safejs.Value // upper is the upper bound Uint8Array
-
+	// upper is the smallest key above the prefix range, nil if the prefix has
+	// no finite upper bound. If upper is set, upperVal is set.
+	upper    []byte
+	upperVal safejs.Value
 	// valid indicates the current position is valid
 	valid bool
+	// done indicates the iterator ran past its prefix range and has no
+	// further results until the next Seek.
+	done bool
 	// err contains any final error for the iterator
 	err error
 
@@ -59,28 +63,22 @@ func BuildKvtxIterator(ctx context.Context, store *durable.DurableObjectStore, p
 	}
 
 	if len(prefix) != 0 {
-		// Append the maximum value for a byte to the list to get the upper bound.
-		// This effectively restricts to the prefix.
-		prefixUpperBound := make([]byte, len(prefix)+1)
-		prefixUpperBound[len(prefixUpperBound)-1] = 255
-		copy(prefixUpperBound, prefix)
+		it.prefix = bytes.Clone(prefix)
+		it.upper = prefixUpperBound(prefix)
 
-		// Keep upper bound in the prefix slice, just out of the bounds.
-		it.prefix = prefixUpperBound[:len(prefix)]
-
-		upperBoundVal, err := jsbuf.CopyBytesToJs(prefixUpperBound)
+		prefixVal, err := jsbuf.CopyBytesToJs(it.prefix)
 		if err != nil {
 			return kvtx.NewErrIterator(err)
 		}
-
-		// remove the last index to get the lower bound w/o alloc
-		prefixVal, err := upperBoundVal.Call("subarray", 0, len(prefix))
-		if err != nil {
-			return kvtx.NewErrIterator(err)
-		}
-
-		it.upperVal = upperBoundVal
 		it.prefixVal = prefixVal
+
+		if it.upper != nil {
+			upperVal, err := jsbuf.CopyBytesToJs(it.upper)
+			if err != nil {
+				return kvtx.NewErrIterator(err)
+			}
+			it.upperVal = upperVal
+		}
 	}
 
 	return it
@@ -105,57 +103,40 @@ func (it *kvtxIterator) performOp(
 	err := it.store.StoreWithRetry(func(txn *idb.Transaction, store *idb.ObjectStore) error {
 		it.setTxn(txn)
 
+		if it.done {
+			return cb(txn, store, nil, nil)
+		}
+
 		// if necessary, open the cursor again.
 		var err error
 		req := it.req
 		if req == nil {
 			var keyRng *idb.KeyRange
-			if len(it.key) != 0 {
-				// if we are iterating, resume where we left off
-				if len(it.prefix) != 0 {
-					// Compare key with prefix bounds
-					keyVal := it.keyVal
-					if it.dir == idb.CursorPreviousUnique {
-						// For reverse iteration with prefix:
-						// If key > upper, use upper as the key
-						// If key < prefix, use prefix as the key
-						// Lower bound (prefix) is closed to include prefix
-						// Upper bound (current key) is closed to include current key
-						if bytes.Compare(it.key, it.prefix) < 0 {
-							keyVal = it.prefixVal
-						}
-						keyRng, err = idb.NewKeyRangeBound(it.prefixVal, keyVal, false, false)
-					} else {
-						// For forward iteration with prefix:
-						// If key < prefix, use prefix as the key
-						// If key > upper, use upper as the key
-						// Lower bound (current key) is closed to include current key
-						// Upper bound is open to exclude anything >= upper
-						if bytes.Compare(it.key, it.prefix) < 0 {
-							keyVal = it.prefixVal
-						} else if bytes.Compare(it.key, it.prefix[:len(it.prefix)+1]) >= 0 {
-							keyVal = it.prefixVal
-						}
-						keyRng, err = idb.NewKeyRangeBound(keyVal, it.upperVal, false, true)
-					}
-				} else {
-					if it.dir == idb.CursorPreviousUnique {
-						// For reverse iteration without prefix:
-						// Upper bound is closed to include current key
-						keyRng, err = idb.NewKeyRangeUpperBound(it.keyVal, false)
-					} else {
-						// For forward iteration without prefix:
-						// Lower bound is closed to include current key
-						keyRng, err = idb.NewKeyRangeLowerBound(it.keyVal, false)
-					}
+			if len(it.prefix) != 0 {
+				rng := buildPrefixRange(it.prefix, it.upper, it.key, it.dir == idb.CursorPreviousUnique)
+				if rng.done {
+					// The resume position lies past the prefix range in the
+					// direction of travel, so there is nothing left to read.
+					it.done = true
+					return cb(txn, store, nil, nil)
 				}
-			} else if len(it.prefix) != 0 {
-				// If we have a prefix but no current key (first iteration):
-				// Lower bound (prefix) is closed to include the prefix
-				// Upper bound is open to exclude anything >= upper
-				// the prefix exactly (all bytes equal to prefix). The upper bound is
-				// prefix + 0xFF which ensures we get all keys starting with prefix.
-				keyRng, err = idb.NewKeyRangeBound(it.prefixVal, it.upperVal, false, true)
+				// the lower bound is always set for a prefix range
+				lowerVal, _ := it.boundValue(rng.lower)
+				upperVal, hasUpper := it.boundValue(rng.upper)
+				if hasUpper {
+					keyRng, err = idb.NewKeyRangeBound(lowerVal, upperVal, false, rng.upperOpen)
+				} else {
+					keyRng, err = idb.NewKeyRangeLowerBound(lowerVal, false)
+				}
+			} else if len(it.key) != 0 {
+				// if we are iterating, resume where we left off
+				if it.dir == idb.CursorPreviousUnique {
+					// Upper bound is closed to include current key
+					keyRng, err = idb.NewKeyRangeUpperBound(it.keyVal, false)
+				} else {
+					// Lower bound is closed to include current key
+					keyRng, err = idb.NewKeyRangeLowerBound(it.keyVal, false)
+				}
 			}
 			if err != nil {
 				return err
@@ -192,6 +173,21 @@ func (it *kvtxIterator) performOp(
 		it.err = err
 	}
 	return err
+}
+
+// boundValue resolves a prefix range bound to the js value holding its key.
+// Returns false if the bound leaves that side of the range unbounded.
+func (it *kvtxIterator) boundValue(bound prefixBound) (safejs.Value, bool) {
+	switch bound {
+	case prefixBoundPrefix:
+		return it.prefixVal, true
+	case prefixBoundKey:
+		return it.keyVal, true
+	case prefixBoundUpper:
+		return it.upperVal, true
+	default:
+		return safejs.Undefined(), false
+	}
 }
 
 // setTxn updates the txn field clearing the state if the txn changed
@@ -322,6 +318,7 @@ func (it *kvtxIterator) Seek(k []byte) error {
 	it.cs = nil
 	it.firstRun = true
 	it.valid = false
+	it.done = false
 	it.hasVal = false
 	it.value = nil
 
