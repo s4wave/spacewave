@@ -13,6 +13,7 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
@@ -168,19 +169,20 @@ func (a *ProviderAccount) writeLinkedCloudAccountID(ctx context.Context, session
 	}
 	defer diRef.Release()
 
-	otx, err := objStoreHandle.GetObjectStore().NewTransaction(ctx, true)
-	if err != nil {
-		return errors.Wrap(err, "open session object store transaction")
-	}
-	defer otx.Discard()
-
-	if err := otx.Set(ctx, LinkedCloudKey(sessionID), []byte(cloudAccountID)); err != nil {
-		return errors.Wrap(err, "set linked cloud account id")
-	}
-	if err := otx.Commit(ctx); err != nil {
-		return errors.Wrap(err, "commit linked cloud account id")
-	}
-	return nil
+	key := LinkedCloudKey(sessionID)
+	data := []byte(cloudAccountID)
+	err = kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStoreHandle.GetObjectStore().NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			if err := tx.Set(ctx, key, data); err != nil {
+				return errors.Wrap(err, "set linked cloud account id")
+			}
+			return nil
+		},
+	)
+	return errors.Wrap(err, "write linked cloud account id")
 }
 
 // AccessProviderAccount accesses a provider account.

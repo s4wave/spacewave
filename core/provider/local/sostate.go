@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/aperturerobotics/util/promise"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/world"
 )
@@ -35,13 +36,18 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 				key:       SobjectObjectStoreHostStateKey(sharedObjectID),
 			}
 			return func(ctx context.Context) error {
-				otx, err := objStore.NewTransaction(ctx, false)
-				if err != nil {
-					return err
-				}
-
-				data, found, err := otx.Get(ctx, ent.key)
-				otx.Discard()
+				var data []byte
+				var found bool
+				err := kvtx.RunTransaction(ctx, false,
+					func(ctx context.Context) (kvtx.Tx, error) {
+						return objStore.NewTransaction(ctx, false)
+					},
+					func(ctx context.Context, tx kvtx.Tx) error {
+						var err error
+						data, found, err = tx.Get(ctx, ent.key)
+						return err
+					},
+				)
 				if err != nil {
 					return err
 				}
@@ -53,7 +59,6 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 				if err := val.UnmarshalVT(data); err != nil {
 					return err
 				}
-
 				if err := val.Validate(sharedObjectID); err != nil {
 					return err
 				}
@@ -105,18 +110,14 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 				if err != nil {
 					return err
 				}
-
-				tx, err := objStore.NewTransaction(ctx, true)
-				if err != nil {
-					return err
-				}
-				defer tx.Discard()
-
-				if err := tx.Set(ctx, ent.key, data); err != nil {
-					return err
-				}
-
-				err = tx.Commit(ctx)
+				err = kvtx.RunTransaction(ctx, true,
+					func(ctx context.Context) (kvtx.Tx, error) {
+						return objStore.NewTransaction(ctx, true)
+					},
+					func(ctx context.Context, tx kvtx.Tx) error {
+						return tx.Set(ctx, ent.key, data)
+					},
+				)
 				if err != nil {
 					return err
 				}

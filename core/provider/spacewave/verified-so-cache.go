@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // verifiedSOStateCacheKeyPrefix is the ObjectStore key prefix for verified SO cache state.
@@ -35,18 +36,19 @@ func (a *ProviderAccount) writeVerifiedSOStateCache(
 	if err != nil {
 		return errors.Wrap(err, "marshal verified SO cache")
 	}
-
-	otx, err := a.objStore.NewTransaction(ctx, true)
+	err = kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return a.objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			if err := tx.Set(ctx, verifiedSOStateCacheKey(soID), data); err != nil {
+				return errors.Wrap(err, "set verified SO cache")
+			}
+			return nil
+		},
+	)
 	if err != nil {
-		return errors.Wrap(err, "open write transaction")
-	}
-	defer otx.Discard()
-
-	if err := otx.Set(ctx, verifiedSOStateCacheKey(soID), data); err != nil {
-		return errors.Wrap(err, "set verified SO cache")
-	}
-	if err := otx.Commit(ctx); err != nil {
-		return err
+		return errors.Wrap(err, "write verified SO cache")
 	}
 	a.refreshSelfEnrollmentSummary(ctx)
 	return nil
@@ -66,17 +68,19 @@ func (a *ProviderAccount) deleteVerifiedSOStateCache(
 		return errors.New("shared object id is required")
 	}
 
-	otx, err := a.objStore.NewTransaction(ctx, true)
+	err := kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return a.objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			if err := tx.Delete(ctx, verifiedSOStateCacheKey(soID)); err != nil {
+				return errors.Wrap(err, "delete verified SO cache")
+			}
+			return nil
+		},
+	)
 	if err != nil {
-		return errors.Wrap(err, "open write transaction")
-	}
-	defer otx.Discard()
-
-	if err := otx.Delete(ctx, verifiedSOStateCacheKey(soID)); err != nil {
 		return errors.Wrap(err, "delete verified SO cache")
-	}
-	if err := otx.Commit(ctx); err != nil {
-		return err
 	}
 	a.refreshSelfEnrollmentSummary(ctx)
 	return nil
@@ -104,23 +108,30 @@ func (a *ProviderAccount) loadVerifiedSOStateCache(
 		return nil, errors.New("shared object id is required")
 	}
 
-	otx, err := a.objStore.NewTransaction(ctx, false)
+	var cache *api.VerifiedSOStateCache
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return a.objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			data, found, err := tx.Get(ctx, verifiedSOStateCacheKey(soID))
+			if err != nil {
+				return errors.Wrap(err, "get verified SO cache")
+			}
+			if !found {
+				cache = nil
+				return nil
+			}
+			next := &api.VerifiedSOStateCache{}
+			if err := next.UnmarshalVT(data); err != nil {
+				return errors.Wrap(err, "unmarshal verified SO cache")
+			}
+			cache = next
+			return nil
+		},
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "open read transaction")
-	}
-	defer otx.Discard()
-
-	data, found, err := otx.Get(ctx, verifiedSOStateCacheKey(soID))
-	if err != nil {
-		return nil, errors.Wrap(err, "get verified SO cache")
-	}
-	if !found {
-		return nil, nil
-	}
-
-	cache := &api.VerifiedSOStateCache{}
-	if err := cache.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal verified SO cache")
 	}
 	return cache, nil
 }

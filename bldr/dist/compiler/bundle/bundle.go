@@ -165,6 +165,8 @@ func BundleManifestsKvfile(
 		wtx.Discard()
 
 		// Finally, copy (& log) any blocks that we missed above.
+		// Retry classification: external to RunTransaction. This scan mutates
+		// seenBlocks and writes the release bundle through kvfileWriter.
 		kvtxTx, err := kvtxVolStore.NewTransaction(ctx, false)
 		if err != nil {
 			return err

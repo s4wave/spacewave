@@ -15,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/session"
 	session_lock "github.com/s4wave/spacewave/core/session/lock"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -371,18 +372,26 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		return err
 	}
 	if t.cloudAccountID == "" {
-		otx, err := objStore.NewTransaction(ctx, false)
+		var linkedCloudAccountID string
+		err := kvtx.RunTransaction(ctx, false,
+			func(ctx context.Context) (kvtx.Tx, error) {
+				return objStore.NewTransaction(ctx, false)
+			},
+			func(ctx context.Context, tx kvtx.Tx) error {
+				data, found, err := tx.Get(ctx, LinkedCloudKey(sessionID))
+				if err != nil {
+					return err
+				}
+				if found && len(data) != 0 {
+					linkedCloudAccountID = string(data)
+				}
+				return nil
+			},
+		)
 		if err != nil {
 			return err
 		}
-		data, found, err := otx.Get(ctx, LinkedCloudKey(sessionID))
-		otx.Discard()
-		if err != nil {
-			return err
-		}
-		if found && len(data) != 0 {
-			t.cloudAccountID = string(data)
-		}
+		t.cloudAccountID = linkedCloudAccountID
 	}
 
 	var privPEM []byte
@@ -440,12 +449,14 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 
 			// Write linked-cloud cross-reference if this session is linked to a cloud account.
 			if t.cloudAccountID != "" {
-				cotx, cerr := objStore.NewTransaction(ctx, true)
-				if cerr == nil {
-					defer cotx.Discard()
-					_ = cotx.Set(ctx, LinkedCloudKey(sessionID), []byte(t.cloudAccountID))
-					_ = cotx.Commit(ctx)
-				}
+				_ = kvtx.RunTransaction(ctx, true,
+					func(ctx context.Context) (kvtx.Tx, error) {
+						return objStore.NewTransaction(ctx, true)
+					},
+					func(ctx context.Context, tx kvtx.Tx) error {
+						return tx.Set(ctx, LinkedCloudKey(sessionID), []byte(t.cloudAccountID))
+					},
+				)
 			}
 		}
 	}

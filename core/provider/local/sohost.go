@@ -666,24 +666,27 @@ func (l *LocalSOHost) localOpResultOutcome(
 // readLocalState reads the local state from the object store.
 func (l *LocalSOHost) readLocalState(ctx context.Context) (*LocalSOState, error) {
 	localStateKey := SobjectObjectStoreLocalStateKey(l.soHost.GetSharedObjectID())
-	tx, err := l.objStore.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Discard()
-
-	localStateData, found, err := tx.Get(ctx, localStateKey)
-	if err != nil {
-		return nil, err
-	}
-
-	lstate := &LocalSOState{}
-	if found {
-		if err := lstate.UnmarshalVT(localStateData); err != nil {
-			return nil, err
-		}
-	}
-	return lstate, nil
+	var lstate *LocalSOState
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return l.objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			localStateData, found, err := tx.Get(ctx, localStateKey)
+			if err != nil {
+				return err
+			}
+			next := &LocalSOState{}
+			if found {
+				if err := next.UnmarshalVT(localStateData); err != nil {
+					return err
+				}
+			}
+			lstate = next
+			return nil
+		},
+	)
+	return lstate, err
 }
 
 // writeLocalState writes the local state to the object store.
@@ -692,113 +695,87 @@ func (l *LocalSOHost) writeLocalState(ctx context.Context, next *LocalSOState) e
 	defer task.End()
 
 	localStateKey := SobjectObjectStoreLocalStateKey(l.soHost.GetSharedObjectID())
-	var tx kvtx.Tx
-	{
-		taskCtx, task := trace.NewTask(ctx, "alpha/local-so/write-local-state/new-transaction")
-		var err error
-		tx, err = l.objStore.NewTransaction(taskCtx, true)
-		task.End()
-		if err != nil {
-			return err
-		}
-	}
-	defer tx.Discard()
-
-	var data []byte
-	{
-		_, task := trace.NewTask(ctx, "alpha/local-so/write-local-state/marshal")
-		var err error
-		data, err = next.MarshalVT()
-		task.End()
-		if err != nil {
-			return err
-		}
+	data, err := next.MarshalVT()
+	if err != nil {
+		return err
 	}
 	defer scrub.Scrub(data)
 
-	{
-		taskCtx, task := trace.NewTask(ctx, "alpha/local-so/write-local-state/set")
-		err := tx.Set(taskCtx, localStateKey, data)
-		task.End()
-		if err != nil {
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			taskCtx, task := trace.NewTask(ctx, "alpha/local-so/write-local-state/new-transaction")
+			tx, err := l.objStore.NewTransaction(taskCtx, true)
+			task.End()
+			return tx, err
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			taskCtx, task := trace.NewTask(ctx, "alpha/local-so/write-local-state/set")
+			err := tx.Set(taskCtx, localStateKey, data)
+			task.End()
 			return err
-		}
-	}
-
-	{
-		taskCtx, task := trace.NewTask(ctx, "alpha/local-so/write-local-state/commit")
-		err := tx.Commit(taskCtx)
-		task.End()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+		},
+	)
 }
 
 // readLocalOpResult reads the operation result from the object store.
 func (l *LocalSOHost) readLocalOpResult(ctx context.Context, localOpID string) (*LocalSOOperationResult, error) {
 	opResultKey := SobjectObjectStoreLocalOpResultKey(l.soHost.GetSharedObjectID(), localOpID)
-	tx, err := l.objStore.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Discard()
-
-	opResultData, found, err := tx.Get(ctx, opResultKey)
-	if err != nil {
-		return nil, err
-	}
-
-	if !found {
-		return nil, nil
-	}
-
-	opResult := &LocalSOOperationResult{}
-	if err := opResult.UnmarshalVT(opResultData); err != nil {
-		return nil, err
-	}
-	if opResult.GetLocalId() != localOpID {
-		return nil, errors.New("read result from storage has wrong local id")
-	}
-
-	return opResult, nil
+	var opResult *LocalSOOperationResult
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return l.objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			opResultData, found, err := tx.Get(ctx, opResultKey)
+			if err != nil {
+				return err
+			}
+			if !found {
+				opResult = nil
+				return nil
+			}
+			next := &LocalSOOperationResult{}
+			if err := next.UnmarshalVT(opResultData); err != nil {
+				return err
+			}
+			if next.GetLocalId() != localOpID {
+				return errors.New("read result from storage has wrong local id")
+			}
+			opResult = next
+			return nil
+		},
+	)
+	return opResult, err
 }
 
 // writeLocalOpResult writes the operation result to the object store.
 func (l *LocalSOHost) writeLocalOpResult(ctx context.Context, result *LocalSOOperationResult) error {
 	opResultKey := SobjectObjectStoreLocalOpResultKey(l.soHost.GetSharedObjectID(), result.GetLocalId())
-	tx, err := l.objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer tx.Discard()
-
 	data, err := result.MarshalVT()
 	if err != nil {
 		return err
 	}
 	defer scrub.Scrub(data)
 
-	if err := tx.Set(ctx, opResultKey, data); err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return l.objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			return tx.Set(ctx, opResultKey, data)
+		},
+	)
 }
 
 // clearLocalOpResult clears the operation result from the object store.
 func (l *LocalSOHost) clearLocalOpResult(ctx context.Context, localID string) error {
 	opResultKey := SobjectObjectStoreLocalOpResultKey(l.soHost.GetSharedObjectID(), localID)
-	tx, err := l.objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer tx.Discard()
-
-	if err := tx.Delete(ctx, opResultKey); err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return l.objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			return tx.Delete(ctx, opResultKey)
+		},
+	)
 }

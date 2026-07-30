@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // recoveryEnvelopeCacheKeyPrefix is the ObjectStore key prefix for cached
@@ -31,23 +32,30 @@ func (a *ProviderAccount) loadRecoveryEnvelopeCache(
 		return nil, errors.New("shared object id is required")
 	}
 
-	otx, err := a.objStore.NewTransaction(ctx, false)
+	var env *sobject.SOEntityRecoveryEnvelope
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return a.objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			data, found, err := tx.Get(ctx, recoveryEnvelopeCacheKey(soID))
+			if err != nil {
+				return errors.Wrap(err, "get recovery envelope cache")
+			}
+			if !found {
+				env = nil
+				return nil
+			}
+			next := &sobject.SOEntityRecoveryEnvelope{}
+			if err := next.UnmarshalVT(data); err != nil {
+				return errors.Wrap(err, "unmarshal recovery envelope cache")
+			}
+			env = next
+			return nil
+		},
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "open read transaction")
-	}
-	defer otx.Discard()
-
-	data, found, err := otx.Get(ctx, recoveryEnvelopeCacheKey(soID))
-	if err != nil {
-		return nil, errors.Wrap(err, "get recovery envelope cache")
-	}
-	if !found {
-		return nil, nil
-	}
-
-	env := &sobject.SOEntityRecoveryEnvelope{}
-	if err := env.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal recovery envelope cache")
 	}
 	return env, nil
 }
@@ -74,17 +82,18 @@ func (a *ProviderAccount) writeRecoveryEnvelopeCache(
 	if err != nil {
 		return errors.Wrap(err, "marshal recovery envelope")
 	}
-
-	otx, err := a.objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return errors.Wrap(err, "open write transaction")
-	}
-	defer otx.Discard()
-
-	if err := otx.Set(ctx, recoveryEnvelopeCacheKey(soID), data); err != nil {
-		return errors.Wrap(err, "set recovery envelope cache")
-	}
-	return otx.Commit(ctx)
+	err = kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return a.objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			if err := tx.Set(ctx, recoveryEnvelopeCacheKey(soID), data); err != nil {
+				return errors.Wrap(err, "set recovery envelope cache")
+			}
+			return nil
+		},
+	)
+	return errors.Wrap(err, "write recovery envelope cache")
 }
 
 // deleteRecoveryEnvelopeCache removes the cached recovery envelope for soID.
@@ -100,14 +109,16 @@ func (a *ProviderAccount) deleteRecoveryEnvelopeCache(
 		return errors.New("shared object id is required")
 	}
 
-	otx, err := a.objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return errors.Wrap(err, "open write transaction")
-	}
-	defer otx.Discard()
-
-	if err := otx.Delete(ctx, recoveryEnvelopeCacheKey(soID)); err != nil {
-		return errors.Wrap(err, "delete recovery envelope cache")
-	}
-	return otx.Commit(ctx)
+	err := kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return a.objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			if err := tx.Delete(ctx, recoveryEnvelopeCacheKey(soID)); err != nil {
+				return errors.Wrap(err, "delete recovery envelope cache")
+			}
+			return nil
+		},
+	)
+	return errors.Wrap(err, "delete recovery envelope cache")
 }

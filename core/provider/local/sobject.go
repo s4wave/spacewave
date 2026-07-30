@@ -593,6 +593,9 @@ func (t *sobjectTracker) initSharedObjectState(
 	localPeerIDStr string,
 	localPriv crypto.PrivKey,
 ) error {
+	// Retry classification: external to RunTransaction. Initialization generates
+	// random encryption material and performs transform and signing work while
+	// constructing the first state; replay would change those effects.
 	otx, err := objStore.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -745,27 +748,27 @@ func (a *ProviderAccount) readSharedObjectList(ctx context.Context) (*sobject.Sh
 	}
 	defer release()
 
-	// Create object store transaction
-	otx, err := objStore.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer otx.Discard()
-
-	// Read the list
-	data, found, err := otx.Get(ctx, SobjectObjectStoreListKey())
-	if err != nil {
-		return nil, err
-	}
-
-	list := &sobject.SharedObjectList{}
-	if found {
-		if err := list.UnmarshalVT(data); err != nil {
-			return nil, err
-		}
-	}
-
-	return list, nil
+	var list *sobject.SharedObjectList
+	err = kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			data, found, err := tx.Get(ctx, SobjectObjectStoreListKey())
+			if err != nil {
+				return err
+			}
+			next := &sobject.SharedObjectList{}
+			if found {
+				if err := next.UnmarshalVT(data); err != nil {
+					return err
+				}
+			}
+			list = next
+			return nil
+		},
+	)
+	return list, err
 }
 
 // writeSharedObjectList writes the shared object list to storage.
@@ -776,24 +779,18 @@ func (a *ProviderAccount) writeSharedObjectList(ctx context.Context, list *sobje
 	}
 	defer release()
 
-	// Create object store transaction
-	otx, err := objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer otx.Discard()
-
-	// Marshal and write the list
 	data, err := list.MarshalVT()
 	if err != nil {
 		return err
 	}
-
-	if err := otx.Set(ctx, SobjectObjectStoreListKey(), data); err != nil {
-		return err
-	}
-
-	return otx.Commit(ctx)
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			return tx.Set(ctx, SobjectObjectStoreListKey(), data)
+		},
+	)
 }
 
 // GetSOHost returns the SOHost for invite operations.

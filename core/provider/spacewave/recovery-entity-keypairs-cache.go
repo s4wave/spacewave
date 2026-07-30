@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // recoveryEntityKeypairsCacheKeyPrefix is the ObjectStore key prefix for
@@ -34,23 +35,30 @@ func (a *ProviderAccount) loadRecoveryEntityKeypairsCache(
 		return nil, errors.New("entity id is required")
 	}
 
-	otx, err := a.objStore.NewTransaction(ctx, false)
+	var entry *api.SORecoveryEntityKeypairs
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return a.objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			data, found, err := tx.Get(ctx, recoveryEntityKeypairsCacheKey(entityID))
+			if err != nil {
+				return errors.Wrap(err, "get entity keypairs cache")
+			}
+			if !found {
+				entry = nil
+				return nil
+			}
+			next := &api.SORecoveryEntityKeypairs{}
+			if err := next.UnmarshalVT(data); err != nil {
+				return errors.Wrap(err, "unmarshal entity keypairs cache")
+			}
+			entry = next
+			return nil
+		},
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "open read transaction")
-	}
-	defer otx.Discard()
-
-	data, found, err := otx.Get(ctx, recoveryEntityKeypairsCacheKey(entityID))
-	if err != nil {
-		return nil, errors.Wrap(err, "get entity keypairs cache")
-	}
-	if !found {
-		return nil, nil
-	}
-
-	entry := &api.SORecoveryEntityKeypairs{}
-	if err := entry.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal entity keypairs cache")
 	}
 	return entry, nil
 }
@@ -73,19 +81,16 @@ func (a *ProviderAccount) writeRecoveryEntityKeypairsCache(
 	if err != nil {
 		return errors.Wrap(err, "marshal entity keypairs")
 	}
-
-	otx, err := a.objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return errors.Wrap(err, "open write transaction")
-	}
-	defer otx.Discard()
-
-	if err := otx.Set(
-		ctx,
-		recoveryEntityKeypairsCacheKey(entry.GetEntityId()),
-		data,
-	); err != nil {
-		return errors.Wrap(err, "set entity keypairs cache")
-	}
-	return otx.Commit(ctx)
+	err = kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return a.objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			if err := tx.Set(ctx, recoveryEntityKeypairsCacheKey(entry.GetEntityId()), data); err != nil {
+				return errors.Wrap(err, "set entity keypairs cache")
+			}
+			return nil
+		},
+	)
+	return errors.Wrap(err, "write entity keypairs cache")
 }

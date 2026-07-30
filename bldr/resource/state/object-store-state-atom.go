@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/aperturerobotics/util/broadcast"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
 )
 
@@ -37,36 +38,38 @@ func (s *ObjectStoreStateAtom) GetStoreID() string {
 
 // Get returns the current state JSON and sequence number.
 func (s *ObjectStoreStateAtom) Get(ctx context.Context) (string, uint64, error) {
-	otx, err := s.objStore.NewTransaction(ctx, false)
-	if err != nil {
-		return "", 0, err
-	}
-	defer otx.Discard()
-
-	data, found, err := otx.Get(ctx, s.objKey)
-	if err != nil {
-		return "", 0, err
-	}
-	if !found {
-		return "{}", s.seqno.Load(), nil
-	}
-
-	return string(data), s.seqno.Load(), nil
+	var state string
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return s.objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			data, found, err := tx.Get(ctx, s.objKey)
+			if err != nil {
+				return err
+			}
+			if !found {
+				state = "{}"
+				return nil
+			}
+			state = string(data)
+			return nil
+		},
+	)
+	return state, s.seqno.Load(), err
 }
 
 // Set updates the state JSON and returns the new sequence number.
 func (s *ObjectStoreStateAtom) Set(ctx context.Context, stateJson string) (uint64, error) {
-	otx, err := s.objStore.NewTransaction(ctx, true)
+	err := kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return s.objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			return tx.Set(ctx, s.objKey, []byte(stateJson))
+		},
+	)
 	if err != nil {
-		return 0, err
-	}
-	defer otx.Discard()
-
-	if err := otx.Set(ctx, s.objKey, []byte(stateJson)); err != nil {
-		return 0, err
-	}
-
-	if err := otx.Commit(ctx); err != nil {
 		return 0, err
 	}
 
@@ -76,7 +79,6 @@ func (s *ObjectStoreStateAtom) Set(ctx context.Context, stateJson string) (uint6
 		newSeqno = s.seqno.Add(1)
 		broadcast()
 	})
-
 	return newSeqno, nil
 }
 

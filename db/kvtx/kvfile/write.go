@@ -18,6 +18,8 @@ type FilterKeysFunc func(key []byte) (bool, error)
 // Note: does not support BlockIterator.
 // filterKeys can be nil
 func KvfileFromStore(ctx context.Context, writer io.Writer, store kvtx.Store, filterKeys FilterKeysFunc) error {
+	// Retry classification: external to RunTransaction. KvfileFromTx writes
+	// transaction data to caller-owned output while the transaction is open.
 	tx, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		return err
