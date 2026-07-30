@@ -8,6 +8,8 @@ service RefGraph {
 
   // RemoveRef removes a single gc/ref edge from subject to object.
   rpc RemoveRef(RemoveRefRequest) returns (RemoveRefResponse);
+  // ApplyRefBatch applies one bounded ownership transition.
+  rpc ApplyRefBatch(ApplyRefBatchRequest) returns (ApplyRefBatchResponse);
 
   // RemoveNodeRefs removes all outgoing gc/ref edges for a node.
   rpc RemoveNodeRefs(RemoveNodeRefsRequest) returns (RemoveNodeRefsResponse);
@@ -23,6 +25,34 @@ service RefGraph {
 
   // GetUnreferencedNodes returns all nodes linked from "unreferenced".
   rpc GetUnreferencedNodes(GetUnreferencedNodesRequest) returns (GetUnreferencedNodesResponse);
+}
+
+// RefEdge is a subject-to-object ownership edge.
+message RefEdge {
+  // Subject is the source node IRI.
+  string subject = 1;
+  // Object is the target node IRI.
+  string object = 2;
+}
+
+// ApplyRefBatchRequest carries one bounded ownership transition.
+message ApplyRefBatchRequest {
+  // Adds are applied before removes.
+  repeated RefEdge adds = 1;
+  // Removes are exact edges; missing edges are no-ops.
+  repeated RefEdge removes = 2;
+}
+
+// ApplyRefBatchResponse reports an owner transition result.
+message ApplyRefBatchResponse {
+  // Error is any error applying the transition.
+  string error = 1;
+  // HasRemainder reports whether the owner supplied an uncommitted suffix.
+  bool has_remainder = 2;
+  // RemainderAdds is the uncommitted suffix of adds.
+  repeated RefEdge remainder_adds = 3;
+  // RemainderRemoves is the uncommitted suffix of removes.
+  repeated RefEdge remainder_removes = 4;
 }
 
 // AddRefRequest is a request to add a gc/ref edge.

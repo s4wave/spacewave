@@ -13,6 +13,133 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 export const protobufPackage = 'block.gc.rpc'
 
 /**
+ * RefEdge is a subject-to-object ownership edge.
+ *
+ * @generated from message block.gc.rpc.RefEdge
+ */
+export interface RefEdge {
+  /**
+   * Subject is the source node IRI.
+   *
+   * @generated from field: string subject = 1;
+   */
+  subject?: string
+  /**
+   * Object is the target node IRI.
+   *
+   * @generated from field: string object = 2;
+   */
+  object?: string
+}
+
+export const RefEdge: MessageType<RefEdge> = /* @__PURE__ */ createMessageType({
+  typeName: 'block.gc.rpc.RefEdge',
+  fields: [
+    { no: 1, name: 'subject', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'object', kind: 'scalar', T: ScalarType.STRING },
+  ] satisfies readonly PartialFieldInfo[],
+  packedByDefault: true,
+})
+
+/**
+ * ApplyRefBatchRequest carries one bounded ownership transition.
+ *
+ * @generated from message block.gc.rpc.ApplyRefBatchRequest
+ */
+export interface ApplyRefBatchRequest {
+  /**
+   * Adds are applied before removes.
+   *
+   * @generated from field: repeated block.gc.rpc.RefEdge adds = 1;
+   */
+  adds?: RefEdge[]
+  /**
+   * Removes are exact edges; missing edges are no-ops.
+   *
+   * @generated from field: repeated block.gc.rpc.RefEdge removes = 2;
+   */
+  removes?: RefEdge[]
+}
+
+export const ApplyRefBatchRequest: MessageType<ApplyRefBatchRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.gc.rpc.ApplyRefBatchRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'adds',
+        kind: 'message',
+        T: () => RefEdge,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'removes',
+        kind: 'message',
+        T: () => RefEdge,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ApplyRefBatchResponse reports an owner transition result.
+ *
+ * @generated from message block.gc.rpc.ApplyRefBatchResponse
+ */
+export interface ApplyRefBatchResponse {
+  /**
+   * Error is any error applying the transition.
+   *
+   * @generated from field: string error = 1;
+   */
+  error?: string
+  /**
+   * HasRemainder reports whether the owner supplied an uncommitted suffix.
+   *
+   * @generated from field: bool has_remainder = 2;
+   */
+  hasRemainder?: boolean
+  /**
+   * RemainderAdds is the uncommitted suffix of adds.
+   *
+   * @generated from field: repeated block.gc.rpc.RefEdge remainder_adds = 3;
+   */
+  remainderAdds?: RefEdge[]
+  /**
+   * RemainderRemoves is the uncommitted suffix of removes.
+   *
+   * @generated from field: repeated block.gc.rpc.RefEdge remainder_removes = 4;
+   */
+  remainderRemoves?: RefEdge[]
+}
+
+export const ApplyRefBatchResponse: MessageType<ApplyRefBatchResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'block.gc.rpc.ApplyRefBatchResponse',
+    fields: [
+      { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'has_remainder', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 3,
+        name: 'remainder_adds',
+        kind: 'message',
+        T: () => RefEdge,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'remainder_removes',
+        kind: 'message',
+        T: () => RefEdge,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * AddRefRequest is a request to add a gc/ref edge.
  *
  * @generated from message block.gc.rpc.AddRefRequest

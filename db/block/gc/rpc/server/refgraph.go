@@ -50,6 +50,34 @@ func (s *RefGraph) RemoveRef(
 	return resp, nil
 }
 
+// ApplyRefBatch forwards one bounded ownership transition to the RefGraph owner.
+func (s *RefGraph) ApplyRefBatch(
+	ctx context.Context,
+	req *block_gc_rpc.ApplyRefBatchRequest,
+) (*block_gc_rpc.ApplyRefBatchResponse, error) {
+	if s.rg == nil {
+		return nil, errors.ErrUnsupported
+	}
+
+	resp := &block_gc_rpc.ApplyRefBatchResponse{}
+	err := s.rg.ApplyRefBatch(
+		ctx,
+		refEdgesFromRPC(req.GetAdds()),
+		refEdgesFromRPC(req.GetRemoves()),
+	)
+	if err == nil {
+		return resp, nil
+	}
+	resp.Error = err.Error()
+	adds, removes, ok := block_gc.RefBatchRemainder(err)
+	if ok {
+		resp.HasRemainder = true
+		resp.RemainderAdds = refEdgesToRPC(adds)
+		resp.RemainderRemoves = refEdgesToRPC(removes)
+	}
+	return resp, nil
+}
+
 // RemoveNodeRefs removes all outgoing gc/ref edges for a node.
 func (s *RefGraph) RemoveNodeRefs(
 	ctx context.Context,
@@ -143,6 +171,34 @@ func (s *RefGraph) GetUnreferencedNodes(
 		resp.Nodes = nodes
 	}
 	return resp, nil
+}
+
+func refEdgesFromRPC(edges []*block_gc_rpc.RefEdge) []block_gc.RefEdge {
+	if len(edges) == 0 {
+		return nil
+	}
+	out := make([]block_gc.RefEdge, len(edges))
+	for i, edge := range edges {
+		out[i] = block_gc.RefEdge{
+			Subject: edge.GetSubject(),
+			Object:  edge.GetObject(),
+		}
+	}
+	return out
+}
+
+func refEdgesToRPC(edges []block_gc.RefEdge) []*block_gc_rpc.RefEdge {
+	if len(edges) == 0 {
+		return nil
+	}
+	out := make([]*block_gc_rpc.RefEdge, len(edges))
+	for i, edge := range edges {
+		out[i] = &block_gc_rpc.RefEdge{
+			Subject: edge.Subject,
+			Object:  edge.Object,
+		}
+	}
+	return out
 }
 
 // _ is a type assertion
