@@ -51,7 +51,7 @@ require (
 	github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
-	github.com/aperturerobotics/protobuf-go-lite v0.16.0 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.16.1-0.20260730104859-e2b81e01d832 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/aperturerobotics/starpc v0.50.0 // latest
 	github.com/aperturerobotics/util v1.34.10-0.20260730200237-852d339fd031 // master
@@ -100,7 +100,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-alpha.2.0.20260728104803-133d4f9bfd41 // main
-	github.com/go-git/go-git/v6 v6.0.0-alpha.5 // main
+	github.com/go-git/go-git/v6 v6.0.0-alpha.5.0.20260730134444-cf4d91c78c32 // main
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.6.0
