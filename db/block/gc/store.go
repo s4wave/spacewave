@@ -497,7 +497,7 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	batchCtx, batchTask := trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/apply-ref-batch")
 	if err := g.refGraph.ApplyRefBatch(batchCtx, adds, removes); err != nil {
 		batchTask.End()
-		if remainderAdds, remainderRemoves, ok := refBatchRemainder(err); ok {
+		if remainderAdds, remainderRemoves, ok := RefBatchRemainder(err); ok {
 			g.rebufferEdges(remainderAdds, remainderRemoves)
 		} else {
 			g.rebufferSourceBuffers(unrefs, refs, ununrefs)
@@ -509,14 +509,6 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	}
 	batchTask.End()
 	return nil
-}
-
-func refBatchRemainder(err error) ([]RefEdge, []RefEdge, bool) {
-	var batchErr *refBatchError
-	if !errors.As(err, &batchErr) {
-		return nil, nil, false
-	}
-	return cloneRefEdges(batchErr.adds), cloneRefEdges(batchErr.removes), true
 }
 
 func (g *GCStoreOps) rebufferEdges(adds, removes []RefEdge) {

@@ -18,6 +18,8 @@ type SRPCRefGraphClient interface {
 	AddRef(ctx context.Context, in *AddRefRequest) (*AddRefResponse, error)
 	// RemoveRef removes a single gc/ref edge from subject to object.
 	RemoveRef(ctx context.Context, in *RemoveRefRequest) (*RemoveRefResponse, error)
+	// ApplyRefBatch applies one bounded ownership transition.
+	ApplyRefBatch(ctx context.Context, in *ApplyRefBatchRequest) (*ApplyRefBatchResponse, error)
 	// RemoveNodeRefs removes all outgoing gc/ref edges for a node.
 	RemoveNodeRefs(ctx context.Context, in *RemoveNodeRefsRequest) (*RemoveNodeRefsResponse, error)
 	// HasIncomingRefs checks if a node has any incoming gc/ref edges.
@@ -60,6 +62,15 @@ func (c *srpcRefGraphClient) AddRef(ctx context.Context, in *AddRefRequest) (*Ad
 func (c *srpcRefGraphClient) RemoveRef(ctx context.Context, in *RemoveRefRequest) (*RemoveRefResponse, error) {
 	out := new(RemoveRefResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "RemoveRef", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *srpcRefGraphClient) ApplyRefBatch(ctx context.Context, in *ApplyRefBatchRequest) (*ApplyRefBatchResponse, error) {
+	out := new(ApplyRefBatchResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "ApplyRefBatch", in, out)
 	if err != nil {
 		return nil, err
 	}
@@ -116,6 +127,8 @@ type SRPCRefGraphServer interface {
 	AddRef(context.Context, *AddRefRequest) (*AddRefResponse, error)
 	// RemoveRef removes a single gc/ref edge from subject to object.
 	RemoveRef(context.Context, *RemoveRefRequest) (*RemoveRefResponse, error)
+	// ApplyRefBatch applies one bounded ownership transition.
+	ApplyRefBatch(context.Context, *ApplyRefBatchRequest) (*ApplyRefBatchResponse, error)
 	// RemoveNodeRefs removes all outgoing gc/ref edges for a node.
 	RemoveNodeRefs(context.Context, *RemoveNodeRefsRequest) (*RemoveNodeRefsResponse, error)
 	// HasIncomingRefs checks if a node has any incoming gc/ref edges.
@@ -156,6 +169,7 @@ func (SRPCRefGraphHandler) GetMethodIDs() []string {
 	return []string{
 		"AddRef",
 		"RemoveRef",
+		"ApplyRefBatch",
 		"RemoveNodeRefs",
 		"HasIncomingRefs",
 		"GetOutgoingRefs",
@@ -177,6 +191,8 @@ func (d *SRPCRefGraphHandler) InvokeMethod(
 		return true, d.InvokeMethod_AddRef(d.impl, strm)
 	case "RemoveRef":
 		return true, d.InvokeMethod_RemoveRef(d.impl, strm)
+	case "ApplyRefBatch":
+		return true, d.InvokeMethod_ApplyRefBatch(d.impl, strm)
 	case "RemoveNodeRefs":
 		return true, d.InvokeMethod_RemoveNodeRefs(d.impl, strm)
 	case "HasIncomingRefs":
@@ -210,6 +226,18 @@ func (SRPCRefGraphHandler) InvokeMethod_RemoveRef(impl SRPCRefGraphServer, strm 
 		return err
 	}
 	out, err := impl.RemoveRef(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCRefGraphHandler) InvokeMethod_ApplyRefBatch(impl SRPCRefGraphServer, strm srpc.Stream) error {
+	req := new(ApplyRefBatchRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.ApplyRefBatch(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -289,6 +317,14 @@ type SRPCRefGraph_RemoveRefStream interface {
 }
 
 type srpcRefGraph_RemoveRefStream struct {
+	srpc.Stream
+}
+
+type SRPCRefGraph_ApplyRefBatchStream interface {
+	srpc.Stream
+}
+
+type srpcRefGraph_ApplyRefBatchStream struct {
 	srpc.Stream
 }
 

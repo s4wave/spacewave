@@ -5,6 +5,8 @@
 import {
   AddRefRequest,
   AddRefResponse,
+  ApplyRefBatchRequest,
+  ApplyRefBatchResponse,
   GetIncomingRefsRequest,
   GetIncomingRefsResponse,
   GetOutgoingRefsRequest,
@@ -49,6 +51,17 @@ export const RefGraphDefinition = {
       name: 'RemoveRef',
       I: RemoveRefRequest,
       O: RemoveRefResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ApplyRefBatch applies one bounded ownership transition.
+     *
+     * @generated from rpc block.gc.rpc.RefGraph.ApplyRefBatch
+     */
+    ApplyRefBatch: {
+      name: 'ApplyRefBatch',
+      I: ApplyRefBatchRequest,
+      O: ApplyRefBatchResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -136,6 +149,16 @@ export interface RefGraph {
   ): Promise<RemoveRefResponse>
 
   /**
+   * ApplyRefBatch applies one bounded ownership transition.
+   *
+   * @generated from rpc block.gc.rpc.RefGraph.ApplyRefBatch
+   */
+  ApplyRefBatch(
+    request: ApplyRefBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ApplyRefBatchResponse>
+
+  /**
    * RemoveNodeRefs removes all outgoing gc/ref edges for a node.
    *
    * @generated from rpc block.gc.rpc.RefGraph.RemoveNodeRefs
@@ -196,6 +219,7 @@ export class RefGraphClient implements RefGraph {
     this.rpc = rpc
     this.AddRef = this.AddRef.bind(this)
     this.RemoveRef = this.RemoveRef.bind(this)
+    this.ApplyRefBatch = this.ApplyRefBatch.bind(this)
     this.RemoveNodeRefs = this.RemoveNodeRefs.bind(this)
     this.HasIncomingRefs = this.HasIncomingRefs.bind(this)
     this.GetOutgoingRefs = this.GetOutgoingRefs.bind(this)
@@ -238,6 +262,25 @@ export class RefGraphClient implements RefGraph {
       abortSignal || undefined,
     )
     return RemoveRefResponse.fromBinary(result)
+  }
+
+  /**
+   * ApplyRefBatch applies one bounded ownership transition.
+   *
+   * @generated from rpc block.gc.rpc.RefGraph.ApplyRefBatch
+   */
+  async ApplyRefBatch(
+    request: ApplyRefBatchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ApplyRefBatchResponse> {
+    const requestMsg = ApplyRefBatchRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      RefGraphDefinition.methods.ApplyRefBatch.name,
+      ApplyRefBatchRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ApplyRefBatchResponse.fromBinary(result)
   }
 
   /**

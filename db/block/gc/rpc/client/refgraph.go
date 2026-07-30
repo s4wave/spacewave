@@ -2,7 +2,6 @@ package block_gc_rpc_client
 
 import (
 	"context"
-	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -13,7 +12,6 @@ import (
 // RefGraph implements RefGraphOps backed by a RefGraph RPC service.
 type RefGraph struct {
 	client block_gc_rpc.SRPCRefGraphClient
-	mu     sync.Mutex
 }
 
 // NewRefGraph constructs a new RefGraph RPC client.
@@ -23,8 +21,6 @@ func NewRefGraph(client block_gc_rpc.SRPCRefGraphClient) *RefGraph {
 
 // AddRef adds a gc/ref edge from subject to object.
 func (r *RefGraph) AddRef(ctx context.Context, subject, object string) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
 	return r.addRef(ctx, subject, object)
 }
 
@@ -44,8 +40,6 @@ func (r *RefGraph) addRef(ctx context.Context, subject, object string) error {
 
 // RemoveRef removes a single gc/ref edge from subject to object.
 func (r *RefGraph) RemoveRef(ctx context.Context, subject, object string) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
 	return r.removeRef(ctx, subject, object)
 }
 
@@ -65,8 +59,6 @@ func (r *RefGraph) removeRef(ctx context.Context, subject, object string) error 
 
 // RemoveNodeRefs removes all outgoing gc/ref edges for a node.
 func (r *RefGraph) RemoveNodeRefs(ctx context.Context, node string, markOrphaned bool) ([]string, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
 	resp, err := r.client.RemoveNodeRefs(ctx, &block_gc_rpc.RemoveNodeRefsRequest{
 		Node:         node,
 		MarkOrphaned: markOrphaned,
@@ -186,69 +178,74 @@ func (r *RefGraph) RemoveObjectRoot(ctx context.Context, objectKey string, ref *
 	return r.RemoveRef(ctx, block_gc.ObjectIRI(objectKey), t)
 }
 
-// ApplyRefBatch applies a batch of ref graph edge additions and removals.
-// The RPC protocol has no batch endpoint, so the client serializes the full
-// ownership transition and performs orphan marking before issuing the calls.
+// ApplyRefBatch sends one bounded ownership transition to the server-side
+// RefGraph owner.
 func (r *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []block_gc.RefEdge) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	owners := make(map[string]map[string]struct{})
-	stagingRemoves := make(map[string]struct{})
-	for _, edge := range removes {
-		if edge.Subject == block_gc.NodeUnreferenced {
-			stagingRemoves[edge.Object] = struct{}{}
-			continue
-		}
-		if block_gc.IsPermanentRoot(edge.Object) {
-			continue
-		}
-		if _, ok := owners[edge.Object]; ok {
-			continue
-		}
-		sources, err := r.GetIncomingRefs(ctx, edge.Object)
-		if err != nil {
-			return err
-		}
-		set := make(map[string]struct{}, len(sources))
-		for _, source := range sources {
-			if source != block_gc.NodeUnreferenced {
-				set[source] = struct{}{}
+	resp, err := r.client.ApplyRefBatch(ctx, &block_gc_rpc.ApplyRefBatchRequest{
+		Adds:    refEdgesToRPC(adds),
+		Removes: refEdgesToRPC(removes),
+	})
+	if err != nil {
+		return err
+	}
+	if errStr := resp.GetError(); errStr != "" {
+		batchErr := errors.New(errStr)
+		if resp.GetHasRemainder() {
+			return &refBatchError{
+				err:     batchErr,
+				adds:    refEdgesFromRPC(resp.GetRemainderAdds()),
+				removes: refEdgesFromRPC(resp.GetRemainderRemoves()),
 			}
 		}
-		owners[edge.Object] = set
-	}
-	for _, edge := range removes {
-		if set, ok := owners[edge.Object]; ok {
-			delete(set, edge.Subject)
-		}
-	}
-	for _, edge := range adds {
-		if set, ok := owners[edge.Object]; ok && edge.Subject != block_gc.NodeUnreferenced {
-			set[edge.Subject] = struct{}{}
-		}
-	}
-	for object, set := range owners {
-		if len(set) == 0 {
-			if _, removingStaging := stagingRemoves[object]; !removingStaging {
-				adds = append(adds, block_gc.RefEdge{
-					Subject: block_gc.NodeUnreferenced,
-					Object:  object,
-				})
-			}
-		}
-	}
-	for _, e := range adds {
-		if err := r.addRef(ctx, e.Subject, e.Object); err != nil {
-			return err
-		}
-	}
-	for _, e := range removes {
-		if err := r.removeRef(ctx, e.Subject, e.Object); err != nil {
-			return err
-		}
+		return batchErr
 	}
 	return nil
+}
+
+type refBatchError struct {
+	err     error
+	adds    []block_gc.RefEdge
+	removes []block_gc.RefEdge
+}
+
+func (e *refBatchError) Error() string {
+	return e.err.Error()
+}
+
+func (e *refBatchError) Unwrap() error {
+	return e.err
+}
+
+func (e *refBatchError) RefBatchRemainder() ([]block_gc.RefEdge, []block_gc.RefEdge) {
+	return e.adds, e.removes
+}
+
+func refEdgesToRPC(edges []block_gc.RefEdge) []*block_gc_rpc.RefEdge {
+	if len(edges) == 0 {
+		return nil
+	}
+	out := make([]*block_gc_rpc.RefEdge, len(edges))
+	for i, edge := range edges {
+		out[i] = &block_gc_rpc.RefEdge{
+			Subject: edge.Subject,
+			Object:  edge.Object,
+		}
+	}
+	return out
+}
+
+func refEdgesFromRPC(edges []*block_gc_rpc.RefEdge) []block_gc.RefEdge {
+	if len(edges) == 0 {
+		return nil
+	}
+	out := make([]block_gc.RefEdge, len(edges))
+	for i, edge := range edges {
+		out[i] = block_gc.RefEdge{
+			Subject: edge.GetSubject(),
+			Object:  edge.GetObject(),
+		}
+	}
+	return out
 }
 
 // Close is a no-op for the RPC client.
