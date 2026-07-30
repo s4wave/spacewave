@@ -1,6 +1,7 @@
 package block_store_kvtx
 
 import (
+	"bytes"
 	"context"
 	"sync/atomic"
 	"testing"
@@ -241,48 +242,69 @@ func TestGetBlockExistsBatchUsesSingleReadTransaction(t *testing.T) {
 }
 
 func TestPutBlockBatchRetriesWholeLogicalOperation(t *testing.T) {
-	ctx := context.Background()
-	backend := newCountingStore()
-	store := kvtest.NewFaultStore(backend, kvtest.FaultBeforeCommit)
-	blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store, 0, false)
-	firstData := []byte("retry first batch block")
-	secondData := []byte("retry second batch block")
-	firstRef := mustBuildBlockRef(t, firstData)
-	secondRef := mustBuildBlockRef(t, secondData)
+	type result struct {
+		first  []byte
+		second []byte
+	}
+	run := func(t *testing.T, injectFault bool) (result, *kvtest.FaultStore, *countingStore) {
+		t.Helper()
+		ctx := t.Context()
+		backend := newCountingStore()
+		var store kvtx.Store = backend
+		var faultStore *kvtest.FaultStore
+		if injectFault {
+			faultStore = kvtest.NewFaultStore(backend, kvtest.FaultBeforeCommit)
+			store = faultStore
+		}
+		blocks := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), store, 0, false)
+		firstData := []byte("retry first batch block")
+		secondData := []byte("retry second batch block")
+		firstRef := mustBuildBlockRef(t, firstData)
+		secondRef := mustBuildBlockRef(t, secondData)
 
-	err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
-		{Ref: firstRef, Data: firstData},
-		{Ref: secondRef, Data: secondData},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := store.Opened(); got != 2 {
-		t.Fatalf("opened transactions = %d, want 2", got)
-	}
-	if got := store.Discarded(); got != 2 {
-		t.Fatalf("discarded transactions = %d, want 2", got)
-	}
-	if got := store.DelegatedCommits(); got != 1 {
-		t.Fatalf("delegated commits = %d, want 1", got)
-	}
-	// Both keys must be replayed in the second transaction. A helper scoped to
-	// one key would perform only three sets instead of replaying the batch body.
-	if got := backend.sets.Load(); got != 4 {
-		t.Fatalf("batch set operations = %d, want 4 across two complete attempts", got)
-	}
-
-	for _, entry := range []*block.PutBatchEntry{
-		{Ref: firstRef, Data: firstData},
-		{Ref: secondRef, Data: secondData},
-	} {
-		data, found, err := blocks.GetBlock(ctx, entry.Ref)
+		if err := blocks.PutBlockBatch(ctx, []*block.PutBatchEntry{
+			{Ref: firstRef, Data: firstData},
+			{Ref: secondRef, Data: secondData},
+		}); err != nil {
+			t.Fatal(err)
+		}
+		reader := NewKVTxBlock(store_kvkey.NewDefaultKVKey(), backend, 0, false)
+		first, found, err := reader.GetBlock(ctx, firstRef)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !found || string(data) != string(entry.Data) {
-			t.Fatalf("ref %v found=%v data=%q, want %q", entry.Ref, found, data, entry.Data)
+		if !found {
+			t.Fatal("first committed block not found")
 		}
+		second, found, err := reader.GetBlock(ctx, secondRef)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !found {
+			t.Fatal("second committed block not found")
+		}
+		return result{first: first, second: second}, faultStore, backend
+	}
+
+	want, _, _ := run(t, false)
+	got, faultStore, backend := run(t, true)
+	if !bytes.Equal(got.first, want.first) {
+		t.Fatalf("first block = %q, want %q", got.first, want.first)
+	}
+	if !bytes.Equal(got.second, want.second) {
+		t.Fatalf("second block = %q, want %q", got.second, want.second)
+	}
+	if got := faultStore.Opened(); got != 2 {
+		t.Fatalf("opened transactions = %d, want 2", got)
+	}
+	if got := faultStore.Discarded(); got != 2 {
+		t.Fatalf("discarded transactions = %d, want 2", got)
+	}
+	if got := faultStore.DelegatedCommits(); got != 1 {
+		t.Fatalf("delegated commits = %d, want 1", got)
+	}
+	if got := backend.sets.Load(); got != 4 {
+		t.Fatalf("batch set operations = %d, want 4 across two complete attempts", got)
 	}
 }
 
