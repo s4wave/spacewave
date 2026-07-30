@@ -137,6 +137,41 @@ func TestGCGraphAddRemoveRef(t *testing.T) {
 	}
 }
 
+func TestGCGraphHasRefRejectsMismatchedEdgeContent(t *testing.T) {
+	g, cleanup := newTestGraph(t, "test-gcgraph-hasref-content")
+	defer cleanup()
+
+	subject, object := "subject", "object"
+	edgeSubDir, err := opfs.GetDirectory(g.edgesDir, hashName(subject), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := g.writeFile(
+		edgeSubDir,
+		hashName(object),
+		[]byte("different-subject\ndifferent-object"),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	exists, err := g.hasRef(subject, object)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exists {
+		t.Fatal("hasRef accepted mismatched edge content")
+	}
+}
+
+func TestGCGraphRemoveExistingRefMissingSubjectDirectory(t *testing.T) {
+	g, cleanup := newTestGraph(t, "test-gcgraph-remove-missing-dir")
+	defer cleanup()
+
+	if err := g.removeExistingRef("missing-subject", "object"); err != nil {
+		t.Fatalf("removeExistingRef on missing subject directory: %v", err)
+	}
+}
+
 func TestGCGraphNodeInventory(t *testing.T) {
 	g, cleanup := newTestGraph(t, "test-gcgraph-nodes")
 	defer cleanup()
