@@ -14,7 +14,7 @@ import (
 
 func BenchmarkRefGraphApplyRefBatch(b *testing.B) {
 	ctx := context.Background()
-	for _, edgeCount := range []int{64, 1024} {
+	for _, edgeCount := range []int{64, 1024, 4096*2 + 17} {
 		b.Run("edges="+strconv.Itoa(edgeCount), func(b *testing.B) {
 			rg := newBenchRefGraph(b, ctx)
 

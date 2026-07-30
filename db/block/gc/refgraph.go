@@ -29,7 +29,24 @@ type RefGraph struct {
 	iriRefKeys map[string]any
 }
 
-const refGraphApplyBatchLimit = 512
+const (
+	refGraphApplyBatchLimit = 512
+	refGraphApplySliceLimit = 4096
+)
+
+type refBatchError struct {
+	err     error
+	adds    []RefEdge
+	removes []RefEdge
+}
+
+func (e *refBatchError) Error() string {
+	return e.err.Error()
+}
+
+func (e *refBatchError) Unwrap() error {
+	return e.err
+}
 
 // NewRefGraph constructs a RefGraph backed by the given kvtx store.
 // prefix is prepended to all keys (e.g., "gc/" for space context).
@@ -95,18 +112,17 @@ func (rg *RefGraph) RemoveRef(ctx context.Context, subject, object string) error
 }
 
 // ApplyRefBatch applies a batch of ref graph edge additions and removals.
-// Small batches run in one Cayley transaction; larger batches chunk at a
-// bounded size while preserving add-before-remove order.
+// Preparation and application are bounded together so each slice commits
+// before preparation of the next slice begins.
 func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) error {
-	rg.writeMu.Lock()
-	defer rg.writeMu.Unlock()
-	return rg.applyRefBatchLocked(ctx, adds, removes, true)
+	return rg.applyRefBatch(ctx, adds, removes, true, true)
 }
 
-func (rg *RefGraph) applyRefBatchLocked(
+func (rg *RefGraph) applyRefBatch(
 	ctx context.Context,
 	adds, removes []RefEdge,
 	markOrphaned bool,
+	lockPerSlice bool,
 ) error {
 	ctx = disableStoreTracking(ctx)
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/apply-ref-batch")
@@ -114,40 +130,145 @@ func (rg *RefGraph) applyRefBatchLocked(
 	trace.Logf(
 		ctx,
 		"hydra/block-gc/refgraph/apply-ref-batch/shape",
-		"adds=%d removes=%d limit=%d",
+		"adds=%d removes=%d slice_limit=%d transaction_limit=%d",
 		len(adds),
 		len(removes),
+		refGraphApplySliceLimit,
 		refGraphApplyBatchLimit,
 	)
 
 	if len(adds) == 0 && len(removes) == 0 {
 		return nil
 	}
-	var err error
-	adds, removes, err = rg.prepareRefBatch(ctx, adds, removes, markOrphaned)
-	if err != nil {
-		return err
-	}
-
-	chunks := 0
+	slice := 0
 	for len(adds) != 0 || len(removes) != 0 {
-		addCount := min(len(adds), refGraphApplyBatchLimit)
-		removeCount := 0
-		if addCount < refGraphApplyBatchLimit {
-			removeCount = min(len(removes), refGraphApplyBatchLimit-addCount)
+		if err := ctx.Err(); err != nil {
+			return &refBatchError{
+				err:     err,
+				adds:    cloneRefEdges(adds),
+				removes: cloneRefEdges(removes),
+			}
 		}
-		if addCount == 0 {
-			removeCount = min(len(removes), refGraphApplyBatchLimit)
+
+		addCount, removeCount := refBatchSliceCounts(adds, removes)
+		slice++
+		trace.Logf(
+			ctx,
+			"hydra/block-gc/refgraph/apply-ref-batch/slice-start",
+			"slice=%d adds=%d removes=%d remaining_adds=%d remaining_removes=%d",
+			slice,
+			addCount,
+			removeCount,
+			len(adds)-addCount,
+			len(removes)-removeCount,
+		)
+
+		sliceAdds := adds[:addCount]
+		sliceRemoves := removes[:removeCount]
+		if lockPerSlice {
+			rg.writeMu.Lock()
 		}
-		chunks++
-		if err := rg.applyRefBatchChunk(ctx, adds[:addCount], removes[:removeCount]); err != nil {
-			return err
+		preparedAdds, preparedRemoves, err := rg.prepareRefBatch(
+			ctx,
+			sliceAdds,
+			sliceRemoves,
+			markOrphaned,
+		)
+		if err == nil {
+			var remainingAdds, remainingRemoves []RefEdge
+			remainingAdds, remainingRemoves, err = rg.applyRefBatchSliceLocked(
+				ctx,
+				preparedAdds,
+				preparedRemoves,
+			)
+			if err != nil {
+				if lockPerSlice {
+					rg.writeMu.Unlock()
+				}
+				return &refBatchError{
+					err:     err,
+					adds:    appendRefEdges(remainingAdds, adds[addCount:]),
+					removes: appendRefEdges(remainingRemoves, removes[removeCount:]),
+				}
+			}
 		}
+		if lockPerSlice {
+			rg.writeMu.Unlock()
+		}
+		if err != nil {
+			return &refBatchError{
+				err:     err,
+				adds:    appendRefEdges(sliceAdds, adds[addCount:]),
+				removes: appendRefEdges(sliceRemoves, removes[removeCount:]),
+			}
+		}
+		trace.Logf(
+			ctx,
+			"hydra/block-gc/refgraph/apply-ref-batch/slice-complete",
+			"slice=%d adds=%d removes=%d",
+			slice,
+			addCount,
+			removeCount,
+		)
 		adds = adds[addCount:]
 		removes = removes[removeCount:]
 	}
-	trace.Logf(ctx, "hydra/block-gc/refgraph/apply-ref-batch/chunks", "chunks=%d", chunks)
+	trace.Logf(ctx, "hydra/block-gc/refgraph/apply-ref-batch/slices", "slices=%d", slice)
 	return nil
+}
+
+func refBatchSliceCounts(adds, removes []RefEdge) (int, int) {
+	addCount := min(len(adds), refGraphApplySliceLimit)
+	removeCount := 0
+	if addCount < refGraphApplySliceLimit {
+		removeCount = min(len(removes), refGraphApplySliceLimit-addCount)
+	}
+	if addCount == 0 {
+		removeCount = min(len(removes), refGraphApplySliceLimit)
+	}
+	return addCount, removeCount
+}
+
+func cloneRefEdges(edges []RefEdge) []RefEdge {
+	return append([]RefEdge(nil), edges...)
+}
+
+func appendRefEdges(first, second []RefEdge) []RefEdge {
+	if len(first) == 0 {
+		return cloneRefEdges(second)
+	}
+	if len(second) == 0 {
+		return cloneRefEdges(first)
+	}
+	out := make([]RefEdge, 0, len(first)+len(second))
+	out = append(out, first...)
+	out = append(out, second...)
+	return out
+}
+
+func (rg *RefGraph) applyRefBatchSliceLocked(
+	ctx context.Context,
+	adds, removes []RefEdge,
+) ([]RefEdge, []RefEdge, error) {
+	chunks := 0
+	for len(adds) != 0 {
+		count := min(len(adds), refGraphApplyBatchLimit)
+		chunks++
+		if err := rg.applyRefBatchChunk(ctx, adds[:count], nil); err != nil {
+			return adds, removes, err
+		}
+		adds = adds[count:]
+	}
+	for len(removes) != 0 {
+		count := min(len(removes), refGraphApplyBatchLimit)
+		chunks++
+		if err := rg.applyRefBatchChunk(ctx, nil, removes[:count]); err != nil {
+			return adds, removes, err
+		}
+		removes = removes[count:]
+	}
+	trace.Logf(ctx, "hydra/block-gc/refgraph/apply-ref-batch/chunks", "chunks=%d", chunks)
+	return nil, nil, nil
 }
 
 func (rg *RefGraph) applyRefBatchChunk(ctx context.Context, adds, removes []RefEdge) error {
@@ -386,7 +507,7 @@ func (rg *RefGraph) RemoveNodeRefs(ctx context.Context, node string, markOrphane
 	for _, target := range targets {
 		removes = append(removes, RefEdge{Subject: node, Object: target})
 	}
-	if err := rg.applyRefBatchLocked(ctx, nil, removes, markOrphaned); err != nil {
+	if err := rg.applyRefBatch(ctx, nil, removes, markOrphaned, false); err != nil {
 		return nil, err
 	}
 	return targets, nil
