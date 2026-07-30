@@ -418,15 +418,9 @@ func (rg *RefGraph) prepareNativeRefBatch(
 		return adds, existingRemoves, nil
 	}
 
-	type ownerState struct {
-		owners  map[string]struct{}
-		hadEdge bool
-	}
-	owners := make(map[string]ownerState)
-	stagingRemoves := make(map[string]struct{})
+	owners := make(map[string]map[string]struct{})
 	for _, edge := range existingRemoves {
 		if edge.Subject == NodeUnreferenced {
-			stagingRemoves[edge.Object] = struct{}{}
 			continue
 		}
 		if IsPermanentRoot(edge.Object) {
@@ -441,29 +435,21 @@ func (rg *RefGraph) prepareNativeRefBatch(
 				set[source] = struct{}{}
 			}
 		}
-		owners[edge.Object] = ownerState{owners: set}
+		owners[edge.Object] = set
 	}
 
 	for _, edge := range adds {
-		if state, ok := owners[edge.Object]; ok && edge.Subject != NodeUnreferenced {
-			state.owners[edge.Subject] = struct{}{}
-			owners[edge.Object] = state
+		if set, ok := owners[edge.Object]; ok && edge.Subject != NodeUnreferenced {
+			set[edge.Subject] = struct{}{}
 		}
 	}
 	for _, edge := range existingRemoves {
-		if state, ok := owners[edge.Object]; ok {
-			if _, exists := state.owners[edge.Subject]; exists {
-				state.hadEdge = true
-				delete(state.owners, edge.Subject)
-				owners[edge.Object] = state
-			}
+		if set, ok := owners[edge.Object]; ok {
+			delete(set, edge.Subject)
 		}
 	}
-	for object, state := range owners {
-		if !state.hadEdge || len(state.owners) != 0 {
-			continue
-		}
-		if _, removingStaging := stagingRemoves[object]; removingStaging {
+	for object, set := range owners {
+		if len(set) != 0 {
 			continue
 		}
 		adds = append(adds, RefEdge{Subject: NodeUnreferenced, Object: object})
