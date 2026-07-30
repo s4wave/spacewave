@@ -44,7 +44,6 @@ const serviceWorkerId = `${serviceWorkerLogicalId}-${randomId()}`
 const baseURL = new URL(self.location.toString())
 
 const controlCacheName = 'bldr-control'
-const pluginCacheNamePrefix = 'bldr-plugin-'
 const browserReleasePath = '/browser-release.json'
 const bootAssetPath = '/boot.mjs'
 const browserIndexPath = '/b/__index.html'
@@ -105,7 +104,7 @@ export interface BrowserReleaseSyncMessage {
 export interface BrowserIndexRefreshMessage {
   bldrRefreshBrowserIndex?: boolean
 }
-// PluginManifestRootMessage grants cache authority for one selected plugin root.
+// PluginManifestRootMessage announces the selected plugin manifest root.
 export interface PluginManifestRootMessage {
   bldrPluginManifestRoot?: {
     pluginId: string
@@ -582,10 +581,7 @@ async function pruneReleaseCaches(state: BrowserReleaseState): Promise<void> {
   }
   const cacheNames = await caches.keys()
   for (const cacheName of cacheNames) {
-    if (
-      !retainedCaches.has(cacheName) &&
-      !cacheName.startsWith(pluginCacheNamePrefix)
-    ) {
+    if (!retainedCaches.has(cacheName)) {
       await caches.delete(cacheName)
     }
   }
@@ -849,6 +845,7 @@ async function matchPromotedCurrentGenerationResponse(
 interface StaticPluginAsset {
   pluginId: string
   rootHash: string
+  generationId?: string
 }
 
 async function resolveStaticPluginAsset(
@@ -886,15 +883,12 @@ async function resolveStaticPluginAsset(
     desiredPluginRoots.set(pluginId, rootHash)
     activePluginRoots.set(pluginId, rootHash)
   }
-  return { pluginId, rootHash }
-}
-
-function buildPluginCachePrefix(pluginId: string): string {
-  return `${pluginCacheNamePrefix}${encodeURIComponent(pluginId)}-`
-}
-
-function buildPluginCacheName(pluginId: string, rootHash: string): string {
-  return `${buildPluginCachePrefix(pluginId)}${rootHash}`
+  const state = await loadBrowserReleaseState()
+  return {
+    pluginId,
+    rootHash,
+    generationId: state.promotedCurrent?.generationId,
+  }
 }
 
 function staticPluginAssetCacheRequest(request: Request): Request {
@@ -910,6 +904,7 @@ async function cacheStaticPluginAsset(
   if (
     request.method !== 'GET' ||
     !response.ok ||
+    !asset.generationId ||
     activePluginRoots.get(asset.pluginId) !== asset.rootHash
   ) {
     return
@@ -918,11 +913,16 @@ async function cacheStaticPluginAsset(
   if (!canCacheRequest(cacheRequest)) {
     return
   }
-  const cacheName = buildPluginCacheName(asset.pluginId, asset.rootHash)
+  const state = await loadBrowserReleaseState()
+  if (state.promotedCurrent?.generationId !== asset.generationId) {
+    return
+  }
+  const cacheName = buildGenerationCacheName(asset.generationId)
   const cache = await caches.open(cacheName)
   await putCacheResponse(cache, cacheRequest, response, {
     cacheName,
     operation: 'cache static plugin asset',
+    generationId: asset.generationId,
   })
 }
 
@@ -933,13 +933,16 @@ async function matchStaticPluginAsset(
   if (
     request.method !== 'GET' ||
     request.cache === 'reload' ||
-    request.cache === 'no-cache'
+    request.cache === 'no-cache' ||
+    !asset.generationId
   ) {
     return null
   }
-  const cache = await caches.open(
-    buildPluginCacheName(asset.pluginId, asset.rootHash),
-  )
+  const state = await loadBrowserReleaseState()
+  if (state.promotedCurrent?.generationId !== asset.generationId) {
+    return null
+  }
+  const cache = await caches.open(buildGenerationCacheName(asset.generationId))
   const response = await cache.match(staticPluginAssetCacheRequest(request))
   if (!response || activePluginRoots.get(asset.pluginId) !== asset.rootHash) {
     return null
@@ -947,12 +950,39 @@ async function matchStaticPluginAsset(
   return responseForMethod(request, response)
 }
 
+// Static plugin assets are warm-cached by promoted browser-release generation.
+// Content identity and ETag validation remain a follow-on owner API.
+async function revalidateStaticPluginAsset(
+  source: BrowserFetchSource,
+  asset: StaticPluginAsset,
+  request: Request,
+  clientId: string,
+): Promise<void> {
+  const trackedFetch = serviceWorkerFetchTracker.trackFetch(clientId)
+  try {
+    const response = await proxyBrowserRuntimeFetch(source, request, clientId, {
+      abortSignal: trackedFetch.abortController.signal,
+      headerTimeoutMs: browserRuntimeFetchHeaderTimeoutMs,
+    })
+    if (response.ok) {
+      await cacheStaticPluginAsset(asset, request, response.clone())
+    }
+  } catch (error) {
+    console.warn(
+      'ServiceWorker: %s: static plugin asset revalidation failed: url=%s: %s',
+      serviceWorkerId,
+      request.url,
+      castToError(error, 'unknown error').message,
+    )
+  } finally {
+    trackedFetch.release()
+  }
+}
+
 async function activatePluginManifestRoot(
   pluginId: string,
   rootHash: string,
 ): Promise<void> {
-  const cacheName = buildPluginCacheName(pluginId, rootHash)
-  const cachePrefix = buildPluginCachePrefix(pluginId)
   try {
     if (desiredPluginRoots.get(pluginId) !== rootHash) {
       return
@@ -975,29 +1005,13 @@ async function activatePluginManifestRoot(
   } catch (error) {
     activePluginRoots.delete(pluginId)
     console.warn(
-      'ServiceWorker: %s: plugin cache activation failed: plugin=%s root=%s: %s',
+      'ServiceWorker: %s: plugin manifest root activation failed: plugin=%s root=%s: %s',
       serviceWorkerId,
       pluginId,
       rootHash,
       castToError(error, 'unknown error').message,
     )
     return
-  }
-  try {
-    const cacheNames = await caches.keys()
-    await Promise.all(
-      cacheNames
-        .filter((name) => name.startsWith(cachePrefix) && name !== cacheName)
-        .map((name) => caches.delete(name)),
-    )
-  } catch (error) {
-    console.warn(
-      'ServiceWorker: %s: stale plugin cache cleanup failed: plugin=%s root=%s: %s',
-      serviceWorkerId,
-      pluginId,
-      rootHash,
-      castToError(error, 'unknown error').message,
-    )
   }
 }
 
@@ -1918,13 +1932,27 @@ export async function swFetch(
   if (staticPluginAsset) {
     const cached = await matchStaticPluginAsset(staticPluginAsset, request)
     if (cached) {
+      const cacheRevalidationClientId = resolveBrowserRuntimeFetchClientId(
+        ev.clientId || '',
+        source,
+        webDocumentTracker,
+        serviceWorkerLogicalId,
+      )
+      if (cacheRevalidationClientId) {
+        ev.waitUntil(
+          revalidateStaticPluginAsset(
+            source,
+            staticPluginAsset,
+            request,
+            cacheRevalidationClientId,
+          ),
+        )
+      }
       return cached
     }
   }
-  // Static plugin assets are available only through the running runtime. During
-  // a page-client handover, wait once for the replacement relay. A root-scoped
-  // cache can satisfy the request immediately when the current manifest has
-  // already granted authority.
+  // Runtime remains the authority for static plugin asset misses and
+  // background revalidation. Relay gaps retain the existing retry/fallback.
   for (let attempt = 0; attempt < 2; attempt++) {
     const runtimeFetchClientId = resolveBrowserRuntimeFetchClientId(
       ev.clientId || '',
