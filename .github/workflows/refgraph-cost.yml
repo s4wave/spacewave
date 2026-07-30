@@ -1,0 +1,60 @@
+name: RefGraph cost
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: refgraph-cost-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  cost:
+    name: RefGraph cost matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run native seven-trial gate
+        id: native-gate
+        continue-on-error: true
+        env:
+          SPACEWAVE_GC_FLUSH_COST: '1'
+          SPACEWAVE_GC_FLUSH_GATE: '1'
+        run: |
+          mkdir -p .tmp/refgraph-cost
+          set -o pipefail
+          go test -count=1 -timeout=180s -v ./db/world/block \
+            -run '^TestWorldCommitGCFlushCostByStoreSize$' \
+            2>&1 | tee .tmp/refgraph-cost/world-gc-flush-cost.txt
+
+      - name: Run native and RPC backend benchmarks
+        run: |
+          set -o pipefail
+          go test -count=1 -run '^$' -bench '^BenchmarkRefGraphRemovalCostByStoreSize$' \
+            -benchtime=1x -v ./db/block/gc \
+            2>&1 | tee .tmp/refgraph-cost/native-generic.txt
+          go test -count=1 -run '^$' -bench '^BenchmarkRPCRefGraphRemovalCostByStoreSize$' \
+            -benchtime=1x -v ./db/block/gc/rpc \
+            2>&1 | tee .tmp/refgraph-cost/rpc.txt
+
+      - name: Upload complete cost matrix
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: refgraph-cost-${{ github.run_id }}
+          path: .tmp/refgraph-cost
+          if-no-files-found: error
+
+      - name: Enforce native gate
+        if: steps.native-gate.outcome == 'failure'
+        run: exit 1
