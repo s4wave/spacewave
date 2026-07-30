@@ -18,6 +18,7 @@ interface RouteTarget {
 
 type ResourceLike = { release?: () => void }
 
+// This helper is presentation-only. Lifecycle proofs must use real enrollment.
 type ActionArgs = {
   action: 'seed-device'
   objectKey?: string
