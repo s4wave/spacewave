@@ -462,6 +462,107 @@ func TestEnsureSessionTransportCoalescesSameConfiguration(t *testing.T) {
 	}
 }
 
+func TestEnsureSessionTransportPostUnlockStartDoesNotSupersedeExplicitCallers(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("causal startup ordering test requires native HTTP server context and WebSocket support")
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
+	defer release()
+
+	var ticketRequests atomic.Int32
+	firstRequestStarted := make(chan struct{})
+	releaseFirstRequest := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/signal/ticket":
+			if ticketRequests.Add(1) == 1 {
+				close(firstRequestStarted)
+				select {
+				case <-releaseFirstRequest:
+				case <-r.Context().Done():
+					return
+				}
+			}
+			data, err := (&api.SignalTicketResponse{Token: "test-token"}).MarshalVT()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(data)
+		case r.Method == http.MethodGet && r.URL.Path == "/api/signal/ws":
+			conn, err := websocket.Accept(w, r, nil)
+			if err != nil {
+				return
+			}
+			defer conn.Close(websocket.StatusNormalClosure, "")
+			<-r.Context().Done()
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	firstDone := make(chan error, 1)
+	go func() {
+		_, _, err := acc.ensureSessionTransport(ctx, sessionKey, server.URL, "")
+		firstDone <- err
+	}()
+	select {
+	case <-firstRequestStarted:
+	case <-ctx.Done():
+		t.Fatalf("first explicit transport did not begin startup: %v", ctx.Err())
+	}
+
+	backgroundObserved := make(chan struct{})
+	backgroundCtx := &observedDoneContext{Context: ctx, observed: backgroundObserved}
+	backgroundDone := make(chan error, 1)
+	go func() {
+		_, _, err := acc.ensureSessionTransportWithoutReplacement(backgroundCtx, sessionKey, "", "")
+		backgroundDone <- err
+	}()
+	select {
+	case <-backgroundObserved:
+	case <-ctx.Done():
+		t.Fatalf("post-unlock transport did not reach its readiness wait: %v", ctx.Err())
+	}
+
+	secondObserved := make(chan struct{})
+	secondCtx := &observedDoneContext{Context: ctx, observed: secondObserved}
+	secondDone := make(chan error, 1)
+	go func() {
+		_, _, err := acc.ensureSessionTransport(secondCtx, sessionKey, server.URL, "")
+		secondDone <- err
+	}()
+	select {
+	case <-secondObserved:
+	case <-ctx.Done():
+		t.Fatalf("second explicit transport did not reach its readiness wait: %v", ctx.Err())
+	}
+	close(releaseFirstRequest)
+
+	for name, done := range map[string]<-chan error{
+		"first explicit":  firstDone,
+		"post-unlock":     backgroundDone,
+		"second explicit": secondDone,
+	} {
+		select {
+		case err := <-done:
+			if errors.Is(err, errSessionTransportSuperseded) {
+				t.Fatalf("%s transport was superseded: %v", name, err)
+			}
+			if err != nil {
+				t.Fatalf("%s transport failed: %v", name, err)
+			}
+		case <-ctx.Done():
+			t.Fatalf("%s transport did not finish: %v", name, ctx.Err())
+		}
+	}
+}
+
 func TestExistingSessionTransportWaitReturnsStateExit(t *testing.T) {
 	_, _, acc, sess, release := setupProviderAndSessionInternal(t.Context(), t)
 	defer release()

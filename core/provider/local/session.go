@@ -144,7 +144,7 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 	if s.tkr.cloudAccountID != "" {
 		relay = s.tkr.a.lookupCloudRelayEndpoint(transportCtx)
 	}
-	_, _, transportErr := s.tkr.a.ensureSessionTransport(transportCtx, privKey, relay.url, relay.signingEnvPrefix)
+	_, _, transportErr := s.tkr.a.ensureSessionTransportWithoutReplacement(transportCtx, privKey, relay.url, relay.signingEnvPrefix)
 	if transportErr != nil {
 		if errors.Is(transportErr, context.Canceled) {
 			return context.Canceled

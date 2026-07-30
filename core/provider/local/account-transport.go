@@ -517,6 +517,16 @@ func (a *ProviderAccount) ensureSessionTransport(
 	relayURL string,
 	signingEnvPrefix string,
 ) (*sessionTransportState, bool, error) {
+	return a.ensureSessionTransportWithReplacement(ctx, sessionPriv, relayURL, signingEnvPrefix, true)
+}
+
+func (a *ProviderAccount) ensureSessionTransportWithReplacement(
+	ctx context.Context,
+	sessionPriv crypto.PrivKey,
+	relayURL string,
+	signingEnvPrefix string,
+	replaceMismatched bool,
+) (*sessionTransportState, bool, error) {
 	sessionPeerID, err := peer.IDFromPrivateKey(sessionPriv)
 	if err != nil {
 		return nil, false, errors.Wrap(err, "derive session peer ID")
@@ -534,12 +544,13 @@ func (a *ProviderAccount) ensureSessionTransport(
 		a.transportBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			sts = a.sessionTransport
 		})
-		if sts != nil && sts.config.matches(sessionPeerID, relayURL, signingEnvPrefix) {
+		if sts != nil && (!replaceMismatched || sts.config.matches(sessionPeerID, relayURL, signingEnvPrefix)) {
 			rel()
 			cleanupCancel()
 			a.le.Debug("session transport already exists, skipping creation")
 			err := a.waitExistingSessionTransportReady(ctx, sts)
-			if errors.Is(err, errSessionTransportReplaced) {
+			if errors.Is(err, errSessionTransportReplaced) ||
+				!replaceMismatched && errors.Is(err, errSessionTransportSuperseded) {
 				continue
 			}
 			return sts, false, err
@@ -555,8 +566,22 @@ func (a *ProviderAccount) ensureSessionTransport(
 			return nil, false, err
 		}
 		err = a.waitSessionTransportReady(ctx, sts)
+		if !replaceMismatched && errors.Is(err, errSessionTransportSuperseded) {
+			continue
+		}
 		return sts, true, err
 	}
+}
+
+// ensureSessionTransportWithoutReplacement follows an installed transport
+// instead of replacing it, so lifecycle startup cannot displace explicit work.
+func (a *ProviderAccount) ensureSessionTransportWithoutReplacement(
+	ctx context.Context,
+	sessionPriv crypto.PrivKey,
+	relayURL string,
+	signingEnvPrefix string,
+) (*sessionTransportState, bool, error) {
+	return a.ensureSessionTransportWithReplacement(ctx, sessionPriv, relayURL, signingEnvPrefix, false)
 }
 
 // GetOnlinePeerIDsWithWait returns the base58 peer IDs of paired devices that
