@@ -60,6 +60,7 @@ jobs:
         run: go run github.com/mxschmitt/playwright-go/cmd/playwright install chromium
 
       - name: Cache aptre tools
+        if: runner.os == 'Linux'
         uses: actions/cache@v6
         with:
           path: ./.tools

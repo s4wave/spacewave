@@ -63,9 +63,16 @@ func TestElectronHarnessBootCDP(t *testing.T) {
 		t.Fatalf("expected app:// renderer URL, got %q", url)
 	}
 
-	uaRaw, err := page.Evaluate(`() => navigator.userAgent`)
-	if err != nil {
-		t.Fatal(err)
+	var uaRaw any
+	for {
+		uaRaw, err = page.Evaluate(`() => navigator.userAgent`)
+		if err == nil {
+			break
+		}
+		page, err = h.WaitForPage(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	ua, ok := uaRaw.(string)
 	if !ok {
