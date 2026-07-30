@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -66,7 +67,11 @@ func TestDesktopDaemonConsoleKeepsCLIReachableWithoutWindows(t *testing.T) {
 func buildSpacewaveCLI(t *testing.T, ctx context.Context, repoRoot string) string {
 	t.Helper()
 
-	bin := filepath.Join(t.TempDir(), "spacewave")
+	binName := "spacewave"
+	if runtime.GOOS == "windows" {
+		binName += ".exe"
+	}
+	bin := filepath.Join(t.TempDir(), binName)
 	cmd := exec.CommandContext(ctx, "go", "build", "-tags", "skip_e2e", "-o", bin, "./cmd/spacewave")
 	cmd.Dir = repoRoot
 	cmd.Env = os.Environ()
