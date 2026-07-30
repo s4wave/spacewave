@@ -2,6 +2,7 @@ package block_gc
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"sync"
 	"testing"
@@ -181,6 +182,77 @@ func TestGCStoreOps_FlushPendingNormalizesDuplicateEdges(t *testing.T) {
 	if !slices.Equal(refGraph.removes, wantRemoves) {
 		t.Fatalf("removes = %#v, want %#v", refGraph.removes, wantRemoves)
 	}
+}
+
+func TestGCStoreOps_FlushPendingRebuffersApplyRemainder(t *testing.T) {
+	ctx := context.Background()
+	rg, err := NewRefGraph(ctx, store_kvtx_inmem.NewStore(), []byte("gc/"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { rg.Close() })
+
+	refGraph := &failOnceRefGraph{RefGraphOps: rg}
+	gcStore := NewGCStoreOps(block.NopStoreOps{}, refGraph)
+	gcStore.mu.Lock()
+	gcStore.pendingUnref = []string{"block:a", "block:b", "block:c"}
+	gcStore.mu.Unlock()
+
+	err = gcStore.FlushPending(ctx)
+	if err == nil || !errors.Is(err, errInjectedRefBatch) {
+		t.Fatalf("first flush error = %v, want injected ref batch error", err)
+	}
+	if err := gcStore.FlushPending(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	unreferenced, err := rg.GetUnreferencedNodes(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	slices.Sort(unreferenced)
+	want := []string{"block:a", "block:b", "block:c"}
+	if !slices.Equal(unreferenced, want) {
+		t.Fatalf("unreferenced nodes = %v, want %v", unreferenced, want)
+	}
+	if !slices.Equal(refGraph.applied, wantRefEdges(
+		RefEdge{Subject: NodeUnreferenced, Object: "block:a"},
+		RefEdge{Subject: NodeUnreferenced, Object: "block:b"},
+		RefEdge{Subject: NodeUnreferenced, Object: "block:c"},
+	)) {
+		t.Fatalf("applied edges = %v, want each edge once", refGraph.applied)
+	}
+}
+
+var errInjectedRefBatch = errors.New("injected ref batch failure")
+
+type failOnceRefGraph struct {
+	RefGraphOps
+	failed  bool
+	applied []RefEdge
+}
+
+func (r *failOnceRefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) error {
+	if r.failed {
+		r.applied = append(r.applied, adds...)
+		r.applied = append(r.applied, removes...)
+		return r.RefGraphOps.ApplyRefBatch(ctx, adds, removes)
+	}
+	r.failed = true
+	prefix := 1
+	r.applied = append(r.applied, adds[:prefix]...)
+	if err := r.RefGraphOps.ApplyRefBatch(ctx, adds[:prefix], nil); err != nil {
+		return err
+	}
+	return &refBatchError{
+		err:     errInjectedRefBatch,
+		adds:    cloneRefEdges(adds[prefix:]),
+		removes: cloneRefEdges(removes),
+	}
+}
+
+func wantRefEdges(edges ...RefEdge) []RefEdge {
+	return edges
 }
 
 // TestGCStoreOps_RecordRefsRemovesUnrefEdge tests that recording refs

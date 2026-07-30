@@ -46,6 +46,8 @@ type GCStoreOps struct {
 	pendingUnref   []string     // block IRIs needing parent/unreferenced -> block edges
 	pendingRefs    []pendingRef // source -> target block ref edges
 	pendingUnunref []string     // block IRIs to remove from unreferenced
+	pendingAdds    []RefEdge    // normalized add edges left by a failed direct flush
+	pendingRemoves []RefEdge    // normalized remove edges left by a failed direct flush
 }
 
 type storeTrackingDisabledContextKey struct{}
@@ -409,21 +411,33 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	unrefs := g.pendingUnref
 	refs := g.pendingRefs
 	ununrefs := g.pendingUnunref
+	pendingAdds := g.pendingAdds
+	pendingRemoves := g.pendingRemoves
 	g.pendingUnref = nil
 	g.pendingRefs = nil
 	g.pendingUnunref = nil
+	g.pendingAdds = nil
+	g.pendingRemoves = nil
 	g.mu.Unlock()
 
-	if len(unrefs) == 0 && len(refs) == 0 && len(ununrefs) == 0 {
+	if len(unrefs) == 0 && len(refs) == 0 && len(ununrefs) == 0 &&
+		len(pendingAdds) == 0 && len(pendingRemoves) == 0 {
 		return nil
+	}
+	path := "direct"
+	if g.wal != nil {
+		path = "wal"
 	}
 	trace.Logf(
 		ctx,
 		"hydra/block-gc/store/flush-pending/pending",
-		"unrefs=%d refs=%d ununrefs=%d",
+		"path=%s unrefs=%d refs=%d ununrefs=%d retry_adds=%d retry_removes=%d",
+		path,
 		len(unrefs),
 		len(refs),
 		len(ununrefs),
+		len(pendingAdds),
+		len(pendingRemoves),
 	)
 
 	parent := g.parentIRI
@@ -432,8 +446,10 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	}
 	// Parent-backed writes remove their staging edge in the same batch as the
 	// parent edge. RefGraph treats removal of a missing edge as a no-op.
-	adds := make([]RefEdge, 0, len(unrefs)+len(refs))
-	removes := make([]RefEdge, 0, len(ununrefs)+len(unrefs))
+	adds := make([]RefEdge, 0, len(pendingAdds)+len(unrefs)+len(refs))
+	removes := make([]RefEdge, 0, len(pendingRemoves)+len(ununrefs)+len(unrefs))
+	adds = append(adds, pendingAdds...)
+	removes = append(removes, pendingRemoves...)
 	for _, iri := range unrefs {
 		adds = append(adds, RefEdge{Subject: parent, Object: iri})
 		if g.parentIRI != "" {
@@ -454,7 +470,8 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	trace.Logf(
 		ctx,
 		"hydra/block-gc/store/flush-pending/normalized",
-		"adds_before=%d removes_before=%d adds_after=%d removes_after=%d",
+		"path=%s adds_before=%d removes_before=%d adds_after=%d removes_after=%d",
+		path,
 		preNormalizeAdds,
 		preNormalizeRemoves,
 		len(adds),
@@ -480,6 +497,11 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	batchCtx, batchTask := trace.NewTask(ctx, "hydra/block-gc/store/flush-pending/apply-ref-batch")
 	if err := g.refGraph.ApplyRefBatch(batchCtx, adds, removes); err != nil {
 		batchTask.End()
+		if remainderAdds, remainderRemoves, ok := refBatchRemainder(err); ok {
+			g.rebufferEdges(remainderAdds, remainderRemoves)
+		} else {
+			g.rebufferSourceBuffers(unrefs, refs, ununrefs)
+		}
 		if ctx.Err() != nil {
 			return context.Canceled
 		}
@@ -487,6 +509,36 @@ func (g *GCStoreOps) FlushPending(ctx context.Context) error {
 	}
 	batchTask.End()
 	return nil
+}
+
+func refBatchRemainder(err error) ([]RefEdge, []RefEdge, bool) {
+	var batchErr *refBatchError
+	if !errors.As(err, &batchErr) {
+		return nil, nil, false
+	}
+	return cloneRefEdges(batchErr.adds), cloneRefEdges(batchErr.removes), true
+}
+
+func (g *GCStoreOps) rebufferEdges(adds, removes []RefEdge) {
+	if len(adds) == 0 && len(removes) == 0 {
+		return
+	}
+	g.mu.Lock()
+	g.pendingAdds = append(append([]RefEdge(nil), adds...), g.pendingAdds...)
+	g.pendingRemoves = append(append([]RefEdge(nil), removes...), g.pendingRemoves...)
+	g.mu.Unlock()
+}
+
+func (g *GCStoreOps) rebufferSourceBuffers(
+	unrefs []string,
+	refs []pendingRef,
+	ununrefs []string,
+) {
+	g.mu.Lock()
+	g.pendingUnref = append(append([]string(nil), unrefs...), g.pendingUnref...)
+	g.pendingRefs = append(append([]pendingRef(nil), refs...), g.pendingRefs...)
+	g.pendingUnunref = append(append([]string(nil), ununrefs...), g.pendingUnunref...)
+	g.mu.Unlock()
 }
 
 type refEdgeKey struct {

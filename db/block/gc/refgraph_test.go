@@ -2,11 +2,14 @@ package block_gc
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strconv"
+	"sync/atomic"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/kvtx"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/net/hash"
 )
@@ -650,6 +653,232 @@ func TestApplyRefBatchLargeBatchKeepsAddThenRemoveSemantics(t *testing.T) {
 			t.Fatalf("missing edge to %s", node)
 		}
 	}
+}
+
+func TestApplyRefBatchPreparesEachSliceAfterPriorCommit(t *testing.T) {
+	ctx := context.Background()
+	baseStore := store_kvtx_inmem.NewStore()
+	store := &refGraphTrackingStore{Store: baseStore}
+	rg, err := NewRefGraph(ctx, store, []byte("gc/"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { rg.Close() })
+
+	if err := rg.AddRef(ctx, "owner", "target"); err != nil {
+		t.Fatal(err)
+	}
+	store.commits.Store(0)
+	store.readsBeforeCommit.Store(0)
+
+	adds := make([]RefEdge, 4096)
+	for i := range adds {
+		adds[i] = RefEdge{
+			Subject: "batch-owner",
+			Object:  "batch-target-" + strconv.Itoa(i),
+		}
+	}
+
+	if err := rg.ApplyRefBatch(ctx, adds, []RefEdge{{Subject: "owner", Object: "target"}}); err != nil {
+		t.Fatal(err)
+	}
+	if store.commits.Load() == 0 {
+		t.Fatal("expected a committed add slice before the removal slice")
+	}
+	if got := store.readsBeforeCommit.Load(); got != 0 {
+		t.Fatalf("read transactions before first slice commit = %d, want 0", got)
+	}
+
+	refs, err := rg.GetOutgoingRefs(ctx, "batch-owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(refs) != len(adds) {
+		t.Fatalf("batch-owner refs = %d, want %d", len(refs), len(adds))
+	}
+	if has, err := rg.HasIncomingRefs(ctx, "target"); err != nil {
+		t.Fatal(err)
+	} else if has {
+		t.Fatal("target should have no real incoming refs after the removal slice")
+	}
+}
+
+func TestApplyRefBatchOrphanMarkingAcrossSliceBoundary(t *testing.T) {
+	ctx := context.Background()
+	removes := make([]RefEdge, 0, 4097)
+	for i := range 4095 {
+		removes = append(removes, RefEdge{
+			Subject: "absent-source-" + strconv.Itoa(i),
+			Object:  "absent-target-" + strconv.Itoa(i),
+		})
+	}
+	removes = append(removes,
+		RefEdge{Subject: "owner-a", Object: "shared"},
+		RefEdge{Subject: "owner-b", Object: "shared"},
+	)
+
+	for _, tc := range []struct {
+		name string
+		make func(*testing.T) *RefGraph
+	}{
+		{name: "incremental", make: func(t *testing.T) *RefGraph {
+			rg := newTestRefGraph(t)
+			if err := rg.AddRef(ctx, "owner-a", "shared"); err != nil {
+				t.Fatal(err)
+			}
+			if err := rg.AddRef(ctx, "owner-b", "shared"); err != nil {
+				t.Fatal(err)
+			}
+			return rg
+		}},
+		{name: "single-batch", make: func(t *testing.T) *RefGraph {
+			rg := newTestRefGraph(t)
+			if err := rg.AddRef(ctx, "owner-a", "shared"); err != nil {
+				t.Fatal(err)
+			}
+			if err := rg.AddRef(ctx, "owner-b", "shared"); err != nil {
+				t.Fatal(err)
+			}
+			return rg
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rg := tc.make(t)
+			inputRemoves := removes
+			if tc.name == "single-batch" {
+				inputRemoves = removes[4095:]
+			}
+			if err := rg.ApplyRefBatch(ctx, nil, inputRemoves); err != nil {
+				t.Fatal(err)
+			}
+			incoming, err := rg.GetIncomingRefs(ctx, "shared")
+			if err != nil {
+				t.Fatal(err)
+			}
+			unreferenced, err := rg.GetUnreferencedNodes(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Contains(unreferenced, "shared") {
+				t.Fatalf("shared should be marked unreferenced, got %v (incoming=%v)", unreferenced, incoming)
+			}
+			for _, owner := range []string{"owner-a", "owner-b"} {
+				refs, err := rg.GetOutgoingRefs(ctx, owner)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if len(refs) != 0 {
+					t.Fatalf("%s outgoing refs = %v, want none", owner, refs)
+				}
+			}
+		})
+	}
+}
+
+func TestApplyRefBatchInterruptionKeepsCommittedPrefix(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	store := &refGraphCancelOnCommitStore{
+		Store:    store_kvtx_inmem.NewStore(),
+		cancel:   cancel,
+		cancelAt: int64(refGraphApplySliceLimit / refGraphApplyBatchLimit),
+	}
+	rg, err := NewRefGraph(ctx, store, []byte("gc/"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { rg.Close() })
+	store.commits.Store(0)
+
+	adds := make([]RefEdge, refGraphApplySliceLimit+1)
+	for i := range adds {
+		adds[i] = RefEdge{
+			Subject: "interrupt-owner",
+			Object:  "interrupt-target-" + strconv.Itoa(i),
+		}
+	}
+
+	err = rg.ApplyRefBatch(ctx, adds, nil)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("interrupted ApplyRefBatch error = %v, want context.Canceled", err)
+	}
+	refs, err := rg.GetOutgoingRefs(context.Background(), "interrupt-owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(refs) != refGraphApplySliceLimit {
+		t.Fatalf("committed prefix refs = %d, want %d", len(refs), refGraphApplySliceLimit)
+	}
+
+	if err := rg.ApplyRefBatch(context.Background(), adds[refGraphApplySliceLimit:], nil); err != nil {
+		t.Fatal(err)
+	}
+	refs, err = rg.GetOutgoingRefs(context.Background(), "interrupt-owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(refs) != len(adds) {
+		t.Fatalf("rerun refs = %d, want %d", len(refs), len(adds))
+	}
+}
+
+type refGraphTrackingStore struct {
+	kvtx.Store
+	commits           atomic.Int64
+	readsBeforeCommit atomic.Int64
+}
+
+func (s *refGraphTrackingStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	tx, err := s.Store.NewTransaction(ctx, write)
+	if err != nil {
+		return nil, err
+	}
+	if !write && s.commits.Load() == 0 {
+		s.readsBeforeCommit.Add(1)
+	}
+	return &refGraphTrackingTx{Tx: tx, store: s, write: write}, nil
+}
+
+type refGraphTrackingTx struct {
+	kvtx.Tx
+	store *refGraphTrackingStore
+	write bool
+}
+
+func (t *refGraphTrackingTx) Commit(ctx context.Context) error {
+	err := t.Tx.Commit(ctx)
+	if err == nil && t.write {
+		t.store.commits.Add(1)
+	}
+	return err
+}
+
+type refGraphCancelOnCommitStore struct {
+	kvtx.Store
+	commits  atomic.Int64
+	cancel   context.CancelFunc
+	cancelAt int64
+}
+
+func (s *refGraphCancelOnCommitStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	tx, err := s.Store.NewTransaction(ctx, write)
+	if err != nil {
+		return nil, err
+	}
+	return &refGraphCancelOnCommitTx{Tx: tx, store: s, write: write}, nil
+}
+
+type refGraphCancelOnCommitTx struct {
+	kvtx.Tx
+	store *refGraphCancelOnCommitStore
+	write bool
+}
+
+func (t *refGraphCancelOnCommitTx) Commit(ctx context.Context) error {
+	err := t.Tx.Commit(ctx)
+	if err == nil && t.write && t.store.commits.Add(1) == t.store.cancelAt {
+		t.store.cancel()
+	}
+	return err
 }
 
 func TestBlockIRIRoundTrip(t *testing.T) {
