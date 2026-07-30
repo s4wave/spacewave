@@ -333,7 +333,7 @@ jobs:
             run: '^(TestDedicatedWorkerHostMultiTab|TestWebDocumentLivenessLockReleaseNoDeletion)$'
             timeout_minutes: 40
           - name: web-lifecycle-session
-            run: '^(TestBackgroundThrottledLifecycle|TestNeverFocusedBackgroundTabLoads|TestServiceWorkerRestartRecoversBldrWebHarness)$'
+            run: '^(TestBackgroundThrottledLifecycle|TestNeverFocusedBackgroundTabLoads|TestReturnVisitorStaticPluginAssetCache|TestServiceWorkerRestartRecoversBldrWebHarness)$'
             timeout_minutes: 40
     timeout-minutes: ${{ matrix.slice.timeout_minutes }}
     steps:
