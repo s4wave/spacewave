@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/kvtx/hashmap"
+	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	"github.com/s4wave/spacewave/net/hash"
 
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
@@ -270,6 +271,73 @@ func TestManifestApplyDeltaUpdatesByIDAndAppliesReplacementEvents(t *testing.T) 
 	}
 	if found {
 		t.Fatal("replaced pack-a still persisted")
+	}
+}
+
+func TestManifestApplyDeltaReplaysIdentically(t *testing.T) {
+	type result struct {
+		entries  []*packfile.PackfileEntry
+		sequence uint64
+	}
+	run := func(t *testing.T, injectFault bool) (result, *kvtest.FaultStore) {
+		t.Helper()
+		ctx := t.Context()
+		backend := newTestStore()
+		m, err := New(ctx, backend)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := m.ApplyDelta(ctx, []*packfile.PackfileEntry{
+			{Id: "pack-a", BloomFilter: []byte("bf-a"), BlockCount: 1, Sequence: 1},
+			{Id: "pack-b", BloomFilter: []byte("bf-b"), BlockCount: 2, Sequence: 2},
+		}, nil); err != nil {
+			t.Fatal(err)
+		}
+
+		var faultStore *kvtest.FaultStore
+		if injectFault {
+			faultStore = kvtest.NewFaultStore(backend, kvtest.FaultBeforeCommit)
+			m.store = faultStore
+		}
+		if err := m.ApplyDelta(ctx, []*packfile.PackfileEntry{
+			{Id: "pack-b", BloomFilter: []byte("bf-b-updated"), BlockCount: 3, Sequence: 3},
+			{Id: "pack-c", BloomFilter: []byte("bf-c"), BlockCount: 4, Sequence: 4},
+		}, []*packfile.PackReplacementEvent{{
+			Sequence:        5,
+			ReplacedPackIds: []string{"pack-a"},
+		}}); err != nil {
+			t.Fatal(err)
+		}
+
+		reloaded, err := New(ctx, backend)
+		if err != nil {
+			t.Fatal(err)
+		}
+		sequence, err := reloaded.GetLastPullSequence(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return result{entries: reloaded.GetEntries(), sequence: sequence}, faultStore
+	}
+
+	want, _ := run(t, false)
+	got, faultStore := run(t, true)
+	if got.sequence != want.sequence {
+		t.Fatalf("last sequence = %d, want %d", got.sequence, want.sequence)
+	}
+	if len(got.entries) != len(want.entries) {
+		t.Fatalf("entry count = %d, want %d", len(got.entries), len(want.entries))
+	}
+	for i := range want.entries {
+		if !got.entries[i].EqualVT(want.entries[i]) {
+			t.Fatalf("entry %d = %+v, want %+v", i, got.entries[i], want.entries[i])
+		}
+	}
+	if got := faultStore.Opened(); got != 2 {
+		t.Fatalf("opened transactions = %d, want 2", got)
+	}
+	if got := faultStore.DelegatedCommits(); got != 1 {
+		t.Fatalf("delegated commits = %d, want 1", got)
 	}
 }
 
