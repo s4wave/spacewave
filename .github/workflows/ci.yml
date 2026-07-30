@@ -137,6 +137,9 @@ jobs:
       - name: Test Go
         if: ${{ matrix.member.test_go_script != '' }}
         run: bun run ${{ matrix.member.test_go_script }}
+      - name: Vet db Go tests for js/wasm
+        if: ${{ matrix.member.name == 'db' }}
+        run: GOOS=js GOARCH=wasm go vet ./db/block/gc/...
 
       - name: Test Js
         if: ${{ matrix.member.test_js_script != '' }}
