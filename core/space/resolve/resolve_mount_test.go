@@ -2,9 +2,7 @@ package space_resolve_test
 
 import (
 	"context"
-	"errors"
 	"testing"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/s4wave/spacewave/core/provider"
@@ -14,12 +12,13 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	space_resolve "github.com/s4wave/spacewave/core/space/resolve"
+	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
 	"github.com/s4wave/spacewave/testbed"
 )
 
-// TestResolveSpaceAbsentEngineReturnsUnavailable ensures an HTTP-style resolve
-// does not wait forever when no controller owns the space engine.
-func TestResolveSpaceAbsentEngineReturnsUnavailable(t *testing.T) {
+// TestResolveSpaceWithoutConcurrentMounter ensures ResolveSpace mounts the
+// space body needed to start and retain the returned world engine.
+func TestResolveSpaceWithoutConcurrentMounter(t *testing.T) {
 	ctx := context.Background()
 
 	tb, err := testbed.Default(ctx)
@@ -31,6 +30,7 @@ func TestResolveSpaceAbsentEngineReturnsUnavailable(t *testing.T) {
 	peerID := tb.Volume.GetPeerID()
 	tb.StaticResolver.AddFactory(session_controller.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
+	tb.StaticResolver.AddFactory(space_sobject.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(tb.Bus))
 
 	_, sessCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&session_controller.Config{
@@ -50,6 +50,12 @@ func TestResolveSpaceAbsentEngineReturnsUnavailable(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer provCtrlRef.Release()
+
+	_, spaceSobjectCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&space_sobject.Config{}), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer spaceSobjectCtrlRef.Release()
 
 	prov, provRef, err := provider.ExLookupProvider(ctx, tb.Bus, providerID, false, nil)
 	if err != nil {
@@ -94,39 +100,23 @@ func TestResolveSpaceAbsentEngineReturnsUnavailable(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	resolveCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	resultCh := make(chan error, 1)
-	go func() {
-		resolved, cleanup, err := space_resolve.ResolveSpace(
-			resolveCtx,
-			tb.Bus,
-			entry.GetSessionIndex(),
-			sharedObjectID,
-		)
-		if cleanup != nil {
-			cleanup()
-		}
-		if resolved != nil {
-			resultCh <- errors.New("resolved an absent world engine")
-			return
-		}
-		resultCh <- err
-	}()
-
-	timer := time.NewTimer(2 * time.Second)
-	defer timer.Stop()
-	select {
-	case err := <-resultCh:
-		if err == nil {
-			t.Fatal("expected unavailable world engine error")
-		}
-		if errors.Is(err, context.Canceled) {
-			t.Fatalf("expected defined unavailable outcome, got context cancellation: %v", err)
-		}
-	case <-timer.C:
-		cancel()
-		<-resultCh
-		t.Fatal("ResolveSpace remained pending without an engine owner")
+	resolved, cleanup, err := space_resolve.ResolveSpace(
+		ctx,
+		tb.Bus,
+		entry.GetSessionIndex(),
+		sharedObjectID,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
 	}
+	defer cleanup()
+
+	if resolved.Engine == nil {
+		t.Fatal("resolved engine is nil")
+	}
+	tx, err := resolved.Engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	tx.Discard()
 }
