@@ -40,8 +40,13 @@ func TestFaultStoreReplaysFreshTransactions(t *testing.T) {
 					if !ok {
 						t.Fatalf("transaction type = %T, want *faultTx", tx)
 					}
-					bodyAttempts = append(bodyAttempts, faultTx.Attempt())
-					return tx.Set(ctx, []byte("key"), []byte("successful attempt"))
+					attempt := faultTx.Attempt()
+					bodyAttempts = append(bodyAttempts, attempt)
+					value := []byte("failed attempt")
+					if attempt == 2 {
+						value = []byte("successful attempt")
+					}
+					return tx.Set(ctx, []byte("key"), value)
 				})
 			if err != nil {
 				t.Fatal(err)
