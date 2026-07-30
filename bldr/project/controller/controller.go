@@ -52,7 +52,57 @@ type Controller struct {
 	mtx sync.Mutex
 	// conf is the current controller config
 	conf atomic.Pointer[Config]
+	// routines owns the post-Execute tracker and startup lifetimes.
+	routines routineGroup
+	// lifecycleMtx guards close state and closeDone.
+	lifecycleMtx sync.Mutex
+	// closed rejects work after shutdown begins.
+	closed bool
+	// closeDone closes after all owned routines have stopped.
+	closeDone chan struct{}
 }
+
+type routineGroup struct {
+	mtx    sync.Mutex
+	wg     sync.WaitGroup
+	closed bool
+}
+
+func (g *routineGroup) wrap(r func(context.Context) error) func(context.Context) error {
+	return func(ctx context.Context) error {
+		if !g.begin() {
+			return context.Canceled
+		}
+		defer g.done()
+		return r(ctx)
+	}
+}
+
+func (g *routineGroup) begin() bool {
+	g.mtx.Lock()
+	defer g.mtx.Unlock()
+	if g.closed {
+		return false
+	}
+	g.wg.Add(1)
+	return true
+}
+
+func (g *routineGroup) done() {
+	g.wg.Done()
+}
+
+func (g *routineGroup) stopAccepting() {
+	g.mtx.Lock()
+	g.closed = true
+	g.mtx.Unlock()
+}
+
+func (g *routineGroup) wait() {
+	g.wg.Wait()
+}
+
+var errControllerClosed = errors.New("bldr project controller is closed")
 
 // NewController constructs a new controller.
 func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
@@ -62,11 +112,31 @@ func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
 	}
 	ctrl.conf.Store(cc)
 	buildBackoff := cc.GetBuildBackoff()
-	ctrl.manifestBuilders = keyed.NewKeyedRefCountWithLogger(ctrl.newManifestBuilderTracker, le, keyed.WithRetry[string, *manifestBuilderTracker](buildBackoff))
-	ctrl.remotes = keyed.NewKeyedRefCountWithLogger(ctrl.newRemoteTracker, le, keyed.WithRetry[string, *remoteTracker](buildBackoff))
+	ctrl.manifestBuilders = keyed.NewKeyedRefCountWithLogger(
+		func(key string) (keyed.Routine, *manifestBuilderTracker) {
+			r, tracker := ctrl.newManifestBuilderTracker(key)
+			return ctrl.routines.wrap(r), tracker
+		},
+		le,
+		keyed.WithRetry[string, *manifestBuilderTracker](buildBackoff),
+	)
+	ctrl.remotes = keyed.NewKeyedRefCountWithLogger(
+		func(key string) (keyed.Routine, *remoteTracker) {
+			r, tracker := ctrl.newRemoteTracker(key)
+			return ctrl.routines.wrap(r), tracker
+		},
+		le,
+		keyed.WithRetry[string, *remoteTracker](buildBackoff),
+	)
 	ctrl.manifestBuilderBuildTargets = make(map[string][]string)
 	ctrl.startup = routine.NewStateRoutineContainerWithLoggerVT[*bldr_project.StartConfig](le, routine.WithRetry(buildBackoff))
-	ctrl.startup.SetStateRoutine(ctrl.executeStartup)
+	ctrl.startup.SetStateRoutine(func(ctx context.Context, conf *bldr_project.StartConfig) error {
+		if !ctrl.routines.begin() {
+			return context.Canceled
+		}
+		defer ctrl.routines.done()
+		return ctrl.executeStartup(ctx, conf)
+	})
 	return ctrl
 }
 
@@ -110,11 +180,18 @@ func (c *Controller) UpdateProjectConfig(nextConf *bldr_project.ProjectConfig) e
 		return err
 	}
 
-	// set startup config
-	c.startup.SetState(nextConf.GetStart())
+	c.lifecycleMtx.Lock()
+	if c.closed {
+		c.lifecycleMtx.Unlock()
+		return errControllerClosed
+	}
+	defer c.lifecycleMtx.Unlock()
 
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
+
+	// set startup config
+	c.startup.SetState(nextConf.GetStart())
 
 	prevCtrlConf := c.conf.Load()
 	prevConf := prevCtrlConf.GetProjectConfig()
@@ -264,22 +341,30 @@ func (c *Controller) AddManifestBuilderRef(conf *ManifestBuilderConfig) (*Manife
 		return nil, err
 	}
 
+	c.lifecycleMtx.Lock()
+	if c.closed {
+		c.lifecycleMtx.Unlock()
+		return nil, errControllerClosed
+	}
 	c.mtx.Lock()
 
 	projConf := c.conf.Load().GetProjectConfig()
 	_, ok := projConf.GetManifests()[conf.GetManifestId()]
 	if !ok {
 		c.mtx.Unlock()
+		c.lifecycleMtx.Unlock()
 		return nil, bldr_project.ErrManifestConfNotFound
 	}
 	_, ok = projConf.GetRemotes()[conf.GetRemoteId()]
 	if !ok {
 		c.mtx.Unlock()
+		c.lifecycleMtx.Unlock()
 		return nil, bldr_project.ErrRemoteNotFound
 	}
 
 	ref, tracker, _ := c.manifestBuilders.AddKeyRef(conf.MarshalB58())
 	c.mtx.Unlock()
+	c.lifecycleMtx.Unlock()
 	tracker.refreshManifestBuilderStatusMeta()
 	return newManifestBuilderRef(ref, tracker), nil
 }
@@ -287,6 +372,13 @@ func (c *Controller) AddManifestBuilderRef(conf *ManifestBuilderConfig) (*Manife
 // AddRemoteRef adds a reference to a Remote.
 // Returns ErrRemoteNotFound if the remote was not found.
 func (c *Controller) AddRemoteRef(remoteID string) (*RemoteRef, error) {
+	c.lifecycleMtx.Lock()
+	defer c.lifecycleMtx.Unlock()
+
+	if c.closed {
+		return nil, errControllerClosed
+	}
+
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
@@ -386,11 +478,19 @@ func (c *Controller) AddFetchManifestBuilderRef(ctx context.Context, manifestMet
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	c.lifecycleMtx.Lock()
+	if c.closed {
+		c.lifecycleMtx.Unlock()
+		return context.Canceled
+	}
+
 	// start the plugin build controllers and remote trackers
 	c.manifestBuilders.SetContext(ctx, true)
 	c.remotes.SetContext(ctx, true)
+	start := c.GetConfig().GetStart()
+	c.lifecycleMtx.Unlock()
 
-	if c.GetConfig().GetStart() {
+	if start {
 		c.StartStartup(ctx)
 	}
 
@@ -399,6 +499,11 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 // StartStartup loads the plugins in the project start config while ctx is active.
 func (c *Controller) StartStartup(ctx context.Context) {
+	c.lifecycleMtx.Lock()
+	defer c.lifecycleMtx.Unlock()
+	if c.closed {
+		return
+	}
 	c.startup.SetContext(ctx, true)
 	c.startup.SetState(c.GetConfig().GetProjectConfig().GetStart())
 }
@@ -411,6 +516,13 @@ func (c *Controller) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
 ) ([]directive.Resolver, error) {
+	c.lifecycleMtx.Lock()
+	closed := c.closed
+	c.lifecycleMtx.Unlock()
+	if closed {
+		return nil, nil
+	}
+
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case bldr_manifest.FetchManifest:
@@ -420,9 +532,25 @@ func (c *Controller) HandleDirective(
 	return nil, nil
 }
 
-// Close releases any resources used by the controller.
-// Error indicates any issue encountered releasing.
 func (c *Controller) Close() error {
+	c.lifecycleMtx.Lock()
+	if c.closed {
+		done := c.closeDone
+		c.lifecycleMtx.Unlock()
+		<-done
+		return nil
+	}
+	c.closed = true
+	c.closeDone = make(chan struct{})
+	done := c.closeDone
+	c.routines.stopAccepting()
+	c.lifecycleMtx.Unlock()
+
+	c.manifestBuilders.ClearContext()
+	c.remotes.ClearContext()
+	c.startup.ClearContext()
+	c.routines.wait()
+	close(done)
 	return nil
 }
 
