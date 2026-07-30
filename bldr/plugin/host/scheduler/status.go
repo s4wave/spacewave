@@ -51,6 +51,22 @@ func FindControllerOnBus(b bus.Bus) *Controller {
 	return nil
 }
 
+// WaitControllerOnBus waits for a plugin host scheduler to be added to b.
+func WaitControllerOnBus(ctx context.Context, b bus.Bus) (*Controller, error) {
+	var scheduler *Controller
+	err := b.GetControllersBroadcast().Wait(ctx, func(
+		_ func(),
+		_ func() <-chan struct{},
+	) (bool, error) {
+		scheduler = FindControllerOnBus(b)
+		return scheduler != nil, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return scheduler, nil
+}
+
 // IsPluginRunningOnBus reports whether the scheduler on b has a running plugin.
 func IsPluginRunningOnBus(ctx context.Context, b bus.Bus, pluginID string) bool {
 	if err := ctx.Err(); err != nil {
