@@ -86,7 +86,7 @@ func TestEnsureSessionTransportReleasesAccountLockWhileWaitingReady(t *testing.T
 	defer ctxCancel()
 	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
 	defer release()
-	acc.StopSessionTransport()
+	stopMountedSessionTransportOwner(t, acc, sess)
 
 	waitCtx, cancel := context.WithCancel(ctx)
 	done := make(chan error, 1)
@@ -381,7 +381,7 @@ func TestEnsureSessionTransportRetriesWhenExistingTransportClearsBeforeReady(t *
 	defer ctxCancel()
 	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
 	defer release()
-	acc.StopSessionTransport()
+	stopMountedSessionTransportOwner(t, acc, sess)
 
 	fakeTransport, err := transport.NewSessionTransport(acc.le, acc.t.p.b, sess.GetPrivKey(), "", "")
 	if err != nil {
@@ -441,7 +441,7 @@ func TestEnsureSessionTransportCoalescesSameConfiguration(t *testing.T) {
 	defer cancel()
 	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
 	defer release()
-	acc.StopSessionTransport()
+	stopMountedSessionTransportOwner(t, acc, sess)
 
 	first, created, err := acc.ensureSessionTransport(ctx, sess.GetPrivKey(), "", "")
 	if err != nil {
@@ -463,11 +463,11 @@ func TestEnsureSessionTransportCoalescesSameConfiguration(t *testing.T) {
 }
 
 func TestExistingSessionTransportWaitReturnsStateExit(t *testing.T) {
-	baseCtx, cancel := context.WithTimeout(t.Context(), time.Second)
-	defer cancel()
-	_, _, acc, sess, release := setupProviderAndSessionInternal(baseCtx, t)
+	_, _, acc, sess, release := setupProviderAndSessionInternal(t.Context(), t)
 	defer release()
-	acc.StopSessionTransport()
+	stopMountedSessionTransportOwner(t, acc, sess)
+	baseCtx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
 
 	fakeTransport, err := transport.NewSessionTransport(acc.le, acc.t.p.b, sess.GetPrivKey(), "", "")
 	if err != nil {
@@ -521,7 +521,7 @@ func TestExistingSessionTransportWaitReturnsSuperseded(t *testing.T) {
 	defer cancel()
 	_, _, acc, sess, release := setupProviderAndSessionInternal(baseCtx, t)
 	defer release()
-	acc.StopSessionTransport()
+	stopMountedSessionTransportOwner(t, acc, sess)
 
 	fakeTransport, err := transport.NewSessionTransport(acc.le, acc.t.p.b, sess.GetPrivKey(), "", "")
 	if err != nil {
@@ -692,7 +692,7 @@ func TestSessionTransportReplacementReturnsSupersededSignal(t *testing.T) {
 	defer cancel()
 	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
 	defer release()
-	acc.StopSessionTransport()
+	stopMountedSessionTransportOwner(t, acc, sess)
 
 	st, err := transport.NewSessionTransport(acc.le, acc.t.p.b, sess.GetPrivKey(), "", "")
 	if err != nil {
@@ -732,7 +732,7 @@ func TestSessionTransportReplacementReportsUncooperativeRoutine(t *testing.T) {
 	defer cancel()
 	_, _, acc, sess, release := setupProviderAndSessionInternal(ctx, t)
 	defer release()
-	acc.StopSessionTransport()
+	stopMountedSessionTransportOwner(t, acc, sess)
 
 	st, err := transport.NewSessionTransport(acc.le, acc.t.p.b, sess.GetPrivKey(), "", "")
 	if err != nil {
@@ -865,6 +865,21 @@ func TestSupersededSessionTransportCreatorKeepsNewConfiguration(t *testing.T) {
 	}
 	if !current.config.matches(newPeerID, "", "") {
 		t.Fatalf("current transport configuration = %+v, want peer %s with empty relay", current.config, newPeerID)
+	}
+}
+
+func stopMountedSessionTransportOwner(t *testing.T, acc *ProviderAccount, sess *Session) {
+	t.Helper()
+	_, sessionOwnerExited := sess.tkr.sessionProm.GetPromise()
+	if !acc.sessions.RemoveKey(sess.tkr.id) {
+		t.Fatal("mounted session owner was not running")
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	select {
+	case <-sessionOwnerExited:
+	case <-ctx.Done():
+		t.Fatalf("mounted session owner did not stop: %v", ctx.Err())
 	}
 }
 
