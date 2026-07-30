@@ -1,4 +1,4 @@
-//go:build !darwin && !linux && !js
+//go:build !darwin && !linux && !js && !windows
 
 package bldr_buildbudget
 
