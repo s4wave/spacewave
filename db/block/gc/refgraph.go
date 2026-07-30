@@ -55,6 +55,10 @@ func (e *refBatchError) Unwrap() error {
 	return e.err
 }
 
+func (e *refBatchError) RefBatchRemainder() ([]RefEdge, []RefEdge) {
+	return e.adds, e.removes
+}
+
 // NewRefGraph constructs a RefGraph backed by the given kvtx store.
 // prefix is prepended to all keys (e.g., "gc/" for space context).
 func NewRefGraph(ctx context.Context, store kvtx.Store, prefix []byte) (*RefGraph, error) {

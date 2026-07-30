@@ -3,12 +3,30 @@ package block_gc
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 )
 
 // RefEdge is a subject -> object edge in the GC ref graph.
 type RefEdge struct {
 	Subject, Object string
+}
+
+// RefBatchRemainderError reports the uncommitted suffix of an ownership
+// transition. The slices retain their original add-before-remove order.
+type RefBatchRemainderError interface {
+	error
+	RefBatchRemainder() ([]RefEdge, []RefEdge)
+}
+
+// RefBatchRemainder returns the uncommitted suffix carried by err.
+func RefBatchRemainder(err error) ([]RefEdge, []RefEdge, bool) {
+	var batchErr RefBatchRemainderError
+	if !errors.As(err, &batchErr) {
+		return nil, nil, false
+	}
+	adds, removes := batchErr.RefBatchRemainder()
+	return cloneRefEdges(adds), cloneRefEdges(removes), true
 }
 
 // RefGraphOps is the interface for GC reference graph ownership transitions.
