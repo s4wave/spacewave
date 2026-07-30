@@ -22,6 +22,14 @@ type Tx struct {
 	released atomic.Bool
 }
 
+func remoteError(errStr string, retryClass kvtx_rpc.KvtxRetryClass) error {
+	err := errors.New(errStr)
+	if retryClass == kvtx_rpc.KvtxRetryClass_KVTX_RETRY_CLASS_INVALID_SNAPSHOT {
+		return errors.Join(kvtx.ErrInvalidSnapshot, err)
+	}
+	return err
+}
+
 // InitTx negotiates the transaction with the client stream.
 // le can be nil to disable error logging
 // note: usually you will want to call Store.NewTransaction()
@@ -52,7 +60,7 @@ func InitTx(
 	ackMsg := resp.GetAck()
 	if errStr := ackMsg.GetError(); errStr != "" {
 		_ = client.Close()
-		return nil, errors.New(errStr)
+		return nil, remoteError(errStr, ackMsg.GetRetryClass())
 	}
 
 	txID := ackMsg.GetTransactionId()
@@ -89,7 +97,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 	}
 	complete := resp.GetComplete()
 	if errStr := complete.GetError(); errStr != "" {
-		err = errors.New(errStr)
+		err = remoteError(errStr, complete.GetRetryClass())
 	}
 	if err == nil && !resp.GetComplete().GetCommitted() {
 		err = kvtx.ErrDiscarded

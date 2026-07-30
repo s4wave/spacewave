@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/s4wave/spacewave/db/kvtx"
+	kvtx_rpc "github.com/s4wave/spacewave/db/kvtx/rpc"
 )
 
 func TestTxHandleCloseOpsWaitsForActiveStreams(t *testing.T) {
@@ -51,5 +52,14 @@ func TestTxHandleCloseOpsWaitsForActiveStreams(t *testing.T) {
 	_, _, err = h.acquire(nil)
 	if !errors.Is(err, kvtx.ErrDiscarded) {
 		t.Fatalf("acquire after close error = %v, want %v", err, kvtx.ErrDiscarded)
+	}
+}
+
+func TestRetryClassForError(t *testing.T) {
+	if got := retryClassForError(errors.Join(errors.New("backend detail"), kvtx.ErrInvalidSnapshot)); got != kvtx_rpc.KvtxRetryClass_KVTX_RETRY_CLASS_INVALID_SNAPSHOT {
+		t.Fatalf("retry class = %v, want invalid snapshot", got)
+	}
+	if got := retryClassForError(errors.New("backend detail")); got != kvtx_rpc.KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED {
+		t.Fatalf("retry class = %v, want unspecified", got)
 	}
 }
