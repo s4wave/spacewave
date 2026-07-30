@@ -34,7 +34,7 @@ func (g *GCGraph) applyRefBatchLocked(
 		}
 	}
 	for _, e := range removes {
-		if err := g.removeRef(e.Subject, e.Object); err != nil {
+		if err := g.removeExistingRef(e.Subject, e.Object); err != nil {
 			return err
 		}
 	}
@@ -45,9 +45,32 @@ func (g *GCGraph) prepareRefBatch(
 	ctx context.Context,
 	adds, removes []block_gc.RefEdge,
 ) ([]block_gc.RefEdge, []block_gc.RefEdge, error) {
-	owners := make(map[string]map[string]struct{})
-	stagingRemoves := make(map[string]struct{})
+	added := make(map[block_gc.RefEdge]struct{}, len(adds))
+	for _, edge := range adds {
+		added[edge] = struct{}{}
+	}
+	existingRemoves := make([]block_gc.RefEdge, 0, len(removes))
 	for _, edge := range removes {
+		if _, addedInBatch := added[edge]; addedInBatch {
+			existingRemoves = append(existingRemoves, edge)
+			continue
+		}
+		exists, err := g.hasRef(edge.Subject, edge.Object)
+		if err != nil {
+			return nil, nil, err
+		}
+		if exists {
+			existingRemoves = append(existingRemoves, edge)
+		}
+	}
+
+	type ownerState struct {
+		owners  map[string]struct{}
+		hadEdge bool
+	}
+	owners := make(map[string]ownerState)
+	stagingRemoves := make(map[string]struct{})
+	for _, edge := range existingRemoves {
 		if edge.Subject == block_gc.NodeUnreferenced {
 			stagingRemoves[edge.Object] = struct{}{}
 			continue
@@ -68,29 +91,34 @@ func (g *GCGraph) prepareRefBatch(
 				set[source] = struct{}{}
 			}
 		}
-		owners[edge.Object] = set
-	}
-	for _, edge := range removes {
-		if set, ok := owners[edge.Object]; ok {
-			delete(set, edge.Subject)
-		}
+		owners[edge.Object] = ownerState{owners: set}
 	}
 	for _, edge := range adds {
-		if set, ok := owners[edge.Object]; ok && edge.Subject != block_gc.NodeUnreferenced {
-			set[edge.Subject] = struct{}{}
+		if state, ok := owners[edge.Object]; ok && edge.Subject != block_gc.NodeUnreferenced {
+			state.owners[edge.Subject] = struct{}{}
+			owners[edge.Object] = state
 		}
 	}
-	for object, set := range owners {
-		if len(set) == 0 {
-			if _, removingStaging := stagingRemoves[object]; !removingStaging {
-				adds = append(adds, block_gc.RefEdge{
-					Subject: block_gc.NodeUnreferenced,
-					Object:  object,
-				})
-			}
+	for _, edge := range existingRemoves {
+		if state, ok := owners[edge.Object]; ok {
+			state.hadEdge = true
+			delete(state.owners, edge.Subject)
+			owners[edge.Object] = state
 		}
 	}
-	return adds, removes, nil
+	for object, state := range owners {
+		if !state.hadEdge || len(state.owners) != 0 {
+			continue
+		}
+		if _, removingStaging := stagingRemoves[object]; removingStaging {
+			continue
+		}
+		adds = append(adds, block_gc.RefEdge{
+			Subject: block_gc.NodeUnreferenced,
+			Object:  object,
+		})
+	}
+	return adds, existingRemoves, nil
 }
 
 // RemoveNodeRefs removes all outgoing gc/ref edges for a node.
