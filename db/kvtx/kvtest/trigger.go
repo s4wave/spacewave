@@ -24,11 +24,12 @@ type FaultStore struct {
 	store    kvtx.Store
 	boundary FaultBoundary
 
-	mu               sync.Mutex
-	injected         bool
-	opened           int
-	discarded        int
-	delegatedCommits int
+	mu                sync.Mutex
+	injected          bool
+	opened            int
+	discarded         int
+	discardedAttempts []int
+	delegatedCommits  int
 }
 
 // NewFaultStore constructs a deterministic one-shot fault wrapper around store.
@@ -66,6 +67,14 @@ func (s *FaultStore) Discarded() int {
 	return s.discarded
 }
 
+// DiscardedAttempts reports the wrapped transaction attempts that were
+// discarded, in discard order.
+func (s *FaultStore) DiscardedAttempts() []int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]int(nil), s.discardedAttempts...)
+}
+
 // DelegatedCommits reports successful calls delegated to the wrapped
 // transaction's Commit method.
 func (s *FaultStore) DelegatedCommits() int {
@@ -84,9 +93,10 @@ func (s *FaultStore) inject(boundary FaultBoundary) bool {
 	return true
 }
 
-func (s *FaultStore) recordDiscard() {
+func (s *FaultStore) recordDiscard(attempt int) {
 	s.mu.Lock()
 	s.discarded++
+	s.discardedAttempts = append(s.discardedAttempts, attempt)
 	s.mu.Unlock()
 }
 
@@ -115,7 +125,7 @@ func (t *faultTx) Commit(ctx context.Context) error {
 }
 
 func (t *faultTx) Discard() {
-	t.recordDiscard()
+	t.recordDiscard(t.attempt)
 	t.Tx.Discard()
 }
 
