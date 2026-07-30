@@ -22,6 +22,7 @@ import (
 	"github.com/s4wave/spacewave/core/session"
 	session_lock "github.com/s4wave/spacewave/core/session/lock"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/keypem"
@@ -916,13 +917,18 @@ func (s *SpacewaveProviderResource) GetLinkedCloudSession(
 			continue
 		}
 		objStore := objStoreHandle.GetObjectStore()
-		otx, tErr := objStore.NewTransaction(ctx, false)
-		if tErr != nil {
-			diRef.Release()
-			continue
-		}
-		data, found, gErr := otx.Get(ctx, provider_local.LinkedCloudKey(sessionID))
-		otx.Discard()
+		var data []byte
+		var found bool
+		gErr := kvtx.RunTransaction(ctx, false,
+			func(ctx context.Context) (kvtx.Tx, error) {
+				return objStore.NewTransaction(ctx, false)
+			},
+			func(ctx context.Context, tx kvtx.Tx) error {
+				var err error
+				data, found, err = tx.Get(ctx, provider_local.LinkedCloudKey(sessionID))
+				return err
+			},
+		)
 		diRef.Release()
 		if gErr != nil || !found {
 			continue
@@ -945,15 +951,22 @@ func (s *SpacewaveProviderResource) GetLinkedCloudSession(
 		soHandle, _, soDiRef, soErr := volume.ExBuildObjectStoreAPI(ctx, s.b, false, soObjStoreID, volID, nil)
 		if soErr == nil {
 			soStore := soHandle.GetObjectStore()
-			soTx, txErr := soStore.NewTransaction(ctx, false)
-			if txErr == nil {
-				data, found, gErr := soTx.Get(ctx, provider_local.SobjectObjectStoreListKey())
-				soTx.Discard()
-				if gErr == nil && found {
-					list := &sobject.SharedObjectList{}
-					if err := list.UnmarshalVT(data); err == nil && len(list.GetSharedObjects()) > 0 {
-						localEmpty = false
-					}
+			var data []byte
+			var found bool
+			gErr := kvtx.RunTransaction(ctx, false,
+				func(ctx context.Context) (kvtx.Tx, error) {
+					return soStore.NewTransaction(ctx, false)
+				},
+				func(ctx context.Context, tx kvtx.Tx) error {
+					var err error
+					data, found, err = tx.Get(ctx, provider_local.SobjectObjectStoreListKey())
+					return err
+				},
+			)
+			if gErr == nil && found {
+				list := &sobject.SharedObjectList{}
+				if err := list.UnmarshalVT(data); err == nil && len(list.GetSharedObjects()) > 0 {
+					localEmpty = false
 				}
 			}
 			soDiRef.Release()
@@ -1140,17 +1153,14 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 
 	// Clear the registration state so the session tracker re-registers.
 	regKey := []byte(sessionID + "/registered")
-	if err := func() error {
-		otx, err := objStore.NewTransaction(ctx, true)
-		if err != nil {
-			return err
-		}
-		defer otx.Discard()
-		if err := otx.Set(ctx, regKey, []byte(sessionPeerID.String())); err != nil {
-			return err
-		}
-		return otx.Commit(ctx)
-	}(); err != nil {
+	if err := kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			return tx.Set(ctx, regKey, []byte(sessionPeerID.String()))
+		},
+	); err != nil {
 		return nil, errors.Wrap(err, "persist session registration state")
 	}
 

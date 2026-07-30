@@ -17,6 +17,7 @@ import (
 	"github.com/aperturerobotics/util/scrub"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/core/session"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/volume"
 )
@@ -128,26 +129,30 @@ func (c *Controller) GetSessionByIdx(ctx context.Context, idx uint32) (*session.
 		return nil, err
 	}
 
-	otx, err := objStore.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer otx.Discard()
+	var val *session.SessionListEntry
+	err = kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			data, found, err := tx.Get(ctx, sessionListEntryKey(idx))
+			if err != nil {
+				return err
+			}
+			if !found {
+				val = nil
+				return nil
+			}
 
-	data, found, err := otx.Get(ctx, sessionListEntryKey(idx))
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return nil, nil
-	}
-
-	val := &session.SessionListEntry{}
-	if err := val.UnmarshalVT(data); err != nil {
-		return nil, err
-	}
-
-	return val, nil
+			next := &session.SessionListEntry{}
+			if err := next.UnmarshalVT(data); err != nil {
+				return err
+			}
+			val = next
+			return nil
+		},
+	)
+	return val, err
 }
 
 // ListSessions lists the sessions in storage.
@@ -159,6 +164,9 @@ func (c *Controller) ListSessions(ctx context.Context) ([]*session.SessionListEn
 	if err != nil {
 		return nil, err
 	}
+
+	// Retry classification: external to RunTransaction. Invalid-entry warnings
+	// are emitted from the transaction callback.
 
 	otx, err := objStore.NewTransaction(ctx, false)
 	if err != nil {
@@ -210,6 +218,9 @@ func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRe
 	if err != nil {
 		return nil, err
 	}
+
+	// Retry classification: external to RunTransaction. The callback captures
+	// time.Now and emits invalid-entry warnings while registering a session.
 
 	otx, err := objStore.NewTransaction(ctx, true)
 	if err != nil {
@@ -312,26 +323,30 @@ func (c *Controller) GetSessionMetadata(ctx context.Context, idx uint32) (*sessi
 		return nil, err
 	}
 
-	otx, err := objStore.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer otx.Discard()
+	var val *session.SessionMetadata
+	err = kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			data, found, err := tx.Get(ctx, sessionMetaKey(idx))
+			if err != nil {
+				return err
+			}
+			if !found {
+				val = nil
+				return nil
+			}
 
-	data, found, err := otx.Get(ctx, sessionMetaKey(idx))
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return nil, nil
-	}
-
-	val := &session.SessionMetadata{}
-	if err := val.UnmarshalVT(data); err != nil {
-		return nil, err
-	}
-
-	return val, nil
+			next := &session.SessionMetadata{}
+			if err := next.UnmarshalVT(data); err != nil {
+				return err
+			}
+			val = next
+			return nil
+		},
+	)
+	return val, err
 }
 
 // UpdateSessionMetadata updates the metadata for a session by ref.
@@ -344,6 +359,9 @@ func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.Ses
 	if err != nil {
 		return err
 	}
+
+	// Retry classification: external to RunTransaction. The callback emits
+	// invalid-entry handling; the owner publishes the update after commit.
 
 	otx, err := objStore.NewTransaction(ctx, true)
 	if err != nil {
@@ -402,6 +420,9 @@ func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef)
 	if err != nil {
 		return err
 	}
+
+	// Retry classification: external to RunTransaction. The callback emits
+	// invalid-entry warnings while deleting session state.
 
 	otx, err := objStore.NewTransaction(ctx, true)
 	if err != nil {

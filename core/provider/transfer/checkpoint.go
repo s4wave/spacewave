@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/volume"
 )
@@ -66,25 +67,30 @@ func (c *ObjectStoreCheckpoint) LoadCheckpoint(ctx context.Context) (*TransferCh
 	}
 	defer rel()
 
-	otx, err := store.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer otx.Discard()
+	var cp *TransferCheckpoint
+	err = kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return store.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			data, found, err := tx.Get(ctx, checkpointKey)
+			if err != nil {
+				return err
+			}
+			if !found {
+				cp = nil
+				return nil
+			}
 
-	data, found, err := otx.Get(ctx, checkpointKey)
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return nil, nil
-	}
-
-	cp := &TransferCheckpoint{}
-	if err := cp.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal checkpoint")
-	}
-	return cp, nil
+			next := &TransferCheckpoint{}
+			if err := next.UnmarshalVT(data); err != nil {
+				return errors.Wrap(err, "unmarshal checkpoint")
+			}
+			cp = next
+			return nil
+		},
+	)
+	return cp, err
 }
 
 // SaveCheckpoint persists the checkpoint to the object store.
@@ -100,16 +106,14 @@ func (c *ObjectStoreCheckpoint) SaveCheckpoint(ctx context.Context, cp *Transfer
 	}
 	defer rel()
 
-	otx, err := store.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer otx.Discard()
-
-	if err := otx.Set(ctx, checkpointKey, data); err != nil {
-		return err
-	}
-	return otx.Commit(ctx)
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return store.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			return tx.Set(ctx, checkpointKey, data)
+		},
+	)
 }
 
 // DeleteCheckpoint removes the checkpoint from the object store.
@@ -120,16 +124,14 @@ func (c *ObjectStoreCheckpoint) DeleteCheckpoint(ctx context.Context) error {
 	}
 	defer rel()
 
-	otx, err := store.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer otx.Discard()
-
-	if err := otx.Delete(ctx, checkpointKey); err != nil {
-		return err
-	}
-	return otx.Commit(ctx)
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return store.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			return tx.Delete(ctx, checkpointKey)
+		},
+	)
 }
 
 // _ is a type assertion

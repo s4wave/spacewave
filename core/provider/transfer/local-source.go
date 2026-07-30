@@ -9,6 +9,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/volume"
 )
@@ -63,26 +64,30 @@ func (s *LocalTransferSource) GetSharedObjectState(ctx context.Context, sharedOb
 	}
 	defer rel()
 
-	otx, err := objStore.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer otx.Discard()
+	var state *sobject.SOState
+	err = kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			key := provider_local.SobjectObjectStoreHostStateKey(sharedObjectID)
+			data, found, err := tx.Get(ctx, key)
+			if err != nil {
+				return err
+			}
+			if !found {
+				return sobject.ErrSharedObjectNotFound
+			}
 
-	key := provider_local.SobjectObjectStoreHostStateKey(sharedObjectID)
-	data, found, err := otx.Get(ctx, key)
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return nil, sobject.ErrSharedObjectNotFound
-	}
-
-	state := &sobject.SOState{}
-	if err := state.UnmarshalVT(data); err != nil {
-		return nil, err
-	}
-	return state, nil
+			next := &sobject.SOState{}
+			if err := next.UnmarshalVT(data); err != nil {
+				return err
+			}
+			state = next
+			return nil
+		},
+	)
+	return state, err
 }
 
 // GetBlockStore returns the block store ops for reading blocks from a shared object.

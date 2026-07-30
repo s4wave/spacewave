@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
 )
 
@@ -90,28 +91,33 @@ func (s *StateAtomStoreIndex) buildStoreIDsSnapshot(
 	ctx context.Context,
 	trackedStoreIDs map[string]struct{},
 ) ([]string, error) {
-	otx, err := s.objStore.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer otx.Discard()
+	var storeIDs []string
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return s.objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			attemptTrackedStoreIDs := maps.Clone(trackedStoreIDs)
+			err := tx.ScanPrefixKeys(ctx, []byte(stateAtomStoreKeyPrefix), func(key []byte) error {
+				keyStr := string(key)
+				if !strings.HasPrefix(keyStr, stateAtomStoreKeyPrefix) {
+					return errors.Errorf("unexpected state atom key prefix: %q", keyStr)
+				}
+				attemptTrackedStoreIDs[strings.TrimPrefix(keyStr, stateAtomStoreKeyPrefix)] = struct{}{}
+				return nil
+			})
+			if err != nil {
+				return err
+			}
 
-	err = otx.ScanPrefixKeys(ctx, []byte(stateAtomStoreKeyPrefix), func(key []byte) error {
-		keyStr := string(key)
-		if !strings.HasPrefix(keyStr, stateAtomStoreKeyPrefix) {
-			return errors.Errorf("unexpected state atom key prefix: %q", keyStr)
-		}
-		trackedStoreIDs[strings.TrimPrefix(keyStr, stateAtomStoreKeyPrefix)] = struct{}{}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	storeIDs := make([]string, 0, len(trackedStoreIDs))
-	for storeID := range trackedStoreIDs {
-		storeIDs = append(storeIDs, storeID)
-	}
-	slices.Sort(storeIDs)
-	return storeIDs, nil
+			attemptStoreIDs := make([]string, 0, len(attemptTrackedStoreIDs))
+			for storeID := range attemptTrackedStoreIDs {
+				attemptStoreIDs = append(attemptStoreIDs, storeID)
+			}
+			slices.Sort(attemptStoreIDs)
+			storeIDs = attemptStoreIDs
+			return nil
+		},
+	)
+	return storeIDs, err
 }
