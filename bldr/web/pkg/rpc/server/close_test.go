@@ -22,7 +22,7 @@ func TestCloseJoinsPostExecuteTrackerWork(t *testing.T) {
 	release := make(chan struct{})
 	stopped := make(chan struct{})
 	ctrl.webPkgs = keyed.NewKeyedRefCount(func(string) (keyed.Routine, *webPkgTracker) {
-		return ctrl.routines.wrap(func(ctx context.Context) error {
+		return ctrl.routines.Wrap(func(ctx context.Context) error {
 			close(started)
 			<-ctx.Done()
 			<-release
