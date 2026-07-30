@@ -364,19 +364,17 @@ func (s *syncController) pushPackfile(
 // MarkDirty marks a block as dirty for sync.
 func (s *syncController) MarkDirty(ctx context.Context, h *hash.Hash, size int64) {
 	key := []byte("dirty/" + h.MarshalString())
-	tx, err := s.store.NewTransaction(ctx, true)
-	if err != nil {
-		s.le.WithError(err).Warn("failed to open tx for dirty mark")
-		return
-	}
-	defer tx.Discard()
 	sizeBytes := []byte(strconv.FormatInt(size, 10))
-	if err := tx.Set(ctx, key, sizeBytes); err != nil {
+	err := kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return s.store.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			return tx.Set(ctx, key, sizeBytes)
+		},
+	)
+	if err != nil {
 		s.le.WithError(err).Warn("failed to mark dirty")
-		return
-	}
-	if err := tx.Commit(ctx); err != nil {
-		s.le.WithError(err).Warn("failed to commit dirty mark")
 		return
 	}
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -392,18 +390,29 @@ func (s *syncController) MarkDirty(ctx context.Context, h *hash.Hash, size int64
 func (s *syncController) recalcDirtySize(ctx context.Context) {
 	var total int64
 	var count int
-	tx, err := s.store.NewTransaction(ctx, false)
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return s.store.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			var attemptTotal int64
+			var attemptCount int
+			err := tx.ScanPrefix(ctx, []byte("dirty/"), func(_, v []byte) error {
+				attemptTotal += parseDirtySize(v)
+				attemptCount++
+				return nil
+			})
+			if err == nil {
+				total = attemptTotal
+				count = attemptCount
+			}
+			return err
+		},
+	)
 	if err != nil {
-		s.le.WithError(err).Warn("failed to open tx for dirty recalc")
+		s.le.WithError(err).Warn("failed to recalculate dirty size")
 		return
 	}
-	defer tx.Discard()
-	prefix := []byte("dirty/")
-	_ = tx.ScanPrefix(ctx, prefix, func(_, v []byte) error {
-		total += parseDirtySize(v)
-		count++
-		return nil
-	})
 
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		s.dirtySize = total
@@ -459,18 +468,21 @@ func (s *syncController) packBlocks(w io.Writer, blocks []dirtyBlock) (*writer.P
 
 // cleanupDirtyCandidates removes flushed dirty keys from the object store.
 func (s *syncController) cleanupDirtyCandidates(ctx context.Context, blocks []dirtyCandidate) error {
-	wtx, err := s.store.NewTransaction(ctx, true)
+	err := kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return s.store.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			for _, b := range blocks {
+				if err := tx.Delete(ctx, b.key); err != nil {
+					return errors.Wrap(err, "deleting dirty key")
+				}
+			}
+			return nil
+		},
+	)
 	if err != nil {
-		return errors.Wrap(err, "write tx for dirty cleanup")
-	}
-	defer wtx.Discard()
-	for _, b := range blocks {
-		if err := wtx.Delete(ctx, b.key); err != nil {
-			return errors.Wrap(err, "deleting dirty key")
-		}
-	}
-	if err := wtx.Commit(ctx); err != nil {
-		return errors.Wrap(err, "committing dirty cleanup")
+		return errors.Wrap(err, "cleaning dirty candidates")
 	}
 	return nil
 }
@@ -536,29 +548,34 @@ func (s *syncController) filterDuplicateDirtyBlocks(ctx context.Context, blocks 
 }
 
 func (s *syncController) scanDirtyCandidates(ctx context.Context) ([]dirtyCandidate, error) {
-	tx, err := s.store.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, errors.Wrap(err, "read tx for dirty")
-	}
-	defer tx.Discard()
-
-	prefix := []byte("dirty/")
 	var candidates []dirtyCandidate
-	err = tx.ScanPrefix(ctx, prefix, func(k, v []byte) error {
-		keyCopy := make([]byte, len(k))
-		copy(keyCopy, k)
-		hashStr := string(k[len(prefix):])
-		h := &hash.Hash{}
-		if err := h.ParseFromB58(hashStr); err != nil {
-			return errors.Wrap(err, "parsing dirty hash key")
-		}
-		candidates = append(candidates, dirtyCandidate{
-			key:  keyCopy,
-			hash: h,
-			size: parseDirtySize(v),
-		})
-		return nil
-	})
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return s.store.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			attemptCandidates := make([]dirtyCandidate, 0)
+			err := tx.ScanPrefix(ctx, []byte("dirty/"), func(k, v []byte) error {
+				keyCopy := make([]byte, len(k))
+				copy(keyCopy, k)
+				hashStr := string(k[len("dirty/"):])
+				h := &hash.Hash{}
+				if err := h.ParseFromB58(hashStr); err != nil {
+					return errors.Wrap(err, "parsing dirty hash key")
+				}
+				attemptCandidates = append(attemptCandidates, dirtyCandidate{
+					key:  keyCopy,
+					hash: h,
+					size: parseDirtySize(v),
+				})
+				return nil
+			})
+			if err == nil {
+				candidates = attemptCandidates
+			}
+			return err
+		},
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "scanning dirty keys")
 	}
