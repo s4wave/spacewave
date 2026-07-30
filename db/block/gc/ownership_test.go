@@ -3,6 +3,7 @@ package block_gc_test
 import (
 	"bytes"
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -85,6 +86,16 @@ func TestGCStoreOpsDeduplicatedBlockRetainsBucketOwner(t *testing.T) {
 				}
 				return ref
 			}
+			assertOwns := func(name, parent string, ref *block.BlockRef) {
+				t.Helper()
+				outgoing, err := rg.GetOutgoingRefs(ctx, parent)
+				if err != nil {
+					t.Fatalf("get %s ownership edges: %v", name, err)
+				}
+				if !slices.Contains(outgoing, block_gc.BlockIRI(ref)) {
+					t.Fatalf("%s did not record its block ownership edge", name)
+				}
+			}
 
 			refA := put(bucketA)
 			if err := bucketA.FlushPending(ctx); err != nil {
@@ -119,6 +130,7 @@ func TestGCStoreOpsDeduplicatedBlockRetainsBucketOwner(t *testing.T) {
 			if !bytes.Equal(got, data) {
 				t.Fatal("surviving bucket block data changed")
 			}
+			assertOwns("bucket B", bucketBIRI, refB)
 		})
 	}
 }
