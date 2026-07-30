@@ -507,14 +507,6 @@ jobs:
           end
 
           expected = {
-            "go" => {
-              "build_script" => "build:release:web:e2e:ci",
-              "smoke_script" => "test:go:e2e:release-wasm",
-              "e2e_tinygo" => "",
-              "e2e_goscript" => "",
-              "install_binaryen" => false,
-              "install_tinygo" => false,
-            },
             "tinygo" => {
               "build_script" => "build:release:web:e2e:tinygo",
               "smoke_script" => "test:go:e2e:release-wasm",
@@ -523,17 +515,9 @@ jobs:
               "install_binaryen" => true,
               "install_tinygo" => true,
             },
-            "goscript" => {
-              "build_script" => "build:release:web:e2e:goscript",
-              "smoke_script" => "test:go:e2e:release-wasm:goscript",
-              "e2e_tinygo" => "",
-              "e2e_goscript" => true,
-              "install_binaryen" => false,
-              "install_tinygo" => false,
-            },
           }
           unless build_matrix.map { |entry| entry.fetch("compiler") }.sort == expected.keys.sort
-            abort("release-WASM compiler matrix must be exactly go, tinygo, goscript")
+            abort("release-WASM compiler matrix does not match the shipped compiler set")
           end
           build_matrix.each do |entry|
             compiler = entry.fetch("compiler")
