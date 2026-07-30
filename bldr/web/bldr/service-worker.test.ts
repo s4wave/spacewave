@@ -1266,12 +1266,20 @@ describe('service worker fetch release cache routing', () => {
       promotedCurrent: oldRelease,
     })
     await announcePluginRoot('spacewave-app', '2abc')
-    await writeGenerationCacheResponse(
-      caches,
-      oldRelease.generationId,
-      path,
+    vi.mocked(proxyFetch).mockResolvedValue(
       new Response('old generation', { status: 200 }),
     )
+
+    const warm = buildClientFetchEvent(path, 'client-a')
+    const warmResponse = await swFetch(warm.ev)
+    expect(await warmResponse.text()).toBe('old generation')
+    await Promise.all(warm.waitUntilPromises)
+
+    vi.mocked(proxyFetch).mockClear()
+    const cachedOldResponse = await swFetch(buildFetchOnlyEvent(path))
+    expect(await cachedOldResponse.text()).toBe('old generation')
+    expect(proxyFetch).not.toHaveBeenCalled()
+
     await writeBrowserReleaseState(caches, {
       ...createEmptyBrowserReleaseState(),
       promotedCurrent: currentRelease,
