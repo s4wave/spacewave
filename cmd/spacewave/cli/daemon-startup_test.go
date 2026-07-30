@@ -17,9 +17,22 @@ import (
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 )
 
+// shortStatePath returns a state directory whose unix socket paths fit in
+// sun_path. t.TempDir() derives its name from the test, and a long test name
+// pushes the resulting socket path past the platform limit.
+func shortStatePath(t *testing.T) string {
+	t.Helper()
+	dir, err := os.MkdirTemp("", "sw")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	return dir
+}
+
 func TestInvalidDaemonIdleTimeoutReportsStartupError(t *testing.T) {
 	t.Setenv(daemonIdleTimeoutEnvVar, "not-a-duration")
-	statePath := t.TempDir()
+	statePath := shortStatePath(t)
 	pipeListener, err := pipesock.BuildPipeListener(newDaemonStartupPipeLogger(), statePath, "startup")
 	if err != nil {
 		t.Fatal(err)
