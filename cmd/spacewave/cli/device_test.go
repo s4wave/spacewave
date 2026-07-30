@@ -468,12 +468,32 @@ func TestDeviceCompletePersistsCompletionWhenSessionMountFails(t *testing.T) {
 	if err := parseDeviceStatusOutputJSON([]byte(setupOut), &setup); err != nil {
 		t.Fatalf("parse setup json: %v: %s", err, setupOut)
 	}
+	mountErr := errors.New("session unavailable")
 	withDeviceMountSessionStub(t, func(
 		ctx context.Context,
 		client *sdkClient,
 		req *s4wave_provider_spacewave.MountLinkedDeviceSessionRequest,
 	) (*s4wave_provider_spacewave.MountLinkedDeviceSessionResponse, error) {
-		return nil, errors.New("session unavailable")
+		if mountErr != nil {
+			return nil, mountErr
+		}
+		return &s4wave_provider_spacewave.MountLinkedDeviceSessionResponse{
+			SessionListEntry: &core_session.SessionListEntry{SessionIndex: 7},
+		}, nil
+	})
+	upsertCalled := false
+	upsertErr := errors.New("Device object must not be created before session readiness")
+	withDeviceObjectUpsertStub(t, func(
+		ctx context.Context,
+		client *sdkClient,
+		statePath string,
+		record *deviceSetupRecord,
+	) (string, error) {
+		upsertCalled = true
+		if upsertErr != nil {
+			return "", upsertErr
+		}
+		return deviceObjectKey(record.PeerID), nil
 	})
 
 	completion := buildDeviceCompletion(
@@ -492,11 +512,50 @@ func TestDeviceCompletePersistsCompletionWhenSessionMountFails(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read setup record: %v", err)
 	}
-	if record.SetupState != deviceSetupStateImported {
-		t.Fatalf("setup state = %q, want imported completion after mount failure", record.SetupState)
+	if upsertCalled {
+		t.Fatal("Device object upsert ran before session readiness")
+	}
+	if record.SetupState != deviceSetupStateFailed {
+		t.Fatalf("setup state = %q, want failed setup after mount failure", record.SetupState)
+	}
+	if !strings.Contains(record.FailureReason, "mount linked device session") {
+		t.Fatalf("failure reason = %q, want mount owner context", record.FailureReason)
 	}
 	if record.Completion != completion {
 		t.Fatal("completion payload was not preserved after mount failure")
+	}
+	mountErr = nil
+	var upserted *deviceSetupRecord
+	withDeviceObjectUpsertStub(t, func(
+		ctx context.Context,
+		client *sdkClient,
+		statePath string,
+		record *deviceSetupRecord,
+	) (string, error) {
+		upserted = record
+		return deviceObjectKey(record.PeerID), nil
+	})
+	_, err = captureStdout(t, func() error {
+		return runDeviceCLI(t, "device", "complete", "--state-path", statePath, "--completion", completion)
+	})
+	if err != nil {
+		t.Fatalf("retry device complete after mount recovery: %v", err)
+	}
+	if upserted == nil {
+		t.Fatal("retry did not reach deterministic Device object upsert")
+	}
+	if upserted.PeerID != setup.PeerID {
+		t.Fatalf("retry peer id = %q, want %q", upserted.PeerID, setup.PeerID)
+	}
+	record, err = readDeviceSetupRecord(statePath)
+	if err != nil {
+		t.Fatalf("read recovered setup record: %v", err)
+	}
+	if record.SetupState != deviceSetupStateSessionReady {
+		t.Fatalf("recovered setup state = %q, want session ready", record.SetupState)
+	}
+	if record.DeviceObjectKey != deviceObjectKey(setup.PeerID) {
+		t.Fatalf("recovered Device object key = %q, want %q", record.DeviceObjectKey, deviceObjectKey(setup.PeerID))
 	}
 }
 
@@ -551,8 +610,11 @@ func TestDeviceCompletePreservesCompletionWhenDeviceObjectUpsertFails(t *testing
 	if err != nil {
 		t.Fatalf("read setup record: %v", err)
 	}
-	if record.SetupState != deviceSetupStateImported {
-		t.Fatalf("setup state = %q, want imported completion after object write failure", record.SetupState)
+	if record.SetupState != deviceSetupStateFailed {
+		t.Fatalf("setup state = %q, want failed setup after Device object write failure", record.SetupState)
+	}
+	if !strings.Contains(record.FailureReason, "create or update device object") {
+		t.Fatalf("failure reason = %q, want Device object owner context", record.FailureReason)
 	}
 	if record.Completion != completion {
 		t.Fatal("completion payload was not preserved after object write failure")

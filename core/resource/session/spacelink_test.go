@@ -31,6 +31,14 @@ func TestVerifySpaceLinkTicketData(t *testing.T) {
 		t.Fatal("agent peer id mismatch")
 	}
 }
+func TestVerifySpaceLinkTicketDataRejectsMalformedTickets(t *testing.T) {
+	now := time.Unix(100, 0)
+	for _, data := range [][]byte{nil, []byte("not-a-ticket")} {
+		if _, err := verifySpaceLinkTicketData(data, now); err == nil {
+			t.Fatalf("verify malformed ticket %q succeeded", data)
+		}
+	}
+}
 
 func TestVerifySpaceLinkTicketDataRejectsInvalidInputs(t *testing.T) {
 	now := time.Unix(100, 0)
