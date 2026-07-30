@@ -60,4 +60,34 @@ func TestCloseJoinsPostExecuteTrackerWork(t *testing.T) {
 	default:
 		t.Fatal("Close returned before the tracker stop signal")
 	}
+	if err := ctrl.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := ctrl.addWebPkgRef("after-close"); err != context.Canceled {
+		t.Fatalf("addWebPkgRef after Close: got %v, want %v", err, context.Canceled)
+	}
+}
+
+func TestCloseReleasesDelayedTrackerRefs(t *testing.T) {
+	ctrl, err := NewController(logrus.NewEntry(logrus.New()), nil, NewConfig("", []string{"pkg"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctrl.releaseDelay = time.Hour
+
+	ref, _, err := ctrl.addWebPkgRef("pkg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctrl.releaseWebPkgRef(ref)
+	if keys := ctrl.webPkgs.GetKeys(); len(keys) != 1 {
+		t.Fatalf("expected delayed tracker retention, got keys %v", keys)
+	}
+
+	if err := ctrl.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if keys := ctrl.webPkgs.GetKeys(); len(keys) != 0 {
+		t.Fatalf("delayed tracker refs remain after Close: %v", keys)
+	}
 }

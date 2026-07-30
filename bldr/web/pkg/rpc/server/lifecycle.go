@@ -41,7 +41,9 @@ func (c *Controller) stopDelayedReleases() {
 	c.lifecycleMtx.Lock()
 	refs := make([]*keyed.KeyedRef[string, *webPkgTracker], 0, len(c.delayedReleases))
 	for ref, timer := range c.delayedReleases {
-		_ = timer.Stop()
+		if timer.Stop() {
+			c.delayedWG.Done()
+		}
 		refs = append(refs, ref)
 	}
 	clear(c.delayedReleases)

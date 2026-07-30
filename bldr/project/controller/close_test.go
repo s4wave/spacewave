@@ -59,4 +59,11 @@ func TestCloseJoinsPostExecuteTrackerWork(t *testing.T) {
 	default:
 		t.Fatal("Close returned before the tracker stop signal")
 	}
+	if err := ctrl.Close(); err != nil {
+		t.Fatal(err)
+	}
+	_, err := ctrl.AddRemoteRef("after-close")
+	if err != errControllerClosed {
+		t.Fatalf("AddRemoteRef after Close: got %v, want %v", err, errControllerClosed)
+	}
 }
