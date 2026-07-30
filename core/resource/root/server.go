@@ -67,6 +67,9 @@ func (s *CoreRootServer) Close() {
 	if s.webListeners != nil {
 		s.webListeners.close()
 	}
+	if s.cdnRegistry != nil {
+		s.cdnRegistry.Close()
+	}
 }
 
 // Register registers the server with the mux.
