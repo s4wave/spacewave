@@ -12,9 +12,10 @@ import (
 
 // Iterator iterates over a bbolt cursor.
 type Iterator struct {
-	bkt     *bbolt.Cursor
-	prefix  []byte
-	reverse bool
+	bkt       *bbolt.Cursor
+	prefix    []byte
+	prefixEnd []byte
+	reverse   bool
 
 	err error
 	oob bool
@@ -28,7 +29,17 @@ type Iterator struct {
 // Note: additional special care is taken to ensure the prefix is respected.
 func NewIterator(bkt *bbolt.Cursor, prefix []byte, sort, reverse bool) *Iterator {
 	_ = sort // always sorted in Bolt
-	return &Iterator{bkt: bkt, prefix: prefix, reverse: reverse, end: true}
+	var prefixEnd []byte
+	if reverse {
+		prefixEnd = prefixUpperBound(prefix)
+	}
+	return &Iterator{
+		bkt:       bkt,
+		prefix:    prefix,
+		prefixEnd: prefixEnd,
+		reverse:   reverse,
+		end:       true,
+	}
 }
 
 // Err returns any error that has closed the iterator.
@@ -82,21 +93,14 @@ func (i *Iterator) Next() bool {
 		return false
 	}
 	if i.end {
-		if i.reverse {
-			i.key, i.val = i.bkt.Last()
-		} else {
-			i.key, i.val = i.bkt.First()
-		}
+		i.seekPrefixBoundary()
 		i.end = false
+	} else if i.reverse {
+		i.key, i.val = i.bkt.Prev()
 	} else {
-		if i.reverse {
-			i.key, i.val = i.bkt.Prev()
-		} else {
-			i.key, i.val = i.bkt.Next()
-		}
+		i.key, i.val = i.bkt.Next()
 	}
-	i.oob = len(i.key) == 0
-	i.skipPrefixMismatch()
+	i.updateBounds()
 	return !i.oob
 }
 
@@ -108,48 +112,82 @@ func (i *Iterator) Seek(k []byte) error {
 	}
 	i.key, i.val, i.end = nil, nil, false
 
-	if i.reverse {
-		// In reverse mode:
-		// 1. If k is nil/empty, seek to last key
-		// 2. Otherwise seek to k and move back one if we land after k
-		if len(k) == 0 {
-			i.key, i.val = i.bkt.Last()
-		} else {
-			i.key, i.val = i.bkt.Seek(k)
-			if bytes.Compare(i.key, k) > 0 {
-				i.key, i.val = i.bkt.Prev()
-			}
-		}
+	if len(k) == 0 {
+		i.seekPrefixBoundary()
+	} else if i.reverse {
+		i.seekReverse(k)
 	} else {
-		if len(k) == 0 {
-			i.key, i.val = i.bkt.First()
-		} else {
-			i.key, i.val = i.bkt.Seek(k)
+		if len(i.prefix) != 0 && bytes.Compare(k, i.prefix) < 0 {
+			k = i.prefix
 		}
+		i.key, i.val = i.bkt.Seek(k)
 	}
 
-	i.oob = len(i.key) == 0
-	i.skipPrefixMismatch()
+	i.updateBounds()
 	return nil
 }
 
-// skipPrefixMismatch skips any keys that do not match the prefix.
-func (i *Iterator) skipPrefixMismatch() {
-	if i.oob || len(i.prefix) == 0 {
+func (i *Iterator) seekPrefixBoundary() {
+	if len(i.prefix) == 0 {
+		if i.reverse {
+			i.key, i.val = i.bkt.Last()
+		} else {
+			i.key, i.val = i.bkt.First()
+		}
 		return
 	}
-	for len(i.key) != 0 && !bytes.HasPrefix(i.key, i.prefix) {
-		if i.reverse {
-			i.key, i.val = i.bkt.Prev()
-		} else {
-			i.key, i.val = i.bkt.Next()
+	if !i.reverse {
+		i.key, i.val = i.bkt.Seek(i.prefix)
+		return
+	}
+
+	if len(i.prefixEnd) == 0 {
+		i.key, i.val = i.bkt.Last()
+		return
+	}
+	i.key, i.val = i.bkt.Seek(i.prefixEnd)
+	if len(i.key) == 0 {
+		i.key, i.val = i.bkt.Last()
+	} else {
+		i.key, i.val = i.bkt.Prev()
+	}
+}
+
+func (i *Iterator) seekReverse(k []byte) {
+	if len(i.prefix) != 0 {
+		if bytes.Compare(k, i.prefix) < 0 {
+			return
 		}
-		// out of bounds or prefix seen
-		if len(i.key) == 0 {
-			break
+		if len(i.prefixEnd) != 0 && bytes.Compare(k, i.prefixEnd) >= 0 {
+			i.seekPrefixBoundary()
+			return
 		}
 	}
-	i.oob = len(i.key) == 0
+
+	i.key, i.val = i.bkt.Seek(k)
+	if len(i.key) == 0 {
+		i.key, i.val = i.bkt.Last()
+	} else if bytes.Compare(i.key, k) > 0 {
+		i.key, i.val = i.bkt.Prev()
+	}
+}
+
+func (i *Iterator) updateBounds() {
+	i.oob = len(i.key) == 0 ||
+		(len(i.prefix) != 0 && !bytes.HasPrefix(i.key, i.prefix))
+}
+
+// prefixUpperBound returns the smallest key above the contiguous prefix range.
+// A nil result means the prefix range has no finite upper bound.
+func prefixUpperBound(prefix []byte) []byte {
+	upper := bytes.Clone(prefix)
+	for idx := len(upper) - 1; idx >= 0; idx-- {
+		if upper[idx] != 0xff {
+			upper[idx]++
+			return upper[:idx+1]
+		}
+	}
+	return nil
 }
 
 // Close closes the iterator.
