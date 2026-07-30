@@ -14,6 +14,9 @@ import (
 // cdn_id. Today only the default slot is populated.
 var ErrUnknownCdn = errors.New("unknown cdn id")
 
+// ErrRegistryClosed is returned when a lookup occurs after registry shutdown.
+var ErrRegistryClosed = errors.New("cdn registry is closed")
+
 // Registry owns the process-scoped map of CdnInstances keyed by cdn_id.
 // The default instance (empty id) is lazily constructed on first lookup
 // against the production or SPACEWAVE_CDN_SPACE_ID-overridden Space id.
@@ -56,6 +59,9 @@ func (r *Registry) Lookup(cdnID string) (*CdnInstance, error) {
 
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
+	if r.instances == nil {
+		return nil, ErrRegistryClosed
+	}
 	if inst, ok := r.instances[cdnID]; ok {
 		return inst, nil
 	}

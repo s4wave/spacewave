@@ -23,20 +23,34 @@ func (s *CoreRootServer) getStateAtomStoreIndex(
 		return s.stateAtomStoreIndex, nil
 	}
 
-	objStoreHandle, _, diRef, err := volume.ExBuildObjectStoreAPI(
-		ctx,
-		s.b,
-		false,
-		StateAtomObjectStoreID,
-		bldr_plugin.PluginVolumeID,
-		nil,
+	var (
+		stateAtomStoreIndex *session.StateAtomStoreIndex
+		release             func()
+		err                 error
 	)
+	if builder := s.stateAtomStoreIndexBuilder; builder != nil {
+		stateAtomStoreIndex, release, err = builder(ctx)
+	} else {
+		objStoreHandle, _, diRef, buildErr := volume.ExBuildObjectStoreAPI(
+			ctx,
+			s.b,
+			false,
+			StateAtomObjectStoreID,
+			bldr_plugin.PluginVolumeID,
+			nil,
+		)
+		if buildErr != nil {
+			return nil, buildErr
+		}
+		stateAtomStoreIndex = session.NewStateAtomStoreIndex(objStoreHandle.GetObjectStore())
+		release = diRef.Release
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	s.stateAtomStoreIndex = session.NewStateAtomStoreIndex(objStoreHandle.GetObjectStore())
-	s.releaseStateAtomStoreIndex = diRef.Release
+	s.stateAtomStoreIndex = stateAtomStoreIndex
+	s.releaseStateAtomStoreIndex = release
 	return s.stateAtomStoreIndex, nil
 }
 
