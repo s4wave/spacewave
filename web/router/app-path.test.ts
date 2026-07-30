@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
+  getAppNavigationGeneration,
   getAppPath,
   isPathnameAppRoute,
   normalizeAppPath,
@@ -112,5 +113,54 @@ describe('app path helpers', () => {
     }
 
     expect(hashChanges).toBe(0)
+  })
+  it('advances the navigation generation across a history round trip', async () => {
+    setAppPath('/start')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    const start = getAppNavigationGeneration()
+
+    setAppPath('/files')
+    setAppPath('/start')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(getAppPath()).toBe('/start')
+    expect(getAppNavigationGeneration()).toBeGreaterThan(start)
+  })
+
+  it('holds the navigation generation when the path does not change', async () => {
+    setAppPath('/start')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    const start = getAppNavigationGeneration()
+
+    setAppPath('/start')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(getAppNavigationGeneration()).toBe(start)
+  })
+
+  it('advances the navigation generation on a raw hash write, before hashchange runs', async () => {
+    setAppPath('/start')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    const start = getAppNavigationGeneration()
+
+    // A caller writing the hash directly, as app/debug/spacewave-global.ts
+    // does, moves the document now and queues hashchange for later. Read the
+    // generation in the same task, before that event can run.
+    window.location.hash = '#/files'
+
+    expect(getAppNavigationGeneration()).toBeGreaterThan(start)
+  })
+
+  it('counts a raw hash write once when hashchange later runs', async () => {
+    setAppPath('/start')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    const start = getAppNavigationGeneration()
+
+    window.location.hash = '#/files'
+    const afterWrite = getAppNavigationGeneration()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(afterWrite).toBe(start + 1)
+    expect(getAppNavigationGeneration()).toBe(afterWrite)
   })
 })

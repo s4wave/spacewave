@@ -8,7 +8,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 
-import { getAppPath } from '@s4wave/web/router/app-path.js'
+import { getAppPath, setAppPath } from '@s4wave/web/router/app-path.js'
 
 import { ShellAppPanel } from './ShellAppPanel.js'
 import { ShellTabsProvider, useShellTabs } from './ShellTabContext.js'
@@ -16,6 +16,7 @@ import {
   installShellTabTestBrowser,
   readShellTabsSnapshot,
   seedShellTabs,
+  type ShellTabTestBrowser,
 } from './ShellTabTestHarness.js'
 import type { ShellDocumentEntry } from './ShellDocumentEntry.js'
 
@@ -85,6 +86,12 @@ vi.mock('./routes/AppRoutes.js', async () => {
         >
           Add Docs Tab
         </button>
+        <button
+          onClick={() => void tabContext?.navigateTab('/docs')}
+          type="button"
+        >
+          Navigate Tab
+        </button>
       </div>
     )
   }
@@ -102,9 +109,17 @@ function ActiveTabProbe() {
   const { activeTabId } = useShellTabs()
   return <span data-testid="active-tab-id">{activeTabId}</span>
 }
+function ActivateTabButton({ tabId }: { tabId: string }) {
+  const { setActiveTabId } = useShellTabs()
+  return (
+    <button onClick={() => setActiveTabId(tabId)} type="button">
+      Activate {tabId}
+    </button>
+  )
+}
 
 describe('ShellAppPanel', () => {
-  let restoreTestBrowser: (() => void) | undefined
+  let restoreTestBrowser: ShellTabTestBrowser | undefined
 
   beforeEach(() => {
     restoreTestBrowser = installShellTabTestBrowser()
@@ -156,6 +171,204 @@ describe('ShellAppPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Docs' }))
 
     await waitFor(() => expect(getAppPath()).toBe('/docs'))
+  })
+
+  it('syncs active tab-context navigation to the global app path', async () => {
+    seedTabs('tab-2')
+
+    render(
+      <ShellTabsProvider entry={handoffEntry('tab-2')}>
+        <ShellAppPanel
+          tabId="tab-2"
+          initialPath="/quickstart/drive"
+          namespace={['test', 'tab-2']}
+          syncAppPath
+        />
+      </ShellTabsProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Navigate Tab' }))
+
+    await waitFor(() => {
+      const record = readShellTabsSnapshot().records.find(
+        (tab) => tab.id === 'tab-2',
+      )
+      expect(record?.path).toBe('/docs')
+      expect(getAppPath()).toBe('/docs')
+    })
+  })
+
+  it('keeps the global app path when an inactive tab context navigates', async () => {
+    seedTabs('tab-2')
+
+    render(
+      <ShellTabsProvider entry={handoffEntry('tab-2')}>
+        <ShellAppPanel
+          tabId="tab-1"
+          initialPath="/"
+          namespace={['test', 'tab-1']}
+          syncAppPath
+        />
+      </ShellTabsProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Navigate Tab' }))
+
+    await waitFor(() => {
+      const record = readShellTabsSnapshot().records.find(
+        (tab) => tab.id === 'tab-1',
+      )
+      expect(record?.path).toBe('/docs')
+    })
+    expect(getAppPath()).toBe('/')
+  })
+
+  it('keeps the global app path when the panel deactivates before the path commits', async () => {
+    if (!restoreTestBrowser) throw new Error('test browser not installed')
+    const browser = restoreTestBrowser
+    seedTabs('tab-2')
+
+    render(
+      <ShellTabsProvider entry={handoffEntry('tab-2')}>
+        <ActiveTabProbe />
+        <ActivateTabButton tabId="tab-1" />
+        <ShellAppPanel
+          tabId="tab-2"
+          initialPath="/quickstart/drive"
+          namespace={['test', 'tab-2']}
+          syncAppPath
+        />
+      </ShellTabsProvider>,
+    )
+
+    const blocked = browser.blockNextMutation()
+    fireEvent.click(screen.getByRole('button', { name: 'Navigate Tab' }))
+    await blocked
+
+    fireEvent.click(screen.getByRole('button', { name: 'Activate tab-1' }))
+    await waitFor(() =>
+      expect(screen.getByTestId('active-tab-id').textContent).toBe('tab-1'),
+    )
+
+    browser.releaseBlockedMutation()
+
+    await waitFor(() => {
+      const record = readShellTabsSnapshot().records.find(
+        (tab) => tab.id === 'tab-2',
+      )
+      expect(record?.path).toBe('/docs')
+    })
+    expect(getAppPath()).toBe('/')
+  })
+
+  it('syncs the global app path when the panel activates before the path commits', async () => {
+    if (!restoreTestBrowser) throw new Error('test browser not installed')
+    const browser = restoreTestBrowser
+    seedTabs('tab-2')
+
+    render(
+      <ShellTabsProvider entry={handoffEntry('tab-2')}>
+        <ActiveTabProbe />
+        <ActivateTabButton tabId="tab-1" />
+        <ShellAppPanel
+          tabId="tab-1"
+          initialPath="/"
+          namespace={['test', 'tab-1']}
+          syncAppPath
+        />
+      </ShellTabsProvider>,
+    )
+
+    const blocked = browser.blockNextMutation()
+    fireEvent.click(screen.getByRole('button', { name: 'Navigate Tab' }))
+    await blocked
+
+    fireEvent.click(screen.getByRole('button', { name: 'Activate tab-1' }))
+    await waitFor(() =>
+      expect(screen.getByTestId('active-tab-id').textContent).toBe('tab-1'),
+    )
+
+    browser.releaseBlockedMutation()
+
+    await waitFor(() => {
+      const record = readShellTabsSnapshot().records.find(
+        (tab) => tab.id === 'tab-1',
+      )
+      expect(record?.path).toBe('/docs')
+      expect(getAppPath()).toBe('/docs')
+    })
+  })
+
+  it('leaves a newer document navigation in place when an older path commits', async () => {
+    if (!restoreTestBrowser) throw new Error('test browser not installed')
+    const browser = restoreTestBrowser
+    seedTabs('tab-2')
+
+    render(
+      <ShellTabsProvider entry={handoffEntry('tab-2')}>
+        <ActiveTabProbe />
+        <ShellAppPanel
+          tabId="tab-2"
+          initialPath="/quickstart/drive"
+          namespace={['test', 'tab-2']}
+          syncAppPath
+        />
+      </ShellTabsProvider>,
+    )
+
+    const blocked = browser.blockNextMutation()
+    fireEvent.click(screen.getByRole('button', { name: 'Navigate Tab' }))
+    await blocked
+
+    // The user moves the document while the commit waits on the Web Lock.
+    setAppPath('/files')
+
+    browser.releaseBlockedMutation()
+
+    await waitFor(() => {
+      const record = readShellTabsSnapshot().records.find(
+        (tab) => tab.id === 'tab-2',
+      )
+      expect(record?.path).toBe('/docs')
+    })
+    expect(getAppPath()).toBe('/files')
+  })
+
+  it('leaves a document navigated away and back in place when an older path commits', async () => {
+    if (!restoreTestBrowser) throw new Error('test browser not installed')
+    const browser = restoreTestBrowser
+    seedTabs('tab-2')
+
+    render(
+      <ShellTabsProvider entry={handoffEntry('tab-2')}>
+        <ActiveTabProbe />
+        <ShellAppPanel
+          tabId="tab-2"
+          initialPath="/quickstart/drive"
+          namespace={['test', 'tab-2']}
+          syncAppPath
+        />
+      </ShellTabsProvider>,
+    )
+
+    const blocked = browser.blockNextMutation()
+    fireEvent.click(screen.getByRole('button', { name: 'Navigate Tab' }))
+    await blocked
+
+    // A round trip through history restores the path the commit started
+    // from, so only a navigation counter can tell that the user moved.
+    setAppPath('/files')
+    setAppPath('/')
+
+    browser.releaseBlockedMutation()
+
+    await waitFor(() => {
+      const record = readShellTabsSnapshot().records.find(
+        (tab) => tab.id === 'tab-2',
+      )
+      expect(record?.path).toBe('/docs')
+    })
+    expect(getAppPath()).toBe('/')
   })
 
   it('adds selected shell tabs from embedded tab-context requests', async () => {

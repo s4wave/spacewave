@@ -511,27 +511,6 @@ function ShellTabStripInner({
     }
   }, [activeTabId, isGridMode])
 
-  // A remote shared path update follows the active record into a normal Flex
-  // URL. The hash listener ignores this feedback and does not write it back.
-  useEffect(() => {
-    if (!initializedRef.current || isGridMode()) return
-    const activeTab = tabsRef.current.find((tab) => tab.id === activeTabId)
-    const currentPath = getAppPath()
-    const pendingLocalPath = pendingLocalHashIntentRef.current
-    if (pendingLocalPath?.tabId !== activeTabId) {
-      pendingLocalHashIntentRef.current = null
-    } else if (pendingLocalPath.path === currentPath) {
-      if (activeTab?.path === pendingLocalPath.path) {
-        pendingLocalHashIntentRef.current = null
-      } else {
-        return
-      }
-    }
-    if (!activeTab || activeTab.path === currentPath) return
-    suppressedHashPathRef.current = activeTab.path
-    setAppPath(activeTab.path)
-  }, [activeTabId, isGridMode, tabs])
-
   // Listen for hash changes (back/forward navigation)
   const handleHashChange = useEffectEvent(() => {
     if (!initializedRef.current) return
