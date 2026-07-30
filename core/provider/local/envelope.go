@@ -1,6 +1,7 @@
 package provider_local
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/core/session"
 	session_lock "github.com/s4wave/spacewave/core/session/lock"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/envelope"
@@ -219,33 +221,47 @@ func UnlockSessionFromEnvelope(ctx context.Context, objStore object.ObjectStore,
 
 // HasSessionEnvelope reports whether a local session recovery envelope exists.
 func HasSessionEnvelope(ctx context.Context, objStore object.ObjectStore, sessionID string) (bool, error) {
-	otx, err := objStore.NewTransaction(ctx, false)
+	var found bool
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			envData, attemptFound, err := tx.Get(ctx, session_lock.MakeKey(sessionID, session_lock.SuffixEnvelope))
+			if err != nil {
+				return errors.Wrap(err, "read envelope")
+			}
+			found = attemptFound && len(envData) > 0
+			return nil
+		},
+	)
 	if err != nil {
 		return false, errors.Wrap(err, "open transaction")
 	}
-	defer otx.Discard()
-
-	envData, found, err := otx.Get(ctx, session_lock.MakeKey(sessionID, session_lock.SuffixEnvelope))
-	if err != nil {
-		return false, errors.Wrap(err, "read envelope")
-	}
-	return found && len(envData) > 0, nil
+	return found, nil
 }
 
 // ReadEnvelope reads the Shamir envelope bytes from the ObjectStore.
 func ReadEnvelope(ctx context.Context, objStore object.ObjectStore, sessionID string) ([]byte, error) {
-	otx, err := objStore.NewTransaction(ctx, false)
+	var envData []byte
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			data, found, err := tx.Get(ctx, session_lock.MakeKey(sessionID, session_lock.SuffixEnvelope))
+			if err != nil {
+				return errors.Wrap(err, "read envelope")
+			}
+			if !found || len(data) == 0 {
+				return errors.New("no envelope found for session")
+			}
+			envData = bytes.Clone(data)
+			return nil
+		},
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "open transaction")
-	}
-	defer otx.Discard()
-
-	envData, found, err := otx.Get(ctx, session_lock.MakeKey(sessionID, session_lock.SuffixEnvelope))
-	if err != nil {
-		return nil, errors.Wrap(err, "read envelope")
-	}
-	if !found || len(envData) == 0 {
-		return nil, errors.New("no envelope found for session")
 	}
 	return envData, nil
 }

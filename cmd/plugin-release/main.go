@@ -108,6 +108,8 @@ func exportBoltToKVFile(ctx context.Context, boltPath, outPath string) error {
 }
 
 func writeStoreKVFile(ctx context.Context, wr io.Writer, store kvtx.Store) error {
+	// Retry classification: external to RunTransaction. The iterator writes
+	// each transaction value to the caller-owned export stream.
 	tx, err := store.NewTransaction(ctx, false)
 	if err != nil {
 		return errors.Wrap(err, "open read tx")

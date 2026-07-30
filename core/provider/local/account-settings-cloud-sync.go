@@ -13,6 +13,7 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 )
 
@@ -69,26 +70,30 @@ func (a *ProviderAccount) loadLinkedCloudAccountID(ctx context.Context) (string,
 	}
 	defer diRef.Release()
 
-	otx, err := objStoreHandle.GetObjectStore().NewTransaction(ctx, false)
-	if err != nil {
-		return "", errors.Wrap(err, "open session object store transaction")
-	}
-	defer otx.Discard()
-
 	var linkedCloudAccountID string
 	stopErr := errors.New("linked cloud account id found")
-	err = otx.ScanPrefix(ctx, []byte{}, func(key, value []byte) error {
-		if !bytes.HasSuffix(key, []byte("/linked-cloud")) {
+	err = kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStoreHandle.GetObjectStore().NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			var attemptLinkedCloudAccountID string
+			err := tx.ScanPrefix(ctx, []byte{}, func(key, value []byte) error {
+				if !bytes.HasSuffix(key, []byte("/linked-cloud")) || len(value) == 0 {
+					return nil
+				}
+				attemptLinkedCloudAccountID = string(value)
+				return stopErr
+			})
+			if err != nil && !errors.Is(err, stopErr) {
+				return errors.Wrap(err, "scan session object store")
+			}
+			linkedCloudAccountID = attemptLinkedCloudAccountID
 			return nil
-		}
-		if len(value) == 0 {
-			return nil
-		}
-		linkedCloudAccountID = string(value)
-		return stopErr
-	})
-	if err != nil && !errors.Is(err, stopErr) {
-		return "", errors.Wrap(err, "scan session object store")
+		},
+	)
+	if err != nil {
+		return "", err
 	}
 	return linkedCloudAccountID, nil
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	"github.com/s4wave/spacewave/core/provider/spacewave/launcher/localdist"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -77,19 +78,19 @@ func (c *Controller) loadDistConf(ctx context.Context) ([]byte, error) {
 	}
 	defer ref.Release()
 
+	var data []byte
 	objs := store.GetObjectStore()
-	tx, err := objs.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Discard()
-
-	// not found: return nil
-	data, _, err := tx.Get(ctx, []byte(c.GetObjectStoreKey()))
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
+	err = kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objs.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			var err error
+			data, _, err = tx.Get(ctx, []byte(c.GetObjectStoreKey()))
+			return err
+		},
+	)
+	return data, err
 }
 
 // loadLocalDistConf loads a package-shipped dist config next to the entrypoint.
@@ -118,17 +119,14 @@ func (c *Controller) storeDistConf(ctx context.Context, data []byte) error {
 	defer ref.Release()
 
 	objs := store.GetObjectStore()
-	tx, err := objs.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer tx.Discard()
-
-	if err := tx.Set(ctx, []byte(c.GetObjectStoreKey()), data); err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objs.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			return tx.Set(ctx, []byte(c.GetObjectStoreKey()), data)
+		},
+	)
 }
 
 // openObjectStore opens the handle to the object store api.

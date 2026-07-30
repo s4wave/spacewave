@@ -17,6 +17,7 @@ import (
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
 	session_lock "github.com/s4wave/spacewave/core/session/lock"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/crypto"
@@ -526,19 +527,20 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	regKey := []byte(sessionID + "/registered")
 	registered := false
 	if err := func() error {
-		otx, err := objStore.NewTransaction(ctx, false)
-		if err != nil {
-			return err
-		}
-		defer otx.Discard()
-		data, found, err := otx.Get(ctx, regKey)
-		if err != nil {
-			return err
-		}
-		if found && string(data) == sessionPeerID.String() {
-			registered = true
-		}
-		return nil
+		err := kvtx.RunTransaction(ctx, false,
+			func(ctx context.Context) (kvtx.Tx, error) {
+				return objStore.NewTransaction(ctx, false)
+			},
+			func(ctx context.Context, tx kvtx.Tx) error {
+				data, found, err := tx.Get(ctx, regKey)
+				if err != nil {
+					return err
+				}
+				registered = found && string(data) == sessionPeerID.String()
+				return nil
+			},
+		)
+		return err
 	}(); err != nil {
 		return errors.Wrap(err, "check session registration state")
 	}
@@ -556,15 +558,15 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 			sessionPriv,
 			sessionPeerID.String(),
 		))
-		otx, err := objStore.NewTransaction(ctx, true)
+		err = kvtx.RunTransaction(ctx, true,
+			func(ctx context.Context) (kvtx.Tx, error) {
+				return objStore.NewTransaction(ctx, true)
+			},
+			func(ctx context.Context, tx kvtx.Tx) error {
+				return tx.Set(ctx, regKey, []byte(sessionPeerID.String()))
+			},
+		)
 		if err != nil {
-			return nil, err
-		}
-		defer otx.Discard()
-		if err := otx.Set(ctx, regKey, []byte(sessionPeerID.String())); err != nil {
-			return nil, err
-		}
-		if err := otx.Commit(ctx); err != nil {
 			return nil, err
 		}
 		return resp.GetObservedMetadata(), nil
@@ -760,19 +762,21 @@ func (a *ProviderAccount) ResetPINSession(ctx context.Context, ref *session.Sess
 	objStore := objStoreHandle.GetObjectStore()
 
 	// Delete all lock files and the stored key.
-	otx, err := objStore.NewTransaction(ctx, true)
+	err = kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			_ = tx.Delete(ctx, session_lock.MakeKey(sessionID, session_lock.SuffixPK))
+			_ = tx.Delete(ctx, session_lock.MakeKey(sessionID, session_lock.SuffixLocked))
+			_ = tx.Delete(ctx, session_lock.MakeKey(sessionID, session_lock.SuffixLockKey))
+			_ = tx.Delete(ctx, session_lock.MakeKey(sessionID, session_lock.SuffixLockParams))
+			_ = tx.Delete(ctx, session_lock.MakeKey(sessionID, session_lock.SuffixEnvelope))
+			_ = tx.Delete(ctx, []byte(sessionID+"/registered"))
+			return nil
+		},
+	)
 	if err != nil {
-		return err
-	}
-	defer otx.Discard()
-	_ = otx.Delete(ctx, session_lock.MakeKey(sessionID, session_lock.SuffixPK))
-	_ = otx.Delete(ctx, session_lock.MakeKey(sessionID, session_lock.SuffixLocked))
-	_ = otx.Delete(ctx, session_lock.MakeKey(sessionID, session_lock.SuffixLockKey))
-	_ = otx.Delete(ctx, session_lock.MakeKey(sessionID, session_lock.SuffixLockParams))
-	_ = otx.Delete(ctx, session_lock.MakeKey(sessionID, session_lock.SuffixEnvelope))
-	// Clear registration so the new key gets re-registered.
-	_ = otx.Delete(ctx, []byte(sessionID+"/registered"))
-	if err := otx.Commit(ctx); err != nil {
 		return errors.Wrap(err, "delete lock files")
 	}
 

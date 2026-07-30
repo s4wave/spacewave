@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 // accountSettingsBindingPurpose identifies the local account-settings binding.
@@ -20,40 +21,42 @@ func (a *ProviderAccount) GetAccountSettingsRef(ctx context.Context) (*sobject.S
 	}
 	defer release()
 
-	otx, err := objStore.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer otx.Discard()
+	var ref *sobject.SharedObjectRef
+	err = kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			data, found, err := tx.Get(ctx, SobjectBindingKey(accountSettingsBindingPurpose))
+			if err != nil {
+				return err
+			}
+			if !found || len(data) == 0 {
+				return sobject.ErrSharedObjectNotFound
+			}
 
-	data, found, err := otx.Get(ctx, SobjectBindingKey(accountSettingsBindingPurpose))
-	if err != nil {
-		return nil, err
-	}
-	if !found || len(data) == 0 {
-		return nil, sobject.ErrSharedObjectNotFound
-	}
-
-	ref := &sobject.SharedObjectRef{}
-	if err := ref.UnmarshalVT(data); err != nil {
-		return nil, err
-	}
-	if err := ref.Validate(); err != nil {
-		return nil, err
-	}
-
-	provRef := ref.GetProviderResourceRef()
-	if provRef.GetProviderId() != a.t.accountInfo.GetProviderId() {
-		return nil, errors.New("account settings binding provider id mismatch")
-	}
-	if provRef.GetProviderAccountId() != a.t.accountInfo.GetProviderAccountId() {
-		return nil, errors.New("account settings binding account id mismatch")
-	}
-	if ref.GetBlockStoreId() != SobjectBlockStoreID(provRef.GetId()) {
-		return nil, errors.New("account settings binding block store id mismatch")
-	}
-
-	return ref, nil
+			next := &sobject.SharedObjectRef{}
+			if err := next.UnmarshalVT(data); err != nil {
+				return err
+			}
+			if err := next.Validate(); err != nil {
+				return err
+			}
+			provRef := next.GetProviderResourceRef()
+			if provRef.GetProviderId() != a.t.accountInfo.GetProviderId() {
+				return errors.New("account settings binding provider id mismatch")
+			}
+			if provRef.GetProviderAccountId() != a.t.accountInfo.GetProviderAccountId() {
+				return errors.New("account settings binding account id mismatch")
+			}
+			if next.GetBlockStoreId() != SobjectBlockStoreID(provRef.GetId()) {
+				return errors.New("account settings binding block store id mismatch")
+			}
+			ref = next
+			return nil
+		},
+	)
+	return ref, err
 }
 
 func (a *ProviderAccount) writeAccountSettingsRef(
@@ -66,21 +69,18 @@ func (a *ProviderAccount) writeAccountSettingsRef(
 	}
 	defer release()
 
-	otx, err := objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer otx.Discard()
-
 	data, err := ref.MarshalVT()
 	if err != nil {
 		return err
 	}
-	if err := otx.Set(ctx, SobjectBindingKey(accountSettingsBindingPurpose), data); err != nil {
-		return err
-	}
-
-	return otx.Commit(ctx)
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			return tx.Set(ctx, SobjectBindingKey(accountSettingsBindingPurpose), data)
+		},
+	)
 }
 
 // EnsureAccountSettingsSO returns the bound account settings SharedObjectRef,

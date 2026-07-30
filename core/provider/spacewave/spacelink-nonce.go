@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/kvtx"
 )
 
 const (
@@ -37,27 +38,29 @@ func (a *ProviderAccount) checkSpaceLinkNonceFresh(
 		return errors.New("account object store not ready")
 	}
 
-	otx, err := a.objStore.NewTransaction(ctx, false)
-	if err != nil {
-		return errors.Wrap(err, "open read transaction")
-	}
-	defer otx.Discard()
-
-	data, found, err := otx.Get(ctx, key)
-	if err != nil {
-		return errors.Wrap(err, "get spacelink nonce marker")
-	}
-	if !found {
-		return nil
-	}
-	expiresAt, err := parseSpaceLinkNonceMarker(data)
-	if err != nil {
-		return errors.Wrap(err, "parse spacelink nonce marker")
-	}
-	if now.Before(expiresAt) {
-		return ErrSpaceLinkNonceConsumed
-	}
-	return nil
+	err = kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return a.objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			data, found, err := tx.Get(ctx, key)
+			if err != nil {
+				return errors.Wrap(err, "get spacelink nonce marker")
+			}
+			if !found {
+				return nil
+			}
+			expiresAt, err := parseSpaceLinkNonceMarker(data)
+			if err != nil {
+				return errors.Wrap(err, "parse spacelink nonce marker")
+			}
+			if now.Before(expiresAt) {
+				return ErrSpaceLinkNonceConsumed
+			}
+			return nil
+		},
+	)
+	return errors.Wrap(err, "open read transaction")
 }
 
 // ConsumeSpaceLinkNonce atomically records a consumed marker for ApproveSpaceLink.
@@ -86,29 +89,30 @@ func (a *ProviderAccount) consumeSpaceLinkNonce(
 		return errors.New("account object store not ready")
 	}
 
-	otx, err := a.objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return errors.Wrap(err, "open write transaction")
-	}
-	defer otx.Discard()
-
-	data, found, err := otx.Get(ctx, key)
-	if err != nil {
-		return errors.Wrap(err, "get spacelink nonce marker")
-	}
-	if found {
-		markerExpiresAt, err := parseSpaceLinkNonceMarker(data)
-		if err != nil {
-			return errors.Wrap(err, "parse spacelink nonce marker")
-		}
-		if now.Before(markerExpiresAt) {
-			return ErrSpaceLinkNonceConsumed
-		}
-	}
-	if err := otx.Set(ctx, key, encodeSpaceLinkNonceMarker(expiresAt.Add(spaceLinkNonceSkew))); err != nil {
-		return errors.Wrap(err, "set spacelink nonce marker")
-	}
-	return otx.Commit(ctx)
+	return kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return a.objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			data, found, err := tx.Get(ctx, key)
+			if err != nil {
+				return errors.Wrap(err, "get spacelink nonce marker")
+			}
+			if found {
+				markerExpiresAt, err := parseSpaceLinkNonceMarker(data)
+				if err != nil {
+					return errors.Wrap(err, "parse spacelink nonce marker")
+				}
+				if now.Before(markerExpiresAt) {
+					return ErrSpaceLinkNonceConsumed
+				}
+			}
+			if err := tx.Set(ctx, key, encodeSpaceLinkNonceMarker(expiresAt.Add(spaceLinkNonceSkew))); err != nil {
+				return errors.Wrap(err, "set spacelink nonce marker")
+			}
+			return nil
+		},
+	)
 }
 
 func spaceLinkNonceKey(agentPeerID, nonce, payload []byte) ([]byte, error) {

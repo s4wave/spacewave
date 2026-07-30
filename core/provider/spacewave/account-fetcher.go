@@ -11,6 +11,7 @@ import (
 	"github.com/s4wave/spacewave/core/provider/spacewave/accountstatus"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/sirupsen/logrus"
 )
 
@@ -263,35 +264,47 @@ func (a *ProviderAccount) writeAccountStateCache(ctx context.Context, state *api
 	if err != nil {
 		return errors.Wrap(err, "marshal account state cache")
 	}
-	otx, err := a.objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return errors.Wrap(err, "open write transaction")
-	}
-	defer otx.Discard()
-	if err := otx.Set(ctx, []byte(accountStateCacheKey), data); err != nil {
-		return errors.Wrap(err, "set account state cache")
-	}
-	return otx.Commit(ctx)
+	err = kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return a.objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			if err := tx.Set(ctx, []byte(accountStateCacheKey), data); err != nil {
+				return errors.Wrap(err, "set account state cache")
+			}
+			return nil
+		},
+	)
+	return errors.Wrap(err, "write account state cache")
 }
 
 // loadAccountStateCache reads AccountStateCache from ObjectStore.
 // Returns nil if the cache does not exist.
 func (a *ProviderAccount) loadAccountStateCache(ctx context.Context) (*api.AccountStateCache, error) {
-	otx, err := a.objStore.NewTransaction(ctx, false)
+	var cache *api.AccountStateCache
+	err := kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return a.objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			data, found, err := tx.Get(ctx, []byte(accountStateCacheKey))
+			if err != nil {
+				return errors.Wrap(err, "get account state cache")
+			}
+			if !found {
+				cache = nil
+				return nil
+			}
+			next := &api.AccountStateCache{}
+			if err := next.UnmarshalVT(data); err != nil {
+				return errors.Wrap(err, "unmarshal account state cache")
+			}
+			cache = next
+			return nil
+		},
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "open read transaction")
-	}
-	defer otx.Discard()
-	data, found, err := otx.Get(ctx, []byte(accountStateCacheKey))
-	if err != nil {
-		return nil, errors.Wrap(err, "get account state cache")
-	}
-	if !found {
-		return nil, nil
-	}
-	cache := &api.AccountStateCache{}
-	if err := cache.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal account state cache")
 	}
 	return cache, nil
 }

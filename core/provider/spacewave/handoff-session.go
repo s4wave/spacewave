@@ -10,6 +10,7 @@ import (
 	provider "github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/session"
 	session_lock "github.com/s4wave/spacewave/core/session/lock"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/keypem"
@@ -144,16 +145,19 @@ func (p *Provider) seedHandoffSession(
 	}
 
 	regKey := []byte(sessionID + "/registered")
-	otx, err := objStoreHandle.GetObjectStore().NewTransaction(ctx, true)
+	err = kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStoreHandle.GetObjectStore().NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			if err := tx.Set(ctx, regKey, []byte(sessionPeerID.String())); err != nil {
+				return errors.Wrap(err, "write registration marker")
+			}
+			return nil
+		},
+	)
 	if err != nil {
-		return errors.Wrap(err, "create registration transaction")
-	}
-	defer otx.Discard()
-	if err := otx.Set(ctx, regKey, []byte(sessionPeerID.String())); err != nil {
-		return errors.Wrap(err, "write registration marker")
-	}
-	if err := otx.Commit(ctx); err != nil {
-		return errors.Wrap(err, "commit registration marker")
+		return errors.Wrap(err, "registration transaction")
 	}
 
 	return nil

@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/session"
+	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/volume"
 )
 
@@ -24,39 +25,50 @@ func (a *ProviderAccount) GetLinkedLocalSession(ctx context.Context, sessionID s
 	}
 	defer diRef.Release()
 
+	var idx uint32
+	var found bool
 	objStore := objStoreHandle.GetObjectStore()
-	otx, err := objStore.NewTransaction(ctx, false)
+	err = kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			data, attemptFound, err := tx.Get(ctx, linkedLocalKey(sessionID))
+			if err != nil {
+				return errors.Wrap(err, "read linked-local key")
+			}
+			if !attemptFound {
+				found = false
+				return nil
+			}
+			attemptIdx, err := strconv.ParseUint(string(data), 10, 32)
+			if err != nil {
+				return errors.Wrap(err, "parse linked-local index")
+			}
+			found = true
+			idx = uint32(attemptIdx)
+			return nil
+		},
+	)
 	if err != nil {
 		return false, 0, errors.Wrap(err, "new read transaction")
 	}
-	defer otx.Discard()
-
-	data, found, err := otx.Get(ctx, linkedLocalKey(sessionID))
-	if err != nil {
-		return false, 0, errors.Wrap(err, "read linked-local key")
-	}
 	if !found {
 		return false, 0, nil
-	}
-
-	idx, err := strconv.ParseUint(string(data), 10, 32)
-	if err != nil {
-		return false, 0, errors.Wrap(err, "parse linked-local index")
 	}
 
 	// Verify the local session still exists (resilient to stale refs).
 	sessionCtrl, sessionCtrlRef, serr := session.ExLookupSessionController(ctx, a.p.b, "", false, nil)
 	if serr == nil {
 		defer sessionCtrlRef.Release()
-		entry, gerr := sessionCtrl.GetSessionByIdx(ctx, uint32(idx))
+		entry, gerr := sessionCtrl.GetSessionByIdx(ctx, idx)
 		if gerr == nil && entry == nil {
 			// Session index is stale, best-effort cleanup.
 			_ = a.DeleteLinkedLocalSession(ctx, sessionID)
 			return false, 0, nil
 		}
 	}
-
-	return true, uint32(idx), nil
+	return true, idx, nil
 }
 
 // DeleteLinkedLocalSession removes the linked-local session key from the ObjectStore.
@@ -70,16 +82,18 @@ func (a *ProviderAccount) DeleteLinkedLocalSession(ctx context.Context, sessionI
 	defer diRef.Release()
 
 	objStore := objStoreHandle.GetObjectStore()
-	otx, err := objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return errors.Wrap(err, "new write transaction")
-	}
-	defer otx.Discard()
-
-	if err := otx.Delete(ctx, linkedLocalKey(sessionID)); err != nil {
-		return errors.Wrap(err, "delete linked-local key")
-	}
-	return otx.Commit(ctx)
+	err = kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			if err := tx.Delete(ctx, linkedLocalKey(sessionID)); err != nil {
+				return errors.Wrap(err, "delete linked-local key")
+			}
+			return nil
+		},
+	)
+	return errors.Wrap(err, "new write transaction")
 }
 
 // SetLinkedLocalSession writes the linked-local session index to the ObjectStore.
@@ -92,16 +106,18 @@ func (a *ProviderAccount) SetLinkedLocalSession(ctx context.Context, sessionID s
 	}
 	defer diRef.Release()
 
-	objStore := objStoreHandle.GetObjectStore()
-	otx, err := objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return errors.Wrap(err, "new write transaction")
-	}
-	defer otx.Discard()
-
 	val := []byte(strconv.FormatUint(uint64(localIdx), 10))
-	if err := otx.Set(ctx, linkedLocalKey(sessionID), val); err != nil {
-		return errors.Wrap(err, "set linked-local key")
-	}
-	return otx.Commit(ctx)
+	objStore := objStoreHandle.GetObjectStore()
+	err = kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, tx kvtx.Tx) error {
+			if err := tx.Set(ctx, linkedLocalKey(sessionID), val); err != nil {
+				return errors.Wrap(err, "set linked-local key")
+			}
+			return nil
+		},
+	)
+	return errors.Wrap(err, "new write transaction")
 }
