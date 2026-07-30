@@ -6,6 +6,9 @@ import (
 	"runtime"
 	"testing"
 
+	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
+	"github.com/s4wave/spacewave/db/object"
+	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/net/crypto"
 )
@@ -218,5 +221,80 @@ func TestLockConfigMarshalRoundTrip(t *testing.T) {
 	}
 	if !bytes.Equal(config2.Salt, config.Salt) {
 		t.Fatal("salt mismatch")
+	}
+}
+
+func TestWritePINLockReplaysIdentically(t *testing.T) {
+	type result struct {
+		encPriv    []byte
+		encSymKey  []byte
+		configData []byte
+		mode       SessionLockMode
+	}
+	run := func(t *testing.T, injectFault bool) (result, *kvtest.FaultStore) {
+		t.Helper()
+		ctx := t.Context()
+		backend := store_kvtx_inmem.NewStore()
+		var store object.ObjectStore = backend
+		var faultStore *kvtest.FaultStore
+		if injectFault {
+			faultStore = kvtest.NewFaultStore(backend, kvtest.FaultBeforeCommit)
+			store = faultStore
+		}
+		config := &LockConfig{ScryptN: 18, Salt: []byte("0123456789abcdef")}
+		if err := WritePINLock(
+			ctx,
+			store,
+			"replay-session",
+			[]byte("encrypted-private-key"),
+			[]byte("encrypted-symmetric-key"),
+			config,
+		); err != nil {
+			t.Fatal(err)
+		}
+
+		encPriv, encSymKey, storedConfig, err := ReadPINLockFiles(
+			ctx,
+			backend,
+			"replay-session",
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		configData, err := storedConfig.MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		mode, err := ReadLockMode(ctx, backend, "replay-session")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return result{
+			encPriv:    encPriv,
+			encSymKey:  encSymKey,
+			configData: configData,
+			mode:       mode,
+		}, faultStore
+	}
+
+	want, _ := run(t, false)
+	got, faultStore := run(t, true)
+	if !bytes.Equal(got.encPriv, want.encPriv) {
+		t.Fatalf("encrypted private key = %q, want %q", got.encPriv, want.encPriv)
+	}
+	if !bytes.Equal(got.encSymKey, want.encSymKey) {
+		t.Fatalf("encrypted symmetric key = %q, want %q", got.encSymKey, want.encSymKey)
+	}
+	if !bytes.Equal(got.configData, want.configData) {
+		t.Fatalf("lock config = %x, want %x", got.configData, want.configData)
+	}
+	if got.mode != want.mode {
+		t.Fatalf("lock mode = %v, want %v", got.mode, want.mode)
+	}
+	if got := faultStore.Opened(); got != 2 {
+		t.Fatalf("opened transactions = %d, want 2", got)
+	}
+	if got := faultStore.DelegatedCommits(); got != 1 {
+		t.Fatalf("delegated commits = %d, want 1", got)
 	}
 }
