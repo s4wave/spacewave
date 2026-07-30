@@ -39,6 +39,7 @@ type worldRefGraph interface {
 	block_gc.RefGraphOps
 	CloneIRIRefKeys() map[string]any
 	ImportIRIRefKeys(map[string]any)
+	TransferRefEdgeIndex() *block_gc.RefEdgeIndex
 }
 
 // WorldState implements world state backed by a block graph.
@@ -353,7 +354,30 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 // SetBlockTransaction loads the state from the given block transaction and cursor.
 //
 // The block transaction store is overridden with one wrapped with the GC store ops.
+//
+// bcs is an arbitrary cursor here, so the rebuilt RefGraph loads its edge index
+// from that cursor's durable GC graph. Rebuilding onto the cursor the current
+// state was already writing rolls the GC tree back to its last committed
+// content, which is why the outgoing index is not carried across this entry.
 func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transaction, bcs *block.Cursor) error {
+	return t.setBlockTransaction(ctx, btx, bcs, nil)
+}
+
+// setBlockTransaction rebuilds the world state onto btx and bcs.
+//
+// carriedEdgeIndex, when non-nil, is the outgoing RefGraph's exact-edge index,
+// which the replacement RefGraph adopts instead of walking the whole durable GC
+// graph. It is equal to a fresh load only when bcs names a block that holds
+// exactly the gc/ref edges the outgoing index recorded, so Commit is its only
+// supplier: Commit persists every ref-graph write through the GC tree before it
+// takes the cursor it passes here, and nothing between that write and this call
+// mutates the ref graph.
+func (t *WorldState) setBlockTransaction(
+	ctx context.Context,
+	btx *block.Transaction,
+	bcs *block.Cursor,
+	carriedEdgeIndex *block_gc.RefEdgeIndex,
+) error {
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction")
 	defer task.End()
 
@@ -390,7 +414,7 @@ func (t *WorldState) SetBlockTransaction(ctx context.Context, btx *block.Transac
 	var gcTreeIsolated bool
 	if t.write && t.store != nil {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/set-block-transaction/build-gc-tree")
-		gcTree, refGraph, initGCRootEdge, gcTreeIsolated, err = t.buildGCTree(taskCtx, bcs)
+		gcTree, refGraph, initGCRootEdge, gcTreeIsolated, err = t.buildGCTree(taskCtx, bcs, carriedEdgeIndex)
 		subtask.End()
 		if err != nil {
 			_ = graphHandle.Close()
@@ -632,8 +656,15 @@ func (t *WorldState) Commit(ctx context.Context) error {
 			return err
 		}
 	}
+	// The block write above persisted every gc/ref edge the outgoing RefGraph
+	// recorded, and the journal owns the flush path from here, so the rebuilt
+	// RefGraph adopts the live index rather than walking the whole GC graph.
+	var carriedEdgeIndex *block_gc.RefEdgeIndex
+	if t.refGraph != nil {
+		carriedEdgeIndex = t.refGraph.TransferRefEdgeIndex()
+	}
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/commit/set-block-transaction")
-	err = t.SetBlockTransaction(taskCtx, t.btx, bcs)
+	err = t.setBlockTransaction(taskCtx, t.btx, bcs, carriedEdgeIndex)
 	subtask.End()
 	return err
 }
@@ -803,7 +834,15 @@ func (t *WorldState) buildObjectTree(ctx context.Context, bcs *block.Cursor) (kv
 // buildGCTree builds the GC reference graph tree and RefGraph handle.
 // Returns whether the caller should initialize the gcroot -> world edge and
 // whether the tree commits through an isolated block transaction.
-func (t *WorldState) buildGCTree(ctx context.Context, bcs *block.Cursor) (kvtx.BlockTx, *block_gc.RefGraph, bool, bool, error) {
+//
+// carriedEdgeIndex, when non-nil, is adopted by the new RefGraph in place of a
+// full walk of the durable GC graph. An empty GC tree holds no edges at all, so
+// a carried index cannot be equal to a load there and is dropped.
+func (t *WorldState) buildGCTree(
+	ctx context.Context,
+	bcs *block.Cursor,
+	carriedEdgeIndex *block_gc.RefEdgeIndex,
+) (kvtx.BlockTx, *block_gc.RefGraph, bool, bool, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree")
 	defer task.End()
 
@@ -828,6 +867,9 @@ func (t *WorldState) buildGCTree(ctx context.Context, bcs *block.Cursor) (kvtx.B
 		ktx.Discard()
 		return nil, nil, false, false, err
 	}
+	if gcTreeSize == 0 {
+		carriedEdgeIndex = nil
+	}
 	initGCRootEdge := gcTreeSize == 0
 	if initGCRootEdge && t.refGraph != nil {
 		outgoing, err := t.refGraph.GetOutgoingRefs(ctx, block_gc.NodeGCRoot)
@@ -841,7 +883,7 @@ func (t *WorldState) buildGCTree(ctx context.Context, bcs *block.Cursor) (kvtx.B
 	}
 
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/world-state/build-gc-tree/new-ref-graph")
-	rg, err := block_gc.NewRefGraph(taskCtx, kvtx.NewTxStore(ktx), nil)
+	rg, err := block_gc.NewRefGraphWithEdgeIndex(taskCtx, kvtx.NewTxStore(ktx), nil, carriedEdgeIndex)
 	subtask.End()
 	if err != nil {
 		ktx.Discard()
