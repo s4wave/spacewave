@@ -4,10 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	"github.com/aperturerobotics/controllerbus/directive"
-	provider "github.com/s4wave/spacewave/core/provider"
+	"github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/session"
 	session_controller "github.com/s4wave/spacewave/core/session/controller"
@@ -15,28 +13,9 @@ import (
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
 	space_resolve "github.com/s4wave/spacewave/core/space/resolve"
-	"github.com/s4wave/spacewave/db/world"
-	world_mock "github.com/s4wave/spacewave/db/world/mock"
+	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
 	"github.com/s4wave/spacewave/testbed"
 )
-
-type lookupGateBus struct {
-	bus.Bus
-	lookupStarted chan<- struct{}
-}
-
-func (b *lookupGateBus) AddDirective(
-	dir directive.Directive,
-	handler directive.ReferenceHandler,
-) (directive.Instance, directive.Reference, error) {
-	if _, ok := dir.(world.LookupWorldEngine); ok {
-		select {
-		case b.lookupStarted <- struct{}{}:
-		default:
-		}
-	}
-	return b.Bus.AddDirective(dir, handler)
-}
 
 // TestResolveSpaceReturnsEngine tests that ResolveSpace resolves a session
 // index and shared object ID to a running world engine using the full
@@ -55,6 +34,7 @@ func TestResolveSpaceReturnsEngine(t *testing.T) {
 	tb.StaticResolver.AddFactory(session_controller.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(sobject_world_engine.NewFactory(tb.Bus))
+	tb.StaticResolver.AddFactory(space_sobject.NewFactory(tb.Bus))
 
 	// Start session controller.
 	_, sessCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&session_controller.Config{
@@ -76,6 +56,13 @@ func TestResolveSpaceReturnsEngine(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer provCtrlRef.Release()
+
+	// Start the space shared object controller.
+	_, spaceSobjectCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&space_sobject.Config{}), nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer spaceSobjectCtrlRef.Release()
 
 	// Look up the provider and create a local account + session.
 	prov, provRef, err := provider.ExLookupProvider(ctx, tb.Bus, providerID, false, nil)
@@ -125,61 +112,27 @@ func TestResolveSpaceReturnsEngine(t *testing.T) {
 	}
 
 	engineID := space.SpaceEngineId(soRef)
-	engineConf := sobject_world_engine.NewConfig(engineID, soRef)
-
-	type resolveResult struct {
-		resolved *space_resolve.ResolvedSpace
-		cleanup  func()
-		err      error
-	}
-	lookupStarted := make(chan struct{}, 1)
-	resolvedCh := make(chan resolveResult, 1)
-	go func() {
-		resolved, cleanup, err := space_resolve.ResolveSpace(
-			ctx,
-			&lookupGateBus{
-				Bus:           tb.Bus,
-				lookupStarted: lookupStarted,
-			},
-			sessionIdx,
-			sharedObjectID,
-		)
-		resolvedCh <- resolveResult{
-			resolved: resolved,
-			cleanup:  cleanup,
-			err:      err,
-		}
-	}()
-
-	// Hold the engine off the bus until ResolveSpace has installed its
-	// required lookup. This exercises the startup ordering that can otherwise
-	// let ReturnIfIdle report no engine before the controller executes.
-	<-lookupStarted
-
-	// Start the sobject world engine for this shared object.
-	_, _, worldCtrlRef, err := sobject_world_engine.StartEngineWithConfig(ctx, tb.Bus, engineConf, nil)
+	mounted, mountRef, err := space.ExMountSpaceSoBody(ctx, tb.Bus, soRef, false, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer worldCtrlRef.Release()
+	if mounted.GetSharedObjectBody().GetWorldEngineID() != engineID {
+		t.Fatalf("expected mounted engine ID %q, got %q", engineID, mounted.GetSharedObjectBody().GetWorldEngineID())
+	}
 
-	// Provide mock op handlers so the engine can process operations.
-	opc := world.NewLookupOpController("test-ops", engineID, world_mock.LookupMockOp)
-	relOpc, err := tb.Bus.AddController(ctx, opc, nil)
+	resolved, cleanup, err := space_resolve.ResolveSpace(
+		ctx,
+		tb.Bus,
+		sessionIdx,
+		sharedObjectID,
+	)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer relOpc()
+	defer cleanup()
 
-	// ResolveSpace must wait for the engine controller to become visible.
-	result := <-resolvedCh
-	if result.err != nil {
-		t.Fatal(result.err.Error())
-	}
-	resolved := result.resolved
-	if result.cleanup != nil {
-		defer result.cleanup()
-	}
+	// ResolveSpace's mount keeps the engine alive after the pre-existing mount releases.
+	mountRef.Release()
 
 	if resolved.Engine == nil {
 		t.Fatal("resolved engine is nil")
@@ -191,10 +144,9 @@ func TestResolveSpaceReturnsEngine(t *testing.T) {
 		t.Fatal("resolved ref is nil")
 	}
 
-	// Verify the engine is functional by creating a transaction.
 	tx, err := resolved.Engine.NewTransaction(ctx, true)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatalf("use engine after unrelated mount release: %v", err)
 	}
 	tx.Discard()
 }

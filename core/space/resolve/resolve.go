@@ -4,7 +4,6 @@ package space_resolve
 import (
 	"context"
 	"slices"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
@@ -25,9 +24,9 @@ type ResolvedSpace struct {
 	Ref *sobject.SharedObjectRef
 }
 
-// ResolveSpace resolves a session index and shared object ID to a world engine.
+// ResolveSpace resolves a session index and shared object ID to a mounted space body.
 // Mounts the full chain on-demand: session controller, session, provider account,
-// shared object list lookup, world engine lookup by computed engine ID.
+// shared object list lookup, and space body.
 // Returns the resolved space and a cleanup function that releases all directive references.
 func ResolveSpace(
 	ctx context.Context,
@@ -111,42 +110,19 @@ func ResolveSpace(
 	}
 	soRef.GetProviderResourceRef().Id = sharedObjectID
 
-	// Step 6: Compute the engine ID and resolve the required world engine.
-	engineID := space.SpaceEngineId(soRef)
-	engine, _, engineRef, err := world.ExLookupWorldEngine(ctx, b, true, engineID, nil)
+	// Step 6: Mount the space body and retain its directive reference.
+	mounted, mountRef, err := space.ExMountSpaceSoBody(ctx, b, soRef, false, nil)
 	if err != nil {
 		cleanup()
-		return nil, nil, errors.Wrap(err, "lookup world engine")
+		return nil, nil, errors.Wrap(err, "mount space body")
 	}
-	if engine == nil {
-		// A controller can become visible just after the idle lookup. Give
-		// that startup race a bounded window, but never wait for an absent
-		// engine until the request context is canceled.
-		lookupCtx, cancel := context.WithTimeout(ctx, time.Second)
-		engine, _, engineRef, err = world.ExLookupWorldEngine(lookupCtx, b, false, engineID, nil)
-		timedOut := errors.Is(lookupCtx.Err(), context.DeadlineExceeded)
-		cancel()
-		if err != nil {
-			cleanup()
-			if timedOut {
-				return nil, nil, errors.Errorf("world engine %q unavailable", engineID)
-			}
-			return nil, nil, errors.Wrap(err, "lookup world engine")
-		}
-	}
-	if engine == nil {
-		cleanup()
-		return nil, nil, errors.Errorf("lookup world engine %q returned nil engine", engineID)
-	}
-	if engineRef == nil {
-		cleanup()
-		return nil, nil, errors.Errorf("lookup world engine %q returned nil directive ref", engineID)
-	}
-	refs = append(refs, engineRef)
+	refs = append(refs, mountRef)
+
+	body := mounted.GetSharedObjectBody()
 
 	return &ResolvedSpace{
-		Engine:   engine,
-		EngineID: engineID,
+		Engine:   body.GetWorldEngine(),
+		EngineID: body.GetWorldEngineID(),
 		Ref:      soRef,
 	}, cleanup, nil
 }
