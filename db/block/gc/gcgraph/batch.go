@@ -69,14 +69,11 @@ func (g *GCGraph) prepareRefBatch(
 	}
 
 	type ownerState struct {
-		owners  map[string]struct{}
-		hadEdge bool
+		owners map[string]struct{}
 	}
 	owners := make(map[string]ownerState)
-	stagingRemoves := make(map[string]struct{})
 	for _, edge := range existingRemoves {
 		if edge.Subject == block_gc.NodeUnreferenced {
-			stagingRemoves[edge.Object] = struct{}{}
 			continue
 		}
 		if block_gc.IsPermanentRoot(edge.Object) {
@@ -105,16 +102,12 @@ func (g *GCGraph) prepareRefBatch(
 	}
 	for _, edge := range existingRemoves {
 		if state, ok := owners[edge.Object]; ok {
-			state.hadEdge = true
 			delete(state.owners, edge.Subject)
 			owners[edge.Object] = state
 		}
 	}
 	for object, state := range owners {
-		if !state.hadEdge || len(state.owners) != 0 {
-			continue
-		}
-		if _, removingStaging := stagingRemoves[object]; removingStaging {
+		if len(state.owners) != 0 {
 			continue
 		}
 		adds = append(adds, block_gc.RefEdge{
