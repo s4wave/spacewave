@@ -204,8 +204,48 @@ jobs:
             free -h || true
             ulimit -a
           } | tee .tmp/release-wasm-telemetry/preflight.txt
+
+          sampler_pid=
+          stop_sampler() {
+            if [[ -n "${sampler_pid}" ]]; then
+              kill "${sampler_pid}" 2>/dev/null || true
+              wait "${sampler_pid}" 2>/dev/null || true
+            fi
+          }
+          trap stop_sampler EXIT
+
+          (
+            while true; do
+              timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              free -m | awk -v timestamp="${timestamp}" '
+                NR == 2 {
+                  printf "MEMSAMPLE timestamp=%s memory_total_mb=%s memory_available_mb=%s\n",
+                    timestamp, $2, $7
+                }
+                NR == 3 {
+                  printf "MEMSAMPLE timestamp=%s swap_used_mb=%s\n", timestamp, $3
+                }
+              '
+              ps -eo pid=,rss=,comm= --sort=-rss | awk -v timestamp="${timestamp}" '
+                NR <= 3 {
+                  printf "MEMSAMPLE timestamp=%s pid=%s rss_kb=%s command=%s\n",
+                    timestamp, $1, $2, $3
+                }
+              '
+              sleep 2
+            done
+          ) &
+          sampler_pid=$!
+
+          set +e
           /usr/bin/time -v -o .tmp/release-wasm-telemetry/build-time.txt \
             bun run "${{ matrix.build_script }}" 2>&1 | tee .tmp/release-wasm-telemetry/build.log
+          pipeline_status=("${PIPESTATUS[@]}")
+          set -e
+          if (( pipeline_status[0] != 0 )); then
+            exit "${pipeline_status[0]}"
+          fi
+          exit "${pipeline_status[1]}"
 
       - name: Build release-WASM prerender artifact
         shell: bash
