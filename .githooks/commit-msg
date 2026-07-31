@@ -69,11 +69,20 @@ END {
 }
 ' "$msg" || failed=1
 
-# Parse real trailers rather than grepping the message, so a Signed-off-by line
-# quoted inside the prose cannot satisfy the rule. interpret-trailers drops the
-# comment lines and the scissors block on its own. The separator is pinned
-# because trailer.separators is a personal preference and git commit -s writes a
-# colon whatever it says, so honoring it here would reject a signed commit.
+# Two things have to hold, and each one catches what the other misses.
+#
+# The trailer has to sit in the trailer block, so a Signed-off-by line quoted
+# inside the prose cannot satisfy the rule. interpret-trailers drops the comment
+# lines and the scissors block on its own. The separator is pinned because
+# trailer.separators is a personal preference and git commit -s writes a colon
+# whatever it says, so honoring it here would reject a signed commit.
+#
+# The line also has to be written the way .github/workflows/dco.yml demands,
+# which is the exact case-sensitive unfolded form. --parse implies --unfold and
+# canonicalizes what it hands back, so a lowercase or folded sign-off reaches
+# the loop below looking correct and then fails the workflow after a push. That
+# push is the round trip this hook exists to prevent, so the raw message is
+# checked against the workflow's own pattern as well.
 signed_off=0
 trailers=$(git -c trailer.separators=: interpret-trailers --parse "$msg" | grep -i '^Signed-off-by:' || true)
 while IFS= read -r trailer; do
@@ -89,6 +98,11 @@ if [ "$signed_off" -ne 1 ]; then
 	printf 'commit-msg: no Developer Certificate of Origin sign-off\n' >&2
 	printf 'Commit with git commit -s, or amend with git commit --amend --signoff --no-edit.\n' >&2
 	printf 'See CONTRIBUTING.md and https://developercertificate.org.\n' >&2
+	failed=1
+elif ! grep -qE '^Signed-off-by: .+ <.+>$' "$msg"; then
+	printf 'commit-msg: sign-off is not written the way the DCO check reads it\n' >&2
+	printf 'It must be one unfolded line, capitalized exactly: Signed-off-by: Name <email>\n' >&2
+	printf 'Amend with git commit --amend --signoff --no-edit.\n' >&2
 	failed=1
 fi
 
