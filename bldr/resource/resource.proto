@@ -40,6 +40,9 @@ message ResourceClientRequest {
 
 // ResourceClientResponse contains a server-client message for a ResourceClient request.
 message ResourceClientResponse {
+  reserved 3;
+  reserved "client_error";
+
   // Body is the body of the event.
   oneof body {
     // ResourceClientInit contains the initialization message for ResourceClient.
@@ -47,9 +50,6 @@ message ResourceClientResponse {
     ResourceClientInit init = 1;
     // ResourceRefReleased is returned if a resource was released by the server.
     ResourceReleasedResponse resource_released = 2;
-    // ClientError contains the fatal error returned by the call, if any.
-    // If sent, this will be the last message in the rpc stream.
-    string client_error = 3;
   }
 }
 

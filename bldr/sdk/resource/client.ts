@@ -157,7 +157,6 @@ export type ResourceClientErrorCode =
   | 'CLIENT_CANCELLED'
   | 'CLIENT_DISPOSED'
   | 'CONNECTION_FAILED'
-  | 'SERVER_ERROR'
   | 'INVALID_RESOURCE'
 
 /**
@@ -878,19 +877,6 @@ export class Client {
               const resourceId = msg.body.value.resourceId ?? 0
               this.handleServerResourceRelease(resourceId)
               continue
-            }
-
-            // Handle errors
-            if (msg.body?.case === 'clientError') {
-              const error = new ResourceClientError(
-                `Server error: ${msg.body.value}`,
-                'SERVER_ERROR',
-              )
-
-              if (!this.initState) {
-                onError(error)
-              }
-              throw error
             }
           }
         } catch (err) {

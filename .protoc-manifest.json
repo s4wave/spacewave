@@ -348,7 +348,7 @@
       "protoFiles": ["bldr/prototypes/webworker-rpcstream/common/common.proto"]
     },
     "github.com/s4wave/spacewave/bldr/resource": {
-      "hash": "f4de2b07dcd957290cf08428f3e8b8369068b7431d6a6450a88c40a36972856a",
+      "hash": "6ceb85b8b53e24073eae0a273dcf288b861a3ef96b642d486f69f03306f1bc50",
       "generatedFiles": [
         "bldr/resource/resource-rpc-methods.pb.go",
         "bldr/resource/resource.pb.go",
@@ -1547,7 +1547,7 @@
       "protoFiles": ["db/kvtx/fibheap/fibheap.proto"]
     },
     "github.com/s4wave/spacewave/db/kvtx/rpc": {
-      "hash": "3a97152eba43e6e53d3767fd1298b462af96ba75e9d83227293730f6ba160701",
+      "hash": "c2fad52a437b1dec16c7100ea6d3f684460c6f457205b4521260ce8fd7425602",
       "generatedFiles": [
         "db/kvtx/rpc/kvtx.pb.go",
         "db/kvtx/rpc/kvtx.pb.ts",
