@@ -142,16 +142,6 @@ export interface ResourceClientResponse {
         value: ResourceReleasedResponse
         case: 'resourceReleased'
       }
-    | {
-        /**
-         * ClientError contains the fatal error returned by the call, if any.
-         * If sent, this will be the last message in the rpc stream.
-         *
-         * @generated from field: string client_error = 3;
-         */
-        value: string
-        case: 'clientError'
-      }
 }
 
 export const ResourceClientResponse: MessageType<ResourceClientResponse> =
@@ -170,13 +160,6 @@ export const ResourceClientResponse: MessageType<ResourceClientResponse> =
         name: 'resource_released',
         kind: 'message',
         T: () => ResourceReleasedResponse,
-        oneof: 'body',
-      },
-      {
-        no: 3,
-        name: 'client_error',
-        kind: 'scalar',
-        T: ScalarType.STRING,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],

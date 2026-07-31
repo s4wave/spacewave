@@ -78,12 +78,6 @@ func NewClient(ctx context.Context, service resource.SRPCResourceServiceClient) 
 		return nil, pkgerrors.Wrap(err, "receive resource client init")
 	}
 
-	// Handle error response
-	if errMsg, ok := resp.Body.(*resource.ResourceClientResponse_ClientError); ok {
-		clientCancel()
-		return nil, errors.New(errMsg.ClientError)
-	}
-
 	// Handle successful init
 	initMsg, ok := resp.Body.(*resource.ResourceClientResponse_Init)
 	if !ok || initMsg.Init == nil {
@@ -141,9 +135,6 @@ func (c *Client) execute(stream resource.SRPCResourceService_ResourceClientClien
 			if body.ResourceReleased != nil {
 				c.resourceLifetime.releaseFromServer(body.ResourceReleased.ResourceId)
 			}
-		case *resource.ResourceClientResponse_ClientError:
-			// Server sent an error, close the client
-			return
 		}
 	}
 }

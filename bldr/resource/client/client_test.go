@@ -336,6 +336,39 @@ func (m *mockMuxedConn) AcceptStream() (srpc.MuxedStream, error) {
 	return nil, errors.New("unused")
 }
 
+type errorResourceServer struct {
+	*resource_server.ResourceServer
+	err error
+}
+
+func (s *errorResourceServer) ResourceClient(
+	*resource.ResourceClientRequest,
+	resource.SRPCResourceService_ResourceClientStream,
+) error {
+	return s.err
+}
+
+func TestNewClientReturnsResourceClientHandlerError(t *testing.T) {
+	const handlerError = "resource client handler failed"
+
+	serverMux := srpc.NewMux()
+	server := &errorResourceServer{
+		ResourceServer: resource_server.NewResourceServer(nil),
+		err:            errors.New(handlerError),
+	}
+	if err := resource.SRPCRegisterResourceService(serverMux, server); err != nil {
+		t.Fatalf("register resource service: %v", err)
+	}
+
+	service := resource.NewSRPCResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
+	)
+	_, err := NewClient(t.Context(), service)
+	if err == nil || !strings.Contains(err.Error(), handlerError) {
+		t.Fatalf("NewClient error = %v, want %q", err, handlerError)
+	}
+}
+
 func TestResourceRPCHonorsCallerContext(t *testing.T) {
 	resourceRPCStarted := make(chan context.Context, 1)
 	svc := &mockResourceService{

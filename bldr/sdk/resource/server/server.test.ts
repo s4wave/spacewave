@@ -79,7 +79,7 @@ describe('RemoteResourceClient', () => {
   it('pushMessage adds to queue and notifies waiting consumer', async () => {
     const client = new RemoteResourceClient(nextID, 1)
     const msg: ResourceClientResponse = {
-      body: { case: 'clientError', value: 'test error' },
+      body: { case: 'resourceReleased', value: { resourceId: 1 } },
     }
 
     const waitPromise = client.waitForNotify()
@@ -93,8 +93,12 @@ describe('RemoteResourceClient', () => {
 
   it('drainQueue returns and clears all messages', () => {
     const client = new RemoteResourceClient(nextID, 1)
-    client.pushMessage({ body: { case: 'clientError', value: 'a' } })
-    client.pushMessage({ body: { case: 'clientError', value: 'b' } })
+    client.pushMessage({
+      body: { case: 'resourceReleased', value: { resourceId: 1 } },
+    })
+    client.pushMessage({
+      body: { case: 'resourceReleased', value: { resourceId: 1 } },
+    })
 
     const msgs = client.drainQueue()
     expect(msgs).toHaveLength(2)
@@ -110,7 +114,9 @@ describe('RemoteResourceClient', () => {
 
   it('waitForNotify resolves immediately if queue has messages', async () => {
     const client = new RemoteResourceClient(nextID, 1)
-    client.pushMessage({ body: { case: 'clientError', value: 'x' } })
+    client.pushMessage({
+      body: { case: 'resourceReleased', value: { resourceId: 1 } },
+    })
     await client.waitForNotify()
     expect(client.drainQueue()).toHaveLength(1)
   })
@@ -122,7 +128,9 @@ describe('RemoteResourceClient', () => {
       resolved = true
     })
     expect(resolved).toBe(false)
-    client.pushMessage({ body: { case: 'clientError', value: 'y' } })
+    client.pushMessage({
+      body: { case: 'resourceReleased', value: { resourceId: 1 } },
+    })
     await p
     expect(resolved).toBe(true)
   })
