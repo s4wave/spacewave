@@ -82,8 +82,8 @@ github.com/aperturerobotics/ristretto/v2 v2.0.0-20260705010935-8d0c8a34b53e h1:R
 github.com/aperturerobotics/ristretto/v2 v2.0.0-20260705010935-8d0c8a34b53e/go.mod h1:0KsrXtXvnv0EqnzyowllbVJB8yBonswa2lTCK2gGo9E=
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phqiA+X/w4YAT3sP8DyhfP81mo3k6v/RI/t1qGk=
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c/go.mod h1:L9/rUdjzzI9mMWKJcbh7T8LSQ43JKwrxYv4I2i2YsY4=
-github.com/aperturerobotics/starpc v0.50.0 h1:Vg813Ma0m8e1/5cE+eoQaQA4zG+GZKoml3S6RNion2Y=
-github.com/aperturerobotics/starpc v0.50.0/go.mod h1:7xT7cBk+NxS0I/uVHVbvgxwyb2Nh7P1uglRAa6a8Sn4=
+github.com/aperturerobotics/starpc v0.50.1-0.20260731034932-ebdecfee9c3c h1:Ux/qFReYez+9wJgdZKjhQhOQms4mv6tIpJ/SrBRLGyA=
+github.com/aperturerobotics/starpc v0.50.1-0.20260731034932-ebdecfee9c3c/go.mod h1:MQ53YX6Ntb96Uy8LDEQ6QfLtk32oiqI5NRmePm/fLwE=
 github.com/aperturerobotics/util v1.34.10-0.20260730200237-852d339fd031 h1:+59s1fVQ7NKoPHzs03FumIcEWcO7OPFhLrh22Dt8mYY=
 github.com/aperturerobotics/util v1.34.10-0.20260730200237-852d339fd031/go.mod h1:GxjGkYQNEj8xvLFz+T8ifqANtK5cMesOlCxh50htvBI=
 github.com/aperturerobotics/vitess v0.0.0-20260628002426-ab1c68c3a83d h1:Agd8EZ86U0KSNxU+U7FhNKv7Rm9BWVgGeVRxS7aEqf4=
