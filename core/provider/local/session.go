@@ -493,7 +493,7 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	if t.cloudAccountID != "" {
 		relay = t.a.lookupCloudRelayEndpoint(ctx)
 	}
-	sts, created, err := t.a.ensureSessionTransport(ctx, sessionPriv, relay.url, relay.signingEnvPrefix)
+	sts, created, err := t.a.ensureSessionTransportWithoutReplacement(ctx, sessionPriv, relay.url, relay.signingEnvPrefix)
 	if created {
 		defer t.a.stopSessionTransportState(sts)
 	}
