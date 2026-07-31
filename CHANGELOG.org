@@ -1,5 +1,55 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.0
+<2026-07-31 Fri>
+
+Spacewave 0.57.0 makes browser tabs, updates, local file storage, session
+recovery, and large Spaces more reliable. It also fixes Space exports and Drive
+split layouts, clarifies Storage Health, and improves Documentation.
+
+** Features
+- Forge tasks can now retry failed attempts while preserving their session
+  context and inputs.
+
+** Fixes
+- Space exports now download correctly in browser sessions instead of returning
+  a missing-file error, and opening files or exports no longer depends on the
+  Space already being open elsewhere.
+- Dragging a Drive file into a right-side split now creates only the requested
+  pane, without opening extra Drive Quickstarts or creating unintended Spaces.
+- Creating or collapsing a split layout no longer reloads the Space or cancels
+  an upload already in progress.
+- Opening a second Chrome tab no longer gets stuck while connecting, and each
+  browser tab now keeps its own active URL while sharing the Spacewave tab list.
+- Browser file storage now keeps saved data consistent while another tab writes,
+  preventing concurrent browser use from making files or app data appear
+  missing.
+- Account setup Back now returns to the page where setup began instead of
+  reopening the cloud sign-in step.
+- Session recovery and device linking now handle overlapping connection attempts
+  reliably, reducing stalls after sign-in, unlock, or reconnect; a later retry
+  also keeps a completed device link instead of starting over.
+- Live Space views now wake for every saved change instead of sometimes staying
+  stale until another edit.
+
+** Improvements
+- Storage Health now separates browser usage, device storage, and sync activity,
+  warns only after an actual save failure, and refreshes cleanup protection
+  immediately after you request it.
+- Browser updates now tie cached app files to the active release and revalidate
+  them, reducing stale or mixed-version views after an update.
+- Local saves now recover automatically from temporary storage conflicts,
+  reducing failed saves during concurrent activity.
+- Large Spaces are less likely to become unresponsive during storage cleanup,
+  which now saves progress in smaller steps.
+- Documentation now opens in the active split without replacing your layout.
+  Search covers user and self-hoster guides, ranks title matches first, supports
+  keyboard selection, and uses clearer controls in narrow panes.
+
+** Security
+- Device linking now grants access only after both devices confirm the same
+  verification code for that exact link.
+
 * v0.56.1
 <2026-07-18 Sat>
 
