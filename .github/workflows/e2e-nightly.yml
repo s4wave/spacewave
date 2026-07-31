@@ -99,14 +99,13 @@ jobs:
             e2e_goscript: ''
             install_binaryen: false
             install_tinygo: false
-          # Disabled: TinyGo runtime out-of-memory traps as `unreachable`; nightly run 30514076114 is evidence. This arm returns when TinyGo stops trapping.
-          # - compiler: tinygo
-          #   build_script: build:release:web:e2e:tinygo
-          #   smoke_script: test:go:e2e:release-wasm
-          #   e2e_tinygo: true
-          #   e2e_goscript: ''
-          #   install_binaryen: true
-          #   install_tinygo: true
+          - compiler: tinygo
+            build_script: build:release:web:e2e:tinygo
+            smoke_script: test:go:e2e:release-wasm
+            e2e_tinygo: true
+            e2e_goscript: ''
+            install_binaryen: true
+            install_tinygo: true
           - compiler: goscript
             build_script: build:release:web:e2e:goscript
             smoke_script: test:go:e2e:release-wasm:goscript
@@ -118,8 +117,8 @@ jobs:
     env:
       BLDR_WASM_OPT_DIAGNOSTICS_DIR: ${{ github.workspace }}/.tmp/wasm-opt-diagnostics
       BLDR_GO_WASM_OPTIMIZE: false
-      BLDR_TINYGO_PROFILE: ${{ matrix.compiler == 'tinygo' && 'fast' || '' }}
-      BLDR_TINYGO_GC: ${{ matrix.compiler == 'tinygo' && 'leaking' || '' }}
+      BLDR_TINYGO_PROFILE: ${{ matrix.compiler == 'tinygo' && 'optimized' || '' }}
+      BLDR_TINYGO_GC: ${{ matrix.compiler == 'tinygo' && 'precise' || '' }}
       E2E_RELEASE_WASM_BUILD_SCRIPT: ${{ matrix.build_script }}
       E2E_RELEASE_WASM_TINYGO: ${{ matrix.e2e_tinygo }}
       E2E_RELEASE_WASM_GOSCRIPT: ${{ matrix.e2e_goscript }}
@@ -311,8 +310,8 @@ jobs:
     env:
       ENABLE_E2E_RELEASE_WASM: true
       BLDR_GO_WASM_OPTIMIZE: false
-      BLDR_TINYGO_PROFILE: ${{ matrix.compiler == 'tinygo' && 'fast' || '' }}
-      BLDR_TINYGO_GC: ${{ matrix.compiler == 'tinygo' && 'leaking' || '' }}
+      BLDR_TINYGO_PROFILE: ${{ matrix.compiler == 'tinygo' && 'optimized' || '' }}
+      BLDR_TINYGO_GC: ${{ matrix.compiler == 'tinygo' && 'precise' || '' }}
       E2E_RELEASE_WASM_BUILD_SCRIPT: ${{ matrix.build_script }}
       E2E_RELEASE_WASM_TINYGO: ${{ matrix.e2e_tinygo }}
       E2E_RELEASE_WASM_GOSCRIPT: ${{ matrix.e2e_goscript }}
