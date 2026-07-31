@@ -110,6 +110,43 @@ diff --git a/a b/a
 	}
 }
 
+func TestCommitMsgHookRejectsLowercaseSignOff(t *testing.T) {
+	// --parse implies --unfold and canonicalizes the trailer it returns, so a
+	// lowercase sign-off looks correct by the time the trailer loop sees it. The
+	// DCO workflow greps the raw message case-sensitively and rejects it after a
+	// push, which is the round trip this hook exists to spare the author.
+	_, stderr, err := runCommitMsgHook(t, `fix(hook): sign off in lowercase
+
+The body explains why the change is needed.
+
+signed-off-by: Hook Author <hook-author@example.com>
+`)
+	if err == nil {
+		t.Fatal("hook accepted a sign-off the DCO workflow rejects")
+	}
+	if !strings.Contains(stderr, "not written the way the DCO check reads it") {
+		t.Fatalf("syntax rejection did not name its reason: %s", stderr)
+	}
+}
+
+func TestCommitMsgHookRejectsFoldedSignOff(t *testing.T) {
+	// A folded trailer is one logical trailer to git and two lines to the
+	// workflow's line-oriented grep, so it passes here and fails there.
+	_, stderr, err := runCommitMsgHook(t, `fix(hook): fold the sign-off
+
+The body explains why the change is needed.
+
+Signed-off-by:
+  Hook Author <hook-author@example.com>
+`)
+	if err == nil {
+		t.Fatal("hook accepted a folded sign-off the DCO workflow rejects")
+	}
+	if !strings.Contains(stderr, "not written the way the DCO check reads it") {
+		t.Fatalf("syntax rejection did not name its reason: %s", stderr)
+	}
+}
+
 func TestCommitMsgHookRejectsOverWideProse(t *testing.T) {
 	_, stderr, err := runCommitMsgHook(t, `fix(hook): keep rejecting wide prose
 
