@@ -630,8 +630,8 @@ func (c *Controller) BuildManifest(
 		return nil, errors.Errorf("unable to find output path for entrypoint %s in esbuild metafile", entrypointTsRelativePath)
 	}
 
-	// The path in the metafile is relative to distSourceDir
-	compiledEntrypointRelPath, err := filepath.Rel(outDistPath, filepath.Join(distSourcePath, entrypointOutputPath))
+	// The path in the metafile is relative to outDistPath.
+	compiledEntrypointRelPath, err := relativeEntrypointOutputPath(outDistPath, entrypointOutputPath)
 	if err != nil {
 		return nil, err
 	}
@@ -739,6 +739,14 @@ func (c *Controller) BuildManifest(
 	}
 
 	return builderResult, nil
+}
+
+// relativeEntrypointOutputPath converts an esbuild metafile output path to a path relative to outDistPath.
+func relativeEntrypointOutputPath(outDistPath, entrypointOutputPath string) (string, error) {
+	if !filepath.IsAbs(entrypointOutputPath) {
+		entrypointOutputPath = filepath.Join(outDistPath, filepath.FromSlash(entrypointOutputPath))
+	}
+	return filepath.Rel(outDistPath, entrypointOutputPath)
 }
 
 // CreateEntrypointsFromViteOutputs matches Vite outputs to JS modules and creates backend/frontend entrypoints.
