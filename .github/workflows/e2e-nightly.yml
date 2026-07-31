@@ -77,6 +77,15 @@ jobs:
         if: runner.os != 'Linux'
         run: bun run test:go:e2e:electron
 
+      - name: Upload electron runtime diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nightly-electron-diagnostics-${{ matrix.os }}-${{ github.run_id }}
+          path: .bldr/e2e-electron/artifacts
+          include-hidden-files: true
+          if-no-files-found: warn
+
   release-wasm-build:
     name: Nightly E2E (release-wasm build / ${{ matrix.compiler }})
     strategy:
