@@ -110,10 +110,11 @@ func TestEngineAccessWorldStateReferencesAndCallbackBoundary(t *testing.T) {
 	testAccess := func(ref *bucket.ObjectRef) {
 		t.Helper()
 		if err := eng.AccessWorldState(ctx, ref, func(cursor *bucket_lookup.Cursor) error {
-			if !eng.rmtx.TryLock() {
-				t.Fatal("callback ran while Engine.rmtx was held")
+			locked, ok := eng.bcast.TryLock()
+			if !ok {
+				t.Fatal("callback ran while Engine.bcast was held")
 			}
-			eng.rmtx.Unlock()
+			locked.Unlock()
 			if cursor == nil {
 				t.Fatal("callback received nil cursor")
 			}

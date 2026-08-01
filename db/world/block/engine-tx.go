@@ -57,18 +57,23 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		e.Discard()
 		return nil, tx.ErrNotWrite
 	}
-	// ensure tx is not already discarded
-	// also marks the tx as discarded
+	// Claim lifecycle ownership before moving the lease out of Engine state.
 	if e.rel.Swap(true) {
-		// already discarded
 		return nil, tx.ErrDiscarded
 	}
-	// setRootRefLocked rebuilds transactions and discards the active writeTx.
 	// Keep the coordinator lease local so root publication still precedes release.
+	locked := e.engine.bcast.Lock()
+	if e.engine.writeTx != e {
+		locked.Unlock()
+		return nil, tx.ErrDiscarded
+	}
 	commitLease := e.lease
 	e.lease = nil
+	e.engine.committing++
+	defer e.engine.finishCommit()
+	locked.Unlock()
 
-	// commit
+	// Commit block state and refresh its coordinator generation.
 	var nroot *block.BlockRef
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/write-tx-commit")
 	nroot, commitErr := e.writeTx.CommitBlockTransaction(taskCtx)
@@ -82,40 +87,37 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		}
 	}
 
-	// validate the new root
+	// Validate the committed root before publication.
 	if commitErr == nil {
 		_, subtask = trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/validate-root")
 		nroot = e.writeTx.state.GetRootRef()
-		// expect a non-nil ref
+		// A successful block commit must return a root.
 		commitErr = nroot.Validate(false)
 		subtask.End()
 	}
 
+	// Apply the committed root or detach the failed or stale writer.
 	var nextRootRef *bucket.ObjectRef
-	// apply committed changes or rollback
+	var retirement engineRetirement
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/apply-root-update")
-	e.engine.rmtx.Lock()
-	var relWriteTx func()
+	locked = e.engine.bcast.Lock()
+	// Another Engine lifecycle path discarded this writer.
 	if e.engine.writeTx != e {
-		// discarded mid-write
 		if commitErr == nil {
 			commitErr = tx.ErrDiscarded
 		}
 	} else {
+		// Apply the root only after commit and validation succeed.
 		if commitErr == nil {
-			// call commitFn if set
-			nextRootRef = e.engine.root.GetRef().Clone()
-			// do nothing if nothing changed
+			nextRootRef = e.engine.head.root.GetRef().Clone()
+			// Publish only when the transaction changed root data.
 			if !nroot.EqualVT(nextRootRef.RootRef) {
 				nextRootRef.RootRef = nroot
-				// Durable-on-write modes (coordinator, and the default single-writer
-				// path) publish the durable head per commit: validate the committed
-				// root is followable from durable storage, then write the head via
-				// commitFn. The opt-in single-writer deferred path defers both to
-				// Sync, where the block barrier first makes the root's blocks
-				// durable; here it only advances the in-memory root. Validating per
-				// commit in the deferred path would read the raw bucket and miss the
-				// buffered-but-undrained blocks (ErrNotFound).
+				// Durable-on-write modes validate that the committed root is
+				// followable from durable storage, then publish it through commitFn.
+				// Deferred single-writer mode postpones both steps until Sync makes
+				// buffered blocks durable. Per-commit validation in that mode would
+				// read the raw bucket and miss buffered, undrained blocks.
 				deferred := e.engine.deferDurability && e.engine.writeCoordinator == nil
 				if !deferred {
 					_, commitErr = e.engine.writeBlockStore.Sync(ctx)
@@ -133,28 +135,27 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 					}
 				}
 				if commitErr == nil {
-					commitErr = e.engine.setRootRefLocked(ctx, nextRootRef)
+					retirement, commitErr = e.engine.setRootRefLocked(ctx, nextRootRef)
 				}
 			}
 		}
-
-		// clear the owning write tx even when its commit path failed.
-		e.engine.writeTx = nil
-		relWriteTx = e.engine.writeTxRel
-		e.engine.writeTxRel = nil
+		// Detach this writer even when commit or publication failed.
+		if e.engine.writeTx == e {
+			retirement = e.engine.beginRetirementLocked(e.detachLocked())
+		}
 	}
-	e.engine.rmtx.Unlock()
+	locked.Unlock()
 	subtask.End()
+	// Drain transaction users before releasing the serialized writer turn.
+	e.engine.drainRetirement(ctx, retirement)
 
-	if relWriteTx != nil {
-		relWriteTx()
-	}
+	// Publish the coordinator event only after local head publication succeeds.
 	if commitErr == nil && commitLease != nil {
 		publishRoot := nextRootRef
 		if publishRoot == nil {
-			e.engine.rmtx.RLock()
-			publishRoot = e.engine.root.GetRef().Clone()
-			e.engine.rmtx.RUnlock()
+			locked := e.engine.bcast.Lock()
+			publishRoot = e.engine.head.root.GetRef().Clone()
+			locked.Unlock()
 		}
 		event := coord.Event{
 			KeyPrefixChanged: append([]byte(nil), e.engine.writeCoordKeyPrefix...),
@@ -164,6 +165,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		}
 		_, commitErr = commitLease.Publish(ctx, event)
 	}
+	// Always release the coordinator lease after commit cleanup.
 	if commitLease != nil {
 		leaseErr := commitLease.Release(ctx)
 		if commitErr == nil {
@@ -182,34 +184,35 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 // Cannot return an error.
 // Can be called unlimited times.
 func (e *EngineTx) Discard() {
-	if !e.rel.Swap(true) {
-		e.engine.rmtx.Lock()
-		e.discardLocked()
-		e.engine.rmtx.Unlock()
+	if e.rel.Swap(true) {
+		return
 	}
+	// Detach under the Engine lock, then drain after unlocking.
+	locked := e.engine.bcast.Lock()
+	retirement := e.engine.beginRetirementLocked(e.detachLocked())
+	locked.Unlock()
+	e.engine.drainRetirement(context.Background(), retirement)
 }
 
-// discardLocked is called while e.engine.rmtx.Lock is held.
-func (e *EngineTx) discardLocked() {
+// detachLocked removes this transaction from Engine ownership without waiting
+// for its transaction locks or coordinator lease.
+func (e *EngineTx) detachLocked() engineRetirement {
+	// Mark the transaction discarded before removing its Engine registrations.
 	e.rel.Store(true)
-	// e.writeTx will be nil if this is a read-only txn.
-	if e.writeTx != nil {
-		e.writeTx.Discard()
+	delete(e.engine.coordinatorTxs, e)
+	retirement := engineRetirement{
+		readTx:  e.readTx,
+		writeTx: e.writeTx,
+		lease:   e.lease,
 	}
-	if e.readTx != nil {
-		e.readTx.Discard()
-		e.readTx = nil
-	}
-	if e.lease != nil {
-		_ = e.lease.Release(context.Background())
-		e.lease = nil
-	}
-	// check if the engine writeTx is this one.
+	e.lease = nil
+	// Clear Engine writer ownership without releasing its serialized turn here.
 	if e.engine.writeTx == e {
 		e.engine.writeTx = nil
-		e.engine.writeTxRel()
+		retirement.writeTxRel = e.engine.writeTxRel
 		e.engine.writeTxRel = nil
 	}
+	return retirement
 }
 
 // GetReadOnly returns if the state is read-only.
