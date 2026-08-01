@@ -542,7 +542,8 @@ func logicalSizeForRef(ctx context.Context, ws world.WorldState, root *bucket.Ob
 		return 0, false
 	}
 	var total uint64
-	err := ws.AccessWorldState(ctx, root, func(cursor *bucket_lookup.Cursor) error {
+	err := ws.AccessWorldState(ctx, root, func(access *world.WorldAccess) error {
+		cursor := access.Cursor()
 		return bucket_lookup.WalkObjectBlocks(ctx, bucket_lookup.NewWalkObjectBlocksWithRef(root.GetRootRef(), nil), func(entry *bucket_lookup.WalkObjectBlocksEntry) (bool, error) {
 			if entry == nil {
 				return true, nil
@@ -568,7 +569,8 @@ func logicalSizeForRef(ctx context.Context, ws world.WorldState, root *bucket.Ob
 }
 func owningBlockStoreID(ctx context.Context, ws world.WorldState, objects map[string]*ObjectDescriptor, label string) (string, error) {
 	var ownerID string
-	if err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+	if err := ws.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		cursor := access.Cursor()
 		if cursor != nil && cursor.GetRef() != nil {
 			ownerID = cursor.GetRef().GetBucketId()
 		}

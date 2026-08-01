@@ -49,20 +49,21 @@ func (e *engineWorldState) WaitSeqno(ctx context.Context, value uint64) (uint64,
 	return e.e.WaitSeqno(ctx, value)
 }
 
-// BuildStorageCursor builds a cursor to the world storage with an empty ref.
-// The cursor should be released independently of the WorldState.
-// Be sure to call Release on the cursor when done.
+// BuildStorageCursor builds a raw cursor to the world storage with an empty ref.
 func (e *engineWorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
 	return e.e.BuildStorageCursor(ctx)
 }
 
-// AccessWorldState builds a bucket lookup cursor with an optional ref.
-// If the ref is empty, returns empty cursor in the same bucket + volume as the world.
-// The lookup cursor will be released after cb returns.
+// BuildOwnedLookupCursor builds an owned cursor at ref.
+func (e *engineWorldState) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*OwnedLookupCursor, error) {
+	return e.e.BuildOwnedLookupCursor(ctx, ref)
+}
+
+// AccessWorldState builds a borrowed access value with an optional ref.
 func (e *engineWorldState) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*WorldAccess) error,
 ) error {
 	return e.e.AccessWorldState(ctx, ref, cb)
 }

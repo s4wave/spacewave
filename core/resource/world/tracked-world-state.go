@@ -233,7 +233,11 @@ func (t *TrackedWorldState) BuildStorageCursor(ctx context.Context) (*bucket_loo
 	return t.ws.BuildStorageCursor(ctx)
 }
 
-func (t *TrackedWorldState) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error {
+func (t *TrackedWorldState) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*world.OwnedLookupCursor, error) {
+	return t.ws.BuildOwnedLookupCursor(ctx, ref)
+}
+
+func (t *TrackedWorldState) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*world.WorldAccess) error) error {
 	return t.ws.AccessWorldState(ctx, ref, cb)
 }
 

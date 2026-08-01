@@ -31,10 +31,12 @@ func newEngineTx(e *Engine, writeTx *Tx) *EngineTx {
 }
 
 // Fork forks the current world state into a completely separate world state.
-//
-// Creates a new block transaction.
 func (e *EngineTx) Fork(ctx context.Context) (world.WorldState, error) {
-	return e.engine.ForkBlockTransaction(ctx, true)
+	state := e.worldState()
+	if state == nil {
+		return nil, tx.ErrDiscarded
+	}
+	return state.Fork(ctx)
 }
 
 // Commit commits the transaction to storage.

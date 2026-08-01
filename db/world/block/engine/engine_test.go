@@ -125,7 +125,8 @@ func TestWorldEngineController(t *testing.T) {
 	}
 	le.Info("world engine test suite passed")
 
-	err = eng.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+	err = eng.AccessWorldState(ctx, nil, func(bls *world.WorldAccess) error {
+
 		_, bcs := bls.BuildTransaction(nil)
 		wi, err := bcs.Unmarshal(ctx, world_block.NewWorldBlock)
 		if err != nil {
@@ -589,7 +590,8 @@ func TestWorldEngineController_DisableChangelog(t *testing.T) {
 	}
 	le.Info("world engine test suite passed")
 
-	err = eng.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+	err = eng.AccessWorldState(ctx, nil, func(bls *world.WorldAccess) error {
+
 		_, bcs := bls.BuildTransaction(nil)
 		wi, err := bcs.Unmarshal(ctx, world_block.NewWorldBlock)
 		if err != nil {
@@ -756,8 +758,8 @@ func TestWorldEngineWatchReload(t *testing.T) {
 		}
 		defer worldEngRef.Release()
 
-		return worldEng.AccessWorldState(ctx, nil, func(rootBls *bucket_lookup.Cursor) error {
-			worldObjRefFirstWrite = rootBls.GetRef()
+		return worldEng.AccessWorldState(ctx, nil, func(rootBls *world.WorldAccess) error {
+			worldObjRefFirstWrite = rootBls.Cursor().GetRef()
 			return nil
 		})
 	}(); err != nil {

@@ -37,7 +37,8 @@ func PackManifestBundle(
 		if err := ValidateCleanObjectRef("manifest_pack_root", rootRef); err != nil {
 			return err
 		}
-		return ws.AccessWorldState(ctx, rootRef, func(bls *bucket_lookup.Cursor) error {
+		return ws.AccessWorldState(ctx, rootRef, func(access *world.WorldAccess) error {
+			bls := access.Cursor()
 			readXfrm := bls.GetTransformer()
 			if readXfrm == nil {
 				readXfrm = block_transform.NewTransformerWithSteps(nil)

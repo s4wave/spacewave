@@ -120,13 +120,18 @@ func (w *WorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cur
 	return w.world.BuildStorageCursor(ctx)
 }
 
+// BuildOwnedLookupCursor builds an owned cursor at ref.
+func (w *WorldState) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*world.OwnedLookupCursor, error) {
+	return w.world.BuildOwnedLookupCursor(ctx, ref)
+}
+
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
 // If the ref is empty, returns empty cursor in the same bucket + volume as the world.
 // The lookup cursor will be released after cb returns.
 func (w *WorldState) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*world.WorldAccess) error,
 ) error {
 	return w.world.AccessWorldState(ctx, ref, cb)
 }

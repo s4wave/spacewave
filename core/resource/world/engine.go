@@ -8,7 +8,6 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_bucket_lookup "github.com/s4wave/spacewave/core/resource/bucket/lookup"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/sirupsen/logrus"
@@ -198,17 +197,14 @@ func (r *EngineResource) AccessWorldState(ctx context.Context, req *s4wave_world
 		return nil, err
 	}
 
-	var cursorResource *resource_bucket_lookup.BucketLookupCursorResource
-	err = r.engine.AccessWorldState(ctx, req.GetRef(), func(c *bucket_lookup.Cursor) error {
-		cursorResource = resource_bucket_lookup.NewBucketLookupCursorResource(r.le, r.b, c)
-		return nil
-	})
+	owned, err := r.engine.BuildOwnedLookupCursor(ctx, req.GetRef())
 	if err != nil {
 		return nil, err
 	}
-
-	id, err := resourceCtx.AddResource(cursorResource.GetMux(), func() {})
+	cursorResource := resource_bucket_lookup.NewBucketLookupCursorResource(r.le, r.b, owned.Cursor())
+	id, err := resourceCtx.AddResource(cursorResource.GetMux(), owned.Release)
 	if err != nil {
+		owned.Release()
 		return nil, err
 	}
 
@@ -228,9 +224,9 @@ func (r *EngineResource) loadWorldRootSnapshot(ctx context.Context) (*s4wave_wor
 	}
 	var rootRef *bucket.ObjectRef
 	var storageVolumeID string
-	err = wtx.AccessWorldState(ctx, nil, func(c *bucket_lookup.Cursor) error {
-		rootRef = c.GetRefWithOpArgs()
-		storageVolumeID = c.GetOpArgs().GetVolumeId()
+	err = wtx.AccessWorldState(ctx, nil, func(c *world.WorldAccess) error {
+		rootRef = c.Cursor().GetRefWithOpArgs()
+		storageVolumeID = c.Cursor().GetOpArgs().GetVolumeId()
 		return nil
 	})
 	if err != nil {

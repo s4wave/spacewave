@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -18,14 +17,16 @@ type ObjectState interface {
 	// Returns the revision number.
 	GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error)
 
-	// AccessWorldState builds a bucket lookup cursor with an optional ref.
-	// If the ref is empty, will default to the object RootRef.
-	// If the ref Bucket ID is empty, uses the same bucket + volume as the world.
-	// The lookup cursor will be released after cb returns.
+	// BuildOwnedLookupCursor builds an owned cursor at ref.
+	// If ref is empty, it defaults to the object root.
+	BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*OwnedLookupCursor, error)
+
+	// AccessWorldState builds a borrowed access value at ref.
+	// If ref is empty, it defaults to the object root.
 	AccessWorldState(
 		ctx context.Context,
 		ref *bucket.ObjectRef,
-		cb func(*bucket_lookup.Cursor) error,
+		cb func(*WorldAccess) error,
 	) error
 
 	// SetRootRef changes the root reference of the object.

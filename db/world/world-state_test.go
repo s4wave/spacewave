@@ -530,10 +530,14 @@ func (e *staleRetryEngine) BuildStorageCursor(ctx context.Context) (*bucket_look
 	panic("unexpected BuildStorageCursor call")
 }
 
+func (e *staleRetryEngine) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*world.OwnedLookupCursor, error) {
+	panic("unexpected BuildOwnedLookupCursor call")
+}
+
 func (e *staleRetryEngine) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*world.WorldAccess) error,
 ) error {
 	panic("unexpected AccessWorldState call")
 }
@@ -564,10 +568,14 @@ func (txs *staleRetryTx) BuildStorageCursor(ctx context.Context) (*bucket_lookup
 	panic("unexpected BuildStorageCursor call")
 }
 
+func (txs *staleRetryTx) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*world.OwnedLookupCursor, error) {
+	panic("unexpected BuildOwnedLookupCursor call")
+}
+
 func (txs *staleRetryTx) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*world.WorldAccess) error,
 ) error {
 	panic("unexpected AccessWorldState call")
 }
@@ -668,18 +676,22 @@ type staleRetryObject struct {
 	rootRef *bucket.ObjectRef
 }
 
+func (obj *staleRetryObject) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error) {
+	return obj.rootRef, 1, nil
+}
+
 func (obj *staleRetryObject) GetKey() string {
 	return obj.key
 }
 
-func (obj *staleRetryObject) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64, error) {
-	return obj.rootRef, 1, nil
+func (obj *staleRetryObject) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*world.OwnedLookupCursor, error) {
+	panic("unexpected BuildOwnedLookupCursor call")
 }
 
 func (obj *staleRetryObject) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*world.WorldAccess) error,
 ) error {
 	panic("unexpected object AccessWorldState call")
 }

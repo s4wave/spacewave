@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/block"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/world"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
@@ -25,7 +25,8 @@ func FetchConfigInput(
 		return nil, err
 	}
 	var confInput *ConfigInput
-	err = handle.AccessStorage(ctx, objRef, func(bls *bucket_lookup.Cursor) error {
+	err = handle.AccessStorage(ctx, objRef, func(access *world.WorldAccess) error {
+		bls := access.Cursor()
 		_, bcs := bls.BuildTransaction(nil)
 		var berr error
 		confInput, berr = UnmarshalConfigInput(ctx, bcs)

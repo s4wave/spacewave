@@ -8,7 +8,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	sql_mysql "github.com/s4wave/spacewave/db/sql/mysql"
 	sql_rpc "github.com/s4wave/spacewave/db/sql/rpc"
 	"github.com/s4wave/spacewave/db/world"
@@ -149,8 +148,8 @@ func (o *SqlSetRootOp) rebaseRoot(
 	currentRoot *bucket.ObjectRef,
 ) (*bucket.ObjectRef, error) {
 	var nextRoot *bucket.ObjectRef
-	err := os.AccessWorldState(ctx, currentRoot, func(root *bucket_lookup.Cursor) error {
-		rootCursor := root.Clone()
+	err := os.AccessWorldState(ctx, currentRoot, func(access *world.WorldAccess) error {
+		rootCursor := access.Cursor().Clone()
 		defer rootCursor.Release()
 		db := sql_mysql.NewMysql(rootCursor, func(root *bucket.ObjectRef) error {
 			nextRoot = root.Clone()

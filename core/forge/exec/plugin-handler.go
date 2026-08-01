@@ -130,7 +130,8 @@ func (h *pluginExecHandler) importOutputFiles(
 	files []*PluginExecOutputFile,
 ) (forge_value.ValueSlice, error) {
 	var outputs forge_value.ValueSlice
-	err := h.handle.AccessStorage(ctx, nil, func(cs *bucket_lookup.Cursor) error {
+	err := h.handle.AccessStorage(ctx, nil, func(access *world.WorldAccess) error {
+		cs := access.Cursor()
 		outputHandle, err := initPluginOutputMount(ctx, cs)
 		if err != nil {
 			return err

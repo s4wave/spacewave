@@ -11,13 +11,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	git_block "github.com/s4wave/spacewave/db/git/block"
 	"github.com/s4wave/spacewave/db/world"
 )
 
 type worldStorageAccessor interface {
-	AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error
+	AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*world.WorldAccess) error) error
 }
 
 // CloneGitRepoToRef clones a remote Git repository and returns its completed repo ref.

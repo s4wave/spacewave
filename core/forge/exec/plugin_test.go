@@ -20,6 +20,7 @@ import (
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	unixfs_block_fs "github.com/s4wave/spacewave/db/unixfs/block/fs"
+	"github.com/s4wave/spacewave/db/world"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/s4wave/spacewave/net/peer"
@@ -132,17 +133,12 @@ func (h *pluginExecHandleStub) GetTimestamp() *timestamp.Timestamp {
 func (h *pluginExecHandleStub) AccessStorage(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*world.WorldAccess) error,
 ) error {
 	if h.cursor == nil {
 		return nil
 	}
-	if ref != nil && !ref.GetRootRef().GetEmpty() {
-		cs := h.cursor.Clone()
-		cs.SetRootRef(ref.GetRootRef())
-		return cb(cs)
-	}
-	return cb(h.cursor)
+	return world.NewAccessWorldStateFunc(h.cursor)(ctx, ref, cb)
 }
 
 func (h *pluginExecHandleStub) SetOutputs(

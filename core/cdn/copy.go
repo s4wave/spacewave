@@ -164,8 +164,10 @@ func ensureCopiedWorldObject(
 
 	var dstRef *bucket.ObjectRef
 	var stats bucket_lookup.ObjectCopyStats
-	err = dst.AccessWorldState(ctx, nil, func(dstCursor *bucket_lookup.Cursor) error {
-		return srcObj.AccessWorldState(ctx, srcRef, func(srcCursor *bucket_lookup.Cursor) error {
+	err = dst.AccessWorldState(ctx, nil, func(dstAccess *world.WorldAccess) error {
+		dstCursor := dstAccess.Cursor()
+		return srcObj.AccessWorldState(ctx, srcRef, func(srcAccess *world.WorldAccess) error {
+			srcCursor := srcAccess.Cursor()
 			var copyErr error
 			dstRef, stats, copyErr = bucket_lookup.CopyObjectToBucketWithProgress(
 				ctx,

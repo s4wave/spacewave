@@ -5,12 +5,14 @@ import (
 	"database/sql/driver"
 	"errors"
 	"io"
+	"sync/atomic"
 	"testing"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	bucket_mock "github.com/s4wave/spacewave/db/bucket/mock"
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
 	sql_mysql "github.com/s4wave/spacewave/db/sql/mysql"
 	sql_rpc "github.com/s4wave/spacewave/db/sql/rpc"
@@ -280,13 +282,67 @@ func openWorldBackedSql(
 	if err != nil {
 		t.Fatalf("MustGetObject(%s): %v", objectKey, err)
 	}
-	var store *s4wave_sql_world.WorldBackedSql
-	if err := obj.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
-		var err error
-		store, err = s4wave_sql_world.NewWorldBackedSql(ctx, root.Clone(), ws, objectKey)
-		return err
-	}); err != nil {
-		t.Fatalf("AccessWorldState(%s): %v", objectKey, err)
+	owned, err := obj.BuildOwnedLookupCursor(ctx, nil)
+	if err != nil {
+		t.Fatalf("BuildOwnedLookupCursor(%s): %v", objectKey, err)
+	}
+	store, err := s4wave_sql_world.NewWorldBackedSql(ctx, owned, ws, objectKey)
+	if err != nil {
+		t.Fatalf("NewWorldBackedSql(%s): %v", objectKey, err)
 	}
 	return store, store.Close
+}
+
+func newOwnedSqlTestCursor(t *testing.T, ctx context.Context, releases *atomic.Int32) *world.OwnedLookupCursor {
+	t.Helper()
+	bkt := bucket_mock.NewMockBucket("sql-owner", nil)
+	cursor := bucket_lookup.NewCursorWithRelease(
+		ctx,
+		nil,
+		nil,
+		nil,
+		bkt,
+		nil,
+		&bucket.ObjectRef{BucketId: "sql-owner"},
+		&bucket.BucketOpArgs{BucketId: "sql-owner"},
+		nil,
+		func() { releases.Add(1) },
+	)
+	storage := world.NewCursorWorldStorage(func(context.Context) (*bucket_lookup.Cursor, error) {
+		return cursor, nil
+	})
+	owned, err := storage.BuildOwnedLookupCursor(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return owned
+}
+
+func TestWorldBackedSqlOwnsCursorOnFailureAndClose(t *testing.T) {
+	ctx := context.Background()
+	var failureReleases atomic.Int32
+	failedOwned := newOwnedSqlTestCursor(t, ctx, &failureReleases)
+	if _, err := s4wave_sql_world.NewWorldBackedSql(ctx, failedOwned, nil, "sql/failure"); err == nil {
+		t.Fatal("expected missing WorldState error")
+	}
+	if failureReleases.Load() != 1 {
+		t.Fatalf("constructor failure releases = %d, want 1", failureReleases.Load())
+	}
+
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	var closeReleases atomic.Int32
+	owned := newOwnedSqlTestCursor(t, ctx, &closeReleases)
+	store, err := s4wave_sql_world.NewWorldBackedSql(ctx, owned, tb.WorldState, "sql/close")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.Close()
+	store.Close()
+	if closeReleases.Load() != 1 {
+		t.Fatalf("close releases = %d, want 1", closeReleases.Load())
+	}
 }

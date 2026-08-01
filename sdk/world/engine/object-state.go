@@ -5,7 +5,6 @@ import (
 
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
@@ -64,8 +63,17 @@ func (os *SDKObjectState) SetRootRef(ctx context.Context, rootRef *bucket.Object
 	return resp.Rev, nil
 }
 
+// BuildOwnedLookupCursor builds an owned cursor at ref.
+func (os *SDKObjectState) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*world.OwnedLookupCursor, error) {
+	resp, err := os.service.AccessWorldState(ctx, &s4wave_world.AccessWorldStateRequest{Ref: ref})
+	if err != nil {
+		return nil, err
+	}
+	return buildOwnedSDKBucketLookupCursor(ctx, os.client, resp.GetResourceId())
+}
+
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
-func (os *SDKObjectState) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error {
+func (os *SDKObjectState) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*world.WorldAccess) error) error {
 	resp, err := os.service.AccessWorldState(ctx, &s4wave_world.AccessWorldStateRequest{Ref: ref})
 	if err != nil {
 		return err

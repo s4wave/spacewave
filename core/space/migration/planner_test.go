@@ -9,7 +9,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
@@ -231,7 +230,8 @@ func TestPlannerRemapsDescendantClosureKeys(t *testing.T) {
 func setObject(t *testing.T, ctx context.Context, ws world.WorldState, key, typeID string) {
 	t.Helper()
 	var root *bucket.ObjectRef
-	err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+	err := ws.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		cursor := access.Cursor()
 		root = cursor.GetRef()
 		tx, blocks := cursor.BuildTransactionAtRef(nil, nil)
 		switch typeID {
@@ -260,7 +260,8 @@ func setObject(t *testing.T, ctx context.Context, ws world.WorldState, key, type
 func setObjectBlock(t *testing.T, ctx context.Context, ws world.WorldState, key, typeID string, payload block.Block) {
 	t.Helper()
 	var root *bucket.ObjectRef
-	err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+	err := ws.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		cursor := access.Cursor()
 		root = cursor.GetRef()
 		tx, blocks := cursor.BuildTransactionAtRef(nil, nil)
 		blocks.SetBlock(payload, true)

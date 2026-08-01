@@ -99,13 +99,22 @@ func (e *RefCountEngine) BuildStorageCursor(ctx context.Context) (*bucket_lookup
 	return bls, nil
 }
 
-// AccessWorldState builds a bucket lookup cursor with an optional ref.
-// If the ref Bucket ID is empty, uses the same bucket + volume as the world.
-// The lookup cursor will be released after cb returns.
+// BuildOwnedLookupCursor builds an owned cursor at ref.
+func (e *RefCountEngine) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*OwnedLookupCursor, error) {
+	var owned *OwnedLookupCursor
+	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
+		var err error
+		owned, err = (*val).BuildOwnedLookupCursor(ctx, ref)
+		return err
+	})
+	return owned, err
+}
+
+// AccessWorldState builds a borrowed access value with an optional ref.
 func (e *RefCountEngine) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*WorldAccess) error,
 ) error {
 	return e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
 		return (*val).AccessWorldState(ctx, ref, cb)

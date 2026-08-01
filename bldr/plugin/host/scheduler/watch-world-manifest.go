@@ -12,7 +12,6 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
 	world_control "github.com/s4wave/spacewave/db/world/control"
@@ -160,9 +159,9 @@ func (t *pluginInstance) processManifestWorldStateCore(
 		ctx,
 		// access the root of the world state
 		nil,
-		func(bls *bucket_lookup.Cursor) error {
+		func(bls *world.WorldAccess) error {
 			// get the bucket id of the world state
-			worldBucketID := bls.GetOpArgs().GetBucketId()
+			worldBucketID := bls.Cursor().GetOpArgs().GetBucketId()
 			trace.Log(ctx, "world-bucket-id", worldBucketID)
 
 			// Select an execute manifest that is local or backed by an

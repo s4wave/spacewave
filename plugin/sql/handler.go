@@ -11,7 +11,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/blocktype"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	s4wave_sql "github.com/s4wave/spacewave/db/sql"
 	sql_mysql "github.com/s4wave/spacewave/db/sql/mysql"
 	"github.com/s4wave/spacewave/db/world"
@@ -326,7 +325,8 @@ func (h *SQLHandler) seedSQLDatabase(ctx context.Context, ws world.WorldState) e
 	}
 
 	var committedRoot *bucket.ObjectRef
-	if err := obj.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
+	if err := obj.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		root := access.Cursor()
 		sqlRoot := root.Clone()
 		defer sqlRoot.Release()
 		store := sql_mysql.NewMysql(sqlRoot, func(next *bucket.ObjectRef) error {

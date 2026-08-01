@@ -1744,8 +1744,8 @@ func TestSetManifestBucketRelocationDoesNotBumpLinkedRev(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	var worldBucketID string
-	if err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
-		worldBucketID = cursor.GetOpArgs().GetBucketId()
+	if err := ws.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		worldBucketID = access.Cursor().GetOpArgs().GetBucketId()
 		return nil
 	}); err != nil {
 		t.Fatal(err.Error())
@@ -1891,8 +1891,8 @@ func TestSetManifestUpgradesExternalRefToIdentityEqualLocalWithoutBump(t *testin
 		t.Fatal(err.Error())
 	}
 	var worldBucketID string
-	if err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
-		worldBucketID = cursor.GetOpArgs().GetBucketId()
+	if err := ws.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		worldBucketID = access.Cursor().GetOpArgs().GetBucketId()
 		return nil
 	}); err != nil {
 		t.Fatal(err.Error())

@@ -5,7 +5,6 @@ import (
 
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -81,21 +80,20 @@ func (os *ObjectState) SetRootRef(ctx context.Context, rootRef *bucket.ObjectRef
 	return resp.Rev, nil
 }
 
-// AccessWorldState builds a bucket lookup cursor with an optional ref.
-// If the ref is empty, will default to the object RootRef.
-// If the ref Bucket ID is empty, uses the same bucket + volume as the world.
-// The lookup cursor will be released after cb returns.
-func (os *ObjectState) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error {
+// BuildOwnedLookupCursor is unavailable for the remote object adapter.
+func (os *ObjectState) BuildOwnedLookupCursor(context.Context, *bucket.ObjectRef) (*world.OwnedLookupCursor, error) {
+	return nil, world.ErrWorldStorageUnavailable
+}
+
+// AccessWorldState builds a borrowed access value with an optional ref.
+func (os *ObjectState) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*world.WorldAccess) error) error {
 	resp, err := os.service.AccessWorldState(ctx, &AccessWorldStateRequest{Ref: ref})
 	if err != nil {
 		return err
 	}
 
 	cursorRef := os.client.CreateResourceReference(resp.ResourceId)
-	defer cursorRef.Release()
-
-	// TODO: Need to create a proper bucket lookup cursor wrapper
-	// For now, return an error indicating this is not yet implemented
+	cursorRef.Release()
 	return nil
 }
 

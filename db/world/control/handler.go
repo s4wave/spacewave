@@ -5,7 +5,6 @@ import (
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
@@ -31,7 +30,7 @@ func NewWaitForStateHandler(
 		if obj == nil {
 			return cb(ctx, ws, nil, nil, rev)
 		}
-		berr = ws.AccessWorldState(ctx, rootRef, func(bls *bucket_lookup.Cursor) error {
+		berr = ws.AccessWorldState(ctx, rootRef, func(bls *world.WorldAccess) error {
 			_, bcs := bls.BuildTransaction(nil)
 			var err error
 			waitForChanges, err = cb(ctx, ws, obj, bcs, rev)

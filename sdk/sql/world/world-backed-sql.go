@@ -7,7 +7,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
 	sql_mysql "github.com/s4wave/spacewave/db/sql/mysql"
 	"github.com/s4wave/spacewave/db/world"
@@ -15,14 +14,12 @@ import (
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 )
 
-type worldCursor = *bucket_lookup.Cursor
-
 // WorldBackedSql commits SQL roots through world operations.
 type WorldBackedSql struct {
 	inner    *sql_mysql.Mysql
 	ws       world.WorldState
 	key      string
-	root     worldCursor
+	root     *world.OwnedLookupCursor
 	mtx      sync.Mutex
 	writeMtx sync.Mutex
 	tx       *worldBackedSqlTx
@@ -31,17 +28,24 @@ type WorldBackedSql struct {
 // NewWorldBackedSql opens a world-backed SQL database.
 func NewWorldBackedSql(
 	_ context.Context,
-	root worldCursor,
+	root *world.OwnedLookupCursor,
 	ws world.WorldState,
 	objectKey string,
 ) (*WorldBackedSql, error) {
 	if ws == nil {
+		if root != nil {
+			root.Release()
+		}
 		return nil, objecttype.ErrWorldStateRequired
 	}
-	if root == nil {
+	if root == nil || root.Cursor() == nil {
+		if root != nil {
+			root.Release()
+		}
 		return nil, errors.New("sql/db: root cursor is required")
 	}
 	if objectKey == "" {
+		root.Release()
 		return nil, world.ErrEmptyObjectKey
 	}
 	st := &WorldBackedSql{
@@ -49,7 +53,7 @@ func NewWorldBackedSql(
 		key:  objectKey,
 		root: root,
 	}
-	st.inner = sql_mysql.NewMysql(root, st.captureCommittedRoot)
+	st.inner = sql_mysql.NewMysql(root.Cursor(), st.captureCommittedRoot)
 	return st, nil
 }
 
@@ -59,7 +63,6 @@ func (s *WorldBackedSql) Close() {
 		return
 	}
 	s.root.Release()
-	s.root = nil
 }
 
 // NewSqlTransaction opens a SQL transaction.

@@ -105,7 +105,8 @@ func BundleManifestsKvfile(
 	// This optimizes the order of the values in the file to the order they will be accessed.
 	// This means that grabbing a 1MB chunk of the file is more likely to have related data.
 	// This is a significant optimization over key-sorted-order values.
-	return blkEng.AccessWorldState(ctx, nextRootRef, func(bls *bucket_lookup.Cursor) error {
+	return blkEng.AccessWorldState(ctx, nextRootRef, func(access *world.WorldAccess) error {
+		bls := access.Cursor()
 		_, bcs := bls.BuildTransaction(nil)
 		worldRoot, err := world_block.UnmarshalWorld(ctx, bcs)
 		if err != nil {

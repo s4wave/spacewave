@@ -257,13 +257,16 @@ func (e *soEngine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Curso
 	return e.bengine.BuildStorageCursor(ctx)
 }
 
-// AccessWorldState builds a bucket lookup cursor with an optional ref.
-// If the ref is empty, returns a cursor pointing to the root world state.
-// The lookup cursor will be released after cb returns.
+// BuildOwnedLookupCursor builds an owned cursor at ref.
+func (e *soEngine) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*world.OwnedLookupCursor, error) {
+	return e.bengine.BuildOwnedLookupCursor(ctx, ref)
+}
+
+// AccessWorldState builds a borrowed access value with an optional ref.
 func (e *soEngine) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*world.WorldAccess) error,
 ) error {
 	return e.bengine.AccessWorldState(ctx, ref, cb)
 }

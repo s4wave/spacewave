@@ -6,7 +6,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/world"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -42,7 +42,7 @@ type ExecControllerHandle interface {
 	AccessStorage(
 		ctx context.Context,
 		ref *bucket.ObjectRef,
-		cb func(*bucket_lookup.Cursor) error,
+		cb func(*world.WorldAccess) error,
 	) error
 	// SetOutputs changes the outputs according to the given ValueSlice.
 	// Note: the slice contents will be copied before the call returns.

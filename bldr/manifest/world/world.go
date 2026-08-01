@@ -213,8 +213,8 @@ func CanonicalizeManifestObjectRef(
 	if access == nil {
 		return nil, errors.New("manifest object ref transform config requires world access")
 	}
-	err := access(ctx, ref, func(bls *bucket_lookup.Cursor) error {
-		out.TransformConf = bls.GetTransformConf().Clone()
+	err := access(ctx, ref, func(bls *world.WorldAccess) error {
+		out.TransformConf = bls.Cursor().GetTransformConf().Clone()
 		out.TransformConfRef = nil
 		return nil
 	})
@@ -269,8 +269,8 @@ func SetManifest(
 		if !currRootRef.EqualVT(rootRef) {
 			if ManifestObjectRefsSameExecutable(currRootRef, rootRef) {
 				var worldBucketID string
-				err = ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
-					worldBucketID = bls.GetOpArgs().GetBucketId()
+				err = ws.AccessWorldState(ctx, nil, func(bls *world.WorldAccess) error {
+					worldBucketID = bls.Cursor().GetOpArgs().GetBucketId()
 					return nil
 				})
 				if err != nil {

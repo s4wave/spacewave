@@ -89,8 +89,17 @@ func (ws *SDKWorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup
 	return cursor, nil
 }
 
+// BuildOwnedLookupCursor builds an owned cursor at ref.
+func (ws *SDKWorldState) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*world.OwnedLookupCursor, error) {
+	resp, err := ws.service.AccessWorldState(ctx, &s4wave_world.AccessWorldStateRequest{Ref: ref})
+	if err != nil {
+		return nil, err
+	}
+	return buildOwnedSDKBucketLookupCursor(ctx, ws.client, resp.GetResourceId())
+}
+
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
-func (ws *SDKWorldState) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error {
+func (ws *SDKWorldState) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*world.WorldAccess) error) error {
 	resp, err := ws.service.AccessWorldState(ctx, &s4wave_world.AccessWorldStateRequest{Ref: ref})
 	if err != nil {
 		return err

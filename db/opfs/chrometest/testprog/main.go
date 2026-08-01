@@ -3595,8 +3595,10 @@ func runCopyWalkWrapperCopy(
 	maxConcurrency int,
 	label string,
 ) error {
-	return ws.AccessWorldState(ctx, nil, func(dest *bucket_lookup.Cursor) error {
-		return ws.AccessWorldState(ctx, srcObjRef, func(src *bucket_lookup.Cursor) error {
+	return ws.AccessWorldState(ctx, nil, func(destAccess *world.WorldAccess) error {
+		dest := destAccess.Cursor()
+		return ws.AccessWorldState(ctx, srcObjRef, func(srcAccess *world.WorldAccess) error {
+			src := srcAccess.Cursor()
 			le.Infof(
 				"copy-walk-wrapper %s: copying DAG bucket %s -> %s at concurrency %d",
 				label,

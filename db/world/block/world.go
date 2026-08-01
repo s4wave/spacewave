@@ -243,10 +243,11 @@ func (t *WorldState) WaitSeqno(ctx context.Context, value uint64) (uint64, error
 	}
 }
 
-// BuildStorageCursor builds a cursor to the world storage with an empty ref.
-// The cursor should be released independently of the WorldState.
-// Be sure to call Release on the cursor when done.
+// BuildStorageCursor builds a raw cursor to the world storage with an empty ref.
 func (t *WorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	if t.discarded.Load() {
+		return nil, tx.ErrDiscarded
+	}
 	storage := t.storage
 	if storage == nil {
 		return nil, world.ErrWorldStorageUnavailable
@@ -254,14 +255,27 @@ func (t *WorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cur
 	return storage.BuildStorageCursor(ctx)
 }
 
-// AccessWorldState builds a bucket lookup cursor with an optional ref.
-// If the ref is empty, returns empty cursor in the same bucket + volume as the world.
-// The lookup cursor will be released after cb returns.
+// BuildOwnedLookupCursor builds an owned cursor at ref.
+func (t *WorldState) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*world.OwnedLookupCursor, error) {
+	if t.discarded.Load() {
+		return nil, tx.ErrDiscarded
+	}
+	storage := t.storage
+	if storage == nil {
+		return nil, world.ErrWorldStorageUnavailable
+	}
+	return storage.BuildOwnedLookupCursor(ctx, ref)
+}
+
+// AccessWorldState builds a borrowed access value with an optional ref.
 func (t *WorldState) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*world.WorldAccess) error,
 ) error {
+	if t.discarded.Load() {
+		return tx.ErrDiscarded
+	}
 	storage := t.storage
 	if storage == nil {
 		return world.ErrWorldStorageUnavailable
@@ -311,6 +325,11 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 	if t.discarded.Load() {
 		return nil, tx.ErrDiscarded
 	}
+	owned, err := t.storage.BuildOwnedLookupCursor(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	childStorage := world.NewWorldStorageFromOwnedLookupCursor(owned, t.store)
 
 	bcs := t.bcs.DetachTransaction()
 	blk, _ := bcs.GetBlock()
@@ -319,6 +338,7 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 		var ok bool
 		blkv, ok = blk.(*World)
 		if !ok {
+			world.RetireWorldStorage(childStorage)
 			return nil, block.ErrUnexpectedType
 		}
 	}
@@ -338,11 +358,12 @@ func (t *WorldState) Fork(ctx context.Context) (world.WorldState, error) {
 		t.store,
 		t.xfrm,
 		t.onSwept,
-		t.storage,
+		childStorage,
 		t.lookupOp,
 		t.verbose,
 	)
 	if err != nil {
+		world.RetireWorldStorage(childStorage)
 		return nil, err
 	}
 	return ows, nil
@@ -516,6 +537,9 @@ func (t *WorldState) Discard() {
 	if t.readRelease != nil {
 		t.readRelease()
 		t.readRelease = nil
+	}
+	if t.storage != nil {
+		world.RetireWorldStorage(t.storage)
 	}
 	t.objectExistsMemo = nil
 	t.seqnoBcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {

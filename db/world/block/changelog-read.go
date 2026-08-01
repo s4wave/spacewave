@@ -5,7 +5,6 @@ import (
 	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -33,7 +32,7 @@ func ReadChangeLogEntries(
 	opts ChangeLogReadOptions,
 ) ([]*ChangeLogEntry, error) {
 	var entries []*ChangeLogEntry
-	err := access(ctx, nil, func(root *bucket_lookup.Cursor) error {
+	err := access(ctx, nil, func(root *world.WorldAccess) error {
 		_, rootBcs := root.BuildTransaction(nil)
 		var err error
 		entries, err = ReadChangeLogEntriesFromCursor(ctx, rootBcs, opts)

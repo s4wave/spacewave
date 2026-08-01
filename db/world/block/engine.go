@@ -37,6 +37,8 @@ type Engine struct {
 	baseRoot *bucket_lookup.Cursor
 	// root is the root cursor in use
 	root *bucket_lookup.Cursor
+	// storage owns transaction-scoped lookup and store access.
+	storage world.WorldStorage
 	// readTx is the current read-only world instance
 	readTx *Tx
 	// writeTx is the current write tx
@@ -155,6 +157,7 @@ func NewEngine(
 			e.writeBlockStore = block.NewBufferedStore(ctx, rawWriteStore)
 		}
 	}
+	e.storage = world.NewWorldStorageFromCursorWithStore(e.baseRoot, e.writeBlockStore)
 
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/new/update-read-write-txns")
 	err := e.updateReadWriteTxns(taskCtx)
@@ -350,11 +353,11 @@ func (e *Engine) worldStateForRootRefLocked(ctx context.Context, ref *bucket.Obj
 	if err != nil {
 		return nil, err
 	}
-	defer nextRoot.Release()
 
 	store := nextRoot.GetBucket()
 	xfrm := nextRoot.GetTransformer()
 	_, bcs := nextRoot.BuildTransactionWithStore(nil, store)
+	stateStorage := world.NewWorldStorageFromCursorWithStore(nextRoot, store)
 	ws, err := NewWorldState(
 		ctx,
 		e.le,
@@ -364,11 +367,12 @@ func (e *Engine) worldStateForRootRefLocked(ctx context.Context, ref *bucket.Obj
 		store,
 		xfrm,
 		nil,
-		e,
+		stateStorage,
 		e.lookupOp,
 		e.verbose,
 	)
 	if err != nil {
+		world.RetireWorldStorage(stateStorage)
 		return nil, err
 	}
 	return ws, nil
@@ -403,20 +407,17 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 				return nil, err
 			}
 		}
-		if e.writeCoordinator != nil {
-			world, err := e.buildWorldState(ctx, true)
-			if err != nil {
-				return nil, err
-			}
-			if e.readTx != nil {
-				e.readTx.Discard()
-				e.readTx = nil
-			}
-			engTx := newEngineTx(e, nil)
-			engTx.readTx = NewTx(world)
-			return engTx, nil
+		worldState, err := e.buildWorldState(ctx, true)
+		if err != nil {
+			return nil, err
 		}
-		return newEngineTx(e, nil), nil
+		if e.writeCoordinator != nil && e.readTx != nil {
+			e.readTx.Discard()
+			e.readTx = nil
+		}
+		engTx := newEngineTx(e, nil)
+		engTx.readTx = NewTx(worldState)
+		return engTx, nil
 	}
 
 	// Released in Discard or Commit
@@ -562,57 +563,70 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 	return tx, nil
 }
 
-// BuildStorageCursor builds a cursor to the world storage with an empty ref.
+// BuildStorageCursor builds a raw cursor to the world storage with an empty ref.
 // The cursor should be released independently of the WorldState.
-// Be sure to call Release on the cursor when done.
 func (e *Engine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
 	e.rmtx.RLock()
-	defer e.rmtx.RUnlock()
 	if e.closed {
+		e.rmtx.RUnlock()
 		return nil, ErrEngineClosed
 	}
-	ncs := e.baseRoot.Clone()
-	ncs.SetRootRef(nil)
-	return ncs, nil
+	storage := e.storage
+	e.rmtx.RUnlock()
+	cursor, err := storage.BuildStorageCursor(ctx)
+	return cursor, e.mapStorageUnavailable(err)
 }
 
-// AccessWorldState builds a bucket lookup cursor with an optional ref.
-// If the ref Bucket ID is empty, uses the same bucket + volume as the world.
-// The lookup cursor will be released after cb returns.
-// The root clone is made while rmtx is held for the documented same-bucket
-// root path. Cursor.Clone does not retain a bucket-handle release owner, so
-// this does not establish a cross-bucket lifetime across Engine.Close.
-//
-// NOTE: this is the implementation of AccessWorldState for the world/block engine.
+// BuildOwnedLookupCursor builds an owned cursor at ref.
+func (e *Engine) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*world.OwnedLookupCursor, error) {
+	e.rmtx.RLock()
+	if e.closed {
+		e.rmtx.RUnlock()
+		return nil, ErrEngineClosed
+	}
+	if ref == nil {
+		ref = e.root.GetRefWithOpArgs()
+	} else {
+		ref = ref.Clone()
+	}
+	storage := e.storage
+	e.rmtx.RUnlock()
+	owned, err := storage.BuildOwnedLookupCursor(ctx, ref)
+	return owned, e.mapStorageUnavailable(err)
+}
+
+// AccessWorldState builds a borrowed access value with an optional ref.
 func (e *Engine) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*world.WorldAccess) error,
 ) error {
 	e.rmtx.RLock()
 	if e.closed {
 		e.rmtx.RUnlock()
 		return ErrEngineClosed
 	}
-	ncs := e.root.Clone()
-	e.rmtx.RUnlock()
-	defer ncs.Release()
-
 	if ref == nil {
-		return cb(ncs)
+		ref = e.root.GetRefWithOpArgs()
+	} else {
+		ref = ref.Clone()
 	}
+	storage := e.storage
+	e.rmtx.RUnlock()
+	return e.mapStorageUnavailable(storage.AccessWorldState(ctx, ref, cb))
+}
 
-	subCtx, subCtxCancel := context.WithCancel(ctx)
-	defer subCtxCancel()
-
-	// follow the root block ref outside the engine lock
-	followed, err := ncs.FollowRef(subCtx, ref)
-	if err != nil {
+func (e *Engine) mapStorageUnavailable(err error) error {
+	if !errors.Is(err, world.ErrWorldStorageUnavailable) {
 		return err
 	}
-	defer followed.Release()
-
-	return cb(followed)
+	e.rmtx.RLock()
+	closed := e.closed
+	e.rmtx.RUnlock()
+	if closed {
+		return ErrEngineClosed
+	}
+	return err
 }
 
 // GetSeqno returns the current seqno of the world state.
@@ -726,10 +740,11 @@ func (e *Engine) Close() error {
 		e.root.Release()
 		e.root = nil
 	}
-	if e.baseRoot != nil {
-		e.baseRoot.Release()
-		e.baseRoot = nil
+	if e.storage != nil {
+		world.RetireWorldStorage(e.storage)
+		e.storage = nil
 	}
+	e.baseRoot = nil
 	e.rmtx.Unlock()
 	return nil
 }
@@ -774,26 +789,30 @@ func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldStat
 	defer task.End()
 
 	_, subtask := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/get-bucket")
-	// Both read and write transactions read and write through writeBlockStore so
-	// that, in the single-writer deferred path, reads see blocks that are
-	// committed in memory but not yet drained to durable storage (read your
-	// writes before Sync). It is the bucket store directly in coordinator and
-	// self-buffered modes.
+	// Both read and write transactions read through writeBlockStore so
+	// deferred writes remain visible before Sync.
 	store := e.writeBlockStore
 	worldStore := store
 	if !readOnly && e.writeCoordinator != nil {
 		worldStore = nil
 	}
 	subtask.End()
+	rootRef := e.root.GetRefWithOpArgs()
+	owned, err := e.storage.BuildOwnedLookupCursor(ctx, rootRef)
+	if err != nil {
+		return nil, err
+	}
+	raw := owned.Cursor()
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/get-transformer")
-	xfrm := e.root.GetTransformer()
+	xfrm := raw.GetTransformer()
 	subtask.End()
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/build-transaction")
-	btx, bcs := e.root.BuildTransactionWithStore(nil, store)
+	btx, bcs := raw.BuildTransactionWithStore(nil, store)
 	subtask.End()
 	if readOnly {
 		btx = nil
 	}
+	stateStorage := world.NewWorldStorageFromOwnedLookupCursor(owned, worldStore)
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state/new-world-state")
 	ws, err := NewWorldState(
 		taskCtx,
@@ -803,12 +822,13 @@ func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldStat
 		worldStore,
 		xfrm,
 		nil,
-		e,
+		stateStorage,
 		e.lookupOp,
 		e.verbose,
 	)
 	subtask.End()
 	if err != nil {
+		world.RetireWorldStorage(stateStorage)
 		return nil, err
 	}
 	return ws, nil

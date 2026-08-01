@@ -18,7 +18,6 @@ import (
 	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	spacewave_release "github.com/s4wave/spacewave/core/release"
 	"github.com/s4wave/spacewave/db/block"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -543,7 +542,8 @@ func readReleaseMetadataSnapshot(
 ) (*spacewave_release.ReleaseMetadata, string, error) {
 	var metadata *spacewave_release.ReleaseMetadata
 	var headRef string
-	err := eng.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
+	err := eng.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		root := access.Cursor()
 		headRef = root.GetRef().MarshalString()
 		ws, err := world_block.BuildWorldStateFromCursor(
 			ctx,

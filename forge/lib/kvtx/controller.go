@@ -8,8 +8,8 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
+	"github.com/s4wave/spacewave/db/world"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 
@@ -127,7 +127,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	err = c.handle.AccessStorage(
 		ctx,
 		rootRef,
-		func(cs *bucket_lookup.Cursor) error {
+		func(access *world.WorldAccess) error {
+			cs := access.Cursor()
 			if rootRef.GetEmpty() {
 				c.le.
 					WithField("store-type", kvtx_block.DefaultKeyValueStoreImpl.String()).

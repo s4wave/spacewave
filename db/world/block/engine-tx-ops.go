@@ -16,22 +16,45 @@ import (
 // maxEngineTxTries is the maximum number of times to retry after discarded
 const maxEngineTxTries = 10
 
-// BuildStorageCursor builds a cursor to the world storage with an empty ref.
-// The cursor should be released independently of the WorldState.
-// Be sure to call Release on the cursor when done.
+// BuildStorageCursor builds a raw cursor to the transaction's world storage.
 func (e *EngineTx) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
-	return e.engine.BuildStorageCursor(ctx)
+	state := e.worldState()
+	if state == nil {
+		return nil, tx.ErrDiscarded
+	}
+	return state.BuildStorageCursor(ctx)
 }
 
-// AccessWorldState builds a bucket lookup cursor with an optional ref.
-// If the ref is empty, returns empty cursor in the same bucket + volume as the world.
-// The lookup cursor will be released after cb returns.
+// BuildOwnedLookupCursor builds an owned cursor at ref.
+func (e *EngineTx) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*world.OwnedLookupCursor, error) {
+	state := e.worldState()
+	if state == nil {
+		return nil, tx.ErrDiscarded
+	}
+	return state.BuildOwnedLookupCursor(ctx, ref)
+}
+
+// AccessWorldState builds a borrowed access value with an optional ref.
 func (e *EngineTx) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*world.WorldAccess) error,
 ) error {
-	return e.engine.AccessWorldState(ctx, ref, cb)
+	state := e.worldState()
+	if state == nil {
+		return tx.ErrDiscarded
+	}
+	return state.AccessWorldState(ctx, ref, cb)
+}
+
+func (e *EngineTx) worldState() *WorldState {
+	if e.writeTx != nil {
+		return e.writeTx.state
+	}
+	if e.readTx != nil {
+		return e.readTx.state
+	}
+	return nil
 }
 
 // ApplyWorldOp applies a batch operation at the world level.

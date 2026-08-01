@@ -13,7 +13,6 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
@@ -201,12 +200,13 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 						accessDestManifest := func(
 							ctx context.Context,
 							baseRef *bucket.ObjectRef,
-							cb func(*bucket_lookup.Cursor) error,
+							cb func(*world.WorldAccess) error,
 						) error {
 							return destRemoteTx.AccessWorldState(
 								ctx,
 								baseRef,
-								func(bls *bucket_lookup.Cursor) error {
+								func(access *world.WorldAccess) error {
+									bls := access.Cursor()
 									nextRef := bls.GetRef().Clone()
 									nextRef.BucketId = bls.GetOpArgs().GetBucketId()
 									nextRef.RootRef = nil
@@ -221,13 +221,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 										nextRef.TransformConfRef = nil
 									}
 
-									nextCs, err := bls.FollowRef(ctx, nextRef)
-									if err != nil {
-										return err
-									}
-									defer nextCs.Release()
-
-									return cb(nextCs)
+									return destRemoteTx.AccessWorldState(ctx, nextRef, cb)
 								},
 							)
 						}

@@ -21,7 +21,7 @@ import (
 	cdn_bstore_controller "github.com/s4wave/spacewave/core/cdn/bstore/controller"
 	cdn_world_controller "github.com/s4wave/spacewave/core/cdn/world/controller"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/sirupsen/logrus"
 )
 
@@ -280,7 +280,8 @@ func TestBrowserReleasePublishedWorldFetchManifestPreflight(t *testing.T) {
 	if ref.GetEmpty() || ref.GetBucketId() == "" {
 		t.Fatalf("FetchManifest returned non-external ref: %#v", ref)
 	}
-	err = engine.AccessWorldState(ctx, ref, func(cursor *bucket_lookup.Cursor) error {
+	err = engine.AccessWorldState(ctx, ref, func(access *world.WorldAccess) error {
+		cursor := access.Cursor()
 		_, found, err := cursor.GetBlock(ctx, ref.GetRootRef())
 		if err != nil {
 			return err

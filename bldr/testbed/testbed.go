@@ -20,7 +20,6 @@ import (
 	storage_inmem "github.com/s4wave/spacewave/bldr/storage/inmem"
 	storage_volume "github.com/s4wave/spacewave/bldr/storage/volume"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
@@ -358,7 +357,7 @@ func (d *Testbed) CreateManifestWithBilly(
 	distFs, assetsFs billy.Filesystem,
 	ts *timestamppb.Timestamp,
 ) (manifest *bldr_manifest.Manifest, manifestRef *bldr_manifest.ManifestRef, err error) {
-	err = d.GetWorldEngine().AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+	err = d.GetWorldEngine().AccessWorldState(ctx, nil, func(bls *world.WorldAccess) error {
 		btx, bcs := bls.BuildTransactionAtRef(nil, nil)
 
 		manifest, err = bldr_manifest.CreateManifestWithBilly(ctx, bcs, manifestMeta, entrypoint, distFs, assetsFs, ts)
@@ -371,7 +370,7 @@ func (d *Testbed) CreateManifestWithBilly(
 			return err
 		}
 
-		manifestObjRef := bls.GetRef().Clone()
+		manifestObjRef := bls.Cursor().GetRef().Clone()
 		manifestObjRef.RootRef = manifestBlockRef
 		manifestRef = bldr_manifest.NewManifestRef(manifestMeta, manifestObjRef)
 		return err

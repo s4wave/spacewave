@@ -376,7 +376,8 @@ func storeTestManifest(
 	}
 	var initRef *bucket.ObjectRef
 	if bucketScopedManifest {
-		err := ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+		err := ws.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+			bls := access.Cursor()
 			initRef = bls.GetRef().Clone()
 			return nil
 		})

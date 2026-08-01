@@ -13,6 +13,7 @@ import (
 	transform_all "github.com/s4wave/spacewave/db/block/transform/all"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/hash"
 	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 )
@@ -63,7 +64,7 @@ func accessSDKBucketLookupCursor(
 	ctx context.Context,
 	client ResourceClient,
 	resourceID uint32,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*world.WorldAccess) error,
 ) error {
 	ref := client.CreateResourceReference(resourceID)
 	cursor, err := newSDKBucketLookupCursor(ctx, ref)
@@ -71,8 +72,26 @@ func accessSDKBucketLookupCursor(
 		ref.Release()
 		return err
 	}
+	storage := world.NewWorldStorageFromCursor(cursor)
 	defer cursor.Release()
-	return cb(cursor)
+	return storage.AccessWorldState(ctx, nil, cb)
+}
+
+func buildOwnedSDKBucketLookupCursor(
+	ctx context.Context,
+	client ResourceClient,
+	resourceID uint32,
+) (*world.OwnedLookupCursor, error) {
+	ref := client.CreateResourceReference(resourceID)
+	cursor, err := newSDKBucketLookupCursor(ctx, ref)
+	if err != nil {
+		ref.Release()
+		return nil, err
+	}
+	storage := world.NewWorldStorageFromCursorWithStore(cursor, nil)
+	owned, err := storage.BuildOwnedLookupCursor(ctx, nil)
+	world.RetireWorldStorage(storage)
+	return owned, err
 }
 
 func buildSDKCursorTransform(

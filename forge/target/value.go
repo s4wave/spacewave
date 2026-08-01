@@ -9,7 +9,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
@@ -126,7 +125,7 @@ func StoreValueAsBlockRef(
 	err = handle.AccessStorage(
 		ctx,
 		nil,
-		func(bls *bucket_lookup.Cursor) error {
+		func(bls *world.WorldAccess) error {
 			var berr error
 			outValue, berr = CopyValueToBucket(ctx, handle, val)
 			return berr
@@ -160,7 +159,7 @@ func CopyValueToBucket(
 		err = handle.AccessStorage(
 			ctx,
 			bktRef,
-			func(bls *bucket_lookup.Cursor) error {
+			func(bls *world.WorldAccess) error {
 				_, bcs := bls.BuildTransactionAtRef(nil, outputRef)
 				// TODO: copy full reference graph
 				// for now, just copy the root block.
@@ -179,9 +178,9 @@ func CopyValueToBucket(
 		if err != nil {
 			return nil, err
 		}
-		err = handle.AccessStorage(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+		err = handle.AccessStorage(ctx, nil, func(bls *world.WorldAccess) error {
 			var berr error
-			outputRef, _, berr = bls.PutBlock(ctx, rootBlockData, &block.PutOpts{Sync: true})
+			outputRef, _, berr = bls.Cursor().PutBlock(ctx, rootBlockData, &block.PutOpts{Sync: true})
 			return berr
 		})
 		if err != nil {

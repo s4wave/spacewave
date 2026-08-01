@@ -11,7 +11,6 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	billy_util "github.com/go-git/go-billy/v6/util"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
@@ -341,7 +340,8 @@ func verifyUnixFSOutput(
 	}
 
 	objRef := &bucket.ObjectRef{RootRef: bref.GetRootRef()}
-	err := tb.WorldState.AccessWorldState(ctx, objRef, func(cs *bucket_lookup.Cursor) error {
+	err := tb.WorldState.AccessWorldState(ctx, objRef, func(access *world.WorldAccess) error {
+		cs := access.Cursor()
 		fs := unixfs_block_fs.NewFS(ctx, unixfs_block.NodeType_NodeType_DIRECTORY, cs, nil)
 		defer fs.Release()
 		fh, err := unixfs.NewFSHandle(fs)

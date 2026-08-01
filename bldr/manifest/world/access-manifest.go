@@ -28,10 +28,10 @@ func AccessManifest(
 	) error,
 ) error {
 	if manifestRef != nil && manifestRef.GetBucketId() != "" {
-		return accessFunc(ctx, nil, func(root *bucket_lookup.Cursor) error {
-			if manifestRef.GetBucketId() == root.GetOpArgs().GetBucketId() {
+		return accessFunc(ctx, nil, func(root *world.WorldAccess) error {
+			if manifestRef.GetBucketId() == root.Cursor().GetOpArgs().GetBucketId() {
 				le.WithField("bucket-id", manifestRef.GetBucketId()).Debug("following manifest ref in current bucket")
-				manifest, err := root.FollowRef(ctx, manifestRef)
+				manifest, err := root.Cursor().FollowRef(ctx, manifestRef)
 				if err != nil {
 					return err
 				}
@@ -40,14 +40,14 @@ func AccessManifest(
 				return bldr_manifest.AccessManifest(ctx, le, manifest, cb)
 			}
 
-			opArgs := root.GetOpArgs()
+			opArgs := root.Cursor().GetOpArgs()
 			opArgs.BucketId = manifestRef.GetBucketId()
 			opArgs.VolumeId = ""
 			le.WithFields(logrus.Fields{
 				"bucket-id":      manifestRef.GetBucketId(),
-				"root-bucket-id": root.GetOpArgs().GetBucketId(),
+				"root-bucket-id": root.Cursor().GetOpArgs().GetBucketId(),
 			}).Debug("following manifest ref in external bucket")
-			manifest, err := root.FollowRefWithOpArgs(ctx, manifestRef, opArgs)
+			manifest, err := root.Cursor().FollowRefWithOpArgs(ctx, manifestRef, opArgs)
 			if err != nil {
 				return err
 			}
@@ -57,8 +57,8 @@ func AccessManifest(
 		})
 	}
 
-	return accessFunc(ctx, manifestRef, func(bls *bucket_lookup.Cursor) error {
-		return bldr_manifest.AccessManifest(ctx, le, bls, cb)
+	return accessFunc(ctx, manifestRef, func(bls *world.WorldAccess) error {
+		return bldr_manifest.AccessManifest(ctx, le, bls.Cursor(), cb)
 	})
 }
 
@@ -83,8 +83,8 @@ func AccessStartupManifest(
 		return AccessManifest(ctx, le, accessFunc, manifestRef, cb)
 	}
 
-	return accessFunc(ctx, nil, func(root *bucket_lookup.Cursor) error {
-		manifestCursor, err := followStartupManifestRef(ctx, root, manifestRef)
+	return accessFunc(ctx, nil, func(root *world.WorldAccess) error {
+		manifestCursor, err := followStartupManifestRef(ctx, root.Cursor(), manifestRef)
 		if err != nil {
 			return err
 		}

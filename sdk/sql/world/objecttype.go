@@ -37,35 +37,20 @@ func SqlDbFactory(
 	if err != nil {
 		return nil, nil, err
 	}
-	rootRef, _, err := obj.GetRootRef(ctx)
+	owned, err := obj.BuildOwnedLookupCursor(ctx, nil)
 	if err != nil {
-		return nil, nil, err
-	}
-	storageRoot, err := ws.BuildStorageCursor(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-	root, err := storageRoot.FollowRef(ctx, rootRef)
-	if err != nil {
-		storageRoot.Release()
 		return nil, nil, err
 	}
 
-	store, err := NewWorldBackedSql(ctx, root, ws, objectKey)
+	store, err := NewWorldBackedSql(ctx, owned, ws, objectKey)
 	if err != nil {
-		root.Release()
-		storageRoot.Release()
 		return nil, nil, err
 	}
 
 	mux := srpc.NewMux()
 	if err := sql_rpc.SRPCRegisterSql(mux, sql_rpc_server.NewStore(store)); err != nil {
 		store.Close()
-		storageRoot.Release()
 		return nil, nil, err
 	}
-	return mux, func() {
-		store.Close()
-		storageRoot.Release()
-	}, nil
+	return mux, store.Close, nil
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
@@ -42,20 +41,35 @@ func (t *EngineTxObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef
 	return rref, outRev, err
 }
 
-// AccessWorldState builds a bucket lookup cursor with an optional ref.
-// If the ref is empty, will default to the object RootRef.
-// If the ref Bucket ID is empty, uses the same bucket + volume as the world.
-// The lookup cursor will be released after cb returns.
+// BuildOwnedLookupCursor builds an owned cursor at ref.
+func (t *EngineTxObjectState) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*world.OwnedLookupCursor, error) {
+	if ref.GetEmpty() {
+		var err error
+		ref, _, err = t.GetRootRef(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if ref == nil {
+			ref = &bucket.ObjectRef{}
+		}
+	}
+	return t.t.BuildOwnedLookupCursor(ctx, ref)
+}
+
+// AccessWorldState builds a borrowed access value with an optional ref.
 func (t *EngineTxObjectState) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*world.WorldAccess) error,
 ) error {
 	if ref.GetEmpty() {
 		var err error
 		ref, _, err = t.GetRootRef(ctx)
 		if err != nil {
 			return err
+		}
+		if ref == nil {
+			ref = &bucket.ObjectRef{}
 		}
 	}
 	return t.t.AccessWorldState(ctx, ref, cb)

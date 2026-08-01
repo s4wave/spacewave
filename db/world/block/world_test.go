@@ -16,7 +16,6 @@ import (
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/tx"
@@ -1237,12 +1236,12 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 
 	// change back to the original state
 	err = eng.SetRootRef(ctx, state1)
-	// use the same read tx to get the current rev
+	// the already-open read transaction remains pinned to state2
 	if err == nil {
 		var rev uint64
 		_, rev, err = obj1.GetRootRef(ctx)
-		if err == nil && rev != rev2-1 {
-			err = errors.Errorf("expected rev %d - 1 = %d but got %d", rev2, rev2-1, rev)
+		if err == nil && rev != rev2 {
+			err = errors.Errorf("expected pinned rev %d but got %d", rev2, rev)
 		}
 	}
 	if err != nil {
@@ -1607,8 +1606,9 @@ func TestWorldState_GC_SetRootRef(t *testing.T) {
 	}
 
 	// Build a new root block and set it.
-	err = ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
-		oref := bls.GetRef()
+	err = ws.AccessWorldState(ctx, nil, func(bls *world.WorldAccess) error {
+
+		oref := bls.Cursor().GetRef()
 		obtx, obcs := bls.BuildTransactionAtRef(nil, nil)
 		obcs.SetBlock(&block_mock.Example{Msg: "updated root"}, true)
 		var err error
@@ -1691,8 +1691,8 @@ func TestWorldState_GC_SetRootRef_OrphanBlock(t *testing.T) {
 	}
 
 	// SetRootRef to a new block.
-	err = ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
-		nref := bls.GetRef()
+	err = ws.AccessWorldState(ctx, nil, func(bls *world.WorldAccess) error {
+		nref := bls.Cursor().GetRef()
 		obtx, obcs := bls.BuildTransactionAtRef(nil, nil)
 		obcs.SetBlock(&block_mock.Example{Msg: "new root block"}, true)
 		var err error

@@ -6,7 +6,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -142,8 +141,8 @@ func (o *KvSetRootOp) rebaseRoot(
 	currentRoot *bucket.ObjectRef,
 ) (*bucket.ObjectRef, error) {
 	var nextRoot *bucket.ObjectRef
-	err := os.AccessWorldState(ctx, currentRoot, func(root *bucket_lookup.Cursor) error {
-		rootCursor := root.Clone()
+	err := os.AccessWorldState(ctx, currentRoot, func(access *world.WorldAccess) error {
+		rootCursor := access.Cursor().Clone()
 		defer rootCursor.Release()
 		store, err := kvtx_block.NewStore(ctx, le, rootCursor, func(root *bucket.ObjectRef) error {
 			nextRoot = root.Clone()

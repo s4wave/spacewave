@@ -12,7 +12,6 @@ import (
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/object"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
@@ -45,7 +44,7 @@ func (h *captureHandle) GetTimestamp() *timestamp.Timestamp {
 	return h.ts
 }
 
-func (h *captureHandle) AccessStorage(ctx context.Context, ref *bucket.ObjectRef, cb func(*bucket_lookup.Cursor) error) error {
+func (h *captureHandle) AccessStorage(ctx context.Context, ref *bucket.ObjectRef, cb func(*world.WorldAccess) error) error {
 	return h.accessFunc(ctx, ref, cb)
 }
 

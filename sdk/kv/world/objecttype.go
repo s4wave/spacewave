@@ -42,11 +42,12 @@ func KvStoreFactory(
 	}
 
 	var store *WorldBackedStore
-	if err := obj.AccessWorldState(ctx, nil, func(root worldCursor) error {
-		var err error
-		store, err = NewWorldBackedStore(ctx, le, root.Clone(), ws, objectKey)
-		return err
-	}); err != nil {
+	owned, err := obj.BuildOwnedLookupCursor(ctx, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	store, err = NewWorldBackedStore(ctx, le, owned, ws, objectKey)
+	if err != nil {
 		return nil, nil, err
 	}
 	if store == nil {

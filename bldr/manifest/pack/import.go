@@ -11,7 +11,6 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
@@ -57,7 +56,8 @@ func importPackBlocks(ctx context.Context, ws world.WorldState, packBytes []byte
 	if err != nil {
 		return err
 	}
-	return ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+	return ws.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		bls := access.Cursor()
 		return rdr.ScanPrefixEntries(nil, func(entry *kvfile.IndexEntry, idx int) error {
 			if err := ctx.Err(); err != nil {
 				return err

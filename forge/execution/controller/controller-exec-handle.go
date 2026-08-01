@@ -5,7 +5,6 @@ import (
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	forge_execution "github.com/s4wave/spacewave/forge/execution"
 	execution_transaction "github.com/s4wave/spacewave/forge/execution/tx"
@@ -64,7 +63,7 @@ func (h *execControllerHandle) GetTimestamp() *timestamp.Timestamp {
 func (h *execControllerHandle) AccessStorage(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*world.WorldAccess) error,
 ) error {
 	select {
 	case <-h.ctx.Done():

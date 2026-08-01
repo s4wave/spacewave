@@ -8,7 +8,6 @@ import (
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_bucket_lookup "github.com/s4wave/spacewave/core/resource/bucket/lookup"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/sirupsen/logrus"
@@ -69,17 +68,14 @@ func (r *ObjectStateResource) AccessWorldState(ctx context.Context, req *s4wave_
 		return nil, err
 	}
 
-	var cursorResource *resource_bucket_lookup.BucketLookupCursorResource
-	err = r.obj.AccessWorldState(ctx, req.GetRef(), func(c *bucket_lookup.Cursor) error {
-		cursorResource = resource_bucket_lookup.NewBucketLookupCursorResource(r.le, r.b, c)
-		return nil
-	})
+	owned, err := r.obj.BuildOwnedLookupCursor(ctx, req.GetRef())
 	if err != nil {
 		return nil, err
 	}
-
-	id, err := resourceCtx.AddResource(cursorResource.GetMux(), func() {})
+	cursorResource := resource_bucket_lookup.NewBucketLookupCursorResource(r.le, r.b, owned.Cursor())
+	id, err := resourceCtx.AddResource(cursorResource.GetMux(), owned.Release)
 	if err != nil {
+		owned.Release()
 		return nil, err
 	}
 

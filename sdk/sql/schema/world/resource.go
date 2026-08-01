@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_sql "github.com/s4wave/spacewave/sdk/sql"
@@ -116,12 +115,12 @@ func (r *SqlSchemaResource) openTargetRows(
 	if err != nil {
 		return nil, nil, err
 	}
-	var store *s4wave_sql_world.WorldBackedSql
-	if err := obj.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
-		var err error
-		store, err = s4wave_sql_world.NewWorldBackedSql(ctx, root.Clone(), r.ws, targetKey)
-		return err
-	}); err != nil {
+	owned, err := obj.BuildOwnedLookupCursor(ctx, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	store, err := s4wave_sql_world.NewWorldBackedSql(ctx, owned, r.ws, targetKey)
+	if err != nil {
 		return nil, nil, err
 	}
 	tx, err := store.NewSqlTransaction(ctx, false, "")

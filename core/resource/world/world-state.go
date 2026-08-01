@@ -11,7 +11,6 @@ import (
 	resource_bucket_lookup "github.com/s4wave/spacewave/core/resource/bucket/lookup"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/quad"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
@@ -161,17 +160,14 @@ func (r *WorldStateResource) AccessWorldState(ctx context.Context, req *s4wave_w
 		return nil, err
 	}
 
-	var cursorResource *resource_bucket_lookup.BucketLookupCursorResource
-	err = r.ws.AccessWorldState(ctx, req.GetRef(), func(c *bucket_lookup.Cursor) error {
-		cursorResource = resource_bucket_lookup.NewBucketLookupCursorResource(r.le, r.b, c)
-		return nil
-	})
+	owned, err := r.ws.BuildOwnedLookupCursor(ctx, req.GetRef())
 	if err != nil {
 		return nil, err
 	}
-
-	id, err := resourceCtx.AddResource(cursorResource.GetMux(), func() {})
+	cursorResource := resource_bucket_lookup.NewBucketLookupCursorResource(r.le, r.b, owned.Cursor())
+	id, err := resourceCtx.AddResource(cursorResource.GetMux(), owned.Release)
 	if err != nil {
+		owned.Release()
 		return nil, err
 	}
 

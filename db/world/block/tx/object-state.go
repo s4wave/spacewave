@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
@@ -49,9 +48,14 @@ func (t *ObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef, uint64
 func (t *ObjectState) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*world.WorldAccess) error,
 ) error {
 	return t.o.AccessWorldState(ctx, ref, cb)
+}
+
+// BuildOwnedLookupCursor builds an owned cursor at ref.
+func (t *ObjectState) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*world.OwnedLookupCursor, error) {
+	return t.o.BuildOwnedLookupCursor(ctx, ref)
 }
 
 // SetRootRef changes the root reference of the object.

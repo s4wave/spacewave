@@ -6,7 +6,6 @@ import (
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/s4wave/spacewave/net/peer"
@@ -70,7 +69,7 @@ func (a *accessHandle) GetTargetWorld() (world.Engine, error) {
 func (a *accessHandle) AccessStorage(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*world.WorldAccess) error,
 ) error {
 	return a.accessFunc(ctx, ref, cb)
 }

@@ -33,8 +33,8 @@ func BuildMockObject(ctx context.Context, ws world.WorldState, objKey string) (w
 		objKey = "test-obj-1"
 	}
 	var oref *bucket.ObjectRef
-	err := ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
-		oref = bls.GetRef() // note: clones the ref
+	err := ws.AccessWorldState(ctx, nil, func(bls *world.WorldAccess) error {
+		oref = bls.Cursor().GetRef() // note: clones the ref
 		obtx, obcs := bls.BuildTransactionAtRef(nil, nil)
 		exb := &block_mock.Example{Msg: "Hello from " + objKey}
 		obcs.SetBlock(exb, true)

@@ -1862,7 +1862,8 @@ func TestProcessManifestWorldStateRunsDownloadAndExecuteForRemoteManifest(t *tes
 	}
 	ref := newTestStoredManifestRefInBucket(t, ctx, tb, remoteBucketID, "spacewave-core", "desktop/darwin/arm64", 2)
 	var worldBucketID string
-	if err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+	if err := ws.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		cursor := access.Cursor()
 		worldBucketID = cursor.GetOpArgs().GetBucketId()
 		return nil
 	}); err != nil {
@@ -2022,7 +2023,8 @@ func TestProcessManifestWorldStateSuppressesNoCopyBucketWhileDynamicManifestCopi
 		t.Fatal("expected plugin host manifest store object")
 	}
 	var worldBucketID string
-	if err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+	if err := ws.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		cursor := access.Cursor()
 		worldBucketID = cursor.GetOpArgs().GetBucketId()
 		return nil
 	}); err != nil {
@@ -2590,7 +2592,8 @@ func TestDownloadManifestCopiesRemoteDAGAndStoresLocalWorldRef(t *testing.T) {
 	}
 	ref := newTestStoredManifestRefWithDistInBucket(t, ctx, tb, remoteBucketID, "spacewave-core", "desktop/darwin/arm64", 2)
 	var worldBucketID string
-	if err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+	if err := ws.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		cursor := access.Cursor()
 		worldBucketID = cursor.GetOpArgs().GetBucketId()
 		return nil
 	}); err != nil {
@@ -2937,7 +2940,8 @@ func TestDownloadManifestCopiesExternalVolumeDAGAndCachesSourceReads(t *testing.
 	defer lookupRel()
 
 	var worldBucketID string
-	if err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+	if err := ws.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		cursor := access.Cursor()
 		worldBucketID = cursor.GetOpArgs().GetBucketId()
 		return nil
 	}); err != nil {
@@ -3173,7 +3177,8 @@ func TestWatchWorldManifestSkipsUnchangedSelectionInputs(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	var worldBucketID string
-	if err := baseWS.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+	if err := baseWS.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		cursor := access.Cursor()
 		worldBucketID = cursor.GetOpArgs().GetBucketId()
 		return nil
 	}); err != nil {
@@ -3595,7 +3600,8 @@ func TestDownloadManifestCopiesTransformedRemoteDAGAndStoresLocalWorldRef(t *tes
 		transformConf,
 	)
 	var worldBucketID string
-	if err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+	if err := ws.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		cursor := access.Cursor()
 		worldBucketID = cursor.GetOpArgs().GetBucketId()
 		return nil
 	}); err != nil {
@@ -3850,7 +3856,8 @@ func storeTestWorldManifest(
 
 	meta := bldr_manifest.NewManifestMeta(manifestID, bldr_manifest.BuildType_RELEASE, platformID, rev)
 	var ref *bucket.ObjectRef
-	err := ws.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+	err := ws.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		bls := access.Cursor()
 		btx, bcs := bls.BuildTransaction(nil)
 		bcs.SetBlock(bldr_manifest.NewManifest(meta, "entrypoint"), true)
 		rootRef, _, err := btx.Write(ctx, true)
@@ -4042,7 +4049,7 @@ type accessCountingWorldState struct {
 func (s *accessCountingWorldState) AccessWorldState(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*world.WorldAccess) error,
 ) error {
 	s.total.Add(1)
 	s.active.Add(1)

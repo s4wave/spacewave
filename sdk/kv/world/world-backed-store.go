@@ -7,7 +7,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	"github.com/s4wave/spacewave/db/world"
@@ -16,14 +15,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type worldCursor = *bucket_lookup.Cursor
-
 // WorldBackedStore wraps a KVTX block store and commits root updates through world ops.
 type WorldBackedStore struct {
 	inner *kvtx_block.Store
 	ws    world.WorldState
 	key   string
-	root  *bucket_lookup.Cursor
+	root  *world.OwnedLookupCursor
 
 	mtx      sync.Mutex
 	writeMtx sync.Mutex
@@ -34,17 +31,24 @@ type WorldBackedStore struct {
 func NewWorldBackedStore(
 	ctx context.Context,
 	le *logrus.Entry,
-	root *bucket_lookup.Cursor,
+	root *world.OwnedLookupCursor,
 	ws world.WorldState,
 	objectKey string,
 ) (*WorldBackedStore, error) {
 	if ws == nil {
+		if root != nil {
+			root.Release()
+		}
 		return nil, objecttype.ErrWorldStateRequired
 	}
-	if root == nil {
+	if root == nil || root.Cursor() == nil {
+		if root != nil {
+			root.Release()
+		}
 		return nil, errors.New("kv/store: root cursor is required")
 	}
 	if objectKey == "" {
+		root.Release()
 		return nil, world.ErrEmptyObjectKey
 	}
 
@@ -53,7 +57,7 @@ func NewWorldBackedStore(
 		key:  objectKey,
 		root: root,
 	}
-	inner, err := kvtx_block.NewStore(ctx, le, root, st.captureCommittedRoot)
+	inner, err := kvtx_block.NewStore(ctx, le, root.Cursor(), st.captureCommittedRoot)
 	if err != nil {
 		root.Release()
 		return nil, err
@@ -68,7 +72,14 @@ func (s *WorldBackedStore) Close() {
 		return
 	}
 	s.root.Release()
-	s.root = nil
+}
+
+// GetRootRef returns the current KV root reference.
+func (s *WorldBackedStore) GetRootRef() *bucket.ObjectRef {
+	if s == nil || s.inner == nil {
+		return nil
+	}
+	return s.inner.GetRootRef()
 }
 
 // WatchPrefix streams current key/value snapshots for a prefix after world commits.

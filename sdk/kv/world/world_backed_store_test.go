@@ -3,6 +3,7 @@ package s4wave_kv_world_test
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 
 	"github.com/aperturerobotics/starpc/srpc"
@@ -10,6 +11,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	bucket_mock "github.com/s4wave/spacewave/db/bucket/mock"
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_block "github.com/s4wave/spacewave/db/kvtx/block"
 	kvtx_rpc "github.com/s4wave/spacewave/db/kvtx/rpc"
@@ -330,13 +332,99 @@ func openWorldBackedStore(
 	if err != nil {
 		t.Fatalf("MustGetObject(%s): %v", objectKey, err)
 	}
-	var store *s4wave_kv_world.WorldBackedStore
-	if err := obj.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
-		var err error
-		store, err = s4wave_kv_world.NewWorldBackedStore(ctx, logrus.NewEntry(logrus.New()), root.Clone(), ws, objectKey)
-		return err
-	}); err != nil {
-		t.Fatalf("AccessWorldState(%s): %v", objectKey, err)
+	owned, err := obj.BuildOwnedLookupCursor(ctx, nil)
+	if err != nil {
+		t.Fatalf("BuildOwnedLookupCursor(%s): %v", objectKey, err)
+	}
+	store, err := s4wave_kv_world.NewWorldBackedStore(ctx, logrus.NewEntry(logrus.New()), owned, ws, objectKey)
+	if err != nil {
+		t.Fatalf("NewWorldBackedStore(%s): %v", objectKey, err)
 	}
 	return store, store.Close
+}
+
+func newOwnedKvTestCursor(t *testing.T, ctx context.Context, root *block.BlockRef, releases *atomic.Int32) *world.OwnedLookupCursor {
+	t.Helper()
+	bkt := bucket_mock.NewMockBucket("kv-owner", nil)
+	cursor := bucket_lookup.NewCursorWithRelease(
+		ctx,
+		nil,
+		nil,
+		nil,
+		bkt,
+		nil,
+		&bucket.ObjectRef{BucketId: "kv-owner", RootRef: root},
+		&bucket.BucketOpArgs{BucketId: "kv-owner"},
+		nil,
+		func() { releases.Add(1) },
+	)
+	storage := world.NewCursorWorldStorage(func(context.Context) (*bucket_lookup.Cursor, error) {
+		return cursor, nil
+	})
+	owned, err := storage.BuildOwnedLookupCursor(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return owned
+}
+
+func TestWorldBackedStoreOwnsCursorOnFailureAndClose(t *testing.T) {
+	ctx := context.Background()
+	var failureReleases atomic.Int32
+	failedOwned := newOwnedKvTestCursor(t, ctx, nil, &failureReleases)
+	if _, err := s4wave_kv_world.NewWorldBackedStore(ctx, nil, failedOwned, nil, "kv/failure"); err == nil {
+		t.Fatal("expected missing WorldState error")
+	}
+	if failureReleases.Load() != 1 {
+		t.Fatalf("constructor failure releases = %d, want 1", failureReleases.Load())
+	}
+
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	var closeReleases atomic.Int32
+	owned := newOwnedKvTestCursor(t, ctx, nil, &closeReleases)
+	store, err := s4wave_kv_world.NewWorldBackedStore(ctx, nil, owned, tb.WorldState, "kv/close")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.Close()
+	store.Close()
+	if closeReleases.Load() != 1 {
+		t.Fatalf("close releases = %d, want 1", closeReleases.Load())
+	}
+
+	invalidBucket := bucket_mock.NewMockBucket("kv-invalid", nil)
+	invalidRef, _, err := invalidBucket.PutBlock(ctx, []byte("not a kv root"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var innerFailureReleases atomic.Int32
+	invalidCursor := bucket_lookup.NewCursorWithRelease(
+		ctx,
+		nil,
+		nil,
+		nil,
+		invalidBucket,
+		nil,
+		&bucket.ObjectRef{BucketId: "kv-invalid", RootRef: invalidRef},
+		&bucket.BucketOpArgs{BucketId: "kv-invalid"},
+		nil,
+		func() { innerFailureReleases.Add(1) },
+	)
+	invalidStorage := world.NewCursorWorldStorage(func(context.Context) (*bucket_lookup.Cursor, error) {
+		return invalidCursor, nil
+	})
+	invalidOwned, err := invalidStorage.BuildOwnedLookupCursor(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s4wave_kv_world.NewWorldBackedStore(ctx, nil, invalidOwned, tb.WorldState, "kv/invalid"); err == nil {
+		t.Fatal("expected invalid inner store root error")
+	}
+	if innerFailureReleases.Load() != 1 {
+		t.Fatalf("inner constructor failure releases = %d, want 1", innerFailureReleases.Load())
+	}
 }

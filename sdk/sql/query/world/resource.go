@@ -262,36 +262,23 @@ func (r *SqlQueryResource) openRows(
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "sql/query: open target db object")
 	}
-	rootRef, _, err := obj.GetRootRef(ctx)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "sql/query: read target db root")
-	}
-	storageRoot, err := r.engine.BuildStorageCursor(ctx)
+	owned, err := obj.BuildOwnedLookupCursor(ctx, nil)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "sql/query: open target db storage cursor")
 	}
-	root, err := storageRoot.FollowRef(ctx, rootRef)
+	store, err := s4wave_sql_world.NewWorldBackedSql(ctx, owned, r.ws, targetKey)
 	if err != nil {
-		storageRoot.Release()
-		return nil, nil, errors.Wrap(err, "sql/query: follow target db root")
-	}
-	store, err := s4wave_sql_world.NewWorldBackedSql(ctx, root, r.ws, targetKey)
-	if err != nil {
-		root.Release()
-		storageRoot.Release()
 		return nil, nil, errors.Wrap(err, "sql/query: open target db store")
 	}
 	tx, err := store.NewSqlTransaction(ctx, false, "")
 	if err != nil {
 		store.Close()
-		storageRoot.Release()
 		return nil, nil, errors.Wrap(err, "sql/query: open target db read transaction")
 	}
 	ops, err := tx.GetSqlOps(ctx)
 	if err != nil {
 		tx.Discard()
 		store.Close()
-		storageRoot.Release()
 		return nil, nil, errors.Wrap(err, "sql/query: open target db SQL ops")
 	}
 	args := sql_rpc.SqlValuesToNamedValues(query.GetParameters())
@@ -302,20 +289,17 @@ func (r *SqlQueryResource) openRows(
 	if err != nil {
 		tx.Discard()
 		store.Close()
-		storageRoot.Release()
 		return nil, nil, errors.Wrap(err, "sql/query: execute target db query")
 	}
 	if rows == nil {
 		tx.Discard()
 		store.Close()
-		storageRoot.Release()
 		return nil, nil, errors.New("sql/query: query returned nil rows")
 	}
 	cleanup := func() {
 		rows.Close()
 		tx.Discard()
 		store.Close()
-		storageRoot.Release()
 	}
 	return rows, cleanup, nil
 }

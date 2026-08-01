@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/world"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 )
@@ -173,7 +173,8 @@ func (q *OpQueue) resolveKeyInput(op *Op) ([]byte, error) {
 			}
 			err = q.handle.AccessStorage(
 				q.ctx, bktRef,
-				func(bls *bucket_lookup.Cursor) error {
+				func(access *world.WorldAccess) error {
+					bls := access.Cursor()
 					_, bcs := bls.BuildTransactionAtRef(nil, bktRef.GetRootRef())
 					var berr error
 					opKey, _, berr = bcs.Fetch(q.ctx)

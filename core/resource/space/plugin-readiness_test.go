@@ -16,7 +16,7 @@ import (
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
@@ -200,7 +200,8 @@ func createPluginReadinessManifest(
 		1,
 	)
 	var manifestRef *bldr_manifest.ManifestRef
-	if err := tb.Engine.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+	if err := tb.Engine.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		cursor := access.Cursor()
 		transaction, blocks := cursor.BuildTransactionAtRef(nil, nil)
 		blocks.SetBlock(bldr_manifest.NewManifest(meta, "entrypoint"), true)
 		rootRef, _, err := transaction.Write(ctx, true)

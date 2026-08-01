@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/cayley/quad"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	"github.com/s4wave/spacewave/db/bucket"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 )
@@ -68,8 +67,8 @@ func dumpStartupManifestGraphForManifestID(
 
 func startupManifestGraphWorldBucketID(ctx context.Context, ws world.WorldState) (string, error) {
 	var bucketID string
-	err := ws.AccessWorldState(ctx, nil, func(root *bucket_lookup.Cursor) error {
-		bucketID = root.GetOpArgs().GetBucketId()
+	err := ws.AccessWorldState(ctx, nil, func(root *world.WorldAccess) error {
+		bucketID = root.Cursor().GetOpArgs().GetBucketId()
 		return nil
 	})
 	return bucketID, err

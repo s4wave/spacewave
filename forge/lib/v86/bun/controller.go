@@ -20,6 +20,7 @@ import (
 	unixfs_block_fs "github.com/s4wave/spacewave/db/unixfs/block/fs"
 	unixfs_tar "github.com/s4wave/spacewave/db/unixfs/tar"
 	v86fs "github.com/s4wave/spacewave/db/unixfs/v86fs"
+	"github.com/s4wave/spacewave/db/world"
 	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/sirupsen/logrus"
@@ -187,8 +188,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// Access storage to create mounts and run the VM.
 	// The entire subprocess execution happens inside the callback because
 	// the bucket_lookup.Cursor is only valid within its scope.
-	return c.handle.AccessStorage(ctx, nil, func(cs *bucket_lookup.Cursor) error {
-		// Initialize an empty directory as the output root.
+	return c.handle.AccessStorage(ctx, nil, func(access *world.WorldAccess) error {
+		cs := access.Cursor() // Initialize an empty directory as the output root.
 		outputHandle, err := initOutputMount(ctx, cs)
 		if err != nil {
 			return errors.Wrap(err, "init output mount")

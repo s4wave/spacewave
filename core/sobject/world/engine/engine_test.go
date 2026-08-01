@@ -14,7 +14,6 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
-	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
@@ -149,7 +148,8 @@ func TestWorldEngineController(t *testing.T) {
 	}
 	le.Info("world engine test suite passed")
 
-	err = eng.AccessWorldState(ctx, nil, func(bls *bucket_lookup.Cursor) error {
+	err = eng.AccessWorldState(ctx, nil, func(access *world.WorldAccess) error {
+		bls := access.Cursor()
 		_, bcs := bls.BuildTransaction(nil)
 		wi, err := bcs.Unmarshal(ctx, world_block.NewWorldBlock)
 		if err != nil {

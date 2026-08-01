@@ -19,23 +19,23 @@ import (
 type AccessWorldStateFunc = func(
 	ctx context.Context,
 	ref *bucket.ObjectRef,
-	cb func(*bucket_lookup.Cursor) error,
+	cb func(*WorldAccess) error,
 ) error
 
 // WorldStorage allows accessing the world storage via bucket lookup.
 type WorldStorage interface {
-	// BuildStorageCursor builds a cursor to the world storage with an empty ref.
+	// BuildStorageCursor builds a raw cursor to the world storage with an empty ref.
 	// The cursor should be released independently of the WorldState.
-	// Be sure to call Release on the cursor when done.
 	BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error)
 
-	// AccessWorldState builds a bucket lookup cursor with an optional ref.
-	// If the ref is empty, returns a cursor pointing to the root world state.
-	// The lookup cursor will be released after cb returns.
+	// BuildOwnedLookupCursor builds an owned cursor at ref.
+	BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*OwnedLookupCursor, error)
+
+	// AccessWorldState builds a borrowed access value with an optional ref.
 	AccessWorldState(
 		ctx context.Context,
 		ref *bucket.ObjectRef,
-		cb func(*bucket_lookup.Cursor) error,
+		cb func(*WorldAccess) error,
 	) error
 }
 
@@ -309,13 +309,12 @@ func AccessObject(
 	defer task.End()
 
 	var outRef *bucket.ObjectRef
-	err := access(ctx, ref, func(bls *bucket_lookup.Cursor) error {
+	err := access(ctx, ref, func(access *WorldAccess) error {
 		_, subtask := trace.NewTask(ctx, "hydra/world/access-object/build-transaction")
-		btx, bcs := bls.BuildTransaction(nil)
+		btx, bcs := access.BuildTransaction(nil)
 		subtask.End()
 		if ref.GetRootRef().GetEmpty() {
 			_, subtask = trace.NewTask(ctx, "hydra/world/access-object/init-empty-root")
-			// bcs.SetBlock(nil, false)
 			bcs.SetRefAtCursor(nil, true)
 			subtask.End()
 		}
@@ -326,7 +325,7 @@ func AccessObject(
 			return berr
 		}
 		_, subtask = trace.NewTask(ctx, "hydra/world/access-object/clone-out-ref")
-		outRef = bls.GetRefWithOpArgs()
+		outRef = access.Cursor().GetRefWithOpArgs()
 		subtask.End()
 		_, subtask = trace.NewTask(ctx, "hydra/world/access-object/write-transaction")
 		outRef.RootRef, _, berr = btx.Write(ctx, true)
