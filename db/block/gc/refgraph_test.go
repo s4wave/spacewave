@@ -739,7 +739,7 @@ func TestApplyRefBatchMissingRemovalPreservesGraphRecords(t *testing.T) {
 	}
 }
 
-func TestPrepareNativeRefBatchFiltersBackendRemovals(t *testing.T) {
+func TestPrepareRefBatchFiltersBackendRemovals(t *testing.T) {
 	ctx := context.Background()
 	rg := newTestRefGraph(t)
 
@@ -752,7 +752,7 @@ func TestPrepareNativeRefBatchFiltersBackendRemovals(t *testing.T) {
 		{Subject: "missing-owner", Object: "target"},
 		{Subject: "missing-owner", Object: "never-seen"},
 	}
-	_, backendRemoves, err := rg.prepareNativeRefBatch(ctx, nil, removes, false)
+	_, backendRemoves, err := rg.prepareRefBatch(ctx, nil, removes, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1238,5 +1238,40 @@ func TestParseBucketIRIInvalid(t *testing.T) {
 	_, ok = ParseBucketIRI("")
 	if ok {
 		t.Fatal("expected parse to fail for empty string")
+	}
+}
+
+// TestApplyRefBatchIgnoresAbsentStagingRemoval covers a removal whose subject
+// exists in the graph but whose exact edge does not. Removing the unreferenced
+// staging edge of an object that is not currently staged must not read as a
+// real removal: doing so tells the orphan pass the caller is un-staging the
+// object, and the object silently loses the orphan mark its last owner
+// departing should have produced.
+func TestApplyRefBatchIgnoresAbsentStagingRemoval(t *testing.T) {
+	ctx := context.Background()
+	rg := newTestRefGraph(t)
+
+	// Stage and un-stage an unrelated object so NodeUnreferenced is a live
+	// node in the graph rather than an IRI the store has never seen.
+	if err := rg.AddRef(ctx, NodeUnreferenced, "decoy"); err != nil {
+		t.Fatal(err)
+	}
+	if err := rg.AddRef(ctx, "owner", "target"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := rg.ApplyRefBatch(ctx, nil, []RefEdge{
+		{Subject: "owner", Object: "target"},
+		{Subject: NodeUnreferenced, Object: "target"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	unreferenced, err := rg.GetUnreferencedNodes(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(unreferenced, "target") {
+		t.Fatalf("target lost its owner but was not marked orphaned: %v", unreferenced)
 	}
 }

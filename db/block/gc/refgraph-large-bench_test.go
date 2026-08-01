@@ -23,14 +23,15 @@ func BenchmarkRefGraphRemoveBatchLargeStore(b *testing.B) {
 			Object:  "bench/large/object/" + strconv.Itoa(i),
 		}
 	}
-	// Seed through the owner API. Writing to the handle directly leaves the
-	// edge index empty, so the timed removals would run against an index
-	// holding only what the benchmark itself restores between iterations.
+	// Seed through the owner API so the timed removals see the same durable
+	// graph a live store would present them.
 	if err := rg.ApplyRefBatch(ctx, seed, nil); err != nil {
 		b.Fatal(err)
 	}
-	if got := len(rg.edgeIndex); got != seedEdgeCount {
-		b.Fatalf("seeded %d edges but the index holds %d", seedEdgeCount, got)
+	if found, err := rg.hasRef(ctx, seed[0].Subject, seed[0].Object); err != nil {
+		b.Fatal(err)
+	} else if !found {
+		b.Fatalf("seeding %d edges left %v out of the graph", seedEdgeCount, seed[0])
 	}
 	removes := seed[:removeCount]
 

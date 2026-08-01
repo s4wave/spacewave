@@ -445,6 +445,20 @@ a subdirectory.
 
 ## Storage, Concurrency, And Controllers
 
+- A Space holds an unbounded amount of data, and the design target is the
+  massive one. Opening a store, a volume, a world, or any index over them must
+  not cost time proportional to how much they hold, and keeping one open must
+  not cost memory proportional to it either. Derived state that is rebuilt by a
+  full scan at open, or held resident in a Go map sized by the stored data, puts
+  a ceiling on the Space that has nothing to do with the disk. Read through the
+  store's own indexes instead, and make the read cost proportional to the answer
+  rather than to the corpus. Writing less data is not a fix; it moves the
+  ceiling and leaves the scaling alone.
+- Benchmark the shape you are worried about. A cache that pays for itself at a
+  hundred entries can be the reason a process takes seven minutes to start at a
+  million, and a benchmark that seeds through the fast path and times only
+  mutation will never show it. Measure open against a durable store, not just
+  steady-state operations against an in-memory one.
 - `BeginReadOperation`, `NewTransaction(false)`, bucket cursors, GC wrappers,
   projection hydration, and resource read scopes are lock-owning transaction
   boundaries.
