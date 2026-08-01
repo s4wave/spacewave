@@ -307,6 +307,22 @@ func TestHasIncomingRefsExcluding(t *testing.T) {
 		t.Fatal("expected remaining non-excluded incoming ref to be detected")
 	}
 }
+func TestHasIncomingRefsExcludingMissingNameDoesNotSuppressIncomingRef(t *testing.T) {
+	ctx := context.Background()
+	rg := newTestRefGraph(t)
+
+	if err := rg.AddRef(ctx, "real-source", "target"); err != nil {
+		t.Fatal(err)
+	}
+
+	has, err := rg.HasIncomingRefsExcluding(ctx, "target", "missing-source")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !has {
+		t.Fatal("expected real incoming ref to remain visible when excluded source is missing")
+	}
+}
 
 func TestGetUnreferencedNodes(t *testing.T) {
 	ctx := context.Background()
