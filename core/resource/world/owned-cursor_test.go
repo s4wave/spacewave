@@ -15,6 +15,8 @@ import (
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	s4wave_block_cursor "github.com/s4wave/spacewave/sdk/block/cursor"
+	s4wave_block_transaction "github.com/s4wave/spacewave/sdk/block/transaction"
 	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/sirupsen/logrus"
@@ -27,6 +29,10 @@ type ownedCursorTestEngine struct {
 
 func (e *ownedCursorTestEngine) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*world.OwnedLookupCursor, error) {
 	return e.storage.BuildOwnedLookupCursor(ctx, ref)
+}
+
+func (e *ownedCursorTestEngine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
+	return e.storage.BuildStorageCursor(ctx)
 }
 
 type failingOwnedCursorResourceContext struct {
@@ -136,6 +142,67 @@ func TestEngineResourceOwnedCursorRegistrationTransfer(t *testing.T) {
 	}
 	if releases.Load() != 1 {
 		t.Fatalf("release count after child cleanup = %d, want 1", releases.Load())
+	}
+}
+
+func TestEngineResourceRawCursorGrandchildRetainsAuthority(t *testing.T) {
+	ctx := context.Background()
+	var releases atomic.Int32
+	storage := newOwnedCursorResourceTestStorage(&releases)
+	engine := &ownedCursorTestEngine{storage: storage}
+	resource := resource_world.NewEngineResource(nil, nil, engine, nil, nil)
+	resourceCtx := &worldStateOperationResourceContext{ctx: ctx}
+	callCtx := resource_server.WithResourceClientContext(ctx, resourceCtx)
+
+	resp, err := resource.BuildStorageCursor(callCtx, &s4wave_world.BuildStorageCursorRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	parentClient, err := resourceCtx.GetAttachedResource(resp.GetResourceId())
+	if err != nil {
+		t.Fatal(err)
+	}
+	parentService := s4wave_bucket_lookup.NewSRPCBucketLookupCursorResourceServiceClient(parentClient)
+	txResp, err := parentService.BuildTransaction(callCtx, &s4wave_bucket_lookup.BuildTransactionRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	txClient, err := resourceCtx.GetAttachedResource(txResp.GetTransactionResourceId())
+	if err != nil {
+		t.Fatal(err)
+	}
+	txService := s4wave_block_transaction.NewSRPCBlockTransactionResourceServiceClient(txClient)
+	rootResp, err := txService.GetRootCursor(callCtx, &s4wave_block_transaction.GetRootCursorRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	world.RetireWorldStorage(storage)
+	for _, resourceID := range []uint32{
+		resp.GetResourceId(),
+		txResp.GetCursorResourceId(),
+		txResp.GetTransactionResourceId(),
+	} {
+		if !resourceCtx.ReleaseResource(resourceID) {
+			t.Fatalf("resource %d cleanup was not registered", resourceID)
+		}
+	}
+	if releases.Load() != 0 {
+		t.Fatalf("release count with grandchild alive = %d, want 0", releases.Load())
+	}
+	rootClient, err := resourceCtx.GetAttachedResource(rootResp.GetResourceId())
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootService := s4wave_block_cursor.NewSRPCBlockCursorResourceServiceClient(rootClient)
+	if _, err := rootService.GetRef(ctx, &s4wave_block_cursor.GetRefRequest{}); err != nil {
+		t.Fatalf("grandchild cursor RPC: %v", err)
+	}
+	if !resourceCtx.ReleaseResource(rootResp.GetResourceId()) {
+		t.Fatal("grandchild resource cleanup was not registered")
+	}
+	if releases.Load() != 1 {
+		t.Fatalf("release count after grandchild cleanup = %d, want 1", releases.Load())
 	}
 }
 

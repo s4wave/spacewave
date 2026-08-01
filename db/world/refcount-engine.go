@@ -84,19 +84,12 @@ func (e *RefCountEngine) Sync(ctx context.Context) (bool, error) {
 // The cursor should be released independently of the WorldState.
 // Be sure to call Release on the cursor when done.
 func (e *RefCountEngine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor, error) {
-	var bls *bucket_lookup.Cursor
-	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
-		var err error
-		bls, err = (*val).BuildStorageCursor(ctx)
-		return err
-	})
+	engine, lease, err := e.rc.Wait(ctx)
 	if err != nil {
-		if bls != nil {
-			bls.Release()
-		}
 		return nil, err
 	}
-	return bls, nil
+	defer lease.Release()
+	return (*engine).BuildStorageCursor(ctx)
 }
 
 // BuildOwnedLookupCursor builds an owned cursor at ref.

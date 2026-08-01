@@ -161,7 +161,13 @@ func (r *BucketLookupCursorResource) BuildTransaction(ctx context.Context, req *
 	}
 	tx, rootCursor := r.cursor.BuildTransaction(req.GetPutOpts())
 
-	txResource := resource_block_transaction.NewBlockTransactionResource(r.le, r.b, tx, rootCursor)
+	txResource := resource_block_transaction.NewBlockTransactionResourceWithRetain(
+		r.le,
+		r.b,
+		tx,
+		rootCursor,
+		retainOwnedCursor(txOwner),
+	)
 	txRelease := func() {}
 	if txOwner != nil {
 		txRelease = txOwner.Release
@@ -175,7 +181,13 @@ func (r *BucketLookupCursorResource) BuildTransaction(ctx context.Context, req *
 		return nil, err
 	}
 
-	cursorResource := resource_block_cursor.NewBlockCursorResource(r.le, r.b, tx, rootCursor)
+	cursorResource := resource_block_cursor.NewBlockCursorResourceWithRetain(
+		r.le,
+		r.b,
+		tx,
+		rootCursor,
+		retainOwnedCursor(cursorOwner),
+	)
 	cursorRelease := func() {}
 	if cursorOwner != nil {
 		cursorRelease = cursorOwner.Release
@@ -205,7 +217,13 @@ func (r *BucketLookupCursorResource) BuildTransactionAtRef(ctx context.Context, 
 	}
 	tx, rootCursor := r.cursor.BuildTransactionAtRef(req.GetPutOpts(), req.GetRef())
 
-	txResource := resource_block_transaction.NewBlockTransactionResource(r.le, r.b, tx, rootCursor)
+	txResource := resource_block_transaction.NewBlockTransactionResourceWithRetain(
+		r.le,
+		r.b,
+		tx,
+		rootCursor,
+		retainOwnedCursor(txOwner),
+	)
 	txRelease := func() {}
 	if txOwner != nil {
 		txRelease = txOwner.Release
@@ -219,7 +237,13 @@ func (r *BucketLookupCursorResource) BuildTransactionAtRef(ctx context.Context, 
 		return nil, err
 	}
 
-	cursorResource := resource_block_cursor.NewBlockCursorResource(r.le, r.b, tx, rootCursor)
+	cursorResource := resource_block_cursor.NewBlockCursorResourceWithRetain(
+		r.le,
+		r.b,
+		tx,
+		rootCursor,
+		retainOwnedCursor(cursorOwner),
+	)
 	cursorRelease := func() {}
 	if cursorOwner != nil {
 		cursorRelease = cursorOwner.Release
@@ -276,6 +300,19 @@ func (r *BucketLookupCursorResource) Release(ctx context.Context, req *s4wave_bu
 		r.cursor.Release()
 	}
 	return &s4wave_bucket_lookup.ReleaseResponse{}, nil
+}
+
+func retainOwnedCursor(owned *world.OwnedLookupCursor) resource_block_cursor.RetainAuthorityFunc {
+	if owned == nil {
+		return nil
+	}
+	return func() (func(), error) {
+		child, err := owned.Clone()
+		if err != nil {
+			return nil, err
+		}
+		return child.Release, nil
+	}
 }
 
 func (r *BucketLookupCursorResource) cloneTransactionOwners() (*world.OwnedLookupCursor, *world.OwnedLookupCursor, error) {

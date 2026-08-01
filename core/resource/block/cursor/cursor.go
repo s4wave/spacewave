@@ -13,18 +13,41 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// RetainAuthorityFunc retains the storage authority backing a child resource.
+// The returned release function must be called exactly once.
+type RetainAuthorityFunc func() (func(), error)
+
 // BlockCursorResource wraps a block.Cursor for resource access.
 type BlockCursorResource struct {
-	le     *logrus.Entry
-	mux    srpc.Invoker
-	b      bus.Bus
-	tx     *block.Transaction
-	cursor *block.Cursor
+	le              *logrus.Entry
+	mux             srpc.Invoker
+	b               bus.Bus
+	tx              *block.Transaction
+	cursor          *block.Cursor
+	retainAuthority RetainAuthorityFunc
 }
 
 // NewBlockCursorResource creates a new BlockCursorResource.
 func NewBlockCursorResource(le *logrus.Entry, b bus.Bus, tx *block.Transaction, cursor *block.Cursor) *BlockCursorResource {
-	bcResource := &BlockCursorResource{le: le, b: b, tx: tx, cursor: cursor}
+	return NewBlockCursorResourceWithRetain(le, b, tx, cursor, nil)
+}
+
+// NewBlockCursorResourceWithRetain creates a block cursor resource that
+// retains backing storage authority for child cursors.
+func NewBlockCursorResourceWithRetain(
+	le *logrus.Entry,
+	b bus.Bus,
+	tx *block.Transaction,
+	cursor *block.Cursor,
+	retainAuthority RetainAuthorityFunc,
+) *BlockCursorResource {
+	bcResource := &BlockCursorResource{
+		le:              le,
+		b:               b,
+		tx:              tx,
+		cursor:          cursor,
+		retainAuthority: retainAuthority,
+	}
 	mux := srpc.NewMux()
 	_ = s4wave_block_cursor.SRPCRegisterBlockCursorResourceService(mux, bcResource)
 	bcResource.mux = mux
@@ -94,10 +117,23 @@ func (r *BlockCursorResource) FollowRef(ctx context.Context, req *s4wave_block_c
 	if newCursor == nil {
 		return nil, block.ErrNotFound
 	}
-
-	newResource := NewBlockCursorResource(r.le, r.b, r.tx, newCursor)
-	id, err := resourceCtx.AddResource(newResource.GetMux(), func() {})
+	releaseAuthority := func() {}
+	if r.retainAuthority != nil {
+		releaseAuthority, err = r.retainAuthority()
+		if err != nil {
+			return nil, err
+		}
+	}
+	newResource := NewBlockCursorResourceWithRetain(
+		r.le,
+		r.b,
+		r.tx,
+		newCursor,
+		r.retainAuthority,
+	)
+	id, err := resourceCtx.AddResource(newResource.GetMux(), releaseAuthority)
 	if err != nil {
+		releaseAuthority()
 		return nil, err
 	}
 

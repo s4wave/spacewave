@@ -141,12 +141,16 @@ func (r *WorldStateResource) BuildStorageCursor(ctx context.Context, req *s4wave
 		return nil, err
 	}
 
-	cursorResource := resource_bucket_lookup.NewBucketLookupCursorResource(r.le, r.b, cursor)
-	id, err := resourceCtx.AddResource(cursorResource.GetMux(), func() {
-		cursor.Release()
-	})
+	storage := world.NewWorldStorageFromCursorWithStore(cursor, nil)
+	owned, err := storage.BuildOwnedLookupCursor(ctx, nil)
+	world.RetireWorldStorage(storage)
 	if err != nil {
-		cursor.Release()
+		return nil, err
+	}
+	cursorResource := resource_bucket_lookup.NewOwnedBucketLookupCursorResource(r.le, r.b, owned)
+	id, err := resourceCtx.AddResource(cursorResource.GetMux(), owned.Release)
+	if err != nil {
+		owned.Release()
 		return nil, err
 	}
 

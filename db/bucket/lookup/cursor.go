@@ -293,6 +293,13 @@ func (c *Cursor) Clone() *Cursor {
 	return c.clone()
 }
 
+// CloneWithRelease clones the cursor and assigns release to the clone.
+func (c *Cursor) CloneWithRelease(release func()) *Cursor {
+	nc := c.clone()
+	nc.rel = release
+	return nc
+}
+
 // CloneWithLocalOnlyReads clones the cursor and disables network lookup reads
 // for lookup-backed buckets.
 func (c *Cursor) CloneWithLocalOnlyReads() *Cursor {

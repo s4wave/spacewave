@@ -14,16 +14,35 @@ import (
 
 // BlockTransactionResource wraps a block.Transaction for resource access.
 type BlockTransactionResource struct {
-	le         *logrus.Entry
-	b          bus.Bus
-	mux        srpc.Invoker
-	tx         *block.Transaction
-	rootCursor *block.Cursor
+	le              *logrus.Entry
+	b               bus.Bus
+	mux             srpc.Invoker
+	tx              *block.Transaction
+	rootCursor      *block.Cursor
+	retainAuthority resource_block_cursor.RetainAuthorityFunc
 }
 
 // NewBlockTransactionResource creates a new BlockTransactionResource.
 func NewBlockTransactionResource(le *logrus.Entry, b bus.Bus, tx *block.Transaction, rootCursor *block.Cursor) *BlockTransactionResource {
-	btResource := &BlockTransactionResource{le: le, b: b, tx: tx, rootCursor: rootCursor}
+	return NewBlockTransactionResourceWithRetain(le, b, tx, rootCursor, nil)
+}
+
+// NewBlockTransactionResourceWithRetain creates a transaction resource that
+// retains backing storage authority for child cursors.
+func NewBlockTransactionResourceWithRetain(
+	le *logrus.Entry,
+	b bus.Bus,
+	tx *block.Transaction,
+	rootCursor *block.Cursor,
+	retainAuthority resource_block_cursor.RetainAuthorityFunc,
+) *BlockTransactionResource {
+	btResource := &BlockTransactionResource{
+		le:              le,
+		b:               b,
+		tx:              tx,
+		rootCursor:      rootCursor,
+		retainAuthority: retainAuthority,
+	}
 	mux := srpc.NewMux()
 	_ = s4wave_block_transaction.SRPCRegisterBlockTransactionResourceService(mux, btResource)
 	btResource.mux = mux
@@ -53,9 +72,20 @@ func (r *BlockTransactionResource) Write(ctx context.Context, req *s4wave_block_
 			return nil, err
 		}
 
-		cursorResource := resource_block_cursor.NewBlockCursorResource(r.le, r.b, r.tx, rootCursor)
-		id, err := resourceCtx.AddResource(cursorResource.GetMux(), func() {})
+		releaseAuthority, err := r.retainChildAuthority()
 		if err != nil {
+			return nil, err
+		}
+		cursorResource := resource_block_cursor.NewBlockCursorResourceWithRetain(
+			r.le,
+			r.b,
+			r.tx,
+			rootCursor,
+			r.retainAuthority,
+		)
+		id, err := resourceCtx.AddResource(cursorResource.GetMux(), releaseAuthority)
+		if err != nil {
+			releaseAuthority()
 			return nil, err
 		}
 		resp.ResourceId = id
@@ -75,13 +105,31 @@ func (r *BlockTransactionResource) GetRootCursor(ctx context.Context, req *s4wav
 		return nil, block.ErrNotFound
 	}
 
-	cursorResource := resource_block_cursor.NewBlockCursorResource(r.le, r.b, r.tx, r.rootCursor)
-	id, err := resourceCtx.AddResource(cursorResource.GetMux(), func() {})
+	releaseAuthority, err := r.retainChildAuthority()
 	if err != nil {
+		return nil, err
+	}
+	cursorResource := resource_block_cursor.NewBlockCursorResourceWithRetain(
+		r.le,
+		r.b,
+		r.tx,
+		r.rootCursor,
+		r.retainAuthority,
+	)
+	id, err := resourceCtx.AddResource(cursorResource.GetMux(), releaseAuthority)
+	if err != nil {
+		releaseAuthority()
 		return nil, err
 	}
 
 	return &s4wave_block_transaction.GetRootCursorResponse{ResourceId: id}, nil
+}
+
+func (r *BlockTransactionResource) retainChildAuthority() (func(), error) {
+	if r.retainAuthority == nil {
+		return func() {}, nil
+	}
+	return r.retainAuthority()
 }
 
 // _ is a type assertion

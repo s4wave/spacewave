@@ -157,6 +157,32 @@ func TestOwnedLookupCursorChildOutlivesParentAndStorage(t *testing.T) {
 	}
 }
 
+func TestRawStorageCursorOutlivesStorage(t *testing.T) {
+	ctx := context.Background()
+	bkt := bucket_mock.NewMockBucket("source", nil)
+	var releases atomic.Int32
+	storage := NewWorldStorageFromCursorWithStore(
+		newLookupOwnerTestCursor(bkt, "source", func() { releases.Add(1) }),
+		bkt,
+	).(*cursorWorldStorage)
+
+	raw, err := storage.BuildStorageCursor(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	storage.retire()
+	if releases.Load() != 0 {
+		t.Fatalf("release count with raw cursor alive = %d, want 0", releases.Load())
+	}
+	if raw.GetRef().GetRootRef() != nil {
+		t.Fatalf("raw storage cursor root = %v, want empty", raw.GetRef().GetRootRef())
+	}
+	raw.Release()
+	if releases.Load() != 1 {
+		t.Fatalf("release count after raw cursor cleanup = %d, want 1", releases.Load())
+	}
+}
+
 func TestOwnedLookupCursorCloneRetainsAuthorityChain(t *testing.T) {
 	bkt := bucket_mock.NewMockBucket("source", nil)
 	var sourceReleases atomic.Int32

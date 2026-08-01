@@ -267,7 +267,12 @@ func (s *cursorWorldStorage) buildRaw(ctx context.Context) (*bucket_lookup.Curso
 		return nil, ErrWorldStorageUnavailable
 	}
 	if s.base != nil {
-		raw := s.base.Cursor().Clone()
+		owned, err := s.base.Clone()
+		if err != nil {
+			s.mtx.Unlock()
+			return nil, err
+		}
+		raw := owned.Cursor().CloneWithRelease(owned.Release)
 		raw.SetRootRef(nil)
 		s.mtx.Unlock()
 		return raw, nil
