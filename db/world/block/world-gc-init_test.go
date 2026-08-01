@@ -29,7 +29,7 @@ func TestBuildGCTreeInitFlag(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	gcTree, refGraph, initGCRootEdge, _, err := ws.buildGCTree(ctx, ws.bcs, nil)
+	gcTree, refGraph, initGCRootEdge, _, err := ws.buildGCTree(ctx, ws.bcs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -47,7 +47,7 @@ func TestBuildGCTreeInitFlag(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	gcTree, refGraph, initGCRootEdge, _, err = reopened.buildGCTree(ctx, reopened.bcs, nil)
+	gcTree, refGraph, initGCRootEdge, _, err = reopened.buildGCTree(ctx, reopened.bcs)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
