@@ -246,9 +246,12 @@ func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
 	tries := 0
 	var err error
 	for {
-		e.engine.rmtx.RLock()
-		rtx := e.engine.readTx
-		e.engine.rmtx.RUnlock()
+		locked := e.engine.bcast.Lock()
+		var rtx *Tx
+		if e.engine.head != nil {
+			rtx = e.engine.head.readTx
+		}
+		locked.Unlock()
 		if rtx == nil {
 			return context.Canceled
 		}
@@ -268,24 +271,52 @@ func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
 }
 
 func (e *EngineTx) refreshReadSnapshot(ctx context.Context) error {
-	e.engine.rmtx.Lock()
-	defer e.engine.rmtx.Unlock()
-	if e.engine.closed {
-		return ErrEngineClosed
-	}
+	var headRef *bucket.ObjectRef
+	var err error
+	// Load the durable coordinator head before entering Engine publication.
 	if e.engine.writeHeadRefresh != nil {
-		if err := e.engine.refreshDurableHeadLocked(ctx); err != nil {
+		headRef, err = e.engine.writeHeadRefresh(ctx)
+		if err != nil {
 			return err
 		}
 	}
-	world, err := e.engine.buildWorldState(ctx, true)
+
+	// Revalidate transaction ownership after acquiring the Engine lock.
+	locked := e.engine.bcast.Lock()
+	if e.engine.closed {
+		locked.Unlock()
+		return ErrEngineClosed
+	}
+	if e.rel.Load() {
+		locked.Unlock()
+		return tx.ErrDiscarded
+	}
+
+	// Adopt the durable head before rebuilding this transaction's snapshot.
+	retirement, err := e.engine.applyDurableHeadLocked(ctx, headRef)
 	if err != nil {
+		locked.Unlock()
+		e.engine.drainRetirement(ctx, retirement)
 		return err
 	}
-	if e.readTx != nil {
-		e.readTx.Discard()
+	world, err := e.engine.buildWorldState(ctx, true)
+	if err != nil {
+		locked.Unlock()
+		e.engine.drainRetirement(ctx, retirement)
+		return err
 	}
+
+	// Swap the caller-held snapshot and register it for Engine.Close.
+	retirementRegistered := !retirement.empty()
+	retirement.readTx = e.readTx
 	e.readTx = NewTx(world)
+	e.engine.coordinatorTxs[e] = struct{}{}
+	if !retirementRegistered {
+		retirement = e.engine.beginRetirementLocked(retirement)
+	}
+	// Drain the replaced snapshot after unlocking the Engine.
+	locked.Unlock()
+	e.engine.drainRetirement(ctx, retirement)
 	return nil
 }
 
