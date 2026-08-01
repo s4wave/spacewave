@@ -112,7 +112,8 @@ func newOwnedLookupCursor(
 	return &OwnedLookupCursor{raw: raw, auth: auth, lease: lease}
 }
 
-func (c *OwnedLookupCursor) clone() (*OwnedLookupCursor, error) {
+// Clone returns an independently owned cursor at the same reference.
+func (c *OwnedLookupCursor) Clone() (*OwnedLookupCursor, error) {
 	if c == nil || c.raw == nil || c.auth == nil {
 		return nil, ErrWorldStorageUnavailable
 	}
@@ -205,7 +206,7 @@ func (s *cursorWorldStorage) buildOwned(ctx context.Context, ref *bucket.ObjectR
 		return nil, ErrWorldStorageUnavailable
 	}
 	if s.base != nil {
-		owned, err := s.base.clone()
+		owned, err := s.base.Clone()
 		s.mtx.Unlock()
 		if err != nil {
 			return nil, err
@@ -261,19 +262,37 @@ func (s *cursorWorldStorage) buildRaw(ctx context.Context) (*bucket_lookup.Curso
 		return nil, ErrWorldStorageUnavailable
 	}
 	s.mtx.Lock()
-	defer s.mtx.Unlock()
 	if s.retired.Load() {
+		s.mtx.Unlock()
 		return nil, ErrWorldStorageUnavailable
 	}
 	if s.base != nil {
 		raw := s.base.Cursor().Clone()
 		raw.SetRootRef(nil)
+		s.mtx.Unlock()
 		return raw, nil
 	}
-	if s.buildCursorFn == nil {
+	buildCursorFn := s.buildCursorFn
+	s.mtx.Unlock()
+	if buildCursorFn == nil {
 		return nil, ErrWorldStorageUnavailable
 	}
-	return s.buildCursorFn(ctx)
+	raw, err := buildCursorFn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if raw == nil {
+		return nil, ErrWorldStorageUnavailable
+	}
+	s.mtx.Lock()
+	retired := s.retired.Load()
+	s.mtx.Unlock()
+	if retired {
+		raw.Release()
+		return nil, ErrWorldStorageUnavailable
+	}
+	raw.SetRootRef(nil)
+	return raw, nil
 }
 
 func (s *cursorWorldStorage) access(ctx context.Context, ref *bucket.ObjectRef, cb func(*WorldAccess) error) (err error) {

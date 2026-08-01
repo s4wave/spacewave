@@ -12,6 +12,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/blocktype"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/world"
 	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 	"github.com/sirupsen/logrus"
 )
@@ -22,15 +23,34 @@ type BucketLookupCursorResource struct {
 	b      bus.Bus
 	mux    srpc.Invoker
 	cursor *bucket_lookup.Cursor
+	owned  *world.OwnedLookupCursor
 }
 
 // NewBucketLookupCursorResource creates a new BucketLookupCursorResource.
 func NewBucketLookupCursorResource(le *logrus.Entry, b bus.Bus, cursor *bucket_lookup.Cursor) *BucketLookupCursorResource {
-	blcResource := &BucketLookupCursorResource{le: le, b: b, cursor: cursor}
+	return (&BucketLookupCursorResource{le: le, b: b, cursor: cursor}).initMux()
+}
+
+// NewOwnedBucketLookupCursorResource creates a resource backed by an owned
+// cursor whose authority can be retained by child resources.
+func NewOwnedBucketLookupCursorResource(
+	le *logrus.Entry,
+	b bus.Bus,
+	owned *world.OwnedLookupCursor,
+) *BucketLookupCursorResource {
+	return (&BucketLookupCursorResource{
+		le:     le,
+		b:      b,
+		cursor: owned.Cursor(),
+		owned:  owned,
+	}).initMux()
+}
+
+func (r *BucketLookupCursorResource) initMux() *BucketLookupCursorResource {
 	mux := srpc.NewMux()
-	_ = s4wave_bucket_lookup.SRPCRegisterBucketLookupCursorResourceService(mux, blcResource)
-	blcResource.mux = mux
-	return blcResource
+	_ = s4wave_bucket_lookup.SRPCRegisterBucketLookupCursorResourceService(mux, r)
+	r.mux = mux
+	return r
 }
 
 // GetMux returns the rpc mux.
@@ -51,18 +71,30 @@ func (r *BucketLookupCursorResource) FollowRef(ctx context.Context, req *s4wave_
 		return nil, err
 	}
 
+	if r.owned != nil {
+		owned, err := r.owned.FollowRef(ctx, req.GetRef())
+		if err != nil {
+			return nil, err
+		}
+		newResource := NewOwnedBucketLookupCursorResource(r.le, r.b, owned)
+		id, err := resourceCtx.AddResource(newResource.GetMux(), owned.Release)
+		if err != nil {
+			owned.Release()
+			return nil, err
+		}
+		return &s4wave_bucket_lookup.FollowRefResponse{ResourceId: id}, nil
+	}
+
 	newCursor, err := r.cursor.FollowRef(ctx, req.GetRef())
 	if err != nil {
 		return nil, err
 	}
-
 	newResource := NewBucketLookupCursorResource(r.le, r.b, newCursor)
 	id, err := resourceCtx.AddResource(newResource.GetMux(), newCursor.Release)
 	if err != nil {
 		newCursor.Release()
 		return nil, err
 	}
-
 	return &s4wave_bucket_lookup.FollowRefResponse{ResourceId: id}, nil
 }
 
@@ -123,18 +155,35 @@ func (r *BucketLookupCursorResource) BuildTransaction(ctx context.Context, req *
 	if err != nil {
 		return nil, err
 	}
-
+	txOwner, cursorOwner, err := r.cloneTransactionOwners()
+	if err != nil {
+		return nil, err
+	}
 	tx, rootCursor := r.cursor.BuildTransaction(req.GetPutOpts())
 
 	txResource := resource_block_transaction.NewBlockTransactionResource(r.le, r.b, tx, rootCursor)
-	txID, err := resourceCtx.AddResource(txResource.GetMux(), func() {})
+	txRelease := func() {}
+	if txOwner != nil {
+		txRelease = txOwner.Release
+	}
+	txID, err := resourceCtx.AddResource(txResource.GetMux(), txRelease)
 	if err != nil {
+		txRelease()
+		if cursorOwner != nil {
+			cursorOwner.Release()
+		}
 		return nil, err
 	}
 
 	cursorResource := resource_block_cursor.NewBlockCursorResource(r.le, r.b, tx, rootCursor)
-	cursorID, err := resourceCtx.AddResource(cursorResource.GetMux(), func() {})
+	cursorRelease := func() {}
+	if cursorOwner != nil {
+		cursorRelease = cursorOwner.Release
+	}
+	cursorID, err := resourceCtx.AddResource(cursorResource.GetMux(), cursorRelease)
 	if err != nil {
+		cursorRelease()
+		resourceCtx.ReleaseResource(txID)
 		return nil, err
 	}
 
@@ -150,18 +199,35 @@ func (r *BucketLookupCursorResource) BuildTransactionAtRef(ctx context.Context, 
 	if err != nil {
 		return nil, err
 	}
-
+	txOwner, cursorOwner, err := r.cloneTransactionOwners()
+	if err != nil {
+		return nil, err
+	}
 	tx, rootCursor := r.cursor.BuildTransactionAtRef(req.GetPutOpts(), req.GetRef())
 
 	txResource := resource_block_transaction.NewBlockTransactionResource(r.le, r.b, tx, rootCursor)
-	txID, err := resourceCtx.AddResource(txResource.GetMux(), func() {})
+	txRelease := func() {}
+	if txOwner != nil {
+		txRelease = txOwner.Release
+	}
+	txID, err := resourceCtx.AddResource(txResource.GetMux(), txRelease)
 	if err != nil {
+		txRelease()
+		if cursorOwner != nil {
+			cursorOwner.Release()
+		}
 		return nil, err
 	}
 
 	cursorResource := resource_block_cursor.NewBlockCursorResource(r.le, r.b, tx, rootCursor)
-	cursorID, err := resourceCtx.AddResource(cursorResource.GetMux(), func() {})
+	cursorRelease := func() {}
+	if cursorOwner != nil {
+		cursorRelease = cursorOwner.Release
+	}
+	cursorID, err := resourceCtx.AddResource(cursorResource.GetMux(), cursorRelease)
 	if err != nil {
+		cursorRelease()
+		resourceCtx.ReleaseResource(txID)
 		return nil, err
 	}
 
@@ -178,6 +244,20 @@ func (r *BucketLookupCursorResource) Clone(ctx context.Context, req *s4wave_buck
 		return nil, err
 	}
 
+	if r.owned != nil {
+		owned, err := r.owned.Clone()
+		if err != nil {
+			return nil, err
+		}
+		clonedResource := NewOwnedBucketLookupCursorResource(r.le, r.b, owned)
+		id, err := resourceCtx.AddResource(clonedResource.GetMux(), owned.Release)
+		if err != nil {
+			owned.Release()
+			return nil, err
+		}
+		return &s4wave_bucket_lookup.CloneResponse{ResourceId: id}, nil
+	}
+
 	cloned := r.cursor.Clone()
 	clonedResource := NewBucketLookupCursorResource(r.le, r.b, cloned)
 	id, err := resourceCtx.AddResource(clonedResource.GetMux(), cloned.Release)
@@ -185,14 +265,33 @@ func (r *BucketLookupCursorResource) Clone(ctx context.Context, req *s4wave_buck
 		cloned.Release()
 		return nil, err
 	}
-
 	return &s4wave_bucket_lookup.CloneResponse{ResourceId: id}, nil
 }
 
 // Release releases the cursor resources.
 func (r *BucketLookupCursorResource) Release(ctx context.Context, req *s4wave_bucket_lookup.ReleaseRequest) (*s4wave_bucket_lookup.ReleaseResponse, error) {
-	r.cursor.Release()
+	if r.owned != nil {
+		r.owned.Release()
+	} else {
+		r.cursor.Release()
+	}
 	return &s4wave_bucket_lookup.ReleaseResponse{}, nil
+}
+
+func (r *BucketLookupCursorResource) cloneTransactionOwners() (*world.OwnedLookupCursor, *world.OwnedLookupCursor, error) {
+	if r.owned == nil {
+		return nil, nil, nil
+	}
+	txOwner, err := r.owned.Clone()
+	if err != nil {
+		return nil, nil, err
+	}
+	cursorOwner, err := r.owned.Clone()
+	if err != nil {
+		txOwner.Release()
+		return nil, nil, err
+	}
+	return txOwner, cursorOwner, nil
 }
 
 // Unmarshal fetches and unmarshals a block at the given reference.

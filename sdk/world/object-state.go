@@ -85,16 +85,9 @@ func (os *ObjectState) BuildOwnedLookupCursor(context.Context, *bucket.ObjectRef
 	return nil, world.ErrWorldStorageUnavailable
 }
 
-// AccessWorldState builds a borrowed access value with an optional ref.
-func (os *ObjectState) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef, cb func(*world.WorldAccess) error) error {
-	resp, err := os.service.AccessWorldState(ctx, &AccessWorldStateRequest{Ref: ref})
-	if err != nil {
-		return err
-	}
-
-	cursorRef := os.client.CreateResourceReference(resp.ResourceId)
-	cursorRef.Release()
-	return nil
+// AccessWorldState is unavailable for the remote object adapter.
+func (os *ObjectState) AccessWorldState(context.Context, *bucket.ObjectRef, func(*world.WorldAccess) error) error {
+	return world.ErrWorldStorageUnavailable
 }
 
 // ApplyObjectOp applies a batch operation at the object level.

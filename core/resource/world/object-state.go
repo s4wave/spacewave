@@ -72,7 +72,7 @@ func (r *ObjectStateResource) AccessWorldState(ctx context.Context, req *s4wave_
 	if err != nil {
 		return nil, err
 	}
-	cursorResource := resource_bucket_lookup.NewBucketLookupCursorResource(r.le, r.b, owned.Cursor())
+	cursorResource := resource_bucket_lookup.NewOwnedBucketLookupCursorResource(r.le, r.b, owned)
 	id, err := resourceCtx.AddResource(cursorResource.GetMux(), owned.Release)
 	if err != nil {
 		owned.Release()

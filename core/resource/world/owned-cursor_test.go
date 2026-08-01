@@ -75,7 +75,6 @@ func TestEngineResourceOwnedCursorRegistrationTransfer(t *testing.T) {
 		t.Fatalf("release count after registration = %d, want 0", releases.Load())
 	}
 
-	world.RetireWorldStorage(storage)
 	client, err := resourceCtx.GetAttachedResource(resp.GetResourceId())
 	if err != nil {
 		t.Fatal(err)
@@ -83,16 +82,60 @@ func TestEngineResourceOwnedCursorRegistrationTransfer(t *testing.T) {
 	service := s4wave_bucket_lookup.NewSRPCBucketLookupCursorResourceServiceClient(client)
 	refResp, err := service.GetRef(ctx, &s4wave_bucket_lookup.GetRefRequest{})
 	if err != nil {
-		t.Fatalf("post-retirement cursor RPC: %v", err)
+		t.Fatal(err)
 	}
-	if refResp.GetRef().GetBucketId() != "resource-owner" {
-		t.Fatalf("resource bucket = %q, want resource-owner", refResp.GetRef().GetBucketId())
+	resourceCallCtx := resource_server.WithResourceClientContext(ctx, resourceCtx)
+	cloneResp, err := service.Clone(resourceCallCtx, &s4wave_bucket_lookup.CloneRequest{})
+	if err != nil {
+		t.Fatal(err)
 	}
+	followResp, err := service.FollowRef(resourceCallCtx, &s4wave_bucket_lookup.FollowRefRequest{Ref: refResp.GetRef()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	txResp, err := service.BuildTransaction(resourceCallCtx, &s4wave_bucket_lookup.BuildTransactionRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	world.RetireWorldStorage(storage)
 	if !resourceCtx.ReleaseResource(resp.GetResourceId()) {
-		t.Fatal("resource cleanup was not registered")
+		t.Fatal("parent resource cleanup was not registered")
+	}
+	if releases.Load() != 0 {
+		t.Fatalf("release count with child resources alive = %d, want 0", releases.Load())
+	}
+	for _, childID := range []uint32{cloneResp.GetResourceId(), followResp.GetResourceId()} {
+		child, err := resourceCtx.GetAttachedResource(childID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		childService := s4wave_bucket_lookup.NewSRPCBucketLookupCursorResourceServiceClient(child)
+		childRef, err := childService.GetRef(ctx, &s4wave_bucket_lookup.GetRefRequest{})
+		if err != nil {
+			t.Fatalf("child cursor RPC: %v", err)
+		}
+		if childRef.GetRef().GetBucketId() != "resource-owner" {
+			t.Fatalf("child resource bucket = %q, want resource-owner", childRef.GetRef().GetBucketId())
+		}
+	}
+	if !resourceCtx.ReleaseResource(cloneResp.GetResourceId()) {
+		t.Fatal("clone resource cleanup was not registered")
+	}
+	if releases.Load() != 0 {
+		t.Fatalf("release count with transaction children alive = %d, want 0", releases.Load())
+	}
+	for _, childID := range []uint32{
+		followResp.GetResourceId(),
+		txResp.GetTransactionResourceId(),
+		txResp.GetCursorResourceId(),
+	} {
+		if !resourceCtx.ReleaseResource(childID) {
+			t.Fatalf("child resource %d cleanup was not registered", childID)
+		}
 	}
 	if releases.Load() != 1 {
-		t.Fatalf("release count after cleanup = %d, want 1", releases.Load())
+		t.Fatalf("release count after child cleanup = %d, want 1", releases.Load())
 	}
 }
 

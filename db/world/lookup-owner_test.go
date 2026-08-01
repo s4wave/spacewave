@@ -6,6 +6,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
@@ -266,7 +267,7 @@ func TestWorldStorageBorrowedAccessFinalizesEveryExit(t *testing.T) {
 	}
 }
 
-func TestWorldStorageBuilderRetireRejectsInFlightCursor(t *testing.T) {
+func TestWorldStorageOwnedBuilderRetireRejectsInFlightCursor(t *testing.T) {
 	ctx := context.Background()
 	bkt := bucket_mock.NewMockBucket("source", nil)
 	started := make(chan struct{})
@@ -291,6 +292,48 @@ func TestWorldStorageBuilderRetireRejectsInFlightCursor(t *testing.T) {
 	close(unblock)
 	if err := <-result; !errors.Is(err, ErrWorldStorageUnavailable) {
 		t.Fatalf("build completing after retire = %v, want %v", err, ErrWorldStorageUnavailable)
+	}
+	if releases.Load() != 1 {
+		t.Fatalf("release count = %d, want 1", releases.Load())
+	}
+}
+
+func TestWorldStorageRawBuilderDoesNotBlockRetire(t *testing.T) {
+	ctx := context.Background()
+	bkt := bucket_mock.NewMockBucket("source", nil)
+	started := make(chan struct{})
+	unblock := make(chan struct{})
+	var releases atomic.Int32
+	storage := NewCursorWorldStorage(func(context.Context) (*bucket_lookup.Cursor, error) {
+		close(started)
+		<-unblock
+		return newLookupOwnerTestCursor(bkt, "source", func() { releases.Add(1) }), nil
+	}).(*cursorWorldStorage)
+
+	result := make(chan error, 1)
+	go func() {
+		raw, err := storage.BuildStorageCursor(ctx)
+		if raw != nil {
+			raw.Release()
+		}
+		result <- err
+	}()
+	<-started
+	retired := make(chan struct{})
+	go func() {
+		storage.retire()
+		close(retired)
+	}()
+	select {
+	case <-retired:
+	case <-time.After(time.Second):
+		close(unblock)
+		<-retired
+		t.Fatal("raw cursor builder blocked storage retirement")
+	}
+	close(unblock)
+	if err := <-result; !errors.Is(err, ErrWorldStorageUnavailable) {
+		t.Fatalf("raw build completing after retire = %v, want %v", err, ErrWorldStorageUnavailable)
 	}
 	if releases.Load() != 1 {
 		t.Fatalf("release count = %d, want 1", releases.Load())

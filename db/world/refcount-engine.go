@@ -101,13 +101,12 @@ func (e *RefCountEngine) BuildStorageCursor(ctx context.Context) (*bucket_lookup
 
 // BuildOwnedLookupCursor builds an owned cursor at ref.
 func (e *RefCountEngine) BuildOwnedLookupCursor(ctx context.Context, ref *bucket.ObjectRef) (*OwnedLookupCursor, error) {
-	var owned *OwnedLookupCursor
-	err := e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
-		var err error
-		owned, err = (*val).BuildOwnedLookupCursor(ctx, ref)
-		return err
-	})
-	return owned, err
+	engine, lease, err := e.rc.Wait(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer lease.Release()
+	return (*engine).BuildOwnedLookupCursor(ctx, ref)
 }
 
 // AccessWorldState builds a borrowed access value with an optional ref.
@@ -116,9 +115,12 @@ func (e *RefCountEngine) AccessWorldState(
 	ref *bucket.ObjectRef,
 	cb func(*WorldAccess) error,
 ) error {
-	return e.rc.Access(ctx, func(ctx context.Context, val *Engine) error {
-		return (*val).AccessWorldState(ctx, ref, cb)
-	})
+	engine, lease, err := e.rc.Wait(ctx)
+	if err != nil {
+		return err
+	}
+	defer lease.Release()
+	return (*engine).AccessWorldState(ctx, ref, cb)
 }
 
 // GetSeqno returns the current seqno of the world state.
