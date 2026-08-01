@@ -37,8 +37,6 @@ const (
 
 type worldRefGraph interface {
 	block_gc.RefGraphOps
-	CloneIRIRefKeys() map[string]any
-	ImportIRIRefKeys(map[string]any)
 }
 
 // WorldState implements world state backed by a block graph.
@@ -387,11 +385,6 @@ func (t *WorldState) setBlockTransaction(
 		return err
 	}
 
-	var refGraphIRIRefKeys map[string]any
-	if t.refGraph != nil {
-		refGraphIRIRefKeys = t.refGraph.CloneIRIRefKeys()
-	}
-
 	// Build GC ref graph for writable transactions with a store.
 	var gcTree kvtx.BlockTx
 	var refGraph *block_gc.RefGraph
@@ -407,7 +400,6 @@ func (t *WorldState) setBlockTransaction(
 			objTree.Discard()
 			return err
 		}
-		refGraph.ImportIRIRefKeys(refGraphIRIRefKeys)
 	}
 
 	// Build the deferred GC journal tree at sub-block 6.

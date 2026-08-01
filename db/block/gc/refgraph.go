@@ -3,7 +3,6 @@ package block_gc
 import (
 	"context"
 	"io"
-	"maps"
 	"sync"
 
 	"github.com/aperturerobotics/cayley"
@@ -28,9 +27,7 @@ import (
 type RefGraph struct {
 	handle *cayley.Handle
 
-	writeMu    sync.Mutex
-	mu         sync.Mutex
-	iriRefKeys map[string]any
+	writeMu sync.Mutex
 }
 
 const (
@@ -521,18 +518,10 @@ func (rg *RefGraph) HasIncomingRefsExcluding(
 func (rg *RefGraph) resolveIRIRefKeys(ctx context.Context, iris []string) (map[any]struct{}, error) {
 	excludedSet := make(map[any]struct{}, len(iris))
 	toResolve := make([]quad.Value, 0, len(iris))
-	toResolveIRIs := make([]string, 0, len(iris))
 
-	rg.mu.Lock()
 	for _, iri := range iris {
-		if key, ok := rg.iriRefKeys[iri]; ok {
-			excludedSet[key] = struct{}{}
-			continue
-		}
-		toResolveIRIs = append(toResolveIRIs, iri)
 		toResolve = append(toResolve, quad.IRI(iri))
 	}
-	rg.mu.Unlock()
 
 	if len(toResolve) == 0 {
 		return excludedSet, nil
@@ -559,52 +548,14 @@ func (rg *RefGraph) resolveIRIRefKeys(ctx context.Context, iris []string) (map[a
 		return nil, err
 	}
 
-	_, subtask = trace.NewTask(ctx, "hydra/block-gc/refgraph/has-incoming-refs-excluding/resolve-excluded/cache-refs")
-	rg.mu.Lock()
-	for i, ref := range resolved {
+	for _, ref := range resolved {
 		if ref == nil {
 			continue
 		}
-		key := refs.ToKey(ref)
-		iri := toResolveIRIs[i]
-		if rg.iriRefKeys == nil {
-			rg.iriRefKeys = make(map[string]any)
-		}
-		rg.iriRefKeys[iri] = key
-		excludedSet[key] = struct{}{}
+		excludedSet[refs.ToKey(ref)] = struct{}{}
 	}
-	rg.mu.Unlock()
-	subtask.End()
 
 	return excludedSet, nil
-}
-
-// CloneIRIRefKeys returns a snapshot of the positive IRI ref-key cache.
-func (rg *RefGraph) CloneIRIRefKeys() map[string]any {
-	rg.mu.Lock()
-	defer rg.mu.Unlock()
-
-	if len(rg.iriRefKeys) == 0 {
-		return nil
-	}
-	out := make(map[string]any, len(rg.iriRefKeys))
-	maps.Copy(out, rg.iriRefKeys)
-	return out
-}
-
-// ImportIRIRefKeys seeds the positive IRI ref-key cache.
-func (rg *RefGraph) ImportIRIRefKeys(keys map[string]any) {
-	if len(keys) == 0 {
-		return
-	}
-
-	rg.mu.Lock()
-	defer rg.mu.Unlock()
-
-	if rg.iriRefKeys == nil {
-		rg.iriRefKeys = make(map[string]any, len(keys))
-	}
-	maps.Copy(rg.iriRefKeys, keys)
 }
 
 // GetOutgoingRefs returns all targets of gc/ref edges from the given node.
