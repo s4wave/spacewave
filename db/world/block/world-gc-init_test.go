@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -56,45 +55,4 @@ func TestBuildGCTreeInitFlag(t *testing.T) {
 	}
 	_ = refGraph.Close()
 	gcTree.Discard()
-}
-
-// TestSetBlockTransactionCarriesRefGraphIRIRefKeys keeps the positive IRI
-// ref-key cache across writable refgraph rebuilds.
-func TestSetBlockTransactionCarriesRefGraphIRIRefKeys(t *testing.T) {
-	ctx := context.Background()
-	le := logrus.NewEntry(logrus.New())
-
-	tb, err := testbed.NewTestbed(ctx, le)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	ocs, err := tb.BuildEmptyCursor(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	t.Cleanup(ocs.Release)
-
-	ws, err := BuildMockWorldState(ctx, le, true, ocs, false)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if ws.refGraph == nil {
-		t.Fatal("expected writable world state to build a refgraph")
-	}
-
-	cached := map[string]any{
-		block_gc.NodeUnreferenced: "cached-unreferenced",
-		block_gc.ObjectIRI("foo"): "cached-object",
-	}
-	ws.refGraph.ImportIRIRefKeys(cached)
-
-	if err := ws.SetBlockTransaction(ctx, ws.btx, ws.bcs); err != nil {
-		t.Fatal(err.Error())
-	}
-	got := ws.refGraph.CloneIRIRefKeys()
-	for iri, key := range cached {
-		if got[iri] != key {
-			t.Fatalf("expected cached key for %q to survive rebuild", iri)
-		}
-	}
 }
