@@ -579,6 +579,9 @@ func (e *Engine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor,
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
 // If the ref Bucket ID is empty, uses the same bucket + volume as the world.
 // The lookup cursor will be released after cb returns.
+// The root clone is made while rmtx is held for the documented same-bucket
+// root path. Cursor.Clone does not retain a bucket-handle release owner, so
+// this does not establish a cross-bucket lifetime across Engine.Close.
 //
 // NOTE: this is the implementation of AccessWorldState for the world/block engine.
 func (e *Engine) AccessWorldState(
@@ -587,28 +590,29 @@ func (e *Engine) AccessWorldState(
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
 	e.rmtx.RLock()
-	closed := e.closed
-	e.rmtx.RUnlock()
-	if closed {
+	if e.closed {
+		e.rmtx.RUnlock()
 		return ErrEngineClosed
 	}
+	ncs := e.root.Clone()
+	e.rmtx.RUnlock()
+	defer ncs.Release()
+
 	if ref == nil {
-		ncs := e.root.Clone()
-		defer ncs.Release()
 		return cb(ncs)
 	}
 
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
-	// follow the root block ref
-	ncs, err := e.root.FollowRef(subCtx, ref)
+	// follow the root block ref outside the engine lock
+	followed, err := ncs.FollowRef(subCtx, ref)
 	if err != nil {
 		return err
 	}
-	defer ncs.Release()
+	defer followed.Release()
 
-	return cb(ncs)
+	return cb(followed)
 }
 
 // GetSeqno returns the current seqno of the world state.
