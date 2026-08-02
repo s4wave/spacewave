@@ -68,12 +68,12 @@ func (a *API) ApplyBucketConfig(
 		if emittedAny.Load() {
 			handleErr(nil)
 		}
-	})
+	})()
 
 	select {
 	case <-ctx.Done():
 		return nil
-	case <-errCh:
+	case err := <-errCh:
 		return err
 	}
 }
