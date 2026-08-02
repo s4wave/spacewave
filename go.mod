@@ -28,7 +28,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
-	github.com/aperturerobotics/bbolt v0.0.0-20260728094431-16915d2cabe4 // master
+	github.com/aperturerobotics/bbolt v0.0.0-20260802102853-331472f62805 // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260705021747-c5ec5d20d2b6 // master
 	github.com/aperturerobotics/cli v1.1.0 // v1.1.0
