@@ -14,12 +14,6 @@ var ErrInvalidThreshold = errors.New("invalid threshold configuration")
 // ErrContextMismatch is returned when the envelope context does not match the expected context.
 var ErrContextMismatch = errors.New("envelope context does not match expected context")
 
-// ErrInsufficientShares is returned when there are not enough shares to unlock the envelope.
-var ErrInsufficientShares = errors.New("insufficient shares to unlock envelope")
-
-// ErrInvalidShareData is returned when share data is malformed or invalid.
-var ErrInvalidShareData = errors.New("invalid share data")
-
 // ErrInvalidKeypairIndex is returned when a keypair index is out of range.
 var ErrInvalidKeypairIndex = errors.New("keypair index out of range")
 
