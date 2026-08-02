@@ -8,12 +8,14 @@ import (
 type scopeKey struct {
 	volumeID      string
 	objectStoreID string
+	key           string
 }
 
 func newScopeKey(scope coord.Scope) scopeKey {
 	return scopeKey{
 		volumeID:      scope.VolumeID,
 		objectStoreID: scope.ObjectStoreID,
+		key:           scope.Key,
 	}
 }
 

@@ -69,7 +69,7 @@ func (w *watch) start() {
 
 func (w *watch) send(event coord.Event) {
 	if event.Generation == 0 {
-		generation, err := w.c.generation(w.ctx)
+		generation, err := w.c.generation(w.ctx, w.scope)
 		if err != nil {
 			return
 		}

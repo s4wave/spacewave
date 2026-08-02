@@ -19,9 +19,21 @@ type Coordinator interface {
 
 // WriteLease owns one logical write turn for a scoped ObjectStore.
 type WriteLease interface {
+	// Done returns a channel closed when the lease is released or lost.
+	//
+	// Done closes on release or on involuntary loss. A backend reporting
+	// Capability.DetectsLoss false closes Done only from Release.
+	Done() <-chan struct{}
+	// Err returns the loss error after Done is closed, or nil for a held or
+	// cleanly released lease.
+	Err() error
 	// Refresh returns the latest durable generation and root before writing.
+	//
+	// Refresh on a scope with Capability.Generations false returns ErrUnsupported.
 	Refresh(ctx context.Context) (*Snapshot, error)
 	// Publish records an accepted generation/root/prefix change.
+	//
+	// Publish on a scope with Capability.Generations false returns ErrUnsupported.
 	Publish(ctx context.Context, event Event) (*Snapshot, error)
 	// Release releases the logical write lease.
 	//

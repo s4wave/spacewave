@@ -41,6 +41,7 @@ func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord
 		VolumeID:      scope.VolumeID,
 		ObjectStoreID: scope.ObjectStoreID,
 		Generation:    generation,
+		Generations:   scope.Key == "",
 	}, nil
 }
 
@@ -48,6 +49,9 @@ func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord
 func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.Snapshot, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	if scope.Key != "" {
+		return nil, coord.ErrUnsupported
 	}
 
 	c.mu.Lock()
@@ -60,6 +64,9 @@ func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.S
 func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGeneration uint64) (coord.Watch, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	if scope.Key != "" {
+		return nil, coord.ErrUnsupported
 	}
 
 	watch := &watch{
@@ -95,6 +102,9 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 	if err := ctx.Err(); err != nil {
 		return nil, false, err
 	}
+	if scope.ObjectStoreID == "" && scope.Key == "" {
+		return nil, false, coord.ErrScopeEmpty
+	}
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -112,13 +122,16 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 	}
 
 	state.locked = true
-	return &lease{c: c, scope: scope, state: state}, true, nil
+	return &lease{c: c, scope: scope, state: state, done: make(chan struct{})}, true, nil
 }
 
 // WaitAcquireWriteLease waits until the logical write lease is available.
 func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	if scope.ObjectStoreID == "" && scope.Key == "" {
+		return nil, coord.ErrScopeEmpty
 	}
 
 	cancelWake := context.AfterFunc(ctx, func() {
@@ -147,7 +160,7 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 	}
 
 	state.locked = true
-	return &lease{c: c, scope: scope, state: state}, nil
+	return &lease{c: c, scope: scope, state: state, done: make(chan struct{})}, nil
 }
 
 func (c *Coordinator) getScopeLocked(scope coord.Scope) *scopeState {
