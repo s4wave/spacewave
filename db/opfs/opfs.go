@@ -1059,14 +1059,18 @@ func (BrowserDriver) SyncAvailable() bool {
 	return method.Type() == js.TypeFunction
 }
 
-// PreferSyncAccessHandles reports whether the current runtime supports sync
-// access handles for writes.
+// PreferSyncAccessHandles reports whether writes should take the sync access
+// handle path, which needs both SyncAvailable and a build that does not use
+// the TinyGo helpers. A TinyGo DedicatedWorker exposing createSyncAccessHandle
+// reports false, and its writes go through the async path.
 func PreferSyncAccessHandles() bool {
 	return DefaultDriver.PreferSyncAccessHandles()
 }
 
-// PreferSyncAccessHandles reports whether the current runtime supports sync
-// access handles for writes.
+// PreferSyncAccessHandles reports whether writes should take the sync access
+// handle path, which needs both SyncAvailable and a build that does not use
+// the TinyGo helpers. A TinyGo DedicatedWorker exposing createSyncAccessHandle
+// reports false, and its writes go through the async path.
 func (d BrowserDriver) PreferSyncAccessHandles() bool {
 	return d.SyncAvailable() && !jsutil.UseTinyGoHelpers()
 }
