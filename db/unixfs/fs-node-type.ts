@@ -8,18 +8,17 @@ const ModeSymlink = 0x08000000
 const ModeIrregular = 0x00080000
 // ModePerm is the permission bits mask (matching Go fs.ModePerm).
 const ModePerm = 0o777
-// ModeTypeMask is the type bits mask (matching Go fs.ModeType).
+// ModeTypeMask is the type bits mask (matching Go fs.ModeType), which
+// excludes setuid, setgid, and sticky: those bits do not change the node type.
 const ModeTypeMask =
-  ModeDir |
-  ModeSymlink |
-  ModeIrregular |
-  0x04000000 |
-  0x02000000 |
-  0x01000000 |
-  0x00800000 |
-  0x00400000 |
-  0x00200000 |
-  0x00100000
+  (ModeDir |
+    ModeSymlink |
+    ModeIrregular |
+    0x04000000 | // ModeDevice
+    0x02000000 | // ModeNamedPipe
+    0x01000000 | // ModeSocket
+    0x00200000) >>> // ModeCharDevice
+  0
 
 // fsCursorNodeType is a static node type value.
 class StaticFSCursorNodeType implements FSCursorNodeType {
@@ -78,16 +77,18 @@ export function defaultPermissions(nt: FSCursorNodeType): number {
 }
 
 // nodeTypeToMode converts a FSCursorNodeType into a mode value.
+// Modes are unsigned 32-bit values matching Go fs.FileMode, so the results
+// of the signed JS bitwise operators are coerced with >>> 0.
 export function nodeTypeToMode(
   nodeType: FSCursorNodeType,
   permissions: number,
 ): number {
   permissions = permissions & ModePerm
   if (nodeType.getIsSymlink()) {
-    return permissions | ModeSymlink
+    return (permissions | ModeSymlink) >>> 0
   }
   if (nodeType.getIsDirectory()) {
-    return permissions | ModeDir
+    return (permissions | ModeDir) >>> 0
   }
   if (nodeType.getIsFile()) {
     return permissions
@@ -98,6 +99,7 @@ export function nodeTypeToMode(
 // fileModeToNodeType converts a file mode to a FSCursorNodeType.
 // Throws if the mode represents an unsupported type.
 export function fileModeToNodeType(mode: number): FSCursorNodeType {
+  mode = mode >>> 0
   if ((mode & ModeDir) !== 0) {
     return newFSCursorNodeType_Dir()
   }

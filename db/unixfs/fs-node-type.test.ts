@@ -14,6 +14,9 @@ const ModeDir = 0x80000000
 const ModeSymlink = 0x08000000
 const ModeIrregular = 0x00080000
 const ModePerm = 0o777
+const ModeSetuid = 0x00800000
+const ModeSetgid = 0x00400000
+const ModeSticky = 0x00100000
 
 describe('defaultPermissions', () => {
   it('returns 0o755 for directory', () => {
@@ -121,5 +124,34 @@ describe('nodeTypeToMode / fileModeToNodeType round-trip', () => {
     expect(restored.getIsSymlink()).toBe(true)
     expect(restored.getIsFile()).toBe(false)
     expect(restored.getIsDirectory()).toBe(false)
+  })
+})
+
+describe('Go fs.FileMode parity', () => {
+  it('produces the exact Go value for a 0o755 directory', () => {
+    // Go: 0o755 | fs.ModeDir == 2147484141 (unsigned 32-bit).
+    const mode = nodeTypeToMode(newFSCursorNodeType_Dir(), 0o755)
+    expect(mode).toBe(2147484141)
+    const restored = fileModeToNodeType(mode)
+    expect(restored.getIsDirectory()).toBe(true)
+  })
+
+  it('classifies a setuid regular file as a file', () => {
+    // Go fs.ModeType excludes setuid, so mode.IsRegular() is true.
+    const nt = fileModeToNodeType(ModeSetuid | 0o755)
+    expect(nt.getIsFile()).toBe(true)
+    expect(nt.getIsDirectory()).toBe(false)
+    expect(nt.getIsSymlink()).toBe(false)
+  })
+
+  it('classifies setgid and sticky regular files as files', () => {
+    expect(fileModeToNodeType(ModeSetgid | 0o644).getIsFile()).toBe(true)
+    expect(fileModeToNodeType(ModeSticky | 0o644).getIsFile()).toBe(true)
+  })
+
+  it('classifies a signed-int32 directory mode as a directory', () => {
+    // A consumer that stored the pre-fix signed value still classifies.
+    const nt = fileModeToNodeType(2147484141 | 0)
+    expect(nt.getIsDirectory()).toBe(true)
   })
 })
